@@ -17,13 +17,14 @@ class WPMUDEV_Dashboard_Special_Upgrader {
 	 * @since 4.11.13
 	 * @var array[] $plugins
 	 */
-	private $plugins = array(
-		'google-analytics-async' => array(
-			'version' => '3.3.15',
-			'old'     => 'google-analytics-async/google-analytics-async.php',
-			'new'     => 'beehive-analytics/beehive-analytics.php',
-		),
-	);
+	private $plugins
+		= array(
+			'google-analytics-async' => array(
+				'version' => '3.3.15',
+				'old'     => 'google-analytics-async/google-analytics-async.php',
+				'new'     => 'beehive-analytics/beehive-analytics.php',
+			),
+		);
 
 	/**
 	 * Plugins with activation status for restore purpose.
@@ -31,10 +32,11 @@ class WPMUDEV_Dashboard_Special_Upgrader {
 	 * @since 4.11.13
 	 * @var array[] $plugin_statuses
 	 */
-	private $plugin_statuses = array(
-		'pro'  => array(),
-		'free' => array(),
-	);
+	private $plugin_statuses
+		= array(
+			'pro'  => array(),
+			'free' => array(),
+		);
 
 	/**
 	 * List of plugin folder names which is renamed by us.
@@ -608,8 +610,9 @@ class WPMUDEV_Dashboard_Special_Upgrader {
 	private function delete_folder( $path ) {
 		$files = glob( $path . '/*' );
 		foreach ( $files as $file ) {
-			is_dir( $file ) ? $this->delete_folder( $file ) : unlink( $file );
+			is_dir( $file ) ? $this->delete_folder( $file ) : wp_delete_file( $file );
 		}
-		rmdir( $path );
+
+		rmdir( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 	}
 }

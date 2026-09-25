@@ -23,63 +23,63 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @var string (URL)
 	 */
-	protected $server_root = 'https://wpmudev.com/';
+	protected string $server_root = 'https://wpmudev.com/';
 
 	/**
 	 * Path to the REST API on the server.
 	 *
 	 * @var string (URL)
 	 */
-	protected $rest_api = 'api/dashboard/v2/';
+	protected string $rest_api = 'api/dashboard/v2/';
 
 	/**
 	 * Path to the Analytics REST API on the server.
 	 *
 	 * @var string (URL)
 	 */
-	protected $rest_api_analytics = 'api/analytics/v1/';
+	protected string $rest_api_analytics = 'api/analytics/v1/';
 
 	/**
 	 * Path to the Analytics REST API on the server.
 	 *
 	 * @var string (URL)
 	 */
-	protected $rest_api_translation = 'api/translations/v1/';
-
-	/**
-	 * Path to the hosting site endpoints.
-	 *
-	 * @var string
-	 */
-	protected $rest_api_hub = 'api/hub/v1/';
+	protected string $rest_api_translation = 'api/translations/v1/';
 
 	/**
 	 * The complete WPMUDEV REST API endpoint. Defined in constructor.
 	 *
 	 * @var string (URL)
 	 */
-	protected $server_url = '';
+	protected string $server_url = '';
 
 	/**
 	 * Stores the API key used for authentication.
 	 *
 	 * @var string
 	 */
-	protected $api_key = '';
+	protected string $api_key = '';
 
 	/**
 	 * Stores the site_id from the API.
 	 *
 	 * @var int
 	 */
-	protected $api_site_id = '';
+	protected int $api_site_id = 0;
 
 	/**
 	 * Holds the last API error that occured (if any)
 	 *
 	 * @var string
 	 */
-	public $api_error = '';
+	public string $api_error = '';
+
+	/**
+	 * Holds calls that already running in a routine
+	 *
+	 * @var array
+	 */
+	private static array $ran_calls = array();
 
 	/**
 	 * Set up the API module.
@@ -88,7 +88,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @internal
 	 */
 	public function __construct() {
-		if ( WPMUDEV_CUSTOM_API_SERVER ) {
+		if ( defined( 'WPMUDEV_CUSTOM_API_SERVER' ) && WPMUDEV_CUSTOM_API_SERVER ) {
 			$this->server_root = trailingslashit( WPMUDEV_CUSTOM_API_SERVER );
 		}
 		$this->server_url = $this->server_root . $this->rest_api;
@@ -96,7 +96,6 @@ class WPMUDEV_Dashboard_Api {
 		if ( defined( 'WPMUDEV_APIKEY' ) && WPMUDEV_APIKEY ) {
 			$this->api_key = WPMUDEV_APIKEY;
 		} else {
-			// If 'clear_key' is present in URL then do not load the key from DB.
 			$this->api_key = get_site_option( 'wpmudev_apikey' );
 		}
 
@@ -109,10 +108,9 @@ class WPMUDEV_Dashboard_Api {
 			// Run action on wpmudev admin actions.
 			add_action( 'wpmudev_dashboard_admin_request', array( $this, 'run_admin_cron' ) );
 
-			add_action( 'wpmudev_scheduled_jobs', array( $this, 'cron_hub_sync' ) );
 			add_action( 'wpmudev_scheduled_jobs', array( $this, 'refresh_projects_data' ) );
+			add_action( 'wpmudev_scheduled_jobs', array( $this, 'cron_hub_sync' ) );
 			add_action( 'wpmudev_scheduled_jobs', array( $this, 'maybe_update_translations' ) );
-
 		} elseif ( wp_next_scheduled( 'wpmudev_scheduled_jobs' ) ) {
 			// In case the cron job was already installed in a sub-site...
 			wp_clear_scheduled_hook( 'wpmudev_scheduled_jobs' );
@@ -122,7 +120,8 @@ class WPMUDEV_Dashboard_Api {
 		 * Run custom initialization code for the API module.
 		 *
 		 * @since  4.0.0
-		 * @var  WPMUDEV_Dashboard_Api The dashboards API module.
+		 *
+		 * @param WPMUDEV_Dashboard_Api $api The dashboards API module.
 		 */
 		do_action( 'wpmudev_dashboard_api_init', $this );
 	}
@@ -141,7 +140,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @since  4.0.0
 	 * @return bool
 	 */
-	public function has_key() {
+	public function has_key(): bool {
 		return ! empty( $this->api_key );
 	}
 
@@ -151,7 +150,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @since  1.0.0
 	 * @return string
 	 */
-	public function get_key() {
+	public function get_key(): string {
 		return $this->api_key;
 	}
 
@@ -162,7 +161,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @param string $key The new API key to store.
 	 */
-	public function set_key( $key ) {
+	public function set_key( string $key ) {
 		$this->api_key = $key;
 		update_site_option( 'wpmudev_apikey', $key );
 	}
@@ -178,18 +177,18 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return int
 	 */
-	public function get_site_id() {
+	public function get_site_id(): int {
 		// Do this here since we don't need it in construct.
 		if ( ! $this->api_site_id ) {
 			// Careful while using this.
 			// Manually changing site ID could break your site and hub connection.
 			// This is only for advance usage.
 			if ( defined( 'WPMUDEV_SITE_ID' ) && WPMUDEV_SITE_ID ) {
-				$this->api_site_id = WPMUDEV_SITE_ID;
+				$this->api_site_id = (int) WPMUDEV_SITE_ID;
 			} else {
 				$membership = $this->get_membership_data();
 				if ( ! empty( $membership ) && isset( $membership['hub_site_id'] ) ) {
-					$this->api_site_id = $membership['hub_site_id'];
+					$this->api_site_id = (int) $membership['hub_site_id'];
 				}
 			}
 		}
@@ -208,7 +207,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return string
 	 */
-	public function network_site_url() {
+	public function network_site_url(): string {
 		return defined( 'WPMUDEV_HUB_SITE_URL' ) ? WPMUDEV_HUB_SITE_URL : network_site_url();
 	}
 
@@ -223,7 +222,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return string
 	 */
-	public function network_home_url() {
+	public function network_home_url(): string {
 		if ( defined( 'WPMUDEV_HUB_HOME_URL' ) ) {
 			return WPMUDEV_HUB_HOME_URL;
 		} elseif ( defined( 'WPMUDEV_HUB_SITE_URL' ) ) {
@@ -244,7 +243,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return string
 	 */
-	public function network_admin_url() {
+	public function network_admin_url(): string {
 		if ( defined( 'WPMUDEV_HUB_ADMIN_URL' ) ) {
 			return WPMUDEV_HUB_ADMIN_URL;
 		} elseif ( defined( 'WPMUDEV_HUB_SITE_URL' ) ) {
@@ -262,7 +261,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @since  4.0.0
 	 * @return string
 	 */
-	public function get_test_url() {
+	public function get_test_url(): string {
 		return $this->rest_url( 'test' );
 	}
 
@@ -275,11 +274,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $endpoint The endpoint to call on the server.
+	 * @param string $endpoint The endpoint to call on the server.
 	 *
 	 * @return string The full URL to the requested endpoint.
 	 */
-	public function rest_url( $endpoint ) {
+	public function rest_url( string $endpoint ): string {
 		if ( preg_match( '!^https?://!', $endpoint ) ) {
 			$url = $endpoint;
 		} else {
@@ -297,11 +296,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $endpoint The endpoint to call on the server.
+	 * @param string $endpoint The endpoint to call on the server.
 	 *
 	 * @return string The full URL to the requested endpoint.
 	 */
-	public function rest_url_auth( $endpoint ) {
+	public function rest_url_auth( string $endpoint ): string {
 		$api_key = $this->get_key();
 		if ( false === strpos( $endpoint, '/' . $api_key ) ) {
 			$endpoint .= '/' . $api_key;
@@ -321,11 +320,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $url The full URL to evaluate.
+	 * @param string $url The full URL to evaluate.
 	 *
 	 * @return bool True if the URL is on our remote server.
 	 */
-	public function is_server_url( $url ) {
+	public function is_server_url( string $url ): bool {
 		return false !== strpos( $url, $this->server_url );
 	}
 
@@ -339,14 +338,19 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return void
 	 */
-	public function run_admin_cron( $data ) {
+	public function run_admin_cron( array $data ) {
 		if (
-			isset( $data['action'], $data['from'] ) &&
-			'cron' === $data['from'] &&
-			'hub_sync' === $data['action']
+			isset( $data['action'], $data['from'] )
+			&& 'cron' === $data['from']
+			&& 'hub_sync' === $data['action']
 		) {
+			$return_true = fn() => true;
+			add_filter( 'wp_doing_cron', $return_true );
+
 			// Run hub sync.
 			$this->hub_sync();
+
+			remove_filter( 'wp_doing_cron', $return_true );
 		}
 	}
 
@@ -378,35 +382,111 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $remote_path The API function to call.
-	 * @param  array  $data        Optional. GET or POST data to send.
-	 * @param  string $method      Optional. GET or POST.
-	 * @param  array  $options     Optional. Array of request options.
+	 * @param string $remote_path The API function to call.
+	 * @param mixed  $data        Optional. GET or POST data to send.
+	 * @param string $method      Optional. GET or POST.
+	 * @param array  $options     Optional. Array of request options.
 	 *
-	 * @return array Results of the wp_remote_get/post call.
+	 * @return array|WP_Error Results of the wp_remote_get/post call.
 	 */
-	public function call( $remote_path, $data = false, $method = 'GET', $options = array() ) {
-		$link = $this->rest_url( $remote_path );
+	public function call( string $remote_path, $data = false, string $method = 'GET', array $options = array() ) {
+		$link = $this->rest_url( $remote_path ); // use $link, to avoid using same path transient but different remote/upstream server.
+
+		$options = wp_parse_args(
+			$options,
+			array(
+				'use_transient' => true,
+				// 2 minutes = API upstream timeout is 60s + common user's http/webserver timeout is 60s
+				'transient_ttl' => 2 * MINUTE_IN_SECONDS,
+			),
+		);
+
+		/**
+		 * Override Options for API calls.
+		 *
+		 * @since  5.0.0
+		 *
+		 * @param array       $options     Current API call options.
+		 * @param string      $remote_path Remote Path of the API to call.
+		 * @param array|false $data        Request data of the API to call.
+		 * @param string      $method      Request data of the API to call.
+		 */
+		$options = apply_filters( 'wpmudev_api_call_options', $options, $remote_path, $data, $method );
+
+		$use_transient = $options['use_transient'];
+		unset( $options['use_transient'] );
+		$transient_ttl = $options['transient_ttl'];
+		unset( $options['transient_ttl'] );
+
+		$call_hash = md5( wp_json_encode( array( $link, $data, $method, $options ) ) );
+		if ( isset( self::$ran_calls[ $call_hash ] ) ) {
+			return self::$ran_calls[ $call_hash ];
+		}
+
+		// pre-set locking.
+		self::$ran_calls[ $call_hash ] = new WP_Error( 'currently_running', 'Same API call currently running.' );
+
+		$transient_response = false;
+		if ( $use_transient ) {
+			$transient_response = WPMUDEV_Dashboard::$settings->get_transient( sprintf( 'api_call_%s', $call_hash ) );
+		}
+
+		if ( false !== $transient_response ) {
+			$transient_response = is_array( $transient_response ) ? $transient_response : array();
+			$transient_response = wp_parse_args(
+				$transient_response,
+				array(
+					'type'    => 'wp_error',
+					'data'    => array(),
+					'code'    => 'empty_response',
+					'message' => 'Empty Response',
+				)
+			);
+			if ( 'wp_error' === $transient_response['type'] ) {
+				self::$ran_calls[ $call_hash ] = new WP_Error( $transient_response['code'], $transient_response['message'], $transient_response['data'] );
+
+				return self::$ran_calls[ $call_hash ];
+			}
+
+			self::$ran_calls[ $call_hash ] = $transient_response['data'];
+
+			return self::$ran_calls[ $call_hash ];
+		}
 
 		$options = wp_parse_args(
 			$options,
 			array(
 				'timeout'    => 15,
-				'sslverify'  => WPMUDEV_API_SSLVERIFY,
+				'sslverify'  => defined( 'WPMUDEV_API_SSLVERIFY' ) && WPMUDEV_API_SSLVERIFY,
 				'user-agent' => 'WPMUDEV Dashboard Client/' . WPMUDEV_Dashboard::$version . ' (+' . network_site_url() . ')',
 			)
 		);
 
 		// Solve the annoying WordPress warning: "gzinflate(): data error".
-		if ( WPMUDEV_API_UNCOMPRESSED ) {
+		if ( defined( 'WPMUDEV_API_UNCOMPRESSED' ) && WPMUDEV_API_UNCOMPRESSED ) {
 			$options['decompress'] = false;
 		}
 
-		if ( WPMUDEV_API_AUTHORIZATION ) {
-			if ( ! isset( $options['headers'] ) ) {
-				$options['headers'] = array();
-			}
-			$options['headers']['Authorization'] = WPMUDEV_API_AUTHORIZATION;
+		if ( ! isset( $options['headers'] ) ) {
+			$options['headers'] = array();
+		}
+
+		/**
+		 * Override Response of API calls.
+		 * Non-null value will short-circuit the API call and return the value.
+		 *
+		 * @since  5.0.0
+		 *
+		 * @param mixed       $result      Result of API call. null, WP_Error, array.
+		 * @param string      $remote_path Remote Path of the API to call.
+		 * @param array|false $data        Request data of the API to call.
+		 * @param string      $method      Request data of the API to call.
+		 * @param array       $options     Current API call options.
+		 */
+		$response = apply_filters( 'wpmudev_api_call_response', null, $remote_path, $data, $method, $options );
+
+		if ( ! is_null( $response ) ) {
+			return $response;
 		}
 
 		if ( 'GET' === $method ) {
@@ -415,11 +495,18 @@ class WPMUDEV_Dashboard_Api {
 			}
 			$response = wp_remote_get( $link, $options );
 		} elseif ( 'POST' === $method ) {
-			$options['body'] = $data;
-			$response        = wp_remote_post( $link, $options );
+			$options['body'] = wp_json_encode( $data );
+			if ( ! isset( $options['headers']['Content-Type'] ) ) {
+				$options['headers']['Content-Type'] = 'application/json';
+			}
+			$response = wp_remote_post( $link, $options );
 		} elseif ( 'DELETE' === $method ) {
+			$options['body']   = wp_json_encode( $data );
 			$options['method'] = 'DELETE';
-			$response          = wp_remote_request( $link, $options );
+			if ( ! isset( $options['headers']['Content-Type'] ) ) {
+				$options['headers']['Content-Type'] = 'application/json';
+			}
+			$response = wp_remote_request( $link, $options );
 		}
 
 		// Add the request-URL to the response data.
@@ -427,33 +514,52 @@ class WPMUDEV_Dashboard_Api {
 			$response['request_url'] = $link;
 		}
 
-		if ( WPMUDEV_API_DEBUG ) {
+		$transient_response = array(
+			'type' => is_wp_error( $response ) ? 'wp_error' : 'response',
+		);
+		if ( is_wp_error( $response ) ) {
+			$transient_response['code']    = $response->get_error_code();
+			$transient_response['message'] = $response->get_error_message();
+			$transient_response['data']    = $response->get_error_data();
+		} else {
+			$transient_response['data'] = $response;
+		}
+
+		if ( $use_transient ) {
+			WPMUDEV_Dashboard::$settings->set_transient( sprintf( 'api_call_%s', $call_hash ), $transient_response, $transient_ttl );
+		}
+
+		if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
 			$log = '[WPMUDEV API call] %s | %s: %s (%s)';
-			if ( WPMUDEV_API_DEBUG_ALL ) {
+			if ( defined( 'WPMUDEV_API_DEBUG_ALL' ) && WPMUDEV_API_DEBUG_ALL ) {
 				$log .= "\nRequest options: %s\nResponse: %s";
 			}
 
-			// strip down big vars unless WPMUDEV_API_DEBUG_CRAZY is defined
+			// strip down big vars unless WPMUDEV_API_DEBUG_CRAZY is defined.
 			$resp_body = wp_remote_retrieve_body( $response );
-			if ( ! defined( 'WPMUDEV_API_DEBUG_CRAZY' ) ) {
-				$req_body = isset( $options['body'] ) ? $options['body'] : '';
+			if ( ! defined( 'WPMUDEV_API_DEBUG_CRAZY' ) || ! WPMUDEV_API_DEBUG_CRAZY ) {
+				$req_body = $options['body'] ?? array();
+				if ( ! is_array( $req_body ) ) {
+					// most likely json encoded.
+					$req_body = json_decode( $req_body, true );
+					$req_body = is_array( $req_body ) ? $req_body : array(); // fool-proof for next array operations.
+				}
 				if ( isset( $req_body['projects'] ) ) {
-					/**
-					 * this contains 2 keys: plugins and themes
-					 *
-					 * @see self::get_repo_updates_infos()
-					 */
-					$repo_updates = json_decode( $req_body['repo_updates'], true );
-					$req_body['projects']     = count( (array) json_decode( $req_body['projects'] ) ) . ' PROJECTS';
-					// TODO: subject for code/implementation improvement
+					$req_body['projects'] = count( json_decode( $req_body['projects'], true ) ) . ' PROJECTS';
+				}
+				if ( isset( $req_body['repo_updates'] ) ) {
+					$repo_updates             = json_decode( $req_body['repo_updates'], true );
 					$req_body['repo_updates'] = array(
-						'plugins' => ( isset( $repo_updates['plugins'] ) && $repo_updates['plugins'] ) ? count( $repo_updates['plugins'] ) : 0,
-						'themes'  => ( isset( $repo_updates['themes'] ) && $repo_updates['themes'] ) ? count( $repo_updates['themes'] ) : 0,
+						'plugins' => count( $repo_updates['plugins'] ?? array() ),
+						'themes'  => count( $repo_updates['themes'] ?? array() ),
 					);
-					$packages                 = (object) json_decode( $req_body['packages'] );
-					$packages->plugins        = count( (array) $packages->plugins ) . ' PLUGINS';
-					$packages->themes         = count( (array) $packages->themes ) . ' THEMES';
-					$req_body['packages']     = wp_json_encode( $packages );
+				}
+				if ( isset( $req_body['packages'] ) ) {
+					$packages             = json_decode( $req_body['packages'], true );
+					$req_body['packages'] = array(
+						'plugins' => count( $packages['plugins'] ?? array() ),
+						'themes'  => count( $packages['themes'] ?? array() ),
+					);
 				}
 				$options['body'] = $req_body;
 
@@ -470,11 +576,20 @@ class WPMUDEV_Dashboard_Api {
 			}
 
 			if ( $response && is_array( $response ) ) {
-				$debug_data  = sprintf( "%s %s\n", wp_remote_retrieve_response_code( $response ), wp_remote_retrieve_response_message( $response ) );
-				$debug_data .= var_export( wp_remote_retrieve_headers( $response ), true ) . PHP_EOL; // WPCS: var_export() ok.
+				$debug_data = sprintf( "%s %s\n", wp_remote_retrieve_response_code( $response ), wp_remote_retrieve_response_message( $response ) );
+				// phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_var_export
+				$debug_data .= var_export( wp_remote_retrieve_headers( $response ), true ) . PHP_EOL;
+				// phpcs:enable WordPress.PHP.DevelopmentFunctions.error_log_var_export
 				$debug_data .= $resp_body;
 			} else {
 				$debug_data = '';
+			}
+
+			$backtrace = array();
+			if ( defined( 'WPMUDEV_API_DEBUG_CRAZY' ) && WPMUDEV_API_DEBUG_CRAZY ) {
+				$log .= "\nBacktrace: %s";
+
+				$backtrace = wp_debug_backtrace_summary( null, 0, false ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary
 			}
 
 			$msg = sprintf(
@@ -484,12 +599,16 @@ class WPMUDEV_Dashboard_Api {
 				$link,
 				wp_remote_retrieve_response_code( $response ),
 				wp_json_encode( $options ),
-				$debug_data
+				$debug_data,
+				wp_json_encode( $backtrace, JSON_PRETTY_PRINT )
 			);
-			error_log( $msg );
+			error_log( $msg ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 
-		return $response;
+		// set the $response for next call.
+		self::$ran_calls[ $call_hash ] = $response;
+
+		return self::$ran_calls[ $call_hash ];
 	}
 
 	/**
@@ -500,17 +619,20 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $remote_path The API function to call.
-	 * @param  array  $data        Optional. GET or POST data to send.
-	 * @param  string $method      Optional. GET or POST.
-	 * @param  array  $options     Optional. List of Request options.
+	 * @param string $remote_path The API function to call.
+	 * @param mixed  $data        Optional. GET or POST data to send.
+	 * @param string $method      Optional. GET or POST.
+	 * @param array  $options     Optional. List of Request options.
 	 *
 	 * @return array Results of the wp_remote_get/post call.
 	 */
-	public function call_auth( $remote_path, $data = false, $method = 'GET', $options = array() ) {
-		if ( 'GET' == $method ) {
-			$remote_path = $this->rest_url_auth( $remote_path );
-		} elseif ( 'POST' == $method ) {
+	public function call_auth( string $remote_path, $data = false, string $method = 'GET', array $options = array() ) {
+		if ( 'GET' === $method ) {
+			if ( ! isset( $options['headers'] ) ) {
+				$options['headers'] = array();
+			}
+			$options['headers']['Authorization'] = $this->get_key();
+		} elseif ( 'POST' === $method || 'DELETE' === $method ) {
 			if ( ! is_array( $data ) ) {
 				$data = array();
 			}
@@ -518,13 +640,11 @@ class WPMUDEV_Dashboard_Api {
 			$key_data            = array();
 			$key_data['api_key'] = $this->get_key();
 
-			// make sure api key is first
+			// make sure api key is first.
 			$data = array_merge( $key_data, $data );
 		}
 
-		$response = $this->call( $remote_path, $data, $method, $options );
-
-		return $response;
+		return $this->call( $remote_path, $data, $method, $options );
 	}
 
 	/**
@@ -534,7 +654,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return array $cookies
 	 */
-	public function get_encrypted_cookies() {
+	public function get_encrypted_cookies(): array {
 
 		$crypt_file = WPMUDEV_Dashboard::$site->plugin_path . 'lib/PHPSecLib/Crypt/RSA.php';
 
@@ -543,45 +663,33 @@ class WPMUDEV_Dashboard_Api {
 			return array();
 		}
 
+		$user_id = $this->get_first_admin_id();
+		if ( ! $user_id ) {
+			return array();
+		}
+
 		// Make sure the constants are set.
 		$this->define_cookie_constants();
 
-		// figure out the first admin.
-		if ( is_multisite() ) {
-			$supers = get_super_admins();
-			$user   = get_user_by( 'login', $supers[0] );
-		} else {
-			$admins = get_users(
-				array(
-					'role'   => 'administrator',
-					'number' => 1,
-				)
-			);
-			$user   = $admins[0];
-		}
-		$user_id = $user->ID;
-
 		$cookies = array();
 		$secure  = is_ssl();
-		$secure  = apply_filters( 'secure_auth_cookie', $secure, $user_id );
+		// reuse internal WP filter.
+		$secure = apply_filters( 'secure_auth_cookie', $secure, $user_id ); //phpcs:ignore
 
 		if ( $secure ) {
-			$auth_cookie_name = SECURE_AUTH_COOKIE;
+			$auth_cookie_name = defined( 'SECURE_AUTH_COOKIE' ) ? SECURE_AUTH_COOKIE : uniqid( 'secure_auth_cookie', true );
 			$scheme           = 'secure_auth';
 		} else {
-			$auth_cookie_name = AUTH_COOKIE;
+			$auth_cookie_name = defined( 'AUTH_COOKIE' ) ? AUTH_COOKIE : uniqid( 'auth_cookie', true );
 			$scheme           = 'auth';
 		}
 
-		$expiration = time() + ( DAY_IN_SECONDS * 14 ); // we expire sites from the hub after 14 days, so long enough for these cookies
+		$expiration       = time() + ( DAY_IN_SECONDS * 14 ); // we expire sites from the hub after 14 days, so long enough for these cookies.
+		$logged_in_cookie = defined( 'LOGGED_IN_COOKIE' ) ? LOGGED_IN_COOKIE : uniqid( 'logged_in_ookie', true );
 
 		$cookies[ $auth_cookie_name ] = wp_generate_auth_cookie( $user_id, $expiration, $scheme );
-		$cookies[ LOGGED_IN_COOKIE ]  = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in' );
-		$cookies['wpe-auth']          = md5( 'wpe_auth_salty_dog|' . WPE_APIKEY ); // this is WP Engine's proprietary auth cookie
-
-		if ( empty( $cookies ) ) {
-			return $cookies;
-		}
+		$cookies[ $logged_in_cookie ] = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in' );
+		$cookies['wpe-auth']          = md5( 'wpe_auth_salty_dog|' . WPE_APIKEY ); // this is WP Engine's proprietary auth cookie.
 
 		if ( ! class_exists( 'Crypt_RSA', false ) ) {
 			require_once WPMUDEV_Dashboard::$site->plugin_path . 'lib/PHPSecLib/Crypt/RSA.php';
@@ -589,13 +697,95 @@ class WPMUDEV_Dashboard_Api {
 
 		$rsa = new Crypt_RSA();
 		$rsa->setEncryptionMode( CRYPT_RSA_SIGNATURE_PKCS1 );
-		$rsa->loadKey( file_get_contents( WPMUDEV_Dashboard::$site->plugin_path . 'keys/dashboard.pub' ), CRYPT_RSA_PUBLIC_FORMAT_PKCS1 ); // public key
+		// load public key.
+		$rsa->loadKey(
+			file_get_contents( WPMUDEV_Dashboard::$site->plugin_path . 'keys/dashboard.pub' ), // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			CRYPT_RSA_PUBLIC_FORMAT_PKCS1
+		);
 
-		foreach ( $cookies as &$cookieValue ) {
-			$cookieValue = base64_encode( $rsa->encrypt( $cookieValue ) );
+		foreach ( $cookies as &$cookie_value ) {
+			$cookie_value = base64_encode( $rsa->encrypt( $cookie_value ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		}
 
 		return $cookies;
+	}
+
+	/**
+	 * Get first WP admin ID.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @return int
+	 */
+	public function get_first_admin_id(): int {
+		/**
+		 * Pre-set first admin ID.
+		 * Any non-null return will short-circuit the function, bypassing the automated traversal logic.
+		 *
+		 * @since  5.0.0
+		 *
+		 * @param null $admin_id User ID of first admin.
+		 *
+		 * @return ?int
+		 */
+		$user_id = apply_filters( 'wpmudev_dashboard_api_pre_first_admin_id', null );
+
+		if ( ! is_null( $user_id ) ) {
+			return $user_id;
+		}
+
+		$user_id = 0;
+
+		if ( is_multisite() ) {
+			// super admins on multisite.
+			$super_admins = get_super_admins();
+			foreach ( $super_admins as $super_admin ) {
+				$user = get_user_by( 'login', $super_admin );
+				if ( is_a( $user, 'WP_User' ) ) {
+					$user_id = $user->ID;
+					break;
+				}
+			}
+		} else {
+			// get from transient, get_users can be expensive in sites with very big users.
+			$cached_first_admin_id = WPMUDEV_Dashboard::$settings->get_transient( 'first_admin_id' );
+			if ( $cached_first_admin_id ) {
+				$user = get_userdata( $cached_first_admin_id );
+				if ( is_a( $user, 'WP_User' ) && in_array( 'administrator', (array) ( $user->roles ?? array() ), true ) ) {
+					$user_id = $user->ID;
+				} else {
+					WPMUDEV_Dashboard::$settings->set_transient( 'first_admin_id', null );
+				}
+			}
+
+			// transient not found or no longer valid.
+			if ( ! $user_id ) {
+				$ids = get_users(
+					array(
+						'role'        => 'administrator',
+						'number'      => 1, // only need 1.
+						'fields'      => 'ids', // only need user id.
+						'orderby'     => 'ID', // use the primary key for sorting, so its cheaper.
+						'order'       => 'ASC', // use the default ASC sorting, so its cheaper.
+						'count_total' => false, // doesn't care about count total.
+					)
+				);
+
+				$user_id = ! empty( $ids ) ? (int) $ids[0] : 0;
+				WPMUDEV_Dashboard::$settings->set_transient( 'first_admin_id', $user_id ); // transient indefinitely, it is fine because we revalidate on read.
+			}
+		}
+
+		/**
+		 * Override first admin ID.
+		 *
+		 * @since  5.0.0
+		 *
+		 * @param int $admin_id User ID of first admin.
+		 *
+		 * @return int
+		 */
+		return apply_filters( 'wpmudev_dashboard_api_first_admin_id', $user_id );
 	}
 
 	/**
@@ -604,7 +794,7 @@ class WPMUDEV_Dashboard_Api {
 	 * In WP Engine, sometimes there is a delay so we try to access
 	 * the constants before it's defined.
 	 *
-	 * @see https://incsub.atlassian.net/browse/WDD-140
+	 * @see   https://incsub.atlassian.net/browse/WDD-140
 	 *
 	 * @since 4.11.1
 	 */
@@ -622,6 +812,7 @@ class WPMUDEV_Dashboard_Api {
 	 * The proper way to get details about the current projects on DEV.
 	 *
 	 * @since  1.0.0
+	 * @since  5.0.0 Remove conditional fetch / refresh, always relies on cached WP options. WDD-571.
 	 * @return array {
 	 *         Details about current projects on DEV.
 	 *
@@ -637,28 +828,10 @@ class WPMUDEV_Dashboard_Api {
 	 * @type array  $projects          Complete list of all available projects (plugins and themes)
 	 * @type string $text_admin_notice HTML text for display
 	 * @type string $text_page_head    HTML text for display
-	 * }
+	 *                                 }
 	 */
-	public function get_projects_data() {
-		$expire = time() - ( HOUR_IN_SECONDS * 12 );
-		$flag   = WPMUDEV_Dashboard::$settings->get( 'refresh_remote', 'flags' );
-
-		if ( $flag ) {
-			WPMUDEV_Dashboard::$settings->set( 'updates_data', false );
-			$res      = false;
-			$last_run = 0;
-		} else {
-			$res      = WPMUDEV_Dashboard::$settings->get( 'updates_data' );
-			$last_run = intval( WPMUDEV_Dashboard::$settings->get( 'last_run_updates', 'general' ) );
-		}
-
-		if ( $flag || ! is_array( $res ) || ! $last_run || $expire > $last_run ) {
-			// This condition prevents race condition in case of network error
-			// or problems on API side.
-			if ( $last_run < time() ) {
-				$res = $this->refresh_projects_data();
-			}
-		}
+	public function get_projects_data(): array {
+		$res = WPMUDEV_Dashboard::$settings->get( 'updates_data' );
 
 		// Basic sanitation, to avoid incompatible return values.
 		if ( ! is_array( $res ) ) {
@@ -688,9 +861,9 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @type string $membership            [free|single|unit|full]
 	 * @type string $membership_full_level [gold|bronze|silver]
-	 * }
+	 *                                     }
 	 */
-	public function get_membership_data() {
+	public function get_membership_data(): array {
 		$res = WPMUDEV_Dashboard::$settings->get( 'membership_data' );
 		// Basic sanitation, to avoid incompatible return values.
 		if ( ! is_array( $res ) ) {
@@ -716,15 +889,11 @@ class WPMUDEV_Dashboard_Api {
 	 * 'full'    - Full membership, no restrictions.
 	 * 'free_hub'  - Free hub membership.
 	 *
-	 * @since  4.0.0
-	 * @deprecated 4.11.9 Use WPMUDEV_Dashboard::$api->get_membership_status()
-	 *
-	 * @param mixed $legacy_param - Not to be used! Remains as part of public facing
-	 *                              API, but does not affect anything.
+	 * @since      4.0.0
 	 *
 	 * @return string The membership type.
 	 */
-	public function get_membership_type( &$legacy_param = null ) {
+	public function get_membership_type(): string {
 		// Get the current membership status.
 		$type = $this->get_membership_status();
 
@@ -760,7 +929,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return string The membership type.
 	 */
-	public function get_membership_status() {
+	public function get_membership_status(): string {
 		$data = $this->get_membership_data();
 
 		// Available membership types.
@@ -779,8 +948,8 @@ class WPMUDEV_Dashboard_Api {
 		if ( is_string( $data['membership'] ) && in_array( $data['membership'], $types, true ) ) {
 			$type = $data['membership'];
 		} elseif (
-			is_numeric( $data['membership'] ) ||
-			( is_bool( $data['membership'] ) && isset( $data['membership_full_level'] ) && is_numeric( $data['membership_full_level'] ) )
+			is_numeric( $data['membership'] )
+			|| ( is_bool( $data['membership'] ) && isset( $data['membership_full_level'] ) && is_numeric( $data['membership_full_level'] ) )
 		) {
 			$type = 'single';
 		}
@@ -798,7 +967,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.9.0
 	 *
-	 * @return mixed Numeric id or available project for "single" plan or array or
+	 * @return int[]|int Numeric id or available project for "single" plan or array or
 	 *               numeric ids for "unit" plans.
 	 */
 	public function get_membership_projects() {
@@ -813,6 +982,7 @@ class WPMUDEV_Dashboard_Api {
 			foreach ( $projects as $i => $p ) {
 				$projects[ $i ] = intval( $p );
 			}
+
 			return $projects;
 		}
 		if ( is_numeric( $data['membership'] ) ) {
@@ -829,9 +999,9 @@ class WPMUDEV_Dashboard_Api {
 	 * Get projects that are strictly forbidden to be installed or updated for
 	 * current membership level.
 	 *
-	 * @return array[int] List of excluded project ids as numeric values.
+	 * @return int[] List of excluded project ids as numeric values.
 	 */
-	public function get_excluded_projects() {
+	public function get_excluded_projects(): array {
 		$key      = 'membership_excluded_projects';
 		$defaults = array( $key => array() );
 		$data     = wp_parse_args( $this->get_membership_data(), $defaults );
@@ -850,11 +1020,12 @@ class WPMUDEV_Dashboard_Api {
 	 * Checks if feature is allowed for membership plan by feature string.
 	 *
 	 * @param string $feature Feature string.
+	 *
 	 * @return boolean is allowed.
 	 */
-	private function is_feature_allowed( $feature ) {
+	private function is_feature_allowed( string $feature ): bool {
 		$data     = $this->get_membership_data();
-		$features = isset( $data['membership_access'] ) ? $data['membership_access'] : array();
+		$features = $data['membership_access'] ?? array();
 
 		// The membership_access can be boolean true for full accesss, or array with allowed features strings.
 		if ( true === $features ) {
@@ -873,13 +1044,13 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * This is here for other plugins to check feature availability.
 	 *
-	 * @param string $feature Feature string.
-	 *
 	 * @since 4.11.9
+	 *
+	 * @param string $feature Feature string.
 	 *
 	 * @return boolean is allowed.
 	 */
-	public function has_access( $feature ) {
+	public function has_access( string $feature ): bool {
 		return $this->is_feature_allowed( $feature );
 	}
 
@@ -888,7 +1059,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return boolean is allowed.
 	 */
-	public function is_whitelabel_allowed() {
+	public function is_whitelabel_allowed(): bool {
 		return $this->is_feature_allowed( 'whitelabel-dashboard' );
 	}
 
@@ -899,7 +1070,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return boolean is allowed.
 	 */
-	public function is_analytics_allowed() {
+	public function is_analytics_allowed(): bool {
 		return $this->is_feature_allowed( 'whitelabel-basic-analytics' );
 	}
 
@@ -910,7 +1081,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return boolean is allowed.
 	 */
-	public function is_support_allowed() {
+	public function is_support_allowed(): bool {
 		return $this->is_feature_allowed( 'support-forums' );
 	}
 
@@ -921,18 +1092,18 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return bool is hidden.
 	 */
-	public function is_tickets_hidden() {
+	public function is_tickets_hidden(): bool {
 		// Get membership data.
 		$data = $this->get_membership_data();
 		// Check tickets visibility.
-		$hidden = isset( $data['is_tickets_hidden'] ) && (bool) $data['is_tickets_hidden'];
+		$hidden = isset( $data['is_tickets_hidden'] ) && $data['is_tickets_hidden'];
 
 		/**
 		 * Filter hook to change tickets visibility.
 		 *
-		 * @param bool $visible Is hidden.
-		 *
 		 * @since 4.11.4
+		 *
+		 * @param bool $visible Is hidden.
 		 */
 		return apply_filters( 'wpmudev_dashboard_is_tickets_hidden', $hidden );
 	}
@@ -942,13 +1113,14 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  int $project_id The project to return.
+	 * @param int $project_id The project to return.
 	 *
-	 * @return array Project details.
+	 * @return array|false Project details.
 	 */
-	public function get_project_data( $project_id ) {
+	public function get_project_data( int $project_id ) {
 		static $all_projects = null;
-		$item                = false;
+
+		$item = false;
 
 		if ( null === $all_projects ) {
 			$data = $this->get_projects_data();
@@ -985,17 +1157,16 @@ class WPMUDEV_Dashboard_Api {
 					'package'           => 0,
 					'screenshots'       => array(),
 					'free_version_slug' => '',
+					'is_plugin_addon'   => false,
 				)
 			);
-		} else {
-			if ( WPMUDEV_API_DEBUG && defined( 'WPMUDEV_API_DEBUG_CRAZY' ) ) {
-				error_log(
-					sprintf(
-						'[WPMUDEV API Warning] No remote data found for project %s',
-						$project_id
-					)
-				);
-			}
+		} elseif ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG && defined( 'WPMUDEV_API_DEBUG_CRAZY' ) ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				sprintf(
+					'[WPMUDEV API Warning] No remote data found for project %s',
+					$project_id
+				)
+			);
 		}
 
 		return $item;
@@ -1004,13 +1175,14 @@ class WPMUDEV_Dashboard_Api {
 	/**
 	 * Get available teams for the authenticated user.
 	 *
-	 * @param string $key User API key.
-	 *
 	 * @since  4.11.10
+	 *
+	 * @param string $key User API key.
 	 *
 	 * @return array|bool
 	 */
-	public function get_user_teams( $key ) {
+	public function get_user_teams( string $key ) {
+		$options = array( 'use_transient' => false );
 		// Sets up special auth header.
 		$options['headers']                  = array();
 		$options['headers']['Authorization'] = $key;
@@ -1046,7 +1218,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @since  4.3.0
 	 * @return array Array that contains 2 sub-arrays: 'plugins' and 'themes'.
 	 */
-	public function get_repo_packages() {
+	public function get_repo_packages(): array {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		$packages = array(
 			'plugins' => array(),
@@ -1056,9 +1228,9 @@ class WPMUDEV_Dashboard_Api {
 		$plugins = get_plugins();
 		$themes  = wp_get_themes();
 
-		// First remove WPMUDEV plugins from the WP update data (for slug conflicts like
+		// First remove WPMUDEV plugins from the WP update data (for slug conflicts like.
 		$local_projects = WPMUDEV_Dashboard::$site->get_cached_projects();
-		foreach ( $local_projects as $id => $update ) {
+		foreach ( $local_projects as $update ) {
 			if ( isset( $plugins[ $update['filename'] ] ) ) {
 				unset( $plugins[ $update['filename'] ] );
 			}
@@ -1087,10 +1259,10 @@ class WPMUDEV_Dashboard_Api {
 
 		foreach ( $themes as $slug => $theme ) {
 			if ( is_multisite() ) {
-				$active = $theme->is_allowed() || get_stylesheet() == $slug; // network enabled or on main site
+				$active = $theme->is_allowed() || get_stylesheet() === $slug; // network enabled or on main site.
 			} else {
 				// If the theme is available on main site it's "active".
-				$active = get_stylesheet() == $slug;
+				$active = get_stylesheet() === $slug;
 			}
 
 			$parent                      = $theme->parent() ? $theme->get_template() : false;
@@ -1117,6 +1289,10 @@ class WPMUDEV_Dashboard_Api {
 	 */
 	public function get_repo_updates_infos() {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		$core_updates = apply_filters( 'wpmudev_pre_get_repo_updates_infos', null );
+		if ( ! is_null( $core_updates ) ) {
+			return $core_updates;
+		}
 		$core_updates = array(
 			'plugins' => array(),
 			'themes'  => array(),
@@ -1132,9 +1308,51 @@ class WPMUDEV_Dashboard_Api {
 			array( WPMUDEV_Dashboard::$site, 'filter_theme_update_count' )
 		);
 
+		$check_updates_attempted = false;
+		$doing_cron              = function_exists( 'wp_doing_cron' ) && wp_doing_cron();
+		// we can afford expensiveness, in cron ( non-interactive ).
+		if ( $doing_cron ) {
+			require_once ABSPATH . 'wp-includes/update.php';
+			if ( function_exists( '_maybe_update_plugins' ) ) {
+				_maybe_update_plugins();
+			}
+			if ( function_exists( '_maybe_update_themes' ) ) {
+				_maybe_update_themes();
+			}
+			$check_updates_attempted = true;
+		}
+
 		// Get the available updates list.
 		$plugin_data = get_site_transient( 'update_plugins' );
 		$theme_data  = get_site_transient( 'update_themes' );
+
+		// updates transient expected to be an object, when it isn't, it means it was deleted, usually due to WP core flow, and it ended up as `false`.
+		// in that case, we are getting the data from snapshot.
+		// in most if not all cases, the snapshot should be valid ( not stale ), as in WP core flow it usually do wp_update_plugins|themes.
+		// ref: https://core.trac.wordpress.org/ticket/65543.
+		// we could force WP core wp_update_plugins|themes routine here, but it could be expensive.
+		if ( ! is_object( $plugin_data ) ) {
+			$plugin_data = WPMUDEV_Dashboard::$site->get_plugin_updates_transient_snapshot();
+			// last _expensive_ resort, trigger WP core routine.
+			if ( ! is_object( $plugin_data ) && ! $check_updates_attempted ) {
+				require_once ABSPATH . 'wp-includes/update.php';
+				if ( function_exists( '_maybe_update_plugins' ) ) {
+					_maybe_update_plugins();
+					$plugin_data = get_site_transient( 'update_plugins' );
+				}
+			}
+		}
+		if ( ! is_object( $theme_data ) ) {
+			$theme_data = WPMUDEV_Dashboard::$site->get_theme_updates_transient_snapshot();
+			// last _expensive_ resort, trigger WP core routine.
+			if ( ! is_object( $theme_data ) && ! $check_updates_attempted ) {
+				require_once ABSPATH . 'wp-includes/update.php';
+				if ( function_exists( '_maybe_update_themes' ) ) {
+					_maybe_update_themes();
+					$theme_data = get_site_transient( 'update_themes' );
+				}
+			}
+		}
 
 		// Restore our filters to include WPMU DEV projects in the updates list.
 		add_filter(
@@ -1146,9 +1364,9 @@ class WPMUDEV_Dashboard_Api {
 			array( WPMUDEV_Dashboard::$site, 'filter_theme_update_count' )
 		);
 
-		// First remove WPMUDEV plugins from the WP update data (for slug conflicts like
+		// First remove WPMUDEV plugins from the WP update data (for slug conflicts like.
 		$local_projects = WPMUDEV_Dashboard::$site->get_cached_projects();
-		foreach ( $local_projects as $id => $update ) {
+		foreach ( $local_projects as $update ) {
 			if ( isset( $plugin_data->response[ $update['filename'] ] ) ) {
 				unset( $plugin_data->response[ $update['filename'] ] );
 			}
@@ -1180,13 +1398,15 @@ class WPMUDEV_Dashboard_Api {
 
 		if ( isset( $theme_data->response ) && is_array( $theme_data->response ) ) {
 			foreach ( $theme_data->response as $slug => $infos ) {
-				$item                            = wp_get_theme( $slug );
+				$item = wp_get_theme( $slug );
+				// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$core_updates['themes'][ $slug ] = array(
-					'name'        => $item->Name,
-					'version'     => $item->Version,
+					'name'        => $item->get( 'Name' ),
+					'version'     => $item->get( 'Version' ),
 					'new_version' => $infos['new_version'],
 					'upgradable'  => ! empty( $infos['package'] ),
 				);
+				// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
 		}
 
@@ -1200,7 +1420,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @return array
 	 */
 	public function get_profile() {
-		$expire = time() - ( MINUTE_IN_SECONDS * 10 );
+		$expire = time() - ( HOUR_IN_SECONDS );
 		$flag   = WPMUDEV_Dashboard::$settings->get( 'refresh_profile', 'flags' );
 
 		if ( $flag ) {
@@ -1266,14 +1486,14 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  int    $pid          The Project ID.
-	 * @param  string $last_version Optional. The last version that must appear
-	 *                              in the changelog; used to refresh cached changelog data before
-	 *                              the cache expires.
+	 * @param int          $pid          The Project ID.
+	 * @param string|false $last_version Optional. The last version that must appear
+	 *                                   in the changelog; used to refresh cached changelog data before
+	 *                                   the cache expires.
 	 *
 	 * @return array
 	 */
-	public function get_changelog( $pid, $last_version = false ) {
+	public function get_changelog( int $pid, $last_version = false ) {
 		$res = WPMUDEV_Dashboard::$settings->get_transient( 'changelog_' . $pid );
 
 		if ( $last_version && is_array( $res ) && ! empty( $res[0] ) ) {
@@ -1281,7 +1501,7 @@ class WPMUDEV_Dashboard_Api {
 
 			if ( empty( $res['timestamp'] ) ) {
 				$res = false;
-			} elseif ( ! empty( $res['timestamp'] ) && $res['timestamp'] <= $retry_stamp ) {
+			} elseif ( $res['timestamp'] <= $retry_stamp ) {
 				// Check if version in cache is less then the latest version.
 				if ( version_compare( $res[0]['version'], $last_version, 'lt' ) ) {
 					$res = false; // Cache is outdated and needs to be refreshed.
@@ -1312,12 +1532,12 @@ class WPMUDEV_Dashboard_Api {
 	/**
 	 * Generates the stats data about the site and installed products
 	 *
-	 * @param  bool       $encoded        Whether to json encode the fields that are arrays
-	 * @param  bool|array $local_projects Optional array of local projects, pass if you have it to save time
+	 * @param bool       $encoded        Whether to json encode the fields that are arrays.
+	 * @param bool|array $local_projects Optional array of local projects, pass if you have it to save time.
 	 *
 	 * @return array
 	 */
-	public function build_api_data( $encoded = false, $local_projects = false ) {
+	public function build_api_data( bool $encoded = false, $local_projects = false ): array {
 		global $wp_version;
 
 		if ( ! is_array( $local_projects ) ) {
@@ -1332,13 +1552,13 @@ class WPMUDEV_Dashboard_Api {
 		$theme      = wp_get_theme();
 		$ms_allowed = $theme->get_allowed();
 		foreach ( $local_projects as $pid => $item ) {
-			if ( 'theme' == $item['type'] ) {
+			if ( 'theme' === $item['type'] ) {
 				$slug = dirname( $item['filename'] );
 				if ( is_multisite() ) {
-					$active = ! empty( $ms_allowed[ $slug ] ) || ( $theme->stylesheet == $slug || $theme->template == $slug ); // network enabled or on main site
+					$active = ! empty( $ms_allowed[ $slug ] ) || ( $theme->stylesheet === $slug || $theme->template === $slug ); // network enabled or on main site.
 				} else {
 					// If the theme is available on main site it's "active".
-					$active = ( $theme->stylesheet == $slug || $theme->template == $slug );
+					$active = ( $theme->stylesheet === $slug || $theme->template === $slug );
 				}
 			} else {
 				// On multisite, only consider network active plugins as active.
@@ -1351,16 +1571,17 @@ class WPMUDEV_Dashboard_Api {
 			 * Collect extra data from individual plugins.
 			 *
 			 * @since  4.0.0
-			 * @api    wpmudev_api_project_extra_data-$pid
 			 *
-			 * @param  string $extra Default extra data is an empty string.
+			 * @param string $extra Default extra data is an empty string.
+			 *
+			 * @api    wpmudev_api_project_extra_data-$pid
 			 */
-			$extra = apply_filters( "wpmudev_api_project_extra_data-$pid", $extra );
+			$extra = apply_filters( "wpmudev_api_project_extra_data_$pid", $extra );
 			$extra = apply_filters( 'wpmudev_api_project_extra_data', $extra, $pid );
 
 			$projects[ $pid ] = array(
 				'version' => $item['version'],
-				'active'  => $active ? true : false,
+				'active'  => (bool) $active,
 				'extra'   => $extra,
 			);
 		}
@@ -1369,9 +1590,10 @@ class WPMUDEV_Dashboard_Api {
 		 * Allows modification of the plugin data that is sent to the server.
 		 *
 		 * @since  4.0.0
-		 * @api    wpmudev_api_project_data
 		 *
-		 * @param  array $projects The whole array of project details.
+		 * @param array $projects The whole array of project details.
+		 *
+		 * @api    wpmudev_api_project_data
 		 */
 		$projects = apply_filters( 'wpmudev_api_project_data', $projects );
 
@@ -1395,7 +1617,7 @@ class WPMUDEV_Dashboard_Api {
 
 		$packages = $this->get_repo_packages();
 
-		// get auth cookies if in WP Engine
+		// get auth cookies if in WP Engine.
 		$auth_cookies = $this->get_encrypted_cookies();
 
 		$call_version = WPMUDEV_Dashboard::$version;
@@ -1416,16 +1638,17 @@ class WPMUDEV_Dashboard_Api {
 		);
 
 		// Report the hosting site_id if in WPMUDEV Hosting environment.
-		if ( WPMUDEV_Dashboard::$api->is_wpmu_dev_hosting() ) {
-			$data['hosting_site_id'] = defined( 'WPMUDEV_HOSTING_SITE_ID' ) ? WPMUDEV_HOSTING_SITE_ID : gethostname();
+		$full_wpmu_dev_hosting_id = $this->get_full_wpmu_dev_hosting_id();
+		if ( ! empty( $full_wpmu_dev_hosting_id ) ) {
+			$data['hosting_site_id'] = $full_wpmu_dev_hosting_id;
 		}
 
 		if ( $encoded ) {
-			$data['projects']     = json_encode( $data['projects'] );
-			$data['repo_updates'] = json_encode( $data['repo_updates'] );
-			$data['packages']     = json_encode( $data['packages'] );
-			$data['auth_cookies'] = json_encode( $data['auth_cookies'] );
-			$data['site_info']    = json_encode( $data['site_info'] );
+			$data['projects']     = wp_json_encode( $data['projects'] );
+			$data['repo_updates'] = wp_json_encode( $data['repo_updates'] );
+			$data['packages']     = wp_json_encode( $data['packages'] );
+			$data['auth_cookies'] = wp_json_encode( $data['auth_cookies'] );
+			$data['site_info']    = wp_json_encode( $data['site_info'] );
 		}
 
 		return $data;
@@ -1436,11 +1659,43 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since 4.9.0
 	 * @since 4.11.15 Added extra checks.
+	 * @since 4.11.30 Returns WPMU DEV hosting type passed by reference.
+	 *
+	 * @param string|null $type Passed by reference. Yields 'shared' or 'dedicated' depending on hosting type.
 	 *
 	 * @return bool Is site hosted on WPMU Dev, true if it is.
 	 */
-	public function is_wpmu_dev_hosting() {
-		return defined( 'WPMUDEV_HOSTING_SITE_ID' ) || isset( $_SERVER['WPMUDEV_HOSTED'] );
+	public function is_wpmu_dev_hosting( ?string &$type = null ): bool {
+		$type       = null;
+		$is_hosting = defined( 'WPMUDEV_HOSTING_SITE_ID' ) || isset( $_SERVER['WPMUDEV_HOSTED'] );
+
+		if ( $is_hosting ) {
+			$type = ( defined( 'WPMUDEV_HOSTING_WEBSITE_ID' ) && ! empty( WPMUDEV_HOSTING_WEBSITE_ID ) ) ? 'shared' : 'dedicated';
+		}
+
+		return $is_hosting;
+	}
+
+	/**
+	 * Get full WPMU DEV Hosting ID.
+	 *
+	 * @since 4.11.30
+	 *
+	 * @return string
+	 */
+	public function get_full_wpmu_dev_hosting_id(): string {
+		if ( ! $this->is_wpmu_dev_hosting() ) {
+			return '';
+		}
+
+		$server_id  = defined( 'WPMUDEV_HOSTING_SITE_ID' ) ? WPMUDEV_HOSTING_SITE_ID : gethostname();
+		$website_id = ( defined( 'WPMUDEV_HOSTING_WEBSITE_ID' ) && ! empty( WPMUDEV_HOSTING_WEBSITE_ID ) ) ? WPMUDEV_HOSTING_WEBSITE_ID : '';
+
+		if ( empty( $website_id ) ) { // non shared sub-hosting.
+			return $server_id; // return server id.
+		}
+
+		return implode( '-', array( $website_id, $server_id ) );
 	}
 
 	/**
@@ -1450,7 +1705,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return bool
 	 */
-	public function is_standalone_hosting_plan() {
+	public function is_standalone_hosting_plan(): bool {
 		// Get membership data.
 		$data = $this->get_membership_data();
 		// For standalone hosting there should be active products.
@@ -1473,7 +1728,7 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return bool
 	 */
-	public function is_hosted_third_party() {
+	public function is_hosted_third_party(): bool {
 		return $this->is_standalone_hosting_plan() && ! $this->is_wpmu_dev_hosting();
 	}
 
@@ -1485,14 +1740,16 @@ class WPMUDEV_Dashboard_Api {
 	 * not update the update
 	 *
 	 * @since    1.0.0
-	 * @internal Function only is public because it's an action handler.
+	 * @since    5.0.1 By default it respect transient.
 	 *
-	 * @param  bool|array $local_projects Optional array of local projects.
-	 * @param  bool       $force          Optional forces a sync
+	 * @param bool|array $local_projects Optional array of local projects.
+	 * @param bool       $force          Optional forces a sync.
+	 * @param ?bool      $use_transient  Optional Use transient. Default depends on data hash.
 	 *
 	 * @return array|bool
+	 * @internal Function only is public because it's an action handler.
 	 */
-	public function hub_sync( $local_projects = false, $force = false ) {
+	public function hub_sync( $local_projects = false, bool $force = false, ?bool $use_transient = null ) {
 		$res = false;
 
 		/*
@@ -1506,28 +1763,60 @@ class WPMUDEV_Dashboard_Api {
 		// Clear the "Force data update" flag to avoid infinite loop.
 		WPMUDEV_Dashboard::$settings->set( 'refresh_remote', false, 'flags' );
 
-		$stats_data = $hash_data = $this->build_api_data( true, $local_projects );
+		// no key, no hub sync.
+		if ( ! $this->has_key() ) {
+			return false;
+		}
+
+		if ( defined( 'WPMUDEV_API_DEBUG_CRAZY' ) && WPMUDEV_API_DEBUG_CRAZY ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				wp_json_encode(
+					array(
+						__METHOD__,
+						array(
+							'force'               => $force,
+							'shutdown_backtraces' => WPMUDEV_Dashboard::$site::$refresh_shutdown_backtraces,
+							'backtrace'           => wp_debug_backtrace_summary( null, 0, false ), // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary
+						),
+					),
+					JSON_PRETTY_PRINT
+				)
+			);
+		}
+
+		$stats_data = $this->build_api_data( true, $local_projects );
+		$hash_data  = $stats_data;
 
 		unset( $hash_data['auth_cookies'] );
-		$data_hash = md5( json_encode( $hash_data ) ); // get a hash of the data to see if it changed (minus auth cookies)
+		$data_hash = md5( wp_json_encode( $hash_data ) ); // get a hash of the data to see if it changed (minus auth cookies).
 		unset( $hash_data );
 
-		$last_run = (array) WPMUDEV_Dashboard::$settings->get( 'last_run_sync', 'general', array() );
+		$last_run = WPMUDEV_Dashboard::$settings->get( 'last_run_sync', 'general', array() );
+		$last_run = is_array( $last_run ) ? $last_run : array();
+		$last_run = wp_parse_args(
+			$last_run,
+			array(
+				'fails' => 0,
+				'hash'  => '',
+				'time'  => 0,
+			)
+		);
 
+		$is_identical_hash = hash_equals( $data_hash, $last_run['hash'] );
 
-		if ( ! $force && ! empty( $last_run ) ) {
-			// this is the main check to prevent pinging unless the data is changed or 6 hrs have passed
-			if ( ( $last_run['hash'] ?? '' ) == $data_hash && ( $last_run['time'] ?? 0 ) > ( time() - ( HOUR_IN_SECONDS * 6 ) ) ) {
-				if ( WPMUDEV_API_DEBUG ) {
-					error_log( '[WPMUDEV API] Skipped sync due to unchanged local data.' );
+		if ( ! $force ) {
+			// this is the main check to prevent pinging unless the data is changed or 6 hrs have passed.
+			if ( $is_identical_hash && $last_run['time'] > ( time() - ( HOUR_IN_SECONDS * 6 ) ) ) {
+				if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
+					error_log( '[WPMUDEV API] Skipped sync due to unchanged local data.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				}
 
 				return $this->get_membership_data();
-			} elseif ( ( $last_run['fails'] ?? 0 ) ) { // check for exponential backoff
-				$backoff = min( pow( 5, ( $last_run['fails'] ?? 0 ) ), HOUR_IN_SECONDS ); // 5, 25, 125, 625, 3125, 3600 max
+			} elseif ( $last_run['fails'] ) { // check for exponential backoff.
+				$backoff = min( pow( 5, $last_run['fails'] ), HOUR_IN_SECONDS ); // iterate into: 5, 25, 125, 625, 3125, 3600 max.
 				if ( $last_run['time'] > ( time() - $backoff ) ) {
-					if ( WPMUDEV_API_DEBUG ) {
-						error_log( '[WPMUDEV API] Skipped sync due to API error exponential backoff.' );
+					if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
+						error_log( '[WPMUDEV API] Skipped sync due to API error exponential backoff.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 					}
 
 					return $this->get_membership_data();
@@ -1537,47 +1826,67 @@ class WPMUDEV_Dashboard_Api {
 
 		$stats_data['sync_version'] = WPMUDEV_Dashboard::$version;
 
+		if ( is_null( $use_transient ) ) {
+			$use_transient = $is_identical_hash; // use transient only if data is identical. fool-proof, API_CALL already has its own hash checks.
+		}
+
 		$response = WPMUDEV_Dashboard::$api->call_auth(
 			'hub-sync',
 			$stats_data,
-			'POST'
+			'POST',
+			array(
+				'use_transient' => $use_transient,
+				'transient_ttl' => 5, // 5 seconds super shorts ttl.
+			),
 		);
 
-		if ( 200 == wp_remote_retrieve_response_code( $response ) ) {
+		// eagerly set timer pointer.
+		WPMUDEV_Dashboard::$settings->set(
+			'last_run_sync',
+			array(
+				'time'  => time(),
+				'hash'  => $data_hash,
+				'fails' => 0,
+			),
+			'general'
+		);
+
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 			if ( is_array( $data ) ) {
 				if ( isset( $data['membership'] ) && empty( $data['membership'] ) && ! defined( 'WPMUDEV_APIKEY' ) && WPMUDEV_Dashboard::$api->has_key() ) {
-					if ( WPMUDEV_API_DEBUG ) {
-						error_log( '[WPMUDEV API Warning] Invalid API key, logging out.' );
+					// expired membership will also responded with `empty` membership. Refer to https://wpmudev.com/ to further identification.
+					if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
+						error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+							'[WPMUDEV API Warning] Invalid API key or Expired membership, logging out.'
+						);
 					}
-					WPMUDEV_Dashboard::$api->set_key( '' );
+					// clean it up.
+					WPMUDEV_Dashboard::$api->set_key( '' ); // this has to be first, so any hook that potentially calls API and requires key won't be triggered.
+					WPMUDEV_Dashboard::$settings->reset();
+					WPMUDEV_Dashboard::$settings->set( 'membership_data', array() );
+					WPMUDEV_Dashboard::$settings->set( 'connected_admin', 0, 'general' );
+
+					// bail asap.
+					return $data;
 				}
 
 				WPMUDEV_Dashboard::$settings->set( 'membership_data', $data );
-				WPMUDEV_Dashboard::$settings->set(
-					'last_run_sync',
-					array(
-						'time'  => time(),
-						'hash'  => $data_hash,
-						'fails' => 0,
-					),
-					'general'
-				);
 
-				// Sync analytics state
-				$prev_analytics_data = [
+				// Sync analytics state.
+				$prev_analytics_data = array(
 					'site_id'    => (int) WPMUDEV_Dashboard::$settings->get( 'site_id', 'analytics' ),
 					'tracker'    => (string) WPMUDEV_Dashboard::$settings->get( 'tracker', 'analytics' ),
 					'enabled'    => wp_validate_boolean( WPMUDEV_Dashboard::$settings->get( 'enabled', 'analytics' ) ),
 					'script_url' => (string) WPMUDEV_Dashboard::$settings->get( 'script_url', 'analytics' ),
-				];
+				);
 
-				$new_analytics_data = [
+				$new_analytics_data = array(
 					'site_id'    => (int) ( $data['analytics_site_id'] ?? $prev_analytics_data['site_id'] ),
 					'tracker'    => (string) ( $data['analytics_tracker'] ?? $prev_analytics_data['tracker'] ),
 					'enabled'    => wp_validate_boolean( $data['analytics_enabled'] ?? $prev_analytics_data['enabled'] ),
 					'script_url' => (string) ( $data['analytics_script_url'] ?? $prev_analytics_data['script_url'] ),
-				];
+				);
 
 				$analytics_updated = false;
 				foreach ( $new_analytics_data as $key => $value ) {
@@ -1609,6 +1918,7 @@ class WPMUDEV_Dashboard_Api {
 			}
 
 			if ( isset( $data['code'] ) ) {
+				$res = array();
 				if ( 'limit_exceeded_no_hosting_sites' === $data['code'] ) {
 					$res['limit_exceeded_no_hosting_sites'] = true;
 				}
@@ -1627,6 +1937,32 @@ class WPMUDEV_Dashboard_Api {
 	}
 
 	/**
+	 * Unsync / disconnect / logout
+	 *
+	 * @return array|WP_Error
+	 */
+	public function hub_unsync() {
+		$response = $this->call_auth(
+			'hub-unsync',
+			array(
+				'domain'       => $this->network_site_url(),
+				'sync_version' => WPMUDEV_Dashboard::$version,
+			),
+			'DELETE',
+			array(
+				'use_transient' => false,
+			),
+		);
+
+		// to trigger logging.
+		if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			$this->parse_api_error( $response );
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Contacts the API to get the latest API updates data.
 	 *
 	 * Returns the available update details if things are working out.
@@ -1634,32 +1970,41 @@ class WPMUDEV_Dashboard_Api {
 	 * not update the update
 	 *
 	 * @since    4.4.1
-	 * @internal Function only is public because it's an action handler.
+	 * @since    5.0.0 Introduce $allow_no_key
+	 * @since    5.0.1 Make the function void-no-return, use get_projects_data() to get the data.
 	 *
-	 * @return array|bool
+	 * @param bool $allow_no_key Whether execution allowed without key. Default false.
+	 *
+	 * @return void
+	 * @internal Function only is public because it's an action handler.
 	 */
-	public function refresh_projects_data() {
-		$res = false;
-
-		/*
-		Note: This endpoint does not require an API key.
-		 */
-
+	public function refresh_projects_data( bool $allow_no_key = false ) {
 		if ( defined( 'WP_INSTALLING' ) ) {
-			return false;
+			return;
 		}
 
 		// Clear the "Force data update" flag to avoid infinite loop.
 		WPMUDEV_Dashboard::$settings->set( 'refresh_remote', false, 'flags' );
 
-		// we don't want/need to add apikey to this as we pass no data, and want CDN to cache it as a whole
-		$response = WPMUDEV_Dashboard::$api->call(
-			'projects',
-			false,
-			'GET'
-		);
+		// projects technically isn't authed API. But _if_ we decided that disconnected sites doesn't need to show updates, then this call serve no purpose when api key not there ( disconnected ).
+		if ( ! $allow_no_key && ! $this->has_key() ) {
+			return;
+		}
 
-		if ( 200 == wp_remote_retrieve_response_code( $response ) ) {
+		// if it's doing cron ( not manual trigger ), check for the last updates.
+		// our cron is each 12 hrs ( twicedaily ).
+		// lets set threshold of 10hrs.
+		if ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) {
+			$last_update = WPMUDEV_Dashboard::$settings->get( 'last_run_updates', 'general', 0 );
+			if ( ! empty( $last_update ) && ( time() - $last_update ) < 10 * HOUR_IN_SECONDS ) {
+				return;
+			}
+		}
+
+		// we don't want/need to add apikey to this as we pass no data, and want CDN to cache it as a whole.
+		$response = WPMUDEV_Dashboard::$api->call( 'projects' );
+
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 			if ( is_array( $data ) ) {
 
@@ -1668,7 +2013,8 @@ class WPMUDEV_Dashboard_Api {
 					$pos = 1;
 					foreach ( $data['projects'] as $id => $project ) {
 						$data['projects'][ $id ]['_order'] = $pos;
-						$pos                              += 1;
+
+						++$pos;
 					}
 				}
 
@@ -1679,28 +2025,27 @@ class WPMUDEV_Dashboard_Api {
 				WPMUDEV_Dashboard::$settings->set( 'last_run_updates', time(), 'general' );
 				$this->calculate_upgrades();
 				$this->calculate_translation_upgrades( true );
-				$this->enqueue_notices( $data );
 
-				$res = $data;
-			} else {
-				$this->parse_api_error( 'Error unserializing remote response.' );
+				return;
 			}
-		} else {
-			$this->parse_api_error( $response );
 
-			/*
-			 * For network errors, set last run to 1 hour in future so it
-			 * doesn't retry every single pageload (in case of server
-			 * connection issues)
-			 */
-			WPMUDEV_Dashboard::$settings->set(
-				'last_run_updates',
-				time() + HOUR_IN_SECONDS,
-				'general'
-			);
+			$this->parse_api_error( 'Error unserializing remote response.' );
+
+			return;
 		}
 
-		return $res;
+		$this->parse_api_error( $response );
+
+		/*
+		 * For network errors, set last run to 1 hour in future so it
+		 * doesn't retry every single pageload (in case of server
+		 * connection issues)
+		 */
+		WPMUDEV_Dashboard::$settings->set(
+			'last_run_updates',
+			time() + HOUR_IN_SECONDS,
+			'general'
+		);
 	}
 
 	/**
@@ -1728,13 +2073,9 @@ class WPMUDEV_Dashboard_Api {
 
 		WPMUDEV_Dashboard::$settings->set( 'refresh_profile', false, 'flags' );
 
-		$response = WPMUDEV_Dashboard::$api->call_auth(
-			'user-info',
-			false,
-			'GET'
-		);
+		$response = WPMUDEV_Dashboard::$api->call_auth( 'user-info' );
 
-		if ( 200 == wp_remote_retrieve_response_code( $response ) ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 			if ( is_array( $data ) ) {
 				// 3.1.2 - 2012-06-26 PaulM Convert image urls for ssl admin
@@ -1790,11 +2131,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  int $pid Refresh changelog of this project-ID.
+	 * @param int $pid Refresh changelog of this project-ID.
 	 *
 	 * @return array|bool
 	 */
-	public function refresh_changelog( $pid ) {
+	public function refresh_changelog( int $pid ) {
 		$res = false;
 
 		/*
@@ -1805,13 +2146,14 @@ class WPMUDEV_Dashboard_Api {
 			return false;
 		}
 
-		$response = WPMUDEV_Dashboard::$api->call(
-			'changelog/' . $pid,
-			false,
-			'GET'
-		);
+		// changelog technically isn't authed API. But _if_ we decided that disconnected sites doesn't need to show updates, then this call serve no purpose when api key not there ( disconnected ).
+		if ( ! $this->has_key() ) {
+			return false;
+		}
 
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		$response = WPMUDEV_Dashboard::$api->call( 'changelog/' . $pid );
+
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 			if ( is_array( $data ) ) {
 				$data['timestamp'] = time();
@@ -1844,10 +2186,10 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.8.0
 	 *
-	 * @param  string $locale Locale to search translations for.
-	 * @param  bool   $force Forcing will update the data and ignore cache.
+	 * @param string $locale Locale to search translations for.
+	 * @param bool   $force  Forcing will update the data and ignore cache.
 	 */
-	public function get_project_locale_translations( $locale, $force = false ) {
+	public function get_project_locale_translations( string $locale, bool $force = false ) {
 		$res = false;
 
 		/*
@@ -1896,7 +2238,7 @@ class WPMUDEV_Dashboard_Api {
 			$options
 		);
 
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 			if ( is_array( $data ) ) {
 				$res = $data;
@@ -1923,21 +2265,26 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.8.0
 	 *
-	 * @param  array $translations Response data from Translation API call to parse.
+	 * @param array $translations Response data from Translation API call to parse.
 	 */
-	public function sort_translation_projects( $translations ) {
-		$data                = WPMUDEV_Dashboard::$api->get_projects_data();
-		$projects            = wp_list_pluck( $data['projects'], 'id' );
+	public function sort_translation_projects( array $translations ): array {
+		$data        = WPMUDEV_Dashboard::$api->get_projects_data();
+		$projects    = $data['projects'];
+		$project_ids = array();
+		if ( ! empty( $projects ) ) {
+			$project_ids = wp_list_pluck( $projects, 'id' );
+		}
 		$project_translation = array();
 
-		foreach ( $translations as $key => $project ) {
+		foreach ( $translations as $project ) {
 			if ( is_wp_error( $project ) ) {
 				continue;
 			}
-			if ( in_array( $project['dev_project_id'], $projects, true ) ) {
+			if ( in_array( $project['dev_project_id'], $project_ids, true ) ) {
 				$project_translation[] = $project;
 			}
 		}
+
 		return $project_translation;
 	}
 
@@ -1945,8 +2292,10 @@ class WPMUDEV_Dashboard_Api {
 	 * Calculate if the translation files need update.
 	 *
 	 * @since  4.8.0
+	 *
+	 * @param bool $force Whether to force calculation without cached data.
 	 */
-	public function calculate_translation_upgrades( $force = false ) {
+	public function calculate_translation_upgrades( bool $force = false ) {
 		$available_translation = wp_get_installed_translations( 'plugins' );
 		$projects              = array();
 		$translation_needed    = array();
@@ -1955,21 +2304,25 @@ class WPMUDEV_Dashboard_Api {
 		$update_available      = WPMUDEV_Dashboard::$settings->get( 'translation_updates_available' );
 		$translations          = $this->get_project_locale_translations( $locale, $force );
 
-		// set api base.
-		$api_base = $this->server_root . $this->rest_api_translation;
+		// if no key provided, update won't be doable anyway.
+		if ( ! WPMUDEV_Dashboard::$api->has_key() ) {
+			return array();
+		}
 
-		// cache
-		if ( ! $force && ! empty( $update_available ) ) {
+		// cache.
+		if ( ! $force && false !== $update_available && is_array( $update_available ) ) {
 			return $update_available;
 		}
 
 		if ( $translations ) {
-			// sort installed plugins
-			foreach ( $translations as $key => $value ) {
+			// sort installed plugins.
+			foreach ( $translations as $value ) {
 				$project = WPMUDEV_Dashboard::$site->get_project_info( $value['dev_project_id'] );
-				if ( ! empty( $project->is_installed ) ) {
-					// Handle Snapshot translation slug.
-					// https://incsub.atlassian.net/browse/WDD-187
+				if ( ! empty( $project->is_installed ?? null ) ) {
+					/**
+					 * Handle Snapshot translation slug.
+					 * https://incsub.atlassian.net/browse/WDD-187
+					 */
 					$value['translation_slug'] = 3760011 === (int) $value['dev_project_id'] ? 'snapshot' : $value['slug'];
 					$value['version']          = $project->version_installed;
 					$value['name']             = $project->name;
@@ -1979,19 +2332,14 @@ class WPMUDEV_Dashboard_Api {
 		}
 
 		// check if translation is not installed and if is installed check if is available.
-		foreach ( $projects as $key => $updates ) {
-
+		foreach ( $projects as $updates ) {
 			if (
-				! array_key_exists( $updates['translation_slug'], $available_translation ) ||
-				! array_key_exists( $locale, $available_translation[ $updates['translation_slug'] ] ) ||
-					(
-						array_key_exists( $updates['translation_slug'], $available_translation ) &&
-						array_key_exists( $locale, $available_translation[ $updates['translation_slug'] ] ) &&
-						strtotime( $available_translation[ $updates['translation_slug'] ][ $locale ]['PO-Revision-Date'] ) < strtotime( $updates['sets'][0]['last_modified_utc'] )
-					)
-				) {
+				! array_key_exists( $updates['translation_slug'], $available_translation )
+				|| ! array_key_exists( $locale, $available_translation[ $updates['translation_slug'] ] )
+				|| ( strtotime( $available_translation[ $updates['translation_slug'] ][ $locale ]['PO-Revision-Date'] ) < strtotime( $updates['sets'][0]['last_modified_utc'] ) )
+			) {
 
-				// package url
+				// package url.
 				$package = $this->rest_url_auth( $updates['sets'][0]['download_url'] );
 				$package = add_query_arg(
 					array(
@@ -2014,6 +2362,7 @@ class WPMUDEV_Dashboard_Api {
 		}
 
 		WPMUDEV_Dashboard::$settings->set( 'translation_updates_available', $translation_needed );
+
 		return $translation_needed;
 	}
 
@@ -2022,55 +2371,10 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.8.0
 	 */
-	public function maybe_update_translations() {
+	public function maybe_update_translations(): void {
 		if ( WPMUDEV_Dashboard::$settings->get( 'enable_auto_translation', 'flags' ) ) {
-			// upgrade all the translations
+			// upgrade all the translations.
 			WPMUDEV_Dashboard::$upgrader->upgrade_translation();
-			return true;
-		}
-		return false;
-	}
-	/**
-	 * Parses the API response data and enqueues the correct message for the
-	 * current member.
-	 *
-	 * @since  4.0.0
-	 *
-	 * @param  array $api_response Response data from API call to parse.
-	 */
-	public function enqueue_notices( $api_response ) {
-		if ( ! $this->has_key() ) {
-			return false;
-		}
-		if ( ! is_array( $api_response ) ) {
-			return false;
-		}
-		if ( empty( $api_response['membership'] ) ) {
-			return false;
-		}
-		$membership_type = $this->get_membership_status();
-
-		$field = false;
-
-		if ( 'full' == $membership_type ) {
-			$field = 'full_notice';
-		} elseif ( 'single' == $membership_type ) {
-			$field = 'single_notice';
-		} elseif ( in_array( $membership_type, array( 'expired', 'paused', 'free' ), true ) ) {
-			$field = 'free_notice';
-		}
-
-		if ( $field && isset( $api_response[ $field ] ) ) {
-			$notice = $api_response[ $field ];
-
-			if ( is_array( $notice ) && ! empty( $notice['time'] ) ) {
-				WPMUDEV_Dashboard::$notice->enqueue(
-					$notice['time'],
-					$notice['msg']
-				);
-
-				return true;
-			}
 		}
 	}
 
@@ -2081,14 +2385,19 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  1.0.0
 	 *
-	 * @param  array $local_projects List of local projects from the transient.
-	 * @param  int   $force_update   Optional. A single project ID that is marked
-	 *                               for update, regardless of the version-check.
+	 * @param array|false $local_projects List of local projects from the transient.
+	 * @param int         $force_update   Optional. A single project ID that is marked
+	 *                                    for update, regardless of the version-check.
 	 *
 	 * @return array
 	 */
-	public function calculate_upgrades( $local_projects = false, $force_update = 0 ) {
+	public function calculate_upgrades( $local_projects = false, int $force_update = 0 ): array {
 		$updates = array();
+
+		// if no key provided, update won't be doable anyway.
+		if ( ! WPMUDEV_Dashboard::$api->has_key() ) {
+			return $updates;
+		}
 
 		if ( ! is_array( $local_projects ) ) {
 			$local_projects = WPMUDEV_Dashboard::$site->get_cached_projects();
@@ -2105,7 +2414,7 @@ class WPMUDEV_Dashboard_Api {
 				continue;
 			}
 
-			if ( $pid != $force_update ) {
+			if ( (int) $pid !== $force_update ) {
 				if ( ! $item->has_update ) {
 					continue;
 				}
@@ -2120,10 +2429,11 @@ class WPMUDEV_Dashboard_Api {
 				 * attribute does not have value 2.
 				 *
 				 * @since  1.0.0
-				 * @api    wpmudev_project_ignore_updates
 				 *
-				 * @param  bool $flag Defaults to false, return true to silence.
-				 * @param  int  $pid  The WDP ID of the plugin/theme
+				 * @param bool $flag Defaults to false, return true to silence.
+				 * @param int  $pid  The WDP ID of the plugin/theme
+				 *
+				 * @api    wpmudev_project_ignore_updates
 				 */
 				$silence = apply_filters(
 					'wpmudev_project_ignore_updates',
@@ -2151,6 +2461,7 @@ class WPMUDEV_Dashboard_Api {
 			$updates[ $pid ] = array(
 				'url'              => $item->url->website,
 				'type'             => $item->type,
+				'is_addon'         => $item->is_addon ?? false,
 				'instructions_url' => $item->url->instructions,
 				'name'             => $item->name,
 				'filename'         => $item->filename,
@@ -2177,14 +2488,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  array $data Response from the API.
+	 * @param array $data Response from the API.
 	 *
 	 * @return array Modified response from the API.
 	 */
-	protected function strip_unavailable_projects( $data ) {
-		if ( ! is_array( $data ) ) {
-			return $data;
-		}
+	protected function strip_unavailable_projects( array $data ): array {
 		if ( empty( $data['projects'] ) ) {
 			return $data;
 		}
@@ -2192,9 +2500,9 @@ class WPMUDEV_Dashboard_Api {
 		$my_level = $this->get_membership_status();
 
 		foreach ( $data['projects'] as $id => $project ) {
-			if ( 'full' == $my_level ) {
+			if ( 'full' === (string) $my_level ) {
 				// Remove lite from the projects list.
-				if ( 'lite' == $project['paid'] ) {
+				if ( 'lite' === (string) $project['paid'] ) {
 					unset( $data['projects'][ $id ] );
 				}
 			}
@@ -2202,67 +2510,6 @@ class WPMUDEV_Dashboard_Api {
 
 		return $data;
 	}
-
-	/**
-	 * Uses usermeta cache to store gravatar validity flag,
-	 * in order to tighten up outgoing requests.
-	 *
-	 * @since  1.0.0
-	 * @return bool True if the user has a gravatar.
-	 */
-	public function current_user_has_dev_gravatar() {
-		$res = (int) WPMUDEV_Dashboard::$site->get_usermeta( '_wdp_un_has_gravatar' );
-
-		// If user has a confirmed gravatar we're good already.
-		if ( $res ) {
-			return true;
-		}
-
-		$profile = $this->get_profile();
-
-		// Check if the user has a valid gravatar.
-		$gravatar = $profile['profile']['gravatar'];
-		$res      = true;
-		$link     = false;
-
-		// Extract clean gravatar URL.
-		if ( preg_match_all( '/src=[\'"](https?:\/\/.+\.gravatar.com\/avatar\/.+?\b)/', $gravatar, $parts ) ) {
-			$link = isset( $parts[1][0] ) ? $parts[1][0] : false;
-		} else {
-			$res = false;
-		}
-
-		// Check if the gravatar URL is valid.
-		if ( $res && $link ) {
-			// Construct a special, 404-fallback URL format
-			// @see https://en.gravatar.com/site/implement/images/ .
-			$link    .= '?d=404';
-			$options  = array(
-				'sslverify' => true,
-				'timeout'   => 5,
-			);
-			$response = WPMUDEV_Dashboard::$api->call(
-				$link,
-				false,
-				'GET',
-				$options
-			);
-
-			if ( wp_remote_retrieve_response_code( $response ) != 200 ) {
-				$res = false;
-			}
-		} else {
-			$res = false;
-		}
-
-		// Only remember the result if the user has a valid gravatar.
-		if ( $res ) {
-			WPMUDEV_Dashboard::$site->set_usermeta( '_wdp_un_has_gravatar', 1 );
-		}
-
-		return $res;
-	}
-
 
 	/*
 	 * *********************************************************************** *
@@ -2285,24 +2532,24 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.0.0
 	 *
-	 * @param  string $detail Optional. Specify the requested detail.
+	 * @param ?string $detail Optional. Specify the requested detail.
 	 *
 	 * @return object|scalar The requested detail or all details.
 	 */
-	public function remote_access_details( $detail = null ) {
-		static $Remote_Details = null;
+	public function remote_access_details( ?string $detail = null ) {
+		static $remote_details = null;
 
-		if ( null === $Remote_Details ) {
-			$Remote_Details = array();
+		if ( null === $remote_details ) {
+			$remote_details = array();
 
-			$Remote_Details['enabled'] = false;
-			$Remote_Details['expires'] = 0;
-			$Remote_Details['granted'] = 0;
-			$Remote_Details['user']    = 0;
+			$remote_details['enabled'] = false;
+			$remote_details['expires'] = 0;
+			$remote_details['granted'] = 0;
+			$remote_details['user']    = 0;
 
 			$option_val = WPMUDEV_Dashboard::$settings->get( 'remote_access' );
 
-			if ( ! WPMUDEV_DISABLE_REMOTE_ACCESS ) {
+			if ( ! ( defined( 'WPMUDEV_DISABLE_REMOTE_ACCESS' ) && WPMUDEV_DISABLE_REMOTE_ACCESS ) ) {
 				$access = true;
 				if ( ! $option_val ) {
 					$access = false;
@@ -2312,36 +2559,36 @@ class WPMUDEV_Dashboard_Api {
 
 				if ( $access ) {
 					if ( isset( $option_val['expire'] ) ) {
-						$Remote_Details['expires'] = (int) $option_val['expire'];
+						$remote_details['expires'] = (int) $option_val['expire'];
 					}
 					if ( isset( $option_val['granted'] ) ) {
-						$Remote_Details['granted'] = (int) $option_val['granted'];
+						$remote_details['granted'] = (int) $option_val['granted'];
 					}
 					if ( isset( $option_val['userid'] ) ) {
-						$Remote_Details['user'] = (int) $option_val['userid'];
+						$remote_details['user'] = (int) $option_val['userid'];
 					}
 				}
 
-				if ( $Remote_Details['expires'] <= time() ) {
+				if ( $remote_details['expires'] <= time() ) {
 					$access = false;
 				}
 
-				$Remote_Details['enabled'] = $access;
+				$remote_details['enabled'] = $access;
 			}
 		}
 
 		// Reset access details for security if remote access is disabled.
-		if ( WPMUDEV_DISABLE_REMOTE_ACCESS || ! $Remote_Details['enabled'] ) {
-			$Remote_Details['enabled'] = false;
-			$Remote_Details['expires'] = 0;
-			$Remote_Details['granted'] = 0;
-			$Remote_Details['user']    = 0;
+		if ( ( defined( 'WPMUDEV_DISABLE_REMOTE_ACCESS' ) && WPMUDEV_DISABLE_REMOTE_ACCESS ) || ! $remote_details['enabled'] ) {
+			$remote_details['enabled'] = false;
+			$remote_details['expires'] = 0;
+			$remote_details['granted'] = 0;
+			$remote_details['user']    = 0;
 		}
 
 		if ( empty( $detail ) ) {
-			return (object) $Remote_Details;
-		} elseif ( isset( $Remote_Details[ $detail ] ) ) {
-			return $Remote_Details[ $detail ];
+			return (object) $remote_details;
+		} elseif ( isset( $remote_details[ $detail ] ) ) {
+			return $remote_details[ $detail ];
 		} else {
 			return false;
 		}
@@ -2352,20 +2599,24 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  1.0.0
 	 *
-	 * @param  string $action Optional. Can either be 'start' or 'extend'.
+	 * @param string $action  Optional. Can either be 'start' or 'extend'.
 	 *                        start .. Will grant access for 5 days from now.
 	 *                        extend .. Will grant access for additional 3 days to the current
 	 *                        expiration date. This option only works if support access is
 	 *                        granted already.
 	 */
-	public function enable_remote_access( $action = 'start' ) {
+	public function enable_remote_access( string $action = 'start' ): bool {
 		global $current_user;
 
 		if ( ! current_user_can( 'edit_users' ) ) {
 			return false;
 		}
 
-		if ( WPMUDEV_DISABLE_REMOTE_ACCESS ) {
+		if ( defined( 'WPMUDEV_DISABLE_REMOTE_ACCESS' ) && WPMUDEV_DISABLE_REMOTE_ACCESS ) {
+			return false;
+		}
+
+		if ( ! $this->has_key() ) {
 			return false;
 		}
 
@@ -2373,9 +2624,9 @@ class WPMUDEV_Dashboard_Api {
 		$time_base = time();
 		$span      = '+5 Days'; // By default grant 5 days from now.
 
-		if ( $details->enabled && $details->expires > $time_base && 'extend' == $action ) {
+		if ( ( $details->enabled ?? false ) && ( $details->expires ?? time() ) > $time_base && 'extend' === $action ) {
 			// When extending add 3 days to previous expire date.
-			$time_base = $details->expires;
+			$time_base = $details->expires ?? time();
 			$span      = '+3 Days';
 		}
 
@@ -2391,10 +2642,13 @@ class WPMUDEV_Dashboard_Api {
 				'auth_expire' => $expiration,
 				'auth_url'    => admin_url( 'admin-ajax.php?action=wdpunauth' ),
 			),
-			'POST'
+			'POST',
+			array(
+				'use_transient' => false,
+			),
 		);
 
-		if ( 200 != wp_remote_retrieve_response_code( $response ) || 'true' != wp_remote_retrieve_body( $response ) ) {
+		if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) || 'true' !== (string) wp_remote_retrieve_body( $response ) ) {
 			$this->parse_api_error( $response );
 
 			return false;
@@ -2417,19 +2671,26 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since 1.0.0
 	 */
-	public function revoke_remote_access() {
+	public function revoke_remote_access(): bool {
 		// Do this whether or not we can update the API.
 		WPMUDEV_Dashboard::$settings->set( 'remote_access', '' );
+
+		if ( ! $this->has_key() ) {
+			return false;
+		}
 
 		$response = $this->call_auth(
 			'revoke-access',
 			array(
 				'domain' => $this->network_site_url(),
 			),
-			'POST'
+			'POST',
+			array(
+				'use_transient' => false,
+			),
 		);
 
-		if ( 200 != wp_remote_retrieve_response_code( $response ) ) {
+		if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
 			$this->parse_api_error( $response );
 
 			return false;
@@ -2445,7 +2706,7 @@ class WPMUDEV_Dashboard_Api {
 	 * @internal Ajax handler
 	 */
 	public function authenticate_remote_access() {
-		if ( WPMUDEV_DISABLE_REMOTE_ACCESS ) {
+		if ( defined( 'WPMUDEV_DISABLE_REMOTE_ACCESS' ) && WPMUDEV_DISABLE_REMOTE_ACCESS ) {
 			wp_die( 'Error: Remote access disabled in wp-config' );
 		}
 
@@ -2455,16 +2716,18 @@ class WPMUDEV_Dashboard_Api {
 		$_REQUEST = $_POST;
 		// @codingStandardsIgnoreEnd
 
+		// using internal token for nonce like verify.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$error = false;
 		if ( ! $access ) {
 			$error = 'no token';
 		} elseif ( ! is_array( $access ) ) {
 			$error = 'no token';
-		} elseif ( empty( $_REQUEST['wdpunkey'] ) ) {
+		} elseif ( empty( $_REQUEST['wdpunkey'] ?? '' ) ) {
 			$error = 'invalid';
-		} elseif ( ! hash_equals( $_REQUEST['wdpunkey'], $access['key'] ) ) { // timing attack safe key comparison.
+		} elseif ( ! hash_equals( wp_unslash( $_REQUEST['wdpunkey'] ), $access['key'] ) ) { // timing attack safe key comparison. No sanitize, to avoid unintended stripping.
 			$error = 'invalid';
-		} elseif ( (int) $access['expire'] <= current_time( 'timestamp' ) ) {
+		} elseif ( (int) $access['expire'] <= time() ) {
 			$error = 'expired';
 		}
 
@@ -2477,10 +2740,10 @@ class WPMUDEV_Dashboard_Api {
 			/**
 			 * Filter access user_id to be used on remote_access.
 			 *
-			 * @param int   $usser_id User ID to be used on remote_access.
-			 * @param array $access   Remote access details.
-			 *
 			 * @since 4.11.29
+			 *
+			 * @param int   $user_id User ID to be used on remote_access.
+			 * @param array $access  Remote access details.
 			 */
 			$access['userid'] = apply_filters( 'wpmudev_remote_access_set_current_user_id', $access['userid'], $access );
 
@@ -2491,42 +2754,42 @@ class WPMUDEV_Dashboard_Api {
 			/**
 			 * Do action after successful remote access login..
 			 *
-			 * @param int   $usser_id User ID being used on remote_access..
-			 * @param array $access   Remote access details..
-			 *
 			 * @since 4.11.29
+			 *
+			 * @param int   $user_id User ID being used on remote_access.
+			 * @param array $access  Remote access details..
 			 */
 			do_action( 'wpmudev_remote_access_set_current_user', $access['userid'], $access );
 
 			$secure_cookie = 'https' === wp_parse_url( get_option( 'home' ), PHP_URL_SCHEME );
-			setcookie( 'wpmudev_is_staff', '1', time() + 3600, COOKIEPATH, COOKIE_DOMAIN, $secure_cookie, true );
+			setcookie( 'wpmudev_is_staff', '1', time() + 3600, defined( 'COOKIEPATH' ) ? COOKIEPATH : '', COOKIE_DOMAIN, $secure_cookie, true );
 
 			// Record login info.
 			$access['logins'][ time() ] = array(
-				'name'  => $_REQUEST['staff'],
-				'image' => $_REQUEST['gravatar_hash'],
+				'name'  => sanitize_text_field( wp_unslash( $_REQUEST['staff'] ?? '' ) ),
+				'image' => sanitize_text_field( wp_unslash( $_REQUEST['gravatar_hash'] ?? '' ) ),
 			);
 
 			WPMUDEV_Dashboard::$settings->set( 'remote_access', $access );
 
 			// Send to dashboard.
-			$url = WPMUDEV_Dashboard::$ui->page_urls->support_url . '#access';
-			wp_redirect( $url );
+			$url = WPMUDEV_Dashboard::$ui->page_urls->support_url . '#/support-access';
+			wp_safe_redirect( $url );
 			exit;
 		} else {
 			// There was an error. Display the error message.
 			switch ( $error ) {
 				case 'no token':
-					wp_die( 'The admin did not enable remote access. Please ask the user to grant access.' );
-
+					wp_die( 'The admin did not enable remote access. Please ask the user to grant access.' );// not fall-through, but no break needed. wp_die is exit by default.
 				case 'expired':
-					wp_die( 'This access token has expired. Please ask the user to renew it.' );
-
+					wp_die( 'This access token has expired. Please ask the user to renew it.' ); // not fall-through, but no break needed. wp_die is exit by default.
 				case 'invalid':
 				default:
 					wp_die( 'This is an invalid access token. Please ask the user to grant access.' );
 			}
 		}
+
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -2534,16 +2797,17 @@ class WPMUDEV_Dashboard_Api {
 	 * This step will check if the Dashboard user is logged in and the SSO is enabled.
 	 * If so, it will redirect to the auth endpoint in the Hub to try the first hmac verification.
 	 *
+	 * @since    4.7.3
+	 *
 	 * @param string $redirect        Where to redirect after a successful SSO.
 	 * @param string $nonce           Nonce coming from the DEV site, to later check if user is logged in.
 	 * @param string $jwttoken        JWT Token coming from the DEV site, to later check if user is logged in.
 	 * @param string $dev_user_apikey User API Key coming from the DEV site, to later check if user is logged in.
 	 * @param string $hubteam         Arbitrary team ID, to later check if user has valid access to specified Hub Team.
 	 *
-	 * @since    4.7.3
 	 * @internal Ajax handler
 	 */
-	public function authenticate_sso_access_step1( $redirect, $nonce, $jwttoken = '', $dev_user_apikey = '', $hubteam = '' ) {
+	public function authenticate_sso_access_step1( string $redirect, string $nonce, string $jwttoken = '', string $dev_user_apikey = '', string $hubteam = '' ) {
 		// If user is already logged in, let's bypass the whole auth process.
 		if ( is_user_logged_in() ) {
 			$redirect = urldecode( $redirect );
@@ -2551,8 +2815,12 @@ class WPMUDEV_Dashboard_Api {
 			exit;
 		}
 
-		if ( WPMUDEV_DISABLE_SSO ) {
+		if ( defined( 'WPMUDEV_DISABLE_SSO' ) && WPMUDEV_DISABLE_SSO ) {
 			wp_die( 'Error: Single Signon is disabled in wp-config' );
+		}
+
+		if ( ! $this->has_key() ) {
+			wp_die( 'Error: Single Signon is unavailable.' );
 		}
 
 		$access = WPMUDEV_Dashboard::$settings->get( 'enabled', 'sso' );
@@ -2587,7 +2855,7 @@ class WPMUDEV_Dashboard_Api {
 			$pre_sso_state = uniqid( '', true );
 			$secure_cookie = 'https' === wp_parse_url( get_option( 'home' ), PHP_URL_SCHEME );
 
-			setcookie( 'wdp-pre-sso-state', $pre_sso_state, time() + 3600, COOKIEPATH, COOKIE_DOMAIN, $secure_cookie, true );
+			setcookie( 'wdp-pre-sso-state', $pre_sso_state, time() + 3600, defined( 'COOKIEPATH' ) ? COOKIEPATH : '', COOKIE_DOMAIN, $secure_cookie, true );
 
 			$hashed_pre_sso_state = hash_hmac( 'sha256', $pre_sso_state, $api_key );
 			// Build hmac for OAuth.
@@ -2595,6 +2863,7 @@ class WPMUDEV_Dashboard_Api {
 			$profile = $this->get_profile();
 
 			$outgoing_hmac = hash_hmac( 'sha256', $token . $hashed_pre_sso_state . $redirect . $domain, $api_key );
+			WPMUDEV_Dashboard::$settings->set( 'step1_hmac', $outgoing_hmac, 'sso' );
 
 			$auth_endpoint = $this->rest_url( 'sso-hub' );
 			$auth_params   = array(
@@ -2619,15 +2888,32 @@ class WPMUDEV_Dashboard_Api {
 			} elseif ( $dev_user_apikey ) {
 				$auth_params['_apikey'] = $dev_user_apikey;
 			} else {
-				// always fallback to nonce as default auth
+				// always fallback to nonce as default auth.
 				$auth_params['_wpnonce'] = $nonce;
 			}
 
 			$auth_endpoint = add_query_arg( $auth_params, $auth_endpoint );
 
-			wp_redirect( $auth_endpoint );
-			exit;
+			/**
+			 * Open redirect avoidance.
+			 */
+			add_filter(
+				'wp_safe_redirect_fallback',
+				function () {
+					return site_url(); // fallback to home.
+				}
+			);
+			add_filter(
+				'allowed_redirect_hosts',
+				function ( $hosts ) {
+					$hosts   = is_array( $hosts ) ? $hosts : array();
+					$hosts[] = wp_parse_url( $this->server_root, PHP_URL_HOST ); // allow api server only.
 
+					return $hosts;
+				}
+			);
+			wp_safe_redirect( $auth_endpoint );
+			exit;
 		} else {
 			// There was an error. Display the error message.
 			switch ( $error ) {
@@ -2639,7 +2925,7 @@ class WPMUDEV_Dashboard_Api {
 						wp_login_url( urldecode( $redirect ) )
 					);
 
-					wp_redirect( $redirect_upon_failure );
+					wp_safe_redirect( $redirect_upon_failure );
 					exit;
 
 				case 'no_logged_in_dashboard_user':
@@ -2650,7 +2936,7 @@ class WPMUDEV_Dashboard_Api {
 						wp_login_url( urldecode( $redirect ) )
 					);
 
-					wp_redirect( $redirect_upon_failure );
+					wp_safe_redirect( $redirect_upon_failure );
 					exit;
 				default:
 					$redirect_upon_failure = add_query_arg(
@@ -2660,7 +2946,7 @@ class WPMUDEV_Dashboard_Api {
 						wp_login_url( urldecode( $redirect ) )
 					);
 
-					wp_redirect( $redirect_upon_failure );
+					wp_safe_redirect( $redirect_upon_failure );
 					exit;
 			}
 		}
@@ -2671,6 +2957,9 @@ class WPMUDEV_Dashboard_Api {
 	 * This step will verify the hmac coming from the Hub.
 	 * If the verification works, it should log in the user and redirect him.
 	 *
+	 * @since    4.7.3
+	 * @since    4.11.29 Simplify parameter format into an array.
+	 *
 	 * @param array $sso_access_data {
 	 *                               incoming_hmac: string, The hmac coming from the Hub.
 	 *                               token: string, The one-time passcode to prevent replay attacks.
@@ -2678,15 +2967,22 @@ class WPMUDEV_Dashboard_Api {
 	 *                               redirect: string, The URL that the user needs to be redirected to.
 	 *                               dev_user_id: int, The WPMU DEV User ID coming from the Hub.
 	 *                               dev_user_email: string, The WPMU DEV User email address coming from the Hub.
-	 *                               } An array of SSO Access data
+	 *                               } An array of SSO Access data.
 	 *
-	 * @since    4.7.3
-	 * @since    4.11.29 Simplify parameter format into an array.
 	 * @internal Ajax handler
 	 */
-	public function authenticate_sso_access_step2( $sso_access_data ) {
-		if ( WPMUDEV_DISABLE_SSO ) {
+	public function authenticate_sso_access_step2( array $sso_access_data ) {
+		if ( defined( 'WPMUDEV_DISABLE_SSO' ) && WPMUDEV_DISABLE_SSO ) {
 			wp_die( 'Error: Single Signon is disabled in wp-config' );
+		}
+
+		if ( ! $this->has_key() ) {
+			wp_die( 'Error: Single Signon is unavailable.' );
+		}
+
+		$access = WPMUDEV_Dashboard::$settings->get( 'enabled', 'sso' );
+		if ( ! $access ) {
+			wp_die( 'Error: Single Signon is disabled.' );
 		}
 
 		$incoming_hmac = $sso_access_data['incoming_hmac'] ?? '';
@@ -2697,6 +2993,15 @@ class WPMUDEV_Dashboard_Api {
 		$api_key        = $this->get_key();
 		$verifying_hmac = hash_hmac( 'sha256', $token . $pre_sso_state . $redirect, $api_key );
 		$redirect       = urldecode( $redirect );
+		$step1_hmac     = WPMUDEV_Dashboard::$settings->get( 'step1_hmac', 'sso', '' );
+
+		if ( ! is_string( $step1_hmac ) || 1 !== preg_match( '/\A[0-9a-f]{64}\z/', $step1_hmac ) ) {
+			wp_die( 'Invalid SSO authentication response.' );
+		}
+
+		if ( hash_equals( $step1_hmac, $incoming_hmac ) ) {
+			wp_die( 'Invalid SSO authentication response.' );
+		}
 
 		$userid = WPMUDEV_Dashboard::$settings->get( 'userid', 'sso' );
 		$user   = $this->refresh_profile();
@@ -2704,20 +3009,20 @@ class WPMUDEV_Dashboard_Api {
 		$is_valid = hash_equals( $incoming_hmac, $verifying_hmac );
 
 		if ( $is_valid && ! empty( $user ) ) {
+			list( , $token_timestamp ) = explode( '-', $token );
 
-			list( $req_id, $token_timestamp ) = explode( '-', $token );
-			$token_timestamp_float            = floatval( $token_timestamp );
+			$token_timestamp_float = floatval( $token_timestamp );
 
 			// Check if the token has expired.
 			$current_time = microtime( true );
-			if ( number_format( floatval( $current_time ) - $token_timestamp_float, 2 ) > self::SSO_TOKEN_EXPIRY_TIME ) {
+			if ( number_format( floatval( $current_time ) - $token_timestamp_float, 2 ) > $this->get_sso_token_expiry_time() ) {
 				wp_die( 'The SSO token has expired.' );
 			}
 
 			// Check if the session cookie of the state value exists in the user's browser.
 			if ( isset( $_COOKIE['wdp-pre-sso-state'] ) ) {
 				// Check that the state value is the same with what was passed through the endpoint.
-				$hmac_state_value = hash_hmac( 'sha256', $_COOKIE['wdp-pre-sso-state'], $api_key );
+				$hmac_state_value = hash_hmac( 'sha256', sanitize_text_field( wp_unslash( $_COOKIE['wdp-pre-sso-state'] ) ), $api_key );
 
 				if ( hash_equals( $hmac_state_value, $pre_sso_state ) ) {
 
@@ -2735,15 +3040,16 @@ class WPMUDEV_Dashboard_Api {
 						wp_die( 'The SSO token could not be verified.' );
 					} else {
 						WPMUDEV_Dashboard::$settings->set( 'active_token', uniqid(), 'sso' );
+						WPMUDEV_Dashboard::$settings->set( 'step1_hmac', '', 'sso' );
 					}
 
 					/**
 					 * Filter access user_id to be used on SSO.
 					 *
+					 * @since 4.11.29
+					 *
 					 * @param int   $userid          User ID to be used on SSO.
 					 * @param array $sso_access_data SSO access details.
-					 *
-					 * @since 4.11.29
 					 */
 					$userid = apply_filters( 'wpmudev_sso_set_current_user_id', $userid, $sso_access_data );
 
@@ -2755,18 +3061,19 @@ class WPMUDEV_Dashboard_Api {
 					/**
 					 * Do action after successful SSO login.
 					 *
-					 * @param int    $usser_id User ID being used on remote_access..
-					 * @param string $redirect Where to redirect after a successful SSO.
-					 *
 					 * @since 4.11.29
+					 *
+					 * @param int    $usser_id        User ID being used on remote_access.
+					 * @param array  $sso_access_data SSO access details.
+					 * @param string $redirect        Where to redirect after a successful SSO.
 					 */
-					do_action( 'wpmudev_sso_set_current_user', $userid, $sso_access_data );
+					do_action( 'wpmudev_sso_set_current_user', $userid, $sso_access_data, $redirect );
 
 					wp_safe_redirect( $redirect );
 					exit;
 				} else {
 					if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
-						error_log(
+						error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 							sprintf(
 								'WPMU DEV Dashboard Error: SSO failed. Expected: %s / Recieved: %s',
 								$hmac_state_value,
@@ -2809,9 +3116,13 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return bool
 	 */
-	public function analytics_enable() {
+	public function analytics_enable(): bool {
+		if ( ! $this->has_key() ) {
+			return false;
+		}
 		$api_base = $this->server_root . $this->rest_api_analytics;
 
+		$options = array( 'use_transient' => false );
 		// sets up special auth header.
 		$options['headers']                  = array();
 		$options['headers']['Authorization'] = $this->get_key();
@@ -2825,7 +3136,7 @@ class WPMUDEV_Dashboard_Api {
 			'POST',
 			$options
 		);
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 
 			if ( isset( $data['site_id'], $data['tracker'] ) ) {
@@ -2854,9 +3165,13 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @return bool
 	 */
-	public function analytics_disable() {
+	public function analytics_disable(): bool {
+		if ( ! $this->has_key() ) {
+			return false;
+		}
 		$api_base = $this->server_root . $this->rest_api_analytics;
 
+		$options = array( 'use_transient' => false );
 		// sets up special auth header.
 		$options['headers']                  = array();
 		$options['headers']['Authorization'] = $this->get_key();
@@ -2868,7 +3183,7 @@ class WPMUDEV_Dashboard_Api {
 			$options
 		);
 
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			// Clear WPMUDEV static cache.
 			$this->maybe_clear_hosting_static_cache();
 
@@ -2889,9 +3204,12 @@ class WPMUDEV_Dashboard_Api {
 	 * @param int $days_ago How many days in the past to look back.
 	 * @param int $subsite  If filtering to a subsite pass the blog_id of it.
 	 *
-	 * @return mixed
+	 * @return bool|array
 	 */
-	public function analytics_stats_overall( $days_ago = 7, $subsite = 0 ) {
+	public function analytics_stats_overall( int $days_ago = 7, int $subsite = 0 ) {
+		if ( ! $this->has_key() ) {
+			return false;
+		}
 		$site_id = WPMUDEV_Dashboard::$settings->get( 'site_id', 'analytics' );
 		$tracker = WPMUDEV_Dashboard::$settings->get( 'tracker', 'analytics' );
 
@@ -2912,7 +3230,7 @@ class WPMUDEV_Dashboard_Api {
 		}
 
 		$api_base    = $this->server_root . $this->rest_api_analytics;
-		$remote_path = add_query_arg( 'days_ago', $days_ago, "{$api_base}site/{$site_id}/overall/{$type}" );
+		$remote_path = add_query_arg( 'days_ago', $days_ago, sprintf( '%1$s/site/%2$s/overall/%3$s', untrailingslashit( $api_base ), $site_id, $type ) );
 		if ( $subsite ) {
 			$remote_path = add_query_arg( 'subsite', $subsite, $remote_path );
 		}
@@ -2921,14 +3239,14 @@ class WPMUDEV_Dashboard_Api {
 		$remote_path = add_query_arg( 'domain', $this->network_site_url(), $remote_path );
 
 		// version to update the logic completely ( typically on plugin update )
-		// include tracker url in cache key, as id can be collided between tracker
+		// include tracker url in cache key, as id can be collided between tracker.
 		$transient_key = 'analytics_data_v1_' . md5( $remote_path . $tracker );
 		// Get from transient.
 		$cached = WPMUDEV_Dashboard::$settings->get_transient( $transient_key );
 
-		// return from cache if possible. We don't use *_site_transient() to avoid unnecessary autoloading. ( we use it behind the scene though ?)
+		// return from cache if possible. We don't use *_site_transient() to avoid unnecessary autoloading. ( we use it behind the scene though ?).
 		if ( false !== $cached ) {
-			$cached = $this->_analytics_overall_filter_metrics( $cached );
+			$cached = $this->analytics_overall_filter_metrics( $cached );
 
 			// Temporary fix to make data format in autocomplete format.
 			if ( ! empty( $cached['autocomplete'][0]['value'] ) && is_array( $cached['autocomplete'][0]['value'] ) ) {
@@ -2956,56 +3274,57 @@ class WPMUDEV_Dashboard_Api {
 			$options
 		);
 
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		} else {
 			$this->parse_api_error( $response );
+
 			return false;
 		}
 
-		// parse the data into a format best for our needs
+		// parse the data into a format best for our needs.
 		$final_data                 = array();
 		$final_data['autocomplete'] = array();
-		$comparison_data            = isset( $data['comparision_overall'] ) ? $data['comparision_overall'] : array();
+		$comparison_data            = $data['comparision_overall'] ?? array();
 		// overall data for charts and totals.
 		if ( isset( $data['overall'] ) ) {
 
-			// available fields are a bit different when filtered to subsite
+			// available fields are a bit different when filtered to subsite.
 			$to_process = array(
 				'bounce_rate'      => array(
 					'orig_key' => 'bounce_rate',
 					'label'    => __( 'Bounce Rate', 'wpmudev' ),
-					'callback' => '_analytics_format_pcnt',
+					'callback' => 'analytics_format_pcnt',
 				),
 				'exit_rate'        => array(
 					'orig_key' => 'exit_rate',
 					'label'    => __( 'Exit Rate', 'wpmudev' ),
-					'callback' => '_analytics_format_pcnt',
+					'callback' => 'analytics_format_pcnt',
 				),
 				'visit_time'       => array(
 					'orig_key' => 'avg_time_on_site',
 					'label'    => __( 'Visit Time', 'wpmudev' ),
-					'callback' => '_analytics_format_time',
+					'callback' => 'analytics_format_time',
 				),
 				'visits'           => array(
 					'orig_key' => 'nb_visits',
 					'label'    => __( 'Entrances', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				),
 				'unique_visits'    => array(
 					'orig_key' => 'nb_uniq_visitors',
 					'label'    => __( 'Unique Visits', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				),
 				'pageviews'        => array(
 					'orig_key' => 'nb_pageviews',
 					'label'    => __( 'Page Views', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				),
 				'unique_pageviews' => array(
 					'orig_key' => 'nb_uniq_pageviews',
 					'label'    => __( 'Unique Page Views', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				),
 			);
 			if ( $subsite ) {
@@ -3015,20 +3334,21 @@ class WPMUDEV_Dashboard_Api {
 				$to_process['pageviews']        = array(
 					'orig_key' => 'nb_hits',
 					'label'    => __( 'Pageviews', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				);
 				$to_process['unique_pageviews'] = array(
 					'orig_key' => 'nb_visits',
 					'label'    => __( 'Unique Pageviews', 'wpmudev' ),
-					'callback' => '_analytics_format_num',
+					'callback' => 'analytics_format_num',
 				);
 				$to_process['page_time']        = array(
 					'orig_key' => 'avg_time_on_page',
 					'label'    => __( 'Page Time', 'wpmudev' ),
-					'callback' => '_analytics_format_time',
+					'callback' => 'analytics_format_time',
 				);
 			}
 
+			// phpcs:disable WordPress.DateTime.RestrictedFunctions.date_date
 			foreach ( $data['overall'] as $date => $day ) {
 				if ( isset( $day[0] ) ) {
 					$day = $day[0];
@@ -3037,7 +3357,8 @@ class WPMUDEV_Dashboard_Api {
 				// this helps data appear on correct day in x axis.
 				$timestamp = date( 'c', strtotime( '+1 day', strtotime( $date ) ) );
 				foreach ( $to_process as $key => $process ) {
-					$y_value = isset( $day[ $process['orig_key'] ] ) ? $day[ $process['orig_key'] ] : null;
+					$y_value = $day[ $process['orig_key'] ] ?? null;
+
 					$final_data['overall']['chart'][ $key ]['label']  = $process['label'];
 					$final_data['overall']['chart'][ $key ]['data'][] = array(
 						't' => $timestamp,
@@ -3053,21 +3374,20 @@ class WPMUDEV_Dashboard_Api {
 				// this helps data appear on correct day in x axis.
 				$timestamp = date( 'c', strtotime( '+1 day', strtotime( $date ) ) );
 				foreach ( $to_process as $key => $process ) {
-					$y_value                          = isset( $day[ $process['orig_key'] ] ) ? $day[ $process['orig_key'] ] : null;
+					$y_value                          = $day[ $process['orig_key'] ] ?? null;
 					$comparing_data[ $key ]['label']  = $process['label'];
 					$comparing_data[ $key ]['data'][] = array(
 						't' => $timestamp,
 						'y' => $y_value,
 					);
-
 				}
 			}
 
 			// for totals, we only wants if any of the days ( keys ) has page views
-			// note: 1 visits can have multiple page views
+			// note: 1 visits can have multiple page views.
 			$data_count_with_page_views = 0;
 			if ( isset( $final_data['overall']['chart']['pageviews']['data'] ) ) {
-				foreach ( $final_data['overall']['chart']['pageviews']['data'] as $key => $value ) {
+				foreach ( $final_data['overall']['chart']['pageviews']['data'] as $value ) {
 					if ( isset( $value['y'] ) && $value['y'] > 0 ) {
 						++$data_count_with_page_views;
 					}
@@ -3075,7 +3395,7 @@ class WPMUDEV_Dashboard_Api {
 			}
 			$data_compare_count_with_page_views = 0;
 			if ( isset( $comparing_data['pageviews']['data'] ) ) {
-				foreach ( $comparing_data['pageviews']['data'] as $key => $value ) {
+				foreach ( $comparing_data['pageviews']['data'] as $value ) {
 					if ( isset( $value['y'] ) && $value['y'] > 0 ) {
 						++$data_compare_count_with_page_views;
 					}
@@ -3084,18 +3404,15 @@ class WPMUDEV_Dashboard_Api {
 
 			foreach ( $to_process as $key => $process ) {
 				if ( isset( $final_data['overall']['chart'][ $key ] ) ) {
-					$totals        = 0;
-					$compare_total = 0;
-					$compare_avg   = false;
-					$compare_data  = array();
+					$compare_data = array();
 					if ( isset( $comparing_data[ $key ] ) ) {
 						$compare_data = wp_list_pluck( $comparing_data[ $key ]['data'], 'y' );
 					}
 
 					$list = wp_list_pluck( $final_data['overall']['chart'][ $key ]['data'], 'y' );
 
-					// for number we want total, others mean
-					if ( '_analytics_format_num' === $process['callback'] ) {
+					// for number we want total, others mean.
+					if ( 'analytics_format_num' === $process['callback'] ) {
 						$totals        = array_sum( $list );
 						$compare_total = array_sum( $compare_data );
 					} else {
@@ -3136,51 +3453,50 @@ class WPMUDEV_Dashboard_Api {
 
 					$final_data['overall']['totals'][ $key ] = array(
 						'change'    => number_format_i18n( abs( $change ) ) . '%',
-						'direction' => ( $change == 0 ) ? 'none' : ( $change > 0 ? 'up' : 'down' ),
+						'direction' => ( 0.0 === (float) $change ) ? 'none' : ( $change > 0 ? 'up' : 'down' ),
 						'value'     => call_user_func( array( $this, $process['callback'] ), $totals ),
 					);
-
 				}
 			}
 		}
+		// phpcs:enable WordPress.DateTime.RestrictedFunctions.date_date
 
 		$to_process = array(
 			'pageviews'        => array(
 				'orig_key' => 'nb_hits',
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 			'unique_pageviews' => array(
 				'orig_key' => 'nb_visits',
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 			'bounce_rate'      => array(
 				'orig_key' => 'bounce_rate',
-				'callback' => '_analytics_format_pcnt',
+				'callback' => 'analytics_format_pcnt',
 			),
 			'visits'           => array(
 				'orig_key' => 'entry_nb_visits',
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 			'exit_rate'        => array(
 				'orig_key' => 'exit_rate',
-				'callback' => '_analytics_format_pcnt',
+				'callback' => 'analytics_format_pcnt',
 			),
 			'gen_time'         => array(
 				'orig_key' => 'avg_page_load_time',
-				'callback' => '_analytics_format_time',
+				'callback' => 'analytics_format_time',
 			),
 			'page_time'        => array(
 				'orig_key' => 'avg_time_on_page',
-				'callback' => '_analytics_format_time',
+				'callback' => 'analytics_format_time',
 			),
 		);
 
 		// top pages & posts list.
 		if ( isset( $data['pages'] ) ) {
 			foreach ( $data['pages'] as $page ) {
-
 				$new_page = array(
-					'filter' => isset( $page['url'] ) ? $page['url'] : '',
+					'filter' => $page['url'] ?? '',
 					'name'   => isset( $page['label'] ) ? trim( $page['label'] ) : '',
 				);
 
@@ -3195,7 +3511,9 @@ class WPMUDEV_Dashboard_Api {
 				}
 				$final_data['pages'][]        = $new_page;
 				$final_data['autocomplete'][] = array(
+					/* translators: %s: Page name. */
 					'label'  => sprintf( __( 'Page: %s', 'wpmudev' ), $new_page['name'] ),
+					/* translators: %s: Page name. */
 					'value'  => sprintf( __( 'Page: %s', 'wpmudev' ), $new_page['name'] ),
 					'type'   => 'page',
 					'filter' => $new_page['filter'],
@@ -3207,12 +3525,11 @@ class WPMUDEV_Dashboard_Api {
 		if ( isset( $data['sites'] ) && is_multisite() ) {
 			$blog_ids = array();
 			foreach ( $data['sites'] as $site ) {
-
 				$new_site = array(
-					'filter' => urlencode( $site['label'] ),
+					'filter' => rawurlencode( $site['label'] ),
 				);
 
-				// try to get the blog domain from blog_id
+				// try to get the blog domain from blog_id.
 				$blog_id = trim( $site['label'] );
 				if ( $blog_id && is_numeric( $blog_id ) && absint( $blog_id ) && ! in_array( absint( $blog_id ), $blog_ids, true ) ) {
 					$blog = get_blog_details( absint( $blog_id ), true );
@@ -3237,7 +3554,9 @@ class WPMUDEV_Dashboard_Api {
 				}
 				$final_data['sites'][]        = $new_site;
 				$final_data['autocomplete'][] = array(
+					/* translators: %s: Site Name. */
 					'label'  => sprintf( __( 'Site: %s', 'wpmudev' ), $new_site['name'] ),
+					/* translators: %s: Site Name. */
 					'value'  => sprintf( __( 'Site: %s', 'wpmudev' ), $new_site['name'] ),
 					'type'   => 'subsite',
 					'filter' => $new_site['filter'],
@@ -3250,7 +3569,7 @@ class WPMUDEV_Dashboard_Api {
 			// page_time key is different for custom dimension.
 			$to_process['page_time'] = array(
 				'orig_key' => 'avg_time_on_dimension',
-				'callback' => '_analytics_format_time',
+				'callback' => 'analytics_format_time',
 			);
 
 			foreach ( $data['authors'] as $author ) {
@@ -3271,7 +3590,7 @@ class WPMUDEV_Dashboard_Api {
 					$new_author['gravatar'] = get_avatar_url( $author_object->avatar, array( 'size' => 25 ) );
 				}
 
-				$new_author['filter'] = urlencode( $author['label'] );
+				$new_author['filter'] = rawurlencode( $author['label'] );
 
 				// get desired categories.
 				foreach ( $to_process as $key => $process ) {
@@ -3284,7 +3603,9 @@ class WPMUDEV_Dashboard_Api {
 				}
 				$final_data['authors'][]      = $new_author;
 				$final_data['autocomplete'][] = array(
+					/* translators: %s Author Name. */
 					'label'  => sprintf( __( 'Author: %s', 'wpmudev' ), $new_author['name'] ),
+					/* translators: %s Author Name. */
 					'value'  => sprintf( __( 'Author: %s', 'wpmudev' ), $new_author['name'] ),
 					'type'   => 'author',
 					'filter' => $new_author['filter'],
@@ -3295,7 +3616,7 @@ class WPMUDEV_Dashboard_Api {
 		// Cache for later.
 		WPMUDEV_Dashboard::$settings->set_transient( $transient_key, $final_data, DAY_IN_SECONDS );
 
-		return $this->_analytics_overall_filter_metrics( $final_data );
+		return $this->analytics_overall_filter_metrics( $final_data );
 	}
 
 	/**
@@ -3304,16 +3625,18 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.6
 	 *
-	 * @param int    $days_ago How many days in the past to look back
+	 * @param int    $days_ago How many days in the past to look back.
 	 * @param string $type     Can be page|author|subsite.
 	 * @param string $filter   Page, author, or blog_id to filter to.
 	 *
-	 * @return mixed
+	 * @return bool|array
 	 */
-	public function analytics_stats_single( $days_ago, $type, $filter ) {
-		$site_id  = WPMUDEV_Dashboard::$settings->get( 'site_id', 'analytics' );
-		$metrics  = WPMUDEV_Dashboard::$site->get_metrics_on_analytics();
-		$days_ago = isset( $days_ago ) ? $days_ago : 7;
+	public function analytics_stats_single( int $days_ago, string $type, string $filter ) {
+		if ( ! $this->has_key() ) {
+			return false;
+		}
+		$site_id = WPMUDEV_Dashboard::$settings->get( 'site_id', 'analytics' );
+		$metrics = WPMUDEV_Dashboard::$site->get_metrics_on_analytics();
 
 		$api_base    = $this->server_root . $this->rest_api_analytics;
 		$remote_path = add_query_arg(
@@ -3322,7 +3645,7 @@ class WPMUDEV_Dashboard_Api {
 				'days_ago' => $days_ago,
 				'domain'   => $this->network_site_url(),
 			),
-			"{$api_base}site/{$site_id}/{$type}"
+			sprintf( '%1$s/site/%2$s/%3$s', untrailingslashit( $api_base ), $site_id, $type )
 		);
 
 		// sets up special auth header.
@@ -3336,52 +3659,53 @@ class WPMUDEV_Dashboard_Api {
 			$options
 		);
 
-		if ( wp_remote_retrieve_response_code( $response ) == 200 ) {
+		if ( 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
 			$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		} else {
 			$this->parse_api_error( $response );
+
 			return false;
 		}
 
-		// parse the data into a format best for our needs
+		// parse the data into a format best for our needs.
 		$final_data      = array();
-		$comparison_data = isset( $data['comparisions'] ) ? $data['comparisions'] : array();
+		$comparison_data = $data['comparisions'] ?? array();
 
-		// available fields are a bit different when filtered to subsite
+		// available fields are a bit different when filtered to subsite.
 		$to_process = array(
 			'bounce_rate'      => array(
 				'orig_key' => 'bounce_rate',
 				'label'    => __( 'Bounce Rate', 'wpmudev' ),
-				'callback' => '_analytics_format_pcnt',
+				'callback' => 'analytics_format_pcnt',
 			),
 			'exit_rate'        => array(
 				'orig_key' => 'exit_rate',
 				'label'    => __( 'Exit Rate', 'wpmudev' ),
-				'callback' => '_analytics_format_pcnt',
+				'callback' => 'analytics_format_pcnt',
 			),
-			'visits'        => array(
+			'visits'           => array(
 				'orig_key' => 'entry_nb_visits',
 				'label'    => __( 'Entrances', 'wpmudev' ),
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 			'page_time'        => array(
 				'orig_key' => 'avg_time_on_page',
 				'label'    => __( 'Page Time', 'wpmudev' ),
-				'callback' => '_analytics_format_time',
+				'callback' => 'analytics_format_time',
 			),
 			'pageviews'        => array(
 				'orig_key' => 'nb_hits',
 				'label'    => __( 'Pageviews', 'wpmudev' ),
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 			'unique_pageviews' => array(
 				'orig_key' => 'nb_visits',
 				'label'    => __( 'Unique Pageviews', 'wpmudev' ),
-				'callback' => '_analytics_format_num',
+				'callback' => 'analytics_format_num',
 			),
 		);
 
-		// limit metrics
+		// limit metrics.
 		if ( ! in_array( 'pageviews', $metrics, true ) ) {
 			unset( $to_process['pageviews'] );
 		}
@@ -3401,7 +3725,7 @@ class WPMUDEV_Dashboard_Api {
 			unset( $to_process['visits'] );
 		}
 
-		// key is different for authors
+		// key is different for authors.
 		if ( 'author' === $type ) {
 			if ( in_array( 'page_time', $metrics, true ) ) {
 				$to_process['page_time']['orig_key'] = 'avg_time_on_dimension';
@@ -3418,10 +3742,11 @@ class WPMUDEV_Dashboard_Api {
 				$day = $day[0];
 			}
 
+			// phpcs:disable WordPress.DateTime.RestrictedFunctions.date_date
 			// this helps data appear on correct day in x axis.
 			$timestamp = date( 'c', strtotime( '+1 day', strtotime( $date ) ) );
 			foreach ( $to_process as $key => $process ) {
-				$y_value                               = isset( $day[ $process['orig_key'] ] ) ? $day[ $process['orig_key'] ] : null;
+				$y_value                               = $day[ $process['orig_key'] ] ?? null;
 				$final_data['chart'][ $key ]['label']  = $process['label'];
 				$final_data['chart'][ $key ]['data'][] = array(
 					't' => $timestamp,
@@ -3442,7 +3767,7 @@ class WPMUDEV_Dashboard_Api {
 			// this helps data appear on correct day in x axis.
 			$timestamp = date( 'c', strtotime( '+1 day', strtotime( $date ) ) );
 			foreach ( $to_process as $key => $process ) {
-				$y_value                                   = isset( $day[ $process['orig_key'] ] ) ? $day[ $process['orig_key'] ] : null;
+				$y_value                                   = $day[ $process['orig_key'] ] ?? null;
 				$comparing_data['chart'][ $key ]['label']  = $process['label'];
 				$comparing_data['chart'][ $key ]['data'][] = array(
 					't' => $timestamp,
@@ -3450,21 +3775,19 @@ class WPMUDEV_Dashboard_Api {
 				);
 			}
 		}
+		// phpcs:disable WordPress.DateTime.RestrictedFunctions.date_date
 		foreach ( $to_process as $key => $process ) {
-
 			if ( isset( $final_data['chart'][ $key ] ) ) {
-				$list          = array_filter( wp_list_pluck( $final_data['chart'][ $key ]['data'], 'y' ) );
-				$compare_data  = array();
-				$totals        = 0;
-				$compare_total = 0;
-				$compare_avg   = false;
+				$list         = array_filter( wp_list_pluck( $final_data['chart'][ $key ]['data'], 'y' ) );
+				$compare_data = array();
+				$compare_avg  = false;
 
 				if ( isset( $comparing_data['chart'][ $key ] ) ) {
 					$compare_data = wp_list_pluck( $comparing_data['chart'][ $key ]['data'], 'y' );
 				}
 
-				// for number we want total, others mean
-				if ( '_analytics_format_num' === $process['callback'] ) {
+				// for number we want total, others mean.
+				if ( 'analytics_format_num' === $process['callback'] ) {
 					$totals        = array_sum( $list );
 					$compare_total = array_sum( $compare_data );
 				} else {
@@ -3474,8 +3797,7 @@ class WPMUDEV_Dashboard_Api {
 							$compare_avg = array_sum( $compare_data ) / count( $compare_data );
 						}
 					} else {
-						$avg         = false;
-						$compare_avg = false;
+						$avg = false;
 					}
 					$totals        = $avg;
 					$compare_total = $compare_avg;
@@ -3506,10 +3828,9 @@ class WPMUDEV_Dashboard_Api {
 
 				$final_data['totals'][ $key ] = array(
 					'change'    => number_format_i18n( abs( $change ) ) . '%',
-					'direction' => ( $change == 0 ) ? 'none' : ( $change > 0 ? 'up' : 'down' ),
+					'direction' => ( 0.0 === (float) $change ) ? 'none' : ( $change > 0 ? 'up' : 'down' ),
 					'value'     => call_user_func( array( $this, $process['callback'] ), $totals ),
 				);
-
 			}
 		}
 
@@ -3527,14 +3848,15 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.6
 	 *
-	 * @param  int|float $decimal Number to format.
+	 * @param int|float $decimal Number to format.
 	 *
 	 * @return string
 	 */
-	public function _analytics_format_pcnt( $decimal ) {
+	public function analytics_format_pcnt( $decimal ): string {
 		if ( false === $decimal ) {
 			return '-';
 		}
+
 		return round( $decimal * 100, 2 ) . '%';
 	}
 
@@ -3543,23 +3865,38 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.6
 	 *
-	 * @param  int|float $seconds Seconds to format.
+	 * @param int|float $seconds Seconds to format.
 	 *
 	 * @return string
 	 */
-	public function _analytics_format_time( $seconds ) {
+	public function analytics_format_time( $seconds ): string {
 		if ( false === $seconds ) {
 			return '-';
 		}
 		if ( $seconds >= 60 ) {
 			$mins = round( ( $seconds / 60 ), 2 );
-			return sprintf( _n( '%s min', '%s mins', $seconds, 'wpmudev' ), $mins );
+
+			return sprintf(
+			/* translators: %s minutes. */
+				_n( '%s min', '%s mins', $seconds, 'wpmudev' ),
+				$mins
+			);
 		} elseif ( $seconds >= 1 ) {
 			$seconds = round( $seconds, 2 );
-			return sprintf( _n( '%s sec', '%s secs', $seconds, 'wpmudev' ), $seconds );
+
+			return sprintf(
+			/* translators: %s seconds. */
+				_n( '%s sec', '%s secs', $seconds, 'wpmudev' ),
+				$seconds
+			);
 		} else {
 			$milliseconds = round( $seconds * 1000 );
-			return sprintf( __( '%s ms', 'wpmudev' ), $milliseconds );
+
+			return sprintf(
+			/* translators: %s miliseconds. */
+				__( '%s ms', 'wpmudev' ),
+				$milliseconds
+			);
 		}
 	}
 
@@ -3568,11 +3905,11 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.6
 	 *
-	 * @param  int|float $number Number to format.
+	 * @param int|float $number Number to format.
 	 *
 	 * @return string
 	 */
-	public function _analytics_format_num( $number ) {
+	public function analytics_format_num( $number ): string {
 		return number_format_i18n( round( $number ) );
 	}
 
@@ -3581,16 +3918,16 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since 4.7
 	 *
-	 * @param $data
+	 * @param array $data Analytics data.
 	 *
-	 * @return mixed
+	 * @return array
 	 */
-	public function _analytics_overall_filter_metrics( $data ) {
+	private function analytics_overall_filter_metrics( array $data ): array {
 		$metrics = WPMUDEV_Dashboard::$site->get_metrics_on_analytics();
-		// filter metrics
+		// filter metrics.
 		if ( isset( $data['overall'] ) && is_array( $data['overall'] ) ) {
 			if ( isset( $data['overall']['chart'] ) && is_array( $data['overall']['chart'] ) ) {
-				// limit metrics
+				// limit metrics.
 				if ( ! in_array( 'pageviews', $metrics, true ) ) {
 					unset( $data['overall']['chart']['pageviews'] );
 				}
@@ -3612,7 +3949,7 @@ class WPMUDEV_Dashboard_Api {
 				}
 			}
 			if ( isset( $data['overall']['totals'] ) && is_array( $data['overall']['totals'] ) ) {
-				// limit metrics
+				// limit metrics.
 				if ( ! in_array( 'pageviews', $metrics, true ) ) {
 					unset( $data['overall']['totals']['pageviews'] );
 				}
@@ -3637,7 +3974,7 @@ class WPMUDEV_Dashboard_Api {
 
 		if ( isset( $data['pages'] ) && is_array( $data['pages'] ) ) {
 			foreach ( $data['pages'] as $key => $page ) {
-				// limit metrics
+				// limit metrics.
 				if ( ! in_array( 'pageviews', $metrics, true ) ) {
 					unset( $data['pages'][ $key ]['pageviews'] );
 				}
@@ -3662,7 +3999,7 @@ class WPMUDEV_Dashboard_Api {
 
 		if ( isset( $data['sites'] ) && is_array( $data['sites'] ) ) {
 			foreach ( $data['sites'] as $key => $site ) {
-				// limit metrics
+				// limit metrics.
 				if ( ! in_array( 'pageviews', $metrics, true ) ) {
 					unset( $data['sites'][ $key ]['pageviews'] );
 				}
@@ -3687,7 +4024,7 @@ class WPMUDEV_Dashboard_Api {
 
 		if ( isset( $data['authors'] ) && is_array( $data['authors'] ) ) {
 			foreach ( $data['authors'] as $key => $author ) {
-				// limit metrics
+				// limit metrics.
 				if ( ! in_array( 'pageviews', $metrics, true ) ) {
 					unset( $data['authors'][ $key ]['pageviews'] );
 				}
@@ -3718,12 +4055,10 @@ class WPMUDEV_Dashboard_Api {
 	 *
 	 * @since  4.5
 	 *
-	 * @param  int $timeout Time in seconds.
-	 *
 	 * @return int $timeout
 	 */
-	public function auth_cookie_expiration( $timeout ) {
-		return HOUR_IN_SECONDS;
+	public function auth_cookie_expiration(): int {
+		return apply_filters( 'wpmudev_dashboard_api_remote_access_cookie_expiration', HOUR_IN_SECONDS );
 	}
 
 	/**
@@ -3770,41 +4105,16 @@ class WPMUDEV_Dashboard_Api {
 		}
 
 		// Collect back-trace information for the logfile.
-		$caller_dump = '';
 		if ( defined( 'WPMUDEV_API_DEBUG' ) && WPMUDEV_API_DEBUG ) {
-			$trace     = debug_backtrace();
-			$caller    = array();
-			$last_line = '';
-			foreach ( $trace as $level => $item ) {
-				if ( ! isset( $item['class'] ) ) {
-					$item['class'] = '';
-				}
-				if ( ! isset( $item['type'] ) ) {
-					$item['type'] = '';
-				}
-				if ( ! isset( $item['function'] ) ) {
-					$item['function'] = '<function>';
-				}
-				if ( ! isset( $item['line'] ) ) {
-					$item['line'] = '?';
-				}
-
-				if ( $level > 0 ) {
-					$caller[] = $item['class'] .
-					            $item['type'] .
-					            $item['function'] .
-					            ':' . $last_line;
-				}
-				$last_line = $item['line'];
-			}
-			$caller_dump = "\n\t# " . implode( "\n\t# ", $caller );
+			$trace       = wp_debug_backtrace_summary( null, 0, false ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary
+			$caller_dump = "\n\t# " . implode( "\n\t# ", $trace );
 
 			if ( is_array( $response ) && isset( $response['request_url'] ) ) {
 				$caller_dump = "\n\tURL: " . $response['request_url'] . $caller_dump;
 			}
 
 			// Log the error to PHP error log.
-			error_log(
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				sprintf(
 					'[WPMUDEV API Error] %s | %s (%s [%s]) %s',
 					WPMUDEV_Dashboard::$version,
@@ -3812,27 +4122,32 @@ class WPMUDEV_Dashboard_Api {
 					$url,
 					$error_code,
 					$caller_dump
-				),
-				0
+				)
 			);
 		}
 
-		// If error was "invalid API key" then log out the user. (we don't call logout here to avoid infinite loop)
-		if ( 401 == $error_code && ! defined( 'WPMUDEV_APIKEY' ) && ! defined( 'WPMUDEV_OVERRIDE_LOGOUT' ) ) {
+		// If error was "invalid API key" then log out the user. (we don't call logout here to avoid infinite loop).
+		if ( 401 === (int) $error_code && ! defined( 'WPMUDEV_APIKEY' ) && ! defined( 'WPMUDEV_OVERRIDE_LOGOUT' ) ) {
 			WPMUDEV_Dashboard::$api->set_key( '' );
 		}
 	}
-}
 
-/**
- * Returns the correct network_site_url to use for API calls to the hub.
- *
- * For use by other WPMU DEV plugins.
- *
- * @since  4.6.0
- *
- * @return string
- */
-function wpmudev_api_url() {
-	return WPMUDEV_Dashboard::$api->network_site_url();
+	/**
+	 * Get SSO token expiry time. In Seconds.
+	 *
+	 * @since 5.0.1
+	 *
+	 * @return int|float
+	 */
+	private function get_sso_token_expiry_time() {
+		/**
+		 * Override SSO token expiry time.
+		 * Increase it, if site or network is slow.
+		 *
+		 * @since  5.0.1
+		 *
+		 * @param int|float $sso_token_expiry_time SSO token expiry time. In Seconds.
+		 */
+		return apply_filters( 'wpmudev_sso_token_expiry_time', self::SSO_TOKEN_EXPIRY_TIME );
+	}
 }

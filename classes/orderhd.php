@@ -3,6 +3,7 @@ $database->orderhd = new orderhd_class();
 class orderhd_class extends database_class {
 	function scs_table_version() {
 		$results=array();
+        $results['08/25/2026']="Add billing address";
         $results['06/07/2023']="Add cc";
         $results['07/28/2022']="Add currency_code";
         $results['03/18/2021']="Add punchout_id";
@@ -47,6 +48,11 @@ class orderhd_class extends database_class {
 	    $this->data->carrier_account=$this->fetch['carrier_account'];
 	    $this->data->currency_code=$this->fetch['currency_code'];
 	    $this->data->cc=$this->fetch['cc'];
+	    $this->data->billing_address=$this->fetch['billing_address'];
+	    $this->data->billing_city=$this->fetch['billing_city'];
+	    $this->data->billing_state=$this->fetch['billing_state'];
+	    $this->data->billing_zip=$this->fetch['billing_zip'];
+	    $this->data->billing_country_code=$this->fetch['billing_country_code'];
     }
     function read($id) {
         $query=array("select * from orderhd");
@@ -87,6 +93,11 @@ class orderhd_class extends database_class {
 	    $fields[]="carrier_account=" . fn_escape($this->data->carrier_account);
 	    $fields[]="currency_code=" . fn_escape($this->data->currency_code);
 	    $fields[]="cc=" . fn_escape($this->data->cc,"null");
+	    $fields[]="billing_address=" . fn_escape($this->data->billing_address);
+	    $fields[]="billing_city=" . fn_escape($this->data->billing_city);
+	    $fields[]="billing_state=" . fn_escape($this->data->billing_state);
+	    $fields[]="billing_zip=" . fn_escape($this->data->billing_zip);
+	    $fields[]="billing_country_code=" . fn_escape($this->data->billing_country_code);
         $query=array();
     	if ($update) {
           	$query[]="update orderhd set";
@@ -146,6 +157,26 @@ class orderhd_class extends database_class {
             break;
           default:
             $results[]=$address->output("table");
+        }
+        $results[]="<tr><td class='checkout_caption' colspan=2>Billing Address</td></tr>";
+        if ($options['entry']) {
+            $billing_same=( ($_SERVER['REQUEST_METHOD']=="POST") && ($_POST['action']=="complete") ) ? (isset($_POST['billing_same_as_shipping']) ? 1 : 0) : 0;
+            $results[]="<tr><td colspan=2>" . $forms->checkbox("billing_same_as_shipping",1,$billing_same,array("onclick"=>"fn_billing_same_as_shipping(this.checked);")) . " Same as shipping address</td></tr>";
+        }
+        $billing_data=new stdClass();
+        $billing_data->address=$this->data->billing_address;
+        $billing_data->city=$this->data->billing_city;
+        $billing_data->state=$this->data->billing_state;
+        $billing_data->zip=$this->data->billing_zip;
+        $billing_data->country_code=$this->data->billing_country_code;
+        $address_options['omit']=array("name","title","email","phone","fax","company_name");
+        $billing_address=new address_class("orderhd_billing",$billing_data,$address_options);
+        switch (TRUE) {
+          case ($options['entry']):
+            $results[]=$billing_address->input(array("output"=>"table"));
+            break;
+          default:
+            $results[]=$billing_address->output("table");
         }
         $results[]="<tr><td class='checkout_caption' colspan=2>Order Information</td></tr>";
         switch (TRUE) {
@@ -262,6 +293,11 @@ class orderhd_data_class {
     var $carrier_account;
     var $currency_code="USD";
     var $cc;
+    var $billing_address;
+    var $billing_city;
+    var $billing_state;
+    var $billing_zip;
+    var $billing_country_code;
 }
 class orderhd_constant_class {
     var $type=array('PO');
@@ -299,7 +335,12 @@ CREATE TABLE `orderhd` (
   `carrier_account` varchar(60) DEFAULT NULL,
   `currency_code` char(3) DEFAULT 'USD',
   `cc` varchar(4) DEFAULT NULL,
+  `billing_address` mediumtext,
+  `billing_city` varchar(40) DEFAULT '',
+  `billing_state` char(40) DEFAULT '',
+  `billing_zip` varchar(20) DEFAULT '',
+  `billing_country_code` varchar(2) DEFAULT '',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=latin1 COMMENT='Order header (06/07/2023)'
+) ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=latin1 COMMENT='Order header (08/25/2026)'
 */
 ?>

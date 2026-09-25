@@ -35,6 +35,7 @@ switch ($forms->report['action']) {
   case "maintain":
     break;
   case "update":
+	$previous_status=$database->user->data->status;
 	$database->user->data->ip=$_POST['ip'];
     switch (TRUE) {
       case (!intval(ip2long($database->user->data->ip))):
@@ -113,6 +114,26 @@ switch ($forms->report['action']) {
 	if (sizeof($forms->error)) break;
     if ($_POST['ipstack']) $database->user->ipstack();
     $forms->message[]="Record maintained";
+    if ( ($previous_status != "Active") && ($database->user->data->status == "Active") ) {
+        $query=array("select email from log");
+        $query[]="where user_id=" . fn_escape($database->user->data->id,FALSE);
+        $query[]="and type='User' and subtype='Signup'";
+        $query[]="and email <> ''";
+        $query[]="order by date_time desc";
+        $query[]="limit 1";
+        $database->log->query($query);
+        if ($database->log->meta->rows) {
+            $signup=$database->log->fetch_array();
+            $database->log->free_result();
+            $database->captcha_bypass->read($signup['email'],"email");
+            if (!$database->captcha_bypass->meta->rows) {
+                $database->captcha_bypass->data=new captcha_bypass_data_class();
+                $database->captcha_bypass->data->email=$signup['email'];
+                $database->captcha_bypass->data->comment="Auto-added on user approval";
+                $database->captcha_bypass->update(FALSE);
+            }
+        }
+    }
     $database->temp->query("DELETE FROM user_category WHERE user_id=" . fn_escape($database->user->data->id,FALSE));
     $database->category->query("SELECT id FROM category WHERE active=1");
     while ($database->category->fetch=$database->category->fetch_array()) {

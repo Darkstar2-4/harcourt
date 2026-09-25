@@ -74,6 +74,7 @@ if (!class_exists('configure_class')) {
         function currency_name() { return ''; }
         function inventory_msrp() {}
         function output_simple() { return ''; }
+        function output_verbose() { return ''; }
     }
 }
 
@@ -141,7 +142,14 @@ if (!class_exists('CatalogStubNoop')) {
 
 if (!class_exists('query_where')) {
     class query_where {
-        function __construct($field, $op, $value) {}
+        public $field, $operator, $value, $and_or, $type;
+        function __construct($field, $operator, $value, $and_or = "", $type = "") {
+            $this->field    = $field;
+            $this->operator = strtolower($operator);
+            $this->value    = $value;
+            $this->and_or   = strtolower($and_or);
+            $this->type     = strtolower($type);
+        }
     }
 }
 
@@ -161,6 +169,23 @@ if (!class_exists('CatalogStubMenu')) {
         function __construct() { $this->page = (object) ['products' => (object) ['url' => '/catalog.php']]; }
         function head($options = []) {}
         function copyright() {}
+        function language($key) { return $key; }
+    }
+}
+
+// ── Stub: jquery_tab_class (real tabs class lives outside the stubbed chain) ─
+
+if (!class_exists('CatalogStubTabs')) {
+    class CatalogStubTabs {
+        public $items = [];
+        function item($name, $content, $opts = []) {
+            $id = $opts['id'] ?? $name;
+            $this->items[$id] = is_array($content) ? implode('', $content) : $content;
+        }
+        function landing_tab() {}
+        function options($a, $b = []) {}
+        function output_order($a = null, $b = null) {}
+        function output() {}
     }
 }
 
@@ -608,5 +633,128 @@ class CatalogTest extends TestCase
 
         $this->assertStringContainsString("<a href='#'>SKU-100</a>", $html);
         $this->assertStringNotContainsString('catalog_blocked_link', $html);
+    }
+
+    // ── output_subcategory(): whole-page gate for blocked categories ───────
+    // Reached via /catalog?search_source=search&search_id=... when the
+    // search hit's table_name is "subcategory" (or a bookmarked/typed
+    // subcategory URL). Previously rendered the full landing page — title,
+    // image, overview, product table, downloads, CAD — regardless of
+    // blocked_categories(); inventory() only suppressed the SKU links
+    // *inside* the products table, leaving everything else exposed.
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_subcategory_overlays_blocked_category_instead_of_product_content(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['company_name' => 'Acme Corp']);
+        $database->temp = new CatalogStubTable();
+        $database->temp->companyRows = [['category_id' => 2]];
+
+        $obj->tabs           = new CatalogStubTabs();
+        $obj->category        = [2 => (object) ['id' => 2, 'name' => 'Software']];
+        $obj->subcategory     = [20 => $this->subcategoryFixture(['id' => 20, 'name' => 'Antivirus', 'category_id' => 2])];
+        $obj->subcategory_id  = 20;
+        $obj->sku             = '';
+        $obj->page            = 0;
+
+        $data = ['SKU-100' => (object) ['sku' => 'SKU-100', 'new_date' => 0, 'parameter' => []]];
+
+        ob_start();
+        $obj->output_subcategory($data);
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString('catalog_category_overlay', $html);
+        $this->assertStringContainsString('Design Partner Agreement Required', $html);
+        $this->assertStringContainsString('Antivirus', $html); // subcategory name still shown, matching output_summary()'s treatment
+        $this->assertStringNotContainsString('SKU-100', $html);
+        // No products/overview/customs/download tab was even built for a blocked category.
+        $this->assertSame([], $obj->tabs->items);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_subcategory_renders_product_content_for_unblocked_category(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = []; // nothing blocked
+
+        $obj->tabs             = new CatalogStubTabs();
+        $obj->category          = [2 => (object) ['id' => 2, 'name' => 'Software']];
+        $obj->subcategory       = [20 => $this->subcategoryFixture(['id' => 20, 'name' => 'Antivirus', 'category_id' => 2])];
+        $obj->subcategory_id    = 20;
+        $obj->sku                = '';
+        $obj->page               = 0;
+        $obj->php_self           = '/catalog.php';
+        $obj->request            = ['debug' => 0];
+        $obj->search_code        = '';
+        $obj->new_date           = 0;
+        $obj->action             = '';
+        $obj->parameter          = [];
+        $obj->related_sku        = '';
+        $obj->search_complete    = '';
+        $database->subcategory->constant = (object) ['parameters' => 0, 'tabs' => []];
+
+        $data = ['SKU-100' => (object) ['sku' => 'SKU-100', 'new_date' => 0, 'parameter' => []]];
+
+        ob_start();
+        $obj->output_subcategory($data);
+        $html = ob_get_clean();
+
+        $this->assertStringNotContainsString('catalog_category_overlay', $html);
+        $this->assertStringContainsString('SKU-100', $obj->tabs->items['catalog_products']);
+    }
+
+    // ── output_sku_tab(): direct/bookmarked/search-navigated SKU access ────
+    // gated by blocked_categories(), same as inventory()'s link suppression.
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_sku_tab_overlays_blocked_category_instead_of_product_details(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['company_name' => 'Acme Corp']);
+        $database->temp = new CatalogStubTable();
+        $database->temp->companyRows = [['category_id' => 2]];
+
+        $obj->tabs            = new CatalogStubTabs();
+        $obj->category         = [2 => (object) ['id' => 2, 'name' => 'Software']];
+        $obj->subcategory      = [20 => $this->subcategoryFixture(['id' => 20, 'name' => 'Antivirus', 'category_id' => 2])];
+        $obj->category_id      = 2;
+        $obj->subcategory_id   = 20;
+        $obj->related_sku      = '';
+        $database->inventory->data = (object) ['sku' => 'SKU-100', 'new_date' => 0, 'parameter' => []];
+
+        $obj->output_sku_tab();
+        $html = $obj->tabs->items['catalog_sku'];
+
+        $this->assertStringContainsString('catalog_category_overlay', $html);
+        $this->assertStringContainsString('Design Partner Agreement Required', $html);
+        // The product's part number and add-to-cart controls must not leak into
+        // the response for a search hit / bookmarked URL on a blocked category.
+        $this->assertStringNotContainsString('SKU-100', $html);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_sku_tab_renders_product_details_for_unblocked_category(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = []; // nothing blocked
+
+        $obj->tabs            = new CatalogStubTabs();
+        $obj->category         = [2 => (object) ['id' => 2, 'name' => 'Software']];
+        $obj->subcategory      = [20 => $this->subcategoryFixture(['id' => 20, 'name' => 'Antivirus', 'category_id' => 2])];
+        $obj->category_id      = 2;
+        $obj->subcategory_id   = 20;
+        $obj->related_sku      = '';
+        $database->inventory->data = (object) ['sku' => 'SKU-100', 'new_date' => 0, 'parameter' => []];
+
+        $obj->output_sku_tab();
+        $html = $obj->tabs->items['catalog_sku'];
+
+        $this->assertStringNotContainsString('catalog_category_overlay', $html);
+        $this->assertStringContainsString('SKU-100', $html);
     }
 }

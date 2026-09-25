@@ -12,8 +12,9 @@
 
 if (!class_exists('database_meta_class')) {
     class database_meta_class {
-        public $rows  = 0;
-        public $error = '';
+        public $rows       = 0;
+        public $error      = '';
+        public $found_rows = 0;
     }
 }
 
@@ -28,14 +29,44 @@ if (!function_exists('fn_escape')) {
 if (!class_exists('database_class')) {
     class database_class {
         public $meta;
+        public $queryLog = [];
         private $_queryResult = [];
         private $_cursor      = 0;
         private $_lastInsertId = 0;
+
+        // Generic builder for query_where-shaped objects (field/operator/value,
+        // "op" also accepted since not every test file's query_where stub uses
+        // the same property name). Only "in"/"not in" are exercised so far
+        // (classes/search.php's category-block filter); other operators fall
+        // back to a simple equality fragment.
+        public function where($conditions) {
+            if (!is_array($conditions)) return '';
+            $parts = [];
+            foreach ($conditions as $item) {
+                $field    = isset($item->field) ? $item->field : null;
+                $operator = strtolower(isset($item->operator) ? $item->operator : (isset($item->op) ? $item->op : ''));
+                $value    = isset($item->value) ? $item->value : null;
+                if (!$field) continue;
+                switch (TRUE) {
+                  case (in_array($operator, ['in', 'not in'])):
+                    if (!is_array($value) || !sizeof($value)) continue 2;
+                    $parts[] = "{$field} {$operator} (" . implode(', ', $value) . ")";
+                    break;
+                  case ($operator !== ''):
+                    $parts[] = "{$field} {$operator} '{$value}'";
+                    break;
+                  default:
+                    $parts[] = (string) $field;
+                }
+            }
+            return sizeof($parts) ? 'where ' . implode(' and ', $parts) . "\n" : '';
+        }
 
         public function query($q) {
             $this->meta = new database_meta_class();
             if (is_array($q)) $q = implode(' ', $q);
             $q = trim($q);
+            $this->queryLog[] = $q;
 
             if (preg_match("/^SHOW TABLES LIKE '([a-zA-Z_]+)'/i", $q, $m)) {
                 $exists = !empty(self::$tableExists);

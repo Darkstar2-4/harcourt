@@ -66,6 +66,27 @@ class search_class extends database_class {
         $query[]="where id=" . fn_escape($id);
 		$this->query($query);
     }
+    function blocked_categories() {
+    global $database;
+        $blocked_categories=array();
+        if ( ($_SESSION['user']->id) && (!isset($_SESSION['user']->bot_code)) ) {
+            $query="SELECT category_id FROM user_category WHERE user_id=" . fn_escape($_SESSION['user']->id,FALSE);
+            $database->temp->query($query);
+            while ($database->temp->fetch=$database->temp->fetch_array()) {
+                $blocked_categories[]=intval($database->temp->fetch['category_id']);
+            }
+            $database->temp->free_result();
+            if (isset($_SESSION['user']->company_name) && strlen($_SESSION['user']->company_name)) {
+                $query="SELECT category_id FROM company_category_block WHERE company_name=" . fn_escape($_SESSION['user']->company_name);
+                $database->temp->query($query);
+                while ($database->temp->fetch=$database->temp->fetch_array()) {
+                    $blocked_categories[]=intval($database->temp->fetch['category_id']);
+                }
+                $database->temp->free_result();
+            }
+        }
+        return array_values(array_unique($blocked_categories));
+    }
     function ajax($search_terms,$limit,$options=array()) {
     global $database;
 		$this->search_terms=implode(" ",$search_terms);
@@ -75,6 +96,7 @@ class search_class extends database_class {
         foreach ($search_terms as $term) {
 			$query_where[]=new query_where("code", "like", "%{$term}%");
 		}
+        $query_where[]=new query_where("category_id","not in",$this->blocked_categories());
         $query=array();
         $query[]="select * from search";
         $query[]=$this->where($query_where);

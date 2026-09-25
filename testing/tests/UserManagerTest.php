@@ -221,6 +221,76 @@ if (!class_exists('UserManagerStubMenu')) {
     }
 }
 
+// ── Stub: $database->log / $database->captcha_bypass ───────────────────────
+// Backs the "auto-add signup email to captcha_bypass on Pending→Active
+// approval" behavior: user.php looks up the user:signup log row for the
+// user_id being approved (that's where the registrant's email lives, since
+// user_data_class itself has no email field) and, if found, inserts it into
+// captcha_bypass unless it's already there.
+
+if (!class_exists('captcha_bypass_data_class')) {
+    class captcha_bypass_data_class {
+        public $id = 0;
+        public $email;
+        public $comment;
+        public $created = 0;
+    }
+}
+
+if (!class_exists('UserManagerStubLog')) {
+    class UserManagerStubLog {
+        public $meta;
+        public $fixtureRows = [];
+        public $queryLog    = [];
+        private $cursor     = 0;
+
+        function __construct() { $this->meta = (object) ['rows' => 0]; }
+        function query($sql) {
+            $this->queryLog[] = is_array($sql) ? implode(' ', $sql) : $sql;
+            $this->cursor     = 0;
+            $this->meta->rows = count($this->fixtureRows);
+        }
+        function fetch_array() {
+            if ($this->cursor < count($this->fixtureRows)) return $this->fixtureRows[$this->cursor++];
+            return false;
+        }
+        function free_result() {}
+    }
+}
+
+if (!class_exists('UserManagerStubCaptchaBypass')) {
+    class UserManagerStubCaptchaBypass {
+        public $meta;
+        public $data;
+        public $store = [];
+
+        function __construct() {
+            $this->meta = (object) ['rows' => 0, 'error' => 0];
+            $this->data = new captcha_bypass_data_class();
+        }
+        function read($value, $field = 'id') {
+            $found = null;
+            foreach ($this->store as $row) {
+                if ($field === 'email' && strtolower($row->email) === strtolower($value)) { $found = $row; break; }
+                if ($field === 'id' && (int) $row->id === (int) $value) { $found = $row; break; }
+            }
+            if ($found) {
+                $this->data       = $found;
+                $this->meta->rows = 1;
+            } else {
+                $this->data       = new captcha_bypass_data_class();
+                $this->meta->rows = 0;
+            }
+        }
+        function update($update = false) {
+            if (!$update) {
+                $this->data->id = count($this->store) + 1;
+                $this->store[]  = $this->data;
+            }
+        }
+    }
+}
+
 
 // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -271,14 +341,18 @@ class UserManagerTest extends TestCase
      * Requires user.php with the given globals/superglobals and returns its
      * captured HTML output. Must be called from a @runInSeparateProcess test.
      */
-    private function runUserManager(array $requestOverrides, array $postOverrides, UserManagerStubUser $user, UserManagerStubCategory $category, UserManagerStubTemp $temp): string {
+    private function runUserManager(array $requestOverrides, array $postOverrides, UserManagerStubUser $user, UserManagerStubCategory $category, UserManagerStubTemp $temp, array $signupLogRows = [], array $captchaBypassSeed = []): string {
         global $database, $forms, $menu;
 
-        $database           = new stdClass();
-        $database->user     = $user;
-        $database->category = $category;
-        $database->temp     = $temp;
-        $database->profile  = new stdClass();
+        $database                = new stdClass();
+        $database->user          = $user;
+        $database->category      = $category;
+        $database->temp          = $temp;
+        $database->profile       = new stdClass();
+        $database->log           = new UserManagerStubLog();
+        $database->log->fixtureRows = $signupLogRows;
+        $database->captcha_bypass = new UserManagerStubCaptchaBypass();
+        $database->captcha_bypass->store = $captchaBypassSeed;
 
         $forms = new UserManagerStubForms();
         $menu  = new UserManagerStubMenu();
@@ -335,6 +409,88 @@ class UserManagerTest extends TestCase
         $this->assertSame('Denied', $user->data->status);
         $this->assertTrue($user->updateCalled);
         $this->assertSame('Denied', $user->updatedSnapshot->status);
+    }
+
+    // ── Approval → captcha_bypass (looked up via the user:signup log row) ──
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_approving_pending_user_adds_signup_email_to_captcha_bypass(): void {
+        global $database;
+        $user     = $this->pendingUser();
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
+            ['email' => 'new.customer@example.com'],
+        ]);
+
+        $this->assertCount(1, $database->captcha_bypass->store);
+        $this->assertSame('new.customer@example.com', $database->captcha_bypass->store[0]->email);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_approving_pending_user_without_signup_log_leaves_captcha_bypass_untouched(): void {
+        global $database;
+        $user     = $this->pendingUser();
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp);
+
+        $this->assertCount(0, $database->captcha_bypass->store);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_denying_user_does_not_add_to_captcha_bypass(): void {
+        global $database;
+        $user     = $this->pendingUser();
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $this->runUserManager([], ['status' => 'Denied'], $user, $category, $temp, [
+            ['email' => 'new.customer@example.com'],
+        ]);
+
+        $this->assertCount(0, $database->captcha_bypass->store);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_resaving_already_active_user_does_not_requery_signup_log(): void {
+        global $database;
+        $user = $this->pendingUser();
+        $user->data->status = 'Active';
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
+            ['email' => 'new.customer@example.com'],
+        ]);
+
+        $this->assertCount(0, $database->log->queryLog, 'Should not look up the signup log when the user was already Active.');
+        $this->assertCount(0, $database->captcha_bypass->store);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_approving_pending_user_already_in_captcha_bypass_is_not_duplicated(): void {
+        global $database;
+        $user     = $this->pendingUser();
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $existing = new captcha_bypass_data_class();
+        $existing->id    = 1;
+        $existing->email = 'new.customer@example.com';
+
+        $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
+            ['email' => 'new.customer@example.com'],
+        ], [$existing]);
+
+        $this->assertCount(1, $database->captcha_bypass->store, 'Duplicate email should not create a second row.');
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

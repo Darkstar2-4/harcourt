@@ -20,161 +20,288 @@ class WPMUDEV_Dashboard_Sui_Page_Urls {
 	 *
 	 * @var string
 	 */
-	public $dashboard_url = '';
+	public string $dashboard_url = '';
 
 	/**
 	 * Settings page link.
 	 *
 	 * @var string
 	 */
-	public $settings_url = '';
+	public string $settings_url = '';
 
 	/**
 	 * Plugins page link.
 	 *
 	 * @var string
 	 */
-	public $plugins_url = '';
+	public string $plugins_url = '';
 
 	/**
 	 * Support page link.
 	 *
 	 * @var string
 	 */
-	public $support_url = '';
+	public string $support_url = '';
 
 	/**
 	 * Tools page link.
 	 *
 	 * @var string
 	 */
-	public $tools_url = '';
+	public string $tools_url = '';
 
 	/**
 	 * Remote site base URL.
 	 *
 	 * @var string
 	 */
-	public $remote_site = 'https://wpmudev.com/';
+	public string $remote_site = 'https://wpmudev.com/';
 
 	/**
 	 * Support URL link.
 	 *
 	 * @var string
 	 */
-	public $external_support_url = '';
+	public string $external_support_url = '';
 
 	/**
 	 * Hub2 page link.
 	 *
 	 * @var string
 	 */
-	public $hub_url = 'https://wpmudev.com/hub2';
+	public string $hub_url = '';
 
 	/**
 	 * Hub1 page link.
 	 *
 	 * @var string
 	 */
-	public $hub_url_old = 'https://wpmudev.com/hub';
+	public string $hub_url_old = 'https://wpmudev.com/hub';
 
 	/**
 	 * Documentation section urls.
 	 *
 	 * @var string[]
 	 */
-	public $documentation_url = array(
-		'dashboard'  => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/',
-		'plugins'    => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#plugins',
-		'support'    => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#support',
-		'analytics'  => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#analytics',
-		'whitelabel' => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#white-label',
-		'settings'   => 'https://wpmudev.com/docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#settings',
-	);
+	public array $documentation_url = array();
 
 	/**
 	 * Community page link.
 	 *
 	 * @var string
 	 */
-	public $community_url = 'https://wpmudev.com/hub2/community';
+	public string $community_url = '';
 
 	/**
 	 * Academy page url.
 	 *
 	 * @var string
 	 */
-	public $academy_url = 'https://wpmudev.com/academy';
+	public string $academy_url = '';
 
 	/**
 	 * Hub accounts page url.
 	 *
 	 * @var string
 	 */
-	public $hub_account_url = 'https://wpmudev.com/hub/account';
+	public string $hub_account_url = '';
 
 	/**
 	 * Trail page url.
 	 *
 	 * @var string
 	 */
-	public $trial_url = 'https://wpmudev.com/#trial';
+	public string $trial_url = '';
 
 	/**
 	 * Backward compat.
 	 *
 	 * @var string
 	 */
-	public $real_support_url = '';
+	public string $real_support_url = '';
 
 	/**
 	 * Themes page url.
 	 *
 	 * @var string
 	 */
-	public $themes_url = '';
+	public string $themes_url = '';
 
 	/**
 	 * Whip page url.
 	 *
 	 * @var string
 	 */
-	public $whip_url = '';
+	public string $whip_url = '';
 
 	/**
 	 * Blog page url.
 	 *
 	 * @var string
 	 */
-	public $blog_url = '';
+	public string $blog_url = '';
 
 	/**
 	 * Roadmap page url.
 	 *
 	 * @var string
 	 */
-	public $roadmap_url = '';
+	public string $roadmap_url = '';
 
 	/**
 	 * Analytics page url.
 	 *
 	 * @var string
 	 */
-	public $analytics_url = '';
+	public string $analytics_url = '';
 
 	/**
 	 * Whitelabel page url.
 	 *
 	 * @var string
 	 */
-	public $whitelabel_url = '';
+	public string $whitelabel_url = '';
 
 	/**
 	 * Skip trial page url.
 	 *
 	 * @var string
 	 */
-	public $skip_trial_url = '';
+	public string $skip_trial_url = '';
+
+	/**
+	 * Skip trial page url.
+	 *
+	 * @var string
+	 */
+	public string $switch_to_free_url = '';
+
+	/**
+	 * System info URL.
+	 *
+	 * @var string
+	 */
+	public string $system_info_url = '';
+
+	/**
+	 * Account details URL.
+	 *
+	 * @var string
+	 */
+	public string $hub_account_details_url = '';
+
+	/**
+	 * Hub security info URL.
+	 *
+	 * @var string
+	 */
+	public string $hub_security_info_url = '';
+
+	/**
+	 * Trial info URL.
+	 *
+	 * @var string
+	 */
+	public string $trial_info_url = '';
+
+	/**
+	 * Forgot password URL.
+	 *
+	 * @var string
+	 */
+	public string $forgot_password_url = '';
+
+	/**
+	 * Register URL.
+	 *
+	 * @var string
+	 */
+	public string $register_url = '';
+
+	/**
+	 * Plugins page URL.
+	 *
+	 * @var string
+	 */
+	public string $wpmudev_plugins_url = '';
+
+	/**
+	 * Documentation page URL.
+	 *
+	 * @var string
+	 */
+	public string $wpmudev_docs_url = '';
+
+	/**
+	 * Support page URL.
+	 *
+	 * @var string
+	 */
+	public string $wpmudev_support_url = '';
+
+	/**
+	 * Hub support page URL.
+	 *
+	 * @var string
+	 */
+	public string $hub_support_url = '';
+
+	/**
+	 * Terms of Service page URL.
+	 *
+	 * @var string
+	 */
+	public string $wpmudev_tos_url = '';
+
+	/**
+	 * Privacy Policy URL.
+	 *
+	 * @var string
+	 */
+	public string $wpmudev_privacy_url = '';
+
+	/**
+	 * Facebook URL.
+	 *
+	 * @var string
+	 */
+	public string $facebook_url = 'https://www.facebook.com/wpmudev/';
+
+	/**
+	 * Twitter URL.
+	 *
+	 * @var string
+	 */
+	public string $twitter_url = 'https://twitter.com/wpmudev';
+
+	/**
+	 * Instagram URL.
+	 *
+	 * @var string
+	 */
+	public string $instagram_url = 'https://www.instagram.com/wpmu_dev/';
+
+
+	/**
+	 * Addmin General Settings Url
+	 *
+	 * @var string
+	 */
+	public string $general_settings_url = '';
+
+	/**
+	 * Brand pro plugin url
+	 *
+	 * @var string
+	 */
+	public string $branda_pro_plugin_page = 'https://wpmudev.com/project/ultimate-branding/';
+
+	/**
+	 * Analytics widget in admin
+	 *
+	 * @var string
+	 */
+	public string $admin_analytics_widget = 'https://wpmudev.com/project/ultimate-branding/';
 
 	/**
 	 * Construct class.
@@ -182,12 +309,27 @@ class WPMUDEV_Dashboard_Sui_Page_Urls {
 	 * @access public
 	 */
 	public function __construct() {
+		$this->load();
+	}
+
+	/**
+	 * Set URL values based on current state.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @return void
+	 */
+	private function load() {
 		// Set URL values.
-		$this->dashboard_url = network_admin_url( 'admin.php?page=wpmudev' );
-		$this->settings_url  = $this->dashboard_url;
-		$this->plugins_url   = $this->dashboard_url;
-		$this->support_url   = $this->dashboard_url;
-		$this->tools_url     = $this->dashboard_url;
+		$this->dashboard_url          = network_admin_url( 'admin.php?page=wpmudev' );
+		$this->settings_url           = $this->dashboard_url;
+		$this->plugins_url            = $this->dashboard_url;
+		$this->support_url            = $this->dashboard_url;
+		$this->tools_url              = $this->dashboard_url;
+		$this->system_info_url        = network_admin_url( 'admin.php?page=wpmudev&view=system' );
+		$this->admin_analytics_widget = admin_url() . '#wdpun_analytics';
+
+		$this->general_settings_url = admin_url( 'options-general.php' );
 
 		// Set plugin links if logged in.
 		if ( WPMUDEV_Dashboard::$api->has_key() ) {
@@ -205,15 +347,50 @@ class WPMUDEV_Dashboard_Sui_Page_Urls {
 		}
 
 		// External URLs.
-		$this->hub_url              = $this->remote_site . 'hub2';
-		$this->external_support_url = $this->remote_site . 'hub2/#ask-question';
-		$this->community_url        = $this->remote_site . 'hub/community/';
-		$this->academy_url          = $this->remote_site . 'academy/';
-		$this->hub_account_url      = $this->remote_site . 'hub/account';
-		$this->blog_url             = $this->remote_site . 'blog';
-		$this->whip_url             = $this->remote_site . 'blog/get-the-whip/';
-		$this->roadmap_url          = $this->remote_site . 'roadmap/';
-		$this->trial_url            = $this->remote_site . '#trial';
-		$this->skip_trial_url       = $this->remote_site . 'hub/account/?skip_trial ';
+		$this->hub_url                 = $this->remote_site . 'hub2';
+		$this->external_support_url    = $this->remote_site . 'hub2/support/#ask-question';
+		$this->community_url           = $this->remote_site . 'hub2/community/';
+		$this->academy_url             = $this->remote_site . 'academy/';
+		$this->hub_account_url         = $this->remote_site . 'hub2/account/';
+		$this->blog_url                = $this->remote_site . 'blog/';
+		$this->whip_url                = $this->remote_site . 'blog/get-the-whip/';
+		$this->roadmap_url             = $this->remote_site . 'roadmap/';
+		$this->trial_url               = $this->remote_site . '#trial';
+		$this->skip_trial_url          = $this->remote_site . 'hub2/account/?skip_trial';
+		$this->switch_to_free_url      = $this->remote_site . 'hub2/?switch-free=1';
+		$this->hub_account_details_url = $this->remote_site . 'hub2/account/details';
+		$this->hub_security_info_url   = $this->remote_site . 'manuals/hub-security';
+		$this->trial_info_url          = $this->remote_site . 'docs/getting-started/how-free-trials-work/';
+		$this->forgot_password_url     = $this->remote_site . 'forgot-password/';
+		$this->register_url            = $this->remote_site . 'register/';
+		$this->wpmudev_plugins_url     = $this->remote_site . 'plugins/';
+		$this->wpmudev_docs_url        = $this->remote_site . 'docs/';
+		$this->wpmudev_privacy_url     = $this->remote_site . 'privacy-policy/';
+		$this->wpmudev_tos_url         = $this->remote_site . 'terms-of-service/';
+		$this->wpmudev_support_url     = $this->remote_site . 'get-support/';
+		$this->hub_support_url         = $this->remote_site . 'hub2/support/';
+
+		// Documentation URLs.
+		$this->documentation_url = array(
+			'overview'   => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/',
+			'dashboard'  => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#dashboard',
+			'plugins'    => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#plugins',
+			'support'    => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#support',
+			'analytics'  => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#analytics',
+			'whitelabel' => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#white-label',
+			'settings'   => $this->remote_site . 'docs/wpmu-dev-plugins/wpmu-dev-dashboard-plugin-instructions/#settings',
+		);
+	}
+
+	/**
+	 * Reload the URLs.
+	 *
+	 * @since 5.0.0
+	 * @return self
+	 */
+	public function reload(): self {
+		$this->load();
+
+		return $this;
 	}
 }

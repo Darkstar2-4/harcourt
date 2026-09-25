@@ -38,7 +38,7 @@
  * @category  Crypt
  * @package   Crypt_Random
  * @author    Jim Wigginton <terrafrost@php.net>
- * @copyright MMVII Jim Wigginton
+ * @copyright 2007 Jim Wigginton
  * @license   http://www.opensource.org/licenses/mit-license.html  MIT License
  * @link      http://phpseclib.sourceforge.net
  */
@@ -61,18 +61,20 @@ if (!function_exists('crypt_random_string')) {
      * microoptimizations because this function has the potential of being called a huge number of times.
      * eg. for RSA key generation.
      *
-     * @param Integer $length
-     *
-     * @return String
+     * @param int $length
+     * @return string
      * @access public
      */
     function crypt_random_string($length)
     {
+        if (!$length) {
+            return '';
+        }
+
         if (CRYPT_RANDOM_IS_WINDOWS) {
-            // method 1. prior to PHP 5.3 this would call rand() on windows hence the function_exists('class_alias') call.
-            // ie. class_alias is a function that was introduced in PHP 5.3
-            if (version_compare(PHP_VERSION, '5.3.6', '!=') && function_exists('mcrypt_create_iv') && function_exists('class_alias')) {
-                return mcrypt_create_iv($length);
+            // method 1. prior to PHP 5.3, mcrypt_create_iv() would call rand() on windows
+            if (extension_loaded('mcrypt') && version_compare(PHP_VERSION, '5.3.0', '>=')) {
+                return @mcrypt_create_iv($length);
             }
             // method 2. openssl_random_pseudo_bytes was introduced in PHP 5.3.0 but prior to PHP 5.3.4 there was,
             // to quote <http://php.net/ChangeLog-5.php#5.3.4>, "possible blocking behavior". as of 5.3.4
@@ -87,12 +89,12 @@ if (!function_exists('crypt_random_string')) {
             // https://github.com/php/php-src/blob/7014a0eb6d1611151a286c0ff4f2238f92c120d6/win32/winutil.c#L80
             //
             // we're calling it, all the same, in the off chance that the mcrypt extension is not available
-            if (function_exists('openssl_random_pseudo_bytes') && version_compare(PHP_VERSION, '5.3.4', '>=')) {
+            if (extension_loaded('openssl') && version_compare(PHP_VERSION, '5.3.4', '>=')) {
                 return openssl_random_pseudo_bytes($length);
             }
         } else {
             // method 1. the fastest
-            if (function_exists('openssl_random_pseudo_bytes')) {
+            if (extension_loaded('openssl') && version_compare(PHP_VERSION, '5.3.0', '>=')) {
                 return openssl_random_pseudo_bytes($length);
             }
             // method 2
@@ -103,15 +105,18 @@ if (!function_exists('crypt_random_string')) {
                 $fp = @fopen('/dev/urandom', 'rb');
             }
             if ($fp !== true && $fp !== false) { // surprisingly faster than !is_bool() or is_resource()
-                return fread($fp, $length);
+                $temp = fread($fp, $length);
+                if (strlen($temp) == $length) {
+                    return $temp;
+                }
             }
             // method 3. pretty much does the same thing as method 2 per the following url:
             // https://github.com/php/php-src/blob/7014a0eb6d1611151a286c0ff4f2238f92c120d6/ext/mcrypt/mcrypt.c#L1391
             // surprisingly slower than method 2. maybe that's because mcrypt_create_iv does a bunch of error checking that we're
             // not doing. regardless, this'll only be called if this PHP script couldn't open /dev/urandom due to open_basedir
             // restrictions or some such
-            if (function_exists('mcrypt_create_iv')) {
-                return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+            if (extension_loaded('mcrypt')) {
+                return @mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
             }
         }
         // at this point we have no choice but to use a pure-PHP CSPRNG
@@ -136,10 +141,10 @@ if (!function_exists('crypt_random_string')) {
         static $crypto = false, $v;
         if ($crypto === false) {
             // save old session data
-            $old_session_id            = session_id();
-            $old_use_cookies           = ini_get('session.use_cookies');
+            $old_session_id = session_id();
+            $old_use_cookies = ini_get('session.use_cookies');
             $old_session_cache_limiter = session_cache_limiter();
-            $_OLD_SESSION              = isset($_SESSION) ? $_SESSION : false;
+            $_OLD_SESSION = isset($_SESSION) ? $_SESSION : false;
             if ($old_session_id != '') {
                 session_write_close();
             }
@@ -150,12 +155,16 @@ if (!function_exists('crypt_random_string')) {
             session_start();
 
             $v = $seed = $_SESSION['seed'] = pack('H*', sha1(
-                serialize($_SERVER).
-                serialize($_POST).
-                serialize($_GET).
-                serialize($_COOKIE).
-                serialize($_SESSION).
-                serialize($_OLD_SESSION)
+                (isset($_SERVER) ? phpseclib_safe_serialize($_SERVER) : '') .
+                (isset($_POST) ? phpseclib_safe_serialize($_POST) : '') .
+                (isset($_GET) ? phpseclib_safe_serialize($_GET) : '') .
+                (isset($_COOKIE) ? phpseclib_safe_serialize($_COOKIE) : '') .
+                // as of PHP 8.1 $GLOBALS can't be accessed by reference, which eliminates
+                // the need for phpseclib_safe_serialize. see https://wiki.php.net/rfc/restrict_globals_usage
+                // for more info
+                (version_compare(PHP_VERSION, '8.1.0', '>=') ? serialize($GLOBALS) : phpseclib_safe_serialize($GLOBALS)) .
+                phpseclib_safe_serialize($_SESSION) .
+                phpseclib_safe_serialize($_OLD_SESSION)
             ));
             if (!isset($_SESSION['count'])) {
                 $_SESSION['count'] = 0;
@@ -187,44 +196,44 @@ if (!function_exists('crypt_random_string')) {
             // http://tools.ietf.org/html/rfc4253#section-7.2
             //
             // see the is_string($crypto) part for an example of how to expand the keys
-            $key = pack('H*', sha1($seed.'A'));
-            $iv  = pack('H*', sha1($seed.'C'));
+            $key = pack('H*', sha1($seed . 'A'));
+            $iv = pack('H*', sha1($seed . 'C'));
 
             // ciphers are used as per the nist.gov link below. also, see this link:
             //
             // http://en.wikipedia.org/wiki/Cryptographically_secure_pseudorandom_number_generator#Designs_based_on_cryptographic_primitives
             switch (true) {
-                case mwp_phpseclib_resolve_include_path('Crypt/AES.php'):
+                case phpseclib_resolve_include_path('Crypt/AES.php'):
                     if (!class_exists('Crypt_AES')) {
                         require_once dirname(__FILE__).'/AES.php';
                     }
                     $crypto = new Crypt_AES(CRYPT_AES_MODE_CTR);
                     break;
-                case mwp_phpseclib_resolve_include_path('Crypt/Twofish.php'):
+                case phpseclib_resolve_include_path('Crypt/Twofish.php'):
                     if (!class_exists('Crypt_Twofish')) {
                         require_once dirname(__FILE__).'/Twofish.php';
                     }
                     $crypto = new Crypt_Twofish(CRYPT_TWOFISH_MODE_CTR);
                     break;
-                case mwp_phpseclib_resolve_include_path('Crypt/Blowfish.php'):
+                case phpseclib_resolve_include_path('Crypt/Blowfish.php'):
                     if (!class_exists('Crypt_Blowfish')) {
                         require_once dirname(__FILE__).'/Blowfish.php';
                     }
                     $crypto = new Crypt_Blowfish(CRYPT_BLOWFISH_MODE_CTR);
                     break;
-                case mwp_phpseclib_resolve_include_path('Crypt/TripleDES.php'):
+                case phpseclib_resolve_include_path('Crypt/TripleDES.php'):
                     if (!class_exists('Crypt_TripleDES')) {
                         require_once dirname(__FILE__).'/TripleDES.php';
                     }
                     $crypto = new Crypt_TripleDES(CRYPT_DES_MODE_CTR);
                     break;
-                case mwp_phpseclib_resolve_include_path('Crypt/DES.php'):
+                case phpseclib_resolve_include_path('Crypt/DES.php'):
                     if (!class_exists('Crypt_DES')) {
                         require_once dirname(__FILE__).'/DES.php';
                     }
                     $crypto = new Crypt_DES(CRYPT_DES_MODE_CTR);
                     break;
-                case mwp_phpseclib_resolve_include_path('Crypt/RC4.php'):
+                case phpseclib_resolve_include_path('Crypt/RC4.php'):
                     if (!class_exists('Crypt_RC4')) {
                         require_once dirname(__FILE__).'/RC4.php';
                     }
@@ -232,7 +241,6 @@ if (!function_exists('crypt_random_string')) {
                     break;
                 default:
                     user_error('crypt_random_string requires at least one symmetric cipher be loaded');
-
                     return false;
             }
 
@@ -256,10 +264,44 @@ if (!function_exists('crypt_random_string')) {
             $i = $crypto->encrypt(microtime()); // strlen(microtime()) == 21
             $r = $crypto->encrypt($i ^ $v); // strlen($v) == 20
             $v = $crypto->encrypt($r ^ $i); // strlen($r) == 20
-            $result .= $r;
+            $result.= $r;
         }
-
         return substr($result, 0, $length);
+    }
+}
+
+if (!function_exists('phpseclib_safe_serialize')) {
+    /**
+     * Safely serialize variables
+     *
+     * If a class has a private __sleep() method it'll give a fatal error on PHP 5.2 and earlier.
+     * PHP 5.3 will emit a warning.
+     *
+     * @param mixed $arr
+     * @access public
+     */
+    function phpseclib_safe_serialize(&$arr)
+    {
+        if (is_object($arr)) {
+            return '';
+        }
+        if (!is_array($arr)) {
+            return serialize($arr);
+        }
+        // prevent circular array recursion
+        if (isset($arr['__phpseclib_marker'])) {
+            return '';
+        }
+        $safearr = array();
+        $arr['__phpseclib_marker'] = true;
+        foreach (array_keys($arr) as $key) {
+            // do not recurse on the '__phpseclib_marker' key itself, for smaller memory usage
+            if ($key !== '__phpseclib_marker') {
+                $safearr[$key] = phpseclib_safe_serialize($arr[$key]);
+            }
+        }
+        unset($arr['__phpseclib_marker']);
+        return serialize($safearr);
     }
 }
 
@@ -271,8 +313,7 @@ if (!function_exists('phpseclib_resolve_include_path')) {
      * PHP 5.3.2) with fallback implementation for earlier PHP versions.
      *
      * @param string $filename
-     *
-     * @return mixed Filename (string) on success, false otherwise.
+     * @return string|false
      * @access public
      */
     function phpseclib_resolve_include_path($filename)
@@ -291,30 +332,11 @@ if (!function_exists('phpseclib_resolve_include_path')) {
             explode(PATH_SEPARATOR, get_include_path());
         foreach ($paths as $prefix) {
             // path's specified in include_path don't always end in /
-            $ds   = substr($prefix, -1) == DIRECTORY_SEPARATOR ? '' : DIRECTORY_SEPARATOR;
-            $file = $prefix.$ds.$filename;
+            $ds = substr($prefix, -1) == DIRECTORY_SEPARATOR ? '' : DIRECTORY_SEPARATOR;
+            $file = $prefix . $ds . $filename;
             if (file_exists($file)) {
                 return realpath($file);
             }
-        }
-
-        return false;
-    }
-}
-
-if (!function_exists('mwp_phpseclib_resolve_include_path')) {
-    /**
-     * We don't rely on include_path or PHAR, so support only one option.
-     *
-     * @param string $filename
-     *
-     * @return mixed Filename (string) on success, false otherwise.
-     * @access public
-     */
-    function mwp_phpseclib_resolve_include_path($filename)
-    {
-        if (file_exists(dirname(__FILE__).'/../'.$filename)) {
-            return realpath(dirname(__FILE__).'/../'.$filename);
         }
 
         return false;

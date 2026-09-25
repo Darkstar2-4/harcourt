@@ -59,6 +59,7 @@ if (!class_exists('database_class')) {
         }
         public function free_result() {}
         public function insert_id()   { return $this->_lastInsertId; }
+        public function where($conditions) { return ''; }
 
         public static function resetState() {
             self::$insertedRows     = [];

@@ -66,6 +66,45 @@ class MicrosoftAuth {
         return $data;
     }
 
+    /**
+     * Returns an email whose domain the signing-in tenant has proven it owns,
+     * or '' if none. The app accepts any Entra tenant, and a tenant admin can
+     * set `mail` to any address, so `mail` alone is never trusted. A UPN suffix
+     * must be a verified domain of the tenant, and `xms_edov` (optional claim)
+     * asserts the same for the email claim.
+     */
+    private function verifiedEmail($profile, $claims) {
+        $normalize = function ($value) {
+            $value = strtolower(trim((string) $value));
+            return filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : '';
+        };
+        $domain = function ($address) {
+            return substr(strrchr($address, '@'), 1);
+        };
+
+        // Guest accounts have UPNs like "jane_acme.com#EXT#@host.onmicrosoft.com",
+        // which say nothing about the guest's real domain.
+        $upn = $normalize($profile['userPrincipalName'] ?? $claims['upn'] ?? '');
+        if ($upn && strpos($upn, '#ext#') !== false) {
+            $upn = '';
+        }
+
+        $mail = $normalize($profile['mail'] ?? '');
+        $claim_email = $normalize($claims['email'] ?? '');
+        $edov = !empty($claims['xms_edov']) && $claim_email;
+
+        if ($mail && (($edov && $mail === $claim_email) || ($upn && $domain($mail) === $domain($upn)))) {
+            return $mail;
+        }
+        if ($upn) {
+            return $upn;
+        }
+        if ($edov) {
+            return $claim_email;
+        }
+        return '';
+    }
+
     public function init() {
         $provider = $this->provider();
 
@@ -144,39 +183,23 @@ class MicrosoftAuth {
                 throw new \Exception('ID token nonce mismatch — possible replay attack.');
             }
 
-            $email = '';
-            $email_verified = false;
-
-            // Graph API fields are organization-managed and verified
-            if (!empty($profile['mail']) && strpos($profile['mail'], '@') !== false) {
-                $email = $profile['mail'];
-                $email_verified = true;
-            } elseif (!empty($profile['userPrincipalName']) && strpos($profile['userPrincipalName'], '@') !== false) {
-                $email = $profile['userPrincipalName'];
-                $email_verified = true;
-            } elseif (!empty($claims['upn']) && strpos($claims['upn'], '@') !== false) {
-                // UPN is organization-managed
-                $email = $claims['upn'];
-                $email_verified = true;
-            } elseif (!empty($claims['email'])) {
-                $email = $claims['email'];
-                $email_verified = !empty($claims['email_verified']) || !empty($claims['xms_edv']);
-            } elseif (!empty($claims['preferred_username']) && strpos($claims['preferred_username'], '@') !== false) {
-                $email = $claims['preferred_username'];
-                $email_verified = !empty($claims['email_verified']) || !empty($claims['xms_edv']);
+            $tenant_id = $claims['tid'] ?? '';
+            if (empty($tenant_id)) {
+                throw new \Exception('ID token is missing the tenant (tid) claim.');
             }
 
-            $email = strtolower(trim($email));
+            $email = $this->verifiedEmail($profile, $claims);
 
-            if (empty($email) || strpos($email, '@') === false) {
-                throw new \Exception('No email address available from Microsoft account.');
-            }
-
-            if (!$email_verified) {
-                $_SESSION['microsoft_oauth_error'] = 'Your Microsoft email address is not verified. Please verify it and try again.';
+            if (empty($email)) {
+                error_log('[MicrosoftAuth] No verified email for tid=' . $tenant_id
+                    . ' upn=' . ($profile['userPrincipalName'] ?? $claims['upn'] ?? '')
+                    . ' mail=' . ($profile['mail'] ?? ''));
+                $_SESSION['microsoft_oauth_error'] = 'We could not verify the email address on your Microsoft account. Please register using the form instead.';
                 header('Location: /request-access');
                 exit;
             }
+
+            error_log('[MicrosoftAuth] Sign-in ' . $email . ' tid=' . $tenant_id);
 
             session_regenerate_id(true);
 

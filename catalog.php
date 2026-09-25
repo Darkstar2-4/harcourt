@@ -677,6 +677,14 @@ class catalog_output_class {
         }
         return $this->blocked_categories;
     }
+    function blocked_agreement_message($category_id) {
+        $agreement_types=array();
+        if (in_array($category_id,(array)$this->blocked_categories_user)) $agreement_types[]="Integrator Agreement";
+        if (in_array($category_id,(array)$this->blocked_categories_company)) $agreement_types[]="Design Partner Agreement";
+        return (sizeof($agreement_types) > 1) ?
+            implode(" and ",$agreement_types) . " are required for Access." :
+            $agreement_types[0] . " Required for Access.";
+    }
     function output_summary($summary_list) {
 	    global $database, $forms, $menu;
     	$this->trace[]=__FUNCTION__;
@@ -729,14 +737,8 @@ class catalog_output_class {
             $results[]="</ul>";
 			$results[]="</div>";
             if ($blocked) {
-                $agreement_types=array();
-                if (in_array($category_id,(array)$this->blocked_categories_user)) $agreement_types[]="Integrator Agreement";
-                if (in_array($category_id,(array)$this->blocked_categories_company)) $agreement_types[]="Design Partner Agreement";
-                $agreement_message=(sizeof($agreement_types) > 1) ?
-                    implode(" and ",$agreement_types) . " are required for Access." :
-                    $agreement_types[0] . " Required for Access.";
                 $results[]="<div class='catalog_category_overlay'>";
-                $results[]="<div class='catalog_category_overlay_message'>{$agreement_message} " . fn_href("Contact Us","/contact") . " for more information.</div>";
+                $results[]="<div class='catalog_category_overlay_message'>" . $this->blocked_agreement_message($category_id) . " " . fn_href("Contact Us","/contact") . " for more information.</div>";
                 $results[]="</div>";
             }
             $results[]="</div>";
@@ -876,6 +878,18 @@ class catalog_output_class {
     function output_subcategory($data) {
         global $database, $forms, $menu;
     	$this->trace[]=__FUNCTION__;
+        $category_id=$this->subcategory[$this->subcategory_id]->category_id;
+        if (in_array($category_id,$this->blocked_categories())) {
+            $results=array();
+            $results[]="<div id=products_header>";
+            $results[]="<h1>" . $this->subcategory[$this->subcategory_id]->name . "</h1>";
+            $results[]="</div>";
+            $results[]="<div class='catalog_category_overlay'>";
+            $results[]="<div class='catalog_category_overlay_message'>" . $this->blocked_agreement_message($category_id) . " " . fn_href("Contact Us","/contact") . " for more information.</div>";
+            $results[]="</div>";
+            print implode("\n",$results);
+            return;
+        }
 		print $this->subcategory_title();
 	    print "<div id='cart_dialog'>";
         print "<div id='cart_contents'></div>";
@@ -1012,6 +1026,14 @@ class catalog_output_class {
     function output_sku_tab() {
         global $database, $forms, $menu;
     	$this->trace[]=__FUNCTION__;
+        if (in_array($this->category_id,$this->blocked_categories())) {
+            $results=array();
+            $results[]="<div class='catalog_category_overlay'>";
+            $results[]="<div class='catalog_category_overlay_message'>" . $this->blocked_agreement_message($this->category_id) . " " . fn_href("Contact Us","/contact") . " for more information.</div>";
+            $results[]="</div>";
+            $this->tabs->item($menu->language('catalog_sku'),$results,array("id"=>"catalog_sku"));
+            return;
+        }
         $database->subcategory->data=$this->subcategory[$this->subcategory_id];
         $menu->configure=new configure_class("");
         $menu->configure->inventory_msrp();

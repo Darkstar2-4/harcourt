@@ -53,6 +53,27 @@ class checkout_class {
             	$forms->error("cc","Valid entries are 4 digits or blank");
                 break;
             }
+            if (isset($_POST['billing_same_as_shipping'])) {
+	        	$this->data->billing_address=$this->data->address;
+	        	$this->data->billing_city=$this->data->city;
+	        	$this->data->billing_state=$this->data->state;
+	        	$this->data->billing_zip=$this->data->zip;
+	        	$this->data->billing_country_code=$this->data->country_code;
+	          } else {
+	        	$billing_data=new stdClass();
+	        	$billing_data->address=$this->data->billing_address;
+	        	$billing_data->city=$this->data->billing_city;
+	        	$billing_data->state=$this->data->billing_state;
+	        	$billing_data->zip=$this->data->billing_zip;
+	        	$billing_data->country_code=$this->data->billing_country_code;
+	        	$billing_address=new address_class("orderhd_billing",$billing_data);
+	            $billing_address->verify();
+	        	$this->data->billing_address=$billing_data->address;
+	        	$this->data->billing_city=$billing_data->city;
+	        	$this->data->billing_state=$billing_data->state;
+	        	$this->data->billing_zip=$billing_data->zip;
+	        	$this->data->billing_country_code=$billing_data->country_code;
+	        }
 	        $_SESSION['checkout']=json_encode($this->data);
             if (sizeof($forms->error)) break;
 			$this->ecommerce->cookie($this->data);
@@ -75,6 +96,12 @@ class checkout_class {
             $mail=new scsmail_class("checkout",$this->data);
             $mail->html($forms->constant->html);
 	        $forms->message[]=$mail->send();
+            $mail_customer=new scsmail_class("checkout",$this->data,array("subject"=>"Order Confirmation"));
+            $customer_html="<p>This confirms that your web order has been successfully sent to our team. A formal order acknowledgement will follow from sales@harcourt.co as soon as your order has been processed in our system.</p>" . $forms->constant->html;
+            if (strlen($database->registry->local->cc_email)) $customer_html .= "<p>No orders will ship without a credit card on file.</p>";
+            $mail_customer->html($customer_html);
+            $mail_customer->recipient($this->data->email,$this->data->name);
+	        $forms->message[]=$mail_customer->send();
 			unset($_SESSION['checkout']);
 			unset($_SESSION['cart']);
             $menu->cart=array();
@@ -87,6 +114,16 @@ class checkout_class {
 	        if ( (action=='complete') && (!confirm('Place Order?')) ) return;
 	        document.scs_form.action.value=action;
 	        document.scs_form.submit();
+	    }
+	    function fn_billing_same_as_shipping(checked) {
+	        jQuery('#orderhd_billing_address').val(checked ? jQuery('#orderhd_address').val() : '');
+	        jQuery('#orderhd_billing_city').val(checked ? jQuery('#orderhd_city').val() : '');
+	        jQuery('#orderhd_billing_state_us').val(checked ? jQuery('#orderhd_state_us').val() : '');
+	        jQuery('#orderhd_billing_state_ca').val(checked ? jQuery('#orderhd_state_ca').val() : '');
+	        jQuery('#orderhd_billing_state_other').val(checked ? jQuery('#orderhd_state_other').val() : '');
+	        jQuery('#orderhd_billing_zip').val(checked ? jQuery('#orderhd_zip').val() : '');
+	        jQuery('#orderhd_billing_country_code').val(checked ? jQuery('#orderhd_country_code').val() : '');
+	        fn_country_address('orderhd_billing');
 	    }
 	    </script>
 	    <?php

@@ -12,12 +12,12 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit();
 
 // Get uninstall settings.
-$keep_data     = get_site_option( 'wdp_un_uninstall_keep_data' );
-$keep_settings = get_site_option( 'wdp_un_uninstall_preserve_settings' );
+$wpmudev_dashboard_keep_data     = get_site_option( 'wdp_un_uninstall_keep_data' );
+$wpmudev_dashboard_keep_settings = get_site_option( 'wdp_un_uninstall_preserve_settings' );
 
 global $wpdb;
 
-if ( ! $keep_data && ! $keep_settings ) {
+if ( ! $wpmudev_dashboard_keep_data && ! $wpmudev_dashboard_keep_settings ) {
 	// Delete both settings and transients.
 	if ( is_multisite() ) {
 		$wpdb->query( "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE '%wdp_un_%'" ); // phpcs:ignore
@@ -27,7 +27,7 @@ if ( ! $keep_data && ! $keep_settings ) {
 
 	// Delete API key if everything needs to be cleaned.
 	delete_site_option( 'wpmudev_apikey' );
-} elseif ( ! $keep_data ) {
+} elseif ( ! $wpmudev_dashboard_keep_data ) {
 	// Delete transients.
 	if ( is_multisite() ) {
 		$wpdb->query( "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE '%_wdp_un_%'" ); // phpcs:ignore
@@ -43,7 +43,7 @@ if ( ! $keep_data && ! $keep_settings ) {
 	delete_site_option( 'wdp_un_profile_data' );
 	delete_site_option( 'wdp_un_updates_available' );
 	delete_site_option( 'wdp_un_notifications' );
-} elseif ( ! $keep_settings ) {
+} elseif ( ! $wpmudev_dashboard_keep_settings ) {
 	// Delete settings.
 	if ( is_multisite() ) {
 		$wpdb->query( "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE 'wdp_un_%' AND meta_key NOT LIKE '%_wdp_un_%'" ); // phpcs:ignore

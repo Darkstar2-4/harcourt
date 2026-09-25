@@ -5,6 +5,35 @@ Change Log:
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 
+5.0.2 - 24/08/2026 - Hendrawan
+- Fix: SSO login security issue
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+5.0.1 - 05/08/2026 - Govind, Hendrawan
+- Fix: Improve Support Access availability
+- Fix: Improve Dashboard UI compatibility with installed plugins
+- Enhance: Improve plugin updates synchronization with The Hub
+- UI/UX: Refine Dashboard labels and plugin widget display
+- Enhance: Improve remote install verifications (props: Mike Gozdiskowski - WPScan / Automattic)
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+5.0.0 - 23/06/2026 - Joel, Hendrawan, Govind, Pawan, Abderrahman
+- New: Brand new UI/UX
+- Enhance: Improve Plugins synchronization with The Hub
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+4.11.30 - 10/03/2026 - Hendrawan
+- Enhance: Improve site synchronization with The Hub
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
 4.11.29 - 19/05/2025 - Hendrawan
 - Enhance: Improve Analytics synchronization with The Hub
 
@@ -985,4 +1014,4 @@ Added option to disable admin notices.
 Initial Release.
 
 
-396564-1748270848-au
+1434367-1788287721

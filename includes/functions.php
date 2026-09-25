@@ -2047,7 +2047,7 @@ class address_class {
               case "country_code":
                 $options=$this->get_options();
                 $options["onchange"]="fn_country_address(" . fn_escape($this->table) . ");";
-                $results[]=$this->input_field("country_code","Country", $database->country->select("", $this->data->country_code, $this->field("country_code"), $options));
+                $results[]=$this->input_field("country_code","Country", $database->country->select("", $this->data->country_code, array("field"=>$this->field("country_code"),"blank"=>"Select Country"), $options));
                 if (!$this->registry->country_code) $results[]=$forms->hidden("country_code","US");
                 break;
               case "phone":
@@ -2295,8 +2295,6 @@ class address_class {
 	        $results[]="var zip='Postal Code';";
 	        $results[]="country_code=jQuery('#' + table + '_country_code').val();";
 	        $results[]="switch (true) {";
-	        $results[]="case (!country_code):";
-	        $results[]="return;";
 	        $results[]="case (country_code == 'US'):";
 	        $results[]="jQuery('#' + table + '_state_us').show();";
 	        $results[]="jQuery('#' + table + '_state_us_div').show();";

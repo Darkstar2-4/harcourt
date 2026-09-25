@@ -49,6 +49,7 @@ class local_class {
                 $registry->ps->cad(TRUE);
                 $registry->address(TRUE,"profile");
                 $registry->address(TRUE,"orderhd");
+                $registry->address(TRUE,"orderhd_billing");
                 $registry->recaptcha(TRUE);
                 $registry->cron(TRUE);
                 $registry->local->local(TRUE);
@@ -71,6 +72,7 @@ class local_class {
             print $registry->ps->cad();
             print $registry->address(FALSE,"profile","User Profile");
             print $registry->address(FALSE,"orderhd","Orders");
+            print $registry->address(FALSE,"orderhd_billing","Billing Address");
             print $registry->recaptcha();
             print $registry->cron();
         }

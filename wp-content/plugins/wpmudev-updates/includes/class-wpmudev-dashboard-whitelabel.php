@@ -11,6 +11,8 @@
 // If this file is called directly, abort.
 defined( 'WPINC' ) || die;
 
+// phpcs:disable Generic.WhiteSpace.DisallowSpaceIndent.SpacesUsed
+
 /**
  * Class WPMUDEV_Dashboard_Whitelabel
  */
@@ -30,7 +32,7 @@ class WPMUDEV_Dashboard_Whitelabel {
 		add_action( 'delete_blog', array( $this, 'remove_deleted_site' ) );
 
 		// Filtering wpmudev branding being used.
-		add_filter( 'wpmudev_branding', array( $this, 'get_branding' ), 10, 2 );
+		add_filter( 'wpmudev_branding', array( $this, 'get_branding' ) );
 		add_filter( 'wpmudev_branding_hide_branding', array( $this, 'get_hide_branding' ) );
 		add_filter( 'wpmudev_branding_hero_image', array( $this, 'get_branding_hero_image' ) );
 		add_filter( 'wpmudev_branding_change_footer', array( $this, 'get_branding_change_footer' ) );
@@ -49,6 +51,7 @@ class WPMUDEV_Dashboard_Whitelabel {
 	 * @return void
 	 */
 	public function print_icon_style() {
+
 		?>
 		<style>
             #adminmenuwrap #adminmenu div.wp-menu-image img {
@@ -110,9 +113,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 	 * Doing this to avoid unwanted errors if one site
 	 * is dropped.
 	 *
-	 * @param int $site_id Site ID.
-	 *
 	 * @since 4.11.1
+	 *
+	 * @param int $site_id Site ID.
 	 */
 	public function remove_deleted_site( $site_id ) {
 		// Get whitelabel settings.
@@ -134,11 +137,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	 *
 	 * Other plugins can use this data to enable whitelabel.
 	 *
-	 * @param array $branding Default data.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param array $branding Default data.
+	 *
 	 * @return array
 	 */
 	public function get_branding( $branding = array() ) {
@@ -155,7 +159,7 @@ class WPMUDEV_Dashboard_Whitelabel {
 				'hero_image'    => '',
 				'change_footer' => false,
 				'footer_text'   => sprintf(
-				// translators: %s Heart icon.
+				/* translators: %s Heart icon. */
 					__( 'Made with %s by WPMU DEV', 'wpmudev' ),
 					'<i class="sui-icon-heart" aria-hidden="true"></i>'
 				),
@@ -179,11 +183,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	/**
 	 * Get hide branding flag
 	 *
-	 * @param bool $hide_branding Hide branding.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param bool $hide_branding Hide branding.
+	 *
 	 * @return bool
 	 */
 	public function get_hide_branding( $hide_branding = false ) {
@@ -202,11 +207,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	/**
 	 * Get Hero Image for branding.
 	 *
-	 * @param string $hero_image Hero image link.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param string $hero_image Hero image link.
+	 *
 	 * @return string
 	 */
 	public function get_branding_hero_image( $hero_image = '' ) {
@@ -245,11 +251,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	/**
 	 * Check if footer branding is enabled.
 	 *
-	 * @param bool $change_footer Should change footer.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param bool $change_footer Should change footer.
+	 *
 	 * @return bool
 	 */
 	public function get_branding_change_footer( $change_footer = false ) {
@@ -268,11 +275,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	/**
 	 * Get Footer Text for branding.
 	 *
-	 * @param string $footer_text Footer custom text.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param string $footer_text Footer custom text.
+	 *
 	 * @return string
 	 */
 	public function get_branding_footer_text( $footer_text ) {
@@ -292,11 +300,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 	/**
 	 * Get docs link enabled status.
 	 *
-	 * @param bool $hide_doc_link Is doc link hidden.
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 *
 	 * @since 4.6
+	 *
+	 * @param bool $hide_doc_link Is doc link hidden.
+	 *
 	 * @return bool
 	 */
 	public function get_branding_hide_doc_link( $hide_doc_link = false ) {
@@ -344,9 +353,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 		 * for the membership. This function check settings
 		 * in addition.
 		 *
-		 * @param bool $can Can whitelabel.
-		 *
 		 * @since 4.11.1
+		 *
+		 * @param bool $can Can whitelabel.
 		 */
 		return apply_filters( 'wpmudev_dashboard_can_whitelabel', $can );
 	}
@@ -357,13 +366,13 @@ class WPMUDEV_Dashboard_Whitelabel {
 	 * This function included default structure for whitelabel settings
 	 * Static call allowed as long `WPMUDEV_Dashboard::$settings` initialized
 	 *
-	 * @param array $structure Optional structure array.
-	 *
-	 * @see   WPMUDEV_Dashboard_Settings::as_array()
-	 *
 	 * @since 4.11.1 Moved to new class.
 	 * @since 4.5.3
+	 *
+	 * @param array $structure Optional structure array.
+	 *
 	 * @return array
+	 * @see   WPMUDEV_Dashboard_Settings::as_array()
 	 */
 	public function get_settings( $structure = array() ) {
 		static $settings = null;
@@ -477,9 +486,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 	 * When required, replace menu label and icon based
 	 * on the configurations in white label settings.
 	 *
-	 * @param array $data Menu data.
-	 *
 	 * @since 4.11.1
+	 *
+	 * @param array $data Menu data.
 	 *
 	 * @return array $data
 	 */
@@ -505,28 +514,34 @@ class WPMUDEV_Dashboard_Whitelabel {
 					$print_style = false;
 					switch ( $config['icon_type'] ) {
 						case 'dashicon':
-							// Set dashicons class.
-							$class = sanitize_html_class( $config['icon_class'] );
-							if ( ! empty( $class ) ) {
-								$data[6] = 'dashicons-' . $class;
+							if ( ! empty( $config['icon_class'] ) ) {
+								// Set dashicons class.
+								$class = sanitize_html_class( $config['icon_class'] );
+								if ( ! empty( $class ) ) {
+									$data[6] = 'dashicons-' . $class;
+								}
 							}
 							break;
 						case 'upload':
-							// Make sure the ID is int.
-							$thumbnail_id = (int) $config['thumb_id'];
-							// Get thumbnail url.
-							$thumbnail_url = wp_get_attachment_image_url( $thumbnail_id, 'thumbnail', true );
-							if ( ! empty( $thumbnail_id ) && ! empty( $thumbnail_url ) ) {
-								$print_style = true;
-								$data[6]     = $thumbnail_url;
+							if ( ! empty( $config['thumb_id'] ) ) {
+								// Make sure the ID is int.
+								$thumbnail_id = (int) $config['thumb_id'];
+								// Get thumbnail url.
+								$thumbnail_url = wp_get_attachment_image_url( $thumbnail_id, 'thumbnail', true );
+								if ( ! empty( $thumbnail_id ) && ! empty( $thumbnail_url ) ) {
+									$print_style = true;
+									$data[6]     = $thumbnail_url;
+								}
 							}
 							break;
 						case 'link':
-							// Set direct link.
-							$icon = esc_url( $config['icon_url'] );
-							if ( ! empty( $icon ) ) {
-								$print_style = true;
-								$data[6]     = $icon;
+							if ( ! empty( $config['icon_url'] ) ) {
+								// Set direct link.
+								$icon = esc_url( $config['icon_url'] );
+								if ( ! empty( $icon ) ) {
+									$print_style = true;
+									$data[6]     = $icon;
+								}
 							}
 							break;
 						case 'none':
@@ -546,9 +561,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 		/**
 		 * Filter to modify plugin menu data.
 		 *
-		 * @param array $data Menu data.
-		 *
 		 * @since 4.11.1
+		 *
+		 * @param array $data Menu data.
 		 */
 		return apply_filters( 'wpmudev_dashboard_whitelabel_process_menu', $data );
 	}
@@ -599,9 +614,12 @@ class WPMUDEV_Dashboard_Whitelabel {
 						// Make sure the ID is int.
 						$pid = (int) $pid;
 						// Get the slugs for project.
-						$plugin_slugs = array_filter( $slugs, function ( $id ) use ( $pid ) {
-							return $id === $pid;
-						} );
+						$plugin_slugs = array_filter(
+							$slugs,
+							function ( $id ) use ( $pid ) {
+								return $id === $pid;
+							}
+						);
 
 						if ( ! empty( $plugin_slugs ) ) {
 							// Add to enabled list.
@@ -617,9 +635,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 		/**
 		 * Filter to modify plugin menu config.
 		 *
-		 * @param array $plugins Plugins data.
-		 *
 		 * @since 4.11.1
+		 *
+		 * @param array $plugins Plugins data.
 		 */
 		return apply_filters( 'wpmudev_dashboard_whitelabel_menu_configs', $menu_configs );
 	}
@@ -654,9 +672,9 @@ class WPMUDEV_Dashboard_Whitelabel {
 		/**
 		 * Filter to modify plugin slugs list.
 		 *
-		 * @param array $slugs Slugs.
-		 *
 		 * @since 4.11.1
+		 *
+		 * @param array $slugs Slugs.
 		 */
 		return apply_filters( 'wpmudev_dashboard_whitelabel_plugin_slugs', $slugs );
 	}
@@ -688,3 +706,4 @@ class WPMUDEV_Dashboard_Whitelabel {
 		return $network ? $network->site_id : 0;
 	}
 }
+// phpcs:enable Generic.WhiteSpace.DisallowSpaceIndent.SpacesUsed

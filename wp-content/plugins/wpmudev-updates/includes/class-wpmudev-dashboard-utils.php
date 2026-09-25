@@ -35,8 +35,15 @@ class WPMUDEV_Dashboard_Utils {
 		add_action( 'wp_logout', array( $this, 'unset_staff_flag' ) );
 		// Make sure SSO is valid.
 		add_action( 'wpmudev_after_remove_allowed_user', array( $this, 'recheck_sso_user' ) );
+
 		// Do hub sync if server properties change.
+		// on admin_init.
 		add_action( 'admin_init', array( $this, 'sync_on_site_info_change' ) );
+		// on wp health transient changed.
+		add_action(
+			'set_transient_health-check-site-status-result',
+			array( $this, 'sync_on_site_info_change' )
+		);
 
 		// Disable delete for connected admin.
 		add_filter( 'user_row_actions', array( $this, 'maybe_remove_delete_action' ), 1, 2 );
@@ -59,7 +66,8 @@ class WPMUDEV_Dashboard_Utils {
 	public function maybe_disable_cron() {
 		// Disable cron if possible.
 		if ( $this->is_wpmudev_admin_request() && ! defined( 'DISABLE_WP_CRON' ) ) {
-			define( 'DISABLE_WP_CRON', true );
+			// reusing internal WP constant.
+			define( 'DISABLE_WP_CRON', true ); // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 		}
 	}
 
@@ -100,15 +108,15 @@ class WPMUDEV_Dashboard_Utils {
 	 *
 	 * @since 4.11.6
 	 *
-	 * @uses  admin_url()
-	 * @uses  wp_remote_post()
+	 * @param array $data Request data.
+	 *
+	 * @return string|bool
 	 * @uses  wp_generate_password()
 	 * @uses  set_site_transient()
 	 * @uses  delete_site_transient()
 	 *
-	 * @param array $data Request data.
-	 *
-	 * @return string|bool
+	 * @uses  admin_url()
+	 * @uses  wp_remote_post()
 	 */
 	public function send_admin_request( $data = array() ) {
 		// Create a random hash.
@@ -139,7 +147,7 @@ class WPMUDEV_Dashboard_Utils {
 		// Set cookies if required.
 		if ( ! empty( $_COOKIE ) ) {
 			foreach ( $_COOKIE as $name => $value ) {
-				// string is expected by WpOrg\Requests\Cookie class https://incsub.atlassian.net/browse/WDD-548 ( continuation of wp_remote_post )
+				// string is expected by WpOrg\Requests\Cookie class https://incsub.atlassian.net/browse/WDD-548 ( continuation of wp_remote_post ).
 				if ( ! is_string( $value ) ) {
 					continue;
 				}
@@ -155,13 +163,13 @@ class WPMUDEV_Dashboard_Utils {
 		/**
 		 * Override default requests arguments for Utility - send_admin_request.
 		 *
-		 * @param array $args Default args.
-		 * @param array $data Data that being sent in send_admin_request.
-		 *
 		 * @since  4.11.29
 		 *
+		 * @param array $data Data that being sent in send_admin_request.
+		 *
+		 * @param array $args Default args.
 		 */
-		$args = apply_filters( "wpmudev_utils_send_admin_request_args", $args, $data );
+		$args = apply_filters( 'wpmudev_utils_send_admin_request_args', $args, $data );
 
 		// Make post request.
 		$response = wp_remote_post( admin_url( 'admin-ajax.php' ), $args );
@@ -185,10 +193,21 @@ class WPMUDEV_Dashboard_Utils {
 	 * to perform admin actions.
 	 *
 	 * @since 4.11.6
+	 * @since 5.0.1 Introduce key check as priority.
 	 *
 	 * @return void
 	 */
 	public function run_admin_request() {
+		// Make sure API key is available.
+		if ( ! WPMUDEV_Dashboard::$api->has_key() ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'auth_failed',
+					'message' => __( 'Admin request auth check failed', 'wpmudev' ),
+				)
+			);
+		}
+
 		// Make sure required values are set.
 		$nonce = isset( $_POST['nonce'] ) ? $_POST['nonce'] : ''; // phpcs:ignore
 		$hash  = isset( $_POST['hash'] ) ? $_POST['hash'] : ''; // phpcs:ignore
@@ -235,7 +254,6 @@ class WPMUDEV_Dashboard_Utils {
 		 * @since 4.11.6
 		 *
 		 * @param array $data Request data.
-		 *
 		 */
 		do_action( 'wpmudev_dashboard_admin_request', $data );
 	}
@@ -345,27 +363,12 @@ class WPMUDEV_Dashboard_Utils {
 	}
 
 	/**
-	 * Check if current page is Dashboard's admin page.
-	 *
-	 * @since 4.11.15
-	 *
-	 * @return bool
-	 */
-	public function is_wpmudev_admin_page() {
-		$screen = get_current_screen();
-
-		// All dashboard page ids starts with wpmudev.
-		return isset( $screen->parent_base ) && 'wpmudev' === $screen->parent_base;
-	}
-
-	/**
 	 * Rename a folder to new name for backup.
 	 *
 	 * @since 4.11.9
 	 *
-	 * @param string $to   New folder name.
-	 *
 	 * @param string $from Current folder name.
+	 * @param string $to   New folder name.
 	 *
 	 * @return bool
 	 */
@@ -374,7 +377,7 @@ class WPMUDEV_Dashboard_Utils {
 		$to = empty( $to ) ? $from . '-bak' : $to;
 
 		// Rename plugin folder.
-		return rename(
+		return rename( // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 			WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $from,
 			WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $to
 		);
@@ -398,7 +401,7 @@ class WPMUDEV_Dashboard_Utils {
 		// Items not allowed for free users.
 		$free_disallow = array( 'plugins', 'support', 'whitelabel', 'translations' );
 
-		return ( 'free' !== $membership_type && ! $is_hosted_third_party ) || ! in_array( $feature, $free_disallow, true );
+		return ( 'free' !== $membership_type && ! $is_hosted_third_party ) || ! in_array( $feature, $free_disallow, true );	 	 				   		 			 		 
 	}
 
 	/**
@@ -408,7 +411,7 @@ class WPMUDEV_Dashboard_Utils {
 	 *
 	 * @since 4.11.19
 	 *
-	 * @return bool
+	 * @return array
 	 */
 	public function get_site_info() {
 		global $wp_version;
@@ -449,9 +452,9 @@ class WPMUDEV_Dashboard_Utils {
 	/**
 	 * Set site health data.
 	 *
-	 * @param array $info Info data.
-	 *
 	 * @since 4.11.19
+	 *
+	 * @param array $info Info data.
 	 *
 	 * @return array
 	 */
@@ -540,10 +543,12 @@ class WPMUDEV_Dashboard_Utils {
 		// Abort if main admin.
 		if ( $user instanceof WP_User && $user_id === $admin_id ) {
 			wp_die(
-				sprintf(
-				/* translators: %s: is for name */
-					__( 'Sorry, you are not allowed to delete user: <strong>%s</strong>.', 'wpmudev' ),
-					$user->user_login
+				esc_html(
+					sprintf(
+					/* translators: %s: is for name */
+						__( 'Sorry, you are not allowed to delete user: <strong>%s</strong>.', 'wpmudev' ),
+						$user->user_login
+					)
 				)
 			);
 		}
@@ -564,7 +569,7 @@ class WPMUDEV_Dashboard_Utils {
 		}
 
 		// Get current allowed admins list.
-		$allowed_users = (array) WPMUDEV_Dashboard::$settings->get( 'limit_to_user', 'general', array() );
+		$allowed_users = WPMUDEV_Dashboard::$site->get_allowed_users_from_settings();
 		// Get current connected admin.
 		$connected_admin = WPMUDEV_Dashboard::$settings->get( 'connected_admin', 'general', 0 );
 

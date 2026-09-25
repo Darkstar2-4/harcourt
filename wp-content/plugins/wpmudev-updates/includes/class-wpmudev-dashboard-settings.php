@@ -17,30 +17,54 @@ defined( 'WPINC' ) || die;
 class WPMUDEV_Dashboard_Settings {
 
 	/**
+	 * Internal option keys.
+	 *
+	 * @var string[]
+	 */
+	private array $internal_options
+		= array(
+			'remote_access',
+			'updates_data',
+			'profile_data',
+			'updates_available',
+			'translation_updates_available',
+			'notifications',
+		);
+
+	/**
+	 * Set up actions for settings.
+	 *
+	 * @since 5.0.0
+	 */
+	public function __construct() {
+		add_action( 'update_site_option_wdp_un_general', array( $this, 'sync_translation_update' ), 10, 3 );
+	}
+
+	/**
 	 * Returns the value of a plugin option.
 	 *
 	 * This can handle both grouped item and single options.
 	 * If group argument is omitted it will get the non-grouped option.
 	 *
-	 * @param string $name    The option name.
-	 * @param string $group   The group name (Optional for non grouped option).
-	 * @param mixed  $default Optional. Set value to return if option not found.
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param string       $name          The option name.
+	 * @param string|false $group         The group name (Optional for non grouped option).
+	 * @param mixed        $default_value Optional. Set value to return if option not found.
 	 *
 	 * @return mixed The option value.
 	 */
-	public function get( $name, $group = false, $default = false ) {
+	public function get( $name, $group = false, $default_value = false ) {
 		// Handle grouped options.
 		if ( ! empty( $group ) ) {
 			// Get option value.
 			$value = $this->get_option( $group, array() );
 
 			// Return value.
-			return isset( $value[ $name ] ) ? $value[ $name ] : $default;
+			return isset( $value[ $name ] ) ? $value[ $name ] : $default_value;
 		}
 
-		return $this->get_option( $name, $default );
+		return $this->get_option( $name, $default_value );
 	}
 
 	/**
@@ -49,15 +73,48 @@ class WPMUDEV_Dashboard_Settings {
 	 * The plugins option-prefix is automatically added to the option name.
 	 * Use this function instead of direct access via get_site_option().
 	 *
-	 * @param string $name    The name of the option.
-	 * @param mixed  $default Default value.
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param string $name          The name of the option.
+	 * @param mixed  $default_value Default value.
 	 *
 	 * @return mixed The option value.
 	 */
-	public function get_option( $name, $default = false ) {
-		return get_site_option( 'wdp_un_' . $name, $default );
+	public function get_option( $name, $default_value = false ) {
+		$value = get_site_option( 'wdp_un_' . $name, $default_value );
+
+		/**
+		 * Override the settings value.
+		 *
+		 * @since 5.0.0
+		 */
+		return apply_filters( 'wpmudev_dashboard_settings_get_option', $value, $name, $default_value );
+	}
+
+	/**
+	 * Returns all settings in a grouped array.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @param array $skip Skip some options.
+	 *
+	 * @return array
+	 */
+	public function get_all( $skip = array() ) {
+		$settings = array();
+		// Get the default settings.
+		$defaults = $this->defaults();
+
+		foreach ( $defaults as $group => $default_value ) {
+			// Skip internal options.
+			if ( ! empty( $skip ) && is_array( $skip ) && in_array( $group, $skip, true ) ) {
+				continue;
+			}
+
+			$settings[ $group ] = $this->get_option( $group, $default_value );
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -66,11 +123,11 @@ class WPMUDEV_Dashboard_Settings {
 	 * Can update a single item of a group or event an option without
 	 * any group.
 	 *
-	 * @param string $name  The option name.
-	 * @param mixed  $value The new option value.
-	 * @param string $group The group name (Optional for non grouped option).
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param string       $name  The option name.
+	 * @param mixed        $value The new option value.
+	 * @param string|false $group The group name (Optional for non grouped option).
 	 *
 	 * @return bool
 	 */
@@ -113,14 +170,24 @@ class WPMUDEV_Dashboard_Settings {
 	 *
 	 * Use this function instead of direct access via update_site_option()
 	 *
+	 * @since 4.11.10
+	 *
 	 * @param string $name  The option name.
 	 * @param mixed  $value The new option value.
-	 *
-	 * @since 4.11.10
 	 *
 	 * @return bool
 	 */
 	public function set_option( $name, $value ) {
+		if ( empty( $name ) ) {
+			return false;
+		}
+
+		// Return true early if updating value is same as old value.
+		$old_value = $this->get_option( $name );
+		if ( $value === $old_value ) {
+			return true;
+		}
+
 		$success = update_site_option( 'wdp_un_' . $name, $value );
 
 		if ( $success ) {
@@ -144,11 +211,11 @@ class WPMUDEV_Dashboard_Settings {
 	 * Can add a single item of a group or event an option without
 	 * any group. If group name is omitted it will add as a single option.
 	 *
-	 * @param string $name  The option name.
-	 * @param mixed  $value The new option value.
-	 * @param string $group The group name (Optional for non grouped option).
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param string       $name  The option name.
+	 * @param mixed        $value The new option value.
+	 * @param string|false $group The group name (Optional for non grouped option).
 	 *
 	 * @return bool
 	 */
@@ -179,10 +246,10 @@ class WPMUDEV_Dashboard_Settings {
 	 * This function will only save the value if the option does not exist yet!
 	 * Use this function instead of direct access via add_site_option().
 	 *
+	 * @since 4.11.10
+	 *
 	 * @param string $name  The option name.
 	 * @param mixed  $value The new option value.
-	 *
-	 * @since 4.11.10
 	 *
 	 * @return bool
 	 */
@@ -196,18 +263,17 @@ class WPMUDEV_Dashboard_Settings {
 	 * The plugins option-prefix is automatically added to the transient name.
 	 * Use this function instead of direct access via get_site_transient().
 	 *
-	 * @param string $name   The transient name.
-	 * @param bool   $prefix Optional. Set to false to not prefix the name.
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param string $name The transient name.
 	 *
 	 * @return mixed The transient value.
 	 */
-	public function get_transient( $name, $prefix = true ) {
-		$key = $prefix ? 'wdp_un_' . $name : $name;
+	public function get_transient( string $name ) {
+		$key = 'wdp_un_' . $name;
 
 		// Transient name cannot be longer than 167 characters
-		// 150 is being safe
+		// 150 is being safe.
 		$key = substr( $key, 0, 150 );
 
 		return get_site_transient( $key );
@@ -217,32 +283,33 @@ class WPMUDEV_Dashboard_Settings {
 	 * Updates the value of a plugin transient.
 	 *
 	 * The plugins option-prefix is automatically added to the transient name.
-	 * Use this function instead of direct access via update_site_option().
-	 *
-	 * @param string $name       The transient name.
-	 * @param mixed  $value      The new transient value.
-	 * @param int    $expiration Time until expiration. Default: No expiration.
-	 * @param bool   $prefix     Optional. Set to false to not prefix the name.
+	 * Use this function instead of direct access via set_site_transient().
 	 *
 	 * @since 4.11.10
+	 * @since 5.0.0     Returns delete transient result when value is null.
+	 * @since 5.0.1     Remove $prefix parameter.
+	 *
+	 * @param string $name       The transient name.
+	 * @param mixed  $value      The new transient value. Passing null as value will delete the transient.
+	 * @param int    $expiration Time until expiration. Default: No expiration.
 	 *
 	 * @return bool
 	 */
-	public function set_transient( $name, $value, $expiration = 0, $prefix = true ) {
-		$key = $prefix ? 'wdp_un_' . $name : $name;
+	public function set_transient( $name, $value, $expiration = 0 ) {
+		$key = 'wdp_un_' . $name;
 
 		// Transient name cannot be longer than 167 characters
-		// 150 is being safe
+		// 150 is being safe.
 		$key = substr( $key, 0, 150 );
 
 		// Fix to prevent WP from hashing PHP objects.
-		delete_site_transient( $key );
+		$result = delete_site_transient( $key );
 
 		if ( null !== $value ) {
 			return set_site_transient( $key, $value, $expiration );
 		}
 
-		return false;
+		return $result;
 	}
 
 	/**
@@ -303,7 +370,7 @@ class WPMUDEV_Dashboard_Settings {
 
 		foreach ( $defaults as $name => $value ) {
 			// This is a grouped option.
-			if ( is_array( $value ) ) {
+			if ( is_array( $value ) && ! empty( $value ) ) {
 				// Get existing value.
 				$values = $this->get_option( $name, array() );
 				// Go through each item and add if not found.
@@ -316,10 +383,8 @@ class WPMUDEV_Dashboard_Settings {
 
 				// Update with new values.
 				$this->set_option( $name, $values );
-			} else {
-				if ( null !== $value ) {
-					$this->set_option( $name, $value );
-				}
+			} elseif ( null !== $value ) {
+				$this->set_option( $name, $value );
 			}
 		}
 	}
@@ -339,8 +404,8 @@ class WPMUDEV_Dashboard_Settings {
 	public function defaults() {
 		$settings = array(
 			// Bigger options.
+			// updates_data is excluded from reset, so any integration ( such as forminator addons ) can _still_ work-ish ( its stale, but its not nothing ).
 			'remote_access'                 => '',
-			'updates_data'                  => null,
 			'profile_data'                  => '',
 			'updates_available'             => array(),
 			'translation_updates_available' => array(),
@@ -385,6 +450,7 @@ class WPMUDEV_Dashboard_Settings {
 				'userid'         => false,
 				'previous_token' => '',
 				'active_token'   => '',
+				'step1_hmac'     => '',
 			),
 			'flags'                         => array(
 				'refresh_remote'              => false,
@@ -404,15 +470,17 @@ class WPMUDEV_Dashboard_Settings {
 			),
 			// Other small options.
 			'general'                       => array(
-				'last_run_updates'     => 0,
+				// last_run_updates is not going to reset, because we also not resetting updates_data,
+				// its a pair, @see WPMUDEV_Dashboard_Api::refresh_projects_data().
 				'last_run_profile'     => 0,
 				'last_run_sync'        => 0,
 				'last_run_translation' => 0,
 				'staff_notes'          => '',
 				'translation_locale'   => 'en_US',
 				'version'              => WPMUDEV_Dashboard::$version,
-				'limit_to_user'        => '',
+				'limit_to_user'        => array(),
 				'auth_user'            => null,
+				'hub_nonce'            => 0,
 				'connected_admin'      => 0,
 			),
 		);
@@ -420,9 +488,9 @@ class WPMUDEV_Dashboard_Settings {
 		/**
 		 * Filter to modify default settings.
 		 *
-		 * @param array $settings Default settings.
-		 *
 		 * @since 4.11.10
+		 *
+		 * @param array $settings Default settings.
 		 */
 		return apply_filters( 'wpmudev_dashboard_settings_defaults', $settings );
 	}
@@ -433,10 +501,10 @@ class WPMUDEV_Dashboard_Settings {
 	 * This function will match expectation structure,
 	 * Array returned from this function should be predictable.
 	 *
-	 * @param array $options Optional array assoc with setting name as key.
-	 *
 	 * @since 4.6.0
 	 * @since 4.11.10 Moved to new class and renamed.
+	 *
+	 * @param array $options Optional array assoc with setting name as key.
 	 *
 	 * @return array
 	 */
@@ -469,6 +537,15 @@ class WPMUDEV_Dashboard_Settings {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Get internal option keys.
+	 *
+	 * @return array
+	 */
+	public function get_internal_options() {
+		return $this->internal_options;
 	}
 
 	/**
@@ -519,12 +596,12 @@ class WPMUDEV_Dashboard_Settings {
 	 *
 	 * This is here only for backward compatibility.
 	 *
+	 * @since      4.11.10
+	 *
 	 * @param string $name Field name.
 	 *
-	 * @since      4.11.10
-	 * @deprecated 4.11.10 For backward compatibility only.
-	 *
 	 * @return array
+	 * @deprecated 4.11.10 For backward compatibility only.
 	 */
 	public function deprecated_get_field_mapping( $name ) {
 		$mapping = $this->deprecated_mappings();
@@ -549,6 +626,25 @@ class WPMUDEV_Dashboard_Settings {
 	}
 
 	/**
+	 * Make changes when translation settings are updated.
+	 *
+	 * @param string $option    Name of the network option.
+	 * @param mixed  $value     Current value of the network option.
+	 * @param mixed  $old_value Old value of the network option.
+	 *
+	 * @return void
+	 */
+	public function sync_translation_update( $option, $value, $old_value ) {
+		$old_locale = $old_value['translation_locale'] ?? 'en_US';
+		$new_locale = $value['translation_locale'] ?? $old_locale;
+
+		// Force a hub-sync, since the translation setting changed.
+		if ( $old_locale !== $new_locale ) {
+			WPMUDEV_Dashboard::$api->calculate_translation_upgrades( true );
+		}
+	}
+
+	/**
 	 * Get the mapping for deprecated option names.
 	 *
 	 * This is here for backward compatibility. Few of our plugins
@@ -557,9 +653,8 @@ class WPMUDEV_Dashboard_Settings {
 	 * still in old form.
 	 *
 	 * @since      4.11.10
-	 * @deprecated 4.11.10 For backward compatibility only.
-	 *
 	 * @return array
+	 * @deprecated 4.11.10 For backward compatibility only.
 	 */
 	private function deprecated_mappings() {
 		return array(
@@ -720,10 +815,10 @@ class WPMUDEV_Dashboard_Settings {
 	 *
 	 * If not one of possible type, value won't be sanitized.
 	 *
-	 * @param mixed  $value Value to sanitize.
-	 * @param string $type  Type of value.
-	 *
 	 * @since 4.11.10
+	 *
+	 * @param mixed        $value Value to sanitize.
+	 * @param string|false $type  Type of value.
 	 *
 	 * @return mixed
 	 */
@@ -754,5 +849,49 @@ class WPMUDEV_Dashboard_Settings {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Upgrade to version 5.0.0
+	 *
+	 * @since 5.0.0
+	 *
+	 * @return void
+	 */
+	public function upgrade_500() {
+		// clean up hub_nonce from options.
+		$general = $this->get_option( 'general' );
+		$general = is_array( $general ) ? $general : array();
+
+		$update = false;
+		foreach ( $general as $key => $value ) {
+			if ( str_starts_with( $key, 'hub_nonce_' ) ) {
+				unset( $general[ $key ] );
+				$update = true;
+			}
+		}
+
+		if ( $update ) {
+			$this->set_option( 'general', $general );
+		}
+
+		if ( did_action( 'init' ) ) {
+			$this->upgrade_500_on_init();
+		} else {
+			add_action( 'init', array( $this, 'upgrade_500_on_init' ) );
+		}
+	}
+
+	/**
+	 * Upgrade to version 5.0.0 on init.
+	 * The plugin upgrades executed on plugins_loaded hook,
+	 * but calculate upgrades need to be done on or after init hook, because it contains user check and translations
+	 * hence, this function is separated from the usual data/options update
+	 *
+	 * @return void
+	 */
+	public function upgrade_500_on_init() {
+		// re-calculate upgrades, added new property `is_addon`.
+		WPMUDEV_Dashboard::$api->calculate_upgrades();
 	}
 }
