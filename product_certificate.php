@@ -21,7 +21,7 @@ if ((isset($_SERVER['HTTP_X_REQUESTED_WITH'])) && ($_SERVER['REQUEST_METHOD'] ==
     die(json_encode($results));
 }
 
-$forms->title("Harcourt | Product Certificate Lookup");
+$forms->title("Harcourt | Harcourt Certified™");
 $forms->html->meta("description", "Look up and download Harcourt Industrial pull test certificates by product number.");
 $menu->head();
 ?>
@@ -73,7 +73,7 @@ jQuery(function() {
 <?php
 print "<div class='pc-page'>";
 print "<div class='pc-card'>";
-print "<h2>Certificate Lookup</h2>";
+print "<h2>Harcourt Certified&trade;</h2>";
 print "<p class='pc-subtitle'>Enter your product number to view and download the pull test certificate</p>";
 print "<div class='pc-search-row'>";
 print "<input type='text' id='pc_sku' placeholder='Enter product number (e.g., H0000001)' autocomplete='off'>";
