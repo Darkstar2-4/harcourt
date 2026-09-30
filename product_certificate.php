@@ -27,6 +27,9 @@ $menu->head();
 ?>
 <style>
 .pc-page { background:#f5f6f8; padding:32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+.pc-intro { max-width:820px; margin:0 auto 20px; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:28px 32px; }
+.pc-intro h1 { margin:0 0 10px; font-size:26px; color:#111827; }
+.pc-intro p { margin:0; color:#374151; font-size:16px; line-height:1.6; }
 .pc-card { max-width:820px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:32px; }
 .pc-card h2 { margin:0 0 4px; font-size:22px; }
 .pc-card p.pc-subtitle { margin:0 0 20px; color:#6b7280; }
@@ -72,6 +75,10 @@ jQuery(function() {
 </script>
 <?php
 print "<div class='pc-page'>";
+print "<div class='pc-intro'>";
+print "<h1>A Revolutionary Way to Verify Your Parts</h1>";
+print "<p>Harcourt parts, verified in seconds. Search by item number or serial to get pull tests, finish records, and inspection data straight from our manufacturing files. No waiting, no email chains. It's the fastest way to confirm what you received is exactly what you ordered.</p>";
+print "</div>";
 print "<div class='pc-card'>";
 print "<h2>Harcourt Certified&trade;</h2>";
 print "<p class='pc-subtitle'>Enter your product number to view and download the pull test certificate</p>";
