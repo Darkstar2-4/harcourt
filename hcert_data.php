@@ -1,6 +1,7 @@
 <?php
 require_once "scs_header.php";
 require_once "map_rev3.php";
+require_once "classes/google_sheets.php";
 $database->user->access("Administrator");
 $forms->title("HCERT Data");
 
@@ -9,7 +10,18 @@ $forms->report['function']=$_POST['function'];
 $forms->report['file_type']=$_POST['file_type'];
 $forms->report['sku']=strtoupper(trim($_POST['sku']));
 
-$map=new map_class("product_certificate",$forms->report);
+// Google Sheet functions reuse the review/upload import path
+$sheets=google_sheets_class::from_env($env);
+$sheet_configured=( ($sheets->configured()) && (strlen($env['HCERT_SHEET_ID'])) );
+$sheet_function=( ($sheet_configured) && (preg_match("/^sheet_(review|upload)$/",$forms->report['function'],$match)) ) ? $match[1] : "";
+$map_report=$forms->report;
+if ($sheet_function) $map_report['function']=$sheet_function;
+
+$map=new map_class("product_certificate",$map_report);
+if ($sheet_configured) {
+	$map->function_list("sheet_review","Google Sheet => WWW (Review only)");
+	$map->function_list("sheet_upload","Google Sheet => WWW (Update)");
+}
 $map->function_list("domains","Customer Domains");
 $domain_panel=FALSE;
 
@@ -18,6 +30,28 @@ switch (TRUE) {
   case ($forms->report['action']=="cancel"):
 	$forms->message[]="Request Cancelled";
 	break;
+// Google Sheet functions begin
+  case (($sheet_function) && ($forms->report['action']=="prelist")):
+	$rows=$sheets->rows($env['HCERT_SHEET_ID'],$env['HCERT_SHEET_TAB']);
+	if ($rows === FALSE) {
+		$forms->error('upload');
+		$forms->message[]=htmlspecialchars($sheets->error);
+		break;
+	}
+	$forms->message[]="Google Sheet: <b>" . htmlspecialchars($sheets->title) . "</b> / " . htmlspecialchars($sheets->tab);
+	$temp=tempnam(sys_get_temp_dir(),"hcert");
+	$csv=$temp . ".csv";
+	google_sheets_class::csv($rows,$csv);
+	if (!$map->upload("upload",array("external_file"=>$csv))) $forms->error('upload');
+	@unlink($csv);
+	@unlink($temp);
+	$map->external_file="Google Sheet: {$sheets->title} / {$sheets->tab}";
+	if ($map->message) $forms->message[]=$map->message;
+	break;
+  case (($sheet_function) && ($forms->report['action']=="update")):
+	$forms->message[]=$map->import();
+	break;
+// Google Sheet functions end
 // Customer domain functions begin
   case (($forms->report['function']=="domains") && (in_array($forms->report['action'],array("prelist","domain_add","domain_remove"))) && (!strlen($forms->report['sku']))):
 	$forms->message[]="Enter a part number";
@@ -89,7 +123,9 @@ print $forms->open(array("name"=>"template_download_form"));
 print "<input type='hidden' name='function' value='template' id='template_function'>\n";
 print "<input type='hidden' name='file_type' value='.csv' id='template_file_type'>\n";
 print $forms->close();
-print "<p><a href='javascript:void(0);' onclick=\"document.template_download_form.submit();\">Download CSV Template</a></p>\n";
+print "<p><a href='javascript:void(0);' onclick=\"document.template_download_form.submit();\">Download CSV Template</a>";
+if ($sheet_configured) print " | <a href='https://docs.google.com/spreadsheets/d/" . rawurlencode($env['HCERT_SHEET_ID']) . "/edit' target='_blank' rel='noopener'>Open Google Sheet</a>";
+print "</p>\n";
 ?>
 <script type='text/javascript'>
 jQuery(document).ready(function() {
@@ -107,6 +143,9 @@ function import_screen() {
 		break;
 	  case "domains":
 		sku_row=1;
+		break;
+	  case "sheet_review":
+	  case "sheet_upload":
 		break;
       default:
 		upload_row=1;
@@ -158,10 +197,12 @@ switch (TRUE) {
 	break;
   case (($forms->report['action']=="prelist") && ($forms->report['function']=="review") && (!sizeof($forms->error))):
   case (($forms->report['action']=="prelist") && ($forms->report['function']=="upload") && (!sizeof($forms->error))):
+  case (($forms->report['action']=="prelist") && ($sheet_function) && (!sizeof($forms->error))):
 	$map->upload_html();
 	break;
   case (($forms->report['action']=="update") && ($forms->report['function']=="review")):
   case (($forms->report['action']=="update") && ($forms->report['function']=="upload")):
+  case (($forms->report['action']=="update") && ($sheet_function)):
 	$map->import_html();
 	break;
   case ($domain_panel):
