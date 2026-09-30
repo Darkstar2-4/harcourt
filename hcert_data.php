@@ -117,6 +117,11 @@ switch (TRUE) {
 	break;
 // Upload/review functions end
 }
+$domain_warning=$database->product_certificate->domain_warning;
+if (sizeof($domain_warning)) {
+	$forms->message[]="Customer domains skipped: " . sizeof($domain_warning) . "<br>" . implode("<br>",array_map("htmlspecialchars",$domain_warning));
+	if ($database->product_certificate->map->update) $database->log->ipc(array("Product Certificate","Domain Skipped"),implode("\n",$domain_warning));
+}
 $menu->head();
 print $forms->message();
 print $forms->open(array("name"=>"template_download_form"));

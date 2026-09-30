@@ -13,6 +13,7 @@ class product_certificate_class extends database_class {
     	$this->meta=new database_meta_class();
         $this->fetch=array();
         $this->constant=new product_certificate_constant_class();
+        $this->domain_warning=array();
     }
     function fetch($fetch=FALSE) {
         if ($fetch) $this->fetch=$this->fetch_array();
@@ -69,7 +70,7 @@ class product_certificate_class extends database_class {
 	    $this->map->item("customer_domain",array("name"=>"Customer Domain"));
         $this->map->update_timestamp=strtotime("now");
     }
-    function import_update($data) {
+    function import_update($data,$line=0) {
 		$this->data=new product_certificate_data_class();
         $this->data->sku=$data['sku'];
         $this->data->manufacturing_date=$data['manufacturing_date'];
@@ -83,10 +84,15 @@ class product_certificate_class extends database_class {
         $this->data->test_machine_calibration_date=$data['test_machine_calibration_date'];
         if (!$this->data->sku) $this->map->error['sku']="Cannot be blank";
         if ($this->date_value($this->data->testing_date)=="NULL") $this->map->error['testing_date']="Cannot be blank";
-        $domains=$this->domain_list($data['customer_domain']);
-        foreach ($domains as $domain) {
+        // An invalid or public domain is skipped with a warning; the certificate itself still imports
+        $domains=array();
+        foreach ($this->domain_list($data['customer_domain']) as $domain) {
             $error=$this->domain_error($domain);
-            if ($error) $this->map->error['customer_domain']=$error;
+            if ($error) {
+                $this->domain_warning[]="Line {$line} ({$this->data->sku}): {$error} (domain skipped)";
+              } else {
+                $domains[]=$domain;
+            }
         }
     	if ( ($this->map->update) && (!sizeof($this->map->error)) ) {
 			$fields=array();
