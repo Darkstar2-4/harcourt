@@ -7,14 +7,47 @@ $forms->title("HCERT Data");
 $forms->report['action']=$_POST['action'];
 $forms->report['function']=$_POST['function'];
 $forms->report['file_type']=$_POST['file_type'];
+$forms->report['sku']=strtoupper(trim($_POST['sku']));
 
 $map=new map_class("product_certificate",$forms->report);
+$map->function_list("domains","Customer Domains");
+$domain_panel=FALSE;
 
 switch (TRUE) {
 // Cancel
   case ($forms->report['action']=="cancel"):
 	$forms->message[]="Request Cancelled";
 	break;
+// Customer domain functions begin
+  case (($forms->report['function']=="domains") && (in_array($forms->report['action'],array("prelist","domain_add","domain_remove"))) && (!strlen($forms->report['sku']))):
+	$forms->message[]="Enter a part number";
+	break;
+  case (($forms->report['function']=="domains") && ($forms->report['action']=="domain_add")):
+	$domain_panel=TRUE;
+	$domains=$database->product_certificate->domain_list($_POST['domain']);
+	if (!sizeof($domains)) $forms->message[]="Enter a domain to add";
+	foreach ($domains as $domain) {
+		$error=$database->product_certificate->domain_error($domain);
+		if ($error) {
+			$forms->message[]=htmlspecialchars($error);
+			continue;
+		}
+		$database->product_certificate->domain_add($forms->report['sku'],$domain);
+		$database->log->ipc(array("Product Certificate","Domain Add"),"Part Number {$forms->report['sku']}: {$domain}");
+		$forms->message[]="Added " . htmlspecialchars($domain);
+	}
+	break;
+  case (($forms->report['function']=="domains") && ($forms->report['action']=="domain_remove")):
+	$domain_panel=TRUE;
+	$domain=$database->product_certificate->domain_normalize($_POST['remove_domain']);
+	$database->product_certificate->domain_delete($forms->report['sku'],$domain);
+	$database->log->ipc(array("Product Certificate","Domain Remove"),"Part Number {$forms->report['sku']}: {$domain}");
+	$forms->message[]="Removed " . htmlspecialchars($domain);
+	break;
+  case (($forms->report['function']=="domains") && ($forms->report['action']=="prelist")):
+	$domain_panel=TRUE;
+	break;
+// Customer domain functions end
 // Template begins
   case ($forms->report['function']=="template"):
 	$map->template();
@@ -65,14 +98,23 @@ jQuery(document).ready(function() {
 function import_screen() {
 	file_type_row=0;
     upload_row=0;
+    sku_row=0;
 	switch ( jQuery("#function").val() ) {
       case "":
       	break;
 	  case "download":
 		file_type_row=1;
 		break;
+	  case "domains":
+		sku_row=1;
+		break;
       default:
 		upload_row=1;
+	}
+    if (sku_row) {
+		jQuery("#sku_row").show();
+	  } else {
+		jQuery("#sku_row").hide();
 	}
     if (file_type_row) {
 		jQuery("#file_type_row").show();
@@ -94,6 +136,18 @@ function fn_action(action) {
 	document.scs_form.action.value=action;
 	document.scs_form.submit();
 }
+function domain_remove(domain) {
+	if (confirm('Remove ' + domain + ' from this part number?')) {
+		document.scs_form.remove_domain.value=domain;
+		fn_action('domain_remove');
+	}
+}
+function domain_enter(e, action) {
+	if (e.which == 13) {
+		e.preventDefault();
+		fn_action(action);
+	}
+}
 </script>
 <?php
 print $forms->open(array("data"=>TRUE));
@@ -110,6 +164,29 @@ switch (TRUE) {
   case (($forms->report['action']=="update") && ($forms->report['function']=="upload")):
 	$map->import_html();
 	break;
+  case ($domain_panel):
+	$sku=$forms->report['sku'];
+	$database->product_certificate->query(array("select id from product_certificate where sku=" . fn_escape($sku)));
+	$certificate_count=$database->product_certificate->meta->rows;
+	$database->product_certificate->free_result();
+	$domains=$database->product_certificate->domains($sku);
+	print "<input type='hidden' name='sku' value='" . htmlspecialchars($sku, ENT_QUOTES) . "'>";
+	print "<input type='hidden' name='remove_domain' value=''>";
+	print "<p class='standard'>Part Number: <b>" . htmlspecialchars($sku) . "</b> (" . number_format($certificate_count) . " certificate" . (($certificate_count == 1) ? "" : "s") . " on file)</p>";
+	print "<table class='standard border'>";
+	print "<tr><th>Customer Domain</th><th>&nbsp;</th></tr>";
+	if (!sizeof($domains)) print "<tr><td colspan=2>No domains assigned. Certificates for this part number are private to Harcourt.</td></tr>";
+	foreach ($domains as $domain) {
+		print "<tr>";
+		print "<td>" . htmlspecialchars($domain) . "</td>";
+		print "<td>" . $forms->button("Remove",array("onclick"=>"domain_remove(" . htmlspecialchars(json_encode($domain), ENT_QUOTES) . ");")) . "</td>";
+		print "</tr>";
+	}
+	print "</table>";
+	print "<p class='standard'>Add domain: <input type='text' name='domain' size='40' placeholder='customer.com' onkeydown=\"domain_enter(event,'domain_add');\"> ";
+	print $forms->button("Add",array("onclick"=>"fn_action('domain_add');")) . " ";
+	print $forms->button("Return",array("onclick"=>"fn_action('');")) . "</p>";
+	break;
   default:
 	print "<table class='standard noborder'>";
 	print "<tr>";
@@ -123,6 +200,10 @@ switch (TRUE) {
 	print "<tr id='upload_row'>";
 	print "<td>Upload File</td>";
 	print "<td>" . $forms->file("upload") . "</td>";
+	print "</tr>";
+	print "<tr id='sku_row'>";
+	print "<td>Part Number</td>";
+	print "<td><input type='text' name='sku' size='30' value='" . htmlspecialchars($forms->report['sku'], ENT_QUOTES) . "' onkeydown=\"domain_enter(event,'prelist');\"></td>";
 	print "</tr>";
 	print "<tr>";
     print "<td>&nbsp;</td>";

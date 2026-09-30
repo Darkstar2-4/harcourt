@@ -72,8 +72,12 @@ if (!class_exists('ProductCertificateStubTable')) {
         public $data;
         public $fixtureRows = [];
         public $queryLog = [];
+        public $allowed = true;
         private $cursor = 0;
 
+        function access($sku, $user) {
+            return $this->allowed;
+        }
         function query($sql) {
             $this->queryLog[] = is_array($sql) ? implode(" ", $sql) : $sql;
             $this->cursor = 0;
@@ -248,6 +252,21 @@ class ProductCertificateTest extends TestCase
         $query = implode(" ", $table->queryLog);
         $this->assertStringContainsString("sku='H0000001'", $query);
         $this->assertStringContainsString('order by testing_date desc', $query);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_search_denied_sku_reports_not_found_without_querying(): void {
+        $table = new ProductCertificateStubTable();
+        $table->fixtureRows = [$this->fixtureRow()];
+        $table->allowed = false;
+        $this->requirePage($table);
+
+        $html = product_certificate_search_output('H0000001');
+
+        // Identical to an unknown SKU so restricted part numbers can't be discovered
+        $this->assertStringContainsString('No certificate found', $html);
+        $this->assertStringNotContainsString('download=', $html);
+        $this->assertSame([], $table->queryLog);
     }
 
     // ── Dashboard link visibility (page shell) ──────────────────────────

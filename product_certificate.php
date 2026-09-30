@@ -5,12 +5,13 @@ if ( (!$_SESSION['user']->id) || ($_SESSION['user']->status != "Active") ) exit;
 
 if (isset($_GET['download'])) {
     $database->product_certificate->read(intval($_GET['download']));
-    if (!$database->product_certificate->data->id) {
+    $certificate = $database->product_certificate->data;
+    if ( (!$certificate->id) || (!$database->product_certificate->access($certificate->sku, $_SESSION['user'])) ) {
         http_response_code(404);
         die("Certificate not found");
     }
-    $html = product_certificate_pdf_html($database->product_certificate->data);
-    $filename = "Certificate_" . preg_replace("/[^A-Za-z0-9_-]/", "", $database->product_certificate->data->sku) . ".pdf";
+    $html = product_certificate_pdf_html($certificate);
+    $filename = "Certificate_" . preg_replace("/[^A-Za-z0-9_-]/", "", $certificate->sku) . ".pdf";
     require_once "scs_pdf.php";
     new scs_pdf_class($html, array("file" => $filename));
 }
@@ -97,6 +98,9 @@ $menu->copyright();
 function product_certificate_search_output($sku) {
     global $database;
     if (!strlen($sku)) return "<p class='pc-empty'>Please enter a product number.</p>";
+    // Same message as an unknown SKU so restricted SKUs can't be discovered by scanning
+    $not_found = "<p class='pc-empty'>No certificate found for product number &ldquo;" . htmlspecialchars($sku) . "&rdquo;.</p>";
+    if (!$database->product_certificate->access($sku, $_SESSION['user'])) return $not_found;
     $query = array("select * from product_certificate");
     $query[] = "where sku=" . fn_escape($sku);
     $query[] = "order by testing_date desc";
@@ -107,9 +111,7 @@ function product_certificate_search_output($sku) {
         $certificates[] = clone $database->product_certificate->data;
     }
     $database->product_certificate->free_result();
-    if (!sizeof($certificates)) {
-        return "<p class='pc-empty'>No certificate found for product number &ldquo;" . htmlspecialchars($sku) . "&rdquo;.</p>";
-    }
+    if (!sizeof($certificates)) return $not_found;
     $results = array();
     $results[] = "<div class='pc-results'>";
     foreach ($certificates as $cert) {
