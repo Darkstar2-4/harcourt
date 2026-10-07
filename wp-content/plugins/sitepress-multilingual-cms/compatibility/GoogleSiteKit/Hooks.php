@@ -10,9 +10,6 @@ class Hooks implements \IWPML_Backend_Action {
 		add_filter( 'googlesitekit_canonical_home_url', [ $this, 'getCanonicalHomeUrl' ] );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getCanonicalHomeUrl() {
 		$wpml_url_filters = make( \WPML_URL_Filters::class );
 

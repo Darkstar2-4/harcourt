@@ -23,28 +23,28 @@
             "ตั้งค่าคู่ภาษาสำหรับนักแปล %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ เพิ่มคู่ภาษาเพิ่มเติมสำหรับนักแปลคนนี้"
+            "+ เพิ่มคู่ภาษาเพิ่มเติมสำหรับนักแปลนี้"
          ],
          "Translation Memory was successfully copied to Advanced Translation Editor.": [
-            "คัดลอกหน่วยความจำการแปลไปยังตัวแก้ไขการแปลขั้นสูงสำเร็จแล้ว."
+            "หน่วยความจำการแปลถูกคัดลอกไปยัง Advanced Translation Editor เรียบร้อยแล้ว"
          ],
          "Deactivate ICanLocalize.com as Translation Service on this site": [
-            "ปิดการใช้งาน ICanLocalize.com เป็นบริการแปลบนเว็บไซต์นี้"
+            "ปิดใช้งาน ICanLocalize.com เป็นบริการแปลบนเว็บไซต์นี้"
          ],
          "Missing a translator? Or were new jobs since the last copy of the Translation Memory?": [
-            "ขาดนักแปลหรือไม่? หรือมีงานใหม่ตั้งแต่การคัดลอกหน่วยความจำการแปลครั้งล่าสุด?"
+            "นักแปลหายไป? หรือมีงานใหม่ตั้งแต่การคัดลอกหน่วยความจำการแปลครั้งล่าสุด?"
          ],
          "Enter here your ICanLocalize authentication details.": [
-            "ป้อนรายละเอียดการรับรองความถูกต้อง ICanLocalize ของคุณที่นี่."
+            "ป้อนรายละเอียดการยืนยันตัวตน ICanLocalize ของคุณที่นี่"
          ],
          "API Token:": [
             "โทเค็น API:"
          ],
          "Please enter valid value for ICL token.": [
-            "โปรดป้อนค่าที่ถูกต้องสำหรับโทเค็น ICL."
+            "โปรดป้อนค่าที่ถูกต้องสำหรับโทเค็น ICL"
          ],
          "Enter ICL API token here": [
-            "ป้อนโทเค็น API ของ ICL ที่นี่"
+            "ป้อนโทเค็น ICL API ที่นี่"
          ],
          "Submit": [
             "ส่ง"
@@ -53,13 +53,13 @@
             "ลงทะเบียน"
          ],
          "to ICanLocalize to receive your API token.": [
-            "กับ ICanLocalize เพื่อรับโทเค็น API ของคุณ."
+            "ไปที่ ICanLocalize เพื่อรับโทเค็น API ของคุณ"
          ],
          "Already have an account? Login and": [
-            "มีบัญชีอยู่แล้วใช่ไหม? เข้าสู่ระบบและ"
+            "มีบัญชีอยู่แล้ว? เข้าสู่ระบบและ"
          ],
          "get your token.": [
-            "รับโทเค็นของคุณ."
+            "รับโทเค็นของคุณ"
          ],
          "Copy new Translation Memory to Advanced Translation Memory": [
             "คัดลอกหน่วยความจำการแปลใหม่ไปยังหน่วยความจำการแปลขั้นสูง"
@@ -68,19 +68,19 @@
             "นำเข้าหน่วยความจำการแปล"
          ],
          "ICanLocalize is already deactivated on this site": [
-            "ICanLocalize ถูกปิดการใช้งานบนเว็บไซต์นี้แล้ว"
+            "ICanLocalize ถูกปิดใช้งานบนเว็บไซต์นี้แล้ว"
          ],
          "You can still import Translators or Copy Translation Memory to Advanced Translator Editor": [
-            "คุณยังสามารถนำเข้านักแปลหรือคัดลอกหน่วยความจำการแปลไปยังตัวแก้ไขการแปลขั้นสูงได้"
+            "คุณยังสามารถนำเข้านักแปลหรือคัดลอกหน่วยความจำการแปลไปยัง Advanced Translator Editor ได้"
          ],
          "Move from ICanLocalize.com to Advanced Translation Editor": [
-            "ย้ายจาก ICanLocalize.com ไปยังตัวแก้ไขการแปลขั้นสูง"
+            "ย้ายจาก ICanLocalize.com ไปยัง Advanced Translation Editor"
          ],
          "Import translators": [
             "นำเข้านักแปล"
          ],
          "Come back": [
-            "กลับ"
+            "กลับมา"
          ],
          "Cancel": [
             "ยกเลิก"
@@ -95,13 +95,13 @@
             "คู่ภาษา"
          ],
          "Not supported pairs:": [
-            "คู่ภาษาที่ไม่รองรับ:"
+            "คู่ที่ไม่รองรับ:"
          ],
          "ICanLocalize.com deactivated": [
-            "ปิดการใช้งาน ICanLocalize.com แล้ว"
+            "ICanLocalize.com ถูกปิดใช้งาน"
          ],
          "Translate memory is imported": [
-            "นำเข้าหน่วยความจำการแปลแล้ว"
+            "หน่วยความจำการแปลถูกนำเข้าแล้ว"
          ],
          "There is no translators in ICL": [
             "ไม่มีนักแปลใน ICL"
@@ -110,7 +110,7 @@
             "บันทึกนักแปลแล้ว"
          ],
          "%s file upload failed.": [
-            "การอัปโหลดไฟล์ %s ล้มเหลว."
+            "การอัปโหลดไฟล์ %s ล้มเหลว"
          ],
          "Flag": [
             "ธง"
@@ -119,7 +119,7 @@
             "ไฟล์ธง"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "คุณเพิ่งเพิ่มภาษา ต่อไป เลือกเป็นภาษาเริ่มต้นของเว็บไซต์หรือภาษาแปล."
+            "คุณเพิ่งเพิ่มภาษา ถัดไป ให้เลือกเป็นภาษาเริ่มต้นของเว็บไซต์หรือภาษาสำหรับการแปล"
          ],
          "Language added": [
             "เพิ่มภาษาแล้ว"
@@ -131,19 +131,19 @@
             "เพิ่มภาษาใหม่"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "สร้างภาษาเฉพาะประเทศโดยเลือกภาษาทั่วไปจากรายการด้านล่าง จากนั้นเลือกประเทศที่ควรแปลเป็นภาษาท้องถิ่น."
+            "สร้างภาษาเฉพาะประเทศโดยเลือกภาษาทั่วไปจากรายการด้านล่าง จากนั้นเลือกประเทศที่ควรแปลเป็นภาษาท้องถิ่น"
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "การเลือกการผสมผสานที่มีอยู่แล้วในฐานข้อมูล WPML สามารถช่วยกรอกฟิลด์ที่จำเป็นได้ อ่านเพิ่มเติมเกี่ยวกับ <AddingACustomLanguageLink />."
+            "การเลือกชุดค่าผสมที่มีอยู่ในฐานข้อมูลอยู่แล้ว WPML สามารถช่วยกรอกข้อมูลในฟิลด์ที่จำเป็นได้ อ่านเพิ่มเติมเกี่ยวกับ <AddingACustomLanguageLink />"
          ],
          "Cannot find?": [
-            "หาไม่เจอ?"
+            "หาไม่พบ?"
          ],
          "Click here": [
             "คลิกที่นี่"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "รูปแบบไม่ถูกต้อง อาจประกอบด้วยตัวอักษรพิมพ์เล็กและ “-” เท่านั้น เช่น: “fr”, “pt-br”, “zh-hans”"
+            "รูปแบบไม่ถูกต้อง อาจมีเฉพาะตัวอักษรพิมพ์เล็กและ “-” เท่านั้น เช่น: “fr”, “pt-br”, “zh-hans”"
          ],
          "Language": [
             "ภาษา"
@@ -155,19 +155,19 @@
             "รหัส"
          ],
          "The language will not be supported by automatic translations": [
-            "ภาษานี้จะไม่รองรับการแปลอัตโนมัติ"
+            "ภาษาจะไม่รองรับการแปลอัตโนมัติ"
          ],
          "Language mapping": [
-            "การจับคู่ภาษา"
+            "การแมปภาษา"
          ],
          "Don't map this language": [
-            "ไม่ต้องจับคู่ภาษานี้"
+            "อย่าแมปภาษานี้"
          ],
          "Default locale": [
-            "ภาษาท้องถิ่นเริ่มต้น"
+            "ภาษาเริ่มต้น"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "รูปแบบไม่ถูกต้อง อาจประกอบด้วยตัวอักษรพิมพ์เล็กและ “_” เท่านั้น เช่น: “de”, “de_DE”, “zh_Hant_TW”"
+            "รูปแบบไม่ถูกต้อง อาจมีเฉพาะตัวอักษรพิมพ์เล็กและ “_” เท่านั้น เช่น: “de”, “de_DE”, “zh_Hant_TW”"
          ],
          "hreflang": [
             "hreflang"
@@ -176,7 +176,7 @@
             "เข้ารหัส URL หรือไม่?"
          ],
          "Flags must be:": [
-            "ธงต้อง:"
+            "ธงต้องเป็น:"
          ],
          "NO": [
             "ไม่"
@@ -188,7 +188,7 @@
             " (จำเป็น)"
          ],
          "Please fill in the field": [
-            "โปรดกรอกข้อมูลในฟิลด์"
+            "โปรดกรอกข้อมูลในช่อง"
          ],
          "PNG, SVG, or JPG files": [
             "ไฟล์ PNG, SVG หรือ JPG"
@@ -203,16 +203,16 @@
             "อ่านเพิ่มเติมเกี่ยวกับ "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "ชื่อภาษาของคุณที่จะปรากฏบนตัวสลับภาษาของเว็บไซต์ของคุณ."
+            "ชื่อภาษาของคุณตามที่จะปรากฏในตัวสลับภาษาของเว็บไซต์ของคุณ"
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "ค่าเฉพาะที่ระบุภาษาในฐานข้อมูลและ URL เมื่อบันทึกแล้ว จะไม่สามารถเปลี่ยนรหัสภาษาได้."
+            "ค่าที่ไม่ซ้ำกันที่ระบุภาษาในฐานข้อมูลและ URL เมื่อบันทึกแล้ว รหัสภาษาจะไม่สามารถเปลี่ยนแปลงได้"
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "หากภาษาที่กำหนดเองของคุณคล้ายกับภาษาที่มีอยู่ คุณสามารถใช้การตรวจสอบการสะกดและการแปลอัตโนมัติของภาษาที่มีอยู่ได้ ตัวอย่างเช่น หากภาษาที่กำหนดเองของคุณคือภาษาเยอรมันสวิส คุณสามารถจับคู่กับภาษาเยอรมันเป็นภาษาที่ใช้สำหรับการตรวจสอบการสะกดและการแปลอัตโนมัติได้ หากคุณไม่จับคู่ภาษาที่กำหนดเองกับภาษาที่มีอยู่ คุณลักษณะการตรวจสอบการสะกดและการแปลอัตโนมัติจะไม่สามารถใช้งานได้ในภาษานั้น."
+            "หากภาษาที่คุณกำหนดเองคล้ายกับภาษาที่มีอยู่ คุณสามารถใช้การตรวจสอบการสะกดและการแปลอัตโนมัติของภาษาที่มีอยู่ได้ ตัวอย่างเช่น หากภาษาที่คุณกำหนดเองคือภาษาเยอรมันแบบสวิส คุณสามารถแมปกับภาษาเยอรมันเป็นภาษาที่จะใช้สำหรับการตรวจสอบการสะกดและการแปลอัตโนมัติ หากคุณไม่แมปภาษาที่คุณกำหนดเองกับภาษาที่มีอยู่ คุณสมบัติการตรวจสอบการสะกดและการแปลอัตโนมัติจะไม่สามารถใช้งานได้ในภาษานั้น"
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "ค่าที่ WPML ตรวจสอบเมื่อโหลดการแปลจากไฟล์ MO และ PO ภาษาท้องถิ่นเริ่มต้นจะรวมอยู่ในชื่อไฟล์ในโฟลเดอร์  /wp-content/languages/ ในการติดตั้ง WordPress ของคุณ."
+            "ค่าที่ WPML ตรวจสอบเมื่อโหลดการแปลจากไฟล์ MO และ PO ภาษาเริ่มต้นจะรวมอยู่ในชื่อไฟล์ในโฟลเดอร์ /wp-content/languages/ ในการตั้งค่า WordPress ของคุณ"
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
             "Google ใช้แอตทริบิวต์ hreflang เพื่อนำผู้ใช้ไปยังเว็บไซต์ในภาษาและตำแหน่งที่เกี่ยวข้อง ตัวอย่าง:"
@@ -227,7 +227,7 @@
             "ภาษาอังกฤษสำหรับผู้ใช้ในสหรัฐอเมริกา: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "กำหนดว่า URL ในภาษานี้ถูกเข้ารหัสหรือใช้อักขระ ASCII หรือไม่ (หากไม่แน่ใจ ให้ปล่อยไว้เป็น “ไม่”)."
+            "กำหนดว่า URL ในภาษานี้จะถูกเข้ารหัสหรือใช้ตัวอักษร ASCII (หากไม่แน่ใจ ให้ปล่อยไว้เป็น “ไม่”)"
          ],
          "adding a custom language": [
             "การเพิ่มภาษาที่กำหนดเอง"
@@ -242,13 +242,13 @@
             "ภาษาปัจจุบันของเว็บไซต์ของคุณคืออะไร?"
          ],
          "Translation languages": [
-            "ภาษาแปล"
+            "ภาษาสำหรับการแปล"
          ],
          "Which languages do you want to translate your site into?": [
             "คุณต้องการแปลเว็บไซต์ของคุณเป็นภาษาใดบ้าง?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "หากคุณไม่พบภาษาที่คุณต้องการในรายการ"
+         "If you cannot find languages that you need in the list,": [
+            "หากคุณไม่พบภาษาที่คุณต้องการในรายการ,"
          ],
          "create a custom language": [
             "สร้างภาษาที่กำหนดเอง"

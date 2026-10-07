@@ -3,30 +3,13 @@
 use WPML\Collect\Support\Collection;
 
 class WPML_Locale {
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
-	/**
-	 * @var  string $locale
-	 */
 	private $locale;
 	private $locale_cache;
 
-	/** @var Collection $all_locales */
 	private $all_locales;
 
-	/**
-	 * WPML_Locale constructor.
-	 *
-	 * @param wpdb      $wpdb
-	 * @param SitePress $sitepress
-	 * @param string    $locale
-	 */
 	public function __construct( wpdb &$wpdb, SitePress &$sitepress, &$locale ) {
 		$this->wpdb         =& $wpdb;
 		$this->sitepress    =& $sitepress;
@@ -40,28 +23,11 @@ class WPML_Locale {
 		}
 	}
 
-	/**
-	 * @see \Test_Admin_Settings::test_locale
-	 * @fixme
-	 * Due to the way these tests work (global state issues) I had to create this method
-	 * to ensure we have full coverage of the code.
-	 * This method shouldn't be used anywhere else and should be removed once tests are migrated
-	 * to the new tests framework.
-	 */
 	public function reset_cached_data() {
 		$this->locale_cache = null;
 		$this->all_locales  = null;
 	}
 
-	/**
-	 * Hooked to 'sanitize_title' in case the user is using a language that has either German or Danish locale, to
-	 * ensure that WP Core sanitization functions handle special chars accordingly.
-	 *
-	 * @param string $title
-	 * @param string $raw_title
-	 *
-	 * @return string
-	 */
 	public function filter_sanitize_title( $title, $raw_title ) {
 		if ( $title !== $raw_title ) {
 			remove_filter( 'sanitize_title', array( $this, 'filter_sanitize_title' ), 10 );
@@ -86,10 +52,8 @@ class WPML_Locale {
 		return $title;
 	}
 
-	/**
-	 * @return bool|mixed
-	 */
 	public function locale() {
+		static $in_locale_determination = false;
 		if ( ! $this->locale_cache ) {
 			add_filter( 'language_attributes', array( $this, '_language_attributes' ) );
 
@@ -98,10 +62,12 @@ class WPML_Locale {
 			if ( $is_ajax && isset( $_REQUEST['action'], $_REQUEST['lang'] ) ) {
 				$locale_lang_code = preg_replace( '/[^-a-zA-Z0-9_]/', '', $_REQUEST['lang'] );
 			} elseif ( $wp_api->is_admin()
-					   && ( ! $is_ajax
-							|| $this->sitepress->check_if_admin_action_from_referer() )
+					   && ( ! $is_ajax || $this->sitepress->check_if_admin_action_from_referer() )
+					   && ! $in_locale_determination
 			) {
-				$locale_lang_code = $this->sitepress->user_lang_by_authcookie();
+				$in_locale_determination = true;
+				$locale_lang_code        = $this->sitepress->user_lang_by_authcookie();
+				$in_locale_determination = false;
 			} else {
 				$locale_lang_code = $this->sitepress->get_current_language();
 			}
@@ -117,11 +83,6 @@ class WPML_Locale {
 		return $this->locale_cache;
 	}
 
-	/**
-	 * @param string $code
-	 *
-	 * @return false|string
-	 */
 	public function get_locale( $code ) {
 		if ( ! $code ) {
 			return false;
@@ -130,9 +91,6 @@ class WPML_Locale {
 		return $this->get_all_locales()->get( $code, $code );
 	}
 
-	/**
-	 * @return Collection
-	 */
 	public function get_all_locales() {
 		if ( ! $this->all_locales ) {
 			$sql = "
@@ -176,7 +134,7 @@ class WPML_Locale {
 				WPML_PLUGIN_PATH . '/locale/sitepress-' . $this->get_locale( $lang_code ) . '.mo',
 				is_string( $this->get_locale( $lang_code ) ) ? $this->get_locale( $lang_code ) : null
 			);
-		} else { // switch back
+		} else {
 			$l10n['sitepress'] = $original_l10n;
 		}
 	}
@@ -220,11 +178,7 @@ class WPML_Locale {
 		);
 	}
 
-	/**
-	 * @return WPML_Locale
-	 */
 	public static function get_instance_from_sitepress() {
-		/** SitePress $sitepress */
 		global $sitepress;
 
 		return $sitepress->get_wpml_locale();

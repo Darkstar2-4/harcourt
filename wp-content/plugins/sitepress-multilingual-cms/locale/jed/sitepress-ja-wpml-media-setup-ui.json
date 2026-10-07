@@ -8,10 +8,10 @@
             "lang": "ja"
          },
          "But...": [
-            "しかしながら..."
+            "しかし..."
          ],
          "Wait to translate any content that contains media until we're finished configuring it. It will be just a moment.": [
-            "構成設定が終了するまで、メディアを含むコンテンツの翻訳は少々お待ち下さい。まもなくご使用いただけます。"
+            "メディアを含むコンテンツの翻訳は、設定が完了するまでお待ちください。まもなく完了します。"
          ]
       }
    }

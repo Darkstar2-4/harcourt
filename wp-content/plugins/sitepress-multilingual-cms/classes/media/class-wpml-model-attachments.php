@@ -3,27 +3,15 @@
 class WPML_Model_Attachments {
 	const ATTACHMENT_TYPE = 'post_attachment';
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * @var WPML_Post_Status
-	 */
 	private $status_helper;
 
-	/**
-	 * @param SitePress $sitepress
-	 * @param WPML_Post_Status $status_helper
-	 */
 	public function __construct( SitePress $sitepress, WPML_Post_Status $status_helper ) {
 		$this->sitepress = $sitepress;
 		$this->status_helper = $status_helper;
 	}
 
-	/**
-	 * @param int $attachment_id
-	 * @param int $duplicated_attachment_id
-	 */
 	public function duplicate_post_meta_data( $attachment_id, $duplicated_attachment_id ) {
 		$media_meta_data_duplicate = apply_filters( 'wpml_media_meta_data_duplicate', [
 			'_wp_attachment_metadata',
@@ -45,12 +33,6 @@ class WPML_Model_Attachments {
 		do_action( 'wpml_media_create_duplicate_attachment', $attachment_id, $duplicated_attachment_id );
 	}
 
-	/**
-	 * @param int $trid
-	 * @param string $target_language
-	 *
-	 * @return null|WP_Post
-	 */
 	public function find_duplicated_attachment( $trid, $target_language ) {
 		$attachment_translations = $this->sitepress->get_element_translations( $trid, self::ATTACHMENT_TYPE, true, true );
 		if ( is_array( $attachment_translations ) ) {
@@ -64,13 +46,6 @@ class WPML_Model_Attachments {
 		return null;
 	}
 
-	/**
-	 * @param WP_Post|null $attachment
-	 * @param int|false|null $parent_id_of_attachement
-	 * @param string $target_language
-	 *
-	 * @return int|null
-	 */
 	public function fetch_translated_parent_id( $attachment, $parent_id_of_attachement, $target_language ) {
 		$translated_parent_id  = null;
 
@@ -92,36 +67,18 @@ class WPML_Model_Attachments {
 		return $translated_parent_id;
 	}
 
-	/**
-	 * @param int $new_parent_id
-	 * @param WP_Post $attachment
-	 */
 	public function update_parent_id_in_existing_attachment( $new_parent_id, $attachment ) {
 		if ( $this->is_valid_post_type( $attachment->post_type ) ) {
 			wp_update_post( array( 'ID' => $attachment->ID, 'post_parent' => $new_parent_id ) );
 		}
 	}
 
-	/**
-	 * @param string $post_type
-	 *
-	 * @return bool
-	 */
 	private function is_valid_post_type( $post_type ) {
 		$post_types = array_keys( get_post_types( ) );
 
 		return in_array( $post_type, $post_types, true );
 	}
 
-	/**
-	 * @param int $attachment_id
-	 * @param string $target_language
-	 * @param int $parent_id_in_target_language
-	 * @param int $trid
-	 *
-	 * @return int
-	 * @throws WPML_Media_Exception
-	 */
 	public function duplicate_attachment( $attachment_id, $target_language, $parent_id_in_target_language, $trid ) {
 		$post = get_post( $attachment_id );
 		$post->post_parent = $parent_id_in_target_language;
@@ -138,11 +95,6 @@ class WPML_Model_Attachments {
 	}
 
 
-	/**
-	 * @param WP_Post $post
-	 *
-	 * @return int
-	 */
 	private function insert_attachment( $post ) {
 		$add_attachment_filters_temp = null;
 		if ( array_key_exists( 'add_attachment', $GLOBALS['wp_filter'] ) ) {
@@ -150,7 +102,6 @@ class WPML_Model_Attachments {
 			unset( $GLOBALS['wp_filter']['add_attachment'] );
 		}
 
-		/** @phpstan-ignore-next-line (WP doc issue) */
 		$duplicated_attachment_id = wp_insert_post( $post );
 		if ( ! is_int( $duplicated_attachment_id ) ) {
 			$duplicated_attachment_id = 0;
@@ -164,12 +115,6 @@ class WPML_Model_Attachments {
 		return $duplicated_attachment_id;
 	}
 
-	/**
-	 * @param int $attachment_id
-	 * @param int $duplicated_attachment_id
-	 * @param string $target_language
-	 * @param int $trid
-	 */
 	private function add_language_information_to_attachment( $attachment_id, $duplicated_attachment_id, $target_language, $trid ) {
 		$source_language = $this->sitepress->get_language_for_element( $attachment_id, self::ATTACHMENT_TYPE );
 		$this->sitepress->set_element_language_details( $duplicated_attachment_id, self::ATTACHMENT_TYPE, $trid, $target_language, $source_language );

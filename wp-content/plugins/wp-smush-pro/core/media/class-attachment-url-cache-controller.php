@@ -139,24 +139,25 @@ class Attachment_Url_Cache_Controller extends Controller {
 	 */
 	private function collect_bulk_image_urls( $elements ) {
 		foreach ( $elements as $element ) {
-			$element_key = md5( $element->get_markup() );
+			$original_url = $this->get_original_url( $element );
+			if ( ! $original_url ) {
+				continue;
+			}
+			$element_key = md5( $original_url );
 
 			if ( $element->has_attribute( 'src' ) ) {
 				$src_url = $element->get_attribute( 'src' )->get_single_image_url();
 				if ( $src_url ) {
 					$src_absolute_url = $src_url->get_absolute_url();
-					if ( $this->should_add_url( $src_absolute_url ) ) {
-						$this->collect_url( $src_absolute_url, $element_key );
-					}
-
-					$src_url_without_dimensions = $this->url_utils->get_url_without_dimensions( $src_absolute_url );
-					if ( $this->should_add_url( $src_url_without_dimensions ) ) {
-						$this->collect_url( $src_url_without_dimensions, $element_key );
-					}
-
-					$scaled_src_url = $this->url_utils->get_scaled_image_url( $src_url_without_dimensions );
-					if ( $this->should_add_url( $scaled_src_url ) ) {
-						$this->collect_url( $scaled_src_url, $element_key );
+					$urls = array(
+						$src_absolute_url,
+						$original_url,
+						$this->url_utils->get_scaled_image_url( $original_url ),
+					);
+					foreach ( $urls as $url ) {
+						if ( $this->should_add_url( $url ) ) {
+							$this->collect_url( $url, $element_key );
+						}
 					}
 				}
 			}
@@ -174,6 +175,23 @@ class Attachment_Url_Cache_Controller extends Controller {
 		}
 	}
 
+	private function get_original_url( $element ) {
+		$image_attributes = array( 'src', 'srcset' );
+		foreach ( $image_attributes as $attribute ) {
+			if ( $element->has_attribute( $attribute ) ) {
+				$image_url = $element->get_attribute( $attribute )->get_single_image_url();
+				if ( $image_url ) {
+					$absolute_url = $image_url->get_absolute_url();
+					if ( $this->upload_dir->is_uploads_url( $absolute_url ) ) {
+						return $this->url_utils->get_url_without_dimensions( $absolute_url );
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
 	private function should_add_url( $url ) {
 		return ! empty( $url )
 		       && ! in_array( $url, $this->bulk_image_urls, true )
@@ -186,7 +204,7 @@ class Attachment_Url_Cache_Controller extends Controller {
 	 *
 	 * @return void
 	 */
-	private function collect_url( string $src_url, string $element_key ) {
+	private function collect_url( $src_url, $element_key ) {
 		$this->bulk_image_urls[]              = $src_url;
 		$this->element_urls[ $element_key ][] = $src_url;
 		$this->url_elements[ $src_url ]       = $element_key;

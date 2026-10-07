@@ -2,13 +2,10 @@
 
 class WPML_TM_Word_Count_Set_Package {
 
-	/** @var WPML_ST_Package_Factory $package_factory */
 	private $package_factory;
 
-	/** @var WPML_TM_Word_Count_Records $records */
 	private $records;
 
-	/** @var array $active_langs */
 	private $active_langs;
 
 	public function __construct(
@@ -21,7 +18,6 @@ class WPML_TM_Word_Count_Set_Package {
 		$this->active_langs    = $active_langs;
 	}
 
-	/** @param int $package_id */
 	public function process( $package_id ) {
 		$package     = $this->package_factory->create( $package_id );
 		$word_counts = new WPML_TM_Count();

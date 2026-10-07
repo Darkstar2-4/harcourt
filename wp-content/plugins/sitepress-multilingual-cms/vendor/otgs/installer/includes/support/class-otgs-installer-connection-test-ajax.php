@@ -28,9 +28,6 @@ class OTGS_Installer_Connection_Test_Ajax {
 		wp_send_json_error();
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		return isset( $_POST['nonce'], $_POST['type'] ) && wp_verify_nonce( $_POST['nonce'], self::ACTION );
 	}

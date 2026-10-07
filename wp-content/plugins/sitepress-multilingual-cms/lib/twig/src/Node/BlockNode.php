@@ -12,11 +12,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a block node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class BlockNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($name, \WPML\Core\Twig_NodeInterface $body, $lineno, $tag = null)

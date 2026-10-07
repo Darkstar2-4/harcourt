@@ -4,14 +4,8 @@ namespace WPML\Core\Component\ATE\Application\Query\Dto;
 
 class AccountBalanceDto {
 
-  /**
-   * @var int
-   */
   private $accountBalance;
 
-  /**
-   * @var string
-   */
   private $redirectUrl;
 
 

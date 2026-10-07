@@ -9,12 +9,6 @@ class Menu implements \IWPML_Frontend_Action {
 		add_filter( 'fl_builder_menu_module_core_menu', [ $this, 'adjustTranslatedMenu' ], 10, 2 );
 	}
 
-	/**
-	 * @param string $menu
-	 * @param object $settings module settings object.
-	 *
-	 * @return string
-	 */
 	public function adjustTranslatedMenu( $menu, $settings ) {
 		$targetMenuSlug = $settings->menu;
 

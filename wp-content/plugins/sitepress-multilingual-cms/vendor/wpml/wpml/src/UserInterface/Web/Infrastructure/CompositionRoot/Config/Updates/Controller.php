@@ -8,19 +8,14 @@ use WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\UpdatesHandlerI
 
 class Controller implements UpdatesHandlerInterface {
 
-  /** @var ApiInterface $api */
   private $api;
 
-  /** @var Repository $repository */
   private $repository;
 
-  /** @var ScriptLoader $scriptLoader */
   private $scriptLoader;
 
-  /** @var UpdateHandler $updateHandler */
   private $updateHandler;
 
-  /** @var PluginInterface $plugin */
   private $plugin;
 
 
@@ -39,15 +34,8 @@ class Controller implements UpdatesHandlerInterface {
   }
 
 
-  /**
-   * @param array<int, Update> $allUpdates
-   * @return void
-   */
   public function prepareUpdates( $allUpdates ) {
     if ( ! $this->plugin->isSetupComplete() ) {
-      // No updates before setup is complete.
-      // Currently this is redundant because wpml/wpml is only loaded
-      // after the setup is complete, but that might change in the future.
       return;
     }
 
@@ -60,20 +48,12 @@ class Controller implements UpdatesHandlerInterface {
   }
 
 
-  /**
-   * @param array<int, Update> $allUpdates
-   * @return void
-   */
   private function onRest( $allUpdates ) {
     $updatesToPerform = $this->repository->getUpdatesToPerform( $allUpdates );
     $this->updateHandler->registerRoute( $updatesToPerform );
   }
 
 
-  /**
-   * @param array<int, Update> $allUpdates
-   * @return void
-   */
   private function initUpdates( $allUpdates ) {
     $updatesToPerform = $this->repository->getUpdatesToPerform( $allUpdates );
 
@@ -85,7 +65,6 @@ class Controller implements UpdatesHandlerInterface {
         continue;
       }
 
-      // No lazy loaded update - directly perfrom it.
       $this->updateHandler->doUpdate( $update );
     }
 

@@ -20,91 +20,34 @@ class QueueRepository implements QueueRepositoryInterface {
 
 	const MAX_PENDING_STRINGS_COUNT_FOR_DOMAIN = 30000;
 
-	/**
-	 * @var array<string, array{string, string, string|null}>
-	 */
 	private $currentUrlStrings = [];
 
-	/** @var array {
-	 *     [domain]: array {
-	 *         [text\4context]: array {
-	 *             'names': array {
-	 *                 'name1',
-	 *                 'name2',
-	 *                 ...
-	 *             }, // optional
-	 *             'urls': array {
-	 *                 'url1',
-	 *                 'url2',
-	 *                 ...
-	 *              },
-	 *         },
-	 *     },
-	 * }
-	 */
 	private $processedStrings = [];
 
-	/** @var array {
-	 *     [domain]: array {
-	 *         [text\4context]: array {
-	 *             'names': array {
-	 *                  'name1',
-	 *                  'name2',
-	 *                  ...
-	 *              }, // optional
-	 *             'cmp': array {
-	 *                 0: string, // componentId
-	 *                 1: int,    // componentType
-	 *             },
-	 *             'urls': array {
-	 *                 array {
-	 *                     'kind': int,
-	 *                     'url': string,
-	 *                 },
-	 *                 array { ... },
-	 *             },
-	 *         },
-	 *     },
-	 * }
-	 */
 	private $pendingStrings = [];
 
-	/** @var bool */
 	private $hasNewPendingStrings = false;
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var Factory */
 	private $factory;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var ComponentRepositoryInterface */
 	private $componentRepository;
 
-	/** @var UrlRepositoryInterface */
 	private $urlRepository;
 
-	/** @var DeletePendingStringsCommandInterface */
 	private $deletePendingStrings;
 
-	/** @var InitStorageCommandInterface */
 	private $initStorage;
 
-	/** @var SavePendingStringsCommandInterface */
 	private $savePendingStrings;
 
-	/** @var SaveProcessedStringsCommandInterface */
 	private $saveProcessedStrings;
 
-	/** @var StringItemFactory */
 	private $stringItemFactory;
 
-	/**
-	 * @param \wpdb $wpdb
-	 */
 	public function __construct(
 		$wpdb,
 		Factory                                $factory,
@@ -138,14 +81,11 @@ class QueueRepository implements QueueRepositoryInterface {
 		return $this->factory->getGettextStringsQueueStorage();
 	}
 
-	public function addCurrentUrlString( string $text, string $domain, string $context = null ) {
+	public function addCurrentUrlString( string $text, string $domain, ?string $context = null ) {
 		$key = $text . $domain . $context;
 		$this->currentUrlStrings[ $key ] = [ $text, $domain, $context ];
 	}
 
-	/**
-	 * @return array<int, array{string, string, string|null}>
-	 */
 	public function getCurrentUrlStrings(): array {
 		return array_values( $this->currentUrlStrings );
 	}
@@ -206,7 +146,7 @@ class QueueRepository implements QueueRepositoryInterface {
 		return $hasEntry ? $pendingString[ $entryKey ]: [];
 	}
 
-	public function isStringAlreadyRegistered( string $text, string $domain, string $context = null, string $name = null ): bool {
+	public function isStringAlreadyRegistered( string $text, string $domain, ?string $context = null, ?string $name = null ): bool {
 		$key = StringItem::createTextAndContextKey( $text, $context );
 		$this->loadDomainProcessedStrings( $domain );
 		$this->loadDomainPendingStrings( $domain );
@@ -222,7 +162,7 @@ class QueueRepository implements QueueRepositoryInterface {
 		return $isProcessed || $isPending;
 	}
 
-	public function canTrackString( string $text, string $domain, string $context = null ): bool {
+	public function canTrackString( string $text, string $domain, ?string $context = null ): bool {
 		$key = StringItem::createTextAndContextKey( $text, $context );
 		$this->loadDomainProcessedStrings( $domain );
 		$this->loadDomainPendingStrings( $domain );
@@ -246,7 +186,7 @@ class QueueRepository implements QueueRepositoryInterface {
 		return $totalCount <= $maxCount;
 	}
 
-	public function isStringAlreadyTrackedOnUrl( string $text, string $domain, string $context = null, string $requestUrl ): bool {
+	public function isStringAlreadyTrackedOnUrl( string $text, string $domain, string $requestUrl, ?string $context = null ): bool {
 		$key = StringItem::createTextAndContextKey( $text, $context );
 		$this->loadDomainProcessedStrings( $domain );
 		$this->loadDomainPendingStrings( $domain );
@@ -258,9 +198,7 @@ class QueueRepository implements QueueRepositoryInterface {
 			return false;
 		}
 
-		// String was already registered(processed) and tracked on the current request url.
 		$isTrackedOnCurrentUrl = in_array( $requestUrl, $this->getProcessedStringEntry( $domain, $key, 'urls' ) );
-		// String was already registered and is scheduled to be tracked on the current request url.
 		$willBeTrackedOnCurrentUrl = in_array(
 			$requestUrl,
 			array_map(
@@ -277,7 +215,7 @@ class QueueRepository implements QueueRepositoryInterface {
 		);
 	}
 
-	public function queueStringAsPending( string $text, string $domain, string $context = null, string $name = null ): bool {
+	public function queueStringAsPending( string $text, string $domain, ?string $context = null, ?string $name = null ): bool {
 		$key = StringItem::createTextAndContextKey( $text, $context );
 		$this->loadDomainProcessedStrings( $domain );
 		$this->loadDomainPendingStrings( $domain );
@@ -304,7 +242,7 @@ class QueueRepository implements QueueRepositoryInterface {
 		return $this->hasNewPendingStrings = true;
 	}
 
-	public function trackString( string $text, string $domain, string $context = null, string $requestUrl ) {
+	public function trackString( string $text, string $domain, string $requestUrl, ?string $context = null ) {
 		if ( ! $this->settingsRepository->isStringTrackingEnabled() ) {
 			return;
 		}
@@ -376,6 +314,11 @@ class QueueRepository implements QueueRepositoryInterface {
 		foreach ( $pendingStringDomains as $domain ) {
 			$this->loadDomainProcessedStrings( $domain );
 
+			if ( ! isset( $this->pendingStrings[ $domain ] ) ) {
+				continue;
+			}
+
+
 			foreach ( $this->pendingStrings[ $domain ] as $textAndContext => $string ) {
 				$key = $textAndContext;
 				foreach ( $string as $prop => $value ) {
@@ -425,9 +368,6 @@ class QueueRepository implements QueueRepositoryInterface {
 		}
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	public function removeProcessedStrings( array $strings ) {
 		$domainsToSave = [];
 		foreach ( $strings as $string ) {

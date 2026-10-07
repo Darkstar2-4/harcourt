@@ -1,52 +1,26 @@
 <?php
 
-/**
- * Class WPML_TM_CMS_ID
- */
 class WPML_TM_CMS_ID extends WPML_TM_Record_User {
 
 	private $cms_id_parts_glue          = '_';
 	private $cms_id_parts_fallback_glue = '|||';
 
-	/** @var  WPML_Translation_Job_Factory $tm_job_factory */
 	private $job_factory;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/**
-	 * WPML_TM_CMS_ID constructor.
-	 *
-	 * @param WPML_TM_Records              $tm_records
-	 * @param WPML_Translation_Job_Factory $job_factory
-	 */
 	public function __construct( &$tm_records, &$job_factory ) {
 		parent::__construct( $tm_records );
 		$this->job_factory = &$job_factory;
 		$this->wpdb        = $this->tm_records->wpdb();
 	}
 
-	/**
-	 * @param int    $post_id
-	 * @param string $post_type
-	 * @param string $source_language
-	 * @param string $target_language
-	 *
-	 * @return string
-	 */
 	public function build_cms_id( $post_id, $post_type, $source_language, $target_language ) {
 		$cms_id_parts = array( $post_type, $post_id, $source_language, $target_language );
 
 		return implode( $this->cms_id_parts_glue, $cms_id_parts );
 	}
 
-	/**
-	 * Returns the cms_id for a given job
-	 *
-	 * @param int $job_id
-	 *
-	 * @return false|string
-	 */
 	function cms_id_from_job_id( $job_id ) {
 		$original_element_row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
@@ -75,11 +49,6 @@ class WPML_TM_CMS_ID extends WPML_TM_Record_User {
 			: false;
 	}
 
-	/**
-	 * @param string $cms_id
-	 *
-	 * @return array;
-	 */
 	public function parse_cms_id( $cms_id ) {
 		if ( $this->is_standard_format( $cms_id ) ) {
 			$parts = array_filter( explode( $this->cms_id_parts_glue, $cms_id ) );
@@ -97,12 +66,6 @@ class WPML_TM_CMS_ID extends WPML_TM_Record_User {
 		return array_pad( array_slice( $parts, 0, 4 ), 4, false );
 	}
 
-	/**
-	 * @param string                        $cms_id
-	 * @param bool|TranslationProxy_Service $translation_service
-	 *
-	 * @return int|null translation id for the given cms_id's target
-	 */
 	public function get_translation_id( $cms_id, $translation_service = false ) {
 		list( $post_type, $element_id, , $target_lang ) = $this->parse_cms_id( $cms_id );
 		$translation                                    = $this->wpdb->get_row(
@@ -158,11 +121,6 @@ class WPML_TM_CMS_ID extends WPML_TM_Record_User {
 		return isset( $translation_id ) ? $translation_id : null;
 	}
 
-	/**
-	 * @param $cms_id
-	 *
-	 * @return bool
-	 */
 	private function is_standard_format( $cms_id ) {
 
 		return count( array_filter( explode( $this->cms_id_parts_fallback_glue, $cms_id ) ) ) < 3;

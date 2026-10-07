@@ -1,38 +1,15 @@
 <?php
-/**
- * WPML Sunrise Script - START
- *
- * @author OnTheGoSystems
- * @version 3.7.0
- *
- * Place this script in the wp-content folder and add "define('SUNRISE', 'on');" in wp-config.php
- * in order to enable using different domains for different languages in multisite mode
- *
- * Experimental feature
- */
 
-/**
- * Class WPML_Sunrise_Lang_In_Domains
- *
- * @author OnTheGoSystems
- */
 class WPML_Sunrise_Lang_In_Domains {
 
-	/** @var  wpdb $wpdb */
 	private $wpdb;
 
-	/** @var  string $table_prefix */
 	private $table_prefix;
 
-	/** @var  string $current_blog */
 	private $current_blog;
 
-	/** @var  bool $no_recursion */
 	private $no_recursion;
 
-	/**
-	 * Method init
-	 */
 	public function init() {
 		if ( ! defined( 'WPML_SUNRISE_MULTISITE_DOMAINS' ) ) {
 			define( 'WPML_SUNRISE_MULTISITE_DOMAINS', true );
@@ -41,11 +18,6 @@ class WPML_Sunrise_Lang_In_Domains {
 		add_filter( 'query', array( $this, 'query_filter' ) );
 	}
 
-	/**
-	 * @param string $q
-	 *
-	 * @return string
-	 */
 	public function query_filter( $q ) {
 		$this->set_private_properties();
 
@@ -65,9 +37,6 @@ class WPML_Sunrise_Lang_In_Domains {
 		return $q;
 	}
 
-	/**
-	 * method set_private_properties
-	 */
 	private function set_private_properties() {
 		global $wpdb, $table_prefix, $current_blog;
 
@@ -77,11 +46,6 @@ class WPML_Sunrise_Lang_In_Domains {
 
 	}
 
-	/**
-	 * @param string $query
-	 *
-	 * @return array
-	 */
 	private function extract_variables_from_query( $query, $field ) {
 		$variables = array();
 		$patterns  = array(
@@ -105,32 +69,18 @@ class WPML_Sunrise_Lang_In_Domains {
 		return $variables;
 	}
 
-	/**
-	 * @param string $q
-	 *
-	 * @return bool
-	 */
 	private function query_has_no_result( $q ) {
 		return ! (bool) $this->wpdb->get_row( $q );
 	}
 
-	/**
-	 * @param string $q
-	 * @param array  $domains
-	 *
-	 * @return string
-	 */
 	private function transpose_query_if_one_domain_is_matching( $q, $domains ) {
 		$paths = $this->extract_variables_from_query( $q, 'path' );
 
-		// Create as many placeholders as $paths we have.
 		$placeholders = implode( ',', array_fill( 0, sizeof( $paths ), '%s' ) );
 
-		// Array with all the parameters for preparing the SQL.
 		$parameters   = $paths;
 		$parameters[] = BLOG_ID_CURRENT_SITE;
 
-		// The ORDER is there to get the default site at the end of the results.
 		$blogs = $this->wpdb->get_col(
 			$this->wpdb->prepare(
 				"SELECT blog_id FROM {$this->wpdb->blogs} WHERE path IN ($placeholders) ORDER BY blog_id = %d",
@@ -164,13 +114,6 @@ class WPML_Sunrise_Lang_In_Domains {
 		return $q;
 	}
 
-	/**
-	 * @param array $domains
-	 * @param array $wpml_settings
-	 * @param int   $blog_id
-	 *
-	 * @return mixed
-	 */
 	private function get_blog_id_from_domain( array $domains, array $wpml_settings, $blog_id ) {
 		foreach ( $domains as $domain ) {
 			if ( in_array( 'http://' . $domain, $wpml_settings['language_domains'], true ) ) {
@@ -187,6 +130,3 @@ class WPML_Sunrise_Lang_In_Domains {
 $wpml_sunrise_lang_in_domains = new WPML_Sunrise_Lang_In_Domains();
 $wpml_sunrise_lang_in_domains->init();
 
-/**
- * WPML Sunrise Script - END
- */

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Class WPML_TF_Frontend_Feedback_View
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Frontend_Feedback_View {
 
 	const TEMPLATE_FOLDER           = '/templates/translation-feedback/frontend/';
@@ -13,26 +8,14 @@ class WPML_TF_Frontend_Feedback_View {
 	const CUSTOM_OPEN_LINK_TEMPLATE = 'feedback-custom-open-link.twig';
 	const JS_OPEN_NODE_CLASS        = 'js-wpml-tf-feedback-icon';
 
-	/** @var  IWPML_Template_Service $template_service */
 	private $template_service;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Queried_Object $queried_object */
 	private $queried_object;
 
-	/** @var WPML_TF_Settings $settings */
 	private $settings;
 
-	/**
-	 * WPML_TF_Frontend_Hooks constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service
-	 * @param SitePress              $sitepress
-	 * @param WPML_Queried_Object    $queried_object
-	 * @param WPML_TF_Settings       $settings
-	 */
 	public function __construct(
 		IWPML_Template_Service $template_service,
 		SitePress $sitepress,
@@ -45,9 +28,6 @@ class WPML_TF_Frontend_Feedback_View {
 		$this->settings         = $settings;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render_form() {
 		$jsAssets = [
 			includes_url() . 'js/jquery/jquery.min.js',
@@ -103,9 +83,6 @@ class WPML_TF_Frontend_Feedback_View {
 		return $this->template_service->show( $model, self::FORM_TEMPLATE );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render_open_button() {
 		$rendering = '';
 
@@ -124,7 +101,6 @@ class WPML_TF_Frontend_Feedback_View {
 		return $rendering;
 	}
 
-	/** @return string */
 	private function get_wrapper_css_classes() {
 		$base_classes = self::JS_OPEN_NODE_CLASS . ' wpml-tf-feedback-icon ';
 		$class        = $base_classes . 'wpml-tf-feedback-icon-left';
@@ -136,7 +112,6 @@ class WPML_TF_Frontend_Feedback_View {
 		return $class;
 	}
 
-	/** @return string */
 	private function get_icon_css_class() {
 		$icon_style  = $this->settings->get_icon_style();
 		$css_classes = self::get_icon_css_classes();
@@ -148,11 +123,6 @@ class WPML_TF_Frontend_Feedback_View {
 		return $css_classes[ WPML_TF_Settings::ICON_STYLE_LEGACY ];
 	}
 
-	/**
-	 * @param string|array $args
-	 *
-	 * @return string
-	 */
 	public function render_custom_open_link( $args ) {
 		$model = wp_parse_args( $args, self::get_default_arguments_for_open_link() );
 
@@ -161,7 +131,6 @@ class WPML_TF_Frontend_Feedback_View {
 		return $this->template_service->show( $model, self::CUSTOM_OPEN_LINK_TEMPLATE );
 	}
 
-	/** @return array */
 	public static function get_default_arguments_for_open_link() {
 		return array(
 			'title'   => __( 'Rate translation of this page', 'sitepress' ),
@@ -169,7 +138,6 @@ class WPML_TF_Frontend_Feedback_View {
 		);
 	}
 
-	/** @return array */
 	public static function get_icon_css_classes() {
 		return array(
 			WPML_TF_Settings::ICON_STYLE_LEGACY   => 'otgs-ico-translation',

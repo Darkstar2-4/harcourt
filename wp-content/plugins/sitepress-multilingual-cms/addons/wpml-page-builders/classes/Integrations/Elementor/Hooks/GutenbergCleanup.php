@@ -23,28 +23,14 @@ class GutenbergCleanup implements \IWPML_Backend_Action, \IWPML_Frontend_Action 
 		);
 	}
 
-	/**
-	 * If we detect Gutenberg footprint in the Elementor data,
-	 * we'll remove it and delete the Gutenberg string package.
-	 *
-	 * @param null|bool $check
-	 * @param int       $postId
-	 * @param string    $metaKey
-	 * @param string    $metaValue
-	 *
-	 * @return mixed
-	 */
 	public function removeGutenbergFootprint( $check, $postId, $metaKey, $metaValue ) {
 		if (
 			WPML_Elementor_Data_Settings::META_KEY_DATA === $metaKey
 			&& WPML_Elementor_Data_Settings::is_edited_with_elementor( $postId )
 		) {
-			// $ifValueHasChanged :: string -> bool
 			$ifValueHasChanged = pipe( Relation::equals( $metaValue ), Logic::not() );
 
-			// $update :: int -> string -> bool
 			$update = curryN( 2, function( $postId, $meta ) {
-				// Do not use update_post_meta, we need update meta for revisions too.
 				update_metadata( 'post', $postId, WPML_Elementor_Data_Settings::META_KEY_DATA, $meta );
 				Package::delete( Package::get( $postId ) );
 				return true;
@@ -62,11 +48,6 @@ class GutenbergCleanup implements \IWPML_Backend_Action, \IWPML_Frontend_Action 
 		return $check;
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	public function removeBlockMetaInEditorWidget( array $data ) {
 		foreach ( $data as &$element ) {
 			if ( $element['elements'] ) {

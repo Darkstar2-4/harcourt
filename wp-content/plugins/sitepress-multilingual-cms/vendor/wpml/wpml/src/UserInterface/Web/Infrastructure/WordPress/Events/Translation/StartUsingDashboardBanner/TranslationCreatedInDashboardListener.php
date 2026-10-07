@@ -6,7 +6,6 @@ use WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Applicat
 
 class TranslationCreatedInDashboardListener {
 
-  /** @var TranslationsFromDashboardService */
   private $translationsFromDashboardService;
 
 
@@ -16,9 +15,6 @@ class TranslationCreatedInDashboardListener {
   }
 
 
-  /**
-   * @return void
-   */
   public function recordTranslation() {
     $this->translationsFromDashboardService->recordTranslator();
   }

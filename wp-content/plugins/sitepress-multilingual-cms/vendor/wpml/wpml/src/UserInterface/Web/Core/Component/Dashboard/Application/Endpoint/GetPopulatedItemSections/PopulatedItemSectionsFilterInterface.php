@@ -6,11 +6,6 @@ use WPML\Core\Component\Post\Application\Query\Criteria\SearchPopulatedTypesCrit
 interface PopulatedItemSectionsFilterInterface {
 
 
-  /**
-   * @param string[] $itemSectionIds
-   * @param SearchPopulatedTypesCriteria $searchCriteria
-   * @return string[]
-   */
   public function filter( array $itemSectionIds, SearchPopulatedTypesCriteria $searchCriteria );
 
 

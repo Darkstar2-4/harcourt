@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "zh@Hans"
+            "lang": "zh_CN"
          },
          "Choose the image file type for flags": [
-            "选择标志的图像文件类型"
+            "选择用于旗帜的图像文件类型"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "该选项只影响内置的 WPML 标志，不影响自定义上传的标志。"
+            "此选项仅影响内置的 WPML 旗帜，不影响自定义上传的旗帜。"
          ],
          "%s format": [
             "%s 格式"

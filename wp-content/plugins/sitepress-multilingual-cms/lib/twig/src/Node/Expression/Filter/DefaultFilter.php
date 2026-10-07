@@ -18,13 +18,6 @@ use WPML\Core\Twig\Node\Expression\GetAttrExpression;
 use WPML\Core\Twig\Node\Expression\NameExpression;
 use WPML\Core\Twig\Node\Expression\Test\DefinedTest;
 use WPML\Core\Twig\Node\Node;
-/**
- * Returns the value or the default value when it is undefined or empty.
- *
- *  {{ var.foo|default('foo item on var is not defined') }}
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class DefaultFilter extends \WPML\Core\Twig\Node\Expression\FilterExpression
 {
     public function __construct(\WPML\Core\Twig_NodeInterface $node, \WPML\Core\Twig\Node\Expression\ConstantExpression $filterName, \WPML\Core\Twig_NodeInterface $arguments, $lineno, $tag = null)

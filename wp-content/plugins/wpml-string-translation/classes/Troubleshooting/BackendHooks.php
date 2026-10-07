@@ -11,7 +11,6 @@ class BackendHooks implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 	const SCRIPT_HANDLE = 'wpml-st-troubleshooting';
 	const NONCE_KEY     = 'wpml-st-troubleshooting';
 
-	/** @var DomainsAndLanguagesRepository $domainsAndLanguagesRepo */
 	private $domainsAndLanguagesRepo;
 
 	public function __construct( DomainsAndLanguagesRepository $domainsAndLanguagesRepo ) {
@@ -51,11 +50,6 @@ class BackendHooks implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		<?php
 	}
 
-	/**
-	 * @param string       $action
-	 * @param string       $buttonLabel
-	 * @param string|false $confirmationMessage A string to display or false if we want to immediately reload.
-	 */
 	private function displayButton( $action, $buttonLabel, $confirmationMessage ) {
 		?>
 		<p>
@@ -73,10 +67,6 @@ class BackendHooks implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		<?php
 	}
 
-	/**
-	 * @param string       $link
-	 * @param string       $buttonLabel
-	 */
 	private function displayLinkButton( $link, $buttonLabel ) {
 		?>
 		<p>
@@ -86,9 +76,6 @@ class BackendHooks implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		<?php
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function loadJS( $hook ) {
 		if ( WPML_PLUGIN_FOLDER . '/menu/troubleshooting.php' === $hook ) {
 			wp_register_script(

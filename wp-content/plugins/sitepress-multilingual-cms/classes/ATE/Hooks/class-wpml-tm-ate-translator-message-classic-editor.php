@@ -7,13 +7,10 @@ class WPML_TM_ATE_Translator_Message_Classic_Editor implements IWPML_Action {
 	const ACTION      = 'wpml_ate_translator_classic_editor';
 	const USER_OPTION = 'wpml_ate_translator_classic_editor_minimized';
 
-	/** @var WPML_Translation_Manager_Records */
 	private $translation_manager_records;
 
-	/** @var WPML_WP_User_Factory */
 	private $user_factory;
 
-	/** @var WPML_TM_ATE_Request_Activation_Email */
 	private $activation_email;
 
 	public function __construct(

@@ -4,31 +4,22 @@ use WPML\PB\TranslationJob\Groups;
 
 class WPML_Gutenberg_Strings_Registration {
 
-	/** @var WPML\PB\Gutenberg\StringsInBlock\StringsInBlock $strings_in_blocks */
 	private $strings_in_blocks;
 
-	/** @var WPML_ST_String_Factory $string_factory */
 	private $string_factory;
 
-	/** @var WPML_PB_Reuse_Translations $reuse_translations */
 	private $reuse_translations;
 
-	/** @var WPML_PB_String_Translation $string_translation */
 	private $string_translation;
 
-	/** @var int $string_location */
 	private $string_location;
 
-	/** @var array $leftover_strings */
 	private $leftover_strings;
 
-	/** @var WPML_Translate_Link_Targets $translate_link_targets */
 	private $translate_link_targets;
 
-	/** @var callable $set_link_translations */
 	private $set_link_translations;
 
-	/** @var int */
 	private $sequence = 0;
 
 	public function __construct(
@@ -47,13 +38,8 @@ class WPML_Gutenberg_Strings_Registration {
 		$this->set_link_translations  = $set_link_translations;
 	}
 
-	/**
-	 * @param WP_Post $post
-	 * @param array   $package_data
-	 */
 	public function register_strings( WP_Post $post, $package_data ) {
 		do_action( 'wpml_start_string_package_registration', $package_data );
-		/* phpcs:ignore WordPress.NamingConventions.ValidHookName.NotLowercase */
 		do_action( 'wpml_start_GB_register_strings', $post, $package_data );
 
 		$original_strings       = $this->string_translation->get_package_strings( $package_data );
@@ -70,15 +56,10 @@ class WPML_Gutenberg_Strings_Registration {
 
 		$this->reuse_translations->find_and_reuse_translations( $original_strings, $current_strings, $this->leftover_strings );
 
-		/* phpcs:ignore WordPress.NamingConventions.ValidHookName.NotLowercase */
 		do_action( 'wpml_end_GB_register_strings', $post, $package_data );
 		do_action( 'wpml_delete_unused_package_strings', $package_data );
 	}
 
-	/**
-	 * @param array $blocks
-	 * @param array $package_data
-	 */
 	public function register_strings_from_widget( array $blocks, array $package_data ) {
 		do_action( 'wpml_start_string_package_registration', $package_data );
 
@@ -98,24 +79,12 @@ class WPML_Gutenberg_Strings_Registration {
 		do_action( 'wpml_delete_unused_package_strings', $package_data );
 	}
 
-	/**
-	 * @param array $blocks
-	 * @param array $package_data
-	 * @param int   $post_id
-	 * @param array $crumbs
-	 */
 	private function register_blocks( array $blocks, array $package_data, $post_id, $crumbs = [] ) {
 
 		foreach ( $blocks as $block ) {
 			$block   = WPML_Gutenberg_Integration::sanitize_block( $block );
 			$strings = $this->strings_in_blocks->find( $block );
 
-			/**
-			 * Replace the sequence with the image id if we want a thumbnail preview in ATE.
-			 *
-			 * @param int   $sequence
-			 * @param mixed $block
-			 */
 			$sequence  = apply_filters( 'wpml_pb_replace_sequence_with_attachment_id', $this->sequence, $block );
 			$group     = $this->getGroupIdOfBlock( $block, $sequence );
 			$newCrumbs = $crumbs;
@@ -123,7 +92,7 @@ class WPML_Gutenberg_Strings_Registration {
 				$newCrumbs[] = $group;
 			}
 
-			$this->sequence ++;
+			++$this->sequence;
 
 			if ( empty( $strings ) ) {
 				if ( $post_id ) {
@@ -170,11 +139,11 @@ class WPML_Gutenberg_Strings_Registration {
 		}
 	}
 
-	private function isLayoutBlock( WP_Block_Parser_Block $block ) : bool {
+	private function isLayoutBlock( WP_Block_Parser_Block $block ): bool {
 		return isset( $block->attrs['layout'] );
 	}
 
-	private function getGroupIdOfBlock( WP_Block_Parser_Block $block, int $sequence ) : string {
+	private function getGroupIdOfBlock( WP_Block_Parser_Block $block, int $sequence ): string {
 		return str_replace( '/', '-', $block->blockName ) . '-' . $sequence;
 	}
 
@@ -184,18 +153,10 @@ class WPML_Gutenberg_Strings_Registration {
 
 		if ( $string_id ) {
 			$string->set_location( $this->string_location );
-			$this->string_location++;
+			++$this->string_location;
 		}
 	}
 
-	/**
-	 * Update string wrap tag.
-	 * Used for SEO, can contain (h1...h6, etc.)
-	 *
-	 * @param array    $package_data Package.
-	 * @param stdClass $string_data  String in the package.
-	 * @param string   $wrap_tag     String wrap.
-	 */
 	private function update_wrap_tag( $package_data, stdClass $string_data, $wrap_tag ) {
 		$string_id = apply_filters( 'wpml_string_id_from_package', 0, $package_data, $string_data->id, $string_data->value );
 		$string    = $this->string_factory->find_by_id( $string_id );
@@ -205,9 +166,6 @@ class WPML_Gutenberg_Strings_Registration {
 		}
 	}
 
-	/**
-	 * @param string $string_value
-	 */
 	private function remove_string_from_leftovers( $string_value ) {
 		$string_hash = $this->string_translation->get_string_hash( $string_value );
 

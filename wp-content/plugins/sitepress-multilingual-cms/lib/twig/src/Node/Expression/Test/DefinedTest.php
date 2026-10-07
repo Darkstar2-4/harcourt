@@ -19,19 +19,9 @@ use WPML\Core\Twig\Node\Expression\FunctionExpression;
 use WPML\Core\Twig\Node\Expression\GetAttrExpression;
 use WPML\Core\Twig\Node\Expression\NameExpression;
 use WPML\Core\Twig\Node\Expression\TestExpression;
-/**
- * Checks if a variable is defined in the current context.
- *
- *    {# defined works with variable names and variable attributes #}
- *    {% if foo is defined %}
- *        {# ... #}
- *    {% endif %}
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class DefinedTest extends \WPML\Core\Twig\Node\Expression\TestExpression
 {
-    public function __construct(\WPML\Core\Twig_NodeInterface $node, $name, \WPML\Core\Twig_NodeInterface $arguments = null, $lineno)
+    public function __construct(\WPML\Core\Twig_NodeInterface $node, $name, ?\WPML\Core\Twig_NodeInterface $arguments = null, $lineno = 0)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\NameExpression) {
             $node->setAttribute('is_defined_test', \true);

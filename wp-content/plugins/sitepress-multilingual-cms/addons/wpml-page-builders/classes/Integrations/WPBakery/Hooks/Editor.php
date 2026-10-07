@@ -10,9 +10,6 @@ class Editor implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 			->then( [ $this, 'displayModalPageBuilderWarning' ] );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function displayModalPageBuilderWarning() {
 		if ( is_user_logged_in() && isset( $_GET['post_id'] ) ) {
 			do_action( 'wpml_maybe_display_modal_page_builder_warning', (int) $_GET['post_id'], 'WPBakery' );

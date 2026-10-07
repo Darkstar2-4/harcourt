@@ -5,7 +5,6 @@ class WPML_Ajax_Route {
 	const ACTION_PREFIX        = 'wp_ajax_';
 	const ACTION_PREFIX_LENGTH = 8;
 
-	/** @var  WPML_Ajax_Factory $factory */
 	private $factory;
 
 	public function __construct( WPML_Ajax_Factory $factory ) {

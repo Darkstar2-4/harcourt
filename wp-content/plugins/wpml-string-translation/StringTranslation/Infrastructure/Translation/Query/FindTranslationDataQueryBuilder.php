@@ -9,12 +9,6 @@ class FindTranslationDataQueryBuilder {
 		return $wpdb->prefix;
 	}
 
-	/**
-	 * @param int[]    $stringIds
-	 * @param string[] $languageCodes
-	 *
-	 * @return string
-	 */
 	public function build( array $stringIds, array $languageCodes ) {
 		$sql = "
             SELECT

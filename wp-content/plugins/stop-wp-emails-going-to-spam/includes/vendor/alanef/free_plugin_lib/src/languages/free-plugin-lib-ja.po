@@ -168,6 +168,18 @@ msgstr "セキュリティチェックに失敗"
 msgid "Too many attempts. Please try again later."
 msgstr "試行回数が上限を超えました。しばらく後で再試行してください"
 
+#: Main.php
+msgid "You haven't visited settings yet."
+msgstr "まだ設定ページを訪問していません。"
+
+#: Main.php
+msgid "Please check your settings"
+msgstr "設定を確認してください"
+
+#: Main.php
+msgid "for optimal configuration and opt in for security updates, tips and occasional offers."
+msgstr "最適な設定のために、セキュリティアップデート、ヒント、特別オファーの受信を登録してください。"
+
 #: Classes/Advert.php
 msgid "Premium Plugin Advertisement"
 msgstr "プレミアム版のご案内"

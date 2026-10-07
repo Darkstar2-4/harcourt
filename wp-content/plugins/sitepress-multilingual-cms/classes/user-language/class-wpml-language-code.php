@@ -1,9 +1,5 @@
 <?php
 
-/**
- * @package    wpml-core
- * @subpackage wpml-user-language
- */
 class WPML_Language_Code extends WPML_SP_User {
 
 	private $WPML_WP_API;

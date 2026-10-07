@@ -28,7 +28,6 @@ class MigrateMultilingualWidgets implements \IWPML_St_Upgrade_Command {
 
 		$textWidgets = Option::getOr( 'widget_text', [] );
 		if ( $textWidgets ) {
-			/** @var array $textWidgetsKeys */
 			$textWidgetsKeys = Obj::keys( $textWidgets );
 			$theHighestTextWidgetId = max( $textWidgetsKeys );
 		} else {

@@ -1,32 +1,18 @@
 <?php
 
-/**
- * Class WPML_TM_Post_Edit_Custom_Field_Settings_Menu
- */
 class WPML_TM_Post_Edit_Custom_Field_Settings_Menu {
 
-	/** @var  WPML_Custom_Field_Setting_Factory $setting_factory */
 	private $setting_factory;
 
-	/** @var WP_Post $post */
 	private $post;
 
 	private $rendered = false;
 
-	/**
-	 * WPML_TM_Post_Edit_Custom_Field_Settings_Menu constructor.
-	 *
-	 * @param WPML_Custom_Field_Setting_Factory $settings_factory
-	 * @param WP_Post                           $post
-	 */
 	public function __construct( &$settings_factory, $post ) {
 		$this->setting_factory = &$settings_factory;
 		$this->post            = $post;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render() {
 		$custom_keys = get_post_custom_keys( $this->post->ID );
 		$custom_keys = $this->setting_factory->filter_custom_field_keys( $custom_keys );
@@ -62,13 +48,6 @@ class WPML_TM_Post_Edit_Custom_Field_Settings_Menu {
 								<?php echo esc_html( $cfield ); ?>
 							</div>
 							<?php
-							/**
-							 * Filter for custom field description in multilingual content setup metabox on post edit screen
-							 *
-							 * @param string $custom_field_description  custom field description
-							 * @param string $custom_field_name         custom field name
-							 * @param int    $post_id                   current post ID
-							 */
 							$cfield_description = apply_filters( 'wpml_post_edit_settings_custom_field_description', "", $cfield, $this->post->ID );
 							if ( !empty( $cfield_description ) ) {
 								printf( '<div class="icl_mcs_cf_description">%s</div>', esc_html( $cfield_description ) );
@@ -104,9 +83,6 @@ class WPML_TM_Post_Edit_Custom_Field_Settings_Menu {
 		return ob_get_clean();
 	}
 
-	/**
-	 * @return bool true if there were actual custom fields to display options for
-	 */
 	public function is_rendered() {
 
 		return $this->rendered;

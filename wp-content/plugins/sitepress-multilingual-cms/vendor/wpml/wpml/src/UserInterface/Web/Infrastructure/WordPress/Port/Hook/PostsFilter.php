@@ -5,15 +5,8 @@ namespace WPML\UserInterface\Web\Infrastructure\WordPress\Port\Hook;
 use WPML\Legacy\Component\Post\Application\TranslationEditorMode;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetPosts\PostsFilterInterface;
 
-/**
- * @phpstan-import-type Post from \WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetPosts\GetPostsController
- * @phpstan-import-type SearchCriteriaRaw from \WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetPosts\GetPostsController
- */
 class PostsFilter implements PostsFilterInterface {
 
-  /**
-   * @var TranslationEditorMode
-   */
   private $translationEditorMode;
 
 
@@ -22,22 +15,11 @@ class PostsFilter implements PostsFilterInterface {
   }
 
 
-  /**
-   * @param Post[]            $posts
-   * @param SearchCriteriaRaw $searchCriteria
-   *
-   * @return Post[]
-   */
   public function filter( array $posts, array $searchCriteria ): array {
     return apply_filters( 'wpml_tm_dashboard_posts', $this->addIsBlockedProp( $posts ), $searchCriteria );
   }
 
 
-  /**
-   * @param Post[] $posts
-   *
-   * @return Post[]
-   */
   private function addIsBlockedProp( array $posts ): array {
     $postIds = array_map(
       function( $post ) {
@@ -87,14 +69,10 @@ class PostsFilter implements PostsFilterInterface {
       'language_code'   => $languageCode,
     ];
 
-    // The filter 'wpml_document_edit/view_item_link' passes the link with an anchor tag.
-    // We need to make sure the linkOrUrl really has the anchor tag for backward compatibility.
-    // Another importance: use double quotes for the href attribute.
     if ( strpos( $link, '<a' ) === false ) {
       $link = '<a href="' . $link . '">' . $oldLabel . '</a>';
     }
 
-    /** @var mixed $filtered */
     $filtered = apply_filters( $hook, $link, $oldLabel, $legacyObject, 'post', $postType );
 
     return is_string( $filtered )

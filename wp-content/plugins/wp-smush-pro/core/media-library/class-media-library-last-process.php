@@ -3,24 +3,28 @@
 namespace Smush\Core\Media_Library;
 
 use Smush\Core\Array_Utils;
+use Smush\Core\Bulk\Background_Bulk_Smush_Controller;
 use Smush\Core\Controller;
 use Smush\Core\Helper;
-use Smush\Core\Modules\Background\Mutex;
-use Smush\Core\Modules\Bulk\Background_Bulk_Smush;
 use Smush\Core\Settings;
+use Smush\Core\Threads\JSON_Record;
 
 class Media_Library_Last_Process extends Controller {
-	const PROCESS_KEY = 'wp_smush_media_library_last_process';
-	const START_TIME = 'start_time';
-	const END_TIME = 'end_time';
-	const LAST_ATTACHMENT = 'last_attachment';
-	const FIRST_STUCK_ATTACHMENT = 'first_stuck_attachment';
-	const PROCESS_TIME_OUT = 120;// 2 mins.
+	private static $process_key = 'wp_smush_media_library_last_process_json';
+	private static $start_time = 'start_time';
+	private static $end_time = 'end_time';
+	private static $last_attachment = 'last_attachment';
+	private static $first_stuck_attachment = 'first_stuck_attachment';
+	private static $process_time_out = 120;// 2 mins.
 
 	/**
 	 * @var Array_Utils
 	 */
 	private $array_utils;
+	/**
+	 * @var JSON_Record
+	 */
+	private $record;
 
 	/**
 	 * Static instance
@@ -39,6 +43,7 @@ class Media_Library_Last_Process extends Controller {
 
 	public function __construct() {
 		$this->array_utils = new Array_Utils();
+		$this->record      = new JSON_Record( self::$process_key );
 		// Register actions to cache data for displaying stuck notice of background process.
 		$this->register_action( 'wp_smush_bulk_smush_start', array( $this, 'record_process_start_time' ), 5 );
 		$this->register_action( 'wp_smush_before_smush_file', array( $this, 'record_bulk_smush_last_processed_attachment' ), 5 );
@@ -52,17 +57,17 @@ class Media_Library_Last_Process extends Controller {
 		$this->register_action( $scan_background_process->action_name( 'dead' ), array( $this, 'record_process_end_time' ), 5 );
 
 		$this->register_action( 'wp_smush_after_smush_file', array( $this, 'record_last_processed_attachment_elapsed_time' ), 5 );
+		$this->register_action( 'wp_ajax_bulk_smush_get_status', array( $this, 'check_bulk_smush_process_stuck_on_ajax_get_status' ), 5 );
 
 		// Background Bulk Smush.
 		$this->register_action( 'wp_smush_bulk_smush_dead', array( $this, 'record_process_end_time' ), 5 );
 
-		$bulk_smush_background_process = Background_Bulk_Smush::get_instance()->get_background_process();
+		$bulk_smush_background_process = Background_Bulk_Smush_Controller::get_instance()->get_background_process();
 		$this->register_action( $bulk_smush_background_process->action_name( 'cron' ), array( $this, 'check_bulk_smush_process' ), 5 );
-		$this->register_action( 'wp_ajax_bulk_smush_get_status', array( $this, 'check_bulk_smush_process_stuck_on_ajax_get_status' ), 5 );
 	}
 
 	public function should_run() {
-		return Background_Bulk_Smush::get_instance()->should_use_background();
+		return true;
 	}
 
 	public function should_track() {
@@ -130,7 +135,7 @@ class Media_Library_Last_Process extends Controller {
 	}
 
 	private function should_check_stuck() {
-		$first_stuck_attachment = $this->get_process_item( self::FIRST_STUCK_ATTACHMENT );
+		$first_stuck_attachment = $this->get_process_item( self::$first_stuck_attachment );
 		return empty( $first_stuck_attachment );
 	}
 
@@ -148,7 +153,7 @@ class Media_Library_Last_Process extends Controller {
 
 	private function set_last_processed_attachment( $attachment_id ) {
 		$this->set_process_item(
-			self::LAST_ATTACHMENT,
+			self::$last_attachment,
 			array(
 				'id'         => $attachment_id,
 				'start_time' => time(),
@@ -161,7 +166,7 @@ class Media_Library_Last_Process extends Controller {
 		$last_process_attachment['elapsed_time'] = $this->get_seconds_since_last_image_processing_started();
 
 		$this->set_process_item(
-			self::FIRST_STUCK_ATTACHMENT,
+			self::$first_stuck_attachment,
 			$last_process_attachment
 		);
 	}
@@ -169,14 +174,14 @@ class Media_Library_Last_Process extends Controller {
 	public function is_process_stuck() {
 		$elapsed_time = $this->get_seconds_since_last_image_processing_started();
 
-		return $elapsed_time > self::PROCESS_TIME_OUT;
+		return $elapsed_time > self::$process_time_out;
 	}
 
 	public function record_last_processed_attachment_elapsed_time() {
 		$last_process_attachment                            = $this->get_last_processed_attachment();
 		$last_process_attachment['attachment_elapsed_time'] = $this->get_last_process_attachment_elapsed_time();
 
-		$this->set_process_item( self::LAST_ATTACHMENT, $last_process_attachment );
+		$this->set_process_item( self::$last_attachment, $last_process_attachment );
 	}
 
 	public function get_last_process_attachment_elapsed_time() {
@@ -210,7 +215,7 @@ class Media_Library_Last_Process extends Controller {
 	}
 
 	private function get_last_processed_attachment() {
-		return $this->get_process_item( self::LAST_ATTACHMENT, array() );
+		return $this->get_process_item( self::$last_attachment, array() );
 	}
 
 	public function record_process_start_time() {
@@ -223,16 +228,16 @@ class Media_Library_Last_Process extends Controller {
 	}
 
 	private function reset_process_option() {
-		delete_option( self::PROCESS_KEY );
-		wp_cache_delete( self::PROCESS_KEY, 'options' );
+		$this->record->delete();
+		wp_cache_delete( self::$process_key, 'options' );
 	}
 
 	private function set_process_start_time() {
-		$this->set_process_item( self::START_TIME, microtime( true ) );
+		$this->set_process_item( self::$start_time, microtime( true ) );
 	}
 
 	private function set_process_end_time() {
-		$this->set_process_item( self::END_TIME, microtime( true ) );
+		$this->set_process_item( self::$end_time, microtime( true ) );
 	}
 
 	public function get_process_elapsed_time() {
@@ -243,11 +248,11 @@ class Media_Library_Last_Process extends Controller {
 	}
 
 	public function get_process_start_time() {
-		return $this->get_process_item( self::START_TIME );
+		return $this->get_process_item( self::$start_time );
 	}
 
 	private function get_process_end_time() {
-		return $this->get_process_item( self::END_TIME, time() );
+		return $this->get_process_item( self::$end_time, time() );
 	}
 
 	private function get_process_item( $item, $default_value = false ) {
@@ -257,20 +262,13 @@ class Media_Library_Last_Process extends Controller {
 	}
 
 	private function set_process_item( $item, $value ) {
-		( new Mutex( self::PROCESS_KEY ) )->execute( function () use ( $item, $value ) {
-			$process_option          = $this->get_process_option();
-			$process_option[ $item ] = $value;
-			$this->update_process_option( $process_option );
-		} );
+		$this->record->set_values( array( $item => $value ) );
 	}
 
 	private function get_process_option() {
-		$last_process = get_option( self::PROCESS_KEY, array() );
+		// JSON_Record::get() queries DB directly (bypasses cache) and json_decodes.
+		$last_process = $this->record->get( array() );
 
 		return $this->array_utils->ensure_array( $last_process );
-	}
-
-	private function update_process_option( $last_process_option ) {
-		update_option( self::PROCESS_KEY, $last_process_option, false );
 	}
 }

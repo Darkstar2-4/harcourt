@@ -19,11 +19,6 @@ class AllowTranslatableJobFields extends \WPML_WP_Option implements \IWPML_Backe
 		add_filter( 'wpml_tm_job_field_is_translatable', [ $this, 'filter_job_field' ], 10, 3 );
 	}
 
-	/**
-	 * @param array $config
-	 *
-	 * @return array
-	 */
 	public function wpml_config_filter( $config ) {
 		$data = Obj::pathOr( [], [ 'wpml-config', 'allow-translatable-job-fields' ], $config );
 
@@ -37,13 +32,6 @@ class AllowTranslatableJobFields extends \WPML_WP_Option implements \IWPML_Backe
 		return $config;
 	}
 
-	/**
-	 * @param bool   $isTranslatable
-	 * @param array  $field
-	 * @param string $value
-	 *
-	 * @return bool
-	 */
 	public function filter_job_field( $isTranslatable, $field, $value ) {
 		if ( $isTranslatable ) {
 			return $isTranslatable;

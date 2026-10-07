@@ -16,7 +16,7 @@ class WPML_Translate_Independently {
 		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : null;
 		$nonce   = isset( $_POST['icl_duplciate_nonce'] ) ? sanitize_text_field( $_POST['icl_duplciate_nonce'] ) : '';
 
-		if ( wp_verify_nonce( $nonce, 'icl_check_duplicates' ) || null === $post_id ) {
+		if ( $post_id && wp_verify_nonce( $nonce, 'icl_check_duplicates' ) && current_user_can( 'edit_post', $post_id ) ) {
 			if ( delete_post_meta( $post_id, '_icl_lang_duplicate_of' ) ) {
 				wp_send_json_success( true );
 			} else {
@@ -45,13 +45,6 @@ class WPML_Translate_Independently {
 		wp_localize_script( 'sitepress-post-edit', 'icl_duplicate_data', $duplicate_data );
 	}
 
-	/**
-	 * Add callback to detect post editor change.
-	 *
-	 * @param  array $initArray
-	 *
-	 * @return array
-	 */
 	public function add_tiny_mce_change_detection( $initArray ) {
 		$initArray['setup'] = 'function(ed) {
                   ed.on(\'change\', function() {

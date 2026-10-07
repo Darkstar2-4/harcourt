@@ -110,9 +110,6 @@ class WPML_TM_Requirements {
 	}
 
 
-	/**
-	 * Missing plugins warning.
-	 */
 	public function missing_plugins_warning() {
 		if ( $this->missing ) {
 			$missing       = '';

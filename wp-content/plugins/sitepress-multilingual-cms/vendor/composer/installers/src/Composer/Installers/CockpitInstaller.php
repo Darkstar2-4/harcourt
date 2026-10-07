@@ -7,13 +7,6 @@ class CockpitInstaller extends BaseInstaller
         'module' => 'cockpit/modules/addons/{$name}/',
     );
 
-    /**
-     * Format module name.
-     *
-     * Strip `module-` prefix from package name.
-     *
-     * {@inheritDoc}
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] == 'cockpit-module') {

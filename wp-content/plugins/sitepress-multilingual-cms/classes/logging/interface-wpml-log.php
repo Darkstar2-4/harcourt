@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 interface WPML_Log {
 	public function insert( $timestamp, array $entry );
 

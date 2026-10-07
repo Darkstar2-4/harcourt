@@ -1,8 +1,3 @@
-<?php if((!$this->repository_has_subscription($repository_id) && $match = $this->get_matching_cp($repository)) && $match['exp']): ?>
-<p class="alignright installer_highlight"><strong><?php printf('Price offers available until %s', date_i18n(get_option( 'date_format' ), $match['exp'])) ?></strong></p>
-<?php endif; ?>
-
-<h3 id="repository-<?php echo $repository_id ?>"><?php echo $repository['data']['name'] ?></h3>
 <?php
 $getWhenSubscriptionExpires = function ( $repository ) { return $repository['subscription']['data']->expires; };
 $model                      = (object) [
@@ -21,7 +16,40 @@ $model                      = (object) [
 	'siteKey'                => WP_Installer_API::get_site_key( $repository_id ),
 	'endUserRenewalUrl'      => $this->get_end_user_renewal_url( $repository_id ),
 ];
+
+if ( $this->repository_has_subscription( $repository_id ) ) {
+	$site_key          = $repository['subscription']['key'];
+	$subscription_type = $this->get_subscription_type_for_repository( $repository_id );
+	$upgrade_options   = $this->get_upgrade_options( $repository_id );
+
+	if ( $this->repository_has_expired_subscription( $repository_id ) ) {
+		$model->expired = true;
+	} elseif ( $this->repository_has_refunded_subscription( $repository_id ) ) {
+		$model->expired = true;
+		$model->shouldDisplayUnregisterLink = true;
+	}
+} else {
+	$site_key          = false;
+	$subscription_type = null;
+	$upgrade_options   = null;
+}
+
+$packages               = $this->_render_product_packages( $repository, $repository['data']['packages'], $subscription_type, $model->expired, $upgrade_options, $repository_id );
+$subpackages_expandable = empty( $subscription_type ) || $model->expired;
+$product_logo           = ! empty( $packages ) ? reset( $packages )['image_url'] : null;
 ?>
+
+<?php if((!$this->repository_has_subscription($repository_id) && $match = $this->get_matching_cp($repository)) && $match['exp']): ?>
+<p class="alignright installer_highlight"><strong><?php printf('Price offers available until %s', date_i18n(get_option( 'date_format' ), $match['exp'])) ?></strong></p>
+<?php endif; ?>
+
+<div class="otgs-installer-repo-header">
+	<?php if ( $product_logo ): ?>
+		<img class="otgs-installer-repo-logo" width="20" height="20" src="<?php echo esc_url( $product_logo ); ?>" alt="" />
+	<?php endif; ?>
+	<h3 id="repository-<?php echo $repository_id ?>"><?php echo $repository['data']['name'] ?></h3>
+</div>
+
 <table class="widefat otgs_wp_installer_table" id="installer_repo_<?php echo $repository_id ?>">
 
     <tr>
@@ -29,50 +57,26 @@ $model                      = (object) [
 	        <?php
 			if ( ! $this->repository_has_subscription( $repository_id ) ) {
 				\OTGS\Installer\Templates\Repository\Register::render( $model );
-				$site_key = false;
+			} elseif ( $this->repository_has_expired_subscription( $repository_id ) ) {
+				\OTGS\Installer\Templates\Repository\Expired::render( $model );
+			} elseif ( $this->repository_has_refunded_subscription( $repository_id ) ) {
+				\OTGS\Installer\Templates\Repository\Refunded::render( $model );
+			} elseif ( $this->repository_has_legacy_free_subscription( $repository_id ) ) {
+				$model->displayCheckForUpdates = false;
+				\OTGS\Installer\Templates\Repository\LegacyFree::render( $model );
 			} else {
-				$site_key          = $repository['subscription']['key'];
-				$subscription_type = $this->get_subscription_type_for_repository( $repository_id );
-				$upgrade_options   = $this->get_upgrade_options( $repository_id );
-
-				if ( $this->repository_has_expired_subscription( $repository_id ) ) {
-					$model->expired = true;
-					\OTGS\Installer\Templates\Repository\Expired::render( $model );
-				} else if ( $this->repository_has_refunded_subscription( $repository_id ) ) {
-					$model->expired = true;
-					$model->shouldDisplayUnregisterLink = $this->should_display_unregister_link_on_refund_notice();
-					\OTGS\Installer\Templates\Repository\Refunded::render( $model );
-				} else if ( $this->repository_has_legacy_free_subscription( $repository_id ) ) {
-					$model->displayCheckForUpdates = false;
-					\OTGS\Installer\Templates\Repository\LegacyFree::render( $model );
-				} else {
-					$this->show_subscription_renew_warning( $repository_id, $subscription_type );
-					\OTGS\Installer\Templates\Repository\Registered::render( $model );
-				}
-
+				$this->show_subscription_renew_warning( $repository_id, $subscription_type );
+				\OTGS\Installer\Templates\Repository\Registered::render( $model );
 			}
 			?>
         </td>
     </tr>
 
-    <?php
-
-    $subscription_type = isset($subscription_type) ? $subscription_type : null;
-    $upgrade_options = isset($upgrade_options) ? $upgrade_options : null;
-    $packages = $this->_render_product_packages($repository, $repository['data']['packages'], $subscription_type, $model->expired, $upgrade_options, $repository_id);
-    if(empty($subscription_type) || $model->expired){
-        $subpackages_expandable = true;
-    }else{
-        $subpackages_expandable = false;
-    }
-
-    ?>
-
     <?php foreach($packages as $package): ?>
+    <?php if ( $model->expired ) { continue; } ?>
     <tr id="repository-<?php echo $repository_id ?>_<?php echo $package['id'] ?>">
         <td class="installer-repository-image"><img width="140" src="<?php echo $package['image_url'] ?>" /></td>
-		<?php if ( ! $model->expired ): ?>
-			<td>
+		<td>
 				<p><strong><?php echo $package['name'] ?></strong></p>
 				<p><?php echo $package['description'] ?></p>
 				<?php if ( $package['products'] ): ?>
@@ -135,8 +139,7 @@ $model                      = (object) [
 				<?php endif;  ?>
 
 
-			</td>
-		<?php endif; ?>
+		</td>
     </tr>
 
     <?php endforeach; ?>

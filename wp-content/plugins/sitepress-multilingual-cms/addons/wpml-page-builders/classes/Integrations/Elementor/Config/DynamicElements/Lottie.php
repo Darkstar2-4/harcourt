@@ -7,9 +7,6 @@ use WPML\FP\Relation;
 
 class Lottie {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$isLottie        = Relation::propEq( 'widgetType', 'lottie' );
 		$lottieLinksLens = Obj::lensPath( [ 'settings', '__dynamic__', 'custom_link' ] );

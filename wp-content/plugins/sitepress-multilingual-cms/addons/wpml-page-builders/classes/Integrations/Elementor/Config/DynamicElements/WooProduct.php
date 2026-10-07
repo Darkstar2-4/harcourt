@@ -2,55 +2,62 @@
 
 namespace WPML\PB\Elementor\Config\DynamicElements;
 
-use WPML\FP\Fns;
 use WPML\FP\Obj;
-use WPML\FP\Relation;
-use WPML\FP\Logic;
-
 
 class WooProduct {
 
-	/**
-	 * @param string $widgetName
-	 *
-	 * @return callable(string): string
-	 */
-	private static function getConfig( $widgetName ) {
-		$widgetConfig = wpml_collect( [
-			'title'             => [
-				'dynamicKey'    => 'title',
-				'widgetType'    => 'heading',
-				'shortcodeName' => 'woocommerce-product-title-tag',
-			],
-			'short-description' => [
-				'dynamicKey'    => 'editor',
-				'widgetType'    => 'text-editor',
-				'shortcodeName' => 'woocommerce-product-short-description-tag',
-			],
-		] )->get( $widgetName );
+	const DYNAMIC_KEYS = [
+		'title_text',
+		'description_text',
+		'image',
+		'link',
+		'editor',
+		'title',
+		'text',
+		'content',
+		'url',
+	];
 
-		return Obj::prop( Fns::__, $widgetConfig );
+	private static function get( $tagName ) {
+		$converters = [];
+
+		foreach ( self::DYNAMIC_KEYS as $dynamicKey ) {
+			$converters[] = self::getConverter( $tagName, $dynamicKey );
+		}
+
+		return $converters;
 	}
 
-	/**
-	 * @param string $widget
-	 *
-	 * @return array
-	 */
-	public static function get( $widget ) {
-		$get = self::getConfig( $widget );
+	private static function getConverter( $tagName, $dynamicKey ) {
+		$dynamicPath = [ 'settings', '__dynamic__', $dynamicKey ];
 
-		$widgetPath = [ 'settings', '__dynamic__', $get( 'dynamicKey' ) ];
+		$hasDynamicTag = function ( $item ) use ( $dynamicPath, $tagName ) {
+			$value = Obj::path( $dynamicPath, $item );
 
-		// $isWooWidget :: array -> bool
-		$isWooWidget = Logic::allPass( [
-			Relation::propEq( 'widgetType', $get( 'widgetType' ) ),
-			Obj::path( $widgetPath ),
-		] );
+			return is_string( $value )
+				&& strpos( $value, '[elementor-tag' ) !== false
+				&& strpos( $value, 'name="' . $tagName . '"' ) !== false;
+		};
 
-		// $widgetLens :: callable -> callable -> mixed
-		$widgetLens = Obj::lensPath( $widgetPath );
+		$dynamicLens = Obj::lensPath( $dynamicPath );
 
-		return [ $isWooWidget, $widgetLens, $get( 'shortcodeName' ), 'product_id' ];
+		return [ $hasDynamicTag, $dynamicLens, $tagName, 'product_id' ];
+	}
+
+	public static function getAll() {
+		return array_merge(
+			self::get( 'woocommerce-product-title-tag' ),
+			self::get( 'woocommerce-product-image-tag' ),
+			self::get( 'woocommerce-product-price-tag' ),
+			self::get( 'woocommerce-product-short-description-tag' ),
+			self::get( 'woocommerce-product-content-tag' ),
+			self::get( 'woocommerce-product-gallery-tag' ),
+			self::get( 'woocommerce-product-stock-tag' ),
+			self::get( 'woocommerce-product-rating-tag' ),
+			self::get( 'woocommerce-product-sale-tag' ),
+			self::get( 'woocommerce-product-terms-tag' ),
+			self::get( 'woocommerce-product-add-to-cart-tag' ),
+			self::get( 'woocommerce-product-sku-tag' )
+		);
 	}
 }

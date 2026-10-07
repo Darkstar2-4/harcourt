@@ -7,9 +7,6 @@ use WPML\FP\Maybe;
 use function WPML\FP\invoke;
 
 class ActiveServiceRepository {
-	/**
-	 * @return \WPML_TP_Service|null
-	 */
 	public static function get() {
 		global $sitepress;
 

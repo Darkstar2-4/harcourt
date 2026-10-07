@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Choose the image file type for flags": [
-            "Kies het type beeldbestand voor vlaggen"
+            "Kies het bestandstype voor vlaggen"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Deze optie beïnvloedt alleen de ingebouwde WPML-vlaggen, niet de aangepaste geüploade vlaggen."
+            "Deze optie is alleen van invloed op de ingebouwde WPML-vlaggen, niet op de aangepaste geüploade vlaggen."
          ],
          "%s format": [
-            "%s opmaak"
+            "%s-formaat"
          ],
          "Save": [
             "Opslaan"
          ],
          "The new format has been saved.": [
-            "De nieuwe opmaak is opgeslagen."
+            "Het nieuwe formaat is opgeslagen."
          ],
          "Failed to save the new format": [
-            "De nieuwe opmaak is niet opgeslagen"
+            "Nieuw formaat opslaan mislukt"
          ]
       }
    }

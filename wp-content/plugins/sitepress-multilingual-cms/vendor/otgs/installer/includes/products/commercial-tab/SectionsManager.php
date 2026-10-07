@@ -7,30 +7,15 @@ class SectionsManager {
 	const SECTION_GENERAL = 'general';
 	const SECTION_LEGACY = 'legacy';
 
-	/**
-	 * @var array
-	 */
 	private $settings;
 
-	/**
-	 * @var array
-	 */
 	private $installedPlugins;
 
-	/**
-	 * @param array $settings
-	 */
 	public function __construct( $settings ) {
 		$this->settings         = $settings;
 		$this->installedPlugins = $this->getInstalledPlugins();
 	}
 
-	/**
-	 * @param string $repositoryId
-	 * @param array $downloads
-	 *
-	 * @return array
-	 */
 	public function getPluginsSections( $repositoryId, $downloads ) {
 		return $this->addDownloadsToSections(
 			$this->getSections( $repositoryId ),
@@ -38,11 +23,6 @@ class SectionsManager {
 		);
 	}
 
-	/**
-	 * @param string $repositoryId
-	 *
-	 * @return array
-	 */
 	private function getSections( $repositoryId ) {
 		$language = $this->getCurrentLanguage();
 		$sections = [];
@@ -66,12 +46,6 @@ class SectionsManager {
 		return $sections;
 	}
 
-	/**
-	 * @param array $sections
-	 * @param array $downloads
-	 *
-	 * @return array
-	 */
 	private function addDownloadsToSections( $sections, $downloads ) {
 		foreach ( $downloads as $downloadSlug => $download ) {
 			if ( empty( $download['download_commercial_tab_section'] ) ) {
@@ -86,11 +60,6 @@ class SectionsManager {
 		return $sections;
 	}
 
-	/**
-	 * @param array $download
-	 *
-	 * @return bool
-	 */
 	private function shouldDisplayOnCommercialTab( $download ) {
 		if ( $download['download_commercial_tab_section'] === self::SECTION_LEGACY ) {
 			return $this->isPluginInstalled( $download['slug'] );
@@ -99,18 +68,10 @@ class SectionsManager {
 		}
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return bool
-	 */
 	private function isPluginInstalled( $slug ) {
 		return isset( $this->installedPlugins[ $slug ] );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function getInstalledPlugins() {
 		$installed_plugins = [];
 
@@ -121,9 +82,6 @@ class SectionsManager {
 		return $installed_plugins;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function getCurrentLanguage() {
 		global $sitepress;
 

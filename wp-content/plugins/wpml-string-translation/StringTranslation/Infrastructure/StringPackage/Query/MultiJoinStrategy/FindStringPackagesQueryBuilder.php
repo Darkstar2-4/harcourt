@@ -20,13 +20,10 @@ class FindStringPackagesQueryBuilder implements FindStringPackagesQueryBuilderIn
         sp.translator_note
     ';
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var SettingsRepository */
 	private $settingsRepository;
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct(

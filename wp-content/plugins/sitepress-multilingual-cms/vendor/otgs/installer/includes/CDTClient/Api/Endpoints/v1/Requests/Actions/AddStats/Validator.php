@@ -6,42 +6,9 @@ use OTGS\Installer\CDTClient\Api\ValidatorInterface;
 
 class Validator implements ValidatorInterface {
 
-	/** @var array */
 	private $body;
 
 
-	/**
-	 * @param array{
-	 *     request_uuid: string,
-	 *     request_type: string,
-	 *     data: array{
-	 *      siteKey: string,
-	 *      currentTranslationEditor: string,
-	 *      siteUUID: string|null,
-	 *      siteUrl: string|null,
-	 *      siteSharedKey: string,
-	 *      defaultLanguage: array{
-	 *      code: string,
-	 *      defaultLocale: string,
-	 *      nativeName: string,
-	 *      englishName: string,
-	 *      displayName: string,
-	 *   },
-	 *      translationLanguages: array{
-	 *      code: string,
-	 *      defaultLocale: string,
-	 *      nativeName: string,
-	 *      englishName: string,
-	 *      displayName: string,
-	 *   }[],
-	 *      contentStats: array<string, array{
-	 *      postsCount: int,
-	 *      charactersCount: int,
-	 *      translationCoverage: array<string, float|int>
-	 *   }>
-	 *     }
-	 * } $body
-	 */
 	public function __construct( array $body ) {
 		$this->body = $body;
 	}
@@ -67,9 +34,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateRequestUuid() {
 		return array_key_exists( 'request_uuid', $this->body ) &&
 		       is_string( $this->body['request_uuid'] ) &&
@@ -77,9 +41,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateRequestType() {
 		return array_key_exists( 'request_type', $this->body ) &&
 		       is_string( $this->body['request_type'] ) &&
@@ -93,9 +54,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateSiteKey() {
 		return array_key_exists( 'siteKey', $this->body['data'] ) &&
 		       is_string( $this->body['data']['siteKey'] ) &&
@@ -103,9 +61,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateSiteUrl() {
 		return array_key_exists( 'siteUrl', $this->body['data'] ) &&
 		       is_string( $this->body['data']['siteUrl'] ) &&
@@ -113,9 +68,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateTranslationEditor() {
 		return array_key_exists( 'currentTranslationEditor', $this->body['data'] ) &&
 		       is_string( $this->body['data']['currentTranslationEditor'] ) &&
@@ -123,9 +75,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateSiteUuid() {
 		return array_key_exists( 'siteUUID', $this->body['data'] ) &&
 		       is_string( $this->body['data']['siteUUID'] ) &&
@@ -133,9 +82,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateSiteSharedKey() {
 		return array_key_exists( 'siteSharedKey', $this->body['data'] ) &&
 		       (
@@ -145,9 +91,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateDefaultLanguage() {
 		return array_key_exists( 'defaultLanguage', $this->body['data'] ) &&
 		       is_array( $this->body['data']['defaultLanguage'] ) &&
@@ -157,9 +100,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateTranslationLanguages() {
 		$result = array_key_exists( 'translationLanguages', $this->body['data'] ) &&
 		          is_array( $this->body['data']['translationLanguages'] );
@@ -181,9 +121,6 @@ class Validator implements ValidatorInterface {
 	}
 
 
-	/**
-	 * @return bool
-	 */
 	private function validateContentStats() {
 		$result = true;
 

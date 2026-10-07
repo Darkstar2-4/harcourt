@@ -8,15 +8,9 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 class SimpleXMLExtensionRequirement extends RequirementBase {
   const EXTENSION_NAME = 'simplexml';
 
-  /** @var ServerInfoInterface */
   private $serverInfo;
 
 
-  /**
-   * Constructor.
-   *
-   * @param ServerInfoInterface $serverInfo The server info service.
-   */
   public function __construct( ServerInfoInterface $serverInfo ) {
     $this->serverInfo = $serverInfo;
   }

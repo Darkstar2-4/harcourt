@@ -4,7 +4,6 @@ use WPML\Core\WP\App\Resources;
 
 class WPML_TM_Word_Count_Admin_Hooks implements IWPML_Action {
 
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 
 	public function __construct( WPML_WP_API $wp_api ) {
@@ -29,11 +28,6 @@ class WPML_TM_Word_Count_Admin_Hooks implements IWPML_Action {
 		);
 	}
 
-	/**
-	 * @param string $default_url
-	 *
-	 * @return string
-	 */
 	public function words_count_url_filter( $default_url ) {
 		return $this->wp_api->get_tm_url( 'dashboard', '#words-count' );
 	}

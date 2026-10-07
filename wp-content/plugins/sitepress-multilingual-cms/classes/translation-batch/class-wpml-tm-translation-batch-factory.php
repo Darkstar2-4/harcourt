@@ -4,22 +4,13 @@ use WPML\API\Sanitize;
 
 class WPML_TM_Translation_Batch_Factory {
 
-	/** @var  WPML_Translation_Basket $basket */
 	private $basket;
 
-	/**
-	 * @param WPML_Translation_Basket $basket
-	 */
 	public function __construct( WPML_Translation_Basket $basket ) {
 		$this->basket = $basket;
 	}
 
 
-	/**
-	 * @param array $batch_data
-	 *
-	 * @return WPML_TM_Translation_Batch
-	 */
 	public function create( array $batch_data ) {
 		$translators = isset( $batch_data['translators'] ) ? $batch_data['translators'] : array();
 		$basket_name = isset( $_POST['basket_name'] )
@@ -99,13 +90,6 @@ class WPML_TM_Translation_Batch_Factory {
 		return $result;
 	}
 
-	/**
-	 * The expected format is "2017-09-28"
-	 *
-	 * @param string $date
-	 *
-	 * @return bool
-	 */
 	private function validate_deadline( $date ) {
 		$date_parts = explode( '-', $date );
 

@@ -20,48 +20,43 @@ class Smush_Request_Guzzle_Multiple extends Smush_Request {
 	 */
 	private $client;
 	/**
-	 * @var bool
-	 */
-	private $streaming_enabled;
-	/**
 	 * @var Server_Utils
 	 */
 	private $server_utils;
 
-	public function __construct( $streaming_enabled = true, $extra_headers = array() ) {
-		$this->client            = new Client();
-		$this->streaming_enabled = $streaming_enabled;
-		$this->server_utils      = new Server_Utils();
+	public function __construct( $options ) {
+		$this->client       = new Client();
+		$this->server_utils = new Server_Utils();
 
-		parent::__construct( $streaming_enabled, $extra_headers );
+		parent::__construct( $options );
 	}
 
-	public function do_requests( array $files_data ) {
+	public function do_requests( $file_paths ) {
 		$responses         = array();
 		$request_generator = $this->make_request_generator();
-		$pool              = new Pool( $this->client, $request_generator( $files_data ), array(
-			'concurrency' => count( $files_data ),
-			'fulfilled'   => function ( $response, $size_key ) use ( $files_data, &$responses ) {
-				$file_data = $files_data[ $size_key ];
+		$pool              = new Pool( $this->client, $request_generator( $file_paths ), array(
+			'concurrency' => count( $file_paths ),
+			'fulfilled'   => function ( $response, $size_key ) use ( $file_paths, &$responses ) {
+				$file_path = $file_paths[ $size_key ];
 
 				// Convert to a response that looks like standard WP HTTP API responses
 				$response = $this->multi_to_singular_response( $response );
 
-				$this->do_action( $response, $file_data );
+				$this->do_action( $response, $file_path );
 
 				// Call the actual on complete callback
-				$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_data );
+				$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_path );
 			},
-			'rejected'    => function ( $reason, $size_key ) use ( $files_data, &$responses ) {
+			'rejected'    => function ( $reason, $size_key ) use ( $file_paths, &$responses ) {
 				list( $reason_code, $reason_message ) = $this->extract_error_details( $reason );
 
-				$file_data = $files_data[ $size_key ];
+				$file_path = $file_paths[ $size_key ];
 
 				$response = new WP_Error( $reason_code, $reason_message );
-				$this->do_action( $response, $file_data );
+				$this->do_action( $response, $file_path );
 
 				// Call the actual on complete callback
-				$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_data );
+				$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_path );
 			},
 		) );
 
@@ -138,12 +133,10 @@ class Smush_Request_Guzzle_Multiple extends Smush_Request {
 	/**
 	 * @return \Closure
 	 */
-	private function make_request_generator(): \Closure {
-		return function ( $files_data ) {
-			foreach ( $files_data as $size_key => $size_file_data ) {
-				yield $size_key => function () use ( $size_file_data ) {
-					list( $file_path ) = $this->get_file_path_and_url( $size_file_data );
-
+	private function make_request_generator() {
+		return function ( $file_paths ) {
+			foreach ( $file_paths as $size_key => $file_path ) {
+				yield $size_key => function () use ( $file_path ) {
 					return $this->client->postAsync( $this->get_url(), array(
 						'headers'    => $this->get_api_request_headers( $file_path ),
 						'body'       => $this->get_body( $file_path ),
@@ -156,7 +149,7 @@ class Smush_Request_Guzzle_Multiple extends Smush_Request {
 	}
 
 	private function get_body( $file_path ) {
-		if ( $this->streaming_enabled ) {
+		if ( $this->is_streaming_enabled() ) {
 			return Utils::streamFor( fopen( $file_path, 'rb' ) );
 		} else {
 			return $this->get_full_file_contents( $file_path );
@@ -165,13 +158,11 @@ class Smush_Request_Guzzle_Multiple extends Smush_Request {
 
 	/**
 	 * @param $response
-	 * @param $file_data
+	 * @param $file_path
 	 *
 	 * @return void
 	 */
-	private function do_action( $response, $file_data ) {
-		list( $file_path ) = $this->get_file_path_and_url( $file_data );
-
+	private function do_action( $response, $file_path ) {
 		do_action( 'smush_http_api_debug', $response, array(
 			'url'        => $this->get_url(),
 			'headers'    => $this->get_api_request_headers( $file_path ),

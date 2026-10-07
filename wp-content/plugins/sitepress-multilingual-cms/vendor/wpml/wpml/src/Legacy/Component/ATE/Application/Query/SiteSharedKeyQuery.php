@@ -6,7 +6,6 @@ use WPML\Core\SharedKernel\Component\ATE\Application\Query\SiteSharedKeyQueryInt
 
 class SiteSharedKeyQuery implements SiteSharedKeyQueryInterface {
 
-  /** @var \WPML_TM_AMS_API */
   private $amsApi;
 
 
@@ -15,9 +14,6 @@ class SiteSharedKeyQuery implements SiteSharedKeyQueryInterface {
   }
 
 
-  /**
-   * @return string|null
-   */
   public function get() {
     $amsRegistrationData = $this->amsApi->get_registration_data();
 

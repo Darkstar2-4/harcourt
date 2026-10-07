@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
          "Choose the image file type for flags": [
-            "Wybierz typ plików obrazu dla flag"
+            "Wybierz typ pliku obrazu dla flag"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Ta opcja dotyczy wyłącznie wbudowanych flag WPML, a nie przesłanych flag niestandardowych."
+            "Ta opcja dotyczy tylko wbudowanych flag WPML, a nie niestandardowych, przesłanych flag."
          ],
          "%s format": [
-            "%s format"
+            "Format %s"
          ],
          "Save": [
             "Zapisz"
          ],
          "The new format has been saved.": [
-            "Zapisano nowy format."
+            "Nowy format został zapisany."
          ],
          "Failed to save the new format": [
-            "Zapis nowego formatu nie powiódł się"
+            "Nie udało się zapisać nowego formatu"
          ]
       }
    }

@@ -69,7 +69,7 @@ class GF_System_Report {
 			<p><?php esc_html_e( 'The following is a system report containing useful technical information for troubleshooting issues. If you need further help after viewing the report, click on the "Copy System Report" button below to copy the report and paste it in your message to support.', 'gravityforms' ); ?></p>
 
 			<button class="gform-button gform-button--size-r gform-button--white gform-button--icon-leading gform-system-report__copy-button" data-js="gf-copy-system-report">
-				<i class="gform-button__icon gform-button__icon--inactive gform-icon gform-icon--copy" data-js="button-icon"></i>
+				<i class="gform-button__icon gform-button__icon--inactive gform-icon gform-icon--copy" data-js="button-icon" aria-hidden="true"></i>
 
 				<span class="gform-system-report__copy-label" data-js="system-status-copy-label" aria-hidden="false">Copy System Report</span>
 				<span class="gform-system-report__copy-copied" data-js="system-status-copy-copied" aria-hidden="true">
@@ -146,7 +146,6 @@ class GF_System_Report {
 
 		// Display page footer.
 		GF_System_Status::page_footer();
-
 	}
 
 	/**
@@ -785,20 +784,25 @@ class GF_System_Report {
 				}
 
 				if ( isset( $item['action'] ) && ! $is_export ) {
-					$value .= "&nbsp;<a href='#' onclick='gfDoAction(\"{$item['action']['code']}\", \"" . esc_attr( $item['action']['confirm'] ) . "\");'>{$item['action']['label']}</a>";
+					$value .= sprintf(
+						'&nbsp;<a href="#" data-dialog-title="%1$s" data-dialog-confirm="%2$s" data-dialog-callback="gfSystemReportAction" data-action-code="%3$s">%4$s</a>',
+						esc_attr( $item['action']['label'] ),
+						esc_attr( $item['action']['confirm'] ),
+						esc_attr( $item['action']['code'] ),
+						esc_html( $item['action']['label'] )
+					);
 				}
 
 				return $value;
 
 		}
-
 	}
 
 	/**
 	 * Get Gravity Forms Info.
 	 *
 	 * @since  2.2
-	 * @access public
+	 * @since 2.10.1 Added Background Notifications.
 	 *
 	 * @uses GFCommon::get_version_info()
 	 * @uses GFFormsModel::get_upload_root()
@@ -821,10 +825,10 @@ class GF_System_Report {
 
 		$is_writable = wp_is_writable( $upload_path );
 
-		$disable_css      = GFCommon::is_frontend_default_css_disabled();
-		$enable_html5     = get_option( 'rg_gforms_enable_html5', false );
-		$no_conflict_mode = get_option( 'gform_enable_noconflict' );
-		$updates          = get_option( 'gform_enable_background_updates' );
+		$disable_css              = GFCommon::is_frontend_default_css_disabled();
+		$no_conflict_mode         = get_option( 'gform_enable_noconflict' );
+		$updates                  = get_option( 'gform_enable_background_updates' );
+		$background_notifications = (bool) get_option( 'gform_enable_async_notifications' );
 
 		$default_theme = get_option( 'rg_gforms_default_theme');
 		$theme_names   = array(
@@ -836,8 +840,7 @@ class GF_System_Report {
 		$web_api       = GFWebAPI::get_instance();
 		$is_v2_enabled = $web_api->is_v2_enabled( $web_api->get_plugin_settings() );
 
-		// Prepare versions array.
-		$gravityforms = array(
+		return array(
 			array(
 				'label'              => esc_html__( 'Version', 'gravityforms' ),
 				'label_export'       => 'Version',
@@ -886,6 +889,12 @@ class GF_System_Report {
 				'value'        => get_option( 'rg_gforms_currency' ),
 			),
 			array(
+				'label'        => esc_html__( 'Background Notifications', 'gravityforms' ),
+				'label_export' => 'Background Notifications',
+				'value'        => $background_notifications ? __( 'Yes', 'gravityforms' ) : __( 'No', 'gravityforms' ),
+				'value_export' => $background_notifications ? 'Yes' : 'No',
+			),
+			array(
 				'label'        => esc_html__( 'Background updates', 'gravityforms' ),
 				'label_export' => 'Background updates',
 				'value'        => $updates ? __( 'Yes', 'gravityforms' ) : __( 'No', 'gravityforms' ),
@@ -898,14 +907,10 @@ class GF_System_Report {
 				'value_export' => $is_v2_enabled ? 'Yes' : 'No',
 			),
 			array(
-				'label'        => esc_html__( 'Orbital Style Filter', 'gravityforms' ),
-				'value'        => has_filter( 'gform_default_styles' ) ? 'Yes' : 'No',
+				'label' => esc_html__( 'Orbital Style Filter', 'gravityforms' ),
+				'value' => has_filter( 'gform_default_styles' ) ? 'Yes' : 'No',
 			),
 		);
-
-
-		return $gravityforms;
-
 	}
 
 
@@ -1154,7 +1159,7 @@ class GF_System_Report {
                 $url  = str_replace( $logs_dir_path, $logs_dir_url, $file );
 
                 $logs[] = array(
-                    'label'        => '<a href="' . $url . '" target="_blank">' . esc_html( $plugin_name ) . '<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link"></span></a>',
+                    'label'        => '<a href="' . $url . '" target="_blank">' . esc_html( $plugin_name ) . '<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>',
                     'label_export' => esc_html( $plugin_name ),
                     'value'        => gf_logging()->get_log_file_size( $file, true ) . ' (' . GFCommon::format_date( date( 'c', filemtime( $file ) ) ) . ')',
                     'value_export' => $url,

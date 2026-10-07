@@ -9,13 +9,9 @@ use WPML\FP\Logic;
 
 class Popup {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$popupPath = [ 'settings', '__dynamic__', 'link' ];
 
-		// $isDynamicLink :: array -> bool
 		$isDynamicLink = Logic::allPass( [
 			Relation::propEq( 'elType', 'widget' ),
 			Obj::path( $popupPath ),

@@ -10,7 +10,7 @@ use WDEV_Logger;
 use WP_Error;
 
 class Media_Item_Optimizer {
-	const ERROR_META_KEY = 'wp-smush-optimization-errors';
+	private static $error_meta_key = 'wp-smush-optimization-errors';
 
 	/**
 	 * @var Media_Item_Optimization[]
@@ -39,6 +39,16 @@ class Media_Item_Optimizer {
 	 */
 	private $errors;
 
+	/**
+	 * Restoration errors.
+	 *
+	 * @var WP_Error
+	 */
+	private $restoration_errors;
+
+	/**
+	 * @param $media_item Media_Item
+	 */
 	public function __construct( $media_item ) {
 		$this->media_item   = $media_item;
 		$this->backups      = new Backups();
@@ -184,12 +194,28 @@ class Media_Item_Optimizer {
 			return false;
 		}
 
-		$media_item = $this->media_item;
+		$third_party_errors = new WP_Error();
+		$media_item         = $this->media_item;
+
+		/**
+		 * Fires before Smushing a file.
+		 *
+		 * @param int $attachment_id Attachment ID.
+		 * @param array $ref_meta Metadata.
+		 * @param WP_Error $third_party_errors A WP_Error object allowing third-parties to stop the smush process.
+		 */
 		do_action(
 			'wp_smush_before_smush_attempt',
 			$media_item->get_id(),
-			$media_item->get_wp_metadata()
+			$media_item->get_wp_metadata(),
+			$third_party_errors
 		);
+
+		if ( $third_party_errors->has_errors() ) {
+			$this->logger->log( 'Got errors from a third-party while executing the wp_smush_before_smush_file action.' );
+
+			return false;
+		}
 
 		if ( $media_item->has_errors() || $media_item->is_skipped() ) {
 			$this->adjust_global_stats_lists();
@@ -209,13 +235,6 @@ class Media_Item_Optimizer {
 
 		$optimized = $this->run_optimizations();
 
-		do_action(
-			'wp_smush_after_smush_file',
-			$media_item->get_id(),
-			$media_item->get_wp_metadata(),
-			$optimized ? array() : $this->get_errors()
-		);
-
 		if ( $optimized ) {
 			do_action(
 				'wp_smush_after_smush_successful',
@@ -228,6 +247,14 @@ class Media_Item_Optimizer {
 			$this->handle_optimization_errors();
 		}
 
+		// This needs to be triggered after handle_optimization_errors so that get_errors will return correct errors
+		do_action(
+			'wp_smush_after_smush_file',
+			$media_item->get_id(),
+			$media_item->get_wp_metadata(),
+			$optimized ? array() : $this->get_errors()
+		);
+
 		$this->delete_in_progress_transient();
 
 		return $optimized;
@@ -239,6 +266,8 @@ class Media_Item_Optimizer {
 		}
 
 		$this->set_restore_in_progress_transient();
+
+		$this->reset_restoration_errors();
 
 		$restoration_attempted = false;
 		$restored              = false;
@@ -270,6 +299,8 @@ class Media_Item_Optimizer {
 
 			// Once all data has been deleted, adjust the lists
 			$this->global_stats->adjust_lists_for_media_item( $this->media_item );
+		} else {
+			$this->set_restoration_errors( $this->backups->get_errors() );
 		}
 
 		$this->delete_restore_in_progress_transient();
@@ -405,7 +436,7 @@ class Media_Item_Optimizer {
 
 	private function fetch_errors_from_meta() {
 		$wp_error = new WP_Error();
-		$errors   = get_post_meta( $this->media_item->get_id(), self::ERROR_META_KEY, true );
+		$errors   = get_post_meta( $this->media_item->get_id(), self::$error_meta_key, true );
 
 		if ( empty( $errors ) || ! is_array( $errors ) ) {
 			return $wp_error;
@@ -435,7 +466,7 @@ class Media_Item_Optimizer {
 		}
 
 		if ( ! empty( $errors_array ) ) {
-			update_post_meta( $this->media_item->get_id(), self::ERROR_META_KEY, $errors_array );
+			update_post_meta( $this->media_item->get_id(), self::$error_meta_key, $errors_array );
 		}
 	}
 
@@ -449,8 +480,49 @@ class Media_Item_Optimizer {
 
 	private function delete_previous_optimization_errors() {
 		if ( $this->has_errors() ) {
-			delete_post_meta( $this->media_item->get_id(), self::ERROR_META_KEY );
+			delete_post_meta( $this->media_item->get_id(), self::$error_meta_key );
 			$this->set_errors( null );
 		}
 	}
+
+	/**
+	 * Reset restoration errors.
+	 *
+	 * @return void
+	 */
+	private function reset_restoration_errors() {
+		$this->restoration_errors = null;
+	}
+
+	/**
+	 * Set restoration errors.
+	 *
+	 * @param WP_Error $errors Restoration errors.
+	 */
+	private function set_restoration_errors( $errors ) {
+		$this->restoration_errors = $errors;
+	}
+
+	/**
+	 * Get restoration errors.
+	 *
+	 * @return WP_Error
+	 */
+	public function get_restoration_errors() {
+		if ( ! $this->restoration_errors ) {
+			$this->restoration_errors = new WP_Error();
+		}
+
+		return $this->restoration_errors;
+	}
+
+	/**
+	 * Get error_meta_key.
+	 *
+	 * @return string
+	 */
+	public static function get_error_meta_key() {
+		return self::$error_meta_key;
+	}
+
 }

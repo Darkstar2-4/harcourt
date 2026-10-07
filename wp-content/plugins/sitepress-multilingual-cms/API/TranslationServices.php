@@ -7,23 +7,12 @@ use WPML\TM\TranslationProxy\Services\AuthorizationFactory;
 
 class TranslationServices {
 
-	/**
-	 * @var AuthorizationFactory
-	 */
 	private $authorizationFactory;
 
-	/**
-	 * @param AuthorizationFactory $authorizationFactory
-	 */
 	public function __construct( AuthorizationFactory $authorizationFactory ) {
 		$this->authorizationFactory = $authorizationFactory;
 	}
 
-	/**
-	 * @param string $suid
-	 *
-	 * @return Either
-	 */
 	public function selectBySUID( $suid ) {
 		try {
 			$service = \TranslationProxy_Service::get_service_by_suid( $suid );
@@ -34,11 +23,6 @@ class TranslationServices {
 		}
 	}
 
-	/**
-	 * @param int $serviceId
-	 *
-	 * @return Either
-	 */
 	public function selectByServiceId( $serviceId ) {
 		$result = \TranslationProxy::select_service( $serviceId );
 
@@ -65,9 +49,6 @@ class TranslationServices {
 		}
 	}
 
-	/**
-	 * @return null|\TranslationProxy_Service
-	 */
 	public function getCurrentService() {
 		$service = \TranslationProxy::get_current_service();
 

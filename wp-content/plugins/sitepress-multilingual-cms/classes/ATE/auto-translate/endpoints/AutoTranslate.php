@@ -8,11 +8,16 @@ use WPML\FP\Either;
 use WPML\FP\Left;
 use WPML\FP\Obj;
 use WPML\FP\Right;
+use WPML\LIB\WP\User;
 use WPML\TM\API\Jobs;
 
 class AutoTranslate implements IHandler {
 
 	public function run( Collection $data ) {
+		if ( ! User::canManageTranslations() ) {
+			return Either::left( 'Insufficient permissions' );
+		}
+
 		global $wpml_translation_job_factory;
 
 		$trid          = $data->get( 'trid' );

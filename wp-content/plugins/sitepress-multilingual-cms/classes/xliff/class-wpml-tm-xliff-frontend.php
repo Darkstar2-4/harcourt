@@ -1,80 +1,30 @@
 <?php
-/**
- * WPML_TM_Xliff_Frontend class file
- *
- * @package wpml-translation-management
- */
 
 use WPML\FP\Obj;
 
 require_once ABSPATH . 'wp-admin/includes/file.php';
 require_once WPML_TM_PATH . '/inc/wpml_zip.php';
 
-/**
- * Class WPML_TM_Xliff_Frontend
- */
 class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 
-	/**
-	 * Success admin notices
-	 *
-	 * @var array
-	 */
 	private $success;
 
-	/**
-	 * Attachments
-	 *
-	 * @var array
-	 */
 	private $attachments = array();
 
-	/**
-	 * SitePress instance
-	 *
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * Name of archive
-	 *
-	 * @var string
-	 */
 	private $export_archive_name;
 
-	/**
-	 * Priority of late initialisation
-	 *
-	 * @var int
-	 */
 	private $late_init_priority = 9999;
 
-	/**
-	 * Is simple xml turned on
-	 *
-	 * @var bool
-	 */
 	private $simplexml_on;
 
-	/**
-	 * WPML_TM_Xliff_Frontend constructor
-	 *
-	 * @param WPML_Translation_Job_Factory $job_factory  Job factory.
-	 * @param SitePress                    $sitepress    SitePress instance.
-	 * @param boolean                      $simplexml_on Is simple xml turned on.
-	 */
 	public function __construct( WPML_Translation_Job_Factory $job_factory, SitePress $sitepress, $simplexml_on ) {
 		parent::__construct( $job_factory );
 		$this->sitepress    = $sitepress;
 		$this->simplexml_on = $simplexml_on;
 	}
 
-	/**
-	 * Get available xliff versions
-	 *
-	 * @return array
-	 */
 	public function get_available_xliff_versions() {
 
 		return array(
@@ -84,11 +34,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		);
 	}
 
-	/**
-	 * Get init priority
-	 *
-	 * @return int
-	 */
 	public function get_init_priority() {
 		return isset( $_POST['xliff_upload'] ) ||
 			   ( isset( $_GET['wpml_xliff_action'] ) && $_GET['wpml_xliff_action'] === 'download' ) ||
@@ -96,21 +41,10 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 			$this->get_late_init_priority() : 10;
 	}
 
-	/**
-	 * Get late init priority
-	 *
-	 * @return int
-	 */
 	public function get_late_init_priority() {
 		return $this->late_init_priority;
 	}
 
-	/**
-	 * Init class
-	 *
-	 * @return bool
-	 * @throws Exception Throws an exception in case of errors.
-	 */
 	public function init() {
 		$this->attachments = array();
 		$this->error       = null;
@@ -197,6 +131,10 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 			}
 
 			add_action( 'wp_ajax_wpml_xliff_upload', function () {
+				check_ajax_referer( 'wpml_xliff_upload', 'nonce' );
+				if ( ! current_user_can( 'translate' ) && ! current_user_can( 'manage_translations' ) ) {
+					wp_send_json_error( __( 'You are not allowed to import XLIFF translations.', 'wpml-translation-management' ) );
+				}
 				if ( $this->import_xliff( Obj::propOr( [], 'import', $_FILES ) ) ) {
 					wp_send_json_success( $this->success );
 				} else {
@@ -208,9 +146,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return true;
 	}
 
-	/**
-	 * Set xliff options
-	 */
 	public function ajax_set_xliff_options() {
 		check_ajax_referer( 'icl_xliff_options_form_nonce', 'security' );
 		$newlines = isset( $_POST['icl_xliff_newlines'] ) ? (int) $_POST['icl_xliff_newlines'] : 0;
@@ -227,14 +162,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		);
 	}
 
-	/**
-	 * New job notification
-	 *
-	 * @param array $mail   Email content.
-	 * @param int   $job_id Job id.
-	 *
-	 * @return array
-	 */
 	public function new_job_notification( $mail, $job_id ) {
 		$tm_settings = $this->sitepress->get_setting( 'translation-management', array() );
 
@@ -258,13 +185,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return $mail;
 	}
 
-	/**
-	 * Get zip name from jobs
-	 *
-	 * @param array $job_ids Job ids.
-	 *
-	 * @return string
-	 */
 	private function get_zip_name_from_jobs( $job_ids ) {
 		$min_job = min( $job_ids );
 		$max_job = max( $job_ids );
@@ -275,13 +195,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		}
 	}
 
-	/**
-	 * New job notification attachments
-	 *
-	 * @param array $attachments Job notification attachments.
-	 *
-	 * @return array
-	 */
 	public function new_job_notification_attachments( $attachments ) {
 		$found   = false;
 		$archive = new wpml_zip();
@@ -302,7 +215,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		}
 
 		if ( $found ) {
-			// Add the zip file to the attachments.
 			$archive_data = $archive->getZipData();
 			$temp_dir     = get_temp_dir();
 			$file_name    = $temp_dir . $this->get_zip_name_from_jobs( array_keys( $this->attachments ) );
@@ -317,58 +229,39 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return $attachments;
 	}
 
-	/**
-	 * Get xliff file
-	 *
-	 * @param int    $job_id        Job id.
-	 * @param string $xliff_version Xliff version.
-	 *
-	 * @return string
-	 */
 	private function get_xliff_file( $job_id, $xliff_version = WPML_XLIFF_DEFAULT_VERSION ) {
 		return wpml_tm_xliff_factory()
 			->create_writer( $xliff_version )
 			->generate_job_xliff( $job_id );
 	}
 
-	/**
-	 * Get xliff archive
-	 *
-	 * @param string     $xliff_version Xliff version.
-	 * @param array|null $job_ids       Job ids.
-	 *
-	 * @return wpml_zip
-	 *
-	 * @throws Exception Throws an exception in case of errors.
-	 */
 	public function get_xliff_archive( $xliff_version, $job_ids = array() ) {
-		global $wpdb, $current_user;
+		global $current_user;
 
 		if ( empty( $job_ids ) && isset( $_GET['xliff_export_data'] ) ) {
-			// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			$data = json_decode( base64_decode( $_GET['xliff_export_data'] ) );
-			// phpcs:enable WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			$job_ids = isset( $data->job ) ? array_keys( (array) $data->job ) : array();
 		}
 
+		$is_translation_manager = current_user_can( 'manage_translations' );
+
 		$archive = new wpml_zip();
 		foreach ( $job_ids as $job_id ) {
-			$xliff_file = $this->get_xliff_file( $job_id, $xliff_version );
+			$job = $this->job_factory->get_translation_job( (int) $job_id, false, 0, true );
+			if ( ! $job ) {
+				continue;
+			}
 
-			// Assign the job to this translator.
-			$rid        = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT rid
-					 FROM {$wpdb->prefix}icl_translate_job
-					 WHERE job_id=%d ",
-					$job_id
-				)
-			);
-			$data_value = array( 'translator_id' => $current_user->ID );
-			$data_where = array( 'job_id' => $job_id );
-			$wpdb->update( $wpdb->prefix . 'icl_translate_job', $data_value, $data_where );
-			$data_where = array( 'rid' => $rid );
-			$wpdb->update( $wpdb->prefix . 'icl_translation_status', $data_value, $data_where );
+			if ( ! $is_translation_manager && ! $job->user_can_translate( $current_user ) ) {
+				continue;
+			}
+
+			$xliff_file = $this->get_xliff_file( (int) $job_id, $xliff_version );
+
+			if ( 0 === (int) $job->get_translator_id() ) {
+				$job->assign_to( (int) $current_user->ID );
+			}
+
 			$archive->addFile( $xliff_file, get_bloginfo( 'name' ) . '-translation-job-' . $job_id . '.xliff' );
 		}
 
@@ -378,13 +271,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return $archive;
 	}
 
-	/**
-	 * Stream xliff archive
-	 *
-	 * @param wpml_zip $archive Zip archive.
-	 *
-	 * @throws Exception Throws an exception in case of errors.
-	 */
 	private function stream_xliff_archive( $archive ) {
 		if ( is_a( $archive, 'wpml_zip' ) ) {
 			if ( defined( 'WPML_SAVE_XLIFF_PATH' ) && trim( WPML_SAVE_XLIFF_PATH ) ) {
@@ -395,12 +281,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		exit;
 	}
 
-	/**
-	 * Save zip file
-	 *
-	 * @param string   $path    Where to save the archive.
-	 * @param wpml_zip $archive Zip archive.
-	 */
 	private function save_zip_file( $path, $archive ) {
 		$path = trailingslashit( $path );
 		if ( ! is_dir( $path ) ) {
@@ -412,27 +292,13 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		$archive->setZipFile( $path . $this->export_archive_name );
 	}
 
-	/**
-	 * Stops any redirects from happening when we call the
-	 * translation manager to save the translations.
-	 *
-	 * @return null
-	 */
 	public function stop_redirect() {
 		return null;
 	}
 
-	/**
-	 * Import xliff file
-	 *
-	 * @param array $file Xliff file data.
-	 *
-	 * @return bool|WP_Error
-	 */
 	private function import_xliff( $file ) {
 		global $current_user;
 
-		// We don't want any redirects happening when we save the translation.
 		add_filter( 'wp_redirect', array( $this, 'stop_redirect' ) );
 
 		$this->success = array();
@@ -482,7 +348,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 				} else {
 					require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
 					$archive = new PclZip( $file['tmp_name'] );
-					// Is the archive valid?
 					$archive_files = $archive->extract( PCLZIP_OPT_EXTRACT_AS_STRING );
 					if ( false == $archive_files ) {
 						$this->error = new WP_Error( 'incompatible_archive', __( 'You are trying to import an incompatible Archive.', 'wpml-translation-management' ), $archive->errorInfo( true ) );
@@ -539,14 +404,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return false;
 	}
 
-	/**
-	 * Translation queue actions
-	 *
-	 * @param array  $actions          Actions.
-	 * @param string $action_name      Action name.
-	 * @param array  $translation_jobs Translation jobs.
-	 * @param string $action
-	 */
 	public function translation_queue_xliff_select_actions( $actions, $action_name, $translation_jobs, $action ) {
 		if ( $this->has_translation_jobs( $translation_jobs ) && sizeof( $actions ) > 0 ) :
 			$currentAction = $action ?: false;
@@ -570,22 +427,10 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		endif;
 	}
 
-	/**
-	 * Has translation jobs
-	 *
-	 * @param array $translation_jobs Translation jobs.
-	 *
-	 * @return bool
-	 */
 	private function has_translation_jobs( $translation_jobs ) {
 		return $translation_jobs && array_key_exists( 'jobs', $translation_jobs ) && $translation_jobs['jobs'];
 	}
 
-	/**
-	 * Get xliff version select options
-	 *
-	 * @return string
-	 */
 	private function get_xliff_version_select_options() {
 		$output       = '';
 		$user_version = (int) $this->get_user_xliff_version();
@@ -600,13 +445,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return $output;
 	}
 
-	/**
-	 * Adds the various possible XLIFF versions to translations queue page's export actions on display
-	 *
-	 * @param array $actions Actions.
-	 *
-	 * @return array
-	 */
 	public function translation_queue_add_actions( $actions ) {
 		foreach ( $this->get_available_xliff_versions() as $key => $value ) {
 			// translators: %s: XLIFF version.
@@ -616,9 +454,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		return $actions;
 	}
 
-	/**
-	 * Show error messages in admin notices
-	 */
 	public function admin_notices_error() {
 		if ( is_wp_error( $this->error ) ) {
 			?>
@@ -638,9 +473,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		}
 	}
 
-	/**
-	 * Show success messages in admin notices
-	 */
 	public function admin_notices_success() {
 		?>
 		<div class="message updated"><p>
@@ -655,11 +487,6 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		<?php
 	}
 
-	/**
-	 * Check translation queue after display
-	 *
-	 * @param array $translation_jobs Translation jobs.
-	 */
 	public function translation_queue_after_display( $translation_jobs = array() ) {
 		if ( ! $this->has_translation_jobs( $translation_jobs ) ) {
 			return;
@@ -765,20 +592,15 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		<?php
 	}
 
-	/**
-	 * Print online js script
-	 */
 	public function js_scripts() {
 		?>
 		<script type="text/javascript">
 			var wpml_xliff_ajax_nonce = '<?php echo wp_create_nonce( 'icl_xliff_options_form_nonce' ); ?>';
+			var wpml_xliff_upload_nonce = '<?php echo wp_create_nonce( 'wpml_xliff_upload' ); ?>';
 		</script>
 		<?php
 	}
 
-	/**
-	 * Provide translator notification
-	 */
 	public function translator_notification() {
 		$checked = $this->sitepress->get_setting( 'include_xliff_in_notification' ) ? 'checked="checked"' : '';
 		?>
@@ -790,22 +612,11 @@ class WPML_TM_Xliff_Frontend extends WPML_TM_Xliff_Shared {
 		<?php
 	}
 
-	/**
-	 * Get user xliff version
-	 *
-	 * @return string|false
-	 */
 	private function get_user_xliff_version() {
 
 		return $this->sitepress->get_setting( 'tm_xliff_version', false );
 	}
 
-	/**
-	 * Check if argument is a directory
-	 *
-	 * @param string $path
-	 * @return bool
-	 */
 	private function is_directory( $path ) {
 		return '/' === substr( $path, -1 );
 	}

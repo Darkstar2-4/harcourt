@@ -1,16 +1,8 @@
 <?php
 
 class WPML_Localization {
-	/**
-	 * @var \wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * WPML_Localization constructor.
-	 *
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb        = $wpdb;
 	}
@@ -125,7 +117,6 @@ class WPML_Localization {
 		$theme_path        = TEMPLATEPATH;
 		$old_theme_context = 'theme ' . basename( $theme_path );
 
-		/** @var string $sql */
 		$sql = $this->wpdb->prepare(
 			"
 	        SELECT COUNT(id) AS c
@@ -179,20 +170,10 @@ class WPML_Localization {
 		return $stats;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function getBaseStUrl() {
 		return admin_url( 'admin.php?page=' . WPML_ST_FOLDER . '/menu/string-translation.php' );
 	}
 
-	/**
-	 * @param array  $localization_stats
-	 * @param string $localization_file
-	 * @param array  $localization_data
-	 *
-	 * @return array
-	 */
 	public function getDomainsFromLocalizationStats( $localization_stats, $localization_file, $localization_data ) {
 		$domains = array_key_exists( $localization_file, $localization_stats ) ? $localization_stats[ $localization_file ] : false;
 
@@ -207,12 +188,6 @@ class WPML_Localization {
 		return [ $textDomain => $this->get_component( $textDomain, [ 'complete' => 0, 'incomplete' => 0 ] ) ];
 	}
 
-	/**
-	 * @param string $domain
-	 * @param array  $stats
-	 *
-	 * @return array
-	 */
 	private function get_component( $domain, array $stats ) {
 		return array(
 			'translated'              => $stats['complete'],

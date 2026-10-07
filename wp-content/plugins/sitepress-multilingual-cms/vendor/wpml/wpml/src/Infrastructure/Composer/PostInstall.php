@@ -4,23 +4,9 @@ namespace WPML\Infrastructure\Composer;
 
 use Composer\Installer\PackageEvent;
 
-/**
- * Runs on composer install of sitepress-multilingual-cms.
- */
 class PostInstall {
 
 
-  /**
-   * On Post Install Cmd install this package's dependencies
-   * and create the build files.
-   *
-   * @psalm-suppress MixedMethodCall
-   * @psalm-suppress UndefinedClass
-   *
-   * @param PackageEvent $event
-   *
-   * @return void
-   */
   public static function run( $event ) {
     $event->getIO()->write( '----------------------------------------------' );
     $event->getIO()->write( '-- WPML++: Installing NPM Packages.' );

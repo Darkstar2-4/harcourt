@@ -18,16 +18,12 @@ use WPML\TM\AutomaticTranslation\Actions\Actions;
 
 class Application {
 
-	/** @var array */
 	private $implementations;
 
-	/** @var array */
 	private $hookHandlers;
 
-	/** @var array */
 	private $settings;
 
-	/** @var Injector */
 	private $injector;
 
 	public function __construct( array $config = [] ) {
@@ -66,9 +62,6 @@ class Application {
 	}
 
 	public function run() {
-		/**
-		 * @var SettingsRepositoryInterface $settingsRepository
-		 */
 		$settingsRepository = $this->injector->make( SettingsRepositoryInterface::class );
 		$ignoreIsDisabled   = $this->settings['ignoreIsDisabled'] ?? false;
 		$isDisabled         = (

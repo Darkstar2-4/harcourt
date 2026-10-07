@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `INTO` keyword parser.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,11 +17,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class IntoKeyword extends Component
 {
-    /**
-     * FIELDS/COLUMNS Options for `SELECT...INTO` statements.
-     *
-     * @var array
-     */
     public static $FIELDS_OPTIONS = array(
         'TERMINATED BY' => array(
             1,
@@ -41,11 +33,6 @@ class IntoKeyword extends Component
         )
     );
 
-    /**
-     * LINES Options for `SELECT...INTO` statements.
-     *
-     * @var array
-     */
     public static $LINES_OPTIONS = array(
         'STARTING BY' => array(
             1,
@@ -57,69 +44,20 @@ class IntoKeyword extends Component
         )
     );
 
-    /**
-     * Type of target (OUTFILE or SYMBOL).
-     *
-     * @var string
-     */
     public $type;
 
-    /**
-     * The destination, which can be a table or a file.
-     *
-     * @var string|Expression
-     */
     public $dest;
 
-    /**
-     * The name of the columns.
-     *
-     * @var array
-     */
     public $columns;
 
-    /**
-     * The values to be selected into (SELECT .. INTO @var1).
-     *
-     * @var Expression[]
-     */
     public $values;
 
-    /**
-     * Options for FIELDS/COLUMNS keyword.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$FIELDS_OPTIONS
-     */
     public $fields_options;
 
-    /**
-     * Whether to use `FIELDS` or `COLUMNS` while building.
-     *
-     * @var bool
-     */
     public $fields_keyword;
 
-    /**
-     * Options for OPTIONS keyword.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$LINES_OPTIONS
-     */
     public $lines_options;
 
-    /**
-     * Constructor.
-     *
-     * @param string            $type           type of destination (may be OUTFILE)
-     * @param string|Expression $dest           actual destination
-     * @param array             $columns        column list of destination
-     * @param array             $values         selected fields
-     * @param OptionsArray      $fields_options options for FIELDS/COLUMNS keyword
-     * @param bool              $fields_keyword options for OPTIONS keyword
-     */
     public function __construct(
         $type = null,
         $dest = null,
@@ -136,47 +74,19 @@ class IntoKeyword extends Component
         $this->fields_keyword = $fields_keyword;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return IntoKeyword
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 -----------------------[ name ]----------------------> 1
-         *      0 ---------------------[ OUTFILE ]---------------------> 2
-         *
-         *      1 ------------------------[ ( ]------------------------> (END)
-         *
-         *      2 ---------------------[ filename ]--------------------> 1
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -188,7 +98,6 @@ class IntoKeyword extends Component
                     continue;
                 }
 
-                // No other keyword is expected except for $state = 4, which expects `LINES`
                 if ($state !== 4) {
                     break;
                 }
@@ -245,7 +154,6 @@ class IntoKeyword extends Component
         ++$list->idx;
 
         if ($keyword === 'FIELDS' || $keyword === 'COLUMNS') {
-            // parse field options
             $this->fields_options = OptionsArray::parse(
                 $parser,
                 $list,
@@ -254,7 +162,6 @@ class IntoKeyword extends Component
 
             $this->fields_keyword = ($keyword === 'FIELDS');
         } else {
-            // parse line options
             $this->lines_options = OptionsArray::parse(
                 $parser,
                 $list,
@@ -263,12 +170,6 @@ class IntoKeyword extends Component
         }
     }
 
-    /**
-     * @param IntoKeyword $component the component to be built
-     * @param array       $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         if ($component->dest instanceof Expression) {

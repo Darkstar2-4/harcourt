@@ -8,13 +8,13 @@
             "lang": "ja"
          },
          "Start batch sync": [
-            "一括同期を開始"
+            "バッチ同期を開始"
          ],
          "Cancel job": [
             "ジョブをキャンセル"
          ],
          "Continue reviewing": [
-            "レビューを続ける"
+            "レビューを続行"
          ],
          "Start downloading XLIFF file": [
             "XLIFFファイルのダウンロードを開始"
@@ -47,13 +47,13 @@
             "翻訳を下書きとして保存"
          ],
          "Never mind. I want to review these translations.": [
-            "やめます。これらの翻訳をレビューしたいです。"
+            "気にしないでください。これらの翻訳をレビューしたいです。"
          ],
          "Cancel": [
             "キャンセル"
          ],
          "This will remove the selected jobs from the Translations Queue without publishing them. What would you like to do with the translations?": [
-            "選択したジョブを公開せずに翻訳キューから削除します。翻訳をどうしますか？"
+            "これにより、選択したジョブは公開されずに翻訳キューから削除されます。翻訳をどうしますか？"
          ],
          "Cancel Translation Review": [
             "翻訳レビューをキャンセル"
@@ -86,13 +86,13 @@
             "進行中"
          ],
          "Translation ready to download": [
-            "ダウンロード可能な翻訳"
+            "翻訳ダウンロード準備完了"
          ],
          "Completed": [
             "完了"
          ],
          "%s are immediately published because they don't support draft mode.": [
-            "%s はドラフトモードをサポートしていないため、即時公開されます。"
+            "%sはドラフトモードをサポートしていないため、すぐに公開されます。"
          ],
          "Published — Pending review": [
             "公開済み — レビュー待ち"
@@ -110,16 +110,16 @@
             "下書き — レビュー進行中"
          ],
          "Insufficient funds": [
-            "残高不足"
+            "資金不足"
          ],
          "Needs update": [
             "更新が必要"
          ],
          "View original": [
-            "原文を表示"
+            "オリジナルを表示"
          ],
          "(no title)": [
-            "（タイトルなし）"
+            "(タイトルなし)"
          ],
          "Automatic translation": [
             "自動翻訳"
@@ -158,7 +158,7 @@
             "送信日 (%s)"
          ],
          "Deadline (%s)": [
-            "締め切り (%s)"
+            "期限 (%s)"
          ],
          "Clear all filters": [
             "すべてのフィルターをクリア"
@@ -170,10 +170,10 @@
             "任意のWordPress翻訳者"
          ],
          "From": [
-            "開始"
+            "から"
          ],
          "To": [
-            "終了"
+            "宛先"
          ],
          "Anyone": [
             "誰でも"
@@ -188,34 +188,34 @@
             "表示する列を選択"
          ],
          "Sort descending": [
-            "降順で並べ替え"
+            "降順でソート"
          ],
          "Sort ascending": [
-            "昇順で並べ替え"
+            "昇順でソート"
          ],
          "Cancel sorting": [
-            "並べ替えをキャンセル"
+            "ソートをキャンセル"
          ],
          "The bulk action is running...": [
             "一括操作を実行中..."
          ],
          "Export all jobs to XLIFF 1.0": [
-            "すべてのジョブをXLIFF 1.0でエクスポート"
+            "すべてのジョブをXLIFF 1.0にエクスポート"
          ],
          "Export all filtered jobs to XLIFF 1.0": [
-            "フィルターされたすべてのジョブをXLIFF 1.0でエクスポート"
+            "すべてのフィルター済みジョブをXLIFF 1.0にエクスポート"
          ],
          "Export all jobs to XLIFF 1.1": [
-            "すべてのジョブをXLIFF 1.1でエクスポート"
+            "すべてのジョブをXLIFF 1.1にエクスポート"
          ],
          "Export all filtered jobs to XLIFF 1.1": [
-            "フィルターされたすべてのジョブをXLIFF 1.1でエクスポート"
+            "すべてのフィルター済みジョブをXLIFF 1.1にエクスポート"
          ],
          "Export all jobs to XLIFF 1.2": [
-            "すべてのジョブをXLIFF 1.2でエクスポート"
+            "すべてのジョブをXLIFF 1.2にエクスポート"
          ],
          "Export all filtered jobs to XLIFF 1.2": [
-            "フィルターされたすべてのジョブをXLIFF 1.2でエクスポート"
+            "すべてのフィルター済みジョブをXLIFF 1.2にエクスポート"
          ],
          "Export": [
             "エクスポート"
@@ -233,10 +233,10 @@
             "インポート"
          ],
          "Import / Export XLIFF": [
-            "XLIFF のインポート / エクスポート"
+            "XLIFFのインポート/エクスポート"
          ],
          "Actions": [
-            "操作"
+            "アクション"
          ],
          "Batch name": [
             "バッチ名"
@@ -263,7 +263,7 @@
             "翻訳を取得"
          ],
          "This action does not apply to any of the selected translation jobs": [
-            "この操作は選択された翻訳ジョブのいずれにも適用されません"
+            "このアクションは、選択した翻訳ジョブには適用されません"
          ],
          "Translations have been downloaded": [
             "翻訳がダウンロードされました"
@@ -281,7 +281,7 @@
             "翻訳レビューの承認に失敗しました！"
          ],
          "Failed approving translations for the following posts: ": [
-            "次の投稿の翻訳承認に失敗しました："
+            "以下の投稿の翻訳承認に失敗しました: "
          ],
          "Translations reviews approved successfully!": [
             "翻訳レビューが正常に承認されました！"
@@ -323,7 +323,7 @@
             "送信日"
          ],
          "Deadline": [
-            "締め切り"
+            "期限"
          ],
          "Status": [
             "ステータス"
@@ -347,13 +347,13 @@
             "XLIFFファイルのダウンロードを完了できませんでした"
          ],
          "Could not load jobs for export": [
-            "エクスポート用のジョブを読み込めませんでした"
+            "エクスポートするジョブを読み込めませんでした"
          ],
          "The export to XLIFF failed": [
             "XLIFFへのエクスポートに失敗しました"
          ],
          "Imported %d jobs": [
-            "%d 件のジョブをインポートしました"
+            "%d件のジョブをインポートしました"
          ],
          "Imported one job": [
             "1件のジョブをインポートしました"
@@ -377,7 +377,7 @@
             "辞退するジョブを指定してください"
          ],
          "We could not resign jobs: %s": [
-            "ジョブを辞退できませんでした：%s"
+            "ジョブを辞退できませんでした: %s"
          ],
          "Resigned from jobs": [
             "ジョブを辞退しました"
@@ -389,19 +389,19 @@
             "ジョブの辞退に失敗しました"
          ],
          "The Advanced Editor jobs synchronization has failed": [
-            "高度なエディタのジョブ同期に失敗しました"
+            "Advanced Editorジョブの同期に失敗しました"
          ],
          "Synchronization with the Professional Translation service has failed": [
             "プロフェッショナル翻訳サービスとの同期に失敗しました"
          ],
          "%d translation has been downloaded": [
-            "%d 翻訳がダウンロードされました"
+            "%d件の翻訳がダウンロードされました"
          ],
          "Batch sync finished successfully!": [
-            "一括同期が正常に完了しました！"
+            "バッチ同期が正常に完了しました！"
          ],
          "Batch sync couldn't be finished": [
-            "一括同期を完了できませんでした"
+            "バッチ同期を完了できませんでした"
          ]
       }
    }

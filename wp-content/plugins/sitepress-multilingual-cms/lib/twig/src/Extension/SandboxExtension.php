@@ -13,9 +13,6 @@ namespace WPML\Core\Twig\Extension;
 use WPML\Core\Twig\NodeVisitor\SandboxNodeVisitor;
 use WPML\Core\Twig\Sandbox\SecurityPolicyInterface;
 use WPML\Core\Twig\TokenParser\SandboxTokenParser;
-/**
- * @final
- */
 class SandboxExtension extends \WPML\Core\Twig\Extension\AbstractExtension
 {
     protected $sandboxedGlobally;

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `SHOW` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -15,11 +12,6 @@ namespace PhpMyAdmin\SqlParser\Statements;
  */
 class ShowStatement extends NotImplementedStatement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'CREATE' => 1,
         'AUTHORS' => 2,

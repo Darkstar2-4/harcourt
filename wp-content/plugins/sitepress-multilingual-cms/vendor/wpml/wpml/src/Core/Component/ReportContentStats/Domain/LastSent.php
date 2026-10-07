@@ -4,13 +4,9 @@ namespace WPML\Core\Component\ReportContentStats\Domain;
 
 class LastSent {
 
-  /** @var int|null */
   private $lastSent;
 
 
-  /**
-   * @param int|null $lastSent
-   */
   public function __construct( $lastSent ) {
     $this->lastSent = $lastSent;
   }

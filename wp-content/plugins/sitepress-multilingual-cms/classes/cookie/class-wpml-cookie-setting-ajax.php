@@ -1,24 +1,13 @@
 <?php
 
-/**
- * Class WPML_Frontend_Cookie_Setting_Ajax
- */
 class WPML_Cookie_Setting_Ajax {
 
 	const NONCE_COOKIE_SETTING = 'wpml-frontend-cookie-setting-nonce';
 	const AJAX_RESPONSE_ID     = 'icl_ajx_response_cookie';
 	const ACTION               = 'wpml_update_cookie_setting';
 
-	/**
-	 * @var WPML_Cookie_Setting
-	 */
 	private $wpml_frontend_cookie_setting;
 
-	/**
-	 * WPML_Frontend_Cookie_Setting_Ajax constructor.
-	 *
-	 * @param WPML_Cookie_Setting $wpml_frontend_cookie_setting
-	 */
 	public function __construct( WPML_Cookie_Setting $wpml_frontend_cookie_setting ) {
 		$this->wpml_frontend_cookie_setting = $wpml_frontend_cookie_setting;
 	}
@@ -43,9 +32,6 @@ class WPML_Cookie_Setting_Ajax {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		$valid_request = false;
 

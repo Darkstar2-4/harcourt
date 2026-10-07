@@ -3,7 +3,7 @@
 class WPML_Beaver_Builder_Media_Node_Content_Slider extends WPML_Beaver_Builder_Media_Node {
 
 	private $property_prefixes = array(
-		'bg_', // i.e. `bg_photo` for an ID or `bg_photo_src` for a URL
+		'bg_',
 		'fg_',
 		'r_',
 	);

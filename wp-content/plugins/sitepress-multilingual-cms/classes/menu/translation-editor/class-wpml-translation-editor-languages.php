@@ -4,9 +4,6 @@ class WPML_Translation_Editor_Languages extends WPML_SP_User {
 
 	private $job;
 
-	/**
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( &$sitepress, $job ) {
 		parent::__construct( $sitepress );
 		$this->job = $job;

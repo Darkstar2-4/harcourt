@@ -11,17 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents an autoescape node.
- *
- * The value is the escaping strategy (can be html, js, ...)
- *
- * The true value is equivalent to html.
- *
- * If autoescaping is disabled, then the value is false.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class AutoEscapeNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($value, \WPML\Core\Twig_NodeInterface $body, $lineno, $tag = 'autoescape')

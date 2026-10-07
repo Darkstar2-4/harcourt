@@ -1,25 +1,20 @@
 <?php
 
-// phpcs:disable WordPress.WP.I18n.NonSingularStringLiteralText, WordPress.WP.I18n.LowLevelTranslationFunction, WordPress.WP.I18n.TooManyFunctionArgs, WordPress.WP.I18n.NonSingularStringLiteralDomain
 class WPML_Page_Builders_Update_Media implements IWPML_PB_Media_Update {
 
-	/** @var WPML_Page_Builders_Update $pb_update */
 	private $pb_update;
 
-	/** @var WPML_Translation_Element_Factory $element_factory */
 	private $element_factory;
 
-	/** @var IWPML_PB_Media_Nodes_Iterator $node_iterator */
 	protected $node_iterator;
 
-	/** @var WPML_Page_Builders_Media_Usage|null $media_usage */
 	protected $media_usage;
 
 	public function __construct(
 		WPML_Page_Builders_Update $pb_update,
 		WPML_Translation_Element_Factory $element_factory,
 		IWPML_PB_Media_Nodes_Iterator $node_iterator,
-		WPML_Page_Builders_Media_Usage $media_usage = null
+		?WPML_Page_Builders_Media_Usage $media_usage = null
 	) {
 		$this->pb_update       = $pb_update;
 		$this->element_factory = $element_factory;
@@ -27,9 +22,6 @@ class WPML_Page_Builders_Update_Media implements IWPML_PB_Media_Update {
 		$this->media_usage     = $media_usage;
 	}
 
-	/**
-	 * @param WP_Post $post
-	 */
 	public function translate( $post ) {
 		$element        = $this->element_factory->create_post( $post->ID );
 		$source_element = $element->get_source_element();
@@ -56,9 +48,6 @@ class WPML_Page_Builders_Update_Media implements IWPML_PB_Media_Update {
 		}
 	}
 
-	/**
-	 * @param WP_Post $post
-	 */
 	public function find_media( $post ) {
 		$element        = $this->element_factory->create_post( $post->ID );
 		$lang           = $element->get_language_code();
@@ -70,12 +59,8 @@ class WPML_Page_Builders_Update_Media implements IWPML_PB_Media_Update {
 		}
 
 		$this->node_iterator->translate( $converted_data, $lang, $source_lang );
-
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_media() {
 		return $this->node_iterator->get_media();
 	}

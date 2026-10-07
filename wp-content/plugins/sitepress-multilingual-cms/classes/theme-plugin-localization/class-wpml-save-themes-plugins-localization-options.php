@@ -2,19 +2,12 @@
 
 class WPML_Save_Themes_Plugins_Localization_Options {
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * WPML_Save_Themes_Plugins_Localization_Options constructor.
-	 *
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/** @param array $settings */
 	public function save_settings( $settings ) {
 
 		foreach ( $this->get_settings() as $key => $setting ) {
@@ -39,7 +32,6 @@ class WPML_Save_Themes_Plugins_Localization_Options {
 		do_action( 'theme_plugin_localization_settings_saved', $settings );
 	}
 
-	/** @return array */
 	private function get_settings() {
 		$settings                                       = array();
 		$settings['theme_localization_load_textdomain'] = array(
@@ -55,9 +47,6 @@ class WPML_Save_Themes_Plugins_Localization_Options {
 			'st_setting'   => false,
 		);
 
-		/**
-		 * @param array $settings array of settings rendered in theme/plugin localization screen
-		 */
 		return apply_filters( 'wpml_localization_options_settings', $settings );
 	}
 }

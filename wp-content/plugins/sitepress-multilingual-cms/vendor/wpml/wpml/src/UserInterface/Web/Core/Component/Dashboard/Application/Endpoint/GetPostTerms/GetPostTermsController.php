@@ -12,7 +12,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class GetPostTermsController implements EndpointInterface {
 
-  /** @var TaxonomyQueryInterface */
   private $taxonomyQuery;
 
 
@@ -23,19 +22,10 @@ class GetPostTermsController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<array<string, mixed>> It should return array with sequential keys.
-   * @throws InvalidArgumentException The requestData was not valid.
-   *
-   * @throws Exception Some system related error.
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 
     try {
-      /** @var TaxonomyTermCriteria $criteria */
       $criteria = TaxonomyTermCriteria::fromArray( $requestData );
       $items    = $this->taxonomyQuery->getTerms( $criteria );
     } catch ( InvalidArgumentException $e ) {

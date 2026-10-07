@@ -7,14 +7,8 @@ class RefreshServices {
 	const TEMPLATE    = 'refresh-services.twig';
 	const AJAX_ACTION = 'wpml_tm_refresh_services';
 
-	/**
-	 * @var \IWPML_Template_Service
-	 */
 	private $template;
 
-	/**
-	 * @var \WPML_TP_API_Services
-	 */
 	private $tp_services;
 
 	public function __construct( \IWPML_Template_Service $template, \WPML_TP_API_Services $tp_services ) {
@@ -32,9 +26,6 @@ class RefreshServices {
 		echo $this->template->show( $this->get_model(), self::TEMPLATE );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_model() {
 		return array(
 			'button_text' => __( 'Refresh Translation Services', 'wpml-translation-management' ),
@@ -70,9 +61,6 @@ class RefreshServices {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function refresh_services() {
 		return $this->tp_services->refresh_cache() && $this->refresh_active_service();
 	}
@@ -81,16 +69,13 @@ class RefreshServices {
 		$active_service = $this->tp_services->get_active();
 
 		if ( $active_service ) {
-			$active_service = (object) (array) $active_service; // Cast to stdClass
+			$active_service = (object) (array) $active_service;
 			\TranslationProxy::build_and_store_active_translation_service( $active_service, $active_service->custom_fields_data );
 		}
 
 		return true;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		return isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], self::AJAX_ACTION );
 	}

@@ -4,24 +4,15 @@ if ( ! defined( 'ICL_DISABLE_CACHE' ) ) {
 	define( 'ICL_DISABLE_CACHE', false );
 }
 
-// phpcs:disable PEAR.NamingConventions.ValidClassName.Invalid
-// phpcs:disable PEAR.NamingConventions.ValidClassName.StartWithCapital
 
-/**
- * Class icl_cache
- */
 class icl_cache {
 
-	/** @var array */
 	protected $data;
 
-	/** @var string */
 	protected $name;
 
-	/** @var bool */
 	protected $cache_to_option;
 
-	/** @var bool */
 	protected $cache_needs_saving;
 
 	public function __construct( $name = '', $cache_to_option = false ) {
@@ -137,10 +128,6 @@ if ( ! function_exists( 'icl_cache_set' ) ) {
 if ( ! function_exists( 'icl_cache_clear' ) ) {
 	function icl_cache_clear( $key = false, $key_as_prefix = false ) {
 		if ( ! icl_disable_cache() ) {
-			/**
-			 * @var WPML_Term_Translation $wpml_term_translations
-			 * @var WPML_Post_Translation $wpml_post_translations
-			 */
 			global $wpml_term_translations, $wpml_post_translations;
 
 			$wpml_term_translations->reload();
@@ -149,7 +136,6 @@ if ( ! function_exists( 'icl_cache_clear' ) ) {
 			if ( false === $key ) {
 				delete_option( '_icl_cache' );
 			} else {
-				/** @var array $icl_cache */
 				$icl_cache = get_option( '_icl_cache' );
 
 				if ( is_array( $icl_cache ) ) {
@@ -166,7 +152,6 @@ if ( ! function_exists( 'icl_cache_clear' ) ) {
 						}
 					}
 
-					// Special cache of 'per language' - clear different statuses.
 					if ( false !== strpos( $key, '_per_language' ) ) {
 						foreach ( $icl_cache as $k => $v ) {
 							if ( false !== strpos( $k, $key . '#' ) ) {

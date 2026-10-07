@@ -1,14 +1,8 @@
 <?php
 
 class WPML_ST_Upgrade_Display_Strings_Scan_Notices implements IWPML_St_Upgrade_Command {
-	/** @var WPML_ST_Themes_And_Plugins_Settings */
 	private $settings;
 
-	/**
-	 * WPML_ST_Upgrade_Display_Strings_Scan_Notices constructor.
-	 *
-	 * @param WPML_ST_Themes_And_Plugins_Settings $settings
-	 */
 	public function __construct( WPML_ST_Themes_And_Plugins_Settings $settings ) {
 		$this->settings = $settings;
 	}

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Parses the definition of a key.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -23,11 +20,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class Key extends Component
 {
-    /**
-     * All key options.
-     *
-     * @var array
-     */
     public static $KEY_OPTIONS = array(
         'KEY_BLOCK_SIZE' => array(
             1,
@@ -45,7 +37,6 @@ class Key extends Component
             4,
             'var',
         ),
-        // MariaDB options
         'CLUSTERING' => array(
             4,
             'var=',
@@ -58,58 +49,22 @@ class Key extends Component
             5,
             'var=',
         ),
-        // MariaDB & MySQL options
         'VISIBLE' => 6,
         'INVISIBLE' => 6,
-        // MariaDB options
         'IGNORED' => 10,
         'NOT IGNORED' => 10,
     );
 
-    /**
-     * The name of this key.
-     *
-     * @var string
-     */
     public $name;
 
-    /**
-     * The key columns
-     *
-     * @var array[]
-     * @phpstan-var array{name?: string, length?: int, order?: string}[]
-     */
     public $columns;
 
-    /**
-     * The type of this key.
-     *
-     * @var string
-     */
     public $type;
 
-    /**
-     * The expression if the Key is not using column names
-     *
-     * @var string|null
-     */
     public $expr = null;
 
-    /**
-     * The options of this key or null if none where found.
-     *
-     * @var OptionsArray|null
-     */
     public $options;
 
-    /**
-     * Constructor.
-     *
-     * @param string       $name    the name of the key
-     * @param array        $columns the columns covered by this key
-     * @param string       $type    the type of this key
-     * @param OptionsArray $options the options of this key
-     */
     public function __construct(
         $name = null,
         array $columns = array(),
@@ -122,58 +77,21 @@ class Key extends Component
         $this->options = $options;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return Key
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
 
-        /**
-         * Last parsed column.
-         *
-         * @var array<string,mixed>
-         */
         $lastColumn = array();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ---------------------[ type ]---------------------------> 1
-         *
-         *      1 ---------------------[ name ]---------------------------> 1
-         *      1 ---------------------[ columns ]------------------------> 2
-         *      1 ---------------------[ expression ]---------------------> 5
-         *
-         *      2 ---------------------[ column length ]------------------> 3
-         *      3 ---------------------[ column length ]------------------> 2
-         *      2 ---------------------[ options ]------------------------> 4
-         *      5 ---------------------[ expression ]---------------------> 4
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -184,14 +102,13 @@ class Key extends Component
             } elseif ($state === 1) {
                 if (($token->type === Token::TYPE_OPERATOR) && ($token->value === '(')) {
                     $positionBeforeSearch = $list->idx;
-                    $list->idx++;// Ignore the current token "(" or the search condition will always be true
+                    $list->idx++;
                     $nextToken = $list->getNext();
-                    $list->idx = $positionBeforeSearch;// Restore the position
+                    $list->idx = $positionBeforeSearch;
 
                     if (
                         $nextToken !== null && $nextToken->value === '('
                     ) {
-                        // Switch to expression mode
                         $state = 5;
                     } else {
                         $state = 2;
@@ -235,19 +152,15 @@ class Key extends Component
                 break;
             } elseif ($state === 5) {
                 if ($token->type === Token::TYPE_OPERATOR) {
-                    // This got back to here and we reached the end of the expression
                     if ($token->value === ')') {
-                        $state = 4;// go back to state 4 to fetch options
+                        $state = 4;
                         continue;
                     }
-                    // The expression is not finished, adding a separator for the next expression
                     if ($token->value === ',') {
                         $ret->expr .= ', ';
                         continue;
                     }
-                    // Start of the expression
                     if ($token->value === '(') {
-                        // This is the first expression, set to empty
                         if ($ret->expr === null) {
                             $ret->expr = '';
                         }
@@ -261,9 +174,7 @@ class Key extends Component
                         );
                         continue;
                     }
-                    // Another unexpected operator was found
                 }
-                // Something else than an operator was found
                 $parser->error('Unexpected token.', $token);
             }
         }
@@ -273,12 +184,6 @@ class Key extends Component
         return $ret;
     }
 
-    /**
-     * @param Key   $component the component to be built
-     * @param array $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $ret = $component->type . ' ';

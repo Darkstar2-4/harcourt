@@ -1,15 +1,7 @@
 <?php
 
-/**
- * @todo Perhaps this class is redundant
- *
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE_Jobs_Store_Actions_Factory implements IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return IWPML_Action|IWPML_Action[]|null
-	 */
 	public function create() {
 		if ( WPML_TM_ATE_Status::is_enabled() ) {
 

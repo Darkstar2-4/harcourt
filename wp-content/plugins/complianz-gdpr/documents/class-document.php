@@ -28,7 +28,13 @@ if ( ! class_exists( "cmplz_document" ) ) {
 
 			add_filter( 'the_content', array( $this, 'revert_divs_to_summary' ) );
 
-
+			// Restrict cmplz_document_status meta to users with manage_privacy capability.
+			register_meta( 'post', 'cmplz_document_status', array(
+				'auth_callback'     => function() {
+					return current_user_can( 'manage_privacy' );
+				},
+				'sanitize_callback' => 'sanitize_text_field',
+			) );
         }
 
 		static function this() {
@@ -662,8 +668,8 @@ if ( ! class_exists( "cmplz_document" ) ) {
 					       . esc_html( $element['title'] ) . '</h2>';
 				}
 				if ( isset( $element['subtitle'] ) ) {
-					return '<p class="subtitle annex">' . esc_html( $nr )
-					       . esc_html( $element['subtitle'] ) . '</p>';
+					return '<h3 class="subtitle annex">' . esc_html( $nr )
+					       . esc_html( $element['subtitle'] ) . '</h3>';
 				}
 			}
 
@@ -688,7 +694,7 @@ if ( ! class_exists( "cmplz_document" ) ) {
 				if ( $paragraph > 0 && $sub_paragraph > 0 && $this->is_numbered_element( $element ) ) {
 					$nr = $paragraph . "." . $sub_paragraph . " ";
 				}
-				return '<p class="cmplz-subtitle">' . esc_html( $nr ) . esc_html( $element['subtitle'] ) . '</p>';
+				return '<h3 class="cmplz-subtitle">' . esc_html( $nr ) . esc_html( $element['subtitle'] ) . '</h3>';
 			}
 
 
@@ -1172,13 +1178,12 @@ if ( ! class_exists( "cmplz_document" ) ) {
 		 * @return string
 		 */
 
-		public function accept_link( $atts = array(), $content = null, $tag = ''
-		) {
+		public function accept_link( $atts = array(), $content = null, $tag = '' ) {
 			$atts = array_change_key_case( (array) $atts, CASE_LOWER );
 			ob_start();
 			$atts = shortcode_atts( array( 'text' => false ), $atts, $tag );
-			$accept_text = $atts['text'] ?: __("Click to accept marketing cookies", "complianz-gdpr");
-			$html = '<div class="cmplz-custom-accept-btn cmplz-accept"><a href="#">' . $accept_text . '</a></div>';
+			$accept_text = $atts['text'] ? sanitize_text_field( $atts['text'] ) : __("Click to accept marketing cookies", "complianz-gdpr");
+			$html = '<div class="cmplz-custom-accept-btn cmplz-accept"><a href="#">' . esc_html( $accept_text ) . '</a></div>';
 			echo $html;
 			return ob_get_clean();
 		}
@@ -1688,6 +1693,19 @@ if ( ! class_exists( "cmplz_document" ) ) {
 		 */
 
 		public function get_shortcode_page_id( $type, $region , $cache = true) {
+			/**
+			 * Filter to prevent get_shortcode_page_id function from executing.
+			 *
+			 * Don't use if you need Complianz to generate your privacy and policy documents.
+			 * Return true to stop execution.
+			 *
+			 * @since 7.5.5
+			 *
+			 * @param bool $prevent Whether to prevent function execution. Default false.
+			 */
+			if ( apply_filters( 'cmplz_prevent_get_shortcode_page_id', false ) ) {
+				return false;
+			}
 
 			global $wpdb;
 
@@ -2024,18 +2042,54 @@ if ( ! class_exists( "cmplz_document" ) ) {
 				$img  = '';//'<img class="center" src="" width="150px">';
 				$date = date_i18n( get_option( 'date_format' ), time() );
 				$mpdf->SetHTMLHeader( $img );
-				$footer_text = cmplz_sprintf( "%s $title $date", get_bloginfo( 'name' ) );
-				$mpdf->SetFooter( $footer_text );
+
+				$footer_text = cmplz_sprintf(
+					/* translators: 1: site name, 2: document title, 3: date the PDF was generated */
+					__( '%1$s — %2$s — Generated on %3$s', 'complianz-gdpr' ),
+					get_bloginfo( 'name' ),
+					$title,
+					$date
+				);
+				/**
+				 * Filter the footer text printed on every page of the generated PDF.
+				 *
+				 * The date is the moment the PDF was generated, labelled explicitly as
+				 * such to distinguish it from the document's "last updated" date.
+				 * Return an empty string to omit the footer entirely.
+				 *
+				 * @param string $footer_text  Default footer text.
+				 * @param string $page         Document type, e.g. 'cookie-statement'.
+				 * @param string $region       Region code, e.g. 'eu'.
+				 * @param string $date         Localized PDF generation date.
+				 * @param bool   $save_to_file Whether the PDF is saved to disk (snapshot) or streamed (export).
+				 */
+				$footer_text = apply_filters( 'cmplz_pdf_footer_text', $footer_text, $page, $region, $date, $save_to_file );
+				if ( '' !== $footer_text ) {
+					$mpdf->SetFooter( $footer_text );
+				}
 				$mpdf->WriteHTML( $html );
 				// Save the pages to a file
 				if ( $save_to_file ) {
-					$file_title = $save_dir . sanitize_file_name( get_bloginfo( 'name' )
-					                                    . '-' . $region
-					                                    . "-proof-of-consent-"
-					                                    . $date );
+					$file_name = get_bloginfo( 'name' ) . '-' . $region . '-proof-of-consent-' . $date;
 				} else {
-					$file_title = sanitize_file_name( get_bloginfo( 'name' ) . "-export-" . $date );
+					$file_name = get_bloginfo( 'name' ) . '-export-' . $date;
 				}
+
+				/**
+				 * Filter the base file name (without extension or directory) of the generated PDF.
+				 *
+				 * The default snapshot name always contains "-proof-of-consent-" because the
+				 * only built-in caller that saves to disk is the proof-of-consent snapshot.
+				 * Use this filter to set a document-specific name. The returned value is always
+				 * passed through sanitize_file_name() before use.
+				 *
+				 * @param string $file_name    Default base file name.
+				 * @param string $page         Document type, e.g. 'privacy-statement'.
+				 * @param string $region       Region code, e.g. 'eu'.
+				 * @param bool   $save_to_file Whether the PDF is saved to disk (snapshot) or streamed (export).
+				 */
+				$file_name  = apply_filters( 'cmplz_pdf_file_title', $file_name, $page, $region, $save_to_file );
+				$file_title = ( $save_to_file ? $save_dir : '' ) . sanitize_file_name( $file_name );
 
 				$output_mode = $save_to_file ? 'F' : 'I';
 				$mpdf->Output( $file_title . ".pdf", $output_mode );
@@ -2178,16 +2232,20 @@ if ( ! class_exists( "cmplz_document" ) ) {
 				return $content;
 			}
 
-			//quotest get encoded for some strange reason. Decode.
-			$content = str_replace( '&#8221;', '"', $content );
-			$content = preg_replace('/\[cmplz-details-open([^>]*?)\]/', '<details $1>', $content);
-
-			$content = preg_replace('/\[cmplz-details-close\]/', '</details>', $content);
-			// Replace <summary> tags with custom <div>
-			$content = preg_replace('/\[cmplz-summary-open([^>]*?)\]/', '<summary $1>', $content);
-			$content =  preg_replace('/\[cmplz-summary-close\]/', '</summary>', $content);
+			// Decode curly quotes only within shortcode attributes, then sanitise output via wp_kses allowlist.
+			$allowed_details = array( 'details' => array( 'class' => array(), 'open' => array() ) );
+			$allowed_summary = array( 'summary' => array( 'class' => array() ) );
+			$content = preg_replace_callback( '/\[cmplz-details-open([^\]]*?)\]/', function( $matches ) use ( $allowed_details ) {
+				$attrs = str_replace( '&#8221;', '"', $matches[1] );
+				return wp_kses( '<details ' . $attrs . '>', $allowed_details );
+			}, $content );
+			$content = preg_replace( '/\[cmplz-details-close\]/', '</details>', $content );
+			$content = preg_replace_callback( '/\[cmplz-summary-open([^\]]*?)\]/', function( $matches ) use ( $allowed_summary ) {
+				$attrs = str_replace( '&#8221;', '"', $matches[1] );
+				return wp_kses( '<summary ' . $attrs . '>', $allowed_summary );
+			}, $content );
+			$content = preg_replace( '/\[cmplz-summary-close\]/', '</summary>', $content );
 			return $content;
 		}
-
 	}
 }

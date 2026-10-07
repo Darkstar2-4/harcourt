@@ -6,21 +6,12 @@ use WPML\ST\Gettext\Settings;
 
 class StringTranslation implements IFilter {
 
-	/** @var Settings $settings */
 	private $settings;
 
 	public function __construct( Settings $settings ) {
 		$this->settings = $settings;
 	}
 
-	/**
-	 * @param string       $translation
-	 * @param string       $text
-	 * @param string|array $domain
-	 * @param string|false $name
-	 *
-	 * @return string
-	 */
 	public function filter( $translation, $text, $domain, $name = false ) {
 		if ( $this->settings->isDomainRegistrationExcluded( $domain ) ) {
 			return $translation;

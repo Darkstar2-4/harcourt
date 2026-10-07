@@ -4,19 +4,14 @@ namespace WPML\Core\Component\Translation\Application\Query\Dto;
 
 class TranslationStatusDto {
 
-  /** @var int */
   private $itemId;
 
-  /** @var string */
   private $type;
 
-  /** @var string */
   private $targetLanguage;
 
-  /** @var int */
   private $status;
 
-  /** @var string|null */
   private $reviewStatus;
 
 
@@ -25,7 +20,7 @@ class TranslationStatusDto {
     string $type,
     string $targetLanguage,
     int $status,
-    string $reviewStatus = null
+    ?string $reviewStatus = null
   ) {
     $this->itemId         = $itemId;
     $this->type           = $type;
@@ -56,17 +51,11 @@ class TranslationStatusDto {
   }
 
 
-  /**
-   * @return string|null
-   */
   public function getReviewStatus() {
     return $this->reviewStatus;
   }
 
 
-  /**
-   * @return array{itemId: int, type: string, targetLanguage: string, status: int, reviewStatus: string|null}
-   */
   public function toArray(): array {
     return [
       'itemId'         => $this->itemId,

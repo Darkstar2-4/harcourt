@@ -8,21 +8,12 @@ class CachedJobsCount implements JobsCountInterface {
 
 	const CACHE_KEY = 'wpml-ate-jobs-count';
 
-	/** @var JobsCountInterface $jobsCount */
 	private $jobsCount;
 
 	public function __construct( JobsCountInterface $jobsCount ) {
 		$this->jobsCount = $jobsCount;
 	}
 
-	/**
-	 * @return array{
-	 *   allCount: int,
-	 *   allAutomaticCount: int,
-	 *   automaticWithoutLongstandingCount: int,
-	 *   needsReviewCount: int
-	 * }
-	 */
 	public function get( $withCache = true ): array {
 		if ( $withCache ) {
 			$data = Transient::get( self::CACHE_KEY );

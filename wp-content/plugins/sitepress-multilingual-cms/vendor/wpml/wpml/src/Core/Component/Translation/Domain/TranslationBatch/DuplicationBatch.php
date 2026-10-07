@@ -4,25 +4,15 @@ namespace WPML\Core\Component\Translation\Domain\TranslationBatch;
 
 class DuplicationBatch {
 
-  /** @var string */
   private $batchName;
 
-  /** @var string */
   private $sourceLanguageCode;
 
-  /** @var string[] */
   private $targetLanguages = [];
 
-  /** @var int[] */
   private $postIds = [];
 
 
-  /**
-   * @param string $batchName
-   * @param string $sourceLanguageCode
-   * @param string[] $targetLanguages
-   * @param int[] $postIds
-   */
   public function __construct(
     string $batchName,
     string $sourceLanguageCode,
@@ -46,17 +36,11 @@ class DuplicationBatch {
   }
 
 
-  /**
-   * @return string[]
-   */
   public function getTargetLanguages(): array {
     return $this->targetLanguages;
   }
 
 
-  /**
-   * @return int[]
-   */
   public function getPostIds(): array {
     return $this->postIds;
   }

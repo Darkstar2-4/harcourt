@@ -5,10 +5,6 @@ use WPML\Core\Twig_SimpleFilter;
 
 class WPML_Twig_WP_Plugin_Extension extends Twig_Extension {
 
-	/**
-	 * Returns the name of the extension.
-	 * @return string The extension name
-	 */
 	public function getName() {
 		return 'wp_plugin';
 	}

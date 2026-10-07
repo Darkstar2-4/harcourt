@@ -19,20 +19,10 @@ class OTGS_Installer_Connection_Test {
 		$this->log_factory      = $log_factory;
 	}
 
-	/**
-	 * @param string $repo_id
-	 *
-	 * @return null|string
-	 */
 	public function get_api_status( $repo_id ) {
 		return $this->get_url_status( $this->repositories->get( $repo_id )->get_api_url() );
 	}
 
-	/**
-	 * @param string $plugin_id
-	 *
-	 * @return bool|string
-	 */
 	public function get_download_status( $plugin_id ) {
 		$plugins_updates = get_site_transient( 'update_plugins' );
 		$update_response = $this->upgrade_response->modify_upgrade_response( $plugins_updates );
@@ -43,7 +33,6 @@ class OTGS_Installer_Connection_Test {
 			$request_response    = wp_remote_head( $update_response->response[ $plugin_id ]->package );
 			$parsed_download_url = wp_parse_url( $update_response->response[ $plugin_id ]->package );
 			parse_str( $parsed_download_url['query'], $download_args );
-			/** @var array{download_version: string, version: string} $download_args */
 
 
 			if ( is_wp_error( $request_response ) ) {
@@ -71,20 +60,10 @@ class OTGS_Installer_Connection_Test {
 		return $response;
 	}
 
-	/**
-	 * @param array $response
-	 *
-	 * @return bool
-	 */
 	private function is_response_successful( $response ) {
 		return in_array( $response['response']['code'], $this->get_success_codes(), true );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return bool
-	 */
 	private function get_url_status( $url ) {
 		$response      = false;
 		$res           = wp_remote_get( $url );

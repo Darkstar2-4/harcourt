@@ -5,22 +5,16 @@ class WPML_Slug_Translation implements IWPML_Action {
 	const STRING_DOMAIN = 'WordPress';
 	const CACHE_GROUP   = 'wpml-string-slug';
 
-	/** @var array $post_link_cache */
 	private $post_link_cache = array();
 
-	/** @var  SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Slug_Translation_Records_Factory $slug_records_factory */
 	private $slug_records_factory;
 
-	/** @var WPML_ST_Term_Link_Filter $term_link_filter */
 	private $term_link_filter;
 
-	/** @var WPML_Get_LS_Languages_Status $ls_languages_status */
 	private $ls_languages_status;
 
-	/** @var WPML_ST_Slug_Translation_Settings $slug_translation_settings */
 	private $slug_translation_settings;
 
 	private $ignore_post_type_link = false;
@@ -48,7 +42,7 @@ class WPML_Slug_Translation implements IWPML_Action {
 
 		if ( $this->slug_translation_settings->is_enabled() ) {
 			add_filter( 'post_type_link', array( $this, 'post_type_link_filter' ), apply_filters( 'wpml_post_type_link_priority', 1 ), 4 );
-			add_filter( 'pre_term_link', array( $this->term_link_filter, 'replace_slug_in_termlink' ), 1, 2 ); // high priority
+			add_filter( 'pre_term_link', array( $this->term_link_filter, 'replace_slug_in_termlink' ), 1, 2 );
 			add_filter( 'edit_post', array( $this, 'clear_post_link_cache' ), 1, 2 );
 			add_filter( 'query_vars', array( $this, 'add_cpt_names' ), 1, 1 );
 			add_filter( 'pre_get_posts', array( $this, 'filter_pre_get_posts' ), - 1000, 1 );
@@ -60,13 +54,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @deprecated since 2.8.0, use the class `WPML_Post_Slug_Translation_Records` instead.
-	 *
-	 * @param string $type
-	 *
-	 * @return null|string
-	 */
 	public static function get_slug_by_type( $type ) {
 		$slug_records_factory = new WPML_Slug_Translation_Records_Factory();
 		$slug_records         = $slug_records_factory->create( WPML_Slug_Translation_Factory::POST );
@@ -74,17 +61,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $slug_records->get_original( $type );
 	}
 
-	/**
-	 * This method is only for CPT
-	 *
-	 * @deprecated use `WPML_ST_Slug::filter_value` directly of the filter hook `wpml_get_translated_slug`
-	 *
-	 * @param string|false $slug_value
-	 * @param string       $post_type
-	 * @param string|bool  $language
-	 *
-	 * @return string
-	 */
 	public function get_translated_slug( $slug_value, $post_type, $language = false ) {
 		if ( $post_type ) {
 			$language = $language ? $language : $this->sitepress->get_current_language();
@@ -97,25 +73,11 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $slug_value;
 	}
 
-	/**
-	 * @param array $value
-	 *
-	 * @return array
-	 * @deprecated Use WPML\ST\SlugTranslation\Hooks\Hooks::filter
-	 */
 	public static function rewrite_rules_filter( $value ) {
 		return ( new \WPML\ST\SlugTranslation\Hooks\HooksFactory() )->create()->filter( $value );
 	}
 
 
-	/**
-	 * @param string  $post_link
-	 * @param WP_Post $post
-	 * @param bool    $leavename
-	 * @param bool    $sample
-	 *
-	 * @return mixed|string|WP_Error
-	 */
 	public function post_type_link_filter( $post_link, $post, $leavename, $sample ) {
 
 		if ( $this->ignore_post_type_link ) {
@@ -123,9 +85,19 @@ class WPML_Slug_Translation implements IWPML_Action {
 		}
 
 		if ( ! $this->sitepress->is_translated_post_type( $post->post_type )
-			 || ! ( $ld = $this->sitepress->get_element_language_details( $post->ID, 'post_' . $post->post_type ) )
+			|| ! ( $ld = $this->sitepress->get_element_language_details( $post->ID, 'post_' . $post->post_type ) )
 		) {
 			return $post_link;
+		}
+
+		$current_language = $this->sitepress->get_current_language();
+		$default_language = $this->sitepress->get_default_language();
+		if (
+			$current_language !== $default_language &&
+			$this->sitepress->is_display_as_translated_post_type( $post->post_type ) &&
+			null === $ld->source_language_code
+		) {
+			$ld->language_code = $current_language;
 		}
 
 		$ld = apply_filters( 'wpml_st_post_type_link_filter_language_details', $ld );
@@ -154,19 +126,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 				if ( isset( $wp_rewrite->extra_permastructs[ $post->post_type ] ) ) {
 					$struct_original = $wp_rewrite->extra_permastructs[ $post->post_type ]['struct'];
 
-					/**
-					 * This hook allows to filter the slug we want to search and replace
-					 * in the permalink structure. This is required for 3rd party
-					 * plugins replacing the original slug with a placeholder.
-					 *
-					 * @since 3.1.0
-					 *
-					 * @param string  $slug_this The original slug.
-					 * @param string  $post_link The initial link.
-					 * @param WP_Post $post      The post.
-					 * @param bool    $leavename Whether to keep the post name.
-					 * @param bool    $sample    Is it a sample permalink.
-					 */
 					$slug_this = apply_filters( 'wpml_st_post_type_link_filter_original_slug', $slug_this, $post_link, $post, $leavename, $sample );
 
 					$lslash = false !== strpos( $struct_original, '/' . $slug_this ) ? '/' : '';
@@ -189,18 +148,11 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $post_link;
 	}
 
-	/**
-	 * @param int      $post_ID
-	 * @param \WP_Post $post
-	 */
 	public function clear_post_link_cache( $post_ID, $post ) {
 		$blog_id = get_current_blog_id();
 		unset( $this->post_link_cache[ $blog_id ][ $post_ID ] );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_all_post_slug_translations() {
 		$slug_translations              = array();
 		$post_slug_translation_settings = $this->sitepress->get_setting( 'posts_slug_translation' );
@@ -242,13 +194,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $slug_translations;
 	}
 
-	/**
-	 * Adds all translated custom post type slugs as valid query variables in addition to their original values
-	 *
-	 * @param array $qvars
-	 *
-	 * @return array
-	 */
 	public function add_cpt_names( $qvars ) {
 		$all_slugs_translations = array_keys( $this->get_all_post_slug_translations() );
 		$qvars                  = array_merge( $qvars, $all_slugs_translations );
@@ -256,13 +201,7 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $qvars;
 	}
 
-	/**
-	 * @param WP_Query $query
-	 *
-	 * @return WP_Query
-	 */
 	public function filter_pre_get_posts( $query ) {
-		/** Do not alter the query if it has already resolved the post ID */
 		if ( ! empty( $query->query_vars['p'] ) ) {
 			return $query;
 		}
@@ -287,9 +226,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 		return $query;
 	}
 
-	/**
-	 * @param string $action
-	 */
 	public static function gui_save_options( $action ) {
 		switch ( $action ) {
 			case 'icl_slug_translation':
@@ -302,30 +238,14 @@ class WPML_Slug_Translation implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return string
-	 */
 	public static function sanitize( $slug ) {
-		// we need to preserve the %
 		$slug = str_replace( '%', '%45', $slug );
 		$slug = sanitize_title_with_dashes( $slug );
 		$slug = str_replace( '%45', '%', $slug );
 
-		/**
-		 * Filters the sanitized post type or taxonomy slug translation
-		 *
-		 * @since 2.10.0
-		 *
-		 * @param string $slug
-		 */
 		return apply_filters( 'wpml_st_slug_translation_sanitize', $slug );
 	}
 
-	/**
-	 * @deprecated since 2.8.0, use the class `WPML_Post_Slug_Translation_Records` instead.
-	 */
 	public static function register_string_for_slug( $post_type, $slug ) {
 		return icl_register_string( self::STRING_DOMAIN, 'URL slug: ' . $post_type, $slug );
 	}
@@ -337,7 +257,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 
 		if ( ! isset( $slug_settings['string_name_migrated'] ) ) {
 
-			/** @var string[] $queryable_post_types */
 			$queryable_post_types = get_post_types( array( 'publicly_queryable' => true ) );
 
 			foreach ( $queryable_post_types as $type ) {
@@ -348,7 +267,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 
 				$slug = trim( $post_type_obj->rewrite['slug'], '/' );
 				if ( $slug ) {
-					// First check if we should migrate from the old format URL slug: slug
 					$string_id = $wpdb->get_var(
 						$wpdb->prepare(
 							"SELECT id
@@ -359,7 +277,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 						)
 					);
 					if ( $string_id ) {
-						// migrate it to URL slug: post_type
 
 						$st_update['name'] = 'URL slug: ' . $type;
 						$wpdb->update( $wpdb->prefix . 'icl_strings', $st_update, array( 'id' => $string_id ) );
@@ -372,9 +289,6 @@ class WPML_Slug_Translation implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * Move global on/off setting to its own option WPML_ST_Slug_Translation_Settings::KEY_ENABLED_GLOBALLY
-	 */
 	private function migrate_global_enabled_setting() {
 		$enabled = get_option( WPML_ST_Slug_Translation_Settings::KEY_ENABLED_GLOBALLY );
 

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `UNION` keyword builder.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -17,12 +14,6 @@ use PhpMyAdmin\SqlParser\Component;
  */
 class UnionKeyword extends Component
 {
-    /**
-     * @param array<UnionKeyword[]> $component the component to be built
-     * @param array                 $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $tmp = array();

@@ -11,28 +11,16 @@ class SingleSiteProcess implements Process {
 
 	CONST TIMEOUT = 5;
 
-	/** @var DomainsAndLanguagesRepository */
 	private $domainsAndLanguagesRepository;
 
-	/** @var Manager */
 	private $manager;
 
-	/** @var Status */
 	private $status;
 
-	/** @var Pager */
 	private $pager;
 
-	/** @var callable */
 	private $migrateAdminTexts;
 
-	/**
-	 * @param DomainsAndLanguagesRepository $domainsAndLanguagesRepository
-	 * @param Manager                       $manager
-	 * @param Status                        $status
-	 * @param Pager                         $pager
-	 * @param callable                      $migrateAdminTexts
-	 */
 	public function __construct(
 		DomainsAndLanguagesRepository $domainsAndLanguagesRepository,
 		Manager $manager,
@@ -57,9 +45,6 @@ class SingleSiteProcess implements Process {
 		$this->status->markComplete();
 	}
 
-	/**
-	 * @return int Remaining
-	 */
 	public function runPage() {
 		if ( $this->pager->getProcessedCount() === 0 ) {
 			call_user_func( $this->migrateAdminTexts );
@@ -99,9 +84,6 @@ class SingleSiteProcess implements Process {
 			: wpml_collect();
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isCompleted() {
 		return $this->getPagesCount() === 0;
 	}

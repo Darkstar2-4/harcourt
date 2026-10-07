@@ -14,13 +14,6 @@ use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\Expression\AssignNameExpression;
 use WPML\Core\Twig\Node\ImportNode;
 use WPML\Core\Twig\Token;
-/**
- * Imports macros.
- *
- *   {% from 'forms.html' import forms %}
- *
- * @final
- */
 class FromTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

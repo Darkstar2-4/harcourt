@@ -16,16 +16,10 @@ class WPLoginUrlConverter implements \IWPML_Action {
 
 	private $rewrite_rule_not_found;
 
-	/** @var \WPML_URL_Converter $url_converter */
 	private $url_converter;
 
-	/** @var \SitePress $sitepress */
 	private $sitepress;
 
-	/**
-	 * @param \WPML_URL_Converter $url_converter
-	 * @param \SitePress          $sitepress
-	 */
 	public function __construct( $sitepress, $url_converter ) {
 		$this->rewrite_rule_not_found = false;
 		$this->url_converter          = $url_converter;
@@ -67,12 +61,6 @@ class WPLoginUrlConverter implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * Converts the logout URL to be translated.
-	 *
-	 * @param string $url
-	 * @return string
-	 */
 	public function convert_user_logout_url( $url ) {
 		$current_user_id = User::getCurrentId();
 		if ( $current_user_id ) {
@@ -91,7 +79,6 @@ class WPLoginUrlConverter implements \IWPML_Action {
 
 	public function redirect_to_login_url_with_lang() {
 		$sitePath              = Obj::propOr( '', 'path', parse_url( site_url() ) );
-		/** @var string $requestUriWithoutPath */
 		$requestUriWithoutPath = Str::trimPrefix( (string) $sitePath, (string) $_SERVER['REQUEST_URI'] );
 
 		$converted_url = site_url( $requestUriWithoutPath, 'login' );
@@ -116,13 +103,6 @@ class WPLoginUrlConverter implements \IWPML_Action {
 		$wp_rewrite->non_wp_rules = array_merge( $language_rules->toArray(), $wp_rewrite->non_wp_rules );
 	}
 
-	/**
-	 * Converts the redirected string if it's the default one.
-	 *
-	 * @param string $redirect_to
-	 * @param string $requested_redirect_to
-	 * @return string
-	 */
 	public function convert_default_redirect_url( $redirect_to, $requested_redirect_to ) {
 		if ( '' === $requested_redirect_to ) {
 			return $this->convert_url( $redirect_to );
@@ -191,10 +171,6 @@ class WPLoginUrlConverter implements \IWPML_Action {
 		return $query_vars;
 	}
 
-	/**
-	 * @param bool $validateOrRollback - If true, it will be validated that the translated Login URL is accessible or rollback.
-	 * @return void
-	 */
 	public static function enable( $validateOrRollback = false ) {
 		self::saveState( true, $validateOrRollback );
 	}
@@ -203,18 +179,10 @@ class WPLoginUrlConverter implements \IWPML_Action {
 		self::saveState( false );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function isEnabled() {
 		return Option::getOr( self::SETTINGS_KEY, false );
 	}
 
-	/**
-	 * @param bool $state
-	 * @param bool $validate - if true, will validate the change or undo it.
-	 *
-	 */
 	public static function saveState( $state, $validate = false ) {
 		Option::update( self::SETTINGS_KEY, $state );
 		WPLoginUrlConverterRules::markRulesForUpdating( $validate );

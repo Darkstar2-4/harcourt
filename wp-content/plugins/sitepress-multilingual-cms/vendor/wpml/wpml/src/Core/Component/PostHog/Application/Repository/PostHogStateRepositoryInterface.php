@@ -8,10 +8,13 @@ interface PostHogStateRepositoryInterface {
   public function isEnabled(): bool;
 
 
-  /**
-   * @return void
-   */
   public function setIsEnabled( bool $isEnabled );
+
+
+  public function getTrackingMode(): string;
+
+
+  public function setTrackingMode( string $mode );
 
 
 }

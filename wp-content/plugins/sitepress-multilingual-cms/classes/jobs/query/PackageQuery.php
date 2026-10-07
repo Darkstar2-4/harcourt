@@ -5,7 +5,6 @@ namespace WPML\TM\Jobs\Query;
 use WPML_TM_Job_Entity;
 
 class PackageQuery extends PostQuery {
-	/** @var string */
 	protected $title_column = 'string_packages.title';
 
 	protected function add_resource_join( QueryBuilder $query_builder ) {

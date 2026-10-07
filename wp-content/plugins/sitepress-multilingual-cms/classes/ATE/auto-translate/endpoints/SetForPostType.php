@@ -11,7 +11,6 @@ use WPML\TM\ATE\TranslateEverything\UntranslatedPosts;
 
 class SetForPostType {
 
-	/** @var UntranslatedPosts */
 	private $untranslatedPosts;
 
 	public function __construct( UntranslatedPosts $untranslatedPosts ) {
@@ -26,8 +25,6 @@ class SetForPostType {
 			if ( $onlyNew ) {
 				$this->untranslatedPosts->markTypeAsCompleted( $type );
 			} else {
-				// Not automatic or existing data should also be translated.
-				// => Remove the flag that the post type was already translated.
 				$this->untranslatedPosts->markPostTypeAsUncompleted( $type );
 			}
 		}

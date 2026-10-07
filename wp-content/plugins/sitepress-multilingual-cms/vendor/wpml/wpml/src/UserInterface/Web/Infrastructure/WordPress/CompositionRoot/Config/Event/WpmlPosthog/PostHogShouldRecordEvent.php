@@ -9,10 +9,8 @@ class PostHogShouldRecordEvent {
 
   const EVENT_NAME = 'check_posthog_should_record';
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var PostHogShouldRecordListener|null */
   private $posthogShouldRecordListener;
 
 
@@ -22,7 +20,6 @@ class PostHogShouldRecordEvent {
   }
 
 
-  /** @return void */
   public function register() {
     add_action(
       self::EVENT_NAME,
@@ -31,14 +28,9 @@ class PostHogShouldRecordEvent {
       }
     );
 
-    add_action(
-      'init',
-      function () {
-        if ( ! wp_next_scheduled( self::EVENT_NAME ) ) {
-          wp_schedule_event( time() + MINUTE_IN_SECONDS, 'daily', self::EVENT_NAME );
-        }
-      }
-    );
+    if ( wp_next_scheduled( self::EVENT_NAME ) ) {
+      wp_clear_scheduled_hook( self::EVENT_NAME );
+    }
   }
 
 

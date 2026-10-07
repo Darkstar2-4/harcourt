@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `REPLACE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -42,49 +39,19 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class ReplaceStatement extends Statement
 {
-    /**
-     * Options for `REPLACE` statements and their slot ID.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'LOW_PRIORITY' => 1,
         'DELAYED' => 1
     );
 
-    /**
-     * Tables used as target for this statement.
-     *
-     * @var IntoKeyword
-     */
     public $into;
 
-    /**
-     * Values to be replaced.
-     *
-     * @var Array2d
-     */
     public $values;
 
-    /**
-     * If SET clause is present
-     * holds the SetOperation.
-     *
-     * @var SetOperation[]
-     */
     public $set;
 
-    /**
-     * If SELECT clause is present
-     * holds the SelectStatement.
-     *
-     * @var SelectStatement
-     */
     public $select;
 
-    /**
-     * @return string
-     */
     public function build()
     {
         $ret = 'REPLACE ' . $this->options;
@@ -101,15 +68,10 @@ class ReplaceStatement extends Statement
         return $ret;
     }
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
-        ++$list->idx; // Skipping `REPLACE`.
+        ++$list->idx;
 
-        // parse any options if provided
         $this->options = OptionsArray::parse(
             $parser,
             $list,
@@ -118,33 +80,15 @@ class ReplaceStatement extends Statement
 
         ++$list->idx;
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ---------------------------------[ INTO ]----------------------------------> 1
-         *
-         *      1 -------------------------[ VALUES/VALUE/SET/SELECT ]-----------------------> 2
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -169,11 +113,11 @@ class ReplaceStatement extends Statement
                     if ($token->keyword === 'VALUE'
                         || $token->keyword === 'VALUES'
                     ) {
-                        ++$list->idx; // skip VALUES
+                        ++$list->idx;
 
                         $this->values = Array2d::parse($parser, $list);
                     } elseif ($token->keyword === 'SET') {
-                        ++$list->idx; // skip SET
+                        ++$list->idx;
 
                         $this->set = SetOperation::parse($parser, $list);
                     } elseif ($token->keyword === 'SELECT') {

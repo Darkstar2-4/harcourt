@@ -20,30 +20,18 @@ class Manager extends \WPML\ST\TranslationFile\Manager {
 		parent::__construct( $strings, $builder, $filesystem, $language_records, $domains );
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function getFileExtension() {
 		return 'mo';
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isPartialFile() {
 		return true;
 	}
 
-	/**
-	 * @return Collection
-	 */
 	protected function getDomains() {
 		return $this->domains->getMODomains();
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function hasFiles() {
 		return (bool) ( new GlobIterator( self::getSubdir() . '/*.mo' ) )->count();
 	}

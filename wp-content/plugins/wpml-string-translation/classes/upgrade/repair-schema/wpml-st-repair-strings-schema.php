@@ -4,19 +4,14 @@ class WPML_ST_Repair_Strings_Schema {
 
 	const OPTION_HAS_RUN = 'wpml_st_repair_string_schema_has_run';
 
-	/** @var IWPML_St_Upgrade_Command $upgrade_command */
 	private $upgrade_command;
 
-	/** @var WPML_Notices $notices */
 	private $notices;
 
-	/** @var array $args */
 	private $args;
 
-	/** @var string $db_error */
 	private $db_error;
 
-	/** @var array $has_run */
 	private $has_run = array();
 
 	public function __construct( WPML_Notices $notices, array $args, $db_error ) {
@@ -29,7 +24,6 @@ class WPML_ST_Repair_Strings_Schema {
 		$this->upgrade_command = $upgrade_command;
 	}
 
-	/** @return bool */
 	public function run() {
 		$this->has_run = get_option( self::OPTION_HAS_RUN, array() );
 
@@ -46,7 +40,6 @@ class WPML_ST_Repair_Strings_Schema {
 		return false;
 	}
 
-	/** @return bool */
 	private function run_upgrade_command() {
 		if ( ! $this->acquire_lock() ) {
 			return false;
@@ -65,7 +58,6 @@ class WPML_ST_Repair_Strings_Schema {
 		return get_class( $this->upgrade_command );
 	}
 
-	/** @return bool */
 	private function acquire_lock() {
 		if ( get_transient( WPML_ST_Upgrade::TRANSIENT_UPGRADE_IN_PROGRESS ) ) {
 			return false;

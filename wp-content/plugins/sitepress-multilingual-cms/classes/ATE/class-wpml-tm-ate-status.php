@@ -2,9 +2,6 @@
 
 use WPML\Setup\Option;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE_Status {
 
 	public static function is_enabled() {

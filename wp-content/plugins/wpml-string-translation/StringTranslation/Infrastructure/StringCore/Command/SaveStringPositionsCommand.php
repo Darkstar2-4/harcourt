@@ -11,10 +11,8 @@ use WPML\StringTranslation\Application\StringCore\Command\InsertStringPositionsC
 
 class SaveStringPositionsCommand implements SaveStringPositionsCommandInterface {
 
-	/** @var FindByDomainValueAndContextQueryInterface */
 	private $findByDomainValueAndContextQuery;
 
-	/** @var InsertStringPositionsCommandInterface */
 	private $insertStringPositionsCommand;
 
 	public function __construct(
@@ -25,19 +23,11 @@ class SaveStringPositionsCommand implements SaveStringPositionsCommandInterface 
 		$this->insertStringPositionsCommand     = $insertStringPositionsCommand;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 *
-	 * @return StringItem[]
-	 */
 	private function findStringFieldsByDomainValueAndContext( array $strings, array $fields ): array {
 		$criteria = new DomainValueAndContextCriteria( $strings, $fields );
 		return $this->findByDomainValueAndContextQuery->execute( $criteria );
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	public function run( array $strings ) {
 		$strings = $this->findStringFieldsByDomainValueAndContext( $strings, ['id', 'positions'] );
 

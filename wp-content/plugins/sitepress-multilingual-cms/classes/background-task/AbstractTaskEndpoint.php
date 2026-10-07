@@ -10,22 +10,17 @@ use WPML\Core\BackgroundTask\Service\BackgroundTaskService;
 use WPML\Core\BackgroundTask\Command\UpdateBackgroundTask;
 use WPML\Core\BackgroundTask\Model\BackgroundTask;
 use WPML\FP\Either;
+use WPML\LIB\WP\User;
 use function WPML\Container\make;
 
 abstract class AbstractTaskEndpoint implements TaskEndpointInterface {
 	const LOCK_TIME = 2*60;
 	const MAX_RETRIES = 0;
 
-	/** @var UpdateBackgroundTask $updateBackgroundTask */
 	protected $updateBackgroundTask;
 
-	/** @var BackgroundTaskService $backgroundTaskService */
 	protected $backgroundTaskService;
 
-	/**
-	 * @param UpdateBackgroundTask $updateBackgroundTask
-	 * @param BackgroundTaskService $backgroundTaskService
-	 */
 	public function __construct( UpdateBackgroundTask $updateBackgroundTask, BackgroundTaskService $backgroundTaskService ) {
 		$this->updateBackgroundTask     = $updateBackgroundTask;
 		$this->backgroundTaskService = $backgroundTaskService;
@@ -51,16 +46,15 @@ abstract class AbstractTaskEndpoint implements TaskEndpointInterface {
 		return static::class;
 	}
 
-	/**
-	 * @param BackgroundTask $task
-	 *
-	 * @return BackgroundTask
-	 */
 	abstract function runBackgroundTask( BackgroundTask $task );
 
 	public function run(
 		Collection $data
 	) {
+		if ( ! User::canManageTranslations() ) {
+			return Either::left( 'Insufficient permissions' );
+		}
+
 		try {
 			if ( ! isset( $data['taskId'] ) ) {
 				throw new TaskIsNotRunnableException();
@@ -78,13 +72,7 @@ abstract class AbstractTaskEndpoint implements TaskEndpointInterface {
 		}
 	}
 
-	/**
-	 * @param BackgroundTask $backgroundTask
-	 *
-	 * @return callable|\WPML\FP\Right
-	 */
 	private function getResponse( BackgroundTask $backgroundTask ) {
-		/** @var \WPML\Utilities\Lock $endpointLock */
 		$endpointLock = make( 'WPML\Utilities\Lock', [ ':name' => $backgroundTask->getTaskType() ] );
 		$endpointLock->release();
 

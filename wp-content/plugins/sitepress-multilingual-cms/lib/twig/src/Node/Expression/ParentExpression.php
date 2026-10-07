@@ -12,11 +12,6 @@
 namespace WPML\Core\Twig\Node\Expression;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a parent node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ParentExpression extends \WPML\Core\Twig\Node\Expression\AbstractExpression
 {
     public function __construct($name, $lineno, $tag = null)

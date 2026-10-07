@@ -35,9 +35,6 @@ abstract class AbstractStringItemApiController extends AbstractItemApiController
 		);
 	}
 
-	/**
-	 * @param null|int $type
-	 */
 	public function validateType( $kind ): bool
 	{
 		return in_array(
@@ -51,9 +48,6 @@ abstract class AbstractStringItemApiController extends AbstractItemApiController
 		);
 	}
 
-	/**
-	 * @param null|int $kind
-	 */
 	public function validateKind( $kind ): bool
 	{
 		return in_array(
@@ -65,9 +59,6 @@ abstract class AbstractStringItemApiController extends AbstractItemApiController
 		);
 	}
 
-	/**
-	 * @param null|int $source
-	 */
 	public function validateSource( $source ): bool
 	{
 		return in_array(

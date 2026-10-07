@@ -9,7 +9,6 @@ use WPML\StringTranslation\Infrastructure\StringGettext\Validator\IsExcludedDoma
 
 class IsExcludedDomainStringValidator implements IsExcludedDomainStringValidatorInterface {
 
-	/** @var IsExcludedDomainStringValidatorInterface[] */
 	private $validators;
 
 	public function __construct(

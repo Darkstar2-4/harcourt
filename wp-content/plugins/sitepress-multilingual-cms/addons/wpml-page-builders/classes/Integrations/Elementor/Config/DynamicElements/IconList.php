@@ -9,11 +9,7 @@ use function WPML\FP\compose;
 
 class IconList {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
-		// $isIconList :: array -> bool
 		$isIconList = Relation::propEq( 'widgetType', 'icon-list' );
 
 		$iconListLinksLens = compose(

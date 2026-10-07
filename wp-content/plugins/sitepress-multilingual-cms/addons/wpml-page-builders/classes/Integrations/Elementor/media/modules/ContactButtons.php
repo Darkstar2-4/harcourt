@@ -4,13 +4,6 @@ namespace WPML\PB\Elementor\Media\Modules;
 
 class ContactButtons extends \WPML_Elementor_Media_Node {
 
-	/**
-	 * @param array  $settings
-	 * @param string $target_lang
-	 * @param string $source_lang
-	 *
-	 * @return mixed
-	 */
 	public function translate( $settings, $target_lang, $source_lang ) {
 		if ( isset( $settings['top_bar_image']['id'] ) ) {
 			$translatedId = $this->media_translate->translate_id( (int) $settings['top_bar_image']['id'], $target_lang );

@@ -4,22 +4,6 @@ namespace WPML\StringTranslation\Infrastructure\StringGettext\Repository\Util;
 
 class LimitMaxQueuedFrontendStrings {
 
-	/**
-	 * @var array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * } $data
-	 * @var array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * } $existingData
-	 * @var int $maxQueuedFrontendStringsCount
-	 *
-	 * @return array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * }
-	 */
 	public function run( array $data, array $existingData, int $maxQueuedFrontendStringsCount ): array {
 		$totalStringsCount = 0;
 		foreach ( $existingData as $entry ) {

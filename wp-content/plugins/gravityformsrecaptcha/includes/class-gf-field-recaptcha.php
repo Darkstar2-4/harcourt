@@ -52,6 +52,7 @@ class GF_Field_RECAPTCHA extends GF_Field {
 	 * The field markup.
 	 *
 	 * @since 1.0
+	 * @since 2.2.0 Updated not to output the input when a checkbox key is used.
 	 *
 	 * @param array      $form  The form array.
 	 * @param string     $value The field value.
@@ -61,10 +62,21 @@ class GF_Field_RECAPTCHA extends GF_Field {
 	 */
 	public function get_field_input( $form, $value = '', $entry = null ) {
 		if ( gf_recaptcha()->get_connection_type() === 'enterprise' ) {
-			$site_key_attr = '';
 			if ( ! gf_recaptcha()->enterprise_keys_configured() ) {
 				gf_recaptcha()->log_error( __METHOD__ . '(): Enterprise project and/or key not saved in the reCAPTCHA Settings.' );
+
+				return '';
 			}
+
+			$key_type     = gf_recaptcha()->get_plugin_settings_instance()->get_recaptcha_key( 'site_key_type_v3_enterprise' );
+			$is_score_key = empty( $key_type ) || $key_type === 'SCORE';
+			if ( ! $is_score_key ) {
+				gf_recaptcha()->log_debug( __METHOD__ . '(): reCAPTCHA v3 Enterprise is not configured to use a score type key.' );
+
+				return '';
+			}
+
+			$site_key_attr = '';
 		} else {
 			$plugin_settings = gf_recaptcha()->get_plugin_settings_instance();
 			$site_key_attr   = sprintf( "data-sitekey='%s'", esc_attr( $plugin_settings->get_recaptcha_key( 'site_key_v3' ) ) );

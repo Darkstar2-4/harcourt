@@ -7,12 +7,6 @@ use WPML\ST\TranslationFile\UpdateHooks;
 
 class WPML_ST_Script_Translations_Hooks_Factory implements IWPML_Backend_Action_Loader, IWPML_Frontend_Action_Loader {
 
-	/**
-	 * Create hooks.
-	 *
-	 * @return array|IWPML_Action
-	 * @throws \WPML\Auryn\InjectionException Auryn Exception.
-	 */
 	public function create() {
 		$hooks = array();
 
@@ -40,11 +34,6 @@ class WPML_ST_Script_Translations_Hooks_Factory implements IWPML_Backend_Action_
 		return $hooks;
 	}
 
-	/**
-	 * @param WPML_ST_JED_File_Manager $jed_file_manager
-	 *
-	 * @return UpdateHooks
-	 */
 	private function get_update_hooks( $jed_file_manager ) {
 		return make(
 			UpdateHooks::class,
@@ -52,11 +41,6 @@ class WPML_ST_Script_Translations_Hooks_Factory implements IWPML_Backend_Action_
 		);
 	}
 
-	/**
-	 * @param WPML_ST_JED_File_Manager $jed_file_manager
-	 *
-	 * @return WPML_ST_Script_Translations_Hooks
-	 */
 	private function get_filtering_hooks( $jed_file_manager ) {
 		return make(
 			WPML_ST_Script_Translations_Hooks::class,

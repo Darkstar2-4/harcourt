@@ -7,11 +7,6 @@ class Executor {
 
 	const MAIN_SITE_ID = 1;
 
-	/**
-	 * @param callable $callback
-	 *
-	 * @return \WPML\Collect\Support\Collection
-	 */
 	public function withEach( $callback ) {
 		$applyCallback = function( $siteId ) use ( $callback ) {
 			switch_to_blog( $siteId );
@@ -27,19 +22,10 @@ class Executor {
 
 	}
 
-	/**
-	 * @return \WPML\Collect\Support\Collection
-	 */
 	public function getSiteIds() {
 		return \wpml_collect( get_sites( [ 'number' => PHP_INT_MAX  ] ) )->pluck( 'id' );
 	}
 
-	/**
-	 * @param int      $siteId
-	 * @param callable $callback
-	 *
-	 * @return mixed
-	 */
 	public function executeWith( $siteId, callable $callback ) {
 		switch_to_blog( $siteId );
 		$result = $callback();

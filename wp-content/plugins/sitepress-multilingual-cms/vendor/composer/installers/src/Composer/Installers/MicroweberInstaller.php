@@ -12,14 +12,6 @@ class MicroweberInstaller extends BaseInstaller
         'components' => 'components/{$install_item_dir}/'
     );
 
-    /**
-     * Format package name.
-     *
-     * For package type microweber-module, cut off a trailing '-module' if present
-     *
-     * For package type microweber-template, cut off a trailing '-template' if present.
-     *
-     */
     public function inflectPackageVars($vars)
     {
 

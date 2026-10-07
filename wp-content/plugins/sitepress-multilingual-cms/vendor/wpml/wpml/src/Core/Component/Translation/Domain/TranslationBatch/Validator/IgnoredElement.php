@@ -7,19 +7,14 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 
 class IgnoredElement {
 
-  /** @var TranslationType */
   private $translationType;
 
-  /** @var int */
   private $elementId;
 
-  /** @var string */
   private $targetLanguageCode;
 
-  /** @var TranslationMethodInterface */
   private $translationMethod;
 
-  /** @var string */
   private $reason;
 
 

@@ -4,18 +4,10 @@ class WPML_TP_Sync_Ajax_Handler {
 
 	const AJAX_ACTION = 'wpml-tp-sync-job-states';
 
-	/** @var WPML_TP_Sync_Jobs */
 	private $tp_sync;
 
-	/** @var WPML_TM_Last_Picked_Up $wpml_tm_last_picked_up */
 	private $wpml_tm_last_picked_up;
 
-	/**
-	 * WPML_TP_Sync_Jobs constructor.
-	 *
-	 * @param WPML_TP_Sync_Jobs      $tp_sync
-	 * @param WPML_TM_Last_Picked_Up $wpml_tm_last_picked_up
-	 */
 	public function __construct( WPML_TP_Sync_Jobs $tp_sync, WPML_TM_Last_Picked_Up $wpml_tm_last_picked_up ) {
 		$this->tp_sync                = $tp_sync;
 		$this->wpml_tm_last_picked_up = $wpml_tm_last_picked_up;
@@ -51,11 +43,6 @@ class WPML_TP_Sync_Ajax_Handler {
 		}
 	}
 
-	/**
-	 * @param WPML_TM_Job_Entity $job
-	 *
-	 * @return array
-	 */
 	public function map_job_to_result( WPML_TM_Job_Entity $job ) {
 		return array(
 			'id'                      => $job->get_id(),

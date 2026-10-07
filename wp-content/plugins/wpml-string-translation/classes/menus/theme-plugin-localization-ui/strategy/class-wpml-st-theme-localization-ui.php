@@ -6,17 +6,8 @@ class WPML_ST_Theme_Localization_UI implements IWPML_Theme_Plugin_Localization_U
 	private $template_path;
 	private $localization;
 
-	/** @var \WPML\ST\TranslationFile\FilesToScanRepository */
 	private $filesToScanRepository;
 
-	/**
-	 * WPML_ST_Theme_Localization_UI constructor.
-	 *
-	 * @param \WPML_Localization                             $localization
-	 * @param \WPML_ST_Theme_Localization_Utils              $utils
-	 * @param \WPML\ST\TranslationFile\FilesToScanRepository $filesToScanRepository
-	 * @param string                                         $template_path
-	 */
 	public function __construct(
 		WPML_Localization $localization,
 		WPML_ST_Theme_Localization_Utils $utils,
@@ -29,7 +20,6 @@ class WPML_ST_Theme_Localization_UI implements IWPML_Theme_Plugin_Localization_U
 		$this->template_path         = $template_path;
 	}
 
-	/** @return array */
 	public function get_model() {
 
 		$model = array(
@@ -61,7 +51,6 @@ class WPML_ST_Theme_Localization_UI implements IWPML_Theme_Plugin_Localization_U
 		return $model;
 	}
 
-	/** @return array */
 	private function get_components() {
 		$components                = [];
 		$theme_localization_status = $this->localization->get_localization_stats( 'theme' );
@@ -95,7 +84,6 @@ class WPML_ST_Theme_Localization_UI implements IWPML_Theme_Plugin_Localization_U
 		return $components;
 	}
 
-	/** @return string */
 	public function get_template() {
 		return 'theme-plugin-localization-ui.twig';
 	}

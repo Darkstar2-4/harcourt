@@ -1,20 +1,12 @@
 <?php
 
 class WPML_Sticky_Posts_Sync {
-	/** @var SitePress */
 	private $sitepress;
 
-	/** @var  WPML_Post_Translation $post_translation */
 	private $post_translation;
 
-	/** @var WPML_Sticky_Posts_Lang_Filter */
 	private $populate_lang_option;
 
-	/**
-	 * @param SitePress                     $sitepress
-	 * @param WPML_Post_Translation         $post_translation
-	 * @param WPML_Sticky_Posts_Lang_Filter $populate_lang_option
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		WPML_Post_Translation $post_translation,
@@ -25,11 +17,6 @@ class WPML_Sticky_Posts_Sync {
 		$this->populate_lang_option = $populate_lang_option;
 	}
 
-	/**
-	 * It returns only those sticky posts which belong to a current language
-	 *
-	 * @return array|false
-	 */
 	public function pre_option_sticky_posts_filter() {
 		$current_language = $this->sitepress->get_current_language();
 		if ( 'all' === $current_language ) {
@@ -52,13 +39,6 @@ class WPML_Sticky_Posts_Sync {
 		return $posts;
 	}
 
-	/**
-	 * Ensure that the original main `sticky_posts` option contains sticky posts from ALL languages
-	 *
-	 * @param array $posts
-	 *
-	 * @return array
-	 */
 	public function pre_update_option_sticky_posts( $posts ) {
 		$langs = array_keys( $this->sitepress->get_active_languages() );
 		$langs = array_diff( $langs, array( $this->sitepress->get_current_language() ) );
@@ -69,12 +49,6 @@ class WPML_Sticky_Posts_Sync {
 		return array_unique( call_user_func_array( 'array_merge', $lang_parts ) );
 	}
 
-	/**
-	 * It marks as `sticky` all posts which are translation of the post or have the same original post.
-	 * Basically, it means that they have the same trid in icl_translations table.
-	 *
-	 * @param int $post_id
-	 */
 	public function on_post_stuck( $post_id ) {
 		$translations = $this->get_post_translations( $post_id );
 		if ( $translations ) {
@@ -87,11 +61,6 @@ class WPML_Sticky_Posts_Sync {
 		}
 	}
 
-	/**
-	 * It un-marks as `sticky` all posts which are translation of the post or have the same original post.
-	 *
-	 * @param int $post_id
-	 */
 	public function on_post_unstuck( $post_id ) {
 		$translations = $this->get_post_translations( $post_id );
 		if ( $translations ) {
@@ -100,18 +69,11 @@ class WPML_Sticky_Posts_Sync {
 				$this->remove_post_id_from_original_option( (int) $translated_post_id );
 			}
 		} else {
-			// Remove from language-specific option.
 			$this->remove_post_id( 'sticky_posts_' . $this->sitepress->get_current_language(), (int) $post_id );
-			// Also remove from global sticky posts.
 			$this->remove_post_id_from_original_option( (int) $post_id );
 		}
 	}
 
-	/**
-	 * It returns an original, unfiltered `sticky_posts` option which contains sticky posts from ALL languages
-	 *
-	 * @return array
-	 */
 	public function get_unfiltered_sticky_posts_option() {
 		remove_filter( 'pre_option_sticky_posts', array( $this, 'pre_option_sticky_posts_filter' ) );
 		$posts = $this->get_sticky_posts();
@@ -120,11 +82,6 @@ class WPML_Sticky_Posts_Sync {
 		return $posts;
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return array
-	 */
 	private function get_post_translations( $post_id ) {
 		$this->post_translation->reload();
 		$trid = $this->post_translation->get_element_trid( $post_id );
@@ -132,17 +89,10 @@ class WPML_Sticky_Posts_Sync {
 		return $this->post_translation->get_element_translations( false, $trid, false );
 	}
 
-	/**
-	 * @param int $post_id
-	 */
 	private function add_post_id_to_original_option( $post_id ) {
 		$this->update_original_option( $post_id, array( $this, 'add_post_id' ) );
 	}
 
-	/**
-	 * @param string $option
-	 * @param int    $post_id
-	 */
 	private function add_post_id( $option, $post_id ) {
 		$sticky_posts = $this->get_sticky_posts( $option );
 
@@ -152,17 +102,10 @@ class WPML_Sticky_Posts_Sync {
 		}
 	}
 
-	/**
-	 * @param int $post_id
-	 */
 	private function remove_post_id_from_original_option( $post_id ) {
 		$this->update_original_option( $post_id, array( $this, 'remove_post_id' ) );
 	}
 
-	/**
-	 * @param int      $post_id
-	 * @param callable $callback
-	 */
 	private function update_original_option( $post_id, $callback ) {
 		remove_filter( 'pre_option_sticky_posts', array( $this, 'pre_option_sticky_posts_filter' ) );
 		remove_filter( 'pre_update_option_sticky_posts', array( $this, 'pre_update_option_sticky_posts' ) );
@@ -173,10 +116,6 @@ class WPML_Sticky_Posts_Sync {
 		add_filter( 'pre_option_sticky_posts', array( $this, 'pre_option_sticky_posts_filter' ), 10, 0 );
 	}
 
-	/**
-	 * @param string $option
-	 * @param int    $post_id
-	 */
 	private function remove_post_id( $option, $post_id ) {
 		$sticky_posts = $this->get_sticky_posts( $option );
 
@@ -186,20 +125,11 @@ class WPML_Sticky_Posts_Sync {
 		}
 	}
 
-	/**
-	 * @param string $lang
-	 *
-	 * @return array
-	 */
 	private function get_option_by_lang( $lang ) {
 		$sticky_posts = $this->get_sticky_posts( 'sticky_posts_' . $lang );
 		return $sticky_posts;
 	}
 
-	/**
-	 * @param string $option Default is sticky_posts
-	 * @return array
-	 */
 	private function get_sticky_posts( $option = 'sticky_posts' ) {
 		$sticky_posts = get_option( $option, array() );
 		return is_array( $sticky_posts ) ? $sticky_posts : [];

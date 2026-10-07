@@ -7,10 +7,8 @@ use WPML\Core\Component\ReportContentStats\Domain\Query\TranslationCoverageStats
 
 class ContentStatsCalculator {
 
-  /** @var OriginalContentStatsQueryInterface */
   private $originalContentStatsQuery;
 
-  /** @var TranslationCoverageStatsQueryInterface */
   private $translationCoverageStatsQuery;
 
 
@@ -23,12 +21,6 @@ class ContentStatsCalculator {
   }
 
 
-  /**
-   * @param string $defaultLangCode
-   * @param string $postTypeId
-   *
-   * @return false|PostTypeStats
-   */
   public function calculateForPostType( string $defaultLangCode, string $postTypeId ) {
     $originalContentStats = $this->originalContentStatsQuery->get( $defaultLangCode, $postTypeId );
 
@@ -57,12 +49,6 @@ class ContentStatsCalculator {
   }
 
 
-  /**
-   * @param int $originalContentCharsCount
-   * @param int $translatedOriginalContentCharsCount
-   *
-   * @return float|int
-   */
   private function calculatePercentagePerLang(
     int $originalContentCharsCount,
     int $translatedOriginalContentCharsCount

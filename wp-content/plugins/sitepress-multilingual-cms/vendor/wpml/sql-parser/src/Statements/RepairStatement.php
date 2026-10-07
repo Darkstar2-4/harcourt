@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `REPAIR` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -19,11 +16,6 @@ namespace PhpMyAdmin\SqlParser\Statements;
  */
 class RepairStatement extends MaintenanceStatement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'TABLE' => 1,
 

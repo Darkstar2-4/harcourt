@@ -10,15 +10,9 @@ class TranslationType {
   const STRING_BATCH = 'string-batch';
   const STRING = 'string';
 
-  /** @var string */
   private $value;
 
 
-  /**
-   * @param string $value
-   *
-   * @throws InvalidArgumentException
-   */
   public function __construct( string $value ) {
     if ( in_array( $value, self::getAll() ) ) {
       $this->value = $value;
@@ -34,9 +28,6 @@ class TranslationType {
   }
 
 
-  /**
-   * @return string[]
-   */
   public static function getAll(): array {
     return [
       self::POST,
@@ -48,25 +39,21 @@ class TranslationType {
 
 
   public static function post(): self {
-    /** @phpstan-ignore-next-line */
     return new self( self::POST );
   }
 
 
   public static function package(): self {
-    /** @phpstan-ignore-next-line */
     return new self( self::PACKAGE );
   }
 
 
   public static function stringBatch(): self {
-    /** @phpstan-ignore-next-line */
     return new self( self::STRING_BATCH );
   }
 
 
   public static function string(): self {
-    /** @phpstan-ignore-next-line */
     return new self( self::STRING );
   }
 

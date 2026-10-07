@@ -13,7 +13,6 @@ class AddUntranslatedStringsStrategyFilter extends AbstractFilterHookHandler {
 	const FILTER_ARGS     = 1;
 	const FILTER_PRIORITY = 10;
 
-	/** @var UntranslatedStrings|null */
 	private $untranslatedStringsStrategy;
 
 	protected function onFilter( ...$args ) {

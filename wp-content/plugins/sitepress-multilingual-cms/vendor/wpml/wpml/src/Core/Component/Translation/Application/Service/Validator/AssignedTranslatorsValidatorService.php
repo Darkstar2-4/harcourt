@@ -11,7 +11,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 
 class AssignedTranslatorsValidatorService implements ValidatorServiceInterface {
 
-  /** @var AssignedTranslatorsValidator */
   private $assignedTranslatorsValidator;
 
 
@@ -37,11 +36,6 @@ class AssignedTranslatorsValidatorService implements ValidatorServiceInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return LocalTranslatorMethod[]
-   */
   private function extractLocalTranslatorsMethods( SendToTranslationDto $sendToTranslationDto ): array {
     $localTranslatorsMethodsDto = array_filter(
       $sendToTranslationDto->getTargetLanguageMethods(),

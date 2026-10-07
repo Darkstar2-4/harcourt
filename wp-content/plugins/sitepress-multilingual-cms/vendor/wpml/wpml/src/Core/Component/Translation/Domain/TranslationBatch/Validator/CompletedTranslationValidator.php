@@ -14,7 +14,6 @@ class CompletedTranslationValidator implements ValidatorInterface {
 
   const IGNORED_ELEMENT_REASON = 'content_already_translated';
 
-  /** @var CompletedTranslationDetector */
   private $completedTranslationDetector;
 
 
@@ -23,15 +22,6 @@ class CompletedTranslationValidator implements ValidatorInterface {
   }
 
 
-  /**
-   * We shall ignore already translated element if
-   *  - the chosen translation method is automatic
-   *  - a user chose not to override existing translations
-   *
-   * @param TranslationBatch $translationBatch
-   *
-   * @return array{0: TranslationBatch, 1: IgnoredElement[]}
-   */
   public function validate( TranslationBatch $translationBatch ): array {
     if (
       $translationBatch->getHowToHandleExisting() ===

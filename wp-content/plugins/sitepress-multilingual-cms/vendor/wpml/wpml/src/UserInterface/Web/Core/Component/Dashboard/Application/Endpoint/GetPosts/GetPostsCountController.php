@@ -11,10 +11,8 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class GetPostsCountController implements EndpointInterface {
 
-  /** @var SearchQueryInterface */
   private $findBySearchCriteriaQuery;
 
-  /** @var SearchCriteriaBuilder */
   private $criteriaBuilder;
 
 
@@ -27,14 +25,6 @@ class GetPostsCountController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string, int>
-   * @throws InvalidArgumentException The requestData was not valid.
-   *
-   * @throws Exception Some system related error.
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 

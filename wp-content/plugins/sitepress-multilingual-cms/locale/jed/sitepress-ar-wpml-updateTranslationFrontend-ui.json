@@ -8,13 +8,13 @@
             "lang": "ar"
          },
          "Please wait, applying translation..": [
-            "يرجى الانتظار، جارٍ تطبيق الترجمة.."
+            "الرجاء الانتظار، جارٍ تطبيق الترجمة.."
          ],
          "There was an error in applying translation.": [
-            "حدث خطأ في تطبيق الترجمة."
+            "حدث خطأ أثناء تطبيق الترجمة."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "هناك شخص آخر يراجع هذه الترجمة حاليًا. يرجى المحاولة مرة أخرى لاحقًا."
+            "شخص آخر يراجع هذه الترجمة بالفعل. الرجاء المحاولة مرة أخرى لاحقًا."
          ]
       }
    }

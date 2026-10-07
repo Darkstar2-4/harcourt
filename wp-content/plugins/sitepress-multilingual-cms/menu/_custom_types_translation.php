@@ -51,7 +51,6 @@ foreach ( $custom_taxonomies as $custom_tax ) {
 	}
 }
 
-/** @var \WPML_Custom_Types_Translation_UI $custom_types_ui */
 $custom_types_ui = make( WPML_Custom_Types_Translation_UI::class );
 
 $CPT_slug_UI = $taxonomy_slug_UI = null;

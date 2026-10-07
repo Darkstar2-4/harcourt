@@ -8,11 +8,6 @@ interface MigrationStatusStorageInterface {
   public function read(): MigrationStatus;
 
 
-  /**
-   * @param MigrationStatus $migrationStatus
-   *
-   * @return void
-   */
   public function write( MigrationStatus $migrationStatus );
 
 

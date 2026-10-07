@@ -8,27 +8,13 @@ use WPML\Core\Port\Persistence\Exception\DatabaseErrorException;
 use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
-/**
- * @phpstan-type OriginalContentStatsRow array{
- *   post_type: string,
- *   all_count: int,
- *   all_chars_count: int,
- * }
- */
 class OriginalContentStatsQuery implements OriginalContentStatsQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, OriginalContentStatsRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPreparer;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, OriginalContentStatsRow> $queryHandler
-   *
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -38,12 +24,6 @@ class OriginalContentStatsQuery implements OriginalContentStatsQueryInterface {
   }
 
 
-  /**
-   * @param string $defaultLanguageCode
-   * @param string $postTypeName
-   *
-   * @return OriginalContentStats|null
-   */
   public function get( string $defaultLanguageCode, string $postTypeName ) {
     $sql = "
     SELECT p.post_type, 

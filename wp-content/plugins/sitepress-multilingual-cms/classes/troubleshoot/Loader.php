@@ -27,7 +27,6 @@ class Loader implements \IWPML_Backend_Action {
 	public function enqueueScripts( $hook ) {
 		if ( WPML_PLUGIN_FOLDER . '/menu/troubleshooting.php' === $hook ) {
 			global $wpml_dic;
-			/** @var MigrationStatusService $migrationStatusService */
 			$migrationStatusService = $wpml_dic->make( MigrationStatusService::class );
 			$migrationStatus        = $migrationStatusService->getMigrationStatus();
 

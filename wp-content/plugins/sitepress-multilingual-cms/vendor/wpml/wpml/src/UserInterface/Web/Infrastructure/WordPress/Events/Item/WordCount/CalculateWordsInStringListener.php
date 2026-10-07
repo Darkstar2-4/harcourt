@@ -9,7 +9,6 @@ use function WPML\PHP\Logger\notice;
 
 class CalculateWordsInStringListener implements EventListenerInterface {
 
-  /** @var ItemWordCountService */
   private $itemWordCountService;
 
 
@@ -18,12 +17,6 @@ class CalculateWordsInStringListener implements EventListenerInterface {
   }
 
 
-  /**
-   * @param int|mixed $currentValue
-   * @param int|mixed $stringId
-   *
-   * @return int|mixed
-   */
   public function calculate( $currentValue, $stringId ) {
     if ( ! $currentValue && is_numeric( $stringId ) ) {
       try {

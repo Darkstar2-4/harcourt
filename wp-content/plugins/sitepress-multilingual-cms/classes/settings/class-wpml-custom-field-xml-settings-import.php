@@ -6,29 +6,16 @@ use WPML\Utils\XmlTranslatableIds;
 
 class WPML_Custom_Field_XML_Settings_Import {
 
-	/** @var WPML_Custom_Field_Setting_Factory $setting_factory */
 	private $setting_factory;
-	/** @var XmlTranslatableIds $xml_object_ids */
 	private $xml_object_ids;
-	/** @var  array $settings_array */
 	private $settings_array;
 
-	/**
-	 * WPML_Custom_Field_XML_Settings_Import constructor.
-	 *
-	 * @param WPML_Custom_Field_Setting_Factory $setting_factory
-	 * @param XmlTranslatableIds                $xml_object_ids
-	 * @param array                             $settings_array
-	 */
 	public function __construct( $setting_factory, $xml_object_ids, $settings_array ) {
 		$this->setting_factory = $setting_factory;
 		$this->xml_object_ids  = $xml_object_ids;
 		$this->settings_array  = $settings_array;
 	}
 
-	/**
-	 * Runs the actual import of the xml
-	 */
 	public function run() {
 		$config = $this->settings_array;
 		foreach (
@@ -138,7 +125,7 @@ class WPML_Custom_Field_XML_Settings_Import {
 	}
 
 	private function get_custom_field_texts_keys( $data ) {
-		if ( isset( $data['attr'] ) ) { // single
+		if ( isset( $data['attr'] ) ) {
 			$data = array( $data );
 		}
 

@@ -1,18 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 27/10/17
- * Time: 4:28 PM
- */
 
 class WPML_Language_Where_Clause {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
-	/** @var wpdb $wpdb */
 	private $wpdb;
-	/** @var WPML_Display_As_Translated_Posts_Query $display_as_translated_query */
 	private $display_as_translated_query;
 
 	public function __construct( SitePress $sitepress, wpdb $wpdb, WPML_Display_As_Translated_Posts_Query $display_as_translated_query ) {

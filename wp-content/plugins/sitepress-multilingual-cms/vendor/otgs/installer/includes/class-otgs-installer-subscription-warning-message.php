@@ -39,7 +39,6 @@ class Subscription_Warning_Message {
 		if ( $this->wpInstaller->repository_has_valid_subscription( $repositoryId ) && ! $neverExpires ) {
 			$subscriptionExpirationPath = [ 'subscriptions_meta', 'expiration', $subscriptionId ];
 
-			// Returns true if warning property length > 0 and false otherwise
 			$warningPropertyLength = function ( $propertyName ) use ( $repositoryData, $subscriptionExpirationPath ) {
 				if ( Obj::hasPath( $subscriptionExpirationPath, $repositoryData ) ) {
 					$warningPropertyPath = array_merge( $subscriptionExpirationPath, [ $propertyName ] );
@@ -59,7 +58,6 @@ class Subscription_Warning_Message {
 				$daysWarning   = Obj::path( array_merge( $subscriptionExpirationPath, [ 'days_warning' ] ), $repositoryData );
 				$customMessage = Obj::path( array_merge( $subscriptionExpirationPath, [ 'warning_message' ] ), $repositoryData );
 			} else {
-				// defaults
 				$daysWarning = 30;
 
 				$customMessage = "<a style='margin-left:0px;' href='{$repositoryURL}' target='_blank'>" . __( 'Renew today', 'installer' ) . '</a>' . ' ' . __( 'to protect your site from breaking changes in future WordPress releases.', 'installer' ) . '<br>';

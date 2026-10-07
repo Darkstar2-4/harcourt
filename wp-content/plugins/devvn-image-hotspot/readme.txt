@@ -3,20 +3,20 @@ Contributors: levantoan
 Donate link: https://levantoan.com/donate/
 Tags: hotspot, points, image, maps, image hotspot
 Requires at least: 4.6
-Tested up to: 6.8.2
-Stable tag: 1.2.9
+Tested up to: 6.9
+Stable tag: 1.3.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0
 
-Image Hotspot by DevVN help you add hotspot to your images.
+Image Hotspot by DevVN helps you add hotspots to your images.
 
 == Description ==
 
-Image Hotspot by DevVN help you add hotspot to your images.
+Image Hotspot by DevVN helps you add hotspots to your images.
 
-### Used
+### Usage
 
-Copy your shortcode to view eg: [devvn_ihotspot id="YOUR_ID"]
+Copy your shortcode to view, e.g.: [devvn_ihotspot id="YOUR_ID"]
 
 https://www.youtube.com/watch?v=id2Kt6gUKhs
 
@@ -50,6 +50,19 @@ Read here [change the background tooltip and text color](https://github.com/leva
 
 For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
+= 1.3.0 - 12/12/2025 =
+
+* SECURITY: Fix Stored Cross-Site Scripting (XSS) vulnerability in hotspot_content custom field meta (CVE-2025-14445)
+* SECURITY: Add re-sanitization of data points when loaded from database to prevent XSS attacks
+* SECURITY: Enhance input sanitization for all data point fields (content, URLs, text fields, numeric values)
+* SECURITY: Add capability check (edit_posts) to AJAX handler for clone point functionality
+* SECURITY: Add wp_unslash() to all $_POST and $_REQUEST inputs before sanitization
+* SECURITY: Add sanitization callback for register_setting() to validate and sanitize plugin options
+* CODE: Rename functions to follow WordPress naming conventions (add plugin prefix)
+* CODE: Fix WordPress Coding Standards violations (function prefixes, hook names, input sanitization)
+* CODE: Improve code quality and compliance with WordPress Plugin Check requirements
+* CODE: Add proper escaping and sanitization throughout the plugin
+
 = 1.2.9 - 16/07/2025 =
 
 * Add ALT to main image
@@ -61,7 +74,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.2.7 - 26/08/2024 =
 
-* Update js to be compatible with lazyload
+* Update JS to be compatible with lazy load
 * Update .pot file (Thanks to Alex Lion (阿力獅) feedback)
 
 = 1.2.6 - 23/08/2024 =
@@ -75,12 +88,12 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.2.4 - 16/08/2024 =
 
-* FIX Authenticated (Author+) PHP Object Injection. Thanks to Lucio Sá
-* Add editor js and tinymce js
+* Fix Authenticated (Author+) PHP Object Injection. Thanks to Lucio Sá
+* Add editor JS and TinyMCE JS
 
 = 1.2.2 - 05/03/2022 =
 
-* add option popup full screen or normal on mobile
+* Add option for popup full screen or normal on mobile
 * Fix css close button
 
 = 1.2.1 - 14/12/2020 =
@@ -89,7 +102,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.2.0 - 03/04/2020 =
 
-* Fix: css rtl
+* Fix: CSS RTL
 
 = 1.1.9 - 28/03/2020 =
 
@@ -101,7 +114,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.1.7 =
 
-* Fix: compatible with wordpress 5.x.x
+* Fix: compatibility with WordPress 5.x.x
 
 = 1.1.6 =
 
@@ -109,7 +122,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.1.5 =
 
-* Fix: fixes potential theme css conflict
+* Fix: potential theme CSS conflict
 
 = 1.1.4 =
 
@@ -117,15 +130,15 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.1.3 =
 
-* Fix: some css style
+* Fix: some CSS styles
 
 = 1.1.2 =
 
-* fix: some css style in admin panel
+* Fix: some CSS styles in admin panel
 
 = 1.1.1 =
 
-* Update: some css style
+* Update: some CSS styles
 
 = 1.1.0 =
 
@@ -133,7 +146,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.0.9 =
 
-* Fix: conflict with some theme
+* Fix: conflict with some themes
 
 = 1.0.8 =
 
@@ -141,7 +154,7 @@ For more information, see [Releases](https://levantoan.com/devvn-image-hotspot).
 
 = 1.0.7 =
 
-* Fixed: conflic with avada theme
+* Fixed: conflict with Avada theme
 * Don't load modal Bootstrap if it exists or is loaded
 
 = 1.0.6 =

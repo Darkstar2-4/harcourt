@@ -11,12 +11,8 @@ class AuthenticationAjax {
 
 	const AJAX_ACTION = 'translation_service_authentication';
 
-	/** @var  AuthorizationFactory */
 	protected $authorize_factory;
 
-	/**
-	 * @param AuthorizationFactory $authorize_factory
-	 */
 	public function __construct( AuthorizationFactory $authorize_factory ) {
 		$this->authorize_factory = $authorize_factory;
 	}
@@ -28,9 +24,6 @@ class AuthenticationAjax {
 		add_action( 'wp_ajax_translation_service_invalidation', [ $this, 'invalidate_service' ] );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function authenticate_service() {
 		$this->handle_action(
 			function () {
@@ -47,9 +40,6 @@ class AuthenticationAjax {
 		);
 	}
 
-	/**
-	 * @return void
-	 */
 	public function update_credentials() {
 		$this->handle_action(
 			function () {
@@ -92,7 +82,7 @@ class AuthenticationAjax {
 
 		$result = \WPML\TM\Menu\TranslationServices\Endpoints\Select::select( $service->id );
 
-		if ( is_string( $result ) ) { // In case of an error, the result will return a string.
+		if ( is_string( $result ) ) {
 			$this->send_error( __( 'Error Server', 'sitepress' ), __( 'Unable to set this service as default.', 'sitepress' ) );
 
 			return;
@@ -100,9 +90,6 @@ class AuthenticationAjax {
 		$this->send_success_response( __( 'Service added and set as default.', 'sitepress' ) );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function invalidate_service() {
 		$this->handle_action(
 			function () {
@@ -114,14 +101,6 @@ class AuthenticationAjax {
 		);
 	}
 
-	/**
-	 * @param callable $action
-	 * @param callable $request_validation
-	 * @param string   $success_message
-	 * @param string   $failure_message
-	 *
-	 * @return void
-	 */
 	private function handle_action(
 		callable $action,
 		callable $request_validation,
@@ -141,11 +120,6 @@ class AuthenticationAjax {
 		}
 	}
 
-	/**
-	 * @param string $msg
-	 *
-	 * @return void
-	 */
 	private function send_success_response( $msg ) {
 		wp_send_json_success(
 			[
@@ -156,11 +130,6 @@ class AuthenticationAjax {
 		);
 	}
 
-	/**
-	 * @param string $msg
-	 *
-	 * @return bool
-	 */
 	private function send_error_message( $msg ) {
 		wp_send_json_error(
 			[
@@ -183,16 +152,10 @@ class AuthenticationAjax {
 		);
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function is_valid_nonce_request() {
 		return isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], self::AJAX_ACTION );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function is_valid_request_with_params() {
 		return isset( $_POST['service_id'], $_POST['custom_fields'] ) && $this->is_valid_nonce_request();
 	}

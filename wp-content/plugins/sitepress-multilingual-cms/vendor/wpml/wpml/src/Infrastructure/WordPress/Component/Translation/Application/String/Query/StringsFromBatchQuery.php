@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Infrastructure\WordPress\Component\Translation\Application\String\Query;
 
 use WPML\Core\Component\Translation\Application\String\Query\StringsFromBatchQueryInterface;
@@ -10,17 +9,11 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class StringsFromBatchQuery implements StringsFromBatchQueryInterface {
 
-  /** @var QueryHandlerInterface<int, int> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @param QueryHandlerInterface<int, int> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare

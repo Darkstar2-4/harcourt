@@ -27,9 +27,6 @@ class Save extends SaveUser {
 	const ERROR_MESSAGE_TRANSLATORS 	= 'There was an error when saving the following translators:';
 	const SUCCESS_MESSAGE_TRANSLATORS 	= 'The translators were saved successfully.';
 
-	/**
-	 * @inheritDoc
-	 */
 	public function run( Collection $data ) {
 		return Either::of( $data )
 			->map( Fns::map( $this->createTranslator() ) )
@@ -37,11 +34,6 @@ class Save extends SaveUser {
 			->chain( $this->handleErrors() );
 	}
 
-	/**
-	 * Creates a translator and returns either an error or the translator email.
-	 *
-	 * @return callable(Collection):Either
-	 */
 	private function createTranslator() {
 		return function( $translator ) {
 			$handleError = function($error) use ($translator) {
@@ -57,11 +49,6 @@ class Save extends SaveUser {
 		};
 	}
 
-	/**
-	 * Synchronize ATE translators if one of the results was added.
-	 *
-	 * @return callable(Either[]):Either[]
-	 */
 	private function syncAteIfRequired() {
 		return function( $translatorResults ) {
 			foreach( $translatorResults as $translatorResult ) {
@@ -74,11 +61,6 @@ class Save extends SaveUser {
 		};
 	}
 
-	/**
-	 * If any error happened, it prepares a message and the translators that failed.
-	 *
-	 * @return callable(Either[]):Either
-	 */
 	private function handleErrors() {
 		return function( $translatorResults ) {
 			$getErrorMsg     = pipe( invoke( 'coalesce' )->with( Fns::identity(), Fns::identity() ), invoke( 'get' ) );

@@ -10,9 +10,6 @@ use WPML_TM_ATE_AMS_Endpoints;
 use function WPML\Container\make;
 
 class Retry extends Base {
-	/**
-	 * @return array
-	 */
 	public function get_routes() {
 		return [
 			[
@@ -25,11 +22,6 @@ class Retry extends Base {
 		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	public function get_allowed_capabilities( WP_REST_Request $request ) {
 		return [
 			'manage_options',
@@ -38,12 +30,6 @@ class Retry extends Base {
 		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 * @throws \Auryn\InjectionException
-	 */
 	public function retry( WP_REST_Request $request ) {
 		return (array) make( Process::class )->run( $request->get_param( 'jobsToProcess' ) );
 	}

@@ -1,16 +1,8 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Rest {
 	private $http;
 
-	/**
-	 * WPML_Rest constructor.
-	 *
-	 * @param WP_Http $http
-	 */
 	public function __construct( WP_Http $http ) {
 		$this->http = $http;
 	}

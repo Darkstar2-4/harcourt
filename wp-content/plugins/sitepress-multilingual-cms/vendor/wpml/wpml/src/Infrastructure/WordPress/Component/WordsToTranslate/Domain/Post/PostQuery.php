@@ -1,5 +1,4 @@
 <?php
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Infrastructure\WordPress\Component\WordsToTranslate\Domain\Post;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Post;
@@ -10,20 +9,15 @@ use WPML\PHP\Exception\InvalidItemIdException;
 class PostQuery implements PostQueryInterface {
   use SourceLangQueryTrait;
 
-  /** @var array<int, Post> */
   private $posts = [];
 
 
 
-  /**
-   * @throws InvalidItemIdException
-   */
   public function getById( $id ) {
     if ( isset( $this->posts[ $id ] ) ) {
       return $this->posts[ $id ];
     }
 
-    /** @var \WP_Post|null $wpPost */
     $wpPost = \get_post( $id );
 
     if ( ! $wpPost ) {

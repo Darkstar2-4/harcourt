@@ -1,0 +1,765 @@
+/* Job Log page — visual style aligned with the WPML TM dashboard.
+   Colours pulled from
+   vendor/wpml/wpml/src/UserInterface/Web/Core/SharedKernel/PublicSrc/Style/_variables.scss
+   so this page looks like it belongs next to the Translations dashboard. */
+
+.wpml-tm-job-log {
+	--wpml-blue: #2F7D92;
+	--wpml-blue-dark: #256776;
+	--wpml-blue-lightest: #EBF3F5;
+	--wpml-blue-lightest-bg: #F8FBFC;
+	--wpml-green: #1C7D6B;
+	--wpml-red: #c8471f;
+	--wpml-orange: #996415;
+	--wpml-orange-bg: #FBF6E5;
+	--wpml-gray-dark: #373737;
+	--wpml-gray-dim: #666;
+	--wpml-border: #c3c4c7;
+	--wpml-border-light: #d9d9d9;
+}
+
+/* Page heading + toolbar --------------------------------------------------- */
+
+.wpml-tm-job-log h1 {
+	color: var(--wpml-gray-dark);
+	font-weight: 600;
+	padding: 9px 0 4px;
+}
+
+.wpml-tm-job-log .job-log-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 20px;
+	background: #fff;
+	border: 1px solid var(--wpml-border);
+	border-bottom: none;
+}
+
+/* Card around the listing — mirrors .icl_tm_wrap in the TM dashboard. */
+.wpml-tm-job-log .job-log-summary-table {
+	background: #fff;
+	border: 1px solid var(--wpml-border);
+	border-collapse: separate;
+	border-spacing: 0;
+	margin: 0;
+	box-shadow: none;
+}
+
+/* Settings toggle (enable/disable logs) ----------------------------------- */
+
+.wpml-tm-job-log .job-log-settings-toggle-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.wpml-tm-job-log .job-log-settings-toggle {
+	position: relative;
+	display: inline-block;
+	width: 44px;
+	height: 22px;
+	margin: 0;
+	cursor: pointer;
+}
+
+.wpml-tm-job-log .job-log-toggle-input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.wpml-tm-job-log .job-log-toggle-slider {
+	position: absolute;
+	inset: 0;
+	background-color: #ccc;
+	transition: 0.25s;
+	border-radius: 22px;
+	cursor: pointer;
+}
+
+.wpml-tm-job-log .job-log-toggle-slider::before {
+	position: absolute;
+	content: "";
+	height: 16px;
+	width: 16px;
+	left: 3px;
+	bottom: 3px;
+	background-color: #fff;
+	transition: 0.25s;
+	border-radius: 50%;
+}
+
+.wpml-tm-job-log .job-log-toggle-input:checked + .job-log-toggle-slider {
+	background-color: var(--wpml-blue);
+}
+
+.wpml-tm-job-log .job-log-toggle-input:checked + .job-log-toggle-slider::before {
+	transform: translateX(22px);
+}
+
+.wpml-tm-job-log .job-log-toggle-input:focus + .job-log-toggle-slider {
+	box-shadow: 0 0 0 2px rgba(47, 125, 146, 0.25);
+}
+
+.wpml-tm-job-log .job-log-toggle-label {
+	font-size: 13px;
+	color: var(--wpml-gray-dark);
+	user-select: none;
+}
+
+.wpml-tm-job-log .job-log-clear-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Summary table ----------------------------------------------------------- */
+
+.wpml-tm-job-log .job-log-summary-table thead th,
+.wpml-tm-job-log .job-log-summary-table tfoot th {
+	background: var(--wpml-blue-lightest-bg);
+	color: var(--wpml-gray-dark);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--wpml-border);
+}
+
+.wpml-tm-job-log .job-log-summary-table tbody td {
+	background: #fff;
+	border-bottom: 1px solid var(--wpml-border-light);
+	padding: 10px 12px;
+	vertical-align: middle;
+	font-size: 13px;
+	color: var(--wpml-gray-dark);
+}
+
+.wpml-tm-job-log .job-log-summary-row:hover td {
+	background: var(--wpml-blue-lightest);
+}
+
+.wpml-tm-job-log .job-log-summary-row + .job-log-detail-row td {
+	border-bottom: 1px solid var(--wpml-border);
+}
+
+.wpml-tm-job-log .job-log-col-pid,
+.wpml-tm-job-log .job-log-col-duration {
+	font-variant-numeric: tabular-nums;
+}
+
+.wpml-tm-job-log .job-log-col-when {
+	width: 100px;
+}
+
+/* Status badges (rendered inline-style in PHP; just resetting size here) -- */
+
+.wpml-tm-job-log .job-log-status {
+	display: inline-block;
+	padding: 3px 8px;
+	border-radius: 3px;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.3px;
+	text-transform: uppercase;
+	line-height: 1.4;
+}
+
+/* Action buttons ----------------------------------------------------------
+   Tab-style outline buttons inspired by .nav-tab / .nav-tab-active in the TM
+   dashboard: white background, WPML-blue border + text, light-blue tint on
+   hover. The per-row "View" button stays as the filled primary so the row's
+   main action remains visually distinct.                                    */
+
+.wpml-tm-job-log #job-log-download-all-button,
+.wpml-tm-job-log #job-log-download-last-100-button,
+.wpml-tm-job-log #job-log-clear-button,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-view,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-download,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-cancel,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-save,
+.wpml-tm-job-log .button.job-log-entity-download-button {
+	background: #fff;
+	border: 1px solid var(--wpml-blue);
+	color: var(--wpml-blue);
+	border-radius: 4px;
+	box-shadow: none;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.wpml-tm-job-log #job-log-download-all-button,
+.wpml-tm-job-log #job-log-download-last-100-button,
+.wpml-tm-job-log #job-log-clear-button {
+	min-height: 32px;
+	padding: 4px 14px;
+	font-size: 13px;
+	line-height: 1.6;
+	font-weight: 500;
+}
+
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-view,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-download,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-cancel,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-save,
+.wpml-tm-job-log .button.job-log-entity-download-button {
+	min-height: 28px;
+	padding: 2px 12px;
+	font-size: 12px;
+	line-height: 1.6;
+	font-weight: 500;
+}
+
+/* Outline state — default for: Download all, Download last 100, per-row Download, modal Cancel. */
+.wpml-tm-job-log #job-log-download-all-button:hover,
+.wpml-tm-job-log #job-log-download-all-button:focus,
+.wpml-tm-job-log #job-log-download-last-100-button:hover,
+.wpml-tm-job-log #job-log-download-last-100-button:focus,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-download:hover,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-download:focus,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-cancel:hover,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-cancel:focus,
+.wpml-tm-job-log .button.job-log-entity-download-button:hover,
+.wpml-tm-job-log .button.job-log-entity-download-button:focus {
+	background: var(--wpml-blue-lightest);
+	border-color: var(--wpml-blue-dark);
+	color: var(--wpml-blue-dark);
+	outline: none;
+}
+
+/* "Clear logs" leans destructive — keep the tab aesthetic but go red on hover. */
+.wpml-tm-job-log #job-log-clear-button {
+	border-color: var(--wpml-border);
+	color: var(--wpml-gray-dim);
+}
+.wpml-tm-job-log #job-log-clear-button:hover,
+.wpml-tm-job-log #job-log-clear-button:focus {
+	background: #fff5f2;
+	border-color: var(--wpml-red);
+	color: var(--wpml-red);
+	outline: none;
+}
+
+/* Per-row "View" and modal "Save" — filled primary, main action on each surface. */
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-view,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-save {
+	background: var(--wpml-blue);
+	color: #fff;
+	border-color: var(--wpml-blue);
+}
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-view:hover,
+.wpml-tm-job-log .job-log-summary-row .button.tm-log-view:focus,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-save:hover,
+.wpml-tm-job-log .job-log-cap-modal #job-log-cap-save:focus {
+	background: var(--wpml-blue-dark);
+	border-color: var(--wpml-blue-dark);
+	color: #fff;
+	outline: none;
+}
+
+/* Detail panel (lazy-loaded HTML over AJAX) ------------------------------- */
+
+.wpml-tm-job-log .job-log-detail-cell {
+	background: var(--wpml-blue-lightest-bg);
+	padding: 16px 20px !important;
+	border-top: none;
+	border-bottom: 2px solid var(--wpml-border);
+}
+
+.wpml-tm-job-log .job-log-detail-content {
+	background: #fff;
+	border: 1px solid var(--wpml-border-light);
+	padding: 16px 20px;
+	font-size: 13px;
+	color: var(--wpml-gray-dark);
+	border-radius: 2px;
+}
+
+.wpml-tm-job-log .job-log-detail-header {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 4px 24px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--wpml-border-light);
+	margin-bottom: 12px;
+}
+
+.wpml-tm-job-log .job-log-detail-header strong {
+	color: var(--wpml-gray-dim);
+	font-weight: 600;
+	margin-right: 4px;
+}
+
+.wpml-tm-job-log .job-log-detail-header code {
+	background: var(--wpml-blue-lightest);
+	color: var(--wpml-gray-dark);
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+.wpml-tm-job-log .job-log-detail-params {
+	margin: 8px 0 16px;
+}
+
+.wpml-tm-job-log .job-log-detail-params strong {
+	color: var(--wpml-gray-dim);
+	font-weight: 600;
+	display: block;
+	margin-bottom: 6px;
+}
+
+/* Action / group blocks within the detail panel --------------------------- */
+
+.wpml-tm-job-log .job-log-group {
+	border-left: 3px solid var(--wpml-blue);
+	padding: 8px 0 12px 14px !important;
+	margin-bottom: 14px;
+	background: var(--wpml-blue-lightest-bg);
+}
+
+.wpml-tm-job-log .job-log-group > strong {
+	color: var(--wpml-blue-dark);
+	text-decoration: none !important;
+	font-size: 13px;
+	letter-spacing: 0.2px;
+}
+
+.wpml-tm-job-log .job-log-group-body {
+	padding-left: 12px;
+	margin-top: 6px;
+}
+
+/* Log step labels and inline badges --------------------------------------- */
+
+.wpml-tm-job-log .job-log-label {
+	display: inline-block;
+	padding: 4px 0;
+	font-weight: 600;
+	color: var(--wpml-gray-dark);
+}
+
+.wpml-tm-job-log .job-log-sublabel {
+	font-weight: 400;
+}
+
+.wpml-tm-job-log .job-log-step {
+	color: var(--wpml-gray-dim);
+	font-weight: 600;
+	text-decoration: none;
+	margin-right: 4px;
+}
+
+.wpml-tm-job-log .job-log-step-error {
+	color: var(--wpml-red);
+}
+
+.wpml-tm-job-log .job-log-elapsed {
+	display: inline-block;
+	padding: 1px 6px;
+	margin-left: 6px;
+	background: var(--wpml-blue-lightest);
+	color: var(--wpml-blue-dark);
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.wpml-tm-job-log .job-log-pid {
+	display: inline-block;
+	padding: 1px 6px;
+	margin-left: 4px;
+	background: var(--wpml-orange-bg);
+	color: var(--wpml-orange);
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Inline pre blocks (data dumps, traces) ---------------------------------- */
+
+.wpml-tm-job-log pre {
+	margin: 4px 0 8px;
+	padding: 10px 12px;
+	font-size: 12px;
+	line-height: 1.45;
+	background: var(--wpml-blue-lightest-bg);
+	border: 1px solid var(--wpml-border-light);
+	border-radius: 3px;
+	color: var(--wpml-gray-dark);
+	overflow-x: auto;
+}
+
+/* Toggle/link buttons (.tm-log-toggle = "Open"/"Close" + "View trace") ---- */
+
+.wpml-tm-job-log .tm-log-toggle:not(.tm-log-view):not(.tm-log-download) {
+	background: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin-left: 8px !important;
+	color: var(--wpml-blue) !important;
+	text-decoration: underline;
+	cursor: pointer;
+	font-size: 12px;
+	min-height: 0;
+	height: auto;
+	line-height: 1.4;
+}
+
+.wpml-tm-job-log .tm-log-toggle:not(.tm-log-view):not(.tm-log-download):hover,
+.wpml-tm-job-log .tm-log-toggle:not(.tm-log-view):not(.tm-log-download):focus,
+.wpml-tm-job-log .tm-log-toggle:not(.tm-log-view):not(.tm-log-download):active {
+	background: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	color: var(--wpml-blue-dark) !important;
+	text-decoration: none;
+	outline: none;
+}
+
+/* Responsive — drop the PID column on narrower viewports so the Endpoint
+   column keeps room to breathe. Hides both the header cell (by class)
+   and the body cell (5th column). The PID badge is still visible inside
+   the detail panel when a row is expanded. */
+@media (max-width: 1100px) {
+	.wpml-tm-job-log .job-log-col-pid,
+	.wpml-tm-job-log .job-log-summary-row td:nth-child(5) {
+		display: none;
+	}
+}
+
+/* Sub-900px — tighten the When column, drop Duration, and stack the per-row
+   action buttons vertically so they don't crush the Endpoint column. */
+@media (max-width: 900px) {
+	.wpml-tm-job-log .job-log-col-when {
+		width: 100px;
+	}
+	.wpml-tm-job-log .job-log-col-duration,
+	.wpml-tm-job-log .job-log-summary-row td:nth-child(4) {
+		display: none;
+	}
+	.wpml-tm-job-log .job-log-summary-row .button.tm-log-view,
+	.wpml-tm-job-log .job-log-summary-row .button.tm-log-download {
+		display: block;
+		width: 100%;
+		margin: 2px 0;
+	}
+}
+
+/* Total-size chip next to the Clear-logs button --------------------------- */
+
+.wpml-tm-job-log .job-log-total-size {
+	display: inline-block;
+	padding: 3px 8px;
+	margin-left: 4px;
+	background: var(--wpml-blue-lightest);
+	color: var(--wpml-blue-dark);
+	border: 1px solid transparent;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	font-family: inherit;
+	line-height: 1.4;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.wpml-tm-job-log .job-log-total-size:hover,
+.wpml-tm-job-log .job-log-total-size:focus {
+	border-color: var(--wpml-blue);
+	outline: none;
+}
+
+/* >=70% of cap — operator should notice approaching limit. */
+.wpml-tm-job-log .job-log-total-size.is-warning {
+	background: var(--wpml-orange-bg);
+	color: var(--wpml-orange);
+}
+
+/* >=90% of cap — prune will fire soon. */
+.wpml-tm-job-log .job-log-total-size.is-critical {
+	background: #fff5f2;
+	color: var(--wpml-red);
+}
+
+/* Cap-config modal --------------------------------------------------------
+   Lightweight overlay popup launched from the size badge. Hand-rolled to
+   avoid pulling in wp.media or jQuery UI; styled to match the rest of the
+   admin surface. */
+
+.wpml-tm-job-log .job-log-cap-modal-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.4);
+	z-index: 99999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.wpml-tm-job-log .job-log-cap-modal {
+	background: #fff;
+	border-radius: 6px;
+	padding: 22px 26px;
+	width: 420px;
+	max-width: 90vw;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.wpml-tm-job-log .job-log-cap-modal h2 {
+	margin: 0 0 8px;
+	font-size: 18px;
+	color: var(--wpml-gray-text, #1d2327);
+}
+
+.wpml-tm-job-log .job-log-cap-modal-help {
+	margin: 0 0 16px;
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-field {
+	margin: 0 0 14px;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-field label {
+	display: block;
+	font-weight: 600;
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-field input[type="number"] {
+	width: 130px;
+	padding: 4px 8px;
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-range {
+	margin-left: 8px;
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 12px;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-error {
+	margin: 4px 0 14px;
+	padding: 8px 10px;
+	background: #fff5f2;
+	color: var(--wpml-red, #c8471f);
+	border-radius: 3px;
+	font-size: 13px;
+}
+
+.wpml-tm-job-log .job-log-cap-modal-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 20px;
+}
+
+/* Tab nav (shared by Requests / By post) --------------------------------- */
+
+.wpml-tm-job-log .wpml-tm-job-log-tabs {
+	margin: 12px 0 14px;
+}
+
+/* By-post tab ------------------------------------------------------------ */
+
+.wpml-tm-job-log .job-log-entity-finder {
+	margin: 8px 0 16px;
+}
+.wpml-tm-job-log .job-log-entity-picker-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+	font-size: 13px;
+}
+.wpml-tm-job-log .job-log-entity-picker-wrap {
+	position: relative;
+	display: inline-block;
+}
+.wpml-tm-job-log .job-log-entity-picker {
+	width: 520px;
+	max-width: 100%;
+	padding: 6px 10px;
+	font-size: 13px;
+}
+.wpml-tm-job-log .job-log-entity-picker-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: #fff;
+	border: 1px solid var(--wpml-border, #c3c4c7);
+	border-top: none;
+	max-height: 360px;
+	overflow-y: auto;
+	z-index: 100;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.wpml-tm-job-log .job-log-entity-picker-item {
+	display: block;
+	padding: 6px 10px;
+	text-decoration: none;
+	color: var(--wpml-gray-text, #1d2327);
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
+}
+.wpml-tm-job-log .job-log-entity-picker-item:hover,
+.wpml-tm-job-log .job-log-entity-picker-item:focus {
+	background: var(--wpml-blue-lightest);
+	color: var(--wpml-blue-dark);
+}
+.wpml-tm-job-log .job-log-entity-picker-title {
+	font-weight: 500;
+}
+.wpml-tm-job-log .job-log-entity-picker-meta {
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 12px;
+}
+.wpml-tm-job-log .job-log-entity-picker-empty {
+	padding: 8px 10px;
+	color: var(--wpml-gray-dim, #50575e);
+	font-style: italic;
+	font-size: 13px;
+}
+
+.wpml-tm-job-log .job-log-entity-hint {
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 13px;
+}
+
+/* State panel + timeline */
+.wpml-tm-job-log .job-log-entity-state {
+	background: #fff;
+	border: 1px solid var(--wpml-border, #c3c4c7);
+	border-radius: 4px;
+	padding: 12px 16px;
+	margin-bottom: 16px;
+	font-size: 13px;
+}
+.wpml-tm-job-log .job-log-entity-state-header {
+	font-size: 14px;
+	margin-bottom: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.wpml-tm-job-log .job-log-entity-state-title-row {
+	flex: 1;
+	min-width: 0;
+}
+.wpml-tm-job-log .job-log-entity-state-title {
+	font-weight: 500;
+}
+.wpml-tm-job-log .job-log-entity-state-meta {
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 12px;
+}
+.wpml-tm-job-log .job-log-entity-state-row {
+	display: flex;
+	gap: 18px;
+	margin: 4px 0 10px;
+	color: var(--wpml-gray-dim, #50575e);
+}
+.wpml-tm-job-log .job-log-entity-state-block {
+	margin-top: 10px;
+}
+.wpml-tm-job-log .job-log-entity-state-block ul {
+	margin: 4px 0 0 18px;
+}
+
+.wpml-tm-job-log .job-log-entity-timeline-header {
+	font-weight: 600;
+	margin: 6px 0 8px;
+}
+.wpml-tm-job-log .job-log-entity-timeline-truncated {
+	font-weight: 400;
+	color: var(--wpml-orange, #b85a16);
+	font-size: 12px;
+	margin-left: 6px;
+}
+.wpml-tm-job-log .job-log-entity-timeline-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.wpml-tm-job-log .job-log-entity-event {
+	background: #fff;
+	border: 1px solid #f0f0f1;
+	border-left: 3px solid var(--wpml-blue, #2271b1);
+	padding: 8px 12px;
+	margin-bottom: 6px;
+	border-radius: 3px;
+}
+.wpml-tm-job-log .job-log-entity-event.is-error {
+	border-left-color: var(--wpml-red, #c8471f);
+}
+/* Envelope rows (request_started/finished, group_started/finished) are
+   request-boundary context, not real log lines. Muted styling so the
+   operator's eye lands on actual events first. */
+.wpml-tm-job-log .job-log-entity-event.is-envelope {
+	border-left-color: var(--wpml-gray-dim, #50575e);
+	background: #fafafa;
+}
+.wpml-tm-job-log .job-log-entity-event.is-envelope .job-log-entity-event-id {
+	font-weight: 500;
+	color: var(--wpml-gray-dim, #50575e);
+}
+.wpml-tm-job-log .job-log-entity-event-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+}
+.wpml-tm-job-log .job-log-entity-event-time {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	color: var(--wpml-gray-dim, #50575e);
+	font-size: 12px;
+	min-width: 200px;
+}
+.wpml-tm-job-log .job-log-entity-event-req {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	color: var(--wpml-blue, #2271b1);
+	font-size: 11px;
+	text-decoration: none;
+	background: var(--wpml-blue-lightest);
+	padding: 1px 6px;
+	border-radius: 3px;
+}
+.wpml-tm-job-log .job-log-entity-event-id {
+	font-weight: 600;
+}
+.wpml-tm-job-log .job-log-entity-event-badge {
+	background: #fff5f2;
+	color: var(--wpml-red, #c8471f);
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	text-transform: uppercase;
+	font-weight: 600;
+}
+.wpml-tm-job-log .job-log-entity-event-data {
+	margin: 6px 0 0;
+	padding: 8px 10px;
+	background: #f6f7f7;
+	border-radius: 3px;
+	font-size: 12px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 260px;
+	overflow: auto;
+}

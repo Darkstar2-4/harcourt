@@ -11,12 +11,6 @@ class WPML_ST_WCML_Taxonomy_Labels_Translation implements IWPML_Action {
 		);
 	}
 
-	/**
-	 * @param array  $data
-	 * @param string $taxonomy
-	 *
-	 * @return array
-	 */
 	public function alter_slug_translation_display( $data, $taxonomy ) {
 		if ( ! empty( $data['st_default_lang'] ) ) {
 			$source_lang = $data['st_default_lang'];
@@ -29,20 +23,10 @@ class WPML_ST_WCML_Taxonomy_Labels_Translation implements IWPML_Action {
 		return $data;
 	}
 
-	/**
-	 * @param string $taxonomy
-	 *
-	 * @return bool
-	 */
 	private function is_product_attribute( $taxonomy ) {
 		return 0 === strpos( $taxonomy, 'pa_' );
 	}
 
-	/**
-	 * @param string $taxonomy
-	 *
-	 * @return bool
-	 */
 	private function is_shipping_class( $taxonomy ) {
 		return 'product_shipping_class' === $taxonomy;
 	}

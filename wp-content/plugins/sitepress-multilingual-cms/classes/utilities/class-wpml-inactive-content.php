@@ -2,16 +2,12 @@
 
 class WPML_Inactive_Content {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var string $current_language */
 	private $current_language;
 
-	/** @var array $content_types */
 	private $content_types;
 
-	/** @var array $inactive */
 	private $inactive;
 
 	public function __construct( wpdb $wpdb, $current_language ) {
@@ -19,12 +15,10 @@ class WPML_Inactive_Content {
 		$this->current_language = $current_language;
 	}
 
-	/** @return bool */
 	public function has_entries() {
 		return (bool) $this->get_inactive();
 	}
 
-	/** @return array */
 	public function get_content_types() {
 
 		foreach ( $this->get_inactive() as $types ) {
@@ -40,12 +34,10 @@ class WPML_Inactive_Content {
 		return $this->content_types;
 	}
 
-	/** @return array */
 	public function get_languages() {
 		return array_keys( $this->get_inactive() );
 	}
 
-	/** @return array */
 	public function get_language_counts_rows() {
 		$counts = array();
 
@@ -63,13 +55,6 @@ class WPML_Inactive_Content {
 		return $counts;
 	}
 
-	/**
-	 * @param string $lang
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return int
-	 */
 	private function count( $lang, $type, $slug ) {
 
 		if ( isset( $this->inactive[ $lang ][ $type ][ $slug ] ) ) {
@@ -79,16 +64,10 @@ class WPML_Inactive_Content {
 		return 0;
 	}
 
-	/**
-	 * @param $langName
-	 *
-	 * @return string
-	 */
 	public function getLangCode( $langName ) {
 		return \WPML\Element\API\Languages::getCodeByName($langName);
 	}
 
-	/** @return array */
 	private function get_inactive() {
 
 		if ( null === $this->inactive ) {
@@ -152,22 +131,11 @@ class WPML_Inactive_Content {
 		return $this->inactive;
 	}
 
-	/**
-	 * @param stdClass $r
-	 *
-	 * @return bool
-	 */
 	private function is_only_default_category( $r ) {
 		return $r->taxonomy === 'category' && $r->c == 1;
 	}
 
 
-	/**
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return null|string
-	 */
 	private function get_label( $type, $slug ) {
 		if ( 'post' === $type ) {
 			$type_object = get_post_type_object( $slug );

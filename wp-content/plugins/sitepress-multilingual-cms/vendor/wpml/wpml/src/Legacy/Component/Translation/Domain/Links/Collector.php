@@ -9,10 +9,8 @@ use WPML\PHP\Exception\InvalidTypeException;
 
 class Collector implements CollectorInterface {
 
-  /** @var RepositoryInterface */
   private $repostiory;
 
-  /** @var Item[] */
   private $items = [];
 
 
@@ -21,7 +19,6 @@ class Collector implements CollectorInterface {
   }
 
 
-  /** @return Item[] */
   public function getItemsLinkedInContent( string $content ) {
     $this->items = [];
     if ( class_exists( '\AbsoluteLinks' ) ) {
@@ -33,11 +30,6 @@ class Collector implements CollectorInterface {
   }
 
 
-  /**
-   * This method is called by legacy AbsoluteLinks::convert_text().
-   *
-   * @return void
-   */
   public function addItemByIdAndType( int $id, string $type ) {
     try {
       if ( ! in_array( $id, array_column( $this->items, 'id' ) ) ) {

@@ -12,11 +12,6 @@
 namespace WPML\Core\Twig\Node\Expression;
 
 use WPML\Core\Twig\Node\Node;
-/**
- * Abstract class for all nodes that represents an expression.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 abstract class AbstractExpression extends \WPML\Core\Twig\Node\Node
 {
 }

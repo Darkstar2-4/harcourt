@@ -11,7 +11,7 @@ class WPML_String_Translation_Job extends WPML_Translation_Job {
 			"SELECT st.id,
                          s.language AS source_language_code,
                          st.language AS language_code,
-                         IF(cs.status IS NULL, st.status, cs.status) as status,
+                         st.status,
                          st.string_id,
                          s.name,
                          s.value,
@@ -27,8 +27,6 @@ class WPML_String_Translation_Job extends WPML_Translation_Job {
 				      ON tb.id = st.batch_id
 			        LEFT JOIN {$wpdb->users} u
                       ON st.translator_id = u.ID
-                    LEFT JOIN {$wpdb->prefix}icl_string_status ss ON ss.string_translation_id = st.id
-                    LEFT JOIN {$wpdb->prefix}icl_core_status cs ON cs.rid = ss.rid  
                     WHERE st.id = %d
                     LIMIT 1",
 			$string_translation_id
@@ -43,9 +41,6 @@ class WPML_String_Translation_Job extends WPML_Translation_Job {
 		return esc_html( $this->basic_data->value );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_id() {
 
 		return 'string|' . parent::get_id();
@@ -61,25 +56,6 @@ class WPML_String_Translation_Job extends WPML_Translation_Job {
 		}
 
 		return $this->basic_data->string_id;
-	}
-
-	public function cancel() {
-		global $WPML_String_Translation, $wpdb;
-		/** @var WPML_String_Translation $WPML_String_Translation */
-		if ( $WPML_String_Translation ) {
-			$rid = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT rid
-													FROM {$wpdb->prefix}icl_string_status
-													WHERE string_translation_id = %d
-													LIMIT 1",
-					$this->job_id
-				)
-			);
-			if ( $rid ) {
-				$WPML_String_Translation->cancel_remote_translation( $rid );
-			}
-		}
 	}
 
 	protected function load_status() {
@@ -130,9 +106,6 @@ class WPML_String_Translation_Job extends WPML_Translation_Job {
 		);
 	}
 
-	/**
-	 * Retrieves the batch ID for a string job
-	 */
 	protected function load_batch_id() {
 		global $wpdb;
 

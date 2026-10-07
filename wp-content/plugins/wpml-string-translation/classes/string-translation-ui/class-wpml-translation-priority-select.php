@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Created by OnTheGoSystems
- */
 class WPML_Translation_Priority_Select extends WPML_Templates_Factory {
 
 	const NONCE = 'wpml_change_string_translation_priority_nonce';
@@ -38,7 +35,6 @@ class WPML_Translation_Priority_Select extends WPML_Templates_Factory {
 
 	private function enqueue_scripts() {
 		if ( ! wp_script_is( 'wpml-select-2' ) ) {
-			// Enqueue in the footer because this is usually called late.
 			wp_enqueue_script( 'wpml-select-2', ICL_PLUGIN_URL . '/lib/select2/select2.min.js', array( 'jquery' ), ICL_SITEPRESS_VERSION, true );
 		}
 	}

@@ -1,5 +1,7 @@
 <?php
 
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
+
 class WPML_Taxonomy_Translation_Sync_Display {
 
 	public function __construct() {
@@ -40,6 +42,16 @@ class WPML_Taxonomy_Translation_Sync_Display {
 		list( $taxonomy, $ref_lang ) = $this->get_req_data();
 		if ( $taxonomy ) {
 			$sync_helper->sync_element_hierarchy( $taxonomy, $ref_lang );
+
+			$event_props = array(
+				'taxonomy' => $taxonomy,
+				'ref_lang' => $ref_lang,
+			);
+
+			\WPML\PostHog\Event\CaptureEvent::capture(
+				( new EventInstanceService() )->getTaxonomyHierarchySyncCompletedEvent( $event_props )
+			);
+
 			wp_send_json_success( 1 );
 		} else {
 			wp_send_json_error( 'No taxonomy in request!' );

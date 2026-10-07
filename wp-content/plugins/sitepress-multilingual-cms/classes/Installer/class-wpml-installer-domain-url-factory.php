@@ -6,7 +6,6 @@ class WPML_Installer_Domain_URL_Factory implements IWPML_Backend_Action_Loader, 
 		global $sitepress;
 
 		if ( WPML_LANGUAGE_NEGOTIATION_TYPE_DOMAIN === (int) $sitepress->get_setting( 'language_negotiation_type' ) ) {
-			/* @var WPML_URL_Converter $wpml_url_converter */
 			global $wpml_url_converter;
 			$site_url_default_lang = $wpml_url_converter->get_default_site_url();
 			if ( $site_url_default_lang ) {

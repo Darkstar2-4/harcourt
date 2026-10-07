@@ -13,11 +13,6 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
-/**
- * Represents a node that outputs an expression.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class PrintNode extends \WPML\Core\Twig\Node\Node implements \WPML\Core\Twig\Node\NodeOutputInterface
 {
     public function __construct(\WPML\Core\Twig\Node\Expression\AbstractExpression $expr, $lineno, $tag = null)

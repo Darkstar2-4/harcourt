@@ -4,7 +4,6 @@ class WPML_Inactive_Content_Render extends WPML_Twig_Template_Loader {
 
 	const TEMPLATE = 'inactive-content.twig';
 
-	/** @var WPML_Inactive_Content $inactive_content */
 	private $inactive_content;
 
 	public function __construct( WPML_Inactive_Content $inactive_content, array $paths ) {

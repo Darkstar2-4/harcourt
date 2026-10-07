@@ -2,10 +2,10 @@
 /**
  * Plugin Name: WPML String Translation
  * Plugin URI: https://wpml.org/
- * Description: Adds theme and plugins localization capabilities to WPML | <a href="https://wpml.org/documentation/getting-started-guide/string-translation/">Documentation</a> | <a href="https://wpml.org/version/wpml-string-translation-3-4-0/">WPML String Translation 3.4.0 release notes</a>
+ * Description: Adds theme and plugins localization capabilities to WPML | <a href="https://wpml.org/documentation/getting-started-guide/string-translation/">Documentation</a> | <a href="https://wpml.org/version/wpml-string-translation-3-5-4/">WPML String Translation 3.5.4 release notes</a>
  * Author: OnTheGoSystems
  * Author URI: http://www.onthegosystems.com/
- * Version: 3.4.0
+ * Version: 3.5.4
  * Plugin Slug: wpml-string-translation
  *
  * @package WPML\ST
@@ -15,27 +15,22 @@ if ( defined( 'WPML_ST_VERSION' ) || get_option( '_wpml_inactive' ) ) {
 	return;
 }
 
-// Do not uncomment the following line!
-// If you need to use this constant, use it in the wp-config.php file
-// define( 'WPML_PT_VERSION_DEV', '2.2.3-dev' );
 if ( ! defined( 'WPML_ST_PATH' ) ) {
 	define( 'WPML_ST_PATH', dirname( __FILE__ ) );
 }
 
 add_action( 'admin_init', 'wpml_st_verify_wpml' );
 
-//define( 'ICL_SITEPRESS_VERSION', '3.4.0' );
 if ( ! defined( 'ICL_SITEPRESS_VERSION' ) ) {
 	return;
 }
 
-// If it has a tag, it must be the same tag as this plugin
 if ( ! WPML_Core_Version_Check::is_ok( dirname( __FILE__ ) . '/wpml-dependencies.json' ) ) {
 	return;
 }
 
 
-define( 'WPML_ST_VERSION', '3.4.0' );
+define( 'WPML_ST_VERSION', '3.5.4' );
 
 
 require WPML_ST_PATH . '/inc/functions-load.php';
@@ -56,11 +51,6 @@ function wpml_st_verify_wpml() {
 	$verifier->verify_wpml( $wpml_version );
 }
 
-/**
- * WPML ST Core loaded hook.
- *
- * @throws \WPML\Auryn\InjectionException Auryn Exception.
- */
 function wpml_st_core_loaded() {
 	global $sitepress, $wpdb, $wpml_admin_notices;
 
@@ -83,9 +73,6 @@ function wpml_st_core_loaded() {
 	\WPML\ST\Batch\Translation\Module::init();
 }
 
-/**
- * @throws \WPML\Auryn\InjectionException
- */
 function load_wpml_st_basics() {
 	if ( ! WPML_Core_Version_Check::is_ok( dirname( __FILE__ ) . '/wpml-dependencies.json' ) ) {
 		return;

@@ -15,15 +15,6 @@ use WPML\Core\Twig\Node\Expression\BlockReferenceExpression;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Token;
-/**
- * Filters a section of a template by applying filters.
- *
- *   {% filter upper %}
- *      This text becomes uppercase
- *   {% endfilter %}
- *
- * @final
- */
 class FilterTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

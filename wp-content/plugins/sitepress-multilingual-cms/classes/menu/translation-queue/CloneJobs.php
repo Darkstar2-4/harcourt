@@ -12,41 +12,18 @@ use WPML\TM\ATE\JobRecords;
 use WPML_TM_ATE_API;
 
 class CloneJobs {
-	/**
-	 * @var WPML_TM_ATE_Jobs
-	 */
 	private $ateJobs;
 
-	/**
-	 * @var WPML_TM_ATE_API
-	 */
 	private $apiClient;
 
-	/**
-	 * Number of microseconds to wait until an API call is repeated again in the case of failure.
-	 *
-	 * @var int
-	 */
 	private $repeatInterval;
 
-	/**
-	 * @param WPML_TM_ATE_Jobs $ateJobs
-	 * @param WPML_TM_ATE_API  $apiClient
-	 * @param int              $repeatInterval
-	 */
 	public function __construct( WPML_TM_ATE_Jobs $ateJobs, WPML_TM_ATE_API $apiClient, $repeatInterval = 5000000 ) {
 		$this->ateJobs        = $ateJobs;
 		$this->apiClient      = $apiClient;
 		$this->repeatInterval = $repeatInterval;
 	}
 
-	/**
-	 * @param WPML_Element_Translation_Job $jobObject
-	 * @param int|null                     $sentFrom
-	 * @param bool                         $hasBeenAlreadyRepeated
-	 *
-	 * @return Either<WPML_Element_Translation_Job>
-	 */
 	public function cloneCompletedATEJob( WPML_Element_Translation_Job $jobObject, $sentFrom = null, $hasBeenAlreadyRepeated = false ) {
 		$ateJobId = (int) $jobObject->get_basic_data_property('editor_job_id');
 		$result   = $this->apiClient->clone_job( $ateJobId, $jobObject, $sentFrom );
@@ -63,12 +40,6 @@ class CloneJobs {
 		}
 	}
 
-	/**
-	 * It creates a corresponding ATE job for WPML Job if such ATE job does not exist yet
-	 *
-	 * @param int $wpmlJobId
-	 * @return bool
-	 */
 	public function cloneWPMLJob( $wpmlJobId ) {
 		$params = json_decode( (string) wp_json_encode( [
 			'jobs' => [ wpml_tm_create_ATE_job_creation_model( $wpmlJobId ) ]

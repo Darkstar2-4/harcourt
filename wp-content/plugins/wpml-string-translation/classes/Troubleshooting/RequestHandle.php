@@ -4,10 +4,8 @@ namespace WPML\ST\Troubleshooting;
 
 class RequestHandle implements \IWPML_Action {
 
-	/** @var string $action */
 	private $action;
 
-	/** @var callable $callback */
 	private $callback;
 
 	public function __construct( $action, $callback ) {
@@ -20,6 +18,11 @@ class RequestHandle implements \IWPML_Action {
 	}
 
 	public function handle() {
+		if ( ! current_user_can( 'wpml_manage_troubleshooting' ) ) {
+			wp_send_json_error( 'not allowed', 403 );
+			return;
+		}
+
 		if ( wp_verify_nonce( $_POST['nonce'], BackendHooks::NONCE_KEY ) ) {
 			call_user_func( $this->callback );
 			wp_send_json_success();

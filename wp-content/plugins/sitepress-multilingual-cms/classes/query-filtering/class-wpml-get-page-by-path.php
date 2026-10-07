@@ -2,22 +2,16 @@
 
 class WPML_Get_Page_By_Path {
 
-	/** @link https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-4918 */
 	const BEFORE_REMOVE_PLACEHOLDER_ESCAPE_PRIORITY = -1;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Debug_BackTrace $debug_backtrace */
 	private $debug_backtrace;
 
-	/** @var string $language */
 	private $language;
 
-	/** @var string $post_type */
 	private $post_type;
 
 	public function __construct( wpdb $wpdb, SitePress $sitepress, WPML_Debug_BackTrace $debug_backtrace ) {
@@ -55,16 +49,13 @@ class WPML_Get_Page_By_Path {
 		return $query;
 	}
 
-	/**
-	 * @param string $page_name
-	 * @param string $post_type
-	 *
-	 * @see get_page_by_path where the cache key is built
-	 */
 	private function clear_cache( $page_name, $post_type ) {
-		$last_changed = wp_cache_get_last_changed( 'posts' );
-		$hash         = md5( $page_name . serialize( $post_type ) );
-		$cache_key    = "get_page_by_path:$hash:$last_changed";
+		$hash = md5( $page_name . serialize( $post_type ) );
+		$last_changed             = wp_cache_get_last_changed( 'posts' );
+		$cache_key_with_timestamp = "get_page_by_path:$hash:$last_changed";
+		wp_cache_delete( $cache_key_with_timestamp, 'posts' );
+		wp_cache_delete( $cache_key_with_timestamp, 'post-queries' );
+		$cache_key = "get_page_by_path:$hash";
 		wp_cache_delete( $cache_key, 'posts' );
 		wp_cache_delete( $cache_key, 'post-queries' );
 	}

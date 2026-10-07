@@ -132,12 +132,6 @@ class WPML_Post_Status extends WPML_WPDB_User {
 		return isset( $res );
 	}
 
-	/**
-	 * @param int $post_id
-	 * @param int $status
-	 *
-	 * @return bool
-	 */
 	public function set_status( $post_id, $status ) {
 		global $wpml_post_translations;
 
@@ -146,7 +140,6 @@ class WPML_Post_Status extends WPML_WPDB_User {
 				'Tried to set status' . $status . ' for falsy post_id ' . serialize( $post_id ) );
 		}
 
-		/** @var \stdClass $translation_id */
 		$translation_id = $this->wpdb->get_row (
 			$this->wpdb->prepare (
 				"SELECT it.translation_id AS transid, ts.translation_id AS status_id
@@ -161,7 +154,6 @@ class WPML_Post_Status extends WPML_WPDB_User {
 		);
 
 		if ( ! $translation_id ) {
-			// No translations for given post.
 			return false;
 		}
 

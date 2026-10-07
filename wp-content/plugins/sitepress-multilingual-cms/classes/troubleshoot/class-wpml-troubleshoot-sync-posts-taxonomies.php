@@ -2,17 +2,12 @@
 
 use WPML\API\Sanitize;
 
-/**
- * Class WPML_Troubleshoot_Sync_Posts_Taxonomies
- */
 class WPML_Troubleshoot_Sync_Posts_Taxonomies {
 
 	const BATCH_SIZE = 5;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Term_Translation_Utils $term_translation_utils */
 	private $term_translation_utils;
 
 	public function __construct( SitePress $sitePress, WPML_Term_Translation_Utils $term_translation_utils ) {
@@ -50,12 +45,6 @@ class WPML_Troubleshoot_Sync_Posts_Taxonomies {
 		wp_send_json_success( $response_data );
 	}
 
-	/**
-	 * @param string $type
-	 * @param int    $batch_number
-	 *
-	 * @return array
-	 */
 	private function get_posts_batch( $type, $batch_number ) {
 		$this->sitepress->switch_lang( $this->sitepress->get_default_language() );
 
@@ -75,9 +64,6 @@ class WPML_Troubleshoot_Sync_Posts_Taxonomies {
 		return $posts;
 	}
 
-	/**
-	 * @param array $posts
-	 */
 	private function synchronize_batch( $posts ) {
 		$active_languages = $this->sitepress->get_active_languages();
 

@@ -8,7 +8,6 @@ use WPML\TM\API\ATE\CachedLanguageMappings;
 
 class AutomaticTranslationsSupportInfoDecoratorForLanguagesQuery implements LanguagesQueryInterface {
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
@@ -48,11 +47,6 @@ class AutomaticTranslationsSupportInfoDecoratorForLanguagesQuery implements Lang
   }
 
 
-  /**
-   * @param LanguageDto[] $languages
-   *
-   * @return LanguageDto[]
-   */
   private function addInfoAboutAutomaticTranslationsSupport( array $languages ): array {
     $languagesData = CachedLanguageMappings::getAllLanguagesWithAutomaticSupportInfo();
 

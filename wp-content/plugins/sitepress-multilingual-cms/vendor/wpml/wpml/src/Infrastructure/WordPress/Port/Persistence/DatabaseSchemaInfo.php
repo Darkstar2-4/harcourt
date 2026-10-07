@@ -9,26 +9,17 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class DatabaseSchemaInfo implements DatabaseSchemaInfoInterface {
 
-  /** @var \wpdb */
   private $wpdb;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
-  /**
-   * @param \wpdb                 $wpdb Type defined here to allow injecting the global.
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct( $wpdb, QueryPrepareInterface $queryPrepare ) {
     $this->wpdb         = $wpdb;
     $this->queryPrepare = $queryPrepare;
   }
 
 
-  /**
-   * @inheritDoc
-   */
   public function doesColumnExist( string $table, string $column ): bool {
     if ( empty( $table ) || empty( $column ) ) {
       throw new InvalidArgumentException( 'Table and column names must be non-empty strings.' );
@@ -49,9 +40,6 @@ class DatabaseSchemaInfo implements DatabaseSchemaInfoInterface {
   }
 
 
-  /**
-   * @inheritDoc
-   */
   public function doesTableExist( string $table ): bool {
     if ( empty( $table ) ) {
       throw new InvalidArgumentException( 'Table name must be a non-empty string.' );

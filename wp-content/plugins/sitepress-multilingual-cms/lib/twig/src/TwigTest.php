@@ -10,13 +10,6 @@
  */
 namespace WPML\Core\Twig;
 
-/**
- * Represents a template test.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class TwigTest
 {
     protected $name;

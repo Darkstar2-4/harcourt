@@ -10,7 +10,6 @@ use WPML_ST_Translations_File_Locale;
 
 class Sync implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC_Action {
 
-	/** @var FileSync */
 	private $fileSync;
 
 	public function __construct( FileSync $fileSync ) {
@@ -26,11 +25,6 @@ class Sync implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC_
 		);
 	}
 
-	/**
-	 * @param string|false $jedFile Path to the translation file to load. False if there isn't one.
-	 * @param string       $handler Name of the script to register a translation domain to.
-	 * @param string       $domain  The text domain.
-	 */
 	public function syncCustomJedFile( $jedFile, $handler, $domain ) {
 		$this->fileSync->sync( $jedFile, WPML_ST_JED_Domain::get( $domain, $handler ) );
 

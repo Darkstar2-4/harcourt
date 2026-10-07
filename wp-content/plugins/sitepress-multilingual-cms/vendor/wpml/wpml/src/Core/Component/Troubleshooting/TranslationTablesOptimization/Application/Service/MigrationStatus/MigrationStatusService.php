@@ -8,10 +8,8 @@ use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\Mig
 
 class MigrationStatusService {
 
-  /** @var MigrationStatusStorageInterface */
   private $storage;
 
-  /** @var PreliminaryConditionQueryInterface */
   private $preliminaryConditionQuery;
 
 
@@ -31,11 +29,6 @@ class MigrationStatusService {
       return MigrationStatusDTO::from( $status );
     }
 
-    /**
-     * If a user installed the WPML plugin already containing optimization fixes,
-     * we can mark the migration as completed immediately. The easiest way to recognize such a case is
-     * to check if any records in wp_icl_translation_status have non-null values in translation_package column.
-     */
     if ( ! $this->preliminaryConditionQuery->hasNonNullTranslationPackages() ) {
       $status = MigrationStatus::createCompletedStatus();
       $this->storage->write( $status );
@@ -45,9 +38,6 @@ class MigrationStatusService {
   }
 
 
-  /**
-   * @return void
-   */
   public function markPrevStateCompleted() {
     $status = $this->storage->read();
     $status->setPrevStateCompleted( true );
@@ -55,9 +45,6 @@ class MigrationStatusService {
   }
 
 
-  /**
-   * @return void
-   */
   public function markTranslationPackageCompleted() {
     $status = $this->storage->read();
     $status->setTranslationPackageCompleted( true );
@@ -65,9 +52,6 @@ class MigrationStatusService {
   }
 
 
-  /**
-   * @return void
-   */
   public function markObsoleteTranslationElementsRemovalCompleted() {
     $status = $this->storage->read();
     $status->setObsoleteTranslationElementsRemovalCompleted( true );
@@ -75,9 +59,6 @@ class MigrationStatusService {
   }
 
 
-  /**
-   * @return void
-   */
   public function markTranslationElementsCompressionCompleted() {
     $status = $this->storage->read();
     $status->setTranslationElementsCompressionCompleted( true );
@@ -85,9 +66,6 @@ class MigrationStatusService {
   }
 
 
-  /**
-   * @return void
-   */
   public function markTranslationElementsCompressionFixedCompleted() {
     $status = $this->storage->read();
     $status->setTranslationElementsCompressionFixedCompleted( true );

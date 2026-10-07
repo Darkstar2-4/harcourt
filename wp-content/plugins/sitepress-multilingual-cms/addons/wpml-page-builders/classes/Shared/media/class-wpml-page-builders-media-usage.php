@@ -2,10 +2,8 @@
 
 class WPML_Page_Builders_Media_Usage {
 
-	/** @var IWPML_PB_Media_Find_And_Translate $media_translate */
 	private $media_translate;
 
-	/** @var WPML_Media_Usage_Factory $media_usage_factory */
 	private $media_usage_factory;
 
 	public function __construct(
@@ -16,7 +14,6 @@ class WPML_Page_Builders_Media_Usage {
 		$this->media_usage_factory = $media_usage_factory;
 	}
 
-	/** @param int $post_id */
 	public function update( $post_id ) {
 		$media_ids = $this->media_translate->get_translated_ids();
 

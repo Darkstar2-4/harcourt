@@ -11,10 +11,8 @@ use WPML_ST_Upgrade_MO_Scanning;
 
 class Hooks {
 
-	/** @var WPML_Action_Filter_Loader $action_loader */
 	private $action_loader;
 
-	/** @var WPML_ST_Upgrade $upgrade */
 	private $upgrade;
 
 	public function __construct( WPML_Action_Filter_Loader $action_loader, WPML_ST_Upgrade $upgrade ) {

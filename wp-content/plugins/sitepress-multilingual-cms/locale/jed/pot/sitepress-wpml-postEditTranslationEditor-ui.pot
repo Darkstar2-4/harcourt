@@ -3,19 +3,19 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "X-Generator: babel-plugin-makepot\n"
 
-#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:116
+#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:115
+#: src/js/postEditTranslationEditor/components/SaveModal.js:24
+#: src/js/postEditTranslationEditor/components/showDashboardEditor.js:29
+msgid "Translation Dashboard"
+msgstr ""
+
+#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:132
 msgid "WPML Translation Editor"
 msgstr ""
 
-#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:123
+#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:139
 #: src/js/postEditTranslationEditor/components/SaveModal.js:22
 msgid "WordPress Editor"
-msgstr ""
-
-#: src/js/postEditTranslationEditor/components/PostTranslationEditorSettings.js:99
-#: src/js/postEditTranslationEditor/components/SaveModal.js:24
-#: src/js/postEditTranslationEditor/components/showDashboardEditor.js:10
-msgid "Translation Dashboard"
 msgstr ""
 
 #: src/js/postEditTranslationEditor/components/SaveModal.js:100
@@ -86,6 +86,6 @@ msgid ""
 "Memory and other features that make translation easier."
 msgstr ""
 
-#: src/js/postEditTranslationEditor/components/showDashboardEditor.js:9
+#: src/js/postEditTranslationEditor/components/showDashboardEditor.js:24
 msgid "Translate items in batch after reviewing the cost of AI translation"
 msgstr ""

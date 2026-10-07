@@ -9,10 +9,8 @@ use WPML\StringTranslation\Application\StringCore\Domain\Factory\StringItemFacto
 
 class QueuePhpFileStorage implements QueueStorageInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
-	/** @var StringItemFactory */
 	private $stringItemFactory;
 
 	public function __construct(
@@ -28,7 +26,16 @@ class QueuePhpFileStorage implements QueueStorageInterface {
 			return [];
 		}
 
-		$result = include $phpFilepath;
+		$queueDir = realpath( $this->filesystemRepository->getQueueDir() );
+		$realpath = realpath( $phpFilepath );
+		if ( false === $queueDir || false === $realpath
+			|| ! is_file( $realpath )
+			|| strpos( $realpath, $queueDir . DIRECTORY_SEPARATOR ) !== 0
+		) {
+			return [];
+		}
+
+		$result = include $realpath;
 		if ( ! $result || ! is_array( $result ) ) {
 			return [];
 		}

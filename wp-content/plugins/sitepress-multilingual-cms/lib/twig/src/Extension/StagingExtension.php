@@ -12,15 +12,6 @@ namespace WPML\Core\Twig\Extension;
 
 use WPML\Core\Twig\NodeVisitor\NodeVisitorInterface;
 use WPML\Core\Twig\TokenParser\TokenParserInterface;
-/**
- * Internal class.
- *
- * This class is used by \Twig\Environment as a staging area and must not be used directly.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @internal
- */
 class StagingExtension extends \WPML\Core\Twig\Extension\AbstractExtension
 {
     protected $functions = [];

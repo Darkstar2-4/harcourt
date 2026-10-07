@@ -387,13 +387,13 @@ class CDN_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function transform_elements( array $elements ) {
+	private function transform_elements( $elements ) {
 		foreach ( $elements as $element ) {
 			$this->transform_element( $element );
 		}
 	}
 
-	private function element_has_excluded_keywords( Element $element ) {
+	private function element_has_excluded_keywords( $element ) {
 		$keyword_exclusions = $this->cdn_helper->keyword_exclusions();
 
 		if ( ! $keyword_exclusions->has_excluded_keywords() ) {

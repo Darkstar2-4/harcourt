@@ -4,48 +4,41 @@ namespace WPML\StringTranslation\Application\Translation\Query\Dto;
 
 final class TranslationDetailsDto {
 
-	/** @var string */
 	private $languageCode;
 
-	/** @var int */
 	private $translationId;
 
-	/** @var int */
 	private $stringId;
 
-	/** @var int|null */
 	private $rid;
 
-	/** @var int|null */
 	private $jobId;
 
-	/** @var int|null */
 	private $automatic;
 
-	/** @var string|null */
 	private $editor;
 
-	/** @var string|null */
 	private $translationService;
 
-	/** @var string|null */
 	private $reviewStatus;
 
-	/** @var int|null */
 	private $translatorId;
+
+	private $editorJobId;
 
 
 	public function __construct(
 		string $languageCode,
 		int $translationId,
 		int $stringId,
-		int $rid = null,
-		int $jobId = null,
-		int $automatic = null,
-		string $editor = null,
-		string $translationService = null,
-		string $reviewStatus = null,
-		int $translatorId = null
+		$rid = null,
+		$jobId = null,
+		$automatic = null,
+		$editor = null,
+		$translationService = null,
+		$reviewStatus = null,
+		$translatorId = null,
+		$editorJobId = null
 	) {
 		$this->languageCode       = $languageCode;
 		$this->translationId      = $translationId;
@@ -57,6 +50,7 @@ final class TranslationDetailsDto {
 		$this->translationService = $translationService;
 		$this->reviewStatus       = $reviewStatus;
 		$this->translatorId       = $translatorId;
+		$this->editorJobId        = $editorJobId;
 	}
 
 	public function getLanguageCode(): string {
@@ -71,38 +65,35 @@ final class TranslationDetailsDto {
 		return $this->stringId;
 	}
 
-	/** @return int|null */
 	public function getRid() {
 		return $this->rid;
 	}
 
-	/** @return int|null */
 	public function getJobId() {
 		return $this->jobId;
 	}
 
-	/** @return int|null */
 	public function getAutomatic() {
 		return $this->automatic;
 	}
 
-	/** @return string|null */
 	public function getEditor() {
 		return $this->editor;
 	}
 
-	/** @return string|null */
 	public function getTranslationService() {
 		return $this->translationService;
 	}
 
-	/** @return string|null */
 	public function getReviewStatus() {
 		return $this->reviewStatus;
 	}
 
-	/** @return int|null */
 	public function getTranslatorId() {
 		return $this->translatorId;
+	}
+
+	public function getEditorJobId() {
+		return $this->editorJobId;
 	}
 }

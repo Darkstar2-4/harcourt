@@ -8,25 +8,25 @@
             "lang": "pt_PT"
          },
          "Warning:": [
-            "Advertência:"
+            "Aviso:"
          ],
          "Edits you're about to make will be lost": [
             "As edições que está prestes a fazer serão perdidas"
          ],
          "You are about to edit this translation using %s.": [
-            "O senhor está prestes a editar esta tradução utilizando %s."
+            "Está prestes a editar esta tradução usando %s."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "Quaisquer alterações que o senhor efetuar serão perdidas na próxima vez que enviar esta página para tradução."
+            "Quaisquer alterações que fizer serão perdidas da próxima vez que enviar esta página para tradução."
          ],
          "Go back": [
-            "Retornar"
+            "Voltar"
          ],
          "Edit in Advanced Translation Editor": [
-            "Editar no editor de traduções avançado"
+            "Editar no editor de tradução avançado"
          ],
          "Edit anyway (Not recommended)": [
-            "Editar mesmo assim (Não recomendado)"
+            "Editar de qualquer forma (Não recomendado)"
          ]
       }
    }

@@ -6,50 +6,22 @@ use WPML\StringTranslation\Application\Translation\Query\Dto\TranslationStatusDt
 
 class StringPackageWithTranslationStatusDto {
 
-	/** @var int */
 	private $id;
 
-	/**
-	 * Title of the package.
-	 *
-	 * @var string
-	 */
 	private $title;
 
-	/**
-	 * `name` column from icl_string_packages.
-	 * Usually the ID of object but could be hardcoded strings too
-	 * e.g. `widget` for block widget package.
-	 *
-	 * @var string
-	 */
 	private $name;
 
-	/** @var int */
 	private $lastEdit;
 
-	/** @var int */
 	private $wordCount;
 
-	/** @var string */
 	private $type;
 
-	/** @var array<string, TranslationStatusDto> */
 	private $translationStatuses;
 
-	/** @var string|null */
 	private $translatorNote;
 
-	/**
-	 * @param int $id
-	 * @param string $title
-	 * @param string $name
-	 * @param int $lastEdit
-	 * @param string $type
-	 * @param array<string, TranslationStatusDto> $translationStatuses
-	 * @param int $wordCount
-	 * @param string|null $translatorNote
-	 */
 	public function __construct(
 		int    $id,
 		string $title,
@@ -90,7 +62,6 @@ class StringPackageWithTranslationStatusDto {
 		return $this->type;
 	}
 
-	/** @return array<string, TranslationStatusDto> */
 	public function getTranslationStatuses(): array {
 		return $this->translationStatuses;
 	}
@@ -99,9 +70,6 @@ class StringPackageWithTranslationStatusDto {
 		return $this->wordCount;
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function getTranslatorNote() {
 		return $this->translatorNote;
 	}

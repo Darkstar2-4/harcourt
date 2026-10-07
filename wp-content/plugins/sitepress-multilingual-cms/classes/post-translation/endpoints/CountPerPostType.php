@@ -23,12 +23,10 @@ class CountPerPostType {
 
 		$postCountPerType = $wpdb->get_results( $wpdb->prepare( $query, 'publish' ), ARRAY_N );
 
-		// $setPluralPostName :: [ 'post' => '1' ] -> [ 'Posts' => 1 ]
 		$setPluralPostName = function ( $postType ) {
 			return [ PostType::getPluralName( $postType[0] )->getOrElse( $postType[0] ) => (int) $postType[1] ];
 		};
 
-		// $setCountToZero :: 'post' -> [ 'post' => 0 ]
 		$setCountToZero = Lst::makePair( Fns::__, 0 );
 
 		return wpml_collect( $postTypes )

@@ -7,9 +7,6 @@ use WPML\Element\API\Languages;
 use WPML\FP\Obj;
 
 class FiltersStorage {
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$result = [];
 
@@ -21,9 +18,6 @@ class FiltersStorage {
 		return $result;
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function getFromLanguage() {
 		return Obj::propOr( Languages::getCurrentCode(), 'from_lang', self::get() );
 	}

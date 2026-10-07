@@ -2,7 +2,6 @@
 
 class WPML_ST_Theme_Localization_Utils {
 
-	/** @return array */
 	public function get_theme_data() {
 		$themes     = wp_get_themes();
 		$theme_data = array();

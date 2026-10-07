@@ -1,9 +1,6 @@
 <?php
 
 class WPML_Active_Plugin_Provider {
-	/**
-	 * @return array
-	 */
 	public function get_active_plugins() {
 		$active_plugin_names = array();
 		if ( function_exists( 'get_plugins' ) ) {
@@ -17,9 +14,6 @@ class WPML_Active_Plugin_Provider {
 		return $active_plugin_names;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_active_plugin_names() {
 		return wp_list_pluck( $this->get_active_plugins(), 'Name' );
 	}

@@ -1,42 +1,15 @@
 <?php
 
-/**
- * Class WPML_User_Options_Menu
- * Renders the WPML UI elements on the WordPress user profile edit screen
- */
 class WPML_User_Options_Menu {
 
-	/** @var WP_User */
 	private $current_user;
-	/** @var SitePress */
 	private $sitepress;
-	/**
-	 * @var string
-	 */
 	private $user_language;
-	/**
-	 * @var string
-	 */
 	private $user_admin_def_lang;
-	/**
-	 * @var string
-	 */
 	private $admin_default_language;
-	/**
-	 * @var string
-	 */
 	private $admin_language;
-	/**
-	 * @var mixed[]
-	 */
 	private $all_languages;
 
-	/**
-	 * WPML_User_Options_Menu constructor.
-	 *
-	 * @param SitePress $sitepress
-	 * @param WP_User   $current_user
-	 */
 	public function __construct( SitePress $sitepress, WP_User $current_user ) {
 		$this->sitepress              = $sitepress;
 		$this->current_user           = $current_user;
@@ -57,10 +30,6 @@ class WPML_User_Options_Menu {
 		$this->all_languages = $this->sitepress->get_languages( $user_language_for_all_languages );
 	}
 
-	/**
-	 * @return string the html for the user profile edit screen element WPML
-	 * adds to it
-	 */
 	public function render() {
 		$wp_api              = $this->sitepress->get_wp_api();
 		$hide_wpml_languages = (bool) $wp_api->version_compare_naked( get_bloginfo( 'version' ), '4.7', '>=' );
@@ -118,16 +87,8 @@ class WPML_User_Options_Menu {
 		return ob_get_clean();
 	}
 
-	/**
-	 * @param bool $use_admin_language_for_edit
-	 */
 	private function get_hidden_languages_options( $use_admin_language_for_edit ) {
 
-		/**
-		 * Filters a condition if current user can see hidden languages options in profile settings
-		 *
-		 * @params bool $show_hidden_languages_options
-		 */
 		$show_hidden_languages_options = apply_filters(
 			'wpml_show_hidden_languages_options',
 			current_user_can( 'manage_options' )

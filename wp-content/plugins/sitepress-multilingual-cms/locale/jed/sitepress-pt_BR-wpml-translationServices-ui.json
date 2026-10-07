@@ -4,7 +4,7 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
          "Connect this site to your %s account": [
@@ -14,25 +14,34 @@
             "Erro"
          ],
          "« Use a different Translation Service": [
-            "« Usar um Serviço de Tradução diferente"
+            "« Usar um serviço de tradução diferente"
          ],
          "Authenticate": [
             "Autenticar"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "Visite <link_to_service /> para solicitar um Token de API. Este token permite que o WPML se conecte ao <service_name /> para enviar e receber trabalhos."
+            "Visite <link_to_service /> para solicitar um token de API. Este token permite que o WPML se conecte a <service_name /> para enviar e receber trabalhos."
          ],
          "Search translation services": [
-            "Buscar serviços de tradução"
+            "Pesquisar serviços de tradução"
          ],
          "Search": [
             "Pesquisar"
          ],
          "Settings": [
-            "Configurações"
+            "Definições"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "Atualmente não é possível conectar um serviço de tradução quando o WPML está configurado para traduzir o conteúdo do seu site automaticamente. Para usar um serviço de tradução, por favor, altere seu modo de tradução na página <LinkToSettingsPage />."
+            "Não é possível conectar um serviço de tradução quando o WPML está configurado para traduzir o conteúdo do seu site automaticamente. Para usar um serviço de tradução, altere seu modo de tradução na página <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Ordenar decrescente"
+         ],
+         "Sort ascending": [
+            "Ordenar crescente"
+         ],
+         "Cancel sorting": [
+            "Cancelar ordenação"
          ],
          "Documentation": [
             "Documentação"

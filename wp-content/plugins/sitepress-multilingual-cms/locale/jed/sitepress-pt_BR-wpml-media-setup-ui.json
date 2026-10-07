@@ -4,14 +4,14 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
          "But...": [
-            "Mas…"
+            "Mas..."
          ],
          "Wait to translate any content that contains media until we're finished configuring it. It will be just a moment.": [
-            "Antes de traduzir qualquer conteúdo que contenha mídia, aguarde até termos concluído a sua configuração. Vai levar só um momento."
+            "Aguarde para traduzir qualquer conteúdo que contenha mídia até que terminemos de configurá-lo. Será apenas um momento."
          ]
       }
    }

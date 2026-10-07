@@ -8,7 +8,6 @@ use WPML\ST\MO\Scan\UI\Model;
 
 class FilesToScanRepository {
 
-	/** @var \WPML_ST_Translations_File_Dictionary  */
 	protected $fileDictionary;
 
 	public function __construct(
@@ -17,9 +16,6 @@ class FilesToScanRepository {
 		$this->fileDictionary = $fileDictionary;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getFilesToScanData() {
 		$this->fileDictionary->clear_skipped();
 		$filesToImport = InstalledComponents::filter( wpml_collect( $this->fileDictionary->get_not_imported_files() ) );
@@ -29,9 +25,6 @@ class FilesToScanRepository {
 		return $data['files_to_scan'];
 	}
 
-	/**
-	 * @return boolean
-	 */
 	public function hasFilesToScan() {
 		$data = $this->getFilesToScanData();
 

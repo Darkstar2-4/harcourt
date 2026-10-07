@@ -9,9 +9,6 @@ use WPML\FP\Maybe;
 use WPML\FP\Obj;
 use function WPML\FP\curryN;
 
-/**
- * @method static callable getCountryByIp( ...$httpPost, ...$ip ) - Curried :: callable->string->array|null
- */
 class Geolocalization {
 	use Macroable;
 

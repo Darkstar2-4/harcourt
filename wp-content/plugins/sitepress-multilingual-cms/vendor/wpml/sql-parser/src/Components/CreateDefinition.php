@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Parses the create definition of a column or a key.
- *
- * Used for parsing `CREATE TABLE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -25,14 +20,7 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class CreateDefinition extends Component
 {
-    /**
-     * All field options.
-     *
-     * @var array
-     */
     public static $FIELD_OPTIONS = array(
-        // Tells the `OptionsArray` to not sort the options.
-        // See the note below.
         '_UNSORTED' => true,
 
         'NOT NULL' => 1,
@@ -42,8 +30,6 @@ class CreateDefinition extends Component
             'expr',
             array('breakOnAlias' => true)
         ),
-        /* Following are not according to grammar, but MySQL happily accepts
-         * these at any location */
         'CHARSET' => array(
             2,
             'var',
@@ -70,7 +56,6 @@ class CreateDefinition extends Component
             'expr',
         ),
 
-        // Generated columns options.
         'GENERATED ALWAYS' => 8,
         'AS' => array(
             9,
@@ -88,73 +73,20 @@ class CreateDefinition extends Component
         'INVISIBLE' => 13,
         'ENFORCED' => 14,
         'NOT' => 15,
-        // Common entries.
-        //
-        // NOTE: Some of the common options are not in the same order which
-        // causes troubles when checking if the options are in the right order.
-        // I should find a way to define multiple sets of options and make the
-        // parser select the right set.
-        //
-        // 'UNIQUE'                        => 4,
-        // 'UNIQUE KEY'                    => 4,
-        // 'COMMENT'                       => array(5, 'var'),
-        // 'NOT NULL'                      => 1,
-        // 'NULL'                          => 1,
-        // 'PRIMARY'                       => 4,
-        // 'PRIMARY KEY'                   => 4,
     );
 
-    /**
-     * The name of the new column.
-     *
-     * @var string
-     */
     public $name;
 
-    /**
-     * Whether this field is a constraint or not.
-     *
-     * @var bool
-     */
     public $isConstraint;
 
-    /**
-     * The data type of thew new column.
-     *
-     * @var DataType
-     */
     public $type;
 
-    /**
-     * The key.
-     *
-     * @var Key
-     */
     public $key;
 
-    /**
-     * The table that is referenced.
-     *
-     * @var Reference
-     */
     public $references;
 
-    /**
-     * The options of this field.
-     *
-     * @var OptionsArray
-     */
     public $options;
 
-    /**
-     * Constructor.
-     *
-     * @param string       $name         the name of the field
-     * @param OptionsArray $options      the options of this field
-     * @param DataType|Key $type         the data type of this field or the key
-     * @param bool         $isConstraint whether this field is a constraint or not
-     * @param Reference    $references   references
-     */
     public function __construct(
         $name = null,
         $options = null,
@@ -173,57 +105,21 @@ class CreateDefinition extends Component
         }
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return CreateDefinition[]
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = array();
 
         $expr = new self();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 -----------------------[ ( ]------------------------> 1
-         *
-         *      1 --------------------[ CONSTRAINT ]------------------> 1
-         *      1 -----------------------[ key ]----------------------> 2
-         *      1 -------------[ constraint / column name ]-----------> 2
-         *
-         *      2 --------------------[ data type ]-------------------> 3
-         *
-         *      3 ---------------------[ options ]--------------------> 4
-         *
-         *      4 --------------------[ REFERENCES ]------------------> 4
-         *
-         *      5 ------------------------[ , ]-----------------------> 1
-         *      5 ------------------------[ ) ]-----------------------> 6 (-1)
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -252,8 +148,6 @@ class CreateDefinition extends Component
                     }
                 } elseif ($token->type === Token::TYPE_KEYWORD) {
                     if ($token->flags & Token::FLAG_KEYWORD_RESERVED) {
-                        // Reserved keywords can't be used
-                        // as field names without backquotes
                         $parser->error(
                             'A symbol name was expected! '
                             . 'A reserved keyword can not be used '
@@ -264,7 +158,6 @@ class CreateDefinition extends Component
                         return $ret;
                     }
 
-                    // Non-reserved keywords are allowed without backquotes
                     $expr->name = $token->value;
                     $state = 2;
                 } else {
@@ -283,7 +176,7 @@ class CreateDefinition extends Component
                 $state = 4;
             } elseif ($state === 4) {
                 if ($token->type === Token::TYPE_KEYWORD && $token->keyword === 'REFERENCES') {
-                    ++$list->idx; // Skipping keyword 'REFERENCES'.
+                    ++$list->idx;
                     $expr->references = Reference::parse($parser, $list);
                 } else {
                     --$list->idx;
@@ -311,7 +204,6 @@ class CreateDefinition extends Component
             }
         }
 
-        // Last iteration was not saved.
         if (! empty($expr->type) || ! empty($expr->key)) {
             $ret[] = $expr;
         }
@@ -328,12 +220,6 @@ class CreateDefinition extends Component
         return $ret;
     }
 
-    /**
-     * @param CreateDefinition|CreateDefinition[] $component the component to be built
-     * @param array                               $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         if (is_array($component)) {

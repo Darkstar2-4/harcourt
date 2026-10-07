@@ -1,20 +1,11 @@
 <?php
 
-/**
- * This code is inspired by WPML Widgets (https://wordpress.org/plugins/wpml-widgets/),
- * created by Jeroen Sormani
- *
- * @author OnTheGo Systems
- */
 class WPML_Widgets_Support_Factory implements IWPML_Backend_Action_Loader, IWPML_Frontend_Action_Loader, IWPML_Deferred_Action_Loader {
 
 	public function get_load_action() {
 		return 'wpml_loaded';
 	}
 
-	/**
-	 * @return WPML_Widgets_Support_Backend|WPML_Widgets_Support_Frontend|null
-	 */
 	public function create() {
 		global $sitepress;
 
@@ -47,11 +38,6 @@ class WPML_Widgets_Support_Factory implements IWPML_Backend_Action_Loader, IWPML
 		return new WPML_Widgets_Support_Frontend( $sitepress->get_current_language() );
 	}
 
-	/**
-	 * @param SitePress $sitepress
-	 *
-	 * @return bool
-	 */
 	private function is_human_page( SitePress $sitepress ) {
 		$wpml_wp_api = $sitepress->get_wp_api();
 

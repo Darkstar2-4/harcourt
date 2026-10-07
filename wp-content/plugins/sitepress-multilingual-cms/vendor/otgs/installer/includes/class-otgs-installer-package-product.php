@@ -72,11 +72,6 @@ class OTGS_Installer_Package_Product {
 		return $this->plugins;
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return bool
-	 */
 	public function is_plugin_registered( $slug ) {
 		foreach ( $this->plugins as $plugin ) {
 			if ( $slug === $plugin ) {

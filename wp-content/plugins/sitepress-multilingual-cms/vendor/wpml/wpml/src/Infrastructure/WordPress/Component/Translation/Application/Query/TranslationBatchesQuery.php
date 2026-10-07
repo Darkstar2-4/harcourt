@@ -9,25 +9,13 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\Core\SharedKernel\Component\Translation\Domain\ReviewStatus;
 
-/**
- * @phpstan-type TranslationBatchRow array{
- *   id: int,
- *   batch_name: string,
- * }
- */
 class TranslationBatchesQuery implements TranslationBatchesQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, TranslationBatchRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @param QueryHandlerInterface<int, TranslationBatchRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct (
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -42,7 +30,6 @@ class TranslationBatchesQuery implements TranslationBatchesQueryInterface {
     FROM {$this->queryPrepare->prefix()}icl_translation_batches tb";
 
     try {
-      /** @var int|null $totalBatchesNumber */
       $totalBatchesNumber = $this->queryHandler->querySingle( $sql );
     } catch ( DatabaseErrorException $e ) {
       $totalBatchesNumber = 0;
@@ -52,11 +39,6 @@ class TranslationBatchesQuery implements TranslationBatchesQueryInterface {
   }
 
 
-  /**
-   * @param string $searchName
-   *
-   * @return TranslationBatchDto[]
-   */
   public function getByNameStartsWith ( string $searchName ): array {
     $searchName = preg_replace( '/\s+/', '', $searchName ) ?? $searchName;
 
@@ -84,12 +66,6 @@ class TranslationBatchesQuery implements TranslationBatchesQueryInterface {
   }
 
 
-  /**
-   * @return array<string, bool>
-   * - `automatic` => Whether any job exist sent by TEA.
-   * - `manual` => Whether any job exist sent manually to automatic translation.
-   * @throws DatabaseErrorException
-   */
   public function getNeedsReviewJobsBatchType(): array {
     $query = "
       SELECT (SELECT 1
@@ -117,7 +93,6 @@ class TranslationBatchesQuery implements TranslationBatchesQueryInterface {
       'Automatic Translations from%'
     );
 
-    /** @var array<string, bool> $results */
     $results = $this->queryHandler->queryOne( $preparedQuery );
 
     return [

@@ -2,17 +2,12 @@
 
 abstract class WPML_Page_Builders_Media_Update_Factory implements IWPML_PB_Media_Update_Factory {
 
-	/**
-	 * @param boolean $find_usage_instead_of_translate
-	 *
-	 * @return IWPML_PB_Media_Find_And_Translate
-	 */
-	protected function get_media_translate( $find_usage_instead_of_translate ) {
+	protected function get_media_translate( $find_usage_instead_of_translate, $create_noop_media_find_usage = false ) {
 		global $sitepress;
 
 		$element_factory = new WPML_Translation_Element_Factory( $sitepress );
 		if ( $find_usage_instead_of_translate ) {
-			return new WPML_Page_Builders_Media_Find_Usage();
+			return $create_noop_media_find_usage ? new WPML_Page_Builders_Media_Find_Usage_Noop() : new WPML_Page_Builders_Media_Find_Usage();
 		}
 
 		$image_translate = new WPML_Media_Image_Translate(

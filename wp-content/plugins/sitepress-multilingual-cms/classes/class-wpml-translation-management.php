@@ -4,9 +4,6 @@ use WPML\TM\ATE\ClonedSites\Lock as AteApiLock;
 use function WPML\Container\make;
 use WPML\LIB\WP\User;
 
-/**
- * Class WPML_Translation_Management
- */
 class WPML_Translation_Management {
 
 	const PAGE_SLUG_MANAGEMENT = '/menu/main.php';
@@ -15,38 +12,21 @@ class WPML_Translation_Management {
 
 	var $load_priority = 200;
 
-	/** @var  SitePress $sitepress */
 	protected $sitepress;
 
-	/** @var  WPML_TM_Loader $tm_loader */
 	private $tm_loader;
 
-	/** @var  TranslationManagement $tm_instance */
 	private $tm_instance;
 
-	/** @var  WPML_Translations_Queue $tm_queue */
 	private $tm_queue;
 
-	/** @var WPML_TM_Menus_Management $wpml_tm_menus_management */
 	private $wpml_tm_menus_management;
 
-	/** @var WPML_Ajax_Route $ajax_route */
 	private $ajax_route;
 
-	/**
-	 * @var WPML_TP_Translator
-	 */
 	private $wpml_tp_translator;
 
-	/**
-	 * WPML_Translation_Management constructor.
-	 *
-	 * @param SitePress             $sitepress
-	 * @param WPML_TM_Loader        $tm_loader
-	 * @param TranslationManagement $tm_instance
-	 * @param WPML_TP_Translator    $wpml_tp_translator
-	 */
-	function __construct( $sitepress, $tm_loader, $tm_instance, WPML_TP_Translator $wpml_tp_translator = null ) {
+	function __construct( $sitepress, $tm_loader, $tm_instance, ?WPML_TP_Translator $wpml_tp_translator = null ) {
 		$this->sitepress = $sitepress;
 
 		$this->tm_loader   = $tm_loader;
@@ -109,9 +89,6 @@ class WPML_Translation_Management {
 		add_action( 'wpml_save_custom_field_translation_option', array( $this, 'wpml_save_custom_field_translation_option' ), 10, 2 );
 	}
 
-	/**
-	 * @return bool `true` if notices were added
-	 */
 	private function notices_added_because_wpml_is_inactive_or_incomplete() {
 		$wpml_wp_api = $this->sitepress->get_wp_api();
 		if ( ! $wpml_wp_api->constant( 'ICL_SITEPRESS_VERSION' ) || $wpml_wp_api->constant( 'ICL_PLUGIN_INACTIVE' ) ) {
@@ -143,7 +120,6 @@ class WPML_Translation_Management {
 	}
 
 	function trashed_post_actions( $post_id ) {
-		// Removes trashed post from the basket
 		TranslationProxy_Basket::delete_item_from_basket( $post_id );
 	}
 
@@ -239,7 +215,6 @@ class WPML_Translation_Management {
 				wp_enqueue_script( OTGS_Assets_Handles::POPOVER_TOOLTIP );
 			}
 
-			// TODO Load only in translation editor && taxonomy transaltion
 			wp_enqueue_style( 'wpml-dialog' );
 			wp_enqueue_style( OTGS_Assets_Handles::SWITCHER );
 		}
@@ -297,12 +272,6 @@ class WPML_Translation_Management {
 	}
 
 
-	/**
-	 * Sets up the menu items for non-admin translators pointing at the TM
-	 * and ST translators interfaces
-	 *
-	 * @param string $menu_id
-	 */
 	public function translators_menu( $menu_id ) {
 		if ( 'WPML' !== $menu_id ) {
 			return;
@@ -329,11 +298,6 @@ class WPML_Translation_Management {
 		}
 	}
 
-	/**
-	 * Renders the TM queue
-	 *
-	 * @used-by \WPML_Translation_Management::menu
-	 */
 	function translation_queue_page() {
 		if ( true !== apply_filters( 'wpml_tm_lock_ui', false )
 			 && $this->is_the_main_request()
@@ -343,9 +307,6 @@ class WPML_Translation_Management {
 		}
 	}
 
-	/**
-	 * @param string $menu_id
-	 */
 	public function settings_menu( $menu_id ) {
 		if ( 'WPML' !== $menu_id ) {
 			return;
@@ -353,7 +314,7 @@ class WPML_Translation_Management {
 		$menu_label = __( 'Settings', 'wpml-translation-management' );
 
 		$menu               = array();
-		$menu['order']      = 9900; // see WPML_Main_Admin_Menu::MENU_ORDER_SETTINGS
+		$menu['order']      = 9900;
 		$menu['page_title'] = $menu_label;
 		$menu['menu_title'] = $menu_label;
 		$menu['capability'] = $this->get_required_cap_based_on_current_user_role();
@@ -373,13 +334,6 @@ class WPML_Translation_Management {
 		return ! isset( $_SERVER['HTTP_ACCEPT'] ) || false !== strpos( $_SERVER['HTTP_ACCEPT'], 'text/html' );
 	}
 
-	function dismiss_icl_side_by_site() {
-		global $iclTranslationManagement;
-		$iclTranslationManagement->settings['doc_translation_method'] = ICL_TM_TMETHOD_MANUAL;
-		$iclTranslationManagement->save_settings();
-		exit;
-	}
-
 	function plugin_action_links( $links, $file ) {
 		$this_plugin = basename( WPML_TM_PATH ) . '/plugin.php';
 		if ( $file == $this_plugin ) {
@@ -389,7 +343,6 @@ class WPML_Translation_Management {
 		return $links;
 	}
 
-	// Localization
 	function plugin_localization() {
 		load_plugin_textdomain( 'wpml-translation-management', false, plugin_basename( WPML_TM_PATH ) . '/locale' );
 	}
@@ -419,11 +372,6 @@ class WPML_Translation_Management {
 		die();
 	}
 
-	/**
-	 * If user display Translation Dashboard or Translators
-	 *
-	 * @return boolean
-	 */
 	function automatic_service_selection_pages() {
 		return is_admin() &&
 					 isset( $_GET['page'] ) &&
@@ -523,10 +471,6 @@ class WPML_Translation_Management {
 		wp_cache_set( 'done', true, 'automatic_service_selection' );
 	}
 
-	/**
-	 * @param $custom_field_name
-	 * @param $translation_option
-	 */
 	public function wpml_save_custom_field_translation_option( $custom_field_name, $translation_option ) {
 		$custom_field_name = sanitize_text_field( $custom_field_name );
 		if ( ! $custom_field_name ) {
@@ -584,9 +528,6 @@ class WPML_Translation_Management {
 		add_filter( 'wpml_string_status_text', array( 'WPML_Remote_String_Translation', 'string_status_text_filter' ), 10, 2 );
 	}
 
-	/**
-	 * @param $pagenow
-	 */
 	private function add_translation_in_progress_warning( $pagenow ) {
 		if ( in_array( $pagenow, array( 'post-new.php', 'post.php', 'admin-ajax.php' ), true ) ) {
 			add_action( 'init', function() {
@@ -596,9 +537,6 @@ class WPML_Translation_Management {
 		}
 	}
 
-	/**
-	 * @param $pagenow
-	 */
 	private function add_post_tm_init_admin_hooks( $pagenow ) {
 		$this->add_non_theme_customizer_hooks( $pagenow );
 		$this->add_menu_items();
@@ -607,21 +545,16 @@ class WPML_Translation_Management {
 
 		$this->add_translation_queue_hooks();
 
-		// Add a nice warning message if the user tries to edit a post manually and it's actually in the process of being translated
 		$this->add_translation_in_progress_warning( $pagenow );
 
-		add_action( 'wp_ajax_dismiss_icl_side_by_site', array( $this, 'dismiss_icl_side_by_site' ) );
 		add_action( 'wp_ajax_icl_tm_toggle_promo', array( $this, '_icl_tm_toggle_promo' ) );
 		add_action( 'wpml_support_page_after', array( $this, 'add_com_log_link' ) );
 
 		$this->translate_independently();
 	}
 
-	/**
-	 * @param $pagenow
-	 */
 	private function add_non_theme_customizer_hooks( $pagenow ) {
-		if ( $pagenow !== 'customize.php' ) { // stop TM scripts from messing up theme customizer
+		if ( $pagenow !== 'customize.php' ) {
 			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 			add_action( 'admin_print_styles', array( $this, 'admin_print_styles' ), 11 );
 			$this->add_custom_xml_config();
@@ -660,26 +593,12 @@ class WPML_Translation_Management {
 		}
 	}
 
-	/**
-	 * We want to disable any admin notices on the TM Dashboard page to avoid UI pollution.
-	 * Only relevant notices which are added when content is sent to translation should be displayed.
-	 *
-	 * Nevertheless, there are a few cases when we want to make an exception.
-	 *
-	 * Therefore, we load all notices which are defined by WPML via "wpml_get_admin_notices()" interface.
-	 * Moreover, you can enforce a notice to be displayed by adding it to the "wpml_tm_dashboard_notices" filter.
-	 *
-	 * Additionally, we have the cases when TM Dashboard is completely disabled. In this case, we want to display the notice about it.
-	 * It is checked by `apply_filters( 'wpml_tm_lock_ui', false )` condition.
-	 *
-	 * @return void
-	 */
 	private function disableAllNonWPMLNotices() {
 		if ( \WPML\UIPage::isTMDashboard( $_GET ) ) {
 			add_action( 'admin_head', function () {
 				if ( ! apply_filters( 'wpml_tm_lock_ui', false ) ) {
 					remove_all_actions( 'admin_notices' );
-					wpml_get_admin_notices()->add_admin_notices_action(); // Restore WPML admin notices.
+					wpml_get_admin_notices()->add_admin_notices_action();
 
 					foreach ( (array) apply_filters( 'wpml_tm_dashboard_notices', [] ) as $notice ) {
 						if ( is_callable( $notice ) ) {
@@ -691,12 +610,6 @@ class WPML_Translation_Management {
 		}
 	}
 
-	/**
-	 * If a user should have either "administrator" or "manage_translations" or "wpml_manage_translation_management" capability
-	 * to access a TM Dashboard tab.
-	 *
-	 * @return string
-	 */
 	private function get_required_cap_based_on_current_user_role() {
 		$capability = User::CAP_MANAGE_TRANSLATION_MANAGEMENT;
 		if ( User::hasCap( User::CAP_ADMINISTRATOR ) ) {

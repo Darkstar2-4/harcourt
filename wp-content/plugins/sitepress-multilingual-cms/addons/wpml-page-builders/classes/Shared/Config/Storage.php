@@ -8,10 +8,8 @@ class Storage {
 
 	const OPTION_GROUP = 'api-pb-config';
 
-	/** @var OptionManager $optionManager */
 	private $optionManager;
 
-	/** @var string $pbKey */
 	private $pbKey;
 
 	public function __construct(

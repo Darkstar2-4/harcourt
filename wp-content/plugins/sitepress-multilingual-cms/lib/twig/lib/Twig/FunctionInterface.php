@@ -12,22 +12,8 @@ namespace WPML\Core;
  * file that was distributed with this source code.
  */
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a template function.
- *
- * Use \Twig\TwigFunction instead.
- *
- * @author Arnaud Le Blanc <arnaud.lb@gmail.com>
- *
- * @deprecated since 1.12 (to be removed in 2.0)
- */
 interface Twig_FunctionInterface
 {
-    /**
-     * Compiles a function.
-     *
-     * @return string The PHP code for the function
-     */
     public function compile();
     public function needsEnvironment();
     public function needsContext();

@@ -12,7 +12,6 @@ use WPML\FP\Obj;
 
 class FetchTranslationMemory implements IHandler {
 
-	/** @var \WPML_ST_Translation_Memory_Records $records */
 	private $records;
 
 	public function __construct( \WPML_ST_Translation_Memory_Records $records ) {

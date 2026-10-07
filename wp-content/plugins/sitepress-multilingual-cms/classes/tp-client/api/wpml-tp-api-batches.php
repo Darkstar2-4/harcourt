@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_TP_API_Batches
- */
 class WPML_TP_API_Batches extends WPML_TP_Abstract_API {
 
 	const API_VERSION           = 1.1;
@@ -19,16 +16,6 @@ class WPML_TP_API_Batches extends WPML_TP_Abstract_API {
 		return true;
 	}
 
-	/**
-	 * @throws WPML_TP_Batch_Exception
-	 *
-	 * @param array       $batch_data
-	 * @param false|array $extra_fields
-	 *
-	 * @return false|stdClass
-	 *
-	 * @link https://git.onthegosystems.com/tp/translation-proxy/wikis/create_batch_job
-	 */
 	public function create( array $batch_data, $extra_fields ) {
 		$batch              = false;
 		$this->endpoint_uri = self::CREATE_BATCH_ENDPOINT;
@@ -56,14 +43,6 @@ class WPML_TP_API_Batches extends WPML_TP_Abstract_API {
 		return $batch;
 	}
 
-	/**
-	 * @param int   $batch_id
-	 * @param array $job_data
-	 *
-	 * @return false|WPML_TP_Job
-	 *
-	 * @link https://git.onthegosystems.com/tp/translation-proxy/wikis/add_files_batch_job
-	 */
 	public function add_job( $batch_id, array $job_data ) {
 		$job                = false;
 		$this->endpoint_uri = self::ADD_JOB_ENDPOINT;
@@ -83,17 +62,9 @@ class WPML_TP_API_Batches extends WPML_TP_Abstract_API {
 		return $job;
 	}
 
-	/**
-	 * @link https://git.onthegosystems.com/tp/translation-proxy/wikis/commit_batch_job
-	 */
 	public function commit() {
-		// To be implemented
 	}
 
-	/**
-	 * @link https://git.onthegosystems.com/tp/translation-proxy/wikis/send-preview-bundle-job
-	 */
 	public function send_preview_bundle() {
-		// To be implemented
 	}
 }

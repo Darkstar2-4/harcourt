@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Legacy\Component\WordsToTranslate\Domain\Job;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Job\Query\TranslationEngineQueryInterface;
@@ -8,7 +7,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 use WPML\PHP\Exception\RuntimeException;
 use WPML\Element\API\Languages;
 
-// Legacy
 use WPML\TM\API\ATE\CachedLanguageMappings;
 use WPML\TM\ATE\API\CacheStorage\Transient;
 use WPML\TM\ATE\API\CachedAMSAPI;
@@ -16,20 +14,12 @@ use function WPML\Container\make;
 
 class TranslationEngineQuery implements TranslationEngineQueryInterface {
 
-  /** @var ?CachedAMSAPI */
   private $_amsApi;
 
-  /** @var ?array<string, string> */
   private $languages;
 
-  /** @var ?array<string, int> */
   private $engines;
 
-  /**
-   * Returns the AMS API instance, cached for performance.
-   *
-   * @return CachedAMSAPI
-   */
   private function amsApi() {
     if ( $this->_amsApi === null ) {
       $this->_amsApi =
@@ -43,16 +33,6 @@ class TranslationEngineQuery implements TranslationEngineQueryInterface {
   }
 
 
-  /**
-   * Returns the cost per word for the given language code.
-   *
-   * @param string $langCode
-   * @param ?string $sourceLang
-   *
-   * @return int|false
-   *
-   * @throws RuntimeException Could not fetch engines from AMS API.
-   */
   public function getCostsPerWordForLang( string $langCode, $sourceLang = null ) {
     $languages = $this->getLanguages( $sourceLang );
 
@@ -64,7 +44,6 @@ class TranslationEngineQuery implements TranslationEngineQueryInterface {
     $languageEngine = $languages[ $langCode ];
 
     if ( ! array_key_exists( $languageEngine, $engines ) ) {
-      // No available translation engine for the language.
       return false;
     }
 
@@ -72,13 +51,6 @@ class TranslationEngineQuery implements TranslationEngineQueryInterface {
   }
 
 
-  /**
-   * Returns the list of languages that can be translated automatically.
-   *
-   * @param ?string $sourceLang
-   *
-   * @return array<string, string>
-   */
   private function getLanguages( $sourceLang = null) {
     if ( $this->languages !== null ) {
       return $this->languages;
@@ -111,11 +83,6 @@ class TranslationEngineQuery implements TranslationEngineQueryInterface {
   }
 
 
-  /**
-   * @return array<string, int>
-   *
-   * @throws RuntimeException
-   */
   private function getEngines() {
     if ( $this->engines !== null ) {
       return $this->engines;

@@ -2,13 +2,10 @@
 
 class WPML_ST_WP_Loaded_Action extends WPML_SP_User {
 
-	/** @var WPML_String_Translation $st_instance */
 	private $st_instance;
 
-	/** @var string $pagenow */
 	private $pagenow;
 
-	/** @var string $get_page */
 	private $get_page;
 
 	public function __construct( &$sitepress, &$st_instance, &$pagenow, $get_page ) {

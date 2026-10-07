@@ -1,17 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 28/10/17
- * Time: 5:07 PM
- */
 
 class WPML_Fix_Links_In_Display_As_Translated_Content implements IWPML_Action, IWPML_Frontend_Action, IWPML_DIC_Action {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Translate_Link_Targets $translate_link_targets */
 	private $translate_link_targets;
 
 	public function __construct( SitePress $sitepress, WPML_Translate_Link_Targets $translate_link_targets ) {

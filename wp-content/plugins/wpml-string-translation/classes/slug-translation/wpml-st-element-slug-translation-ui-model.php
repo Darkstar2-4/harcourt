@@ -2,19 +2,14 @@
 
 class WPML_ST_Element_Slug_Translation_UI_Model {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_ST_Slug_Translation_Settings $settings */
 	private $settings;
 
-	/** @var WPML_Slug_Translation_Records $slug_records */
 	private $slug_records;
 
-	/** @var WPML_Element_Sync_Settings $sync_settings */
 	private $sync_settings;
 
-	/** @var WPML_Simple_Language_Selector $lang_selector */
 	private $lang_selector;
 
 	public function __construct(
@@ -31,12 +26,6 @@ class WPML_ST_Element_Slug_Translation_UI_Model {
 		$this->lang_selector     = $lang_selector;
 	}
 
-	/**
-	 * @param string                   $type_name
-	 * @param WP_Post_Type|WP_Taxonomy $custom_type
-	 *
-	 * @return null|array
-	 */
 	public function get( $type_name, $custom_type ) {
 		$has_rewrite_slug   = isset( $custom_type->rewrite['slug'] ) && $custom_type->rewrite['slug'];
 		$is_translated_mode = $this->sync_settings->is_sync( $type_name );
@@ -106,12 +95,6 @@ class WPML_ST_Element_Slug_Translation_UI_Model {
 		return $model;
 	}
 
-	/**
-	 * @param string                   $type_name
-	 * @param WP_Post_Type|WP_Taxonomy $custom_type
-	 *
-	 * @return stdClass
-	 */
 	private function get_original_slug_and_lang( $type_name, $custom_type ) {
 		$original_slug_and_lang = $this->slug_records->get_original_slug_and_lang( $type_name );
 
@@ -128,11 +111,6 @@ class WPML_ST_Element_Slug_Translation_UI_Model {
 		return $original_slug_and_lang;
 	}
 
-	/**
-	 * @param string $type_name
-	 *
-	 * @return array
-	 */
 	private function get_translations( $type_name ) {
 		$translations = array();
 		$rows         = $this->slug_records->get_element_slug_translations( $type_name, false );
@@ -147,11 +125,6 @@ class WPML_ST_Element_Slug_Translation_UI_Model {
 		return $translations;
 	}
 
-	/**
-	 * @param string $string_lang
-	 *
-	 * @return array
-	 */
 	private function get_languages( $string_lang ) {
 		$languages = $this->sitepress->get_active_languages();
 

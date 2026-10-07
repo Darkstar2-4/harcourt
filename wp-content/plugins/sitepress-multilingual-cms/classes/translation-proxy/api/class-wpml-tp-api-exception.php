@@ -2,7 +2,7 @@
 
 class WPML_TP_API_Exception extends Exception {
 
-	public function __construct( $message, WPML_TP_API_Request $request = null, $response = null ) {
+	public function __construct( $message, ?WPML_TP_API_Request $request = null, $response = null ) {
 		if ( $request ) {
 			$message .= ' ' . $this->get_exception_message(
 				$request->get_url(),
@@ -35,11 +35,6 @@ class WPML_TP_API_Exception extends Exception {
 			   . '`';
 	}
 
-	/**
-	 * @param array $params
-	 *
-	 * @return array mixed
-	 */
 	private function filter_params( $params ) {
 		return wpml_collect( $params )->forget( 'accesskey' )->toArray();
 	}

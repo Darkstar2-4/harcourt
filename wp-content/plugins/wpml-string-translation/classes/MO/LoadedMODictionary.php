@@ -12,10 +12,8 @@ class LoadedMODictionary {
 	const PATTERN_SEARCH_LOCALE = '#([-]?)([a-z]+[_A-Z]*)(\.mo)$#i';
 	const LOCALE_PLACEHOLDER = '{LOCALE}';
 
-	/** @var array */
 	private $domainsCache = [];
 
-	/** @var Collection $mo_files */
 	private $mo_files;
 
 	public function __construct() {
@@ -33,14 +31,13 @@ class LoadedMODictionary {
 				}
 			);
 		}
-		// WP 6.5
-		// We need to collect all files loaded in WP_Translation_Controller
-		// at the moment of hooks registration.
 		if ( class_exists('\WP_Translation_Controller') ) {
 			$translationsController = \WP_Translation_Controller::get_instance();
 			$reflection = new \ReflectionClass( $translationsController );
 			$property = $reflection->getProperty( 'loaded_files' );
-			$property->setAccessible( true );
+			if ( PHP_VERSION_ID < 80100 ) {
+				$property->setAccessible( true );
+			}
 			$loaded_files = $property->getValue( $translationsController );
 
 			foreach ( $loaded_files as $loaded_file => $loaded_file_data ) {
@@ -54,12 +51,7 @@ class LoadedMODictionary {
 		}
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $mofile
-	 */
 	public function addFile( $domain, $mofile ) {
-		// The WP RC version is `6.7-RC1` which is an improper format for comparison (we'd need `6.7.0-RC1`).
 		if ( WordPress::versionCompare( '>', '6.6.999' ) ) {
 			$mofile = $this->maybeAdjustPathToStandardLanguageFolders( $mofile, $domain );
 		}
@@ -83,12 +75,6 @@ class LoadedMODictionary {
 		$this->domainsCache = [];
 	}
 
-	/**
-	 * @param string $mofile
-	 * @param string $domain
-	 *
-	 * @return string
-	 */
 	private function maybeAdjustPathToStandardLanguageFolders( $mofile, $domain ) {
 		static $pluginsFolder = WP_LANG_DIR . '/plugins/';
 		static $themesFolder  = WP_LANG_DIR . '/themes/';
@@ -97,11 +83,11 @@ class LoadedMODictionary {
 			0 === strpos( $mofile, $pluginsFolder )
 			|| 0 === strpos( $mofile, $themesFolder )
 		) {
-			return $mofile; // The file is already in the standard language folders.
+			return $mofile;
 		}
 
 		if ( is_dir( dirname( $mofile ) ) ) {
-			return $mofile; // The custom language folder exists.
+			return $mofile;
 		}
 
 		preg_match( self::PATTERN_SEARCH_LOCALE, $mofile, $matches );
@@ -119,15 +105,9 @@ class LoadedMODictionary {
 			return $themesFolder . $moName;
 		}
 
-		// Fallback, let's try find it in the standard plugin folder (it may work with a different locale).
 		return $pluginsFolder . $moName;
 	}
 
-	/**
-	 * @param array $excluded
-	 *
-	 * @return array
-	 */
 	public function getDomains( array $excluded = [] ) {
 		$key = md5( implode( $excluded ) );
 		if ( isset( $this->domainsCache[ $key ] ) ) {
@@ -144,12 +124,6 @@ class LoadedMODictionary {
 		return $domains;
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $locale
-	 *
-	 * @return Collection
-	 */
 	public function getFiles( $domain, $locale ) {
 		return $this->mo_files
 			->filter( $this->byDomain( $domain ) )
@@ -157,40 +131,22 @@ class LoadedMODictionary {
 			->values();
 	}
 
-	/**
-	 * @return Collection
-	 */
 	public function getEntities() {
 		return $this->mo_files;
 	}
 
-	/**
-	 * @param array $excluded
-	 *
-	 * @return \Closure
-	 */
 	private function excluded( array $excluded ) {
 		return function ( stdClass $entity ) use ( $excluded ) {
 			return in_array( $entity->domain, $excluded, true );
 		};
 	}
 
-	/**
-	 * @param string $domain
-	 *
-	 * @return \Closure
-	 */
 	private function byDomain( $domain ) {
 		return function ( stdClass $entity ) use ( $domain ) {
 			return $entity->domain === $domain;
 		};
 	}
 
-	/**
-	 * @param string $locale
-	 *
-	 * @return \Closure
-	 */
 	private function getFile( $locale ) {
 		return
 			function ( stdClass $entity ) use ( $locale ) {

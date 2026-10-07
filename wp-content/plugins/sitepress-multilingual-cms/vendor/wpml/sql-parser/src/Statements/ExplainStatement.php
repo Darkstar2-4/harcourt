@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `EXPLAIN` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 

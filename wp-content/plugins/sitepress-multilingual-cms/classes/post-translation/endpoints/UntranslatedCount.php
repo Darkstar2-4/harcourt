@@ -18,12 +18,6 @@ class UntranslatedCount {
 			->toArray();
 	}
 
-	/**
-	 * @param Collection $data
-	 * @param \wpdb $wpdb
-	 *
-	 * @return array
-	 */
 	private function runForPosts( Collection $data, \wpdb $wpdb ) {
 		$postTypes = $data->get( 'postTypes', PostTypes::getAutomaticTranslatable() );
 
@@ -62,12 +56,10 @@ class UntranslatedCount {
 			ARRAY_N
 		) : [];
 
-		// $setPluralPostName :: [ 'post' => '1' ] -> [ 'Posts' => 1 ]
 		$setPluralPostName = function ( $postType ) {
 			return [ PostType::getPluralName( $postType[0] )->getOrElse( $postType[0] ) => (int) $postType[1] ];
 		};
 
-		// $setCountToZero :: 'post' -> [ 'post' => 0 ]
 		$setCountToZero = Lst::makePair( Fns::__, 0 );
 
 
@@ -78,12 +70,6 @@ class UntranslatedCount {
 			->toArray();
 	}
 
-	/**
-	 * @param Collection $data
-	 * @param \wpdb $wpdb
-	 *
-	 * @return array
-	 */
 	private function runForPackages( Collection $data, \wpdb $wpdb ) {
 		if ( ! wpml_is_st_loaded() ) {
 			return [];

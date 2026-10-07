@@ -4,29 +4,16 @@ namespace WPML\FP;
 
 use WPML\Collect\Support\Traits\Macroable;
 
-/**
- * @method static callable iso( ...$to, ...$from ) - Curried :: callable->callable->callable
- * @method static callable isoIdentity() :: callable->callable->callable
- * @method static callable isoUnserialized() :: callable->callable->callable
- * @method static callable isoJsonDecoded() :: callable->callable->callable
- * @method static callable isoUrlDecoded() :: callable->callable->callable
- * @method static callable isoBase64Decoded() :: callable->callable->callable
- * @method static callable isoParsedUrl() :: callable->callable->callable
- * @method static callable isoParsedQuery() :: callable->callable->callable
- */
 class Lens {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 
 		self::macro( 'iso', curryN( 2, function( $get, $reverseGet ) {
 			return function ( $toFunctorFn ) use ( $get, $reverseGet ) {
 				return function ( $target ) use ( $toFunctorFn, $get, $reverseGet ) {
-					$value = $get( $target ); // Split in 2 lines to prevent VaultPress reports.
+					$value = $get( $target );
 					return Fns::map( $reverseGet, $toFunctorFn( $value ) );
 				};
 			};

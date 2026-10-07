@@ -8,12 +8,8 @@ use WPML\StringTranslation\Infrastructure\Core\Command\SaveFileCommand;
 
 class FrontendQueueJsonRepository implements FrontendQueueRepositoryInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
-	/**
-	 * @var SaveFileCommand
-	 */
 	protected $saveFileCommand;
 
 	public function __construct(

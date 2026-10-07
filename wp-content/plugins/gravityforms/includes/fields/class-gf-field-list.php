@@ -86,6 +86,7 @@ class GF_Field_List extends GF_Field {
 			'visibility_setting',
 			'description_setting',
 			'css_class_setting',
+			'no_urls_setting',
 		);
 	}
 
@@ -184,10 +185,7 @@ class GF_Field_List extends GF_Field {
 		$delete_display      = count( $value ) == 1 ? 'style="visibility:hidden;"' : '';
 		$maxRow              = intval( $this->maxRows );
 		$disabled_icon_class = ! empty( $maxRow ) && count( $value ) >= $maxRow ? 'gfield_icon_disabled' : '';
-
-		$add_icon    = ! empty( $this->addIconUrl ) ? $this->addIconUrl : GFCommon::get_base_url() . '/images/list-add.svg';
-		$delete_icon = ! empty( $this->deleteIconUrl ) ? $this->deleteIconUrl : GFCommon::get_base_url() . '/images/list-remove.svg';
-
+		
 		$add_events    = $is_form_editor ? '' : "onclick='gformAddListItem(this, {$maxRow})'";
 		$delete_events = $is_form_editor ? '' : "onclick='gformDeleteListItem(this, {$maxRow})'";
 
@@ -223,11 +221,23 @@ class GF_Field_List extends GF_Field {
 
 				$aria_label_template = __( 'Remove row {0}', 'gravityforms' );
 
-				$disabled = $is_form_editor ? 'disabled=\'disabled\'' : '';
-
+				$disabled          = $is_form_editor ? 'disabled=\'disabled\'' : '';
+				$icon_url_disabled = $is_form_editor ? 'gfield_url_icon_disabled' : '';
+				
 				$list .= "<div class='gfield_list_icons gform-grid-col'>";
-				$list .= "   <button type=\"button\" {$disabled} class='add_list_item {$disabled_icon_class}' aria-label='" . esc_attr__( 'Add another row', 'gravityforms' ) . "' {$add_events}>" . __( 'Add', 'gravityforms' ) . "</button>" .
-				         "   <button type=\"button\" {$disabled} class='delete_list_item' aria-label='" . esc_attr( str_replace( '{0}', $rownum, $aria_label_template ) ) . "' data-aria-label-template='{$aria_label_template}' {$delete_events} {$delete_display}>" . __( 'Remove', 'gravityforms' ) . "</button>";
+				
+				if ( $this->addIconUrl ) {
+					$list .= " <a href='javascript:void(0);' role='button' class='add_list_item {$icon_url_disabled} {$disabled_icon_class}' aria-label='" . esc_attr__( 'Add another row', 'gravityforms' ) . "' {$add_events}><img src='{$this->addIconUrl}' title='" . esc_attr__( 'Add a new row', 'gravityforms' ) . "' /></a>";
+				} else {
+					$list .= "   <button type='button' {$disabled} class='add_list_item {$disabled_icon_class}' aria-label='" . esc_attr__( 'Add another row', 'gravityforms' ) . "' {$add_events}>" . __( 'Add', 'gravityforms' ) . "</button>";
+				}
+				
+				if ( $this->deleteIconUrl ) {
+					$list .= " <a href='javascript:void(0);' role='button' class='delete_list_item {$icon_url_disabled}' aria-label='" . esc_attr( str_replace( '{0}', $rownum, $aria_label_template ) ) . "' data-aria-label-template='{$aria_label_template}' {$delete_events} {$delete_display}><img src='{$this->deleteIconUrl}' title='" . esc_attr__( 'Remove this row', 'gravityforms' ) . "' /></a>";
+				} else {
+					$list .= "   <button type='button' {$disabled} class='delete_list_item' aria-label='" . esc_attr( str_replace( '{0}', $rownum, $aria_label_template ) ) . "' data-aria-label-template='{$aria_label_template}' {$delete_events} {$delete_display}>" . __( 'Remove', 'gravityforms' ) . "</button>";
+				}
+				
 				$list .= '</div>';
 
 			}
@@ -634,10 +644,10 @@ class GF_Field_List extends GF_Field {
 	 * Gets the field value HTML markup to be used on the entry detail page.
 	 *
 	 * @since  Unknown
-	 * @access public
+	 * @since  2.9.29 Changed the second parameter $currency (string) to $entry (array).
 	 *
 	 * @param array  $value    The submitted entry value.
-	 * @param string $currency Not used.
+	 * @param array  $entry    Not used.
 	 * @param bool   $use_text Not used.
 	 * @param string $format   The format to be used when building the items.
 	 *                         Accepted values are text, url, or html. Defaults to html.
@@ -646,12 +656,12 @@ class GF_Field_List extends GF_Field {
 	 *
 	 * @return string The HTML markup to be displayed.
 	 */
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 		if ( empty( $value ) ) {
 			return '';
 		}
 
-		$value = maybe_unserialize( $value );
+		$value = GFCommon::maybe_unserialize( $value );
 
 		if( ! is_array( $value ) || ! isset( $value[0] ) ) {
 			return '';
@@ -781,30 +791,33 @@ class GF_Field_List extends GF_Field {
 	}
 
 	/**
-	 * Gets the value of the field when the entry is saved.
+	 * Sanitize and format the value before it is saved to the Entry Object.
 	 *
-	 * @since  Unknown
-	 * @access public
+	 * @since 3.0.0
 	 *
-	 * @param string $value      The value to use.
-	 * @param array  $form       The form that the entry is associated with.
-	 * @param string $input_name The name of the input containing the value.
-	 * @param int    $lead_id    The entry ID.
-	 * @param array  $lead       The Entry Object.
+	 * @param string|array $value          The value to be saved.
+	 * @param array        $form           The Form object currently being processed.
+	 * @param string       $input_name     The input name used when accessing the $_POST.
+	 * @param int          $entry_id       The ID of the entry currently being processed.
+	 * @param array        $entry          The entry currently being processed.
+	 * @param string       $repeater_index The repeater index if the field is inside a repeater.
 	 *
-	 * @return string The entry value. Escaped.
+	 * @return array|string The sanitized and formatted input value to be saved.
 	 */
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
 
-		if ( $this->is_administrative() && $this->allowsPrepopulate ) {
-			$value = json_decode( $value );
+		if ( $this->is_administrative() && $this->allowsPrepopulate && is_string( $value ) ) {
+			$value = json_decode( $value, true );
 		}
 
 		if ( GFCommon::is_empty_array( $value ) ) {
 			$value = '';
 		} else {
-			$value = $this->create_list_array( $value );
-			$value = serialize( $value );
+			// Convert Old Array Format (flat) values to the structured New Array Format; already-structured rows are used as-is.
+			$first_row     = is_array( $value ) ? reset( $value ) : null;
+			$is_structured = $this->is_administrative() && $this->allowsPrepopulate && is_array( $first_row );
+			$value         = $is_structured ? array_values( $value ) : $this->create_list_array( $value );
+			$value         = serialize( $value );
 		}
 
 		$value_safe = $this->sanitize_entry_value( $value, $form['id'] );
@@ -843,7 +856,7 @@ class GF_Field_List extends GF_Field {
 			$output_format = $format;
 		}
 
-		return GFCommon::get_lead_field_display( $this, $raw_value, $entry['currency'], true, $output_format );
+		return $this->get_value_entry_detail( $raw_value, $entry, true, $output_format, 'screen' );
 	}
 
 	/**
@@ -864,7 +877,7 @@ class GF_Field_List extends GF_Field {
 	 * @return string
 	 */
 	public function get_value_entry_list( $value, $entry, $field_id, $columns, $form ) {
-		return GFCommon::get_lead_field_display( $this, $value, $entry['currency'], true, 'html' );
+		return $this->get_value_entry_detail( $value, $entry, true, 'html', 'screen' );
 	}
 
 	/**
@@ -925,10 +938,7 @@ class GF_Field_List extends GF_Field {
 
 			return $value;
 		} elseif ( is_serialized( $value ) ) {
-			$value = @unserialize(
-				trim( $value ),
-				array( 'allowed_classes' => false )
-			);
+			$value = GFCommon::maybe_unserialize( $value );
 			return is_array( $value ) ? $value : $default;
 		}
 
@@ -977,7 +987,7 @@ class GF_Field_List extends GF_Field {
 		}
 
 		$value = rgar( $entry, $input_id );
-		$value = maybe_unserialize( $value );
+		$value = GFCommon::maybe_unserialize( $value );
 
 		if ( empty( $value ) || $is_csv ) {
 			return $value;
@@ -997,6 +1007,23 @@ class GF_Field_List extends GF_Field {
 		}
 
 		return GFCommon::implode_non_blank( ', ', $column_values );
+	}
+
+	/**
+	 * Returns the string value to be used for URL detection.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param string|array $value The value to be prepared for validation.
+	 *
+	 * @return string
+	 */
+	public function prepare_value_for_url_detection( $value ) {
+		if ( $this->enableColumns && is_array( $value ) ) {
+			$value = array_merge( ...array_map( 'array_values', $value ) );
+		}
+
+		return parent::prepare_value_for_url_detection( $value );
 	}
 
 	// # FIELD FILTER UI HELPERS ---------------------------------------------------------------------------------------

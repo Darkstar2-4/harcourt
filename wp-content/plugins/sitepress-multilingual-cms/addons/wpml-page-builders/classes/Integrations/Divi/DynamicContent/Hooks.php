@@ -13,16 +13,6 @@ class Hooks implements \IWPML_Frontend_Action {
 		add_filter( 'et_builder_resolve_dynamic_content', [ $this, 'translateIds' ], self::AFTER_DIVI_PRIORITY, 6 );
 	}
 
-	/**
-	 * @param string  $content
-	 * @param string  $name
-	 * @param array   $settings
-	 * @param integer $postId
-	 * @param string  $context
-	 * @param array   $overrides
-	 *
-	 * @return string
-	 */
 	public function translateIds( $content, $name, $settings, $postId, $context, $overrides ) {
 		$translate = Fns::withNamedLock(
 			__CLASS__ . '::translateIds',

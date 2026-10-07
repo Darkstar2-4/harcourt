@@ -1,23 +1,11 @@
 <?php
 
-/**
- * WPML_ST_Admin_String class
- */
 class WPML_ST_Admin_String extends WPML_ST_String {
 
-	/**
-	 * @var string $name
-	 */
 	private $name;
 
-	/**
-	 * @var string $value
-	 */
 	private $value;
 
-	/**
-	 * @param string $new_value
-	 */
 	public function update_value( $new_value ) {
 		$this->fetch_name_and_value();
 		if ( md5( $this->value ) !== $this->name ) {

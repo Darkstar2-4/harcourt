@@ -4,7 +4,6 @@ namespace WPML\Core\Component\WordsToTranslate\Domain\Calculator\PrepareContent\
 
 trait HTMLTrait {
 
-  /** @var string[] */
   private $translatableHTMLAttributes = [
     'alt',
     'title',
@@ -14,11 +13,6 @@ trait HTMLTrait {
   ];
 
 
-  /**
-   * @param string $html
-   *
-   * @return string
-   */
   private function removeHTMLExceptTranslatableAttributes( $html ) {
     $html = $this->removeHiddenInputs( $html );
 
@@ -36,13 +30,7 @@ trait HTMLTrait {
   }
 
 
-  /**
-   * @param string $html
-   *
-   * @return string
-   */
   private function removeHiddenInputs( $html ) {
-    // Remove hidden inputs.
     $html = preg_replace(
       '/<input\b[^>]*\btype=["\']?hidden["\']?[^>]*>/i',
       '',
@@ -53,11 +41,6 @@ trait HTMLTrait {
   }
 
 
-  /**
-   * @param string $html
-   *
-   * @return string[]
-   */
   private function getTranslatableHTMLAttributeTextsUsePregMatch( $html ) {
     preg_match_all(
       '/\b(?:' . implode( '|', $this->translatableHTMLAttributes ) .')\s*=\s*(["\'])(.*?)\1/i',
@@ -69,13 +52,7 @@ trait HTMLTrait {
   }
 
 
-  /**
-   * @param string $html
-   *
-   * @return string[]
-   */
   private function getTranslatableHTMLAttributesUseDOMDocument( $html ) {
-    // Light check.
     if (
       ! preg_match(
         '/\s*' . implode( '|', $this->translatableHTMLAttributes ) . '\s*=/i',
@@ -87,12 +64,11 @@ trait HTMLTrait {
 
     $texts = [];
     $doc = new \DOMDocument();
-    libxml_use_internal_errors( true ); // suppress warnings
+    libxml_use_internal_errors( true );
     $doc->loadHTML( '<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
     libxml_clear_errors();
     $xpath = new \DOMXPath( $doc );
 
-    // Extract translatable attributes.
     foreach ( $this->translatableHTMLAttributes as $attr ) {
       if ( stripos( $html, $attr ) === false ) {
         continue;
@@ -103,7 +79,6 @@ trait HTMLTrait {
         continue;
       }
       foreach ( $nodes as $node ) {
-        /** @var \DOMElement $node */
         $texts[] = $node->getAttribute( $attr );
       }
     }

@@ -1,0 +1,52 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "You must use the Advanced Translation Editor if you want to translate your content automatically.": [
+            "İçeriğinizi otomatik olarak çevirmek istiyorsanız Gelişmiş Çeviri Düzenleyicisi'ni kullanmalısınız."
+         ],
+         "Synchronize translators and translation managers with ATE": [
+            "Çevirmenleri ve çeviri yöneticilerini ATE ile senkronize edin"
+         ],
+         "Please try again in a few minutes. If the problem persists, please contact %sWPML support%s.": [
+            "Lütfen birkaç dakika sonra tekrar deneyin. Sorun devam ederse, lütfen %sWPML desteği%s ile iletişime geçin."
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Please confirm this translation setting": [
+            "Lütfen bu çeviri ayarını onaylayın"
+         ],
+         "Your site is set to translate all content automatically. When you make <PostTypesNames /> translatable, WPML will automatically translate the %1$d existing item.": [
+            "Siteniz tüm içeriği otomatik olarak çevirecek şekilde ayarlanmıştır. <PostTypesNames />'i çevrilebilir yaptığınızda, WPML mevcut %1$d öğeyi otomatik olarak çevirecektir.",
+            "Siteniz tüm içeriği otomatik olarak çevirecek şekilde ayarlanmıştır. <PostTypesNames />'i çevrilebilir yaptığınızda, WPML mevcut %1$d öğeyi otomatik olarak çevirecektir."
+         ],
+         "Your site is set to translate all content automatically. When you make <PostTypesNames /> translatable, WPML will automatically translate all future content.": [
+            "Siteniz tüm içeriği otomatik olarak çevirecek şekilde ayarlanmıştır. <PostTypesNames />'i çevrilebilir yaptığınızda, WPML gelecekteki tüm içeriği otomatik olarak çevirecektir."
+         ],
+         "Are you OK with paying for this?": [
+            "Bunun için ödeme yapmayı kabul ediyor musunuz?"
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "Make translatable": [
+            "Çevrilebilir yap"
+         ],
+         "Yes, translate <b>existing</b> and <b>future</b> content automatically": [
+            "Evet, <b>mevcut</b> ve <b>gelecekteki</b> içeriği otomatik olarak çevir"
+         ],
+         "Yes, but only translate <b>future</b> content automatically": [
+            "Evet, ancak yalnızca <b>gelecekteki</b> içeriği otomatik olarak çevir"
+         ],
+         "Yes, translate <b>future</b> content automatically": [
+            "Evet, <b>gelecekteki</b> içeriği otomatik olarak çevir"
+         ]
+      }
+   }
+}

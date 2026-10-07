@@ -4,10 +4,8 @@ class WPML_Translation_Proxy_Networking {
 
 	const API_VERSION = 1.1;
 
-	/** @var WP_Http $http */
 	private $http;
 
-	/** @var WPML_TP_Lock $tp_lock */
 	private $tp_lock;
 
 	public function __construct( WP_Http $http, WPML_TP_Lock $tp_lock ) {
@@ -15,17 +13,6 @@ class WPML_Translation_Proxy_Networking {
 		$this->tp_lock = $tp_lock;
 	}
 
-	/**
-	 * @param string    $url
-	 * @param array     $params
-	 * @param string    $method
-	 * @param bool|true $has_return_value
-	 * @param bool|true $json_response
-	 * @param bool|true $has_api_response
-	 *
-	 * @return array|mixed|stdClass|string
-	 * @throws WPMLTranslationProxyApiException
-	 */
 	public function send_request(
 		$url,
 		$params = array(),
@@ -106,16 +93,6 @@ class WPML_Translation_Proxy_Networking {
 		return TranslationProxy_Api::proxy_request( '/projects/{project_id}/extra_fields.json', $params );
 	}
 
-	/**
-	 * @param string $url
-	 * @param array  $params
-	 * @param string $method
-	 * @param bool   $has_return_value
-	 *
-	 * @throws \WPMLTranslationProxyApiException
-	 *
-	 * @return array
-	 */
 	private function call_remote_api(
 		$url,
 		$params,
@@ -164,12 +141,6 @@ class WPML_Translation_Proxy_Networking {
 			   . '`';
 	}
 
-	/**
-	 * @param array  $params request parameters
-	 * @param string $method HTTP request method
-	 *
-	 * @return array
-	 */
 	private function filter_request_params( $params, $method ) {
 		$request_filter = new WPML_TP_HTTP_Request_Filter();
 

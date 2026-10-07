@@ -1,41 +1,22 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Canonicals {
 	const CANONICAL_FOR_DUPLICATED_POST       = 'duplicate';
 	const CANONICAL_FOR_NON_TRANSLATABLE_POST = 'non-translatable';
-	/** @var SitePress */
 	private $sitepress;
-	/** @var WPML_Translations */
 	private $wpml_translations;
-	/** @var WPML_Translation_Element_Factory  */
 	private $translation_element_factory;
 
-	/**
-	 * WPML_Canonicals constructor.
-	 *
-	 * @param SitePress                        $sitepress
-	 * @param WPML_Translation_Element_Factory $translation_element_factory
-	 * @param WPML_Translations                $wpml_translations
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		WPML_Translation_Element_Factory $translation_element_factory,
-		WPML_Translations $wpml_translations = null
+		?WPML_Translations $wpml_translations = null
 	) {
 		$this->sitepress                   = $sitepress;
 		$this->translation_element_factory = $translation_element_factory;
 		$this->wpml_translations           = $wpml_translations;
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return bool|string
-	 * @throws \InvalidArgumentException
-	 */
 	private function must_filter_permalink( $post_id ) {
 		$this->init_wpml_translations();
 		$post_element           = $this->translation_element_factory->create( $post_id, 'post' );
@@ -52,13 +33,6 @@ class WPML_Canonicals {
 		return false;
 	}
 
-	/**
-	 * @param string $link
-	 * @param int    $post_id
-	 *
-	 * @return null|string
-	 * @throws \InvalidArgumentException
-	 */
 	public function permalink_filter( $link, $post_id ) {
 		switch ( $this->must_filter_permalink( $post_id ) ) {
 			case self::CANONICAL_FOR_DUPLICATED_POST:
@@ -74,16 +48,9 @@ class WPML_Canonicals {
 		}
 	}
 
-	/**
-	 * @param string  $canonical_url
-	 * @param WP_Post $post
-	 *
-	 * @return string|bool
-	 */
 	public function get_canonical_url( $canonical_url, $post, $request_language ) {
 		if ( $post && $this->sitepress->get_wp_api()->is_front_end() ) {
 			try {
-				/** @var WPML_Post_Element $post_element */
 				$post_element = $this->translation_element_factory->create( $post->ID, 'post' );
 
 				$should_translate_canonical_url = apply_filters(
@@ -116,11 +83,6 @@ class WPML_Canonicals {
 		return $canonical_url;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function get_general_canonical_url( $url ) {
 		global $wpml_url_filters;
 		$wpml_url_filters->remove_global_hooks();
@@ -134,9 +96,6 @@ class WPML_Canonicals {
 		return $this->sitepress->get_wp_api()->function_exists( 'wp_get_canonical_url' );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_permalink_filter_from_rel_canonical() {
 		$back_trace_stack = $this->sitepress->get_wp_api()->get_backtrace( 20 );
 		$keywords         = array( 'rel_canonical', 'canonical', 'generate_canonical' );
@@ -156,11 +115,6 @@ class WPML_Canonicals {
 		return $result;
 	}
 
-	/**
-	 * @param string $link
-	 *
-	 * @return bool|string
-	 */
 	private function get_url_in_default_language_if_rel_canonical( $link ) {
 		if ( $this->is_permalink_filter_from_rel_canonical() ) {
 			$default_language = $this->sitepress->get_default_language();
@@ -170,11 +124,6 @@ class WPML_Canonicals {
 		return $link;
 	}
 
-	/**
-	 * @param WPML_Translation_Element $post_element
-	 *
-	 * @return false|string
-	 */
 	private function get_canonical_of_duplicate( $post_element ) {
 		$source_element = $post_element->get_source_element();
 		if ( $source_element ) {
@@ -191,9 +140,6 @@ class WPML_Canonicals {
 		return $new_link;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function must_handle_a_canonical_url() {
 		return ! $this->has_wp_get_canonical_url() && $this->sitepress->get_wp_api()->is_front_end();
 	}

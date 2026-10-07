@@ -13,13 +13,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\IncludeNode;
 use WPML\Core\Twig\Token;
-/**
- * Includes a template.
- *
- *   {% include 'header.html' %}
- *     Body
- *   {% include 'footer.html' %}
- */
 class IncludeTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

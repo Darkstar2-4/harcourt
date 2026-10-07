@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE_Required_Actions_Base {
 	private $ate_enabled;
 

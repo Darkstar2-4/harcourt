@@ -11,11 +11,6 @@
  */
 namespace WPML\Core\Twig\Error;
 
-/**
- * Exception thrown when an error occurs at runtime.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class RuntimeError extends \WPML\Core\Twig\Error\Error
 {
 }

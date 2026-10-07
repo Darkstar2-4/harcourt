@@ -9,8 +9,8 @@ class WPML_LS_Widget extends WP_Widget {
 
 	public function __construct() {
 		parent::__construct(
-			self::SLUG, // Base ID
-			__( 'Language Switcher', 'sitepress' ), // Name
+			self::SLUG,
+			__( 'Language Switcher', 'sitepress' ),
 			array(
 				'description' => __( 'Language Switcher', 'sitepress' ),
 			)
@@ -23,9 +23,6 @@ class WPML_LS_Widget extends WP_Widget {
 		register_widget( __CLASS__ );
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function admin_enqueue_scripts_action( $hook ) {
 		global $sitepress;
 
@@ -35,17 +32,11 @@ class WPML_LS_Widget extends WP_Widget {
 		}
 	}
 
-	/**
-	 * @param array<string,mixed> $args
-	 * @param array               $instance
-	 */
 	public function widget( $args, $instance ) {
-		/* @var WPML_Language_Switcher $wpml_language_switcher */
 		global $wpml_language_switcher;
 
 		$sidebar = isset( $args['id'] ) ? $args['id'] : '';
 
-		/* @var WPML_LS_Slot $slot */
 		$slot = $wpml_language_switcher->get_slot( 'sidebars', $sidebar );
 
 		if ( ! $slot instanceof WPML_LS_Sidebar_Slot ) {
@@ -72,25 +63,13 @@ class WPML_LS_Widget extends WP_Widget {
 		}
 	}
 
-	/**
-	 * @param array $instance
-	 *
-	 * @return void
-	 */
 	public function form( $instance ) {
-		/* @var WPML_Language_Switcher $wpml_language_switcher */
 		global $wpml_language_switcher;
 
 		$slug = isset( $instance['slot'] ) ? $instance['slot']->slug() : '';
 		echo $wpml_language_switcher->get_button_to_edit_slot( 'sidebars', $slug );
 	}
 
-	/**
-	 * @param array $new_instance
-	 * @param array $old_instance
-	 *
-	 * @return array
-	 */
 	public function update( $new_instance, $old_instance ) {
 		if ( ! $new_instance && ! $old_instance ) {
 			$slot_factory      = new WPML_LS_Slot_Factory();
@@ -105,11 +84,6 @@ class WPML_LS_Widget extends WP_Widget {
 		return $new_instance;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	public function create_new_instance( WPML_LS_Slot $slot ) {
 		require_once ABSPATH . '/wp-admin/includes/widgets.php';
 		$number = next_widget_id_number( $this->id_base );
@@ -121,10 +95,6 @@ class WPML_LS_Widget extends WP_Widget {
 		return $this->id;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 * @param int          $widget_id
-	 */
 	public function update_instance( WPML_LS_Slot $slot, $widget_id = null ) {
 		$number                   = isset( $widget_id ) ? $this->get_number_from_widget_id( $widget_id ) : $this->number;
 		$all_instances            = $this->get_settings();
@@ -132,9 +102,6 @@ class WPML_LS_Widget extends WP_Widget {
 		$this->save_settings( $all_instances );
 	}
 
-	/**
-	 * @param int $widget_id
-	 */
 	public function delete_instance( $widget_id = null ) {
 		$number        = isset( $widget_id ) ? $this->get_number_from_widget_id( $widget_id ) : $this->number;
 		$all_instances = $this->get_settings();
@@ -142,29 +109,14 @@ class WPML_LS_Widget extends WP_Widget {
 		$this->save_settings( $all_instances );
 	}
 
-	/**
-	 * @param string|int $widget_id
-	 *
-	 * @return int
-	 */
 	public function get_number_from_widget_id( $widget_id ) {
 		return (int) preg_replace( '/^' . self::SLUG . '-/', '', (string) $widget_id, 1 );
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return array
-	 */
 	private function get_instance_options_from_slot( WPML_LS_Slot $slot ) {
 		return array( 'slot' => $slot );
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return string
-	 */
 	public function get_settings_page_url( $slug ) {
 		return admin_url( 'admin.php?page=' . WPML_LS_Admin_UI::get_page_hook() . self::ANCHOR_BASE . $slug );
 	}

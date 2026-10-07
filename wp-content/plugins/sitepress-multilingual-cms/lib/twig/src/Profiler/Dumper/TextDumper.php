@@ -11,11 +11,6 @@
 namespace WPML\Core\Twig\Profiler\Dumper;
 
 use WPML\Core\Twig\Profiler\Profile;
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class TextDumper extends \WPML\Core\Twig\Profiler\Dumper\BaseDumper
 {
     protected function formatTemplate(\WPML\Core\Twig\Profiler\Profile $profile, $prefix)

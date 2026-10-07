@@ -7,13 +7,7 @@ use WPML\PHP\Exception\InvalidArgumentException;
 class DateTime extends \DateTime {
 
 
-  /**
-   * @param string $datetime
-   * @param \DateTimeZone|null $timezone
-   *
-   * @throws InvalidArgumentException
-   */
-  public function __construct( $datetime = 'now', \DateTimeZone $timezone = null ) {
+  public function __construct( $datetime = 'now', ?\DateTimeZone $timezone = null ) {
     try {
       parent::__construct( $datetime, $timezone );
     } catch ( \Throwable $e ) {
@@ -22,13 +16,7 @@ class DateTime extends \DateTime {
   }
 
 
-  /**
-   * @param string|null $datetime
-   * @param \DateTimeZone|null $timezone
-   *
-   * @return DateTime|null
-   */
-  public static function create( $datetime = 'now', \DateTimeZone $timezone = null ) {
+  public static function create( $datetime = 'now', ?\DateTimeZone $timezone = null ) {
     if ( ! $datetime ) {
       return null;
     }

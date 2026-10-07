@@ -1,11 +1,7 @@
 <?php
 
-/**
- * Class WPML_API_Hook_Copy_Post_To_Language
- */
 class WPML_API_Hook_Copy_Post_To_Language implements IWPML_Action {
 
-	/** @var WPML_Post_Duplication $post_duplication */
 	private $post_duplication;
 
 	public function __construct( WPML_Post_Duplication $post_duplication ) {

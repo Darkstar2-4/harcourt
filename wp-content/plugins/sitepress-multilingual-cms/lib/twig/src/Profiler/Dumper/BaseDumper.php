@@ -11,9 +11,6 @@
 namespace WPML\Core\Twig\Profiler\Dumper;
 
 use WPML\Core\Twig\Profiler\Profile;
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- */
 abstract class BaseDumper
 {
     private $root;

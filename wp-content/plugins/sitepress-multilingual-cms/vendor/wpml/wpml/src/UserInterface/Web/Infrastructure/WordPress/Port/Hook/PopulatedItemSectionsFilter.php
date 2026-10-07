@@ -9,12 +9,6 @@ class PopulatedItemSectionsFilter implements PopulatedItemSectionsFilterInterfac
   const NAME = 'wpml_tm_populated_item_sections';
 
 
-  /**
-   * @param string[]                     $itemSectionIds
-   * @param SearchPopulatedTypesCriteria $searchCriteria
-   *
-   * @return string[]
-   */
   public function filter( array $itemSectionIds, SearchPopulatedTypesCriteria $searchCriteria ) {
     return apply_filters(
       static::NAME,

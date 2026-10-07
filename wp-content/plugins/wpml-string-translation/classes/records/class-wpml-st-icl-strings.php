@@ -5,12 +5,6 @@ class WPML_ST_ICL_Strings extends WPML_WPDB_User {
 	private $table     = 'icl_strings';
 	private $string_id = 0;
 
-	/**
-	 * WPML_TM_ICL_Strings constructor.
-	 *
-	 * @param wpdb $wpdb
-	 * @param int  $string_id
-	 */
 	public function __construct( &$wpdb, $string_id ) {
 		parent::__construct( $wpdb );
 		$string_id = (int) $string_id;
@@ -21,11 +15,6 @@ class WPML_ST_ICL_Strings extends WPML_WPDB_User {
 		}
 	}
 
-	/**
-	 * @param array $args in the same format used by \wpdb::update()
-	 *
-	 * @return $this
-	 */
 	public function update( $args ) {
 		$this->wpdb->update(
 			$this->wpdb->prefix . $this->table,
@@ -36,9 +25,6 @@ class WPML_ST_ICL_Strings extends WPML_WPDB_User {
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function value() {
 
 		return $this->wpdb->get_var(
@@ -51,9 +37,6 @@ class WPML_ST_ICL_Strings extends WPML_WPDB_User {
 		);
 	}
 
-	/**
-	 * @return string
-	 */
 	public function language() {
 
 		return $this->wpdb->get_var(
@@ -66,9 +49,6 @@ class WPML_ST_ICL_Strings extends WPML_WPDB_User {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function status() {
 
 		return (int) $this->wpdb->get_var(

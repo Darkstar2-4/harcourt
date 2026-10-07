@@ -11,10 +11,8 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 	const NOTICE_GROUP = 'remote-notices';
 	const NOTICE_CLASS = 'wpml-remote-notice';
 
-	/** @var \WPML_Notices $adminNotices */
 	private $adminNotices;
 
-	/** @var Conditions $conditions */
 	private $conditions;
 
 	public function __construct( \WPML_Notices $adminNotices, Conditions $conditions ) {
@@ -26,11 +24,6 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		WPHooks::onFilter( 'wpml_config_array' )->then( spreadArgs( [ $this, 'updateRemoteNotices' ] ) );
 	}
 
-	/**
-	 * @param array $config
-	 *
-	 * @return array
-	 */
 	public function updateRemoteNotices( $config ) {
 		$this->adminNotices->remove_notice_group( self::NOTICE_GROUP );
 
@@ -52,23 +45,6 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		return $config;
 	}
 
-	/**
-	 * @param array $notices
-	 *
-	 * @return array<string, array{
-	 *     id: string,
-	 *     type: string,
-	 *     dismissible: bool,
-	 *     conditions: array{
-	 *         relation: string,
-	 *         plugin: string[],
-	 *         theme: string[],
-	 *         conditions: array[],
-	 *     },
-	 *     screenIds: string[],
-	 *     content: string,
-	 * }>
-	 */
 	private function getNormalizedNotices( $notices ) {
 		$normalizedNotices = [];
 
@@ -82,18 +58,13 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 				'content'     => wp_kses_post( $notice['content']['value'] ?? null ),
 			];
 
-			$normalizedNotice['id'] = $normalizedNotice['id'] ?: md5( serialize( $normalizedNotice ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+			$normalizedNotice['id'] = $normalizedNotice['id'] ?: md5( serialize( $normalizedNotice ) );
 			$normalizedNotices[]    = $normalizedNotice;
 		}
 
 		return $normalizedNotices;
 	}
 
-	/**
-	 * @param array $conditions
-	 *
-	 * @return array
-	 */
 	private static function getConditions( $conditions ) {
 		$normalizedConditions = [];
 
@@ -120,20 +91,10 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		return $normalizedConditions;
 	}
 
-	/**
-	 * @param array $locations
-	 *
-	 * @return array
-	 */
 	private static function getLocations( $locations ) {
 		return self::getSanitizedValues( self::getNormalizedItem( $locations ) );
 	}
 
-	/**
-	 * @param array $items
-	 *
-	 * @return string[]
-	 */
 	private static function getSanitizedValues( $items ) {
 		return array_map(
 			function( $item ) {
@@ -143,11 +104,6 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		);
 	}
 
-	/**
-	 * @param array $item
-	 *
-	 * @return array
-	 */
 	private static function getNormalizedItem( $item ) {
 		return isset( $item['value'] ) ? [ $item ] : $item;
 	}

@@ -2,10 +2,8 @@
 
 class WPML_TM_Parent_Filter_Ajax implements IWPML_Action {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var array $wp_post_types */
 	private $wp_post_types;
 
 	public function __construct( SitePress $sitepress, array $wp_post_types ) {

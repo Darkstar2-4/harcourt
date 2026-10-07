@@ -64,6 +64,9 @@
         jQuery(lang_switch_confirm_html).dialog({
             modal: true,
             width: 'auto',
+            classes: {
+              "ui-dialog": "wpml-confirm-lang-switch"
+            },
             buttons: [
 				{
 					text : icl_post_edit_messages.ok_button_label,

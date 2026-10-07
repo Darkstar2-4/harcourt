@@ -12,17 +12,6 @@ class ShortcodeAttributes implements \IWPML_Frontend_Action {
 			->then( spreadArgs( [ self::class, 'restoreContentId' ] ) );
 	}
 
-	/**
-	 * The `_p` key in $pairs is correctly set to the current (global) post,
-	 * but it's overwritten with shortcode attribute ID copied from the original.
-	 *
-	 * @see \Themeco\Cornerstone\Services\FrontEnd::render_content()
-	 *
-	 * @param array $out
-	 * @param array $pairs
-	 *
-	 * @return array
-	 */
 	public static function restoreContentId( $out, $pairs ) {
 		if ( isset( $out['_p'], $pairs['_p'] ) ) {
 			$out['_p'] = $pairs['_p'];

@@ -15,9 +15,6 @@ class HooksFactory implements \IWPML_Backend_Action_Loader, \IWPML_Frontend_Acti
 		return null;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function isActive() {
 		return defined( 'FL_THEME_BUILDER_VERSION' );
 	}

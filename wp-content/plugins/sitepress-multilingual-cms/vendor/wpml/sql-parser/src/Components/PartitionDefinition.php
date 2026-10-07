@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Parses the create definition of a partition.
- *
- * Used for parsing `CREATE TABLE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -24,11 +19,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class PartitionDefinition extends Component
 {
-    /**
-     * All field options.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'STORAGE ENGINE' => array(
             1,
@@ -68,97 +58,31 @@ class PartitionDefinition extends Component
         )
     );
 
-    /**
-     * Whether this entry is a subpartition or a partition.
-     *
-     * @var bool
-     */
     public $isSubpartition;
 
-    /**
-     * The name of this partition.
-     *
-     * @var string
-     */
     public $name;
 
-    /**
-     * The type of this partition (what follows the `VALUES` keyword).
-     *
-     * @var string
-     */
     public $type;
 
-    /**
-     * The expression used to defined this partition.
-     *
-     * @var Expression|string
-     */
     public $expr;
 
-    /**
-     * The subpartitions of this partition.
-     *
-     * @var PartitionDefinition[]
-     */
     public $subpartitions;
 
-    /**
-     * The options of this field.
-     *
-     * @var OptionsArray
-     */
     public $options;
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return PartitionDefinition
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 -------------[ PARTITION | SUBPARTITION ]------------> 1
-         *
-         *      1 -----------------------[ name ]----------------------> 2
-         *
-         *      2 ----------------------[ VALUES ]---------------------> 3
-         *
-         *      3 ---------------------[ LESS THAN ]-------------------> 4
-         *      3 ------------------------[ IN ]-----------------------> 4
-         *
-         *      4 -----------------------[ expr ]----------------------> 5
-         *
-         *      5 ----------------------[ options ]--------------------> 6
-         *
-         *      6 ------------------[ subpartitions ]------------------> (END)
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -169,8 +93,6 @@ class PartitionDefinition extends Component
             } elseif ($state === 1) {
                 $ret->name = $token->value;
 
-                // Looking ahead for a 'VALUES' keyword.
-                // Loop until the end of the partition name (delimited by a whitespace)
                 while ($nextToken = $list->tokens[++$list->idx]) {
                     if ($nextToken->type !== Token::TYPE_NONE) {
                         break;
@@ -178,7 +100,6 @@ class PartitionDefinition extends Component
                     $ret->name .= $nextToken->value;
                 }
                 $idx = $list->idx--;
-                // Get the first token after the white space.
                 $nextToken = $list->tokens[++$idx];
 
                 $state = ($nextToken->type === Token::TYPE_KEYWORD)
@@ -226,12 +147,6 @@ class PartitionDefinition extends Component
         return $ret;
     }
 
-    /**
-     * @param PartitionDefinition|PartitionDefinition[] $component the component to be built
-     * @param array                                     $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         if (is_array($component)) {

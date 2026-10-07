@@ -13,7 +13,6 @@ use function WPML\FP\pipe;
 
 class UI implements \IWPML_Backend_Action_Loader {
 
-	// shouldShow :: Collection -> bool
 	public static function shouldShow( Collection $data ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
@@ -36,9 +35,6 @@ class UI implements \IWPML_Backend_Action_Loader {
 		];
 	}
 
-	/**
-	 * @return callable|null
-	 */
 	public function create() {
 		if ( self::shouldShow( wpml_collect( $_GET ) ) ) {
 

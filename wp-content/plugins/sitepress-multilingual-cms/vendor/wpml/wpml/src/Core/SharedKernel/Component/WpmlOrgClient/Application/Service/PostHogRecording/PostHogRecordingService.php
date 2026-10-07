@@ -6,7 +6,6 @@ use WPML\Core\SharedKernel\Component\WpmlOrgClient\Domain\Api\Endpoints\PostHogR
 
 class PostHogRecordingService {
 
-  /** @var PostHogRecordingInterface */
   private $postHogRecording;
 
 
@@ -15,17 +14,13 @@ class PostHogRecordingService {
   }
 
 
-  /**
-   * @param string $siteKey
-   * @param string $recordingMode
-   *
-   * @return array{
-   *   success: bool,
-   *   shouldRecord: bool
-   * }
-   */
-  public function run( string $siteKey, string $recordingMode = 'default' ): array {
-    return $this->postHogRecording->run( $siteKey, $recordingMode );
+  public function run(
+    string $siteKey,
+    string $recordingMode = 'default',
+    string $wpmlVersion = '',
+    string $teaState = ''
+  ): array {
+    return $this->postHogRecording->run( $siteKey, $recordingMode, $wpmlVersion, $teaState );
   }
 
 

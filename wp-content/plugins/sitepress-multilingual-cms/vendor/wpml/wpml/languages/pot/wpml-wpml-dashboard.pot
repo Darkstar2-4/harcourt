@@ -7,7 +7,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-09-24T13:08:39+00:00\n"
+"POT-Creation-Date: 2026-02-18T16:02:11+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: wpml\n"
@@ -33,6 +33,12 @@ msgstr ""
 msgid "Other"
 msgstr ""
 
+msgid "We cancelled %1$d of %2$d items, but %3$d failed. Please reload the page and try again."
+msgstr ""
+
+msgid "We resent %1$d of %2$d items, but %3$d failed. Please reload the page and try again."
+msgstr ""
+
 msgid "Error in fetching default translation batch name"
 msgstr ""
 
@@ -46,6 +52,15 @@ msgid "Error in fetching remote translation service data."
 msgstr ""
 
 msgid "Validation failed"
+msgstr ""
+
+msgid "Translation jobs couldn’t be canceled"
+msgstr ""
+
+msgid "Reload the page and try again."
+msgstr ""
+
+msgid "All unfinished translation jobs were canceled"
 msgstr ""
 
 msgid "Please wait until download finishes"
@@ -190,10 +205,24 @@ msgstr ""
 msgid "Title"
 msgstr ""
 
-msgid "There is an issue with automatic translation that needs your attention."
+msgid "Automatic translation paused — payment required to continue."
 msgstr ""
 
-msgid "Fix to continue translating automatically"
+msgid "You have %1s%2s prepaid translation credit in your WPML account%3s. Assign these credits to this site to resume automatic translation"
+msgid_plural "You have %1s%2s prepaid translation credits in your WPML account%3s. Assign these credits to this site to resume automatic translation"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Not enough credits to continue automatic translation. Add more credits to resume."
+msgstr ""
+
+msgid "Pay now"
+msgstr ""
+
+msgid "Get more credits"
+msgstr ""
+
+msgid "Assign credits"
 msgstr ""
 
 msgid "View"
@@ -415,7 +444,7 @@ msgstr ""
 msgid "Enable the autoregistration setting."
 msgstr ""
 
-msgid "Visit translations the site's front-end for WPML to see which strings are missing translations. Visiting one language is enough: %s."
+msgid "Visit translations on the site's frontend for WPML to see which strings are missing translations. Visiting one language is enough: %s."
 msgstr ""
 
 msgid "Alternatively, you can register strings manually."
@@ -475,6 +504,107 @@ msgstr ""
 msgid "You can only translate %1$s from the site's default language (%2$s)."
 msgstr ""
 
+msgid "%1sCheck pricing%2s."
+msgstr ""
+
+msgid "The current site content costs %1$sapproximately €%2$s%3$s to translate."
+msgstr ""
+
+msgid "The selected content costs %1$sapproximately €%2$s%3$s to translate."
+msgstr ""
+
+msgid "Pay-As-You-Go"
+msgstr ""
+
+msgid "Activate Pay-As-You-Go to translate automatically with monthly billing."
+msgstr ""
+
+msgid "Activate Pay-As-You-Go"
+msgstr ""
+
+msgid "Already using Pay-As-You-Go on another site?"
+msgstr ""
+
+msgid "Connect this site to it"
+msgstr ""
+
+msgid "Buy and assign credits"
+msgstr ""
+
+msgid "Buy a %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s and assign them to this site."
+msgstr ""
+
+msgid "This amount will cover translation of all your current content."
+msgstr ""
+
+msgid "Assign at least %1$s%2$s credits%3$s to this site to continue."
+msgstr ""
+
+msgid "Assign credits from your WPML account and buy an additional %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s credits to cover the remaining amount."
+msgstr ""
+
+msgid "Prepaid credits"
+msgstr ""
+
+msgid "There are %1$s%2$s available on your WPML account.%3$s"
+msgstr ""
+
+msgid "(Only the WPML account owner can do this.)"
+msgstr ""
+
+msgid "Checking for new credits..."
+msgstr ""
+
+msgid "Still not enough credits. Refresh again in %d seconds."
+msgstr ""
+
+msgid "Already assigned?"
+msgstr ""
+
+msgid "Refresh"
+msgstr ""
+
+msgid "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support."
+msgstr ""
+
+msgid "Pay-As-You-Go activated"
+msgstr ""
+
+msgid "You can now continue translating your content automatically."
+msgstr ""
+
+msgid "%s credits assigned to this site."
+msgstr ""
+
+msgid "You don’t have enough credits to translate this content."
+msgstr ""
+
+msgid "You have %s credits — %s more are needed to translate this content"
+msgstr ""
+
+msgid "You’re missing %s credits for the translation jobs in progress — %s are needed in total"
+msgstr ""
+
+msgid "Summary:"
+msgstr ""
+
+msgid "Credit"
+msgid_plural "Credits"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "€%1$s approximately"
+msgstr ""
+
+msgid "Pricing"
+msgstr ""
+
+msgid "Your Automatic Translation Credits"
+msgstr ""
+
+msgid "To proceed with translation, activate Pay-As-You-Go or assign prepaid credits."
+msgstr ""
+
 msgid "Leave existing translations as they are"
 msgstr ""
 
@@ -509,9 +639,6 @@ msgid "Failed to load engines"
 msgstr ""
 
 msgid "No engines enabled"
-msgstr ""
-
-msgid "Your Automatic Translation Credits"
 msgstr ""
 
 msgid "In order to assign yourself as translator, you first need to <add_yourself>add yourself as %s translator</add_yourself> to the site.<br/> Add yourself as %s translator and click <check_again>check again</check_again> or choose a different translation option."
@@ -552,15 +679,6 @@ msgstr ""
 msgid "Some of the selected content was translated using the WordPress Editor and will be overwritten."
 msgstr ""
 
-msgid "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support."
-msgstr ""
-
-msgid "Buy credits"
-msgstr ""
-
-msgid "You don't have enough credits to translate your content automatically."
-msgstr ""
-
 msgid "In order to assign to a translator, you first need to <add_translators>add %s translators</add_translators> to the site.<br/> Add %s translators and click <check_again>check again</check_again> or choose a different translation option."
 msgstr ""
 
@@ -574,6 +692,12 @@ msgid "Your site doesn't have any reviewers yet. This means that you’re the on
 msgstr ""
 
 msgid "If you want other people to review the translations, go to <a>WPML → Translation Dashboard → Translators</a> and add translators. They will be able to both review and translate content for you."
+msgstr ""
+
+msgid "Automatic translation is blocked - payment required"
+msgstr ""
+
+msgid "We couldn’t process your payment. Click “Pay now” to retry and resume automatic translation."
 msgstr ""
 
 msgid "WPML does not support duplicating strings. Your selection to duplicate strings to %1$s will be ignored if you proceed with the translation."
@@ -598,12 +722,6 @@ msgid "Finish setting up %s on your site"
 msgstr ""
 
 msgid "You need to authenticate %s to send them content for translation.<br/>Visit the <a>Translators tab</a> to finish the setup and click <check_again>check again</check_again> or choose a different translation option."
-msgstr ""
-
-msgid "Set Up Translate Everything Automatically"
-msgstr ""
-
-msgid "WPML will translate your content into %d languages"
 msgstr ""
 
 msgid "You selected multiple translation methods for content across different languages:"
@@ -742,16 +860,16 @@ msgstr ""
 msgid "Validation error happened during send to translation."
 msgstr ""
 
-msgid "Sending for translation"
-msgstr ""
-
 msgid "Translate and Duplicate"
 msgstr ""
 
 msgid "Duplicate"
 msgstr ""
 
-msgid "Translate"
+msgid "Translate content"
+msgstr ""
+
+msgid "Please choose one of the available payment options."
 msgstr ""
 
 msgid "Selected content is already translated"
@@ -778,7 +896,10 @@ msgstr ""
 msgid "Please provide context to enable translation"
 msgstr ""
 
-msgid "Please don't close this page or refresh it, as doing so will cancel the translation process."
+msgid "Please keep this page open while WPML sends your content for translation. If you leave now, the remaining items won't be sent."
+msgstr ""
+
+msgid "Sending content to translation"
 msgstr ""
 
 msgid "<s>%s</s> cannot process more than <s>%d</s> jobs in a single batch. WPML will automatically split your jobs into separate batches to ensure an error-free delivery to <s>%s</s>. <br/><br/> Do you want to proceed?"
@@ -814,16 +935,10 @@ msgstr ""
 msgid "WPML will translate all of your site's content, including:"
 msgstr ""
 
-msgid "Any content that already exists but hasn't been translated yet"
+msgid "Any existing content that hasn’t been translated yet"
 msgstr ""
 
 msgid "All new content you create in the future"
-msgstr ""
-
-msgid "Hide what WPML will translate now"
-msgstr ""
-
-msgid "See what WPML will translate now"
 msgstr ""
 
 msgid "Translate only future content"
@@ -871,9 +986,6 @@ msgstr ""
 msgid "Words to translate"
 msgstr ""
 
-msgid "Apply to all languages"
-msgstr ""
-
 msgid "Credits needed"
 msgstr ""
 
@@ -883,18 +995,10 @@ msgstr ""
 msgid "The selected translation engines do not support %s."
 msgstr ""
 
-msgid "Summary"
+msgid "%1sTotal Credits:%2s %3s"
 msgstr ""
-
-msgid "Credit"
-msgid_plural "Credits"
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Translation service additional options"
-msgstr ""
-
-msgid "Refresh"
 msgstr ""
 
 msgid "Fetching translation service data..."
@@ -933,95 +1037,53 @@ msgstr ""
 msgid "Step 2"
 msgstr ""
 
-msgid "<a><s>Read more about automatic translation credits</s></a>"
+msgid "Calculating..."
 msgstr ""
 
-msgid "I understand that automatic translation uses credits"
-msgstr ""
-
-msgid "Translate Everything Automatically - credit wizard error"
-msgstr ""
-
-msgid "There was an error when loading the credit wizard."
-msgstr ""
-
-msgid "Translate Everything Automatically - no credits"
-msgstr ""
-
-msgid "Start Translate Everything Automatically"
-msgstr ""
-
-msgid "Continue"
-msgstr ""
-
-msgid "Go back"
-msgstr ""
-
-msgid "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content."
-msgstr ""
-
-msgid "Translate Everything Automatically - disabled"
-msgstr ""
-
-msgid "Translate Everything Automatically"
-msgstr ""
-
-msgid "Automatically translate your entire site, but only from %s to %s."
-msgstr ""
-
-msgid "Translate Everything Automatically - pausing"
-msgstr ""
-
-msgid "Translate Everything Automatically is pausing"
-msgstr ""
-
-msgid "Translate Everything Automatically - paused"
-msgstr ""
-
-msgid "%d translation left in the queue. Preparing more content for translation."
-msgid_plural "%d translations left in the queue. Preparing more content for translation."
+msgid "Refining estimation... about %1$d minute remaining"
+msgid_plural "Refining estimation... about %1$d minutes remaining"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Preparing content for translation..."
-msgstr ""
-
-msgid "%d translation left in the queue..."
-msgid_plural "%d translations left in the queue..."
+msgid "Refining estimation... %d second remaining"
+msgid_plural "Refining estimation... %d seconds remaining"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue."
+msgid "Estimated cost:"
 msgstr ""
 
-msgid "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself."
+msgid "Current estimated cost:"
 msgstr ""
 
-msgid "Translate Everything Automatically - enabled"
+msgid "Changing translation engine and recalculating estimate..."
 msgstr ""
 
-msgid "Translate Everything Automatically is enabled"
+msgid "%s credits"
 msgstr ""
 
-msgid "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s."
+msgid "€%1$s"
 msgstr ""
 
-msgid "You have <s>%s</s> prepaid translation credits in your wpml.org account. Assign these credits to your site to start using automatic translation"
+msgid "All content is already translated. New and edited content will be translated automatically."
 msgstr ""
 
-msgid "Translation not running... there is an issue that needs your attention. Fix it to continue."
+msgid "%1$s and %2$s"
 msgstr ""
 
-msgid "Assign credits now"
+msgid "in other types"
 msgstr ""
 
-msgid "Fix now"
+msgid "Hide what will be translated"
 msgstr ""
 
-msgid "Translate Everything Automatically is stopped"
+msgid "Show what will be translated"
 msgstr ""
 
-msgid "Out of Credits for Automatic Translation"
+msgid "Calculation complete"
+msgstr ""
+
+msgid "%d of %d analyzed"
 msgstr ""
 
 msgid "Automatic translations completed"
@@ -1037,6 +1099,14 @@ msgstr ""
 
 msgid "<s>%d automatic translation</s> is in progress"
 msgid_plural "<s>%d automatic translations</s> are in progress"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Remaining time: <s>Less than 1 minute</s>"
+msgstr ""
+
+msgid "Remaining time: <s>%d minute</s>"
+msgid_plural "Remaining time: <s>%d minutes</s>"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1103,6 +1173,68 @@ msgstr ""
 msgid "Map to known languages"
 msgstr ""
 
+msgid "Copied!"
+msgstr ""
+
+msgid "Copy All"
+msgstr ""
+
+msgid "Error type"
+msgstr ""
+
+msgid "Error Message"
+msgstr ""
+
+msgid "Job ID"
+msgstr ""
+
+msgid "ATE Job ID"
+msgstr ""
+
+msgid "Original ID"
+msgstr ""
+
+msgid "Element ID"
+msgstr ""
+
+msgid "Copy to clipboard"
+msgstr ""
+
+msgid "Hide errors details"
+msgstr ""
+
+msgid "Show errors details"
+msgstr ""
+
+msgid "https://wpml.org/forums/forum/english-support/"
+msgstr ""
+
+msgid "<strong>%d item</strong> couldn't be completed due to an unexpected error. Try resending it for translation. If the issue continues, <a>contact WPML support</a>."
+msgid_plural "<strong>%d items</strong> couldn't be completed due to an unexpected error. Try resending them for translation. If the issue continues, <a>contact WPML support</a>."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Cancelling %d/%d..."
+msgstr ""
+
+msgid "Cancelling..."
+msgstr ""
+
+msgid "Discard jobs"
+msgstr ""
+
+msgid "Resending %d/%d..."
+msgstr ""
+
+msgid "Resending..."
+msgstr ""
+
+msgid "Resend"
+msgstr ""
+
+msgid "We recommend staying on this page to monitor progress and respond to any issues if they occur. You can leave this page, but you should remain within your WordPress admin area."
+msgstr ""
+
 msgid "Translation status"
 msgstr ""
 
@@ -1116,6 +1248,118 @@ msgid "Default language does not support automatic translations."
 msgstr ""
 
 msgid "You must enable ATE to activate Translate Everything Automatically."
+msgstr ""
+
+msgid "Select payment method"
+msgstr ""
+
+msgid "Credits assigned"
+msgstr ""
+
+msgid "You’re all set."
+msgstr ""
+
+msgid "Click Translate Everything Automatically to start translating your entire site."
+msgstr ""
+
+msgid "Content to translate"
+msgstr ""
+
+msgid "Publishing method"
+msgstr ""
+
+msgid "Payment method"
+msgstr ""
+
+msgid "Enable Translate Everything Automatically"
+msgstr ""
+
+msgid "Go back"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "Calculating credits for translating existing content. Please wait..."
+msgstr ""
+
+msgid "Set Up Translate Everything Automatically"
+msgstr ""
+
+msgid "WPML will translate your content into %d languages"
+msgstr ""
+
+msgid "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content."
+msgstr ""
+
+msgid "Translate Everything Automatically - disabled"
+msgstr ""
+
+msgid "Translate Everything Automatically"
+msgstr ""
+
+msgid "Automatically translate all %s content to %s."
+msgstr ""
+
+msgid "Translate Everything Automatically - pausing"
+msgstr ""
+
+msgid "Translate Everything Automatically is pausing"
+msgstr ""
+
+msgid "Translate Everything Automatically - paused"
+msgstr ""
+
+msgid "%d translation left in the queue. Preparing more content for translation."
+msgid_plural "%d translations left in the queue. Preparing more content for translation."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Preparing content for translation..."
+msgstr ""
+
+msgid "%d translation left in the queue..."
+msgid_plural "%d translations left in the queue..."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue."
+msgstr ""
+
+msgid "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself."
+msgstr ""
+
+msgid "Translate Everything Automatically - enabled"
+msgstr ""
+
+msgid "Translate Everything Automatically is enabled"
+msgstr ""
+
+msgid "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s."
+msgstr ""
+
+msgid "Translate Everything Automatically is paused — payment required"
+msgstr ""
+
+msgid "Automatic translation is paused — payment required"
+msgstr ""
+
+msgid "Automatic translation - payment required"
+msgstr ""
+
+msgid "We couldn’t process payment for your completed translations. Click “Pay now” to retry and continue using automatic translation."
+msgstr ""
+
+msgid "Cancel translation"
+msgstr ""
+
+msgid "Translate Everything Automatically is paused — not enough credits"
+msgstr ""
+
+msgid "Automatic translation is paused — not enough credits"
+msgstr ""
+
+msgid "Translation will resume automatically after you assign more credits."
 msgstr ""
 
 msgid "This item needs a translation update but can't be translated automatically because it was translated with the Classic Translation Editor."
@@ -1158,6 +1402,9 @@ msgid "preparing for translation"
 msgstr ""
 
 msgid "needs attention"
+msgstr ""
+
+msgid "translation error"
 msgstr ""
 
 msgid "This item was translated using the WordPress Editor. Switching to the WPML's Translation Editor will overwrite the existing translation."

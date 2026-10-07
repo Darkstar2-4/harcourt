@@ -1,20 +1,11 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Upgrade_Localization_Files implements IWPML_Upgrade_Command {
 
 	private $download_localization;
 	private $results = null;
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * WPML_Upgrade_Localization_Files constructor.
-	 *
-	 * @param array $args
-	 */
 	public function __construct( array $args ) {
 		$this->sitepress = $args[0];
 

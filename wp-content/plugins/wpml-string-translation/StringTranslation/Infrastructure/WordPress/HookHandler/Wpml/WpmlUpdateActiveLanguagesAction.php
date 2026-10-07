@@ -8,7 +8,6 @@ class WpmlUpdateActiveLanguagesAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'icl_update_active_languages';
 	const ACTION_ARGS = 1;
 
-	/** @var LoadExistingStringTranslationsForAllStringsCommandInterface */
 	private $loadExistingStringTranslationsForAllStringsCommand;
 
 	public function __construct(

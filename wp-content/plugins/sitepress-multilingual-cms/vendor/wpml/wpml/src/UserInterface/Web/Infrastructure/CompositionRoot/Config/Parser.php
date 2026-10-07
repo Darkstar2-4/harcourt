@@ -11,21 +11,14 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\Script;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Style;
 use WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\Updates\Update;
 
-/**
- * Parses config from raw array to Config object.
- */
 class Parser {
 
   const PARSE_TYPE_REST = 'rest';
   const PARSE_TYPE_AJAX = 'ajax';
 
-  /** @var array<string, mixed> */
   private $configRaw;
 
 
-  /**
-   * @param array<string, mixed> $configRaw
-   */
   public function __construct( array $configRaw ) {
     $this->configRaw = $configRaw;
 
@@ -61,48 +54,27 @@ class Parser {
   }
 
 
-  /**
-   * @return array<class-string,class-string>
-   */
   public function parseInterfaceMappings() {
-    // Let's treat the config-interface-mappings to be valid.
-    // @phpstan-ignore-next-line
     return $this->configRaw['interfaceMappings'];
   }
 
 
-  /**
-   * @return array<class-string,array<string,string>>
-   */
   public function parseClassDefinitions() {
-    // Let's treat the config-interface-mappings to be valid.
-    // @phpstan-ignore-next-line
     return $this->configRaw['classDefinitions'];
   }
 
 
-  /**
-   * Parses 'adminPages' to $config->adminPages.
-   *
-   * @param ?Config $config
-   *
-   * @throws Exception
-   *
-   */
-  public function parseAdminPages( Config $config = null ): Config {
+  public function parseAdminPages( ?Config $config = null ): Config {
     $config = $config ?? new Config();
 
     foreach ( $this->configRaw['adminPages'] as $id => $raw ) {
       $page = new Page( $id );
       $this->parsePageFields( $page, $raw );
 
-      // Scripts.
       $this->parsePageScripts( $page, $raw );
 
-      // Styles.
       $this->parsePageStyles( $page, $raw );
 
-      // Endpoints
       $endpoints = $this->parseEndpointsFor(
         $raw['endpoints'] ?? []
       );
@@ -117,10 +89,6 @@ class Parser {
   }
 
 
-  /**
-   * @param string $pageId Id of the page to remove.
-   * @return void
-   */
   public function removeAdminPageConfig( string $pageId ) {
     if ( array_key_exists( $pageId, (array) $this->configRaw['adminPages'] ) ) {
       unset( $this->configRaw['adminPages'][$pageId] );
@@ -128,12 +96,6 @@ class Parser {
   }
 
 
-  /**
-   * Parses 'scripts' to $config->scripts.
-   * These scripts are standalone scripts (not attached to a page or notice).
-   *
-   * @throws Exception
-   */
   public function parseScripts(): Config {
     $config = new Config();
 
@@ -148,10 +110,6 @@ class Parser {
   }
 
 
-  /**
-   * @return array<Script>
-   * @throws Exception
-   */
   public function parseContentStatsScripts() {
     $scripts = [];
 
@@ -167,28 +125,32 @@ class Parser {
   }
 
 
-  /**
-   * Parses 'adminPages' to $config->adminPages.
-   *
-   * @param ?Config $config
-   *
-   * @throws Exception
-   *
-   */
-  public function parseAdminNotices( Config $config = null ): Config {
+  public function parseCheckPosthogShouldRecordScript() {
+    $scripts = [];
+
+    foreach ( $this->configRaw['checkPosthogShouldRecord'] as $id => $scriptRaw ) {
+
+      $scriptRaw['id'] = $scriptRaw['id'] ?? $id;
+      if ( $script = $this->parseScript( $scriptRaw ) ) {
+        $scripts[] = $script;
+      }
+    }
+
+    return $scripts;
+  }
+
+
+  public function parseAdminNotices( ?Config $config = null ): Config {
     $config = $config ?? new Config();
 
     foreach ( $this->configRaw['adminNotices'] as $id => $raw ) {
       $notice = new Notice( $id );
       $this->parseNoticeFields( $notice, $raw );
 
-      // Scripts.
       $this->parseNoticeScripts( $notice, $raw );
 
-      // Styles.
       $this->parseNoticeStyles( $notice, $raw );
 
-      // Endpoints
       $endpoints = $this->parseEndpointsFor(
         $raw['endpoints'] ?? []
       );
@@ -203,10 +165,6 @@ class Parser {
   }
 
 
-  /**
-   * @param string $noticeId Id of the page to remove.
-   * @return void
-   */
   public function removeAdminNoticeConfig( string $noticeId ) {
     if ( array_key_exists( $noticeId, (array) $this->configRaw['adminNotices'] ) ) {
       unset( $this->configRaw['adminNotices'][$noticeId] );
@@ -214,11 +172,6 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $pageConfig
-   * @throws Exception
-   * @return void
-   */
   private function parsePageFields( Page $page, $pageConfig ) {
     $this->parsePageClassFields( $page, $pageConfig );
 
@@ -288,26 +241,12 @@ class Parser {
   }
 
 
-  /**
-   * @param Page $page
-   * @param array<string, mixed> $pageConfig
-   * @return void
-   */
   private function parsePageClassFields( Page $page, $pageConfig ) {
-    /**
-     * Disable phpstan/psalm as we don't want to check at this point if the
-     * string really is a existing class (unnecessary overhead as this runs
-     * for all pages and not only for the requested one).
-     */
     if (
       array_key_exists( 'controller', $pageConfig ) &&
       is_string( $pageConfig['controller'] ) &&
       $pageConfig['controller']
     ) {
-      /**
-       * @phpstan-ignore-next-line class-string
-       * @psalm-suppress ArgumentTypeCoercion
-       */
       $page->setControllerClassName( $pageConfig['controller'] );
     }
 
@@ -316,22 +255,11 @@ class Parser {
       is_string( $pageConfig['requirements'] ) &&
       $pageConfig['requirements']
     ) {
-      /**
-       * @phpstan-ignore-next-line class-string
-       * @psalm-suppress ArgumentTypeCoercion
-       */
       $page->setRequirementsClassName( $pageConfig['requirements'] );
     }
   }
 
 
-  /**
-   * @param array<string, mixed> $pageConfig
-   *
-   * @throws Exception
-   *
-   * @return void
-   */
   private function parsePageScripts( Page $page, $pageConfig ) {
     $scripts = $this->parseScriptsByConfig( $pageConfig, $page->id() );
     foreach ( $scripts as $script ) {
@@ -340,24 +268,13 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $config
-   * @param string $fallbackId
-   *
-   * @throws Exception
-   *
-   * @return Script[]
-   */
   private function parseScriptsByConfig( $config, $fallbackId ) {
     $scripts = [];
-    // Scripts.
-    // Normalise scripts to array of arrays.
     $config['scripts'] = $config['scripts'] ?? [];
     if (
       is_array( $config['scripts'] ) &&
       array_key_exists( 'src', $config['scripts'] )
     ) {
-      // Single script as array.
       $config['scripts'] = [ $config['scripts'] ];
     }
 
@@ -366,7 +283,6 @@ class Parser {
     }
 
     foreach ( $config['scripts'] as $scriptRaw ) {
-      // Use page id if script has no specific id.
       $scriptRaw['id'] = $scriptRaw['id'] ?? $fallbackId;
       if ( $script = $this->parseScript( $scriptRaw ) ) {
         $scripts[] = $script;
@@ -377,13 +293,6 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $scriptRaw
-   *
-   * @throws Exception
-   *
-   * @return Script|null
-   */
   private function parseScript( $scriptRaw ) {
     if ( ! array_key_exists( 'src', $scriptRaw ) ) {
       return null;
@@ -416,17 +325,14 @@ class Parser {
       $script->setInFooter( (bool) $scriptRaw['inFooter'] );
     }
 
+    if ( array_key_exists( 'supportsHMR', $scriptRaw ) ) {
+      $script->setSupportsHMR( (bool) $scriptRaw['supportsHMR'] );
+    }
+
     return $script;
   }
 
 
-  /**
-   * @param array<string, mixed> $pageConfig
-   *
-   * @throws Exception
-   *
-   * @return void
-   */
   private function parsePageStyles( Page $page, $pageConfig ) {
     $styles = $this->parseStylesByConfig( $pageConfig, $page->id() );
     foreach ( $styles as $style ) {
@@ -435,26 +341,16 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $config
-   * @param string $fallbackId
-   *
-   * @throws Exception
-   *
-   * @return Style[]
-   */
   private function parseStylesByConfig( $config, $fallbackId ) {
     $styles = [];
 
     $config['styles'] = $config['styles'] ?? [];
     if ( is_string( $config['styles'] ) ) {
-      // Single style as string.
       $config['styles'] = [ [ 'src' => $config['styles'] ] ];
     } else if (
       is_array( $config['styles'] ) &&
       array_key_exists( 'src', $config['styles'] )
     ) {
-      // Single style as array.
       $config['styles'] = [ $config['styles'] ];
     }
 
@@ -467,7 +363,6 @@ class Parser {
         continue;
       }
 
-      // Use page id if script has no specific id.
       $style = new Style( $styleRaw['id'] ?? $fallbackId );
       $style->setSrc( $styleRaw['src'] );
 
@@ -482,20 +377,17 @@ class Parser {
   }
 
 
-  public function parseAllAjaxEndpoints( Config $config = null ): Config {
+  public function parseAllAjaxEndpoints( ?Config $config = null ): Config {
     return $this->parseEndpoints( $config, self::PARSE_TYPE_AJAX );
   }
 
 
-  public function parseAllRESTEndpoints( Config $config = null ): Config {
+  public function parseAllRESTEndpoints( ?Config $config = null ): Config {
     return $this->parseEndpoints( $config, self::PARSE_TYPE_REST );
   }
 
 
-  /**
-   * Parses 'endpoints' to config->endpoints.
-   */
-  public function parseGeneralEndpoints( Config $config = null ): Config {
+  public function parseGeneralEndpoints( ?Config $config = null ): Config {
     $config    = $config ?? new Config();
     $endpoints = $this->parseEndpointsFor(
       is_array( $this->configRaw['endpoints'] )
@@ -509,7 +401,6 @@ class Parser {
   }
 
 
-  /** @return array<Update> */
   public function parseUpdates() {
     $updates = [];
 
@@ -538,14 +429,7 @@ class Parser {
   }
 
 
-  /**
-   * Parses 'endpoints' and all pages 'endpoints' to config->endpoints.
-   * This is only used when a rest request is made.
-   *
-   * @param ?Config $config
-   * @param ?string $type
-   */
-  private function parseEndpoints( Config $config = null, $type = null ): Config {
+  private function parseEndpoints( ?Config $config = null, $type = null ): Config {
     $config = $config ?? new Config();
 
     foreach ( $this->configRaw['adminPages'] as $page ) {
@@ -574,12 +458,6 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $endpointsRaw
-   * @param ?string $type
-   *
-   * @return array<Endpoint>
-   */
   private function parseEndpointsFor(
     $endpointsRaw,
     $type = null
@@ -590,14 +468,12 @@ class Parser {
         ! is_array( $raw ) ||
         ! array_key_exists( 'path', $raw )
       ) {
-        // No path, no endpoint.
         continue;
       }
       $isAjax = array_key_exists( 'useAjax', $raw ) && $raw['useAjax'] === true;
 
       if ( ( $isAjax && $type === self::PARSE_TYPE_REST )
         || ( ! $isAjax && $type === self::PARSE_TYPE_AJAX ) ) {
-        // Skip initializing the endpoint if it's not requested.
         continue;
       }
       $endpoint = new Endpoint( $id, $raw['path'], $isAjax );
@@ -614,6 +490,10 @@ class Parser {
         $endpoint->setVersion( $raw['version'] );
       }
 
+      if ( array_key_exists( 'capability', $raw ) ) {
+        $endpoint->setCapability( $raw['capability'] );
+      }
+
       $endpoints[] = $endpoint;
     }
 
@@ -621,11 +501,6 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $noticeConfig
-   * @throws Exception
-   * @return void
-   */
   private function parseNoticeFields( Notice $notice, $noticeConfig ) {
     $this->parseNoticeClassFields( $notice, $noticeConfig );
 
@@ -647,38 +522,17 @@ class Parser {
   }
 
 
-    /**
-   * @param Notice $notice
-   * @param array<string, mixed> $noticeConfig
-   * @return void
-   */
   private function parseNoticeClassFields( Notice $notice, $noticeConfig ) {
-    /**
-     * Disable phpstan/psalm as we don't want to check at this point if the
-     * string really is a existing class (unnecessary overhead as this runs
-     * for all pages and not only for the requested one).
-     */
     if (
       array_key_exists( 'controller', $noticeConfig ) &&
       is_string( $noticeConfig['controller'] ) &&
       $noticeConfig['controller']
     ) {
-      /**
-       * @phpstan-ignore-next-line class-string
-       * @psalm-suppress ArgumentTypeCoercion
-       */
       $notice->setControllerClassName( $noticeConfig['controller'] );
     }
   }
 
 
-  /**
-   * @param array<string, mixed> $noticeConfig
-   *
-   * @throws Exception
-   *
-   * @return void
-   */
   private function parseNoticeScripts( Notice $notice, $noticeConfig ) {
     $scripts = $this->parseScriptsByConfig( $noticeConfig, $notice->id() );
     foreach ( $scripts as $script ) {
@@ -687,11 +541,6 @@ class Parser {
   }
 
 
-  /**
-   * @param array<string, mixed> $noticeConfig
-   *
-   * @return void
-   */
   private function parseNoticeStyles( Notice $notice, $noticeConfig ) {
     $styles = $this->parseStylesByConfig( $noticeConfig, $notice->id() );
     foreach ( $styles as $style ) {

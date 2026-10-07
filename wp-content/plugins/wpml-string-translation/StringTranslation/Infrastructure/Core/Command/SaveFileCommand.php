@@ -6,9 +6,6 @@ use WP_Filesystem_Direct;
 
 class SaveFileCommand {
 
-	/**
-	 * @var WP_Filesystem_Direct
-	 */
 	protected $filesystem;
 
 	public function __construct(

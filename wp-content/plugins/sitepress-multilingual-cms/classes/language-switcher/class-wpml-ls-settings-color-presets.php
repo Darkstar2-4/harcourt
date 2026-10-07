@@ -2,9 +2,6 @@
 
 class WPML_LS_Settings_Color_Presets {
 
-	/**
-	 * @return array
-	 */
 	public function get_defaults() {
 		$void = array(
 			'font_current_normal'       => '',

@@ -3,10 +3,10 @@
 namespace WPML\Core\Component\Post\Application\Query\Criteria;
 
 use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryInterface;
+use WPML\PHP\Exception\InvalidArgumentException;
 
 final class SourceAndTargetLanguagesBuilder {
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
@@ -15,16 +15,21 @@ final class SourceAndTargetLanguagesBuilder {
   }
 
 
-  /**
-   * @param string|null   $sourceLanguageCode
-   * @param string[]|null $targetLanguageCodes
-   *
-   * @return SourceAndTargetLanguages
-   */
   public function build(
-    string $sourceLanguageCode = null,
-    array $targetLanguageCodes = null
+    ?string $sourceLanguageCode = null,
+    ?array $targetLanguageCodes = null
   ): SourceAndTargetLanguages {
+    $activeCodes = array_map(
+      function ( $languageDto ) {
+        return $languageDto->getCode();
+      },
+      $this->languagesQuery->getActive()
+    );
+
+    if ( $sourceLanguageCode !== null && ! in_array( $sourceLanguageCode, $activeCodes, true ) ) {
+      throw new InvalidArgumentException( 'Invalid source language code.' );
+    }
+
     $source = $sourceLanguageCode ?? $this->languagesQuery->getDefaultCode();
 
     if ( $targetLanguageCodes === null ) {
@@ -35,6 +40,12 @@ final class SourceAndTargetLanguagesBuilder {
         $this->languagesQuery->getSecondary( true, $source )
       );
     } else {
+      foreach ( $targetLanguageCodes as $code ) {
+        if ( ! in_array( $code, $activeCodes, true ) ) {
+          throw new InvalidArgumentException( 'Invalid target language code.' );
+        }
+      }
+
       $targets = array_values(
         array_filter(
           $targetLanguageCodes,
@@ -54,7 +65,6 @@ final class SourceAndTargetLanguagesBuilder {
       }
     }
 
-    /** @phpstan-ignore-next-line */
     return new SourceAndTargetLanguages( $source, $targets );
   }
 

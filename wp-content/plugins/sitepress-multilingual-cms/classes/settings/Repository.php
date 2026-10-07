@@ -8,10 +8,6 @@ class Repository {
 	public static function getSetting( $indexes ) {
 		$settings     = self::getAllSettings();
 
-		/**
-		 * I do not know why the foreach loop looks like that. I have just copied it from WPML_Translation_Job_Helper
-		 * @todo Review it later and try simplify if possible
-		 */
 		foreach ( $indexes as $index ) {
 			$settings = isset( $settings[ $index ] ) ? $settings[ $index ] : null;
 			if ( ! isset( $settings ) ) {
@@ -36,11 +32,7 @@ class Repository {
 			} )->toArray();
 	}
 
-	/**
-	 * @return array
-	 */
 	private static function getAllSettings() {
-		/** @var \TranslationManagement $iclTranslationManagement */
 		global $iclTranslationManagement;
 
 		if ( ! $iclTranslationManagement ) {

@@ -1,18 +1,12 @@
 <?php
 
 class WPML_Admin_Pagination_Factory {
-	/**
-	 * @var int
-	 */
 	private $items_per_page;
 
 	public function __construct( $items_per_page ) {
 		$this->items_per_page = $items_per_page;
 	}
 
-	/**
-	 * @return WPML_Admin_Pagination_Render
-	 */
 	public function create( $total_items, $page_param_name = 'paged' ) {
 		$pagination = new WPML_Admin_Pagination();
 		$pagination->set_total_items( $total_items );

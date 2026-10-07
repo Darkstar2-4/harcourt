@@ -4,13 +4,10 @@ namespace WPML\Core\Component\WordsToTranslate\Domain;
 
 class TranslatableDTO {
 
-  /** @var string $type */
   private $type;
 
-  /** @var string $content */
   private $content;
 
-  /** @var string $format */
   private $format;
 
 

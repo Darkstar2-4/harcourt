@@ -1,9 +1,4 @@
 <?php
-/**
- * WP-Background Processing
- *
- * @package WP-Background-Processing
- */
 
 /*
 Plugin Name: WP Background Processing

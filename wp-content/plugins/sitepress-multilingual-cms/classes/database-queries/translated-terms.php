@@ -4,13 +4,6 @@ namespace WPML\DatabaseQueries;
 
 class TranslatedTerms {
 
-	/**
-	 * Returns array of translated term IDs that are related to defined secondary languages.
-	 *
-	 * @param array $langs Array of secondary languages codes to get translated terms IDs.
-	 *
-	 * @return array
-	 */
 	public static function getIdsForLangs( $langs ) {
 		global $wpdb;
 		$languagesIn = wpml_prepare_in( $langs );

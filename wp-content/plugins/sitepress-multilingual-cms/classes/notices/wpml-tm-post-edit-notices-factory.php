@@ -5,10 +5,6 @@ class WPML_TM_Post_Edit_Notices_Factory {
 	const TEMPLATES_PATH = '/templates/notices/post-edit/';
 
 	public function create() {
-		/**
-		 * @var SitePress $sitepress
-		 * @var WPML_TM_Translation_Status_Display $wpml_tm_status_display_filter
-		 */
 		global $sitepress, $wpml_tm_status_display_filter;
 
 		$status_helper = wpml_get_post_status_helper();

@@ -26,11 +26,6 @@ class DeleteTranslatedContentOfLanguages {
 		             ->coalesce( Fns::identity(), Fns::identity() );
 	}
 
-	/**
-	 * @param array $langCodes
-	 *
-	 * @return callable|\WPML\FP\Left|\WPML\FP\Right
-	 */
 	public static function deletePosts( $langCodes ) {
 		$postIds = TranslatedPosts::getIdsForLangs( $langCodes );
 
@@ -43,17 +38,11 @@ class DeleteTranslatedContentOfLanguages {
 		return Either::of( true );
 	}
 
-	/**
-	 * @param array $langCodes
-	 *
-	 * @return array
-	 */
 	public static function deleteTerms( $langCodes ) {
 		global $sitepress;
 
 		$termsData = TranslatedTerms::getIdsForLangs( $langCodes );
 
-		// Remove WPML filter to prevent conversion of Ids.
 		$argsFilterRemoved = remove_filter( 'get_terms_args', [ $sitepress, 'get_terms_args_filter' ] );
 		$getTermsFilterRemoved = remove_filter( 'get_term', [ $sitepress, 'get_term_adjust_id' ], 1 );
 		$clausesFilterRemoved = remove_filter( 'terms_clauses', [ $sitepress, 'terms_clauses' ] );
@@ -63,7 +52,6 @@ class DeleteTranslatedContentOfLanguages {
 				\wp_delete_term( $termData->term_id, $termData->taxonomy );
 			}
 
-			// Add terms filters again - required for test.
 			add_filter( 'get_terms_args', [ $sitepress, 'get_terms_args_filter' ], 10, 2 );
 			add_filter( 'get_term', [ $sitepress, 'get_term_adjust_id' ], 1, 1 );
 			add_filter( 'terms_clauses', [ $sitepress, 'terms_clauses' ], 10, 3 );

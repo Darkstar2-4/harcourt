@@ -13,6 +13,8 @@ use WDEV_Logger;
  * @method get_setting( string $string )
  * @method Item_Handler get_item_handler( string $string )
  * @method string get_stream_wrapper_file( $url, $file, $attachment_id, Media_Library_Item $as3cf_item )
+ * @method bool is_plugin_setup( $with_credentials = false )
+ * @method string get_plugin_page_url( $args = array(), $url_method = 'network', $escape = true )
  */
 class WP_Offload_Media_Api {
 	private $return_value = null;

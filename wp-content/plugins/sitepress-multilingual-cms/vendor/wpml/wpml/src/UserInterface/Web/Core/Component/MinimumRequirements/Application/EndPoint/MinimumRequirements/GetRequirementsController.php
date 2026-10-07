@@ -10,7 +10,6 @@ use function WPML\PHP\Logger\error;
 
 class GetRequirementsController implements EndpointInterface {
 
-  /** @var RequirementsService */
   private $service;
 
 
@@ -19,11 +18,6 @@ class GetRequirementsController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed>|null $requestData
-   *
-   * @return array<mixed, mixed>
-   */
   public function handle( $requestData = null ): array {
     try {
       $useCache                = $this->getBooleanInput( $requestData, 'useCache', false );
@@ -54,15 +48,6 @@ class GetRequirementsController implements EndpointInterface {
   }
 
 
-  /**
-   * Gets a boolean parameter from request data with a default value
-   *
-   * @param array<string,mixed>|null $requestData
-   * @param string                   $paramName
-   * @param bool                     $default
-   *
-   * @return bool
-   */
   private function getBooleanInput(
     $requestData, string $paramName, bool $default = false
   ): bool {

@@ -13,11 +13,6 @@ class UpdateStringsCommand extends BulkActionBaseCommand implements UpdateString
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 * @param array        $fields
-	 * @param array        $values
-	 */
 	public function run( array $strings, array $fields, array $values ) {
 		foreach ( array_chunk( $strings, $this->chunk_size ) as $chunk ) {
 			$ids = [];

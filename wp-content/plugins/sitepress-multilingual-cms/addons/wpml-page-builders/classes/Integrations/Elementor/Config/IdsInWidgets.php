@@ -19,9 +19,6 @@ class IdsInWidgets implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 			->then( spreadArgs( [ $this, 'addFieldsWithIds' ] ) );
 	}
 
-	/**
-	 * @param array $config
-	 */
 	public function updateFromConfig( $config ) {
 		$ids = [];
 
@@ -39,17 +36,8 @@ class IdsInWidgets implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 		update_option( self::OPTION_IDS_IN_WIDGETS, $ids );
 	}
 
-	/**
-	 * @param array       $ids
-	 * @param string      $widgetName
-	 * @param array       $fields
-	 * @param string|null $itemKey
-	 *
-	 * @return array
-	 */
 	private function extractIdsFromFields( $ids, $widgetName, $fields, $itemKey = null ) {
 		if ( isset( $fields['field'] ) ) {
-			// Wrap single field in an array (caused by how XML is parsed).
 			if ( isset( $fields['field']['value'] ) ) {
 				$fields['field'] = [ $fields['field'] ];
 			}
@@ -81,11 +69,6 @@ class IdsInWidgets implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 		return $ids;
 	}
 
-	/**
-	 * @param array $fields
-	 *
-	 * @return array
-	 */
 	public function addFieldsWithIds( $fields ) {
 		$ids = get_option( self::OPTION_IDS_IN_WIDGETS );
 		if ( $ids ) {

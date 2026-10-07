@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
-         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
-            "כדי להציג בלוק HTML מותאם אישית בשפה מסוימת, יש להניח אותו תחילה בתוך בלוק קבוצה."
-         ],
-         "Place inside Group block": [
-            "הנח בתוך בלוק קבוצה"
-         ],
          "All": [
             "הכל"
          ],
+         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
+            "כדי להציג את בלוק ה-HTML המותאם אישית הזה בשפה ספציפית, מקם אותו תחילה בתוך בלוק קבוצה."
+         ],
+         "Place inside Group block": [
+            "מקם בתוך בלוק קבוצה"
+         ],
          "Display on language": [
-            "באיזו שפה להציג"
+            "הצג בשפה"
          ]
       }
    }

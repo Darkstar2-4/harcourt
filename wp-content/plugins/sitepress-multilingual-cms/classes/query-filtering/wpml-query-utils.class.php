@@ -1,50 +1,49 @@
 <?php
 
-/**
- * Class WPML_Query_Utils
- *
- * @package wpml-core
- */
 class WPML_Query_Utils {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var WPML_WP_API */
 	private $wp_api;
 
-	/** @var array $display_as_translated_post_types */
 	private $display_as_translated_post_types;
 
-	/**
-	 * WPML_Query_Utils constructor.
-	 *
-	 * @param wpdb        $wpdb
-	 * @param WPML_WP_API $wp_api
-	 * @param array       $display_as_translated_post_types
-	 */
+	private $was_full_author_query_executed_in_last_call = false;
+
 	public function __construct( wpdb $wpdb, WPML_WP_API $wp_api, $display_as_translated_post_types ) {
 		$this->wpdb                             = $wpdb;
 		$this->wp_api                           = $wp_api;
 		$this->display_as_translated_post_types = $display_as_translated_post_types;
 	}
 
-	/**
-	 * Returns the number of posts for a given post_type, author and language combination that is published.
-	 *
-	 * @param array|string $post_type
-	 * @param WP_User      $author_data
-	 * @param string       $lang language code to check
-	 * @param string       $fallback_lang
-	 *
-	 * @return bool
-	 *
-	 * @used-by \WPML_Languages::add_author_url_to_ls_lang to determine what languages to show in the Language Switcher
-	 */
+	public function get_was_full_author_query_executed_in_last_call() {
+		return $this->was_full_author_query_executed_in_last_call;
+	}
+
 	public function author_query_has_posts( $post_type, $author_data, $lang, $fallback_lang ) {
+		$this->was_full_author_query_executed_in_last_call = false;
+
 		$post_types        = (array) $post_type;
 		$post_type_snippet = (bool) $post_types ? ' AND post_type IN (' . wpml_prepare_in( $post_types ) . ') ' : '';
 		$language_snippet  = $this->get_language_snippet( $lang, $fallback_lang, $post_type );
+
+		$has_at_least_one_post = (bool) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				"SELECT 1 FROM {$this->wpdb->posts} p
+				 WHERE p.post_author=%d
+				" . $post_type_snippet . "
+				 AND post_status='publish'
+				 LIMIT 1
+				",
+				$author_data->ID
+			)
+		);
+
+		if ( ! $has_at_least_one_post ) {
+			return false;
+		}
+
+		$this->was_full_author_query_executed_in_last_call = true;
 
 		return (bool) $this->wpdb->get_var(
 			$this->wpdb->prepare(
@@ -60,20 +59,6 @@ class WPML_Query_Utils {
 		);
 	}
 
-	/**
-	 * Returns the number of posts for a given post_type, date and language combination that is published.
-	 *
-	 * @param string       $lang language code to check
-	 * @param string       $fallback_lang
-	 * @param null|int     $year
-	 * @param null|int     $month
-	 * @param null|int     $day
-	 * @param string|array $post_type
-	 *
-	 * @return bool
-	 *
-	 * @used-by \WPML_Languages::add_date_or_cpt_url_to_ls_lang to determine what languages to show in the Language Switcher
-	 */
 	public function archive_query_has_posts( $lang, $fallback_lang, $year = null, $month = null, $day = null, $post_type = 'post' ) {
 		$cache_args                  = array();
 		$cache_args['lang']          = $lang;

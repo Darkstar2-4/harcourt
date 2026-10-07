@@ -1,11 +1,6 @@
 <?php
-/**
- * @package wpml-core
- * @subpackage wpml-core
- */
 
 if ( class_exists( 'TranslationProxy_Project' ) ) {
-	// Workaround for UnitTests.
 	return;
 }
 
@@ -13,46 +8,19 @@ require_once dirname( __FILE__ ) . '/translationproxy-api.class.php';
 require_once dirname( __FILE__ ) . '/translationproxy-service.class.php';
 require_once dirname( __FILE__ ) . '/translationproxy-batch.class.php';
 
-/**
- * Class TranslationProxy_Project
- */
 class TranslationProxy_Project {
 
 	public $id;
-	/**
-	 * @var string
-	 *
-	 * `access_key` used when sending **any request** to TP
-	 */
 	public $access_key;
-	/**
-	 * @var int
-	 *
-	 * `ts_id` (aka `website_id`) is used **exclusively** when sending request directly to ICL
-	 */
 	public $ts_id;
-	/**
-	 * @var string
-	 *
-	 * `ts_access_key` is used **exclusively** when sending request directly to ICL
-	 */
 	public $ts_access_key;
 
-	/**
-	 * @var object
-	 */
 	public $service;
 
-	/** @var WPML_TP_Client $tp_client */
 	public $tp_client;
 
 	public $errors = array();
 
-	/**
-	 * @param TranslationProxy_Service|stdClass $service
-	 * @param string                            $delivery
-	 * @param WPML_TP_Client                    $tp_client
-	 */
 	public function __construct( $service, $delivery, WPML_TP_Client $tp_client ) {
 		$this->service   = $service;
 		$this->tp_client = $tp_client;
@@ -71,22 +39,11 @@ class TranslationProxy_Project {
 		}
 	}
 
-	/**
-	 * @return TranslationProxy_Service
-	 */
 	public function service() {
 
 		return $this->service;
 	}
 
-	/**
-	 * Returns the index by which a translation service can be found in the array returned by
-	 * \TranslationProxy::get_translation_projects
-	 *
-	 * @param $service object
-	 *
-	 * @return bool|string
-	 */
 	public static function generate_service_index( $service ) {
 		$index = false;
 		if ( $service ) {
@@ -99,21 +56,10 @@ class TranslationProxy_Project {
 		return $index;
 	}
 
-	/**
-	 * Convert WPML language code to service language
-	 *
-	 * @param $language string
-	 *
-	 * @return bool|string
-	 */
 	private function service_language( $language ) {
 		return TranslationProxy_Service::get_language( $this->service, $language );
 	}
 
-	/*
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Get information about the project (Translation Service)
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 	public function custom_text( $location, $locale = 'en' ) {
 		$response = '';
@@ -121,8 +67,6 @@ class TranslationProxy_Project {
 			return '';
 		}
 
-		// Sending Translation Service (ts_) id and access_key, as we are talking directly to the Translation Service
-		// Todo: use project->id and project->access_key once this call is moved to TP
 		$params = array(
 			'project_id' => $this->ts_id,
 			'accesskey'  => $this->ts_access_key,
@@ -161,12 +105,7 @@ class TranslationProxy_Project {
 		return TranslationProxy::get_current_service();
 	}
 
-	/*
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * IFrames to display project info (Translation Service)
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	public function select_translator_iframe_url( $source_language, $target_language ) {
-		// Sending Translation Service (ts_) id and access_key, as we are talking directly to the Translation Service
 		$params['project_id']      = $this->ts_id;
 		$params['accesskey']       = $this->ts_access_key;
 		$params['source_language'] = $this->service_language( $source_language );
@@ -177,7 +116,6 @@ class TranslationProxy_Project {
 	}
 
 	public function translator_contact_iframe_url( $translator_id ) {
-		// Sending Translation Service (ts_) id and access_key, as we are talking directly to the Translation Service
 		$params['project_id']    = $this->ts_id;
 		$params['accesskey']     = $this->ts_access_key;
 		$params['translator_id'] = $translator_id;
@@ -198,21 +136,7 @@ class TranslationProxy_Project {
 			return $url;
 	}
 
-	/*
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Jobs handling (Translation Proxy)
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-	/**
-	 * @throws WPML_TP_Batch_Exception
-	 *
-	 * @param string|null $source_language
-	 * @param string[]|null $target_languages
-	 * @param array<string,string> | null $tp_batch_info
-	 *
-	 * @internal param bool $name
-	 * @return false|WPML_TP_Batch
-	 */
 	private function get_batch_job( $source_language = null, $target_languages = null, $tp_batch_info = null ) {
 
 		$batch_data = TranslationProxy_Basket::get_batch_data();
@@ -262,14 +186,6 @@ class TranslationProxy_Project {
 		return $batch_data;
 	}
 
-	/**
-	 * @param string|null $source_language
-	 * @param string[]|null $target_languages
-	 * @throws WPML_TP_Batch_Exception
-	 * @param array<string,string> | null $tp_batch_info
-	 *
-	 * @return false|int
-	 */
 	function get_batch_job_id( $source_language = null, $target_languages = null, $tp_batch_info = null ) {
 		$ret        = false;
 		$batch_data = $this->get_batch_job( $source_language, $target_languages, $tp_batch_info );
@@ -311,25 +227,6 @@ class TranslationProxy_Project {
 	}
 
 
-	/**
-	 *
-	 * Add Files Batch Job
-	 *
-	 * @throws WPML_TP_Batch_Exception
-	 *
-	 * @param string $file
-	 * @param string $title
-	 * @param string $cms_id
-	 * @param string $url
-	 * @param string $source_language
-	 * @param string $target_language
-	 * @param int    $word_count
-	 * @param int    $translator_id
-	 * @param string $note
-	 * @param array<string,string> | null $tp_batch_info
-	 *
-	 * @return bool|int
-	 */
 	public function send_to_translation_batch_mode(
 		$file,
 		$title,
@@ -344,14 +241,6 @@ class TranslationProxy_Project {
 		$tp_batch_info = null
 	) {
 
-		/**
-		 * For now, we have to keep `TranslationProxy_Basket::get_remote_target_languages()`.
-		 * In wpml/wpml code, `WPML\Legacy\Component\Translation\Sender\TranslationSender::sendToTranslation`, we set
-		 * those languages by calling \TranslationProxy_Basket::set_remote_target_languages( $targetLanguages );
-		 *
-		 * We need all the target languages to create the batch job, because they are needed for batch validation.
-		 * It is impossible to pass the target languages in a better way without vast refactoring.
-		 */
 		$batch_id = $this->get_batch_job_id(
 			$source_language,
 			TranslationProxy_Basket::get_remote_target_languages() ?: null,
@@ -380,13 +269,6 @@ class TranslationProxy_Project {
 		return $tp_job ? $tp_job->get_id() : false;
 	}
 
-	/**
-	 * @param bool|int $tp_batch_id
-	 *
-	 * @link http://git.icanlocalize.com/onthego/translation_proxy/wikis/commit_batch_job
-	 *
-	 * @return array|bool|mixed|null|stdClass|string
-	 */
 	function commit_batch_job( $tp_batch_id = false, $cleanBasketNameAndBatch = false ) {
 		$tp_batch_id = $tp_batch_id ? $tp_batch_id : $this->get_batch_job_id();
 
@@ -443,18 +325,11 @@ class TranslationProxy_Project {
 		return isset( $response ) ? $response : false;
 	}
 
-	/**
-	 *
-	 * @return object[]
-	 */
 	public function jobs() {
 
 		return $this->get_jobs( 'any' );
 	}
 
-	/**
-	 * @return object[]
-	 */
 	public function finished_jobs() {
 
 		return $this->get_jobs( 'translation_ready' );
@@ -504,11 +379,6 @@ class TranslationProxy_Project {
 		);
 	}
 
-	/**
-	 * @param string $state
-	 *
-	 * @return mixed
-	 */
 	private function get_jobs( $state = 'any' ) {
 		$batch = TranslationProxy_Basket::get_batch_data();
 
@@ -526,7 +396,6 @@ class TranslationProxy_Project {
 				$params
 			);
 		} else {
-			// FIXME: remove this once TP will accept the TP Project ID: https://icanlocalize.basecamphq.com/projects/11113143-translation-proxy/todo_items/182251206/comments
 			$params['project_id'] = $this->id;
 		}
 

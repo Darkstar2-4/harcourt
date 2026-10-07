@@ -11,6 +11,7 @@
 namespace Smush\Core\Api;
 
 use Smush\Core\Array_Utils;
+use Smush\Core\Configs;
 use Smush\Core\Settings;
 use WP_Smush;
 
@@ -86,7 +87,7 @@ class Hub {
 		$lazy = $settings->get_setting( 'wp-smush-lazy_load' );
 
 		$status['lazy'] = array(
-			'enabled' => $core->mod->lazy->is_active(),
+			'enabled' => Settings::get_instance()->is_lazyload_active(),
 			'native'  => is_array( $lazy ) && isset( $lazy['native'] ) ? $lazy['native'] : false,
 		);
 
@@ -144,7 +145,7 @@ class Hub {
 		// The Hub returns an object, we use an array.
 		$config_array = json_decode( wp_json_encode( $config_data->configs ), true );
 
-		$configs_handler = new \Smush\Core\Configs();
+		$configs_handler = Configs::get_instance();
 		$configs_handler->apply_config( $config_array );
 
 		wp_send_json_success();
@@ -156,7 +157,7 @@ class Hub {
 	 * @since 3.8.5
 	 */
 	public function action_export_settings() {
-		$configs_handler = new \Smush\Core\Configs();
+		$configs_handler = Configs::get_instance();
 		$config          = $configs_handler->get_config_from_current();
 
 		wp_send_json_success( $config['config'] );

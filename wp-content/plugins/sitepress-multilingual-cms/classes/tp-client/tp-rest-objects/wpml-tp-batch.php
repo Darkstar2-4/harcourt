@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @link https://git.onthegosystems.com/tp/translation-proxy/wikis/create_batch_job
- */
 class WPML_TP_Batch extends WPML_TP_REST_Object {
 
 	private $id;

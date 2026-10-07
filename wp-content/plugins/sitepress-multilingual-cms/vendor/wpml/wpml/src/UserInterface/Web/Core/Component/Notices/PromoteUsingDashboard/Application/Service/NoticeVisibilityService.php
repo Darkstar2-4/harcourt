@@ -9,16 +9,12 @@ final class NoticeVisibilityService {
 
   const COUNT_THRESHOLD = 5;
 
-  /** @var ManualTranslationsCountService */
   private $manualTranslationsCountService;
 
-  /** @var TranslationsFromDashboardService */
   private $translationsFromDashboardService;
 
-  /** @var DismissedNoticesQuery */
   private $dismissQuery;
 
-  /** @var UserQueryInterface */
   private $userQuery;
 
 

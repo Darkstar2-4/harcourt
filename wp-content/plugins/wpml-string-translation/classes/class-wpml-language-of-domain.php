@@ -1,19 +1,10 @@
 <?php
 
 class WPML_Language_Of_Domain {
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var array
-	 */
 	private $language_of_domain = array();
 
-	/**
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 

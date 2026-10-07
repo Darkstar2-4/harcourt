@@ -1,27 +1,35 @@
 <?php
-defined('ABSPATH') or die();
+defined( 'ABSPATH' ) or die();
+
+require_once __DIR__ . '/class-wsc-logger.php';
+require_once __DIR__ . '/class-wsc-auth.php';
 
 
-if (!class_exists("cmplz_wsc_scanner")) {
+if ( ! class_exists( 'cmplz_wsc_scanner' ) ) {
 
-	class cmplz_wsc_scanner
-	{
+	class cmplz_wsc_scanner {
+
 		private static $_this;
 
-		const WSC_SCANNER_ENDPOINT = 'https://scan.complianz.io';
-		const WSC_SCANNER_WEBHOOK_PATH = 'complianz/v1/wsc-scan';
+		const WSC_SCANNER_ENDPOINT                = 'https://scan.complianz.io';
+		const WSC_SCANNER_WEBHOOK_PATH            = 'complianz/v1/wsc-scan';
 		const WSC_SCANNER_DETECTIONS_WEBHOOK_PATH = 'complianz/v1/wsc-checks';
+		const OPT_WEBHOOK_SECRET                  = 'cmplz_wsc_webhook_secret';
+		const OPT_CHECKS_WEBHOOK_SECRET           = 'cmplz_wsc_checks_webhook_secret';
 
 		/**
 		 * Class constructor for the WSC scanner class.
 		 *
 		 * Initializes the WSC scanner class and sets it as a singleton class.
 		 */
-		function __construct()
-		{
-			if (isset(self::$_this)) {
-				wp_die(sprintf('%s is a singleton class and you cannot create a second instance.',
-					get_class($this)));
+		function __construct() {
+			if ( isset( self::$_this ) ) {
+				wp_die(
+					sprintf(
+						'%s is a singleton class and you cannot create a second instance.',
+						get_class( $this )
+					)
+				);
 			}
 			self::$_this = $this;
 			$this->init_hooks();
@@ -33,8 +41,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return object The instance of the class.
 		 */
-		static function this(): object
-		{
+		static function this(): object {
 			return self::$_this;
 		}
 
@@ -47,11 +54,11 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return void
 		 */
-		private function init_hooks(): void
-		{
-			add_action('cmplz_remote_cookie_scan', array($this, 'wsc_scan_process'));
-			add_action('admin_init', array($this, 'wsc_scan_init'));
+		private function init_hooks(): void {
+			add_action( 'cmplz_remote_cookie_scan', array( $this, 'wsc_scan_process' ) );
+			add_action( 'admin_init', array( $this, 'wsc_scan_init' ) );
 			add_action( 'cmplz_wsc_checks_retrieve_results', array( $this, 'wsc_checks_retrieve' ) );
+			add_action( 'deactivated_plugin', array( $this, 'clear_rest_accessible_cache' ) );
 		}
 
 
@@ -68,37 +75,92 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return bool True if the WSC scan is enabled, false otherwise.
 		 */
-		public function wsc_scan_enabled(): bool
-		{
+		public function wsc_scan_enabled(): bool {
 			// if localhost, return false
 			$site_url = site_url();
-			$host = wp_parse_url( $site_url, PHP_URL_HOST );
+			$host     = wp_parse_url( $site_url, PHP_URL_HOST );
 
-			if ($host === 'localhost') {
+			if ( $host === 'localhost' ) {
 				return false;
 			}
 
 			// if server addr is localhost, return false
-			if (!empty($_SERVER['SERVER_ADDR']) && $_SERVER['SERVER_ADDR'] === '127.0.0.1') {
+			if ( ! empty( $_SERVER['SERVER_ADDR'] ) && $_SERVER['SERVER_ADDR'] === '127.0.0.1' ) {
 				return false;
 			}
 
 			// if the wsc scan is enabled by the user through the APIs settings
-			if (get_option('cmplz_wsc_status') !== 'enabled') {
+			if ( get_option( 'cmplz_wsc_status' ) !== 'enabled' ) {
 				return false;
 			}
 
 			// circuit breaker
-			if (!$this->wsc_check_cb()) {
+			if ( ! $this->wsc_check_cb() ) {
 				return false;
 			}
 
 			// if no token, return false
-			if (!cmplz_wsc_auth::get_token()) {
+			if ( ! cmplz_wsc_auth::get_token() ) {
+				return false;
+			}
+
+			// if the REST API is not publicly reachable, webhooks cannot be delivered
+			if ( ! $this->wsc_rest_api_accessible() ) {
 				return false;
 			}
 
 			return true;
+		}
+
+
+		/**
+		 * Check whether the REST API webhook endpoint is publicly reachable.
+		 *
+		 * Performs a loopback POST to /complianz/v1/wsc-scan with an empty body.
+		 * An intentionally invalid body triggers a 400 from our own validation,
+		 * confirming the endpoint is live. A WP_Error or 401/403 means the REST
+		 * API is blocked (network failure, or a security plugin requiring auth).
+		 *
+		 * Result cached in transient for 1 hour. Cache cleared on plugin deactivation
+		 * so the notice disappears promptly when a blocking plugin is removed.
+		 *
+		 * @return bool True if the endpoint is reachable by unauthenticated callers.
+		 */
+		public function wsc_rest_api_accessible(): bool {
+			$cached = get_transient( 'cmplz_wsc_rest_accessible' );
+			if ( $cached !== false ) {
+				return $cached === '1';
+			}
+
+			$response = wp_remote_post(
+				rest_url( self::WSC_SCANNER_WEBHOOK_PATH ),
+				array(
+					'timeout'   => 5,
+					'blocking'  => true,
+					'body'      => '{}',
+					'headers'   => array( 'Content-Type' => 'application/json' ),
+					'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
+				)
+			);
+
+			$accessible = ! is_wp_error( $response )
+				&& ! in_array( wp_remote_retrieve_response_code( $response ), array( 401, 403 ), true );
+
+			set_transient( 'cmplz_wsc_rest_accessible', $accessible ? '1' : '0', HOUR_IN_SECONDS );
+			return $accessible;
+		}
+
+
+		/**
+		 * Clear the REST API accessibility cache.
+		 *
+		 * Hooked on deactivated_plugin so the notice disappears promptly when a
+		 * blocking security plugin is removed, without waiting for the 1-hour TTL.
+		 *
+		 * @return void
+		 */
+		public function clear_rest_accessible_cache(): void {
+			delete_transient( 'cmplz_wsc_rest_accessible' );
 		}
 
 
@@ -110,12 +172,11 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return bool True if the WSC scan circuit breaker is open, false otherwise.
 		 */
-		public function wsc_check_cb(): bool
-		{
-			$cb = cmplz_get_transient('wsc_scanner_cb_enabled'); // check the status of the cb
-			if (empty($cb)) {
-				$cb = cmplz_wsc_auth::wsc_api_open('scanner');
-				cmplz_set_transient('wsc_scanner_cb_enabled', $cb, 300); // store the status for 5 minutes
+		public function wsc_check_cb(): bool {
+			$cb = cmplz_get_transient( 'wsc_scanner_cb_enabled' ); // check the status of the cb
+			if ( empty( $cb ) ) {
+				$cb = cmplz_wsc_auth::wsc_api_open( 'scanner' );
+				cmplz_set_transient( 'wsc_scanner_cb_enabled', $cb, 300 ); // store the status for 5 minutes
 			}
 			return $cb;
 		}
@@ -124,32 +185,37 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		/**
 		 * Start the WSC scan.
 		 *
-		 * This function initiates the WSC scan process by sending a request to the WSC API.
-		 * It retrieves the scan URL, depth, visit, source, and token from the options and sends them in the request body.
-		 * If the request is successful, it stores the scan ID, created at, and status in the wp options.
+		 * When called with no arguments (site-level cron path): scans site_url(),
+		 * writes cmplz_wsc_scan_id / cmplz_wsc_scan_createdAt / cmplz_wsc_scan_status
+		 * and cmplz_wsc_webhook_secret, and returns the scan ID.
 		 *
-		 * @return void
+		 * When called with a URL (pro per-post path): scans that URL only,
+		 * does NOT write any options — caller is responsible for storing the scan ID
+		 * and the secret (via add_per_post()).
+		 *
+		 * @param string $url    URL to scan. Empty string = use site_url() (site-level).
+		 * @param string $secret Pre-generated webhook secret (pro per-post path); generates one if empty.
+		 * @return string|null Scan ID on success, null on failure.
 		 */
-		private function wsc_scan_start(): void
-		{
-			// retrieve the token
-			$token = cmplz_wsc_auth::get_token(true); // get a new token
+		public function wsc_scan_start( string $url = '', string $secret = '' ): ?string {
+			// Reuse the cached token across pages; get_token() refreshes only near
+			// expiry. Do NOT force a new token per scanned page (per-page /oauth/token storm).
+			$token = cmplz_wsc_auth::get_token();
 
-			if (!$token) {
-				cmplz_wsc_logger::log_errors('wsc_scan_start', 'COMPLIANZ: no token');
-				return;
+			if ( ! $token ) {
+				cmplz_wsc_logger::log_errors( 'wsc_scan_start', 'COMPLIANZ: no token' );
+				return null;
 			}
 
-			$url = esc_url_raw($this->wsc_scan_get_site_url());
+			$scan_url = $url !== '' ? esc_url_raw( $url ) : esc_url_raw( $this->wsc_scan_get_site_url() );
+			$source   = $this->wsc_get_scanner_source();
 
-			$source = $this->wsc_get_scanner_source();
-
-			if (!$source) {
-				return;
+			if ( ! $source ) {
+				return null;
 			}
 
 			$body = array(
-				'url'                     => $url,
+				'url'                     => $scan_url,
 				'acceptBanner'            => 'true',
 				'getTrackers'             => 'true',
 				'source'                  => $source,
@@ -160,31 +226,66 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				'detectLegalDocuments'    => 'false',
 			);
 
-			// use the webhook only with ssl
-			$webhook_endpoint = esc_url_raw( get_rest_url( null, self::WSC_SCANNER_WEBHOOK_PATH ) );
-
-			if ( $this->wsc_use_webhook( $webhook_endpoint ) !== '' ) {
-				$body['webhook'] = $webhook_endpoint;
-			}
+			$webhook_secret = $this->wsc_apply_webhook_to_body( $body, self::WSC_SCANNER_WEBHOOK_PATH, $secret );
 
 			$request = $this->wsc_scan_request( $token, $body );
 
-			if (is_wp_error( $request )) {
-				cmplz_wsc_logger::log_errors('wsc_scan_start', 'COMPLIANZ: scan request failed, error: ' . $request->get_error_message());
-				return;
+			if ( is_wp_error( $request ) ) {
+				cmplz_wsc_logger::log_errors( 'wsc_scan_start', 'COMPLIANZ: scan request failed, error: ' . $request->get_error_message() );
+				return null;
 			}
 
-			$response = json_decode(wp_remote_retrieve_body($request));
+			$response = json_decode( wp_remote_retrieve_body( $request ) );
 
-			if (!isset($response->id)) {
-				cmplz_wsc_logger::log_errors('wsc_scan_start', 'COMPLIANZ: no id in response');
-				return;
+			if ( ! isset( $response->id ) ) {
+				cmplz_wsc_logger::log_errors( 'wsc_scan_start', 'COMPLIANZ: no id in response' );
+				return null;
 			}
 
-			// use these options for the webhooks
-			update_option('cmplz_wsc_scan_id', $response->id, false);
-			update_option('cmplz_wsc_scan_createdAt', $response->createdAt, false);
-			update_option('cmplz_wsc_scan_status', 'progress', false);
+			if ( $url === '' ) {
+				// Site-level only — write options used by the polling loop.
+				// Race guard: two PHP workers can both call wsc_scan_start() if
+				// React fires concurrent fetchProgress() requests before either
+				// has written scan_id. The first worker to finish the API call
+				// writes the options; subsequent workers bail here so they do not
+				// overwrite the webhook secret (staging signs with the first one).
+				if ( get_option( 'cmplz_wsc_scan_id' ) ) {
+					return $response->id;
+				}
+				// Clear any stale secret before writing a new one: prevents an old
+				// webhook-mode secret from surviving an HTTPS→HTTP mode transition.
+				delete_option( self::OPT_WEBHOOK_SECRET );
+				update_option( 'cmplz_wsc_scan_id', $response->id, false );
+				update_option( 'cmplz_wsc_scan_createdAt', $response->createdAt, false );
+				update_option( 'cmplz_wsc_scan_status', 'progress', false );
+				if ( $webhook_secret ) {
+					update_option( self::OPT_WEBHOOK_SECRET, $webhook_secret, false );
+				}
+			}
+
+			return $response->id;
+		}
+
+		/**
+		 * Populate $body with webhook fields if the site is reachable via HTTPS.
+		 *
+		 * Sets `webhook` (endpoint URL) and `webhookSecret` (32-char random key used
+		 * by WSC to sign the incoming webhook for HMAC validation).
+		 *
+		 * @param array  $body   Request body passed by reference.
+		 * @param string $path   REST route path (e.g. self::WSC_SCANNER_WEBHOOK_PATH).
+		 * @param string $secret Pre-generated secret to use; generates one if empty.
+		 * @return string|null   The secret used, or null when webhook is not applicable.
+		 */
+		private function wsc_apply_webhook_to_body( array &$body, string $path, string $secret = '' ): ?string {
+			$endpoint = esc_url_raw( get_rest_url( null, $path ) );
+			if ( $this->wsc_use_webhook( $endpoint ) === '' ) {
+				return null;
+			}
+			$resolved_secret       = '' !== $secret ? $secret : wp_generate_password( 32, false );
+			$body['webhook']       = $endpoint;
+			$body['webhookSecret'] = $resolved_secret;
+			return $resolved_secret;
 		}
 
 		/**
@@ -230,7 +331,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			}
 
 			return wp_remote_post(
-				self::WSC_SCANNER_ENDPOINT . '/api/v1/scan',
+				apply_filters( 'cmplz_wsc_scanner_endpoint', self::WSC_SCANNER_ENDPOINT ) . '/api/v1/scan',
 				$args
 			);
 		}
@@ -249,45 +350,44 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return void
 		 */
-		public function wsc_scan_process(): void
-		{
-			if (!$this->wsc_scan_enabled()) {
-				cmplz_wsc_logger::log_errors('wsc_scan_process', 'COMPLIANZ: wsc scan is not enabled');
+		public function wsc_scan_process(): void {
+			if ( ! $this->wsc_scan_enabled() ) {
+				cmplz_wsc_logger::log_errors( 'wsc_scan_process', 'COMPLIANZ: wsc scan is not enabled' );
 				return;
 			}
 
-			$status = 'not-started';
+			$status         = 'not-started';
 			$max_iterations = 25;
-			$cookies = [];
+			$cookies        = array();
 
-			$iteration = (int)get_option('cmplz_wsc_scan_iteration');
-			$iteration++;
+			$iteration = (int) get_option( 'cmplz_wsc_scan_iteration' );
+			++$iteration;
 
 			// reached the max iterations the scan is completed
-			if ($iteration > $max_iterations) {
-				update_option('cmplz_wsc_scan_status', 'completed', false);
-				update_option('cmplz_wsc_scan_progress', 100);
+			if ( $iteration > $max_iterations ) {
+				update_option( 'cmplz_wsc_scan_status', 'completed', false );
+				update_option( 'cmplz_wsc_scan_progress', 100 );
 				return;
 			}
 
-			update_option("cmplz_wsc_scan_iteration", $iteration, false);
+			update_option( 'cmplz_wsc_scan_iteration', $iteration, false );
 
 			// if the scan is not yet started
-			if (!get_option('cmplz_wsc_scan_id')) {
+			if ( ! get_option( 'cmplz_wsc_scan_id' ) ) {
 				$this->wsc_scan_start(); // start the scan and store the scan id and scan status
-				update_option('cmplz_wsc_scan_progress', 25); // set the progress to 25%
+				update_option( 'cmplz_wsc_scan_progress', 25 ); // set the progress to 25%
 			}
 
 			// once we have the scan id, we can check the status
-			if (get_option('cmplz_wsc_scan_id') !== false) {
+			if ( get_option( 'cmplz_wsc_scan_id' ) !== false ) {
 				$sleep = 6;
-				sleep($sleep);
-				update_option('cmplz_wsc_scan_progress', 25 + $iteration * 5);
+				sleep( $sleep );
+				update_option( 'cmplz_wsc_scan_progress', 25 + $iteration * 5 );
 				$scan_id = get_option( 'cmplz_wsc_scan_id' );
-				$status = $this->wsc_scan_get_status( $scan_id, $iteration, $max_iterations ); // check the status of the scan.
+				$status  = $this->wsc_scan_get_status( $scan_id, $iteration, $max_iterations ); // check the status of the scan.
 			}
 
-			if ($status === 'completed') { // if the status is completed.
+			if ( $status === 'completed' ) { // if the status is completed.
 
 				// if is already completed by webhook and progress is 100.
 				$cookies = get_transient( 'cmplz_wsc_last_cookies' );
@@ -297,12 +397,12 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			}
 
 			// if failed, stop scan and mark as completed for now
-			if ($status === 'failed') {
-				update_option('cmplz_wsc_scan_status', 'completed', false);
-				update_option('cmplz_wsc_scan_progress', 100, false);
+			if ( $status === 'failed' ) {
+				update_option( 'cmplz_wsc_scan_status', 'completed', false );
+				update_option( 'cmplz_wsc_scan_progress', 100, false );
 			}
 
-			//check if we have results
+			// check if we have results
 			if ( is_array( $cookies ) && count( $cookies ) > 0 ) {
 				// store the cookies.
 				$this->wsc_scan_store_cookies( $cookies );
@@ -318,11 +418,10 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @param array $cookies An array of cookie objects retrieved from the WSC scan.
 		 */
-		public function wsc_scan_store_cookies(array $cookies): void
-		{
-			foreach ($cookies as $key => $c) {
+		public function wsc_scan_store_cookies( array $cookies ): void {
+			foreach ( $cookies as $key => $c ) {
 				// Skip if the type is not 'webStorage' or 'cookie'
-				if ($c->type !== 'webStorage' && $c->type !== 'cookie') {
+				if ( $c->type !== 'webStorage' && $c->type !== 'cookie' ) {
 					continue;
 				}
 
@@ -332,9 +431,9 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				// Set the domain to 'self' if it's 'webStorage', otherwise use the cookie's domain
 				$cookie->domain = $c->type === 'cookie' ? $c->domain : 'self';
 				// Add the cookie name and supported languages to the cookie object
-				$cookie->add($c->name, COMPLIANZ::$banner_loader->get_supported_languages());
+				$cookie->add( $c->name, COMPLIANZ::$banner_loader->get_supported_languages() );
 				// Save the cookie object
-				$cookie->save(true);
+				$cookie->save( true );
 			}
 		}
 
@@ -347,13 +446,13 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return void
 		 */
-		public static function wsc_scan_reset(): void
-		{
-			delete_option('cmplz_wsc_scan_id');
-			delete_option('cmplz_wsc_scan_status');
-			delete_option('cmplz_wsc_scan_progress');
-			delete_option('cmplz_wsc_scan_iteration');
-			delete_option('cmplz_wsc_scan_createdAt');
+		public static function wsc_scan_reset(): void {
+			delete_option( 'cmplz_wsc_scan_id' );
+			delete_option( 'cmplz_wsc_scan_status' );
+			delete_option( 'cmplz_wsc_scan_progress' );
+			delete_option( 'cmplz_wsc_scan_iteration' );
+			delete_option( 'cmplz_wsc_scan_createdAt' );
+			delete_option( self::OPT_WEBHOOK_SECRET );
 		}
 
 
@@ -365,13 +464,12 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return bool True if the WSC scan is completed, false otherwise.
 		 */
-		public function wsc_scan_completed(): bool
-		{
-			if (!$this->wsc_scan_enabled()) { // force true
-				cmplz_wsc_logger::log_errors('wsc_scan_completed', 'COMPLIANZ: wsc scan not enabled');
+		public function wsc_scan_completed(): bool {
+			if ( ! $this->wsc_scan_enabled() ) { // force true
+				cmplz_wsc_logger::log_errors( 'wsc_scan_completed', 'COMPLIANZ: wsc scan not enabled' );
 				return true;
 			}
-			return get_option('cmplz_wsc_scan_progress') === 100;
+			return get_option( 'cmplz_wsc_scan_progress' ) === 100;
 		}
 
 
@@ -384,12 +482,11 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return int The current progress of the WSC scan, or 100 if the scan is not enabled.
 		 */
-		public function wsc_scan_progress(): int
-		{
-			if (!$this->wsc_scan_enabled()) {
+		public function wsc_scan_progress(): int {
+			if ( ! $this->wsc_scan_enabled() ) {
 				return 100;
 			}
-			return (int)get_option('cmplz_wsc_scan_progress');
+			return (int) get_option( 'cmplz_wsc_scan_progress' );
 		}
 
 
@@ -398,6 +495,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * This function returns the URL to be used for the WSC scan. If the `SCRIPT_DEBUG` constant is defined,
 		 * it returns the Complianz URL. Otherwise, it returns the site URL.
+		 *
 		 * @return string The URL to be used for the WSC scan.
 		 */
 		private function wsc_scan_get_site_url(): string {
@@ -412,57 +510,68 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 * It returns the status if the request is successful, or the default status otherwise.
 		 *
 		 * @param string $scan_id The id of the scan.
-		 * @param int $iteration The current iteration of the status retrieval process.
-		 * @param int $max_iterations The maximum number of iterations to retrieve the status.
+		 * @param int    $iteration The current iteration of the status retrieval process.
+		 * @param int    $max_iterations The maximum number of iterations to retrieve the status.
 		 * @return string The status of the WSC scan.
 		 */
-		private function wsc_scan_get_status(string $scan_id, int $iteration, int $max_iterations): string
-		{
-			$default_status = get_option('cmplz_wsc_scan_status', 'not-started');
+		private function wsc_scan_get_status( string $scan_id, int $iteration, int $max_iterations ): string {
+			$default_status = get_option( 'cmplz_wsc_scan_status', 'not-started' );
 
-			if ($default_status === 'completed') {
+			if ( $default_status === 'completed' ) {
 				return 'completed';
 			}
 
 			$response = $this->wsc_scan_retrieve_scan( $scan_id );
 
 			// Early exit if response is an error or if recurring and iteration is >= 2
-			if (is_wp_error($response) || $iteration >= $max_iterations) {
-				cmplz_wsc_logger::log_errors('wsc_scan_get_status', 'COMPLIANZ: error retrieving scan status');
+			if ( is_wp_error( $response ) || $iteration >= $max_iterations ) {
+				cmplz_wsc_logger::log_errors( 'wsc_scan_get_status', 'COMPLIANZ: error retrieving scan status' );
 				return $default_status;
 			}
 
 			// Decode the response body
-			$data = json_decode(wp_remote_retrieve_body($response));
+			$data = json_decode( wp_remote_retrieve_body( $response ) );
 
 			// Check if there was an error in the scan process
-			if (isset($data->is_processed) && $data->is_processed === 'error' && isset($data->skipped_urls) && is_array($data->skipped_urls)) {
-				foreach ($data->skipped_urls as $skipped) {
-					if ($skipped->reason === 'PageNotLoadedError' && $skipped->url === $this->wsc_scan_get_site_url()) {
-						cmplz_wsc_logger::log_errors('wsc_scan_get_status', 'COMPLIANZ: error in scan process');
+			if ( isset( $data->is_processed ) && $data->is_processed === 'error' && isset( $data->skipped_urls ) && is_array( $data->skipped_urls ) ) {
+				foreach ( $data->skipped_urls as $skipped ) {
+					if ( $skipped->reason === 'PageNotLoadedError' && $skipped->url === $this->wsc_scan_get_site_url() ) {
+						cmplz_wsc_logger::log_errors( 'wsc_scan_get_status', 'COMPLIANZ: error in scan process' );
 						return 'failed';
 					}
 				}
 			}
 
 			// If an error occurred in the response, restart the scan and retry.
-			if (isset($data->error)) {
-				$this->wsc_scan_start();
-				return $this->wsc_scan_get_status($scan_id, $iteration + 1, $max_iterations); // Retry with incremented iteration
+			if ( isset( $data->error ) ) {
+				// Intentional restart: clear the stale id so the race guard in
+				// wsc_scan_start() does not treat this recovery as a losing worker
+				// and skip persisting the replacement scan id.
+				delete_option( 'cmplz_wsc_scan_id' );
+				$new_scan_id = $this->wsc_scan_start( '', (string) get_option( self::OPT_WEBHOOK_SECRET, '' ) );
+				if ( null === $new_scan_id ) {
+					cmplz_wsc_logger::log_errors( 'wsc_scan_get_status', 'COMPLIANZ: error recovery restart failed' );
+					return $default_status;
+				}
+				// Recurse with the incremented iteration so the shared poll budget
+				// still bounds the descent: resetting to 0 would recurse without
+				// limit (one scan POST + one GET per level) when WSC keeps
+				// returning an error body for freshly-restarted scans.
+				return $this->wsc_scan_get_status( $new_scan_id, $iteration + 1, $max_iterations );
 			}
 
-			if (isset($data->status) && $data->status === 'progress') {
+			if ( isset( $data->status ) && $data->status === 'progress' ) {
 				// if is in progress but we already have the trackers results.
-				if (isset($data->result->trackers) && count($data->result->trackers) > 0) {
-					$this->wsc_complete_cookie_scan($data);
+				if ( isset( $data->result->trackers ) && count( $data->result->trackers ) > 0 ) {
+					$this->wsc_complete_cookie_scan( $data );
 					return 'completed';
 				}
-				update_option('cmplz_wsc_scan_status', $data->status, false);
+				update_option( 'cmplz_wsc_scan_status', $data->status, false );
 				return $data->status;
 			}
 
 			// If a status is provided and is completed, update it and return.
-			if (isset($data->status) && $data->status === 'completed') {
+			if ( isset( $data->status ) && $data->status === 'completed' ) {
 				$this->wsc_complete_cookie_scan( $data );
 				return $data->status;
 			}
@@ -483,9 +592,9 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		public function wsc_complete_cookie_scan( object $scan, bool $webhook = false ): void {
 
 			if ( $webhook ) {
-				$cookies = isset($scan->data->result->trackers) ? $scan->data->result->trackers : [];
+				$cookies = isset( $scan->data->result->trackers ) ? $scan->data->result->trackers : array();
 			} else {
-				$cookies = isset($scan->result->trackers) ? $scan->result->trackers : [];
+				$cookies = isset( $scan->result->trackers ) ? $scan->result->trackers : array();
 			}
 
 			// Store the cookies on a transient.
@@ -494,6 +603,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 
 			if ( $webhook ) {
 				update_option( 'cmplz_wsc_scan_progress', 100 );
+				delete_option( self::OPT_WEBHOOK_SECRET );
 			}
 		}
 
@@ -507,10 +617,10 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 * @param string $scan_id The id of the scan.
 		 * @return array|WP_Error The response from the WSC API.
 		 */
-		private function wsc_scan_retrieve_scan( string $scan_id ) {
+		public function wsc_scan_retrieve_scan( string $scan_id ) {
 			$id = sanitize_text_field( $scan_id );
 
-			$endpoint = self::WSC_SCANNER_ENDPOINT . '/api/v1/scans/' . $id;
+			$endpoint = apply_filters( 'cmplz_wsc_scanner_endpoint', self::WSC_SCANNER_ENDPOINT ) . '/api/v1/scans/' . $id;
 			$token    = cmplz_wsc_auth::get_token();
 
 			$args = array(
@@ -535,25 +645,24 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 *
 		 * @return void
 		 */
-		public function wsc_scan_init(): void
-		{
-			if (get_option('cmplz_wsc_status') !== 'enabled') {
+		public function wsc_scan_init(): void {
+			if ( get_option( 'cmplz_wsc_status' ) !== 'enabled' ) {
 				return;
 			}
 
-			if (get_option('cmplz_wsc_scan_first_run', false)) {
+			if ( get_option( 'cmplz_wsc_scan_first_run', false ) ) {
 				return;
 			}
 
-			$processed_pages_list = get_transient('cmplz_processed_pages_list');
+			$processed_pages_list = get_transient( 'cmplz_processed_pages_list' );
 
-			if (!is_array($processed_pages_list) || !in_array("remote", $processed_pages_list)) {
+			if ( ! is_array( $processed_pages_list ) || ! in_array( 'remote', $processed_pages_list ) ) {
 				return;
 			}
 
-			$processed_pages_list = array_diff($processed_pages_list, ["remote"]);
-			set_transient('cmplz_processed_pages_list', $processed_pages_list, MONTH_IN_SECONDS);
-			update_option('cmplz_wsc_scan_first_run', true, false);
+			$processed_pages_list = array_diff( $processed_pages_list, array( 'remote' ) );
+			set_transient( 'cmplz_processed_pages_list', $processed_pages_list, MONTH_IN_SECONDS );
+			update_option( 'cmplz_wsc_scan_first_run', true, false );
 		}
 
 
@@ -566,7 +675,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 */
 		private function wsc_get_scanner_source(): string {
 			$version = $this->get_cmplz_version();
-			if (!$version) {
+			if ( ! $version ) {
 				return '';
 			}
 
@@ -613,20 +722,21 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		}
 
 		/**
-		 * Run checks for the WSC scan.
+		 * Run periodic WSC technology/detection checks (up to 3 attempts).
 		 *
-		 * This function performs periodic checks for the WSC scan. It retrieves the last check time and compares it
-		 * with the current time to ensure that checks are not performed more frequently than every 30 days.
-		 * If the checks are due, it updates the last check time, retrieves a new token, and sends a scan request
-		 * to the WSC API with the necessary payload.
-		 * If the request is successful, it schedules a polling request to retrieve the scan results.
-		 * If the request fails, it logs the error and retries the scan request up to three times.
-		 * If the maximum number of retries is reached, it logs the error and aborts the scan request.
+		 * Skipped when last check was within 30 days or the error transient is set.
+		 * On success, stores scan_id and (in webhook mode) the webhook secret, then
+		 * either schedules polling or awaits the /wsc-checks webhook.
+		 * On failure, delegates to wsc_retry_checks_scan() which resets state and
+		 * recurses with the same $carried_secret — ensuring all retry attempts in a
+		 * cycle send the same webhookSecret to WSC (prevents HMAC mismatch when a
+		 * request reached WSC but the response was dropped).
 		 *
-		 * @param int $retry The number of retries for the scan request.
-		 * @return void
+		 * @param int         $retry          Current attempt index (0 = first call). Do not pass externally.
+		 * @param string|null $carried_secret Webhook secret from the previous attempt; null on first call
+		 *                                   or when webhook mode is inactive (no HTTPS).
 		 */
-		private function wsc_scan_run_checks( int $retry = 0 ): void {
+		private function wsc_scan_run_checks( int $retry = 0, ?string $carried_secret = null ): void {
 			$max_retries = 3;
 			$last_check  = get_option( 'cmplz_wsc_checks_scan_createdAt', false ); // timestamp or false.
 
@@ -645,8 +755,8 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				return;
 			}
 
-			// Check for the token and source.
-			$token  = cmplz_wsc_auth::get_token( true ); // Get a new token.
+			// Check for the token and source (reuse cached; refresh only near expiry).
+			$token  = cmplz_wsc_auth::get_token();
 			$source = $this->wsc_get_scanner_source();
 
 			if ( ! $source ) {
@@ -671,28 +781,21 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				'detectLegalDocuments'    => 'true',
 			);
 
-			$webhook_endpoint = esc_url_raw( get_rest_url( null, self::WSC_SCANNER_DETECTIONS_WEBHOOK_PATH ) );
-			$is_webhook       = $this->wsc_use_webhook( $webhook_endpoint ) !== '';
-
-			if ( $is_webhook ) {
-				$body['webhook'] = $webhook_endpoint;
-			}
+			$webhook_secret = $this->wsc_apply_webhook_to_body( $body, self::WSC_SCANNER_DETECTIONS_WEBHOOK_PATH, $carried_secret ?? '' );
+			// True when site is reachable via HTTPS — WSC delivers results via webhook instead of polling.
+			$is_webhook = null !== $webhook_secret;
 
 			$request = $this->wsc_scan_request( $token, $body );
 
 			if ( is_wp_error( $request ) ) {
-				delete_option( 'cmplz_wsc_checks_scan_createdAt' ); // reset the last_check timestamp.
-				$this->wsc_scan_run_checks( $retry + 1 ); // restart the checks.
-				cmplz_wsc_logger::log_errors( 'wsc_scan_run_checks', 'COMPLIANZ: scan #' . $retry . ' request failed, error: ' . $request->get_error_message() );
+				$this->wsc_retry_checks_scan( $retry, $webhook_secret, 'COMPLIANZ: scan #' . $retry . ' request failed, error: ' . $request->get_error_message() );
 				return;
 			}
 
 			$response = json_decode( wp_remote_retrieve_body( $request ) );
 
 			if ( ! isset( $response->id ) ) {
-				delete_option( 'cmplz_wsc_checks_scan_createdAt' );  // reset the last_check timestamp.
-				$this->wsc_scan_run_checks( $retry + 1 ); // restart the checks.
-				cmplz_wsc_logger::log_errors( 'wsc_scan_run_checks', 'COMPLIANZ: no id in response' );
+				$this->wsc_retry_checks_scan( $retry, $webhook_secret, 'COMPLIANZ: no id in response' );
 				return;
 			}
 
@@ -706,6 +809,30 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			// store the wsc checks scan id.
 			update_option( 'cmplz_wsc_checks_scan_id', $response->id, false );
 			update_option( 'cmplz_wsc_checks_scan_createdAt', $response->createdAt, false ); // update the last check value to the createdAt value.
+			// Always clear the previous secret first — prevents a stale webhook-mode secret
+			// from surviving a mode transition (e.g. HTTPS lost between runs).
+			delete_option( self::OPT_CHECKS_WEBHOOK_SECRET );
+			if ( $is_webhook && $webhook_secret ) {
+				update_option( self::OPT_CHECKS_WEBHOOK_SECRET, $webhook_secret, false );
+			}
+		}
+
+		/**
+		 * Reset checks scan state and schedule a retry attempt.
+		 *
+		 * Shared by both failure branches in wsc_scan_run_checks() to avoid duplication.
+		 * Passes $carried_secret through so all retry attempts in a cycle use the same
+		 * webhookSecret — prevents HMAC mismatch when the first request reached WSC but
+		 * the response was dropped.
+		 *
+		 * @param int         $retry          Current retry index (0-based).
+		 * @param string|null $carried_secret Secret generated this attempt; null if webhook mode inactive.
+		 * @param string      $reason         Log message identifying the failure.
+		 */
+		private function wsc_retry_checks_scan( int $retry, ?string $carried_secret, string $reason ): void {
+			delete_option( 'cmplz_wsc_checks_scan_createdAt' );
+			cmplz_wsc_logger::log_errors( 'wsc_scan_run_checks', $reason );
+			$this->wsc_scan_run_checks( $retry + 1, $carried_secret );
 		}
 
 		/**
@@ -823,7 +950,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				'Google Programmable Search Engine with AdSense',
 				'Google Publisher Tag',
 				'Google Search Ads 360',
-				'Google Signals'
+				'Google Signals',
 			);
 
 			$is_cmplz_gcm_enabled = cmplz_consent_mode(); // on free return false as default.
@@ -886,7 +1013,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 				'Ezoic',
 				'Nexx360',
 				'Mediavine',
-				'Raptive'
+				'Raptive',
 			);
 
 			$cmp_services_detected = array();
@@ -909,18 +1036,18 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			$cleaned_languages = array();
 			$seen_prefixes     = array();
 			if ( isset( $languages ) ) {
-				foreach ($languages as $language) {
-					$prefix = explode('-', $language)[0];
-					if (!in_array($prefix, $seen_prefixes, true)) {
+				foreach ( $languages as $language ) {
+					$prefix = explode( '-', $language )[0];
+					if ( ! in_array( $prefix, $seen_prefixes, true ) ) {
 						$cleaned_languages[] = $language;
-						$seen_prefixes[] = $prefix;
+						$seen_prefixes[]     = $prefix;
 					}
 				}
 
-				if (count($cleaned_languages) > 1) {
+				if ( count( $cleaned_languages ) > 1 ) {
 					$detections[] = array(
 						'block' => 'block_03',
-						'args' => array(),
+						'args'  => array(),
 					);
 				}
 			}
@@ -942,7 +1069,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 
 			// #6 check
 			// Block #6 | Woocommerce || Check if Woocommerce is installed.
-			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 			$installed_plugins        = get_plugins();
 			$is_woocommerce_installed = isset( $installed_plugins['woocommerce/woocommerce.php'] );
 
@@ -974,13 +1101,13 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			$this->reset_wsc_dismissed_warnings( $detections );
 
 			// Create and send the notification.
- 			$disable_automatic_cookiescan = (bool) cmplz_get_option( 'disable_automatic_cookiescan' );
+			$disable_automatic_cookiescan = (bool) cmplz_get_option( 'disable_automatic_cookiescan' );
 			if ( $disable_automatic_cookiescan ) {
 				return;
 			}
 
 			// If the email address is not valid, return.
-			$notification_email_address =  empty(cmplz_get_option('cmplz_wsc_email')) ? get_bloginfo('admin_email') : cmplz_get_option('cmplz_wsc_email');
+			$notification_email_address = empty( cmplz_get_option( 'cmplz_wsc_email' ) ) ? get_bloginfo( 'admin_email' ) : cmplz_get_option( 'cmplz_wsc_email' );
 			if ( ! filter_var( $notification_email_address, FILTER_VALIDATE_EMAIL ) ) {
 				return;
 			}
@@ -997,8 +1124,10 @@ if (!class_exists("cmplz_wsc_scanner")) {
 			} else {
 				update_option( 'cmplz_wsc_checks_last_mail_sent_error', time(), false );
 			}
-			// Remove the scan_id when the flow is completed, to prevent the wsc api from being called again.
+			// Remove scan_id and webhook secret when flow completes — prevents stale secret
+			// from accepting HMAC-valid webhooks after the scan window has closed.
 			delete_option( 'cmplz_wsc_checks_scan_id' );
+			delete_option( self::OPT_CHECKS_WEBHOOK_SECRET );
 		}
 
 
@@ -1015,7 +1144,7 @@ if (!class_exists("cmplz_wsc_scanner")) {
 		 */
 		private function wsc_send_notification( string $notification, string $title, string $notification_email_address ): bool {
 			// define mailer.
-			$headers = "Content-Type: text/html; charset=UTF-8";
+			$headers = 'Content-Type: text/html; charset=UTF-8';
 
 			$mailer          = new cmplz_mailer();
 			$mailer->to      = $notification_email_address;

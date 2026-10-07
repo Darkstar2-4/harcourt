@@ -10,44 +10,15 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-type TranslationRow array{
- *    job_id: int|null,
- *    automatic: int|null,
- *    editor: string|null,
- *    job_completed: int|null,
- *    status: int,
- *    batch_id: int|null,
- *    translation_service: string|null,
- *    translator_id: int|null,
- *    translation_id: int,
- *    review_status?: string|null,
- *    source_language_code: string,
- *    language_code: string,
- *    element_type: string,
- *    translated_element_id: int|null,
- *    original_element_id: int,
- *    needs_update: int
- *  }
- *
- */
 class TranslationQuery implements TranslationQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, TranslationRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var TranslationResultMapper $resultMapper */
   private $resultMapper;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, TranslationRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   * @param TranslationResultMapper $resultMapper
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -65,7 +36,7 @@ class TranslationQuery implements TranslationQueryInterface {
     }
 
     $ids   = $this->queryPrepare->prepareIn( $jobIds, '%d' );
-    $query = $this->getBasicQuery() . " WHERE job.job_id IN ($ids) LIMIT " . count( $jobIds );
+    $query = $this->getBasicQueryForJobIds() . " AND job.job_id IN ($ids) LIMIT " . count( $jobIds );
 
     try {
       $rows = $this->queryHandler->query( $query );
@@ -80,7 +51,7 @@ class TranslationQuery implements TranslationQueryInterface {
 
 
   public function getOneByJobId( int $jobId ) {
-    $query = $this->getBasicQuery() . " WHERE job.job_id = %d LIMIT 1";
+    $query = $this->getBasicQueryForJobIds() . " AND job.job_id = %d LIMIT 1";
 
     try {
       $row = $this->queryHandler->queryOne(
@@ -105,7 +76,9 @@ class TranslationQuery implements TranslationQueryInterface {
     }
 
     $ids   = $this->queryPrepare->prepareIn( $translatedElementIds, '%d' );
-    $query = $this->getBasicQuery() . " WHERE translation.element_id IN ($ids) LIMIT " . count( $translatedElementIds );
+    $query = $this->getBasicQueryWithMaxJobId()
+             . " WHERE translation.element_id IN ($ids) LIMIT "
+             . count( $translatedElementIds );
 
     try {
       $rows = $this->queryHandler->query( $query );
@@ -127,9 +100,14 @@ class TranslationQuery implements TranslationQueryInterface {
       return [];
     }
 
-    $ids   = implode( ',', $elementIds );
+    foreach ( $elementIds as $elementId ) {
+      if ( ! is_int( $elementId ) || $elementId <= 0 ) {
+        throw new InvalidArgumentException( 'Element IDs must be positive integers.' );
+      }
+    }
 
-    $type  = $this->queryPrepare->prepare(
+    $ids  = $this->queryPrepare->prepareIn( $elementIds, '%d' );
+    $type = $this->queryPrepare->prepare(
       " AND translation.element_type LIKE %s",
       $translationType->get() . '_%'
     );
@@ -141,7 +119,7 @@ class TranslationQuery implements TranslationQueryInterface {
 
     $sourceLanguageNotNull = " AND translation.source_language_code IS NOT NULL";
 
-    $query = $this->getBasicQuery() . $tridIn . $type . $sourceLanguageNotNull;
+    $query = $this->getBasicQueryWithMaxJobId() . $tridIn . $type . $sourceLanguageNotNull;
 
     try {
       $rows = $this->queryHandler->query( $query );
@@ -155,11 +133,26 @@ class TranslationQuery implements TranslationQueryInterface {
   }
 
 
-  /**
-   * @phpstan-param TranslationRow[] $rowset
-   *
-   * @return Translation[]
-   */
+  public function getJobIdsByBatchId( int $batchId ): array {
+    $query = $this->queryPrepare->prepare(
+      "SELECT job.job_id
+       FROM `{$this->queryPrepare->prefix()}icl_translate_job` AS job
+       INNER JOIN `{$this->queryPrepare->prefix()}icl_translation_status` AS status
+         ON status.rid = job.rid
+       WHERE status.batch_id = %d AND job.revision IS NULL",
+      $batchId
+    );
+
+    try {
+      $rows = $this->queryHandler->query( $query );
+
+      return array_map( 'intval', array_column( $rows->getResults(), 'job_id' ) );
+    } catch ( DatabaseErrorException $e ) {
+      return [];
+    }
+  }
+
+
   private function mapResult( array $rowset ): array {
     return array_map(
       [
@@ -177,6 +170,7 @@ class TranslationQuery implements TranslationQueryInterface {
         `job`.`job_id`,
         `job`.`automatic`,
         `job`.`editor`,
+        `job`.`editor_job_id`,
         `job`.`translated` AS `job_completed`,
         `status`.`status`,
         `status`.`batch_id`,
@@ -190,17 +184,38 @@ class TranslationQuery implements TranslationQueryInterface {
         `translation`.`element_type`,
         `translation`.`element_id` AS `translated_element_id`,
         `original`.`element_id` AS `original_element_id`
-      FROM `{$this->queryPrepare->prefix()}icl_translations` AS `translation`
-      INNER JOIN `{$this->queryPrepare->prefix()}icl_translations` AS `original` 
+        FROM `{$this->queryPrepare->prefix()}icl_translations` AS `translation`
+      INNER JOIN `{$this->queryPrepare->prefix()}icl_translations` AS `original`
       ON `original`.`trid` = `translation`.`trid` AND `original`.`source_language_code` IS NULL
-      INNER JOIN `{$this->queryPrepare->prefix()}icl_translation_status` AS `status` 
-      ON `status`.`translation_id` = `translation`.`translation_id`
+      INNER JOIN `{$this->queryPrepare->prefix()}icl_translation_status` AS `status`
+      ON `status`.`translation_id` = `translation`.`translation_id`";
+  }
+
+
+  private function innerJoinJobsTable(): string {
+    return "
+      INNER JOIN `{$this->queryPrepare->prefix()}icl_translate_job` AS `job` 
+        ON `job`.`rid` = `status`.`rid`";
+  }
+
+
+  private function leftJoinWithMaxJobId(): string {
+    return "
       LEFT JOIN `{$this->queryPrepare->prefix()}icl_translate_job` AS `job` ON `job`.`job_id` = (
         SELECT MAX(`job_id`) 
         FROM `{$this->queryPrepare->prefix()}icl_translate_job` 
         WHERE `rid` = `status`.`rid`
-      )
-    ";
+      )";
+  }
+
+
+  private function getBasicQueryForJobIds(): string {
+    return $this->getBasicQuery() . $this->innerJoinJobsTable();
+  }
+
+
+  private function getBasicQueryWithMaxJobId(): string {
+    return $this->getBasicQuery() . $this->leftJoinWithMaxJobId();
   }
 
 

@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Core\Component\Translation\Application\String;
 
 use WPML\Core\Component\Translation\Application\Service\Dto\SendToTranslationDto;
@@ -19,14 +18,8 @@ use function WPML\PHP\partition;
 
 class StringBatchBuilder implements BatchBuilderInterface {
 
-  /**
-   * @var BatchBuilderInterface
-   */
   private $batchBuilder;
 
-  /**
-   * @var StringBatchRepositoryInterface
-   */
   private $stringBatchRepository;
 
 
@@ -39,12 +32,6 @@ class StringBatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return array{0: TranslationBatch|null, 1: DuplicationBatch|null, 2: IgnoredElement[]}
-   * @throws InvalidArgumentException
-   */
   public function build( SendToTranslationDto $sendToTranslationDto ): array {
     list( $translationBatch, $duplicationBatch, $ignoredElements ) =
       $this->batchBuilder->build( $sendToTranslationDto );
@@ -110,11 +97,6 @@ class StringBatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param Element[] $elements
-   *
-   * @return array{0: Element[], 1: Element[]}
-   */
   private function partitionElementsOnStringAndOthers( array $elements ) {
     return partition(
       $elements,

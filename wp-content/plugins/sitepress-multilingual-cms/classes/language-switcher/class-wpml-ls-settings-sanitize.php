@@ -2,9 +2,6 @@
 
 class WPML_LS_Settings_Sanitize {
 
-	/**
-	 * @return array
-	 */
 	private function get_global_settings_keys() {
 		return array(
 			'migrated'           => array(
@@ -19,7 +16,6 @@ class WPML_LS_Settings_Sanitize {
 			'link_empty'         => array( 'type' => 'int' ),
 			'additional_css'     => array( 'type' => 'string' ),
 			'copy_parameters'    => array( 'type' => 'string' ),
-			// Slot groups
 			'menus'              => array(
 				'type'             => 'array',
 				'force_missing_to' => array(),
@@ -35,22 +31,12 @@ class WPML_LS_Settings_Sanitize {
 		);
 	}
 
-	/**
-	 * @param array $s
-	 * @return array
-	 */
 	public function sanitize_all_settings( $s ) {
 		$s = $this->sanitize_settings( $s, $this->get_global_settings_keys() );
 
 		return $s;
 	}
 
-	/**
-	 * @param array $settings_slice
-	 * @param array $allowed_keys
-	 *
-	 * @return array
-	 */
 	private function sanitize_settings( $settings_slice, $allowed_keys ) {
 		$ret = array();
 

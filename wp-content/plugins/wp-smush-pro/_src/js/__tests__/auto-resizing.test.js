@@ -5,19 +5,64 @@ jest.mock( '../frontend/lazy-load/helper/lazysizes', () => ( {
 	isSmushLazySizesInstance: jest.fn(),
 } ) );
 
+const CDN_BASE_URL = 'https://b123456.assetcdn.net/2.0/123456/';
+
 describe( 'AutoResizing', () => {
 	let instance;
+	let originalDevicePixelRatio;
 
 	beforeEach( () => {
 		document.body.innerHTML = ''; // Clear DOM
+		originalDevicePixelRatio = window.devicePixelRatio;
 		isSmushLazySizesInstance.mockReset();
-		instance = new AutoResizing( { precision: 5, skipAutoWidth: true } );
+		instance = new AutoResizing( { precision: 5, skipAutoWidth: true, cdnBaseURL: CDN_BASE_URL } );
+	} );
+
+	afterEach( () => {
+		window.matchMedia = undefined;
+		window.devicePixelRatio = originalDevicePixelRatio;
 	} );
 
 	test( 'initializes with default values', () => {
-		const auto = new AutoResizing();
+		const auto = new AutoResizing( {
+			cdnBaseURL: CDN_BASE_URL,
+		} );
 		expect( auto.precision ).toBe( 0 );
 		expect( auto.skipAutoWidth ).toBe( false );
+	} );
+
+	test( 'stores cdnBaseURL from options', () => {
+		const auto = new AutoResizing( {
+			cdnBaseURL: CDN_BASE_URL,
+		} );
+
+		expect( auto.cdnBaseURL ).toBe( CDN_BASE_URL );
+	} );
+
+	test.each( [
+		[
+			'matches new asset CDN base URL format',
+			{ cdnBaseURL: CDN_BASE_URL },
+			`${ CDN_BASE_URL }wp-content/uploads/2026/07/music-2.jpg?lossy=1&strip=1&webp=0`,
+			true,
+		],
+		[
+			'matches legacy smush CDN subdomain format',
+			{
+				cdnBaseURL: 'https://b3184567.assetcdn.net/2.0/3184567/',
+			},
+			'https://b3184567.smushcdn.com/3184567/wp-content/uploads/2025/03/WNL-343A40-256x96-1.png?lossy=2&strip=1&avif=1',
+			true,
+		],
+		[
+			'does not match non-CDN host',
+			{ cdnBaseURL: 'https://b123456.assetcdn.net/2.0/123456/' },
+			'https://example.com/wp-content/uploads/2026/07/music-2.jpg',
+			false,
+		],
+	] )( 'isFromSmushCDN: %s', ( description, options, src, expected ) => {
+		const auto = new AutoResizing( options );
+		expect( auto.isFromSmushCDN( src ) ).toBe( expected );
 	} );
 
 	test.each([
@@ -312,47 +357,119 @@ describe( 'AutoResizing', () => {
 			`<img data-src="https://smushcdn.com/img.jpg"
 				data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
 				data-original-sizes="(max-width: 1024px) 100vw, 1024px" >`,
-			'https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w, https://smushcdn.com/img.jpg?size=1200x0 1200w'
+			`<img data-src="https://smushcdn.com/img.jpg"
+				data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=315x0 315w, https://smushcdn.com/img.jpg?size=552x0 552w"
+				data-original-sizes="(max-width: 1024px) 100vw, 1024px" >`,
 		],
 		[
 			'Appends new CDN srcset entry for requested width, preserving existing retina source',
 			`<img data-src="https://smushcdn.com/img.jpg"
-				data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=1202x0 1202w"
+				data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=552x0 552w"
 				data-original-sizes="(max-width: 1024px) 100vw, 1024px" >`,
-			'https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=1202x0 1202w, https://smushcdn.com/img.jpg?size=600x0 600w'
+			`<img data-src="https://smushcdn.com/img.jpg"
+				data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=552x0 552w, https://smushcdn.com/img.jpg?size=315x0 315w"
+				data-original-sizes="(max-width: 1024px) 100vw, 1024px" >`,
 		],
 		[
 			'Adds both standard and retina srcset entries when original sizes match requested width',
 			`<img data-src="https://smushcdn.com/img.jpg"
 				data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
-				data-original-sizes="(max-width: 600px) 100vw, 600px" >`,
-			'https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w, https://smushcdn.com/img.jpg?size=1200x0 1200w'
+				data-original-sizes="(max-width: 315px) 100vw, 315px" >`,
+			`<img data-src="https://smushcdn.com/img.jpg"
+				data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=315x0 315w, https://smushcdn.com/img.jpg?size=552x0 552w"
+				data-original-sizes="(max-width: 315px) 100vw, 315px" >`,
+		],
+		[
+			'Appends new CDN srcset entry to all responsive <source> elements in a <picture> element',
+			`<picture>
+				<source
+					media="(min-width: 800px)" type="image/webp"
+					data-srcset="https://smushcdn.com/medium-large.webp 800w, https://smushcdn.com/large.webp 1024w"
+					data-sizes="(min-width: 800px) 100vw">
+				<source
+					media="(min-width: 800px)" type="image/jpeg"
+					data-srcset="https://smushcdn.com/medium-large.jpg 800w, https://smushcdn.com/large.jpg 1024w"
+					data-sizes="(min-width: 800px) 100vw">
+				<source 
+					media="(max-width: 799px)" type="image/webp"
+					data-srcset="https://smushcdn.com/medium.webp 500w, https://smushcdn.com/medium-smaller.webp 400w"
+					data-sizes="100vw">
+				<source 
+					media="(max-width: 799px)" type="image/jpeg"
+					data-srcset="https://smushcdn.com/medium.jpg 500w, https://smushcdn.com/medium-smaller.jpg 400w"
+					data-sizes="100vw">
+				<img data-src="https://smushcdn.com/img.jpg"
+						data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
+						data-original-sizes="(max-width: 300px) 100vw, 300px" >
+			</picture>`,
+			`<picture>
+				<source media="(min-width: 800px)"
+					type="image/webp"
+					data-srcset="https://smushcdn.com/medium-large.webp 800w, https://smushcdn.com/large.webp 1024w, https://smushcdn.com/large.webp?size=315x0 315w, https://smushcdn.com/large.webp?size=552x0 552w"
+					data-sizes="(min-width: 800px) 100vw">
+				<source media="(min-width: 800px)"
+					type="image/jpeg"
+					data-srcset="https://smushcdn.com/medium-large.jpg 800w, https://smushcdn.com/large.jpg 1024w, https://smushcdn.com/large.jpg?size=315x0 315w, https://smushcdn.com/large.jpg?size=552x0 552w"
+					data-sizes="(min-width: 800px) 100vw">
+				<source 
+					media="(max-width: 799px)"
+					type="image/webp"
+					data-srcset="https://smushcdn.com/medium.webp 500w, https://smushcdn.com/medium-smaller.webp 400w, https://smushcdn.com/medium.webp?size=315x0 315w, https://smushcdn.com/medium.webp?size=552x0 552w"
+					data-sizes="100vw">
+				<source 
+					media="(max-width: 799px)"
+					type="image/jpeg"
+					data-srcset="https://smushcdn.com/medium.jpg 500w, https://smushcdn.com/medium-smaller.jpg 400w, https://smushcdn.com/medium.jpg?size=315x0 315w, https://smushcdn.com/medium.jpg?size=552x0 552w"
+					data-sizes="100vw">
+				<img data-src="https://smushcdn.com/img.jpg"
+					data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=315x0 315w, https://smushcdn.com/img.jpg?size=552x0 552w"
+					data-original-sizes="(max-width: 300px) 100vw, 300px">
+			</picture>`,
+			'media="(max-width: 799px)"'
+		],
+		[
+			'For non-responsive <source> elements in a <picture>, only appends new CDN srcset entry only to the selected source.',
+			`<picture>
+				<source data-srcset="https://smushcdn.com/img-1024x1024.webp" type="image/webp">
+				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300" type="image/jpeg">
+				<img data-src="https://smushcdn.com/img.jpg"
+					data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
+					data-original-sizes="(max-width: 1024px) 100vw, 1024px" >
+			</picture>`,
+			`<picture>
+				<source data-srcset="https://smushcdn.com/img-1024x1024.webp" type="image/webp">
+				<source data-srcset="https://smushcdn.com/img.jpg?size=315x0 315w, https://smushcdn.com/img.jpg?size=552x0 552w" type="image/jpeg">
+				<img data-src="https://smushcdn.com/img.jpg" data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=315x0 315w, https://smushcdn.com/img.jpg?size=552x0 552w\" data-original-sizes="(max-width: 1024px) 100vw, 1024px">
+			</picture>`,
+			'type="image/jpeg"',
 		],
 	];
 
 	test.each(
 		autoResizedImagesWithRetina
-	)( 'test resizeImageWithCDN with retina: %s', ( description, imageMarkup, expectedSrcset ) => {
-		const originalDevicePixelRatio = window.devicePixelRatio;
-		window.devicePixelRatio = 2; // Simulate retina display
+	)( 'test resizeImageWithCDN with retina: %s', ( description, imageMarkup, expectedMarkup, selectedSourceString = 'source' ) => {
+		jest.spyOn(instance, 'isSourceActive').mockImplementation((sourceElement) => {
+			const markup = sourceElement.outerHTML;
+			return markup.includes( selectedSourceString );
+		});
+		window.devicePixelRatio = 1.75; // Simulate retina display
 
 		const container = document.createElement( 'div' );
 		container.innerHTML = imageMarkup;
 		const img = container.firstElementChild;
+		document.body.appendChild( container );
 
 		const event = {
-			detail: { width: 600, instance: {}, dataAttr: true },
-			target: img,
+			detail: { width: 315, instance: {}, dataAttr: true },
+			target: container.querySelector('img'),
 			preventDefault: jest.fn(),
 		};
 
 		instance.maybeAutoResize( event );
 
-		const newSrcset = img.getAttribute( 'data-srcset' ) || '';
-		expect( newSrcset ).toBe( expectedSrcset );
+		const updatedMarkup = (document.body.querySelector('picture') || document.body.querySelector('img')).outerHTML;
 
-		// Revert the devicePixelRatio to its original value.
-		window.devicePixelRatio = originalDevicePixelRatio;
+		expect( normalizeHtml( updatedMarkup ) ).toBe( normalizeHtml( expectedMarkup ) );
 	} );
 
 	test( 'resizeImageWithCDN with custom resizing width', () => {
@@ -528,11 +645,45 @@ describe( 'AutoResizing', () => {
 					data-original-sizes="(max-width: 300px) 100vw, 300px">
 			</picture>`
 		],
+		[
+			'Multi-format <source> elements in the <picture> element',
+			`<picture>
+				<source data-srcset="https://smushcdn.com/img-1024x1024.webp" type="image/webp">
+				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300" type="image/jpeg">
+				<img data-src="https://smushcdn.com/img.jpg"
+					data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
+					data-original-sizes="(max-width: 1024px) 100vw, 1024px" >
+			</picture>`,
+			`<picture>
+				<source data-srcset="https://smushcdn.com/img-1024x1024.webp" type="image/webp">
+				<source data-srcset="https://smushcdn.com/img.jpg?size=600x0" type="image/jpeg">
+				<img data-src="https://smushcdn.com/img.jpg" data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w" data-original-sizes="(max-width: 1024px) 100vw, 1024px">
+			</picture>`,
+			'type="image/jpeg"',
+		],
+		[
+			'<source> elements with descending min-widths in the <picture> element',
+			`<picture>
+			<source media="(min-width: 800px)" data-srcset="https://smushcdn.com/large.jpg">
+			<source media="(min-width: 500px)" data-srcset="https://smushcdn.com/medium.jpg">
+				<img data-src="https://smushcdn.com/img.jpg"
+						data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
+						data-original-sizes="(max-width: 300px) 100vw, 300px" >
+			</picture>`,
+			`<picture>
+				<source media="(min-width: 800px)" data-srcset="https://smushcdn.com/large.jpg?size=600x0">
+				<source media="(min-width: 500px)" data-srcset="https://smushcdn.com/medium.jpg">
+				<img data-src="https://smushcdn.com/img.jpg"
+					data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w"
+					data-original-sizes="(max-width: 300px) 100vw, 300px">
+			</picture>`,
+			'media="(min-width: 800px)"',
+		],
 	];
 
 	const skippedPictures = [
 		[
-			'Skipped appends new srcset entry for source elements in <picture> due to using x descriptor',
+			'Srcset not changed in <source> elements when x descriptor is found',
 			`<picture>
 				<source data-srcset="https://smushcdn.com/img-300x300.webp 1x, https://smushcdn.com/img.webp 2x" type="image/webp">
 				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300 1x">
@@ -545,55 +696,24 @@ describe( 'AutoResizing', () => {
 				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300 1x">
 				<img data-src="https://smushcdn.com/img.jpg" data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w" data-original-sizes="(max-width: 1024px) 100vw, 1024px">
 			</picture>`
-		],
-		[
-			'Skipped not responsive <source> elements in the <picture> element',
-			`<picture>
-				<source data-srcset="https://smushcdn.com/img-300x300.webp" type="image/webp">
-				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300" type="image/jpeg">
-				<img data-src="https://smushcdn.com/img.jpg"
-					data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
-					data-original-sizes="(max-width: 1024px) 100vw, 1024px" >
-			</picture>`,
-			`<picture>
-				<source data-srcset="https://smushcdn.com/img-300x300.webp" type="image/webp">
-				<source data-srcset="https://smushcdn.com/img.jpg?size=300x300" type="image/jpeg">
-				<img data-src="https://smushcdn.com/img.jpg"
-					data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w"
-					data-original-sizes="(max-width: 1024px) 100vw, 1024px">
-			</picture>`,
-		],
-		[
-			'Not supported <picture> element due to missing w descriptor',
-			`<picture>
-			<source media="(min-width: 800px)" data-srcset="https://smushcdn.com/large.jpg">
-			<source media="(min-width: 500px)" data-srcset="https://smushcdn.com/medium.jpg">
-				<img data-src="https://smushcdn.com/img.jpg"
-						data-srcset="https://smushcdn.com/img-300x300.jpg 300w"
-						data-original-sizes="(max-width: 300px) 100vw, 300px" >
-			</picture>`,
-			`<picture>
-				<source media="(min-width: 800px)" data-srcset="https://smushcdn.com/large.jpg">
-				<source media="(min-width: 500px)" data-srcset="https://smushcdn.com/medium.jpg">
-				<img data-src="https://smushcdn.com/img.jpg"
-					data-srcset="https://smushcdn.com/img-300x300.jpg 300w, https://smushcdn.com/img.jpg?size=600x0 600w"
-					data-original-sizes="(max-width: 300px) 100vw, 300px">
-			</picture>`
 		]
 	];
 
 	test.each([
 		...skippedPictures,
 		... autoResizedPictures
-	] )( 'test auto resize picture element: %s', ( description, pictureMarkup, expectedMarkup ) => {
+	] )( 'test auto resize picture element: %s', ( description, pictureMarkup, expectedMarkup, selectedSourceString = 'source' ) => {
+		jest.spyOn(instance, 'isSourceActive').mockImplementation((sourceElement) => {
+			const markup = sourceElement.outerHTML;
+			return markup.includes( selectedSourceString );
+		});
 		const container = document.createElement( 'div' );
 		container.innerHTML = pictureMarkup;
-		const picture = container.firstElementChild;
-		document.body.appendChild( picture );
+		document.body.appendChild( container );
 
 		const event = {
 			detail: { width: 600, instance: {}, dataAttr: true },
-			target: document.body.querySelector('img'),
+			target: container.querySelector('img'),
 			preventDefault: jest.fn(),
 		};
 

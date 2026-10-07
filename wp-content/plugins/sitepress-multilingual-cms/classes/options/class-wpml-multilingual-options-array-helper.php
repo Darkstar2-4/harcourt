@@ -1,16 +1,7 @@
 <?php
 
-/**
- * Class WPML_Multilingual_Options_Array_Helper
- */
 class WPML_Multilingual_Options_Array_Helper {
 
-	/**
-	 * @param array $value1
-	 * @param array $value2
-	 *
-	 * @return array
-	 */
 	public function array_diff_recursive( array $value1, array $value2 ) {
 		$diff = array();
 		foreach ( $value1 as $k => $v ) {
@@ -27,12 +18,6 @@ class WPML_Multilingual_Options_Array_Helper {
 		return $diff;
 	}
 
-	/**
-	 * @param array $target
-	 * @param array $source
-	 *
-	 * @return array
-	 */
 	public function recursive_merge( array $target, array $source ) {
 		foreach ( $source as $k => $v ) {
 			if ( $this->in_array( $target, $v, $k ) ) {
@@ -45,13 +30,6 @@ class WPML_Multilingual_Options_Array_Helper {
 		return $target;
 	}
 
-	/**
-	 * @param array  $haystack
-	 * @param mixed  $needle
-	 * @param string $needle_key
-	 *
-	 * @return bool
-	 */
 	private function in_array( array $haystack, $needle, $needle_key ) {
 		return is_array( $needle ) && array_key_exists( $needle_key, $haystack ) && is_array( $haystack[ $needle_key ] );
 	}

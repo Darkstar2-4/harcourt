@@ -17,10 +17,8 @@ class StartUsingDashboardNoticeController implements
 
   const NOTICE_ID = 'notice-promote-using-dashboard';
 
-  /** @var NoticeVisibilityService */
   private $noticeVisibilityService;
 
-  /** @var UserQueryInterface */
   private $userQuery;
 
 

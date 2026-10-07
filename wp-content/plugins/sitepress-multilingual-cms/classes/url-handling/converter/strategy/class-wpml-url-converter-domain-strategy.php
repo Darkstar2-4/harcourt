@@ -4,14 +4,8 @@ use \WPML\SuperGlobals\Server;
 
 class WPML_URL_Converter_Domain_Strategy extends WPML_URL_Converter_Abstract_Strategy {
 
-	/** @var string[] $domains */
 	private $domains = array();
 
-	/**
-	 * @param array  $domains
-	 * @param string $default_language
-	 * @param array  $active_languages
-	 */
 	public function __construct(
 		$domains,
 		$default_language,
@@ -36,17 +30,6 @@ class WPML_URL_Converter_Domain_Strategy extends WPML_URL_Converter_Abstract_Str
 	}
 
 
-	/**
-	 * Filter REST url to avoid CORS error in Gutenberg.
-	 * https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-7022
-	 *
-	 * @param string $url     REST URL.
-	 * @param string $path    REST route.
-	 * @param int    $blog_id Blog ID.
-	 * @param string $scheme  Sanitization scheme.
-	 *
-	 * @return string
-	 */
 	public function convertRestUrlToCurrentDomain( $url, $path, $blog_id, $scheme ) {
 		$url_parts         = $this->parse_domain_and_subdir( $url );
 		$url_parts['host'] = Server::getServerName();
@@ -90,7 +73,7 @@ class WPML_URL_Converter_Domain_Strategy extends WPML_URL_Converter_Abstract_Str
 			return $source_url;
 		}
 
-		$base_url = isset( $this->domains[ $lang ] ) ? $this->domains[ $lang ] : $this->get_url_helper()->get_abs_home();
+		$base_url = ( null !== $lang && isset( $this->domains[ $lang ] ) ) ? $this->domains[ $lang ] : $this->get_url_helper()->get_abs_home();
 
 		$base_url_parts = $this->parse_domain_and_subdir( $base_url );
 		$url_parts      = $this->parse_domain_and_subdir( $source_url );
@@ -104,11 +87,6 @@ class WPML_URL_Converter_Domain_Strategy extends WPML_URL_Converter_Abstract_Str
 		return $this->slash_helper->maybe_user_trailingslashit( $converted_url );
 	}
 
-	/**
-	 * @param string $base_url
-	 *
-	 * @return array
-	 */
 	private function parse_domain_and_subdir( $base_url ) {
 		$url_parts = wpml_parse_url( $base_url );
 
@@ -117,21 +95,10 @@ class WPML_URL_Converter_Domain_Strategy extends WPML_URL_Converter_Abstract_Str
 			[];
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $language
-	 *
-	 * @return string
-	 */
 	public function get_home_url_relative( $url, $language ) {
 		return $url;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	private function strip_protocol( $url ) {
 		$url_parts = wpml_parse_url( $url );
 		if ( is_array( $url_parts ) ) {

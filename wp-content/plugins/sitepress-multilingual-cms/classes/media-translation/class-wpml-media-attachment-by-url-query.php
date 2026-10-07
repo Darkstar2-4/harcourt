@@ -1,52 +1,26 @@
 <?php
-// phpcs:disable WordPress.WP.PreparedSQL.NotPrepared
-// Safe to ignore.
 namespace WPML\Media\Classes;
 
 use WPML\FP\Obj;
 use WPML\FP\Str;
 
 class WPML_Media_Attachment_By_URL_Query {
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var boolean Used in tests
-	 */
 	private $was_last_fetch_from_cache = false;
 
-	/**
-	 * \WPML\Media\Classes\WPML_Media_Attachment_By_URL_Query constructor.
-	 *
-	 * @param \wpdb $wpdb
-	 */
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @return boolean
-	 */
 	public function getWasLastFetchFromCache() {
 		return $this->was_last_fetch_from_cache;
 	}
 
-	/**
-	 * @param array $source_items
-	 *
-	 * @return array
-	 */
 	private function filterItems( $source_items ) {
 		return array_values( array_filter( array_unique( $source_items ) ) );
 	}
 
-	/**
-	 * @param string $language
-	 * @param array  $items
-	 * @param string $cache_prop
-	 */
 	private function populateNotFoundItemsInCache( $language, $items, $cache_prop = 'id_from_guid_cache' ) {
 		foreach ( $items as $item ) {
 			$index = md5( $language . $item );
@@ -57,10 +31,6 @@ class WPML_Media_Attachment_By_URL_Query {
 		}
 	}
 
-	/**
-	 * @param array $languages
-	 * @param array $urls
-	 */
 	public function prefetchAllIdsFromGuids( $languages, $urls ) {
 		$urls = $this->filterItems( $urls );
 
@@ -100,16 +70,11 @@ class WPML_Media_Attachment_By_URL_Query {
 			WPML_Media_Attachments_Query_Cache::setCacheItem( 'id_from_guid_cache', $index, $result );
 		}
 
-		// We should put not found values into the cache too, otherwise they will be still queried later.
 		foreach ( $languages as $language ) {
 			$this->populateNotFoundItemsInCache( $language, $urls, 'id_from_guid_cache' );
 		}
 	}
 
-	/**
-	 * @param string $language
-	 * @param string $url
-	 */
 	public function getIdFromGuid( $language, $url ) {
 		$this->was_last_fetch_from_cache = false;
 		$index                           = md5( $language . $url );
@@ -131,13 +96,12 @@ class WPML_Media_Attachment_By_URL_Query {
 
 		$attachment_id = $this->wpdb->get_var( $sql );
 
+		$cache_item = $attachment_id ? [ 'post_id' => $attachment_id ] : null;
+		WPML_Media_Attachments_Query_Cache::setCacheItem( 'id_from_guid_cache', $index, $cache_item );
+
 		return $attachment_id;
 	}
 
-	/**
-	 * @param array $languages
-	 * @param array $paths
-	 */
 	public function prefetchAllIdsFromMetas( $languages, $paths ) {
 		$paths = $this->filterItems( $paths );
 
@@ -179,17 +143,11 @@ class WPML_Media_Attachment_By_URL_Query {
 			WPML_Media_Attachments_Query_Cache::setCacheItem( 'id_from_meta_cache', $index, $result );
 		}
 
-		// We should put not found values into the cache too, otherwise they will be still queried later.
 		foreach ( $languages as $language ) {
 			$this->populateNotFoundItemsInCache( $language, $paths, 'id_from_meta_cache' );
 		}
 	}
 
-	/**
-	 * @param string $relative_path
-	 * @param string $language
-	 * @return mixed
-	 */
 	public function getIdFromMeta( $relative_path, $language ) {
 		$this->was_last_fetch_from_cache = false;
 		$index                           = md5( $language . $relative_path );
@@ -215,14 +173,14 @@ class WPML_Media_Attachment_By_URL_Query {
 
 		$attachment_id = $this->wpdb->get_var( $sql );
 
+		$cache_item = $attachment_id ? [ 'post_id' => $attachment_id ] : null;
+		WPML_Media_Attachments_Query_Cache::setCacheItem( 'id_from_meta_cache', $index, $cache_item );
+
 		return $attachment_id;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function getAllowedExtensionsForFilename() {
-		return [
+		$extensions = [
 			'jpg', 'jpeg', 'jpe', 'gif', 'png', 'bmp', 'tiff', 'tif', 'webp', 'ico', 'heic',
 			'asf', 'asx', 'wmv', 'wmx', 'wm', 'avi', 'divx', 'flv', 'mov', 'qt', 'mpeg', 'mpg',
 			'mpe', 'mp4', 'm4v', 'ogv', 'webm', 'mkv', '3gp', '3gpp', '3g2', '3gp2', 'txt', 'asc',
@@ -233,25 +191,17 @@ class WPML_Media_Attachment_By_URL_Query {
 			'docx', 'docm', 'dotx', 'dotm', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm', 'xlam',
 			'pptx', 'pptm', 'ppsx', 'ppsm', 'potx', 'potm', 'ppam', 'sldx', 'sldm',
 			'onetoc', 'onetoc2', 'onetmp', 'onepkg', 'oxps', 'xps', 'odt', 'odp', 'ods', 'odg', 'odc', 'odb', 'odf',
-			'wp', 'wpd', 'key', 'numbers', 'pages',
+			'wp', 'wpd', 'key', 'numbers', 'pages', 'svg', 'avif', 'apng',
 		];
+
+		return apply_filters( 'wpml_media_allowed_filename_extensions', $extensions );
 	}
 
-	/**
-	 * @param string $ext
-	 *
-	 * @return boolean
-	 */
 	private function hasAllowedExtension( $ext ) {
 		$exts = $this->getAllowedExtensionsForFilename();
 		return in_array( $ext, $exts );
 	}
 
-	/**
-	 * @param array $source_items
-	 *
-	 * @return array
-	 */
 	private function partItemsWithExtAndWithout( $source_items ) {
 		$with_ext    = [];
 		$without_ext = [];

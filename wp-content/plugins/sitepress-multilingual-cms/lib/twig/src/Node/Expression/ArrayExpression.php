@@ -35,15 +35,13 @@ class ArrayExpression extends \WPML\Core\Twig\Node\Expression\AbstractExpression
     public function hasElement(\WPML\Core\Twig\Node\Expression\AbstractExpression $key)
     {
         foreach ($this->getKeyValuePairs() as $pair) {
-            // we compare the string representation of the keys
-            // to avoid comparing the line numbers which are not relevant here.
             if ((string) $key === (string) $pair['key']) {
                 return \true;
             }
         }
         return \false;
     }
-    public function addElement(\WPML\Core\Twig\Node\Expression\AbstractExpression $value, \WPML\Core\Twig\Node\Expression\AbstractExpression $key = null)
+    public function addElement(\WPML\Core\Twig\Node\Expression\AbstractExpression $value, ?\WPML\Core\Twig\Node\Expression\AbstractExpression $key = null)
     {
         if (null === $key) {
             $key = new \WPML\Core\Twig\Node\Expression\ConstantExpression(++$this->index, $value->getTemplateLine());

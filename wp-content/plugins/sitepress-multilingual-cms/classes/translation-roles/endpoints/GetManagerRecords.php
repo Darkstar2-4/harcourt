@@ -15,9 +15,6 @@ use function WPML\FP\pipe;
 class GetManagerRecords implements IHandler {
 
 
-	/**
-	 * @inheritDoc
-	 */
 	public function run( Collection $data ) {
 		$managers = make( \WPML_Translation_Manager_Records::class )->get_users_with_capability();
 

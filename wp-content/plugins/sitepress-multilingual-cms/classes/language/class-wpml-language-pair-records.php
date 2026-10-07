@@ -5,51 +5,25 @@ use WPML\FP\Logic;
 use WPML\FP\Lst;
 use WPML\User\LanguagePairs\ILanguagePairs;
 
-/**
- * Class WPML_Language_Pair_Records
- *
- * Language pairs are stored as user meta as an array of the form
- * array( $from_lang => array( $to_lang_1 => '1', $to_lang_2 => '1' )
- */
 class WPML_Language_Pair_Records implements ILanguagePairs {
 
 	private $meta_key;
 
-	/** @var WPML_Language_Records $language_records */
 	private $language_records;
 
-	/** @var array|null  */
 	private $active_language_codes;
 
-	/**
-	 * @param wpdb                  $wpdb
-	 * @param WPML_Language_Records $language_records
-	 * @param array|null            $active_language_codes
-	 */
 	public function __construct( wpdb $wpdb, WPML_Language_Records $language_records, $active_language_codes = null ) {
 		$this->meta_key              = $wpdb->prefix . 'language_pairs';
 		$this->language_records      = $language_records;
 		$this->active_language_codes = $active_language_codes ?: Lst::pluck( 'code', Languages::getActive() );
 	}
 
-	/**
-	 * @param int   $user_id
-	 * @param array $language_pairs
-	 *
-	 * Language pairs are an array of the form
-	 * array( $from_lang => array( $to_lang_1, $to_lang_2 )
-	 */
 	public function store( $user_id, $language_pairs ) {
 		$language_pairs = $this->convert_to_storage_format( $language_pairs );
 		update_user_meta( $user_id, $this->meta_key, $language_pairs );
 	}
 
-	/**
-	 * @param int   $user_id
-	 * @param array $language_pairs
-	 *
-	 * Stores only the language pairs that are active.
-	 */
 	public function store_active( $user_id, $language_pairs ) {
 		$language_pairs = wpml_collect( $language_pairs )
 			->mapWithKeys(
@@ -65,20 +39,10 @@ class WPML_Language_Pair_Records implements ILanguagePairs {
 		$this->store( $user_id, $language_pairs );
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function remove_all( $user_id ) {
 		delete_user_meta( $user_id, $this->meta_key );
 	}
 
-	/**
-	 * @param int $user_id
-	 * @return array
-	 *
-	 * Language pairs are returned in an array of the form
-	 * array( $from_lang => array( $to_lang_1, $to_lang_2 )
-	 */
 	public function get( $user_id ) {
 		$language_pairs = get_user_meta( $user_id, $this->meta_key, true );
 		if ( ! $language_pairs ) {
@@ -129,9 +93,6 @@ class WPML_Language_Pair_Records implements ILanguagePairs {
 		return $language_pairs;
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function remove_invalid_language_pairs( $user_id ) {
 		$language_pairs = $this->get( $user_id );
 		$this->store( $user_id, $language_pairs );

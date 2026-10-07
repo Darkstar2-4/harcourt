@@ -2,10 +2,8 @@
 
 class WPML_TM_Post_Target_Lang_Filter extends WPML_TM_Record_User {
 
-	/** @var  WPML_TM_Translation_Status */
 	private $tm_status;
 
-	/** @var  WPML_Post_Translation $post_translations */
 	private $post_translations;
 
 	public function __construct(
@@ -18,13 +16,6 @@ class WPML_TM_Post_Target_Lang_Filter extends WPML_TM_Record_User {
 		$this->post_translations = &$post_translations;
 	}
 
-	/**
-	 * @param string[] $allowed_langs
-	 * @param int      $element_id
-	 * @param string   $element_type_prefix
-	 *
-	 * @return string[]
-	 */
 	public function filter_target_langs(
 		$allowed_langs,
 		$element_id,

@@ -219,6 +219,7 @@ class GF_Upgrade {
 	 * Performs initial install of Gravity Forms.
 	 *
 	 * @since  2.2
+	 * @since 2.10.0 Enabled background notifications by default for new installs.
 	 */
 	public function install() {
 		$this->flush_versions();
@@ -239,6 +240,8 @@ class GF_Upgrade {
 
 		// Setting the version of Gravity Forms that was installed initially
 		update_option( 'rg_form_original_version', GFForms::$version, false );
+
+		update_option( 'gform_enable_async_notifications', true, false );
 
 		// Auto-setting and auto-validating license key based on value configured via the GF_LICENSE_KEY constant or the gf_license_key variable
 		// Auto-populating reCAPTCHA keys base on constant
@@ -1098,7 +1101,7 @@ LIMIT {$limit}";
 			$lead_detail_ids = $wpdb->get_col( $lead_detail_ids_sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $wpdb->last_error ) {
-				error_log( 'error: ' . $wpdb->last_error );
+				error_log( 'error: ' . $wpdb->last_error ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound
 				/* translators: %s: the database error */
 				$this->update_upgrade_status( sprintf( esc_html__( 'Error Migrating Entry Details: %s', 'gravityforms' ), $wpdb->last_error ) );
 				// wp_die() is not used here because it would trigger another async task
@@ -1123,7 +1126,7 @@ WHERE ld.id IN ( {$lead_detail_ids_in} )";
 				$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 				if ( $wpdb->last_error ) {
-					error_log( 'error: ' . $wpdb->last_error );
+					error_log( 'error: ' . $wpdb->last_error ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound
 					/* translators: %s: the database error */
 					$this->update_upgrade_status( sprintf( esc_html__( 'Error Migrating Entry Details: %s', 'gravityforms' ), $wpdb->last_error ) );
 					// wp_die() is not used here because it would trigger another async task

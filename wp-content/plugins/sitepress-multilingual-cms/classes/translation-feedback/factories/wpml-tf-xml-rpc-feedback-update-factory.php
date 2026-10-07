@@ -1,13 +1,7 @@
 <?php
 
-/**
- * Class WPML_TF_XML_RPC_Feedback_Update_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_XML_RPC_Feedback_Update_Factory {
 
-	/** @return WPML_TF_XML_RPC_Feedback_Update */
 	public function create() {
 		global $sitepress;
 

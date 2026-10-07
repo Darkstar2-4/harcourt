@@ -4,26 +4,27 @@ namespace WPML\PostHog\Event;
 
 use WPML\Core\Component\PostHog\Application\Service\Config\ConfigService;
 use WPML\Core\Component\PostHog\Application\Service\Event\CaptureEventService;
-use WPML\Infrastructure\WordPress\Component\PostHog\Application\Cookies\Cookies;
-use WPML\Infrastructure\WordPress\Component\PostHog\Application\Repository\PostHogStateRepository;
-use WPML\Infrastructure\WordPress\Component\PostHog\Domain\Event\Capture;
-use WPML\Infrastructure\WordPress\Port\Persistence\Options;
+use WPML\Core\Component\PostHog\Domain\Event\EventInterface;
+use WPML\PHP\Exception\RemoteException;
 
 class CaptureEvent {
 
-	public static function capture( $eventName, $eventProps, $personProps = [] ) {
+	public static function capture( EventInterface $event, $personProps = [] ) {
 		$postHogConfig = ( new ConfigService() )->create();
 
-		$postHogStateRepository = new PostHogStateRepository( new Options() );
-		$postHogCookies         = new Cookies();
-		$postHogCaptureEvent    = new Capture( $postHogStateRepository );
+		global $wpml_dic;
 
-		$postHogCaptureEvent = new CaptureEventService( $postHogStateRepository, $postHogCookies, $postHogCaptureEvent );
-		$postHogCaptureEvent->capture(
-			$postHogConfig,
-			$eventName,
-			$eventProps,
-			$personProps
-		);
+		$postHogCaptureEventService = $wpml_dic->make( CaptureEventService::class );
+
+		try {
+			return $postHogCaptureEventService->capture(
+				$postHogConfig,
+				$event,
+				$personProps
+			);
+		} catch ( RemoteException $e ) {
+			return false;
+		}
 	}
+
 }

@@ -1,19 +1,12 @@
 <?php
 
 class WPML_Flags_Factory {
-	/** @var  wpdb */
 	private $wpdb;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @return WPML_Flags
-	 */
 	public function create() {
 		if ( ! class_exists( 'WP_Filesystem_Direct' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';

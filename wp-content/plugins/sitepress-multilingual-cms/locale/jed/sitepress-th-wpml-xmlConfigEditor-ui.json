@@ -8,10 +8,10 @@
             "lang": "th"
          },
          "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
-            "ไฟล์ wpml-config.xml ระบุเนื้อหาที่แปลได้ คุณสามารถตั้งค่าเองได้ที่ด้านล่าง."
+            "ไฟล์ wpml-config.xml ในโฟลเดอร์รากของธีมและปลั๊กอินของคุณจะบอก WPML ว่าเนื้อหาใดที่สามารถแปลได้ คุณสามารถแทนที่การตั้งค่าเหล่านี้ด้วยการตั้งค่าที่กำหนดเองของคุณเองโดยการเพิ่มด้านล่าง"
          ],
          "Read more about language configuration files.": [
-            "อ่านเพิ่มเติมเกี่ยวกับไฟล์การกำหนดค่าภาษา."
+            "อ่านเพิ่มเติมเกี่ยวกับไฟล์การกำหนดค่าภาษา"
          ],
          "Save": [
             "บันทึก"
@@ -23,10 +23,10 @@
             "ทางลัด"
          ],
          "Fold/Unfold code": [
-            "พับ/กางรหัส"
+            "พับ/กางโค้ด"
          ],
          "Auto format": [
-            "รูปแบบอัตโนมัติ"
+            "จัดรูปแบบอัตโนมัติ"
          ]
       }
    }

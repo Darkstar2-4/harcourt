@@ -9,14 +9,15 @@
     const domains = opts.domains
     const proxyPath = opts.proxyPath
     const nonce = opts.nonce
+    const excludedRequests = Array.isArray( opts.excludedRequests ) ? opts.excludedRequests : []
     const original = captureOriginalApis()
     const patched = {
-      fetch: patchFetch( original.fetch, domains, proxyPath, nonce ),
+      fetch: patchFetch( original.fetch, domains, proxyPath, nonce, excludedRequests ),
     }
 
     applyPatches( patched )
     // Setup stylesheet link rewriting (existing + future additions)
-    const cleanupCss = setupStylesheetProxy( domains, proxyPath, nonce )
+    const cleanupCss = setupStylesheetProxy( domains, proxyPath, nonce, excludedRequests )
     return function () {
       restoreOriginalApis( original )
       if (typeof cleanupCss === 'function') {
@@ -40,41 +41,45 @@
     window.fetch = o.fetch
   }
 
-  function patchFetch ( originalFetch, domainsToRedirect, proxyPath, nonce ) {
+  function patchFetch ( originalFetch, domainsToRedirect, proxyPath, nonce, excludedRequests ) {
     const toProxyUrl = createProxyUrlBuilder( domainsToRedirect, proxyPath, nonce )
     return function ( input, init ) {
-      const args = normalizeFetchArgs( input, init )
+      // Extract URL to check if we need to proxy
+      const url = getUrlFromInput( input )
+      const shouldProxy = shouldProxyUrl( url, domainsToRedirect, proxyPath, excludedRequests )
 
-      const shouldProxy = shouldProxyUrl( args.url, domainsToRedirect, proxyPath )
-      const finalUrl = shouldProxy ? toProxyUrl( args.url ) : args.url
-      return originalFetch( finalUrl, args.init )
+      if (!shouldProxy) {
+        return originalFetch( input, init )
+      }
+
+      const proxiedUrl = toProxyUrl( url )
+
+      // If input is a Request object, create a new Request with the proxied URL
+      if (input instanceof Request) {
+        return originalFetch( new Request( proxiedUrl, input ), init )
+      }
+
+      // For string or URL input, just use the proxied URL
+      return originalFetch( proxiedUrl, init )
     }
   }
 
   /**
-   * The first parameter of fetch is either a string, a URL, or a Request. We need to normalize it
+   * Extract URL from fetch input (string, URL, or Request object)
    * @param input
-   * @param init
-   * @returns {{url: string, init}}
+   * @returns {string}
    */
-  function normalizeFetchArgs ( input, init ) {
+  function getUrlFromInput ( input ) {
     if (typeof input === 'string') {
-      return {
-        url: input,
-        init: init,
-      }
+      return input
     }
     if (input instanceof URL) {
-      return {
-        url: input.toString(),
-        init: init,
-      }
+      return input.toString()
     }
-    const cloned = new Request( input, init )
-    return {
-      url: cloned.url,
-      init: init,
+    if (input instanceof Request) {
+      return input.url
     }
+    return String( input )
   }
 
   function createProxyUrlBuilder ( domain, proxyPath, nonce ) {
@@ -92,9 +97,9 @@
     }
   }
 
-  function shouldProxyUrl ( url, domainToRedirect, proxyPath ) {
-
+  function shouldProxyUrl ( url, domainToRedirect, proxyPath, excludedRequests ) {
     if (isAlreadyProxied( url, proxyPath )) return false
+    if (shouldBypassExcluded( url, excludedRequests )) return false
     const hostname = getHostname( url )
     if (!hostname) return false
 
@@ -141,9 +146,22 @@
 
   function toAbsoluteUrl ( url ) { return new URL( url, window.location.origin ).toString() }
 
+  function shouldBypassExcluded ( url, excludedUrls ) {
+    if (!Array.isArray( excludedUrls ) || !excludedUrls.length) return false
+    try {
+
+      for (let excludedUrl of excludedUrls) {
+        if (excludedUrl === url) {
+          return true
+        }
+      }
+    } catch (e) { /* noop */ }
+    return false
+  }
+
   // Rewrites <link rel="stylesheet" href="..."> pointing to configured external domains
   // to go through the same-origin proxy, and observes DOM for newly added/changed links.
-  function setupStylesheetProxy ( domains, proxyPath, nonce ) {
+  function setupStylesheetProxy ( domains, proxyPath, nonce, excludedRequests ) {
     try {
       const toProxyUrl = createProxyUrlBuilder( domains, proxyPath, nonce )
 
@@ -163,7 +181,7 @@
           if (linkEl.integrity) return
           const href = linkEl.getAttribute( 'href' ) || ''
           if (!href) return
-          if (!shouldProxyUrl( href, domains, proxyPath )) return
+          if (!shouldProxyUrl( href, domains, proxyPath, excludedRequests )) return
           const proxied = toProxyUrl( href )
           if (proxied && proxied !== href) {
             linkEl.setAttribute( 'href', proxied )

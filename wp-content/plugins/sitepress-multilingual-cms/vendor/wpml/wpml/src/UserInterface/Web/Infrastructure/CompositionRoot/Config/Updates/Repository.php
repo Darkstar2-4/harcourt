@@ -14,10 +14,9 @@ class Repository {
   const STATUS_COMPLETED = 2;
   const STATUS_FAILED = 3;
 
-  const STATUS_TRY_ONLY_ONCE_STUCK = 4; // A try-only-once update ran into a timeout.
+  const STATUS_TRY_ONLY_ONCE_STUCK = 4;
   const STATUS_TRY_ONLY_ONCE_FAILED = 5;
 
-  /** @var OptionsInterface $options */
   private $options;
 
 
@@ -26,10 +25,6 @@ class Repository {
   }
 
 
-  /**
-   * @param array<int, Update> $allUpdates
-   * @return array<int, Update>
-   */
   public function getUpdatesToPerform( $allUpdates ) {
     $log = $this->getLog();
 
@@ -64,58 +59,31 @@ class Repository {
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function setUpdateInProgress( $update ) {
     $this->setUpdate( $update, self::STATUS_IN_PROGRESS );
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function setUpdateComplete( $update ) {
     $this->setUpdate( $update, self::STATUS_COMPLETED );
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function setUpdateFailed( $update ) {
     $this->setUpdate( $update, self::STATUS_FAILED );
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function setUpdateTryOnlyOnceStuck( $update ) {
     $this->setUpdate( $update, self::STATUS_TRY_ONLY_ONCE_STUCK );
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function setUpdateTryOnlyOnceFailed( $update ) {
     $this->setUpdate( $update, self::STATUS_TRY_ONLY_ONCE_FAILED );
   }
 
 
-  /**
-   * @return array{updates: array<int, array{status: int}>}
-   *
-   * No need to proof the option structure as it's class internal.
-   * @psalm-suppress MoreSpecificReturnType
-   * @psalm-suppress LessSpecificReturnStatement
-   */
   private function getLog() {
     $option = $this->options->get( self::OPTION, false );
     if (
@@ -123,8 +91,6 @@ class Repository {
       || array_key_exists( 'updated_to', $option )
       || ! array_key_exists( self::OPTION_KEY_UPDATES, $option )
     ) {
-      // Legacy option format detected.
-      // Retrun fresh log.
       return $this->freshLog();
     }
 
@@ -132,11 +98,6 @@ class Repository {
   }
 
 
-  /**
-   * @param Update $update
-   * @param int $status
-   * @return void
-   */
   private function setUpdate( $update, $status ) {
     $validStatuses = [
       self::STATUS_COMPLETED,
@@ -160,9 +121,6 @@ class Repository {
   }
 
 
-  /**
-   * @return array{updates: array<int, array{status: int}>}
-   */
   private function freshLog() {
     $freshLog = [
       self::OPTION_KEY_UPDATES => [],

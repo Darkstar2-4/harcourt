@@ -5,16 +5,6 @@ namespace WPML\ST\API;
 use WPML\Collect\Support\Traits\Macroable;
 use function WPML\FP\curryN;
 
-/**
- * Class Fns
- * @package WPML\ST\API
- * @method static callable|void saveTranslation( ...$id, ...$lang, ...$translation, ...$state ) - Curried :: int → string → string → int → void
- * @method static callable|string|false getTranslation( ...$id, ...$lang ) - Curried :: int → string → string|false
- * @method static callable|array getTranslations( ...$id ) - Curried :: int → [lang => [value => string, status => int]]
- * @method static callable|bool updateStatus( ...$stringId, ...$language, ...$status ) - Curried :: int->string->int->bool
- * @method static callable|array getStringTranslationById( ...$stringTranslationId ) - Curried :: int → array
- * @method static callable|array getStringById( ...$stringId ) - Curried :: int → array
- */
 class Fns {
 
 	use Macroable;

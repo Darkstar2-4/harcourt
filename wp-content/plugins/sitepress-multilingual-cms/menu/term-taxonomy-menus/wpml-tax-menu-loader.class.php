@@ -2,18 +2,10 @@
 
 class WPML_Tax_Menu_Loader {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
-	/** @var wpdb $wpdb */
 	public $wpdb;
-	/** @var string $taxonomy */
 	private $taxonomy;
 
-	/**
-	 * @param wpdb      $wpdb
-	 * @param SitePress $sitepress
-	 * @param string    $taxonomy
-	 */
 	public function __construct( $wpdb, $sitepress, $taxonomy ) {
 		$this->sitepress = $sitepress;
 		$this->wpdb      = $wpdb;
@@ -56,12 +48,7 @@ class WPML_Tax_Menu_Loader {
 		}
 	}
 
-	/**
-	 * Filters the display of the categories list in order to prevent the default category from being delete-able.
-	 * This is done by printing a hidden div containing a JSON encoded array with all category id's, the checkboxes of which are to be removed.
-	 */
 	public function category_display_action() {
-		/** @var WPML_Term_Translation $wpml_term_translations */
 		global $wpml_term_translations;
 
 		if ( ( $default_category_id = get_option( 'default_category' ) ) ) {
@@ -111,9 +98,6 @@ class WPML_Tax_Menu_Loader {
 		return $html;
 	}
 
-	/**
-	 * @param Object $term
-	 */
 	public function wpml_edit_term_form( $term ) {
 		include WPML_PLUGIN_PATH . '/menu/term-taxonomy-menus/taxonomy-menu.php';
 	}
@@ -135,13 +119,6 @@ class WPML_Tax_Menu_Loader {
 		}
 	}
 
-	/**
-	 * If user perform bulk taxonomy deletion when displaying non-default
-	 * language taxonomies, after deletion should stay with same language
-	 *
-	 * @param string $location Url where browser will redirect.
-	 * @return string Url where browser will redirect.
-	 */
 	public function preserve_lang_param( $location ) {
 		global $wpml_url_converter;
 

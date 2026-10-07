@@ -8,22 +8,16 @@ use WPML\Core\SharedKernel\Component\Translator\Domain\Translator;
 
 class TranslatorsQuery implements TranslatorsQueryInterface {
 
-  /** @var \WPML_Translator_Records */
   private $records;
 
-  /** @var array<int, Translator>|null */
   private $translators;
 
 
-  /**
-   * @psalm-suppress UndefinedFunction
-   */
   public function __construct() {
     $this->records = \WPML\Container\make( \WPML_Translator_Records::class );
   }
 
 
-  /** @return Translator[] */
   public function get() {
     if ( is_array( $this->translators ) ) {
       return array_values( $this->translators );
@@ -31,7 +25,6 @@ class TranslatorsQuery implements TranslatorsQueryInterface {
 
     $this->translators = [];
 
-    /** @var \stdClass[]|null $translatorsData */
     $translatorsData = $this->records->get_users_with_capability();
     if ( ! is_array( $translatorsData ) ) {
       return [];
@@ -61,12 +54,8 @@ class TranslatorsQuery implements TranslatorsQueryInterface {
 
 
   public function getById( int $id ) {
-    // Call this to make sure that $this->translators is populated
     $this->get();
 
-    /**
-     * @var array<int, Translator> $translators
-     */
     $translators = $this->translators;
 
     return array_key_exists( $id, $translators ) ? $translators[ $id ] : null;

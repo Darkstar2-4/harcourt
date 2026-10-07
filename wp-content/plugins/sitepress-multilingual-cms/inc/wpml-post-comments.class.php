@@ -2,9 +2,6 @@
 
 class WPML_Post_Comments extends WPML_WPDB_User {
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( &$wpdb ) {
 		parent::__construct( $wpdb );
 		$this->hooks();
@@ -26,32 +23,49 @@ class WPML_Post_Comments extends WPML_WPDB_User {
 	}
 
 	public function get_orphan_comments( $return_count = false, $limit = 10 ) {
-		if ( $return_count ) {
-			$columns = 'count(c.comment_id)';
-		} else {
-			$columns = 'DISTINCT c.comment_id';
-		}
+		$wpdb               = $this->wpdb;
 
-		$sql = "
-		SELECT {$columns}
-		FROM {$this->wpdb->prefix}comments c
-		  INNER JOIN {$this->wpdb->prefix}icl_translations tc
-		    ON c.comment_id = tc.element_id
-		  INNER JOIN {$this->wpdb->posts} p
-		    ON c.comment_post_ID = p.ID
-		  INNER JOIN {$this->wpdb->prefix}icl_translations tp
-		    ON p.ID = tp.element_id
-		    AND CONCAT('post_', p.post_type) = tp.element_type
-		WHERE tc.element_type = 'comment'
-		      AND tp.language_code <> tc.language_code
-		LIMIT 0, %d
-		";
-		$sql_prepared = $this->wpdb->prepare( $sql, $limit );
 		if ( $return_count ) {
-			$results = $this->wpdb->get_var( $sql_prepared );
+			$results = $wpdb->get_var(
+				$wpdb->prepare(
+					"
+					SELECT count(c.comment_id)
+					FROM {$wpdb->prefix}comments c
+					  INNER JOIN {$wpdb->prefix}icl_translations tc
+					    ON c.comment_id = tc.element_id
+					  INNER JOIN {$wpdb->posts} p
+					    ON c.comment_post_ID = p.ID
+					  INNER JOIN {$wpdb->prefix}icl_translations tp
+					    ON p.ID = tp.element_id
+					    AND CONCAT('post_', p.post_type) = tp.element_type
+					WHERE tc.element_type = 'comment'
+					      AND tp.language_code <> tc.language_code
+					LIMIT 0, %d
+					",
+					$limit
+				)
+			);
 		} else {
-			$comments = $this->wpdb->get_col( $sql_prepared );
-			$num_rows = $this->wpdb->num_rows;
+			$comments = $wpdb->get_col(
+				$wpdb->prepare(
+					"
+					SELECT DISTINCT c.comment_id
+					FROM {$wpdb->prefix}comments c
+					  INNER JOIN {$wpdb->prefix}icl_translations tc
+					    ON c.comment_id = tc.element_id
+					  INNER JOIN {$wpdb->posts} p
+					    ON c.comment_post_ID = p.ID
+					  INNER JOIN {$wpdb->prefix}icl_translations tp
+					    ON p.ID = tp.element_id
+					    AND CONCAT('post_', p.post_type) = tp.element_type
+					WHERE tc.element_type = 'comment'
+					      AND tp.language_code <> tc.language_code
+					LIMIT 0, %d
+					",
+					$limit
+				)
+			);
+			$num_rows = $wpdb->num_rows;
 			$results  = array( $comments, $num_rows );
 		}
 
@@ -75,9 +89,6 @@ class WPML_Post_Comments extends WPML_WPDB_User {
 		}
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function enqueue_scripts( $hook ) {
 		wp_register_script( 'wpml-orphan-comments', ICL_PLUGIN_URL . '/res/js/orphan-comments.js', array( 'jquery' ), ICL_SITEPRESS_SCRIPT_VERSION, true );
 		if ( WPML_PLUGIN_FOLDER . '/menu/troubleshooting.php' === $hook ) {
@@ -129,20 +140,26 @@ class WPML_Post_Comments extends WPML_WPDB_User {
 		<?php
 	}
 
-	/**
-	 * @param int $how_many
-	 *
-	 * @return false|int
-	 */
 	public function delete_orphans( $how_many ) {
+		$wpdb    = $this->wpdb;
 		$results = $this->get_orphan_comments( false, $how_many );
-		$comment_ids      = $results[0];
+		$comment_ids      = array_map( 'intval', $results[0] );
 		$deleted_comments = 0;
 		if ( $comment_ids ) {
-			$comment_ids_flat = implode( ',', $comment_ids );
-			$post_ids = $this->get_post_ids_from_comments_ids( $comment_ids_flat );
-			$deleted_comments += $this->wpdb->query( "DELETE FROM {$this->wpdb->comments} WHERE comment_ID IN( {$comment_ids_flat} )" );
-			$this->wpdb->query( "DELETE FROM {$this->wpdb->commentmeta} WHERE comment_ID IN( {$comment_ids_flat} )" );
+			$comment_ids_placeholders = implode( ', ', array_fill( 0, count( $comment_ids ), '%d' ) );
+			$post_ids          = $this->get_post_ids_from_comments_ids( $comment_ids );
+			$deleted_comments += $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->comments} WHERE comment_ID IN ( {$comment_ids_placeholders} )",
+					$comment_ids
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->commentmeta} WHERE comment_ID IN ( {$comment_ids_placeholders} )",
+					$comment_ids
+				)
+			);
 
 			$update_arg_set = array();
 			foreach ( $comment_ids as $comment_id ) {
@@ -157,7 +174,12 @@ class WPML_Post_Comments extends WPML_WPDB_User {
 				do_action( 'wpml_translation_update', array_merge( $update_args, array( 'type' => 'before_delete' ) ) );
 			}
 
-			$this->wpdb->query( "DELETE FROM {$this->wpdb->prefix}icl_translations WHERE element_id IN( {$comment_ids_flat} ) AND element_type = 'comment'" );
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->prefix}icl_translations WHERE element_id IN ( {$comment_ids_placeholders} ) AND element_type = %s",
+					array_merge( $comment_ids, array( 'comment' ) )
+				)
+			);
 
 			foreach ( $update_arg_set as $update_args ) {
 				do_action( 'wpml_translation_update', array_merge( $update_args, array( 'type' => 'after_delete' ) ) );
@@ -169,29 +191,28 @@ class WPML_Post_Comments extends WPML_WPDB_User {
 		return $deleted_comments;
 	}
 
-	/**
-	 * @param array<int> $post_ids
-	 */
 	private function update_comments_count( $post_ids ) {
 		foreach ( $post_ids as $post_id ) {
 			wp_update_comment_count( $post_id );
 		}
 	}
 
-	/**
-	 * @param string|array|int $comment_ids
-	 *
-	 * @return mixed
-	 */
 	private function get_post_ids_from_comments_ids( $comment_ids ) {
-		if ( is_numeric( $comment_ids ) ) {
-			$comment_ids = array( $comment_ids );
-		}
-		if ( is_array( $comment_ids ) ) {
-			$comment_ids = implode( ',', $comment_ids );
+		$wpdb = $this->wpdb;
+
+		if ( ! is_array( $comment_ids ) ) {
+			$comment_ids = explode( ',', (string) $comment_ids );
 		}
 
-		return $this->wpdb->get_col( "SELECT DISTINCT comment_post_ID FROM {$this->wpdb->comments} WHERE comment_ID IN( {$comment_ids} )" );
+		$comment_ids = array_map( 'intval', $comment_ids );
+		$comment_ids_placeholders = implode( ', ', array_fill( 0, count( $comment_ids ), '%d' ) );
+
+		return $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT comment_post_ID FROM {$wpdb->comments} WHERE comment_ID IN ( {$comment_ids_placeholders} )",
+				$comment_ids
+			)
+		);
 	}
 }
 

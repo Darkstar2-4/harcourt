@@ -14,16 +14,12 @@ use WPML\PHP\Exception\InvalidItemIdException;
 class Provider implements ProviderInterface {
   const TYPE = 'string';
 
-  /** @var StringQueryInterface */
   private $stringQuery;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var LastTranslationFactory */
   private $lastTranslationFactory;
 
-  /** @var WordsToTranslate */
   private $wordsToTranslate;
 
 
@@ -40,17 +36,6 @@ class Provider implements ProviderInterface {
   }
 
 
-  /**
-   * @param int $id
-   * @param string $type
-   * @param string[] $langs
-   * @param bool $freshTranslation When true, previous translations will be
-   * ignored.
-   *
-   * @return Item|false
-   *
-   * @throws InvalidItemIdException
-   */
   public function getByIdAndTypeForLangs( $id, $type, $langs, $freshTranslation = false ) {
     if ( $type !== self::TYPE ) {
       return false;
@@ -62,9 +47,6 @@ class Provider implements ProviderInterface {
       $lastTranslation = $this->lastTranslationFactory->createForItem( $string, $lang );
 
       if ( $lang === $string->getSourceLang() ) {
-        // TM Dashboard shows also strings which are not in the seleected source
-        // language, so it can happen that the requested language is the same as
-        // the source language. In that case there is simply nothing to translate.
         $lastTranslation->setOriginalContent( $string->getContent() ?: '' );
         $lastTranslation->setWordsToTranslate( 0 );
         $string->addLastTranslation( $lastTranslation );
@@ -84,15 +66,7 @@ class Provider implements ProviderInterface {
   }
 
 
-  /**
-   * @param int $id
-   * @param string $type
-   * @param TranslatableDTO[] $content
-   *
-   * @return void
-   */
   public function useThisContentForItem( $id, $type, $content ) {
-    // Nothing to do here for strings.
   }
 
 

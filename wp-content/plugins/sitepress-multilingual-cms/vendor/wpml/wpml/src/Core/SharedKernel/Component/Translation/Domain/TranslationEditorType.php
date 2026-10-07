@@ -9,7 +9,6 @@ class TranslationEditorType {
   const NONE = 'none';
 
 
-  /** @return array<self::*> */
   public static function getTypes() {
     return [
       self::WORDPRESS,

@@ -5,12 +5,8 @@ namespace WPML\TM\Settings\Flags;
 use WPML\FP\Obj;
 
 class FlagsRepository {
-	/** @var \wpdb */
 	private $wpdb;
 
-	/**
-	 * @param \wpdb $wpdb
-	 */
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}

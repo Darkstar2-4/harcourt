@@ -7,9 +7,6 @@ use WPML\MediaTranslation\MediaField;
 
 class MediaTranslationEditorLayout implements \IWPML_Action {
 	
-	/**
-	 * @var MediaField
-	 */
 	private $media_field;
 	
 	public function __construct() {

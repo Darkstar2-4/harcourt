@@ -47,9 +47,6 @@ class Executable
             : $reflection->invokeArgs($args);
     }
 
-    /**
-     * @TODO Remove this extra indirection when 5.3 support is dropped
-     */
     private function invokeClosureCompat($reflection, $args)
     {
         if (version_compare(PHP_VERSION, '5.4.0') >= 0) {

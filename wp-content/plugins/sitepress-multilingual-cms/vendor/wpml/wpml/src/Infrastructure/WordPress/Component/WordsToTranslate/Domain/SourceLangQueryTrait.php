@@ -1,5 +1,4 @@
 <?php
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Infrastructure\WordPress\Component\WordsToTranslate\Domain;
 
 use WPML\PHP\Exception\InvalidItemIdException;
@@ -7,9 +6,6 @@ use WPML\PHP\Exception\InvalidItemIdException;
 trait SourceLangQueryTrait {
 
 
-  /**
-   * @throws InvalidItemIdException
-   */
   public function getSourceLang( int $id, string $type ): string {
     $wpdb = $GLOBALS['wpdb'];
 
@@ -35,7 +31,7 @@ trait SourceLangQueryTrait {
     }
 
     return $langs->source_language_code
-      ?: $langs->language_code; // Source is original language.
+      ?: $langs->language_code;
   }
 
 

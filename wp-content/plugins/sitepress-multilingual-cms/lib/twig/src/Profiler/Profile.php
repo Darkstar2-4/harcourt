@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig\Profiler;
 
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class Profile implements \IteratorAggregate, \Serializable
 {
     const ROOT = 'ROOT';
@@ -70,15 +65,9 @@ class Profile implements \IteratorAggregate, \Serializable
     {
         $this->profiles[] = $profile;
     }
-    /**
-     * Returns the duration in microseconds.
-     *
-     * @return float
-     */
     public function getDuration()
     {
         if ($this->isRoot() && $this->profiles) {
-            // for the root node with children, duration is the sum of all child durations
             $duration = 0;
             foreach ($this->profiles as $profile) {
                 $duration += $profile->getDuration();
@@ -87,34 +76,18 @@ class Profile implements \IteratorAggregate, \Serializable
         }
         return isset($this->ends['wt']) && isset($this->starts['wt']) ? $this->ends['wt'] - $this->starts['wt'] : 0;
     }
-    /**
-     * Returns the memory usage in bytes.
-     *
-     * @return int
-     */
     public function getMemoryUsage()
     {
         return isset($this->ends['mu']) && isset($this->starts['mu']) ? $this->ends['mu'] - $this->starts['mu'] : 0;
     }
-    /**
-     * Returns the peak memory usage in bytes.
-     *
-     * @return int
-     */
     public function getPeakMemoryUsage()
     {
         return isset($this->ends['pmu']) && isset($this->starts['pmu']) ? $this->ends['pmu'] - $this->starts['pmu'] : 0;
     }
-    /**
-     * Starts the profiling.
-     */
     public function enter()
     {
         $this->starts = ['wt' => \microtime(\true), 'mu' => \memory_get_usage(), 'pmu' => \memory_get_peak_usage()];
     }
-    /**
-     * Stops the profiling.
-     */
     public function leave()
     {
         $this->ends = ['wt' => \microtime(\true), 'mu' => \memory_get_usage(), 'pmu' => \memory_get_peak_usage()];
@@ -136,18 +109,10 @@ class Profile implements \IteratorAggregate, \Serializable
     {
         $this->__unserialize(\unserialize($data));
     }
-    /**
-     * @internal
-	 * @phpcs:disable PHPCompatibility.FunctionNameRestrictions.NewMagicMethods.__serializeFound
-     */
     public function __serialize()
     {
         return [$this->template, $this->name, $this->type, $this->starts, $this->ends, $this->profiles];
     }
-    /**
-     * @internal
-	 * @phpcs:disable PHPCompatibility.FunctionNameRestrictions.NewMagicMethods.__unserializeFound
-	 */
     public function __unserialize(array $data)
     {
         list($this->template, $this->name, $this->type, $this->starts, $this->ends, $this->profiles) = $data;

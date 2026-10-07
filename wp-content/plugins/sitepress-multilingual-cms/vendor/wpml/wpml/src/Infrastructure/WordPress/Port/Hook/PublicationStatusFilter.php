@@ -8,12 +8,7 @@ abstract class PublicationStatusFilter {
   const NAME = 'wpml_publication_status_dto_filter';
 
 
-  /**
-   * @param PublicationStatusDto[] $publicationStatusDtos
-   * @return PublicationStatusDto[]
-   */
   public function filterByDto( array $publicationStatusDtos ) {
-    // Make it plain, key value pairs
     $postStatuses = array_reduce(
       $publicationStatusDtos,
       function ( array $carry, PublicationStatusDto $publicationStatus ) {
@@ -23,7 +18,6 @@ abstract class PublicationStatusFilter {
       []
     );
 
-    /** @var array<string, string> $postStatuses */
     $postStatuses = apply_filters( static::NAME, $postStatuses );
 
     $publicationStatusDtos = [];

@@ -8,7 +8,7 @@
             "lang": "ja"
          },
          "Your site now meets WPML's minimum requirements": [
-            "サイトがWPMLの最低要件を満たしました"
+            "サイトはWPMLの最小要件を満たしています"
          ],
          "Start WPML Setup": [
             "WPMLのセットアップを開始"
@@ -20,19 +20,19 @@
             "サポートチームにお問い合わせください"
          ],
          " and we'll guide you through it step by step.": [
-            " ステップバイステップでガイドいたします。"
+            " ステップバイステップでご案内します。"
          ],
          "Your site doesn't meet WPML's minimum requirements": [
-            "サイトがWPMLの最低要件を満たしていません"
+            "サイトはWPMLの最小要件を満たしていません"
          ],
          "Ensure your site runs smoothly with WPML by meeting these simple minimum requirements.": [
-            "WPMLを使用してサイトをスムーズに運用するためには、これらの簡単な最小要件を満たしてください。"
+            "これらの簡単な最小要件を満たして、WPMLでサイトがスムーズに動作するようにしてください。"
          ],
          "Re-check Now": [
             "今すぐ再確認"
          ],
          "Skip for now": [
-            "今はスキップ"
+            "今回はスキップ"
          ]
       }
    }

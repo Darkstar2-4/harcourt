@@ -2,23 +2,11 @@
 
 class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 
-	/**
-	 * WPML_Fix_Type_Assignments constructor.
-	 *
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( $sitepress ) {
 		$wpdb = $sitepress->wpdb();
 		parent::__construct( $wpdb, $sitepress );
 	}
 
-	/**
-	 * Runs various database repair and cleanup actions on icl_translations.
-	 *
-	 * @param array $data
-	 *
-	 * @return int Number of rows in icl_translations that were fixed
-	 */
 	public function run( $data = [] ) {
 		$rows_left = 0;
 
@@ -44,13 +32,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		];
 	}
 
-	/**
-	 * Deletes rows from icl_translations that are duplicated in terms of their
-	 * element id and within their meta type ( post,taxonomy,package ...),
-	 * with the duplicate actually being of the correct type.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_broken_duplicate_rows() {
 
 		$rows_fixed = $this->wpdb->query(
@@ -89,13 +70,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_fixed;
 	}
 
-	/**
-	 * Fixes all taxonomy term rows in icl_translations, which have a corrupted
-	 * element_type set, different from the one actually set in the term_taxonomy
-	 * table.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_broken_taxonomy_assignments() {
 
 		$rows_fixed = $this->wpdb->query(
@@ -121,13 +95,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_fixed;
 	}
 
-	/**
-	 * Fixes all post rows in icl_translations, which have a corrupted
-	 * element_type set, different from the one actually set in the wp_posts
-	 * table.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_broken_post_assignments() {
 
 		$rows_fixed = $this->wpdb->query(
@@ -153,17 +120,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_fixed;
 	}
 
-	/**
-	 * Fixes all instances of a different element_type having been set for
-	 * an original element and it's translation, by setting the original's type
-	 * on the corrupted translation rows.
-	 *
-	 * This needs to be run before fix_broken_post_assignments. If it is run after
-	 * then the element_type will be set to element_type of the source_language_code
-	 * which might not be the same as the post_type which is set in fix_broken_post_assignments.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_broken_type_assignments() {
 
 		$rows_fixed = $this->wpdb->query(
@@ -189,12 +145,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_fixed;
 	}
 
-	/**
-	 * Fixes all rows that have an empty string instead of NULL or a source language
-	 * equal to its actual language set by setting the source language to NULL.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_wrong_source_language() {
 
 		return $this->wpdb->query(
@@ -205,13 +155,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		);
 	}
 
-	/**
-	 * Fixes instances of the source element of a trid being missing, by assigning
-	 * the oldest element ( determined by the lowest element_id ) as the original
-	 * element in a trid.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_missing_original() {
 		$broken_elements = $this->wpdb->get_results(
 			"	SELECT MIN(iclt.element_id) AS element_id, iclt.trid
@@ -247,14 +190,6 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_affected;
 	}
 
-	/**
-	 * Deletes the row for a translated element from icl_translations, where the translated element_type
-	 * is not the same as the original element_type in a trid. This is the final fix to run.
-	 * The previous fix should have associated the element_type with the matching type from the posts table.
-	 * If the translated type does not match the original type, then it needs to be deleted.
-	 *
-	 * @return int number of rows fixed
-	 */
 	private function fix_mismatched_types() {
 		$rows_affected = $this->wpdb->query(
 			"DELETE t
@@ -280,13 +215,7 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		return $rows_affected;
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 *  @return array
-	 */
 	private function fix_orphan_attachments( $data ) {
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.Prepared, WordPress.DB.PreparedSQL.NotPrepared
 		$has_orphan_attachments = $this->wpdb->get_var(
 			"SELECT ID
 			FROM {$this->wpdb->posts} as posts
@@ -324,6 +253,5 @@ class WPML_Fix_Type_Assignments extends WPML_WPDB_And_SP_User {
 		$left = max( $found - $limit, 0 );
 
 		return [ $limit, $left ];
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.Prepared, WordPress.DB.PreparedSQL.NotPrepared
 	}
 }

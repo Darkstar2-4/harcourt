@@ -8,7 +8,6 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\Query\RemoteTransla
 
 class AssignedTranslationServiceValidator {
 
-  /** @var RemoteTranslationServiceQueryInterface */
   private $remoteTranslationServiceQuery;
 
 
@@ -17,13 +16,6 @@ class AssignedTranslationServiceValidator {
   }
 
 
-  /**
-   * @param TranslationServiceMethod[] $translationMethods
-   *
-   * @return bool
-   *
-   * @throws FetchRemoteTranslationServiceException
-   */
   public function validate( array $translationMethods ): bool {
     if ( ! count( $translationMethods ) ) {
       return true;
@@ -35,15 +27,11 @@ class AssignedTranslationServiceValidator {
                                                 && $translationService->isAuthenticated();
 
     if ( ! $translationServiceActiveAndAuthenticated ) {
-      // If current translation service is not active and authenticated,
-      // return validation result immediately.
       return false;
     }
 
     foreach ( $translationMethods as $translationServiceMethod ) {
       if ( ! $translationServiceMethod->getServiceId() ) {
-        // If no translation service is assigned inside the translation service method,
-        // return validation result immediately.
         return false;
       }
 
@@ -51,8 +39,6 @@ class AssignedTranslationServiceValidator {
                                         $translationServiceMethod->getServiceId();
 
       if ( ! $sameTranslationServiceAssigned ) {
-        // If the assigned translation service isn't same as current active one,
-        // return validation result immediately.
         return false;
       }
     }

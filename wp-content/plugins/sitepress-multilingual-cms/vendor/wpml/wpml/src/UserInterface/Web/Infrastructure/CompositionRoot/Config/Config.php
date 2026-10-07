@@ -20,33 +20,22 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\Style;
 
 class Config implements ConfigInterface {
 
-  /** @var Parser $parser */
   private $parser;
 
-  /** @var DicInterface $dic */
   private $dic;
 
-  /** @var ApiInterface $api */
   private $api;
 
-  /** @var PageInterface $page */
   private $page;
 
-  /** @var UpdatesHandlerInterface $updatesHandler */
   private $updatesHandler;
 
-  /** @var DismissedNoticesQuery $noticesQuery */
   private $noticesQuery;
 
-  /** @var string[]|null $_noticesDismissed */
   private $_noticesDismissed;
 
-  /**
-   * @var RegisterNoticesInterface
-   */
   private $registerNotices;
 
-  /** @var PluginInterface $plugin */
   private $plugin;
 
 
@@ -71,7 +60,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return void */
   public function loadRESTEndpoints() {
     $config = $this->parser->parseAllRESTEndpoints();
 
@@ -81,7 +69,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return void */
   public function loadAjaxEndpoints() {
     $config = $this->parser->parseAllAjaxEndpoints();
 
@@ -91,70 +78,49 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return array<class-string,class-string> */
   public function getInterfaceMappings() {
     return $this->parser->parseInterfaceMappings();
   }
 
 
-  /** @return array<class-string,array<string,string>> */
   public function getClassDefinitions() {
     return $this->parser->parseClassDefinitions();
   }
 
 
-  /**
-   * @throws Exception|\InvalidArgumentException
-   * @return void
-   */
   public function registerAdminPages() {
     $config = $this->parser->parseAdminPages();
     foreach ( $config->adminPages() as $adminPage ) {
       if ( $this->pageRequirementsMet( $adminPage ) ) {
         $this->page->register( $adminPage, [ $this, 'onLoadPage' ] );
       } else {
-        // If requirements are not matched, remove the Page from config
-        // to avoid registering Ajax & REST endpoints later.
         $this->parser->removeAdminPageConfig( $adminPage->id() );
       }
     }
   }
 
 
-  /**
-   * @throws Exception|\InvalidArgumentException
-   * @return void
-   */
   public function loadAdminNotices() {
     $config = $this->parser->parseAdminNotices();
     foreach ( $config->adminNotices() as $adminNotice ) {
       if ( $this->noticeRequirementsMet( $adminNotice ) && ! $this->isNoticeDismissed( $adminNotice ) ) {
         $this->loadNotice( $adminNotice );
       } else {
-        // If requirements are not matched, remove the Page from config
-        // to avoid registering Ajax & REST endpoints later.
         $this->parser->removeAdminNoticeConfig( $adminNotice->id() );
       }
     }
   }
 
 
-  /**
-   * @return void
-   * @throws Exception
-   * @throws \InvalidArgumentException
-   */
   public function loadAdminScripts() {
     $config = $this->parser->parseScripts();
     foreach ( $config->scripts() as $script ) {
-      /** @var ScriptPrerequisitesInterface|null $scriptPreRequisitesClass */
       $scriptPreRequisitesClass = $this->loadScriptPrerequisitesClass( $script );
 
       if (
         $scriptPreRequisitesClass &&
         ! $scriptPreRequisitesClass->scriptPrerequisitesMet()
       ) {
-        // Skip loading the script as prerequisites are not met.
         continue;
       }
 
@@ -186,7 +152,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return void */
   public function prepareUpdates() {
     $updates = $this->parser->parseUpdates();
     $dic = $this->dic;
@@ -201,23 +166,18 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @return void
-   * @throws Exception
-   * @throws \InvalidArgumentException
-   */
   public function loadContentStatsScripts() {
     $scripts = $this->parser->parseContentStatsScripts();
     $this->loadScripts( $scripts );
   }
 
 
-  /**
-   * @param Page $page
-   *
-   * @return void
-   * @throws \InvalidArgumentException
-   */
+  public function loadCheckPosthogShouldRecordScript() {
+    $scripts = $this->parser->parseCheckPosthogShouldRecordScript();
+    $this->loadScripts( $scripts );
+  }
+
+
   public function onLoadPage( Page $page ) {
     $this->initPage( $page );
     $this->loadScripts( $page->scripts() );
@@ -229,11 +189,9 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return ?object */
   private function initPage( Page $page ) {
     $controllerClassName = $page->controllerClassName();
     if ( ! $controllerClassName ) {
-      // Nothing to init.
       return null;
     }
 
@@ -244,12 +202,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @param Notice $notice
-   *
-   * @return void
-   * @throws \InvalidArgumentException
-   */
   public function loadNotice( Notice $notice ) {
     $this->initAdminNotice( $notice );
 
@@ -268,7 +220,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /** @return ?object */
   private function initAdminNotice( Notice $notice ) {
     $controllerClassName = $notice->controllerClassName();
 
@@ -283,10 +234,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @param array<Style> $styles
-   * @return void
-   */
   private function loadStyles( $styles ) {
     foreach ( $styles as $style ) {
       $this->page->loadStyle( $style );
@@ -294,12 +241,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @param Script $script
-   *
-   * @return ScriptPrerequisitesInterface|null
-   * @throws \InvalidArgumentException
-   */
   private function loadScriptPrerequisitesClass( Script $script ) {
     if ( $scriptPrerequisitesClass = $script->prerequisites() ) {
       $scriptPrerequisitesClass = $this->dic->make( $scriptPrerequisitesClass );
@@ -315,28 +256,19 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @param Script[] $scripts
-   *
-   * @return void
-   * @throws \InvalidArgumentException
-   */
   private function loadScripts( $scripts ) {
     foreach ( $scripts as $script ) {
-      /** @var ScriptPrerequisitesInterface|null */
       $scriptPrerequisitesClass = $this->loadScriptPrerequisitesClass( $script );
 
       if (
         $scriptPrerequisitesClass &&
         ! $scriptPrerequisitesClass->scriptPrerequisitesMet()
       ) {
-        // Skip loading the script as prerequisites are not met.
         continue;
       }
 
       $this->page->loadScript( $script );
 
-      // Check if there is a dataProvider defined in the config.
       if ( $dataProviderClass = $script->dataProvider() ) {
         $dataProvider = $this->dic->make( $dataProviderClass );
 
@@ -357,21 +289,13 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @param Endpoint[] $endpoints
-   * @param ?Script $scriptForData
-   *
-   * @return void
-   */
   private function provideEndpoints( $endpoints, $scriptForData = null ) {
-    // Provide endpoints in wpmlEndpoints.
     $wpmlEndpoints = [
       'route' => [],
       'nonce' => $this->api->nonce()
     ];
 
     $config = $this->parser->parseGeneralEndpoints();
-    /** @var array<Endpoint> $endpoints */
     $endpoints = array_merge(
       $config->endpoints(),
       $endpoints
@@ -388,7 +312,6 @@ class Config implements ConfigInterface {
     }
 
     if ( $scriptForData === null ) {
-      // phpcs:ignore
       error_log(
         'WordPress Limitiation: There must be at least one script attached ' .
         'to the page to use provideDataForScript().'
@@ -405,9 +328,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @throws \InvalidArgumentException
-   */
   private function pageRequirementsMet( Page $page ): bool {
     if ( $page->requiresWPMLSetupToBeCompleted()
          && ! $this->plugin->isSetupComplete()
@@ -439,9 +359,6 @@ class Config implements ConfigInterface {
   }
 
 
-  /**
-   * @throws \InvalidArgumentException
-   */
   private function noticeRequirementsMet( Notice $notice ): bool {
     if ( $controllerClassName = $notice->controllerClassName() ) {
       $controller = $this->dic->make( $controllerClassName );
@@ -450,14 +367,12 @@ class Config implements ConfigInterface {
         $controller instanceof NoticeRequirementsInterface
         && ! $controller->requirementsMet()
       ) {
-        // Abort if the controllers requirements are not met.
         return false;
       }
     }
 
     $existingPages = $notice->onPages();
     if ( empty( $existingPages ) ) {
-      // No pages are defined, so the notice should be displayed.
       return true;
     }
 
@@ -472,23 +387,15 @@ class Config implements ConfigInterface {
       }
     }
 
-    // Pages are defined, but none of them is active.
     return false;
   }
 
 
-  /**
-   * @param array<Script> $scripts
-   * @return ?Script
-   */
   private function firstScriptOrNull( $scripts ) {
     return count( $scripts ) > 0 ? array_values( $scripts )[0] : null;
   }
 
 
-  /**
-   * @return bool
-   */
   private function isNoticeDismissed( Notice $notice ) {
     if ( $this->_noticesDismissed === null ) {
       $this->_noticesDismissed = $this->noticesQuery->getDismissed();

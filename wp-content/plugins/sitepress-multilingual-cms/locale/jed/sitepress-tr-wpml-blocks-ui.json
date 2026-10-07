@@ -1,0 +1,195 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Advanced": [
+            "Gelişmiş"
+         ],
+         "HTML anchor": [
+            "HTML bağlantı noktası"
+         ],
+         "Add a shortcut to this block when loading the page using the “#anchor” URL.": [
+            "Sayfayı “#anchor” URL'sini kullanarak yüklerken bu bloğa bir kısayol ekleyin."
+         ],
+         "Additional CSS class(es)": [
+            "Ek CSS sınıf(lar)ı"
+         ],
+         "Separate multiple classes with spaces.": [
+            "Birden çok sınıfı boşluklarla ayırın."
+         ],
+         "Color": [
+            "Renk"
+         ],
+         "px": [
+            "piksel"
+         ],
+         "%": [
+            "%"
+         ],
+         "Dimensions": [
+            "Boyutlar"
+         ],
+         "BLOCK": [
+            "BLOK"
+         ],
+         "Block margin": [
+            "Blok kenar boşluğu"
+         ],
+         "Block padding": [
+            "Blok dolgusu"
+         ],
+         "LANGUAGE": [
+            "DİL"
+         ],
+         "Language spacing": [
+            "Dil aralığı"
+         ],
+         "Language padding": [
+            "Dil dolgusu"
+         ],
+         "Display": [
+            "Görüntüle"
+         ],
+         "Show flag": [
+            "Bayrağı göster"
+         ],
+         "Show language name": [
+            "Dil adını göster"
+         ],
+         "Display language name in": [
+            "Dil adını şurada görüntüle:"
+         ],
+         "Style": [
+            "Stil"
+         ],
+         "Flag settings": [
+            "Bayrak ayarları"
+         ],
+         "Width": [
+            "Genişlik"
+         ],
+         "Height": [
+            "Yükseklik"
+         ],
+         "Spacing": [
+            "Aralık"
+         ],
+         "Switch to %s": [
+            "%s diline geç"
+         ],
+         "Available languages": [
+            "Mevcut diller"
+         ],
+         "Allow wrapping to multiple lines": [
+            "Birden çok satıra kaydırmaya izin ver"
+         ],
+         "Open on click": [
+            "Tıklayınca aç"
+         ],
+         "Show arrow": [
+            "Ok göster"
+         ],
+         "Layout": [
+            "Düzen"
+         ],
+         "Justification": [
+            "Hizalama"
+         ],
+         "Orientation": [
+            "Yön"
+         ],
+         "Language Switcher": [
+            "Dil değiştirici"
+         ],
+         "Language switcher, press tab to navigate to other languages": [
+            "Dil değiştirici, diğer dillere gitmek için sekme tuşuna basın"
+         ],
+         "Typography": [
+            "Tipografi"
+         ],
+         "Background": [
+            "Arka plan"
+         ],
+         "Language Text": [
+            "Dil metni"
+         ],
+         "Language Background": [
+            "Dil arka planı"
+         ],
+         "Current language text": [
+            "Mevcut dil metni"
+         ],
+         "Current language background": [
+            "Mevcut dil arka planı"
+         ],
+         "Full name": [
+            "Tam ad"
+         ],
+         "Code": [
+            "Kod"
+         ],
+         "Justify items left": [
+            "Öğeleri sola hizala"
+         ],
+         "Justify items center": [
+            "Öğeleri ortaya hizala"
+         ],
+         "Justify items right": [
+            "Öğeleri sağa hizala"
+         ],
+         "Justify items space between": [
+            "Öğeleri aralıklı hizala"
+         ],
+         "Horizontal": [
+            "Yatay"
+         ],
+         "Vertical": [
+            "Dikey"
+         ],
+         "Normal": [
+            "Normal"
+         ],
+         "Medium": [
+            "Orta"
+         ],
+         "Large": [
+            "Büyük"
+         ],
+         "X-Large": [
+            "Çok büyük"
+         ],
+         "Ab": [
+            "Ab"
+         ],
+         "AB": [
+            "AB"
+         ],
+         "ab": [
+            "ab"
+         ],
+         "Small": [
+            "Küçük"
+         ],
+         "Displays the WPML Language Switcher.": [
+            "WPML dil değiştiricisini görüntüler."
+         ],
+         "displays the WPML Language Switcher": [
+            "WPML Dil Değiştiricisini görüntüler"
+         ],
+         "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this block</a>.": [
+            "WPML Dil Değiştiricisini görüntüler. <br/> <a>Bu bloğu nasıl çevireceğinizi öğrenin</a>."
+         ],
+         "Navigation Language Switcher": [
+            "Gezinme dil değiştirici"
+         ],
+         "Reset all": [
+            "Tümünü sıfırla"
+         ]
+      }
+   }
+}

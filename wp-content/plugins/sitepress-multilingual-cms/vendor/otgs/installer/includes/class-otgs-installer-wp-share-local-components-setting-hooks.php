@@ -5,14 +5,8 @@ class OTGS_Installer_WP_Share_Local_Components_Setting_Hooks {
 	const TEMPLATE_CHECKBOX = 'share-local-data-setting';
 	const TEMPLATE_RADIO    = 'share-local-data-setting-radio';
 
-	/**
-	 * @var OTGS_Template_Service
-	 */
 	private $template_service;
 
-	/**
-	 * @var OTGS_Installer_WP_Share_Local_Components_Setting
-	 */
 	private $setting;
 
 	public function __construct(
@@ -41,11 +35,6 @@ class OTGS_Installer_WP_Share_Local_Components_Setting_Hooks {
 			2 );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	public function render_local_components_setting( array $args ) {
 		$params = $this->validate_arguments( $args );
 
@@ -65,12 +54,6 @@ class OTGS_Installer_WP_Share_Local_Components_Setting_Hooks {
 		echo $this->template_service->show( $this->get_model( $params ), $template );
 	}
 
-	/**
-	 * @param $ignore
-	 * @param string $repo (wpml|toolset)
-	 *
-	 * @return bool
-	 */
 	public function has_local_components_setting_filter( $ignore, $repo ) {
 		return $this->setting->has_setting( $repo );
 	}
@@ -138,12 +121,6 @@ class OTGS_Installer_WP_Share_Local_Components_Setting_Hooks {
 		);
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 * @throws \InvalidArgumentException
-	 */
 	private function validate_arguments( array $args ) {
 		if ( ! $args ) {
 			throw new InvalidArgumentException( 'Arguments are missing' );
@@ -177,21 +154,10 @@ class OTGS_Installer_WP_Share_Local_Components_Setting_Hooks {
 		return array_merge( $defaults, $args );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return bool
-	 */
 	private function must_use_radios( array $args ) {
 		return array_key_exists( 'use_radio', $args ) && $args['use_radio'];
 	}
 
-	/**
-	 * @param array  $args
-	 * @param string $required_argument
-	 *
-	 * @return bool
-	 */
 	private function has_required_argument( array $args, $required_argument ) {
 		return array_key_exists( $required_argument, $args ) && $args[ $required_argument ];
 	}

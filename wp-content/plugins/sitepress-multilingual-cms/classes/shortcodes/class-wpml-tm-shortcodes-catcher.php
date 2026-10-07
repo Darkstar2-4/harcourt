@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_Shortcodes_Catcher implements IWPML_Action {
 
 	public function add_hooks() {

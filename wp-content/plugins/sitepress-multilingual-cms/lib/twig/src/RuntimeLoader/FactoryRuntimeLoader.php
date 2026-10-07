@@ -10,17 +10,9 @@
  */
 namespace WPML\Core\Twig\RuntimeLoader;
 
-/**
- * Lazy loads the runtime implementations for a Twig element.
- *
- * @author Robin Chalas <robin.chalas@gmail.com>
- */
 class FactoryRuntimeLoader implements \WPML\Core\Twig\RuntimeLoader\RuntimeLoaderInterface
 {
     private $map;
-    /**
-     * @param array $map An array where keys are class names and values factory callables
-     */
     public function __construct($map = [])
     {
         $this->map = $map;

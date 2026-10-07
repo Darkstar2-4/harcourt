@@ -9,27 +9,19 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class CompletedRecordsStorage implements CompletedRecordsStorageInterface {
 
-  /** @var \wpdb */
   private $wpdb;
 
   const TMP_TABLE_NAME = 'icl_translation_prevstate_processed';
 
-  /** @var DatabaseSchemaInfoInterface */
   private $databaseSchemaInfo;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct( $wpdb, DatabaseSchemaInfoInterface $databaseSchemaInfo ) {
     $this->wpdb               = $wpdb;
     $this->databaseSchemaInfo = $databaseSchemaInfo;
   }
 
 
-  /**
-   * @inheritDoc
-   */
   public function create() {
     try {
       if ( ! $this->databaseSchemaInfo->doesTableExist( self::TMP_TABLE_NAME ) ) {
@@ -51,17 +43,11 @@ class CompletedRecordsStorage implements CompletedRecordsStorageInterface {
   }
 
 
-  /**
-   * @inheritDoc
-   */
   public function delete() {
     $this->wpdb->query( 'DROP TABLE IF EXISTS ' . $this->wpdb->prefix . self::TMP_TABLE_NAME );
   }
 
 
-  /**
-   * @inheritDoc
-   */
   public function markAsCompleted( array $recordIds ) {
     if ( empty( $recordIds ) ) {
       return;
@@ -73,7 +59,6 @@ class CompletedRecordsStorage implements CompletedRecordsStorageInterface {
     }
 
     $table = $this->wpdb->prefix . self::TMP_TABLE_NAME;
-    /** @var string[] $values */
     $sql = "INSERT INTO {$table} (translation_id, processed)
       VALUES " . implode( ', ', $values ) . "
       ON DUPLICATE KEY UPDATE processed = 1";

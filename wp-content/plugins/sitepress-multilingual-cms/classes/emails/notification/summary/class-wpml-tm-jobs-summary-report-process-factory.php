@@ -2,18 +2,12 @@
 
 class WPML_TM_Jobs_Summary_Report_Process_Factory {
 
-	/** @var WPML_TM_Jobs_Summary_Report_View $template */
 	private $template;
 
-	/** @var WPML_TM_Jobs_Summary_Report_Process $weekly_report */
 	private $weekly_report;
 
-	/** @var WPML_TM_Jobs_Summary_Report_Process $daily_report */
 	private $daily_report;
 
-	/**
-	 * @return WPML_TM_Jobs_Summary_Report_Process
-	 */
 	public function create_weekly_report() {
 		if ( ! $this->weekly_report ) {
 			$summary_report = $this->get_summary_report( WPML_TM_Jobs_Summary::WEEKLY_REPORT );
@@ -28,9 +22,6 @@ class WPML_TM_Jobs_Summary_Report_Process_Factory {
 		return $this->weekly_report;
 	}
 
-	/**
-	 * @return WPML_TM_Jobs_Summary_Report_Process
-	 */
 	public function create_daily_report() {
 		if ( ! $this->daily_report ) {
 			$summary_report = $this->get_summary_report( WPML_TM_Jobs_Summary::DAILY_REPORT );
@@ -45,11 +36,6 @@ class WPML_TM_Jobs_Summary_Report_Process_Factory {
 		return $this->daily_report;
 	}
 
-	/**
-	 * @param string $frequency
-	 *
-	 * @return WPML_TM_Jobs_Summary_Report
-	 */
 	private function get_summary_report( $frequency ) {
 		global $sitepress, $wpdb;
 
@@ -60,9 +46,6 @@ class WPML_TM_Jobs_Summary_Report_Process_Factory {
 		);
 	}
 
-	/**
-	 * @return WPML_TM_Jobs_Summary_Report_View
-	 */
 	private function get_template() {
 		if ( ! $this->template ) {
 			$template_service_factory = new WPML_TM_Email_Twig_Template_Factory();

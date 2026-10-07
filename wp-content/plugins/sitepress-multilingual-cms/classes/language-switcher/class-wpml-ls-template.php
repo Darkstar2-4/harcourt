@@ -4,21 +4,12 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 
 	const FILENAME = 'template.twig';
 
-	/* @var array $template */
 	private $template;
 
-	/* @var array $model */
 	private $model;
 
-	/* @var string $prefix */
 	private $prefix = 'wpml-ls-';
 
-	/**
-	 * WPML_Language_Switcher_Menu constructor.
-	 *
-	 * @param array $template_data
-	 * @param array $template_model
-	 */
 	public function __construct( $template_data, $template_model = array() ) {
 		$this->template        = $this->format_data($template_data);
 		$this->template['js']  = self::remove_non_minified_duplicates( $this->template['js'] );
@@ -32,13 +23,6 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		parent::__construct();
 	}
 
-	/**
-	 * Make sure some elements are of array type
-	 *
-	 * @param array $template_data
-	 *
-	 * @return array
-	 */
 	private function format_data( $template_data ) {
 		foreach ( array( 'path', 'js', 'css' ) as $k ) {
 			$template_data[ $k ] = isset( $template_data[ $k ] ) ? $template_data[ $k ] : array();
@@ -48,19 +32,10 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return $template_data;
 	}
 
-	/**
-	 * @param array $model
-	 */
 	public function set_model( $model ) {
 		$this->model = is_array( $model ) ? $model : array( $model );
 	}
 
-	/**
-	 * @return string
-	 * @throws \WPML\Core\Twig\Error\LoaderError
-	 * @throws \WPML\Core\Twig\Error\RuntimeError
-	 * @throws \WPML\Core\Twig\Error\SyntaxError
-	 */
 	public function get_html( $sandbox = false ) {
 		$ret = '';
 		if ( $this->template_paths || $this->template_string ) {
@@ -73,11 +48,6 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return $ret;
 	}
 
-	/**
-	 * @param bool $with_version
-	 *
-	 * @return array
-	 */
 	public function get_styles( $with_version = false ) {
 		$styles = $with_version
 			? array_map( array( $this, 'add_resource_version' ), $this->template['css'] )
@@ -86,18 +56,10 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return array_values( $styles );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function has_styles() {
 		return ! empty( $this->template['css'] );
 	}
 
-	/**
-	 * @param bool $with_version
-	 *
-	 * @return array
-	 */
 	public function get_scripts( $with_version = false ) {
 		$scripts = $with_version
 			? array_map( array( $this, 'add_resource_version' ), $this->template['js'] )
@@ -106,38 +68,22 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return array_values( $scripts );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	private function add_resource_version( $url ) {
 		return $url . '?ver=' . $this->get_version();
 	}
 
-	/**
-	 * @param int $index
-	 *
-	 * @return string
-	 */
 	public function get_resource_handler( $index ) {
 		$slug   = isset( $this->template['slug'] ) ? $this->template['slug'] : '';
 		$prefix = $this->is_core() ? '' : $this->prefix;
 		return $prefix . $slug . '-' . $index;
 	}
 
-	/**
-	 * @return mixed|string|bool
-	 */
 	public function get_inline_style_handler() {
 		$count = count( $this->template['css'] );
 
 		return $count > 0 ? $this->get_resource_handler( $count - 1 ) : null;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_version() {
 		return $this->template['version'];
 	}
@@ -146,9 +92,6 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		$this->template_paths = $this->template['path'];
 	}
 
-	/**
-	 * @return string Template filename
-	 */
 	public function get_template() {
 		$template = self::FILENAME;
 
@@ -161,44 +104,26 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return $template;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_model() {
 		return $this->model;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_template_data() {
 		return $this->template;
 	}
 
-	/**
-	 * @param array $template
-	 */
 	public function set_template_data( $template ) {
 		$this->template = $template;
 	}
 
-	/**
-	 * return bool
-	 */
 	public function is_core() {
 		return isset( $this->template['is_core'] ) ? (bool) $this->template['is_core'] : false;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function supported_slot_types() {
 		return isset( $this->template['for'] ) ? $this->template['for'] : array();
 	}
 
-	/**
-	 * @return array
-	 */
 	public function force_settings() {
 		return isset( $this->template['force_settings'] ) ? $this->template['force_settings'] : array();
 	}
@@ -216,9 +141,6 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 		return $valid;
 	}
 
-	/**
-	 * @param string $template_string
-	 */
 	public function set_template_string( $template_string ) {
 		if ( method_exists( $this, 'is_string_template' ) ) {
 			$this->template_string = $template_string;
@@ -227,14 +149,6 @@ class WPML_LS_Template extends WPML_Templates_Factory {
 
 
 
-    /**
-     * If an asset has a minified and a non-minified version,
-     * we remove the non-minified version.
-     *
-     * @param array $assets
-     *
-     * @return array
-     */
     public static function remove_non_minified_duplicates( array $assets ) {
         $hasMinifiedVersion = function( $url ) use ( $assets ) {
             $extension = pathinfo( $url, PATHINFO_EXTENSION );

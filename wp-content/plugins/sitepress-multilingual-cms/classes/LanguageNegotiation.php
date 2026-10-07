@@ -8,20 +8,6 @@ use WPML\FP\Obj;
 use function WPML\FP\curryN;
 use function WPML\FP\partial;
 
-/**
- * Class LanguageNegotiation
- * @package WPML\Core
- *
- * @method static callable|void saveMode( ...$mode ) - int|string->void
- *
- * @method static int getMode()
- *
- * @method static string getModeAsString( $mode = null )
- *
- * @method static callable|void saveDomains( ...$domains ) - array->void
- *
- * @method static array getDomains()
- */
 class LanguageNegotiation {
 	use Macroable;
 
@@ -39,9 +25,6 @@ class LanguageNegotiation {
 		self::PARAMETER_STRING => self::PARAMETER,
 	];
 
-	/**
-	 * @ignore
-	 */
 	public static function init() {
 		global $sitepress;
 

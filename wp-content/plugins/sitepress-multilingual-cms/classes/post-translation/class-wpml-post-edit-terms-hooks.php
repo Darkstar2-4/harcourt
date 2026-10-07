@@ -4,10 +4,8 @@ class WPML_Post_Edit_Terms_Hooks implements IWPML_Action {
 
 	const AFTER_POST_DATA_SANITIZED_ACTION = 'init';
 
-	/** @var IWPML_Current_Language $language */
 	private $language;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( IWPML_Current_Language $current_language, wpdb $wpdb ) {
@@ -38,20 +36,11 @@ class WPML_Post_Edit_Terms_Hooks implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @return array|null
-	 */
 	public function get_tags_from_tax_input() {
 		if ( ! empty( $_POST['tax_input']['post_tag'] ) ) {
 			$tags = $_POST['tax_input']['post_tag'];
 
 			if ( ! is_array( $tags ) ) {
-				/**
-				 * This code is following the logic from `edit_post()` in core
-				 * where the terms name are converted into IDs.
-				 *
-				 * @see edit_post
-				 */
 				$delimiter = _x( ',', 'tag delimiter' );
 				$tags      = explode( $delimiter, trim( $tags, " \n\t\r\0\x0B," ) );
 			}

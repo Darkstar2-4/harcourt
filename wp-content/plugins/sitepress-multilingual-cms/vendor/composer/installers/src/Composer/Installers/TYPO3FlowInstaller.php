@@ -1,9 +1,6 @@
 <?php
 namespace Composer\Installers;
 
-/**
- * An installer to handle TYPO3 Flow specifics when installing packages.
- */
 class TYPO3FlowInstaller extends BaseInstaller
 {
     protected $locations = array(
@@ -15,12 +12,6 @@ class TYPO3FlowInstaller extends BaseInstaller
         'build'         => 'Build/{$name}/',
     );
 
-    /**
-     * Modify the package name to be a TYPO3 Flow style key.
-     *
-     * @param  array $vars
-     * @return array
-     */
     public function inflectPackageVars($vars)
     {
         $autoload = $this->package->getAutoload();

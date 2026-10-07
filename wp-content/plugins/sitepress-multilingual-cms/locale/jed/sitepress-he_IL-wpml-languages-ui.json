@@ -5,28 +5,28 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "hide the translations instead.": [
-            "במקום זאת הסתר את התרגומים."
+            "הסתר את התרגומים במקום זאת."
          ],
          "Error happened! Please try again.": [
-            "אירעה שגיאה! נסה שוב."
+            "אירעה שגיאה! אנא נסה שוב."
          ],
          "Cancel": [
             "ביטול"
          ],
          "Choose Content to Automatically Translate into": [
-            "בחר תוכן שאותו אתה רוצה לתרגם באופן אוטומטי ל-"
+            "בחר תוכן לתרגום אוטומטי ל-"
          ],
          "Save Changes and Enable Automatic Translation": [
-            "שמור שינויים והפעל תרגום אוטומטי"
+            "שמור שינויים ואפשר תרגום אוטומטי"
          ],
          "Cancel Language Changes": [
             "בטל שינויי שפה"
          ],
          "Save": [
-            "שמור"
+            "שמירה"
          ],
          "Add new languages": [
             "הוסף שפות חדשות"
@@ -35,28 +35,28 @@
             "הוסף שפה חדשה"
          ],
          "Never mind - don't add new languages": [
-            "לא משנה - על תוסיף שפות חדשות"
+            "לא משנה – אל תוסיף שפות חדשות"
          ],
          "Never mind - don't add new language": [
-            "לא משנה - אל תוסיף שפה חדשה"
+            "לא משנה – אל תוסיף שפה חדשה"
          ],
          "Choose which content to translate into the new language": [
             "בחר איזה תוכן לתרגם לשפה החדשה"
          ],
          "Automatically translate all my posts and pages, plus new content as I create it.": [
-            "תרגם באופן אוטומטי את כל הפוסטים והדפים שלי, בתוספת תוכן חדש שאני אצור."
+            "תרגם אוטומטית את כל הפוסטים והעמודים שלי, בתוספת תוכן חדש כשאני יוצר אותו."
          ],
          "Only automatically translate new content.": [
-            "תרגם באופן אוטומטי רק תוכן חדש."
+            "תרגם אוטומטית רק תוכן חדש."
          ],
          "Which content do you want to translate into the new language?": [
-            "איזה תוכן אתה רוצה לתרגם לשפה החדשה?"
+            "איזה תוכן ברצונך לתרגם לשפה החדשה?"
          ],
          "When you unpause automatic translation, this content will be <a>translated automatically</a>.": [
-            "כאשר תבטל השהייה של תרגום אוטומטי, תוכן זה <a>יתורגם באופן אוטומטי</a>."
+            "כשתפעיל מחדש תרגום אוטומטי, תוכן זה <a>יתורגם אוטומטית</a>."
          ],
          "You can still translate existing content any time from the Translation Management Dashboard.": [
-            "עדיין תוכל לתרגם תוכן קיים בכל עת מ'לוח המחוונים של ניהול התרגום'."
+            "עדיין תוכל לתרגם תוכן קיים בכל עת מלוח המחוונים לניהול תרגומים."
          ]
       }
    }

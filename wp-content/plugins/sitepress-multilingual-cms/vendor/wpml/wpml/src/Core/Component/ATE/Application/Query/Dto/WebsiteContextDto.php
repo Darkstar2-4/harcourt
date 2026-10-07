@@ -4,79 +4,39 @@ namespace WPML\Core\Component\ATE\Application\Query\Dto;
 
 use WPML\PHP\DateTime;
 
-/**
- * @phpstan-type WebsiteContextJsonArray array{
- *    contextPresent: bool,
- *    lastSync: string|null,
- *    context: string|null,
- *    languageIso: string|null,
- *    siteTopic?: string|null,
- *    sitePurpose: string|null,
- *    siteAudience : string|null,
- *    status: string|null,
- *    translateNames: int|null
- *  }
- */
 
 class WebsiteContextDto
 {
 
-  /**
-   * @var bool
-   */
   private $contextPresent;
 
-  /**
-   * @var DateTime|false|null
-   */
   private $lastSync;
 
-  /**
-   * @var string|null
-   */
   private $context;
 
-  /**
-   * @var string|null
-   */
   private $languageIso;
 
-  /**
-   * @var string|null
-   */
   private $siteTopic;
 
-  /**
-   * @var string|null
-   */
   private $sitePurpose;
 
-  /**
-   * @var string|null
-   */
   private $siteAudience;
 
-  /**
-   * @var string|null
-   */
   private $status;
 
-  /**
-   * @var int|null
-   */
   private $translateNames;
 
 
   public function __construct(
       bool $contextPresent,
-      string $lastSync = null,
-      string $context = null,
-      string $languageIso = null,
-      string $siteTopic = null,
-      string $sitePurpose = null,
-      string $siteAudience = null,
-      string $status = null,
-      int $translateNames = null
+      ?string $lastSync = null,
+      ?string $context = null,
+      ?string $languageIso = null,
+      ?string $siteTopic = null,
+      ?string $sitePurpose = null,
+      ?string $siteAudience = null,
+      ?string $status = null,
+      ?int $translateNames = null
   ) {
 
     $this->contextPresent = $contextPresent;
@@ -96,9 +56,6 @@ class WebsiteContextDto
   }
 
 
-  /**
-   * @return WebsiteContextJsonArray $items
-   */
   public function jsonSerialize(): array {
      return [
        'contextPresent' => $this->contextPresent,

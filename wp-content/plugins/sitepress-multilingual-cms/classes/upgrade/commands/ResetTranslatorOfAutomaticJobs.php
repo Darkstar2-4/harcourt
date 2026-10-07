@@ -3,7 +3,6 @@
 namespace WPML\TM\Upgrade\Commands;
 
 class ResetTranslatorOfAutomaticJobs implements \IWPML_Upgrade_Command {
-	/** @var bool $result */
 	private $result = false;
 
 	public function run_admin() {
@@ -16,9 +15,6 @@ class ResetTranslatorOfAutomaticJobs implements \IWPML_Upgrade_Command {
 		);
 
 		if ( ! $automatic_column_exists ) {
-			// No need to reset translator of automatic jobs
-			// as this site never used automatic translation.
-			// Return true to mark this upgrade as done.
 			return true;
 		}
 
@@ -57,27 +53,14 @@ class ResetTranslatorOfAutomaticJobs implements \IWPML_Upgrade_Command {
 		return $this->result;
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_ajax() {
 		return null;
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_frontend() {
 		return null;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function get_results() {
 		return $this->result;
 	}

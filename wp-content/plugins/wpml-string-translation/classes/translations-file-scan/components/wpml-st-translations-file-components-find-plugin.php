@@ -1,21 +1,14 @@
 <?php
 
 class WPML_ST_Translations_File_Components_Find_Plugin implements WPML_ST_Translations_File_Components_Find {
-	/** @var WPML_Debug_BackTrace */
 	private $debug_backtrace;
 
-	/** @var string */
 	private $plugin_dir;
 
-	/** @var array */
 	private $plugin_ids;
 
-	/** @var string */
 	private $languages_plugin_dir;
 
-	/**
-	 * @param WPML_Debug_BackTrace $debug_backtrace
-	 */
 	public function __construct( WPML_Debug_BackTrace $debug_backtrace ) {
 		$this->debug_backtrace = $debug_backtrace;
 		$this->plugin_dir = realpath( WPML_PLUGINS_DIR );
@@ -64,11 +57,6 @@ class WPML_ST_Translations_File_Components_Find_Plugin implements WPML_ST_Transl
 		return null;
 	}
 
-	/**
-	 * @param string $file_path
-	 *
-	 * @return string
-	 */
 	private function extract_plugin_directory( $file_path ) {
 		$dir = ltrim( str_replace( $this->plugin_dir, '', $file_path ), DIRECTORY_SEPARATOR );
 		$dir = explode( DIRECTORY_SEPARATOR, $dir );
@@ -76,14 +64,6 @@ class WPML_ST_Translations_File_Components_Find_Plugin implements WPML_ST_Transl
 		return trim( $dir[0], DIRECTORY_SEPARATOR );
 	}
 
-	/**
-	 * @param string $file_path
-	 *
-	 * Examples: $file_path = "/var/www/mysite/wp-content/languages/plugins/akismet-da_DK.mo".
-	 *           $file_path = "/var/www/mysite/wp-content/languages/plugins/akismet-ca.mo".
-	 *
-	 * @return string
-	 */
 	private function extract_plugin_directory_from_languages_directory( $file_path ) {
 		$parts     = explode( DIRECTORY_SEPARATOR, $file_path );
 		$file_name = current( explode( '.', end( $parts ) ) );
@@ -98,11 +78,6 @@ class WPML_ST_Translations_File_Components_Find_Plugin implements WPML_ST_Transl
 		return implode( '-', $parts );
 	}
 
-	/**
-	 * @param string $directory
-	 *
-	 * @return string|null
-	 */
 	private function get_plugin_id_by_directory( $directory ) {
 		foreach ( $this->get_plugin_ids() as $plugin_id ) {
 			if ( 0 === strpos( $plugin_id, $directory . '/' ) ) {
@@ -113,9 +88,6 @@ class WPML_ST_Translations_File_Components_Find_Plugin implements WPML_ST_Transl
 		return null;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	private function get_plugin_ids() {
 		if ( null === $this->plugin_ids ) {
 			$this->plugin_ids = array_keys( get_plugins() );

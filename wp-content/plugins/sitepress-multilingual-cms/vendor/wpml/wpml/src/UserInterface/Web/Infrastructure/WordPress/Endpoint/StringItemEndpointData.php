@@ -5,9 +5,6 @@ namespace WPML\UserInterface\Web\Infrastructure\WordPress\Endpoint;
 class StringItemEndpointData {
 
 
-  /**
-   * @return array{ url: string }
-   */
   public function getEndpointData(): array {
     return [
       'url'   => $this->getRestUrl( '/wpml/st/v1/strings' ),
@@ -15,9 +12,6 @@ class StringItemEndpointData {
   }
 
 
-  /**
-   * @return array{ url: string }
-   */
   public function getStringPackagesEndpointData(): array {
     return [
       'url'   => $this->getRestUrl( '/wpml/st/v1/string-packages' ),

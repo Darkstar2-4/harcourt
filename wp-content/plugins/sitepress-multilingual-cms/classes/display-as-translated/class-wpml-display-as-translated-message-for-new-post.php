@@ -2,10 +2,8 @@
 
 class WPML_Display_As_Translated_Message_For_New_Post implements IWPML_Action {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Notices $notices */
 	private $notices;
 
 	public function __construct( SitePress $sitepress, WPML_Notices $notices ) {

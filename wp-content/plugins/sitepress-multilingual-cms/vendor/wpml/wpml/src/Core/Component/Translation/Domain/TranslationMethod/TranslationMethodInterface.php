@@ -7,7 +7,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 interface TranslationMethodInterface {
 
 
-  /** @return TargetLanguageMethodType::* */
   public function get();
 
 

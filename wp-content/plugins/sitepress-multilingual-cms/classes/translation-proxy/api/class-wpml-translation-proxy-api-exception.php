@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPMLTranslationProxyApiException extends Exception {
 
 	public function __construct( $message, $code = 0 ) {

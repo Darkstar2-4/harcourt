@@ -13,16 +13,8 @@ namespace WPML\Core\Twig\Node\Expression;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a block call node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class BlockReferenceExpression extends \WPML\Core\Twig\Node\Expression\AbstractExpression
 {
-    /**
-     * @param Node|null $template
-     */
     public function __construct(\WPML\Core\Twig_NodeInterface $name, $template = null, $lineno, $tag = null)
     {
         if (\is_bool($template)) {

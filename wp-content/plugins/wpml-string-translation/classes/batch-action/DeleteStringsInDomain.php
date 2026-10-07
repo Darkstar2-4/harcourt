@@ -12,7 +12,6 @@ use WPML\ST\StringsRepository;
 
 class DeleteStringsInDomain implements IHandler {
 
-	/** @var StringsRepository $stringsRepository */
 	private $stringsRepository;
 
 	public function __construct(
@@ -22,6 +21,10 @@ class DeleteStringsInDomain implements IHandler {
 	}
 
 	public function run( Collection $data ) {
+		if ( ! current_user_can( 'wpml_manage_string_translation' ) && ! current_user_can( 'manage_translations' ) ) {
+			return Either::left( 'not allowed' );
+		}
+
 		$domain    = $data->get( 'domain', false );
 		$batchSize = $data->get( 'batchSize', 1 ); 
 

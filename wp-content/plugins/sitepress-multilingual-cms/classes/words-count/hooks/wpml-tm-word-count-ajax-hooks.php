@@ -2,13 +2,10 @@
 
 class WPML_TM_Word_Count_Ajax_Hooks implements IWPML_Action {
 
-	/** @var WPML_TM_Word_Count_Report $report */
 	private $report;
 
-	/** @var WPML_TM_Word_Count_Background_Process_Factory $process_factory*/
 	private $process_factory;
 
-	/** @var bool $requested_types_status */
 	private $requested_types_status;
 
 	public function __construct(

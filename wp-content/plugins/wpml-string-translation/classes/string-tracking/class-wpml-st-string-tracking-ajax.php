@@ -2,22 +2,12 @@
 
 class WPML_ST_String_Tracking_AJAX implements IWPML_Action {
 
-	/** @var WPML_ST_String_Positions $string_position */
 	private $string_position;
 
-	/** @var WPML_Super_Globals_Validation $globals_validation */
 	private $globals_validation;
 
-	/** @var string $action */
 	private $action;
 
-	/**
-	 * WPML_ST_String_Tracking_AJAX constructor.
-	 *
-	 * @param WPML_ST_String_Positions      $string_position
-	 * @param WPML_Super_Globals_Validation $globals_validation
-	 * @param string                        $action
-	 */
 	public function __construct(
 		WPML_ST_String_Positions $string_position,
 		WPML_Super_Globals_Validation $globals_validation,

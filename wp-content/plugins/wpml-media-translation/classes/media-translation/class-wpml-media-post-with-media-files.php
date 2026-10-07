@@ -152,7 +152,7 @@ class WPML_Media_Post_With_Media_Files {
 		}
 
 		$this->mediaAttachmentByURLQuery->prefetchAllIdsFromGuids(
-			wpml_get_current_language(),
+			[ wpml_get_current_language() ],
 			array_merge(
 				array_map(
 					function( $url ) {
@@ -169,7 +169,7 @@ class WPML_Media_Post_With_Media_Files {
 			)
 		);
 		$this->mediaAttachmentByURLQuery->prefetchAllIdsFromMetas(
-			wpml_get_current_language(),
+			[ wpml_get_current_language() ],
 			array_merge(
 				array_map(
 					function( $url ) {

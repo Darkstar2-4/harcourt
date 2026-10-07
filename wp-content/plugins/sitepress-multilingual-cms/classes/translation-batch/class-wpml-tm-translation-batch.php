@@ -7,37 +7,21 @@ class WPML_TM_Translation_Batch {
 	const HANDLE_EXISTING_LEAVE = 'leave';
 	const HANDLE_EXISTING_OVERRIDE = 'override';
 
-	/** @var WPML_TM_Translation_Batch_Element[] */
 	private $elements;
 
-	/** @var string */
 	private $basket_name;
 
-	/** @var array */
 	private $translators;
 
-	/** @var DateTime */
 	private $deadline;
 
-	/** @var "auto"|"manual"|null */
 	private $translationMode = null;
 
-	/** @var array<string,string>|null */
 	private $tpBatchInfo;
 
-	/** @var string */
 	private $howToHandleExisting = self::HANDLE_EXISTING_LEAVE;
 
-	/**
-	 * @param WPML_TM_Translation_Batch_Element[] $elements
-	 * @param string $basket_name
-	 * @param array $translators
-	 * @param DateTime $deadline
-	 * @param array<string,string>|null $tpBatchInfo
-	 *
-	 * @throws InvalidArgumentException
-	 */
-	public function __construct( array $elements, $basket_name, array $translators, DateTime $deadline = null, $tpBatchInfo = null ) {
+	public function __construct( array $elements, $basket_name, array $translators, ?DateTime $deadline = null, $tpBatchInfo = null ) {
 		if ( empty( $elements ) ) {
 			throw new InvalidArgumentException( 'Batch elements cannot be empty' );
 		}
@@ -57,9 +41,6 @@ class WPML_TM_Translation_Batch {
 		$this->tpBatchInfo = $tpBatchInfo;
 	}
 
-	/**
-	 * @return WPML_TM_Translation_Batch_Element[]
-	 */
 	public function get_elements() {
 		return $this->elements;
 	}
@@ -68,11 +49,6 @@ class WPML_TM_Translation_Batch {
 		$this->elements[] = $element;
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return WPML_TM_Translation_Batch_Element[]
-	 */
 	public function get_elements_by_type( $type ) {
 		$result = array();
 		foreach ( $this->get_elements() as $element ) {
@@ -84,16 +60,10 @@ class WPML_TM_Translation_Batch {
 		return $result;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_basket_name() {
 		return $this->basket_name;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_translators() {
 		return $this->translators;
 	}
@@ -102,21 +72,14 @@ class WPML_TM_Translation_Batch {
 		return $this->translators[ $lang ];
 	}
 
-	/**
-	 * @return DateTime
-	 */
 	public function get_deadline() {
 		return $this->deadline;
 	}
 
-	/** @return array<string,string>|null */
 	public function getTpBatchInfo() {
 		return $this->tpBatchInfo;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_target_languages() {
 		$result = array();
 		foreach ( $this->get_elements() as $element ) {
@@ -126,9 +89,6 @@ class WPML_TM_Translation_Batch {
 		return array_values( array_unique( call_user_func_array( 'array_merge', $result ) ) );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_remote_target_languages() {
 		return array_values(
 			array_filter(
@@ -145,9 +105,6 @@ class WPML_TM_Translation_Batch {
 		return isset( $this->translators[ $lang ] ) && ! is_numeric( $this->translators[ $lang ] );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_batch_options() {
 		return array(
 			'basket_name'   => $this->get_basket_name(),
@@ -155,31 +112,42 @@ class WPML_TM_Translation_Batch {
 		);
 	}
 
-	/**
-	 * @return "auto"|"manual"|null
-	 */
 	public function getTranslationMode() {
 		return $this->translationMode;
 	}
 
-	/**
-	 * @param "auto"|"manual"|null $translationMode
-	 */
 	public function setTranslationMode( $translationMode ) {
 		$this->translationMode = Lst::includes( $translationMode, [ 'auto', 'manual' ] ) ? $translationMode : null;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getHowToHandleExisting() {
 		return $this->howToHandleExisting;
 	}
 
-	/**
-	 * @param string $howToHandleExisting
-	 */
 	public function setHowToHandleExisting( $howToHandleExisting ) {
 		$this->howToHandleExisting = $howToHandleExisting;
+	}
+
+	public function toArray() {
+		$elements = [];
+		foreach ( $this->elements as $element ) {
+			$elements[] = [
+				'element_id'            => $element->get_element_id(),
+				'element_type'          => $element->get_element_type(),
+				'source_lang'           => $element->get_source_lang(),
+				'target_langs'          => $element->get_target_langs(),
+				'media_to_translations' => $element->get_media_to_translations(),
+			];
+		}
+
+		return array(
+			'elements'               => $elements,
+			'basket_name'            => $this->basket_name,
+			'translators'            => $this->translators,
+			'deadline'               => $this->deadline ? $this->deadline->format( 'Y-m-d H:i:s' ) : null,
+			'translation_mode'       => $this->translationMode,
+			'tp_batch_info'          => $this->tpBatchInfo,
+			'how_to_handle_existing' => $this->howToHandleExisting,
+		);
 	}
 }

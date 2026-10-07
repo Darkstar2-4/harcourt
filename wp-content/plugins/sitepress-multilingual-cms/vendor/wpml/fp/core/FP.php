@@ -3,22 +3,10 @@
 namespace WPML\FP;
 use WPML\Collect\Support\Traits\Macroable;
 
-/**
- * @deprecated Use Fn instead
- *
- * @method static callable|mixed map( callable ...$fn, mixed ...$target ) - Curried :: (a -> b) -> f a -> f b
- * @method static callable|mixed identity( mixed ...$data ) - Curried :: a -> a
- * @method static callable|mixed always( ...$a, ...$b ) - Curried :: a -> b -> a
- * @method static callable|mixed reduce( ...$fn, ...$initial, ...$target ) - Curried :: ((a, b) → a) → a → [b] → a
- * @method static callable\mixed converge( ...$convergingFn, ...$branchingFns, ...$data ) - Curried :: callable -> [callable] -> mixed -> callable
- */
 class FP {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init(){
 		self::macro( 'map', curryN(2, function( $fn, $target ){
 			if ( is_object( $target ) ) {

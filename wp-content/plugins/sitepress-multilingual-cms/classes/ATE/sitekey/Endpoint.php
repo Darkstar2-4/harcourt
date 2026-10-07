@@ -9,7 +9,6 @@ use WPML\FP\Either;
 use WPML\BackgroundTask\AbstractTaskEndpoint;
 use WPML\Core\BackgroundTask\Model\TaskEndpointInterface;
 use WPML\Utilities\Lock;
-use WPML\WP\OptionManager;
 use function WPML\Container\make;
 
 class Endpoint extends AbstractTaskEndpoint implements IHandler, TaskEndpointInterface {
@@ -21,12 +20,19 @@ class Endpoint extends AbstractTaskEndpoint implements IHandler, TaskEndpointInt
 	}
 
 	public function runBackgroundTask( BackgroundTask $task ) {
-		if( function_exists( 'OTGS_Installer' ) ) {
-			$sitekey = OTGS_Installer()->get_site_key( 'wpml' );
-			if ( $sitekey && make( \WPML_TM_AMS_API::class )->send_sitekey( $sitekey ) ) {
-				OptionManager::update( 'TM-has-run', Sync::class, true );
-			}
+		if ( ! make( SitekeyProvider::class )->hasSitekey() ) {
+			SitekeyConfirmationFlag::markAsCompleted();
+			$task->finish();
+
+			return $task;
 		}
+
+		$success = make( SitekeyApiClient::class )->sendSitekey();
+
+		if ( $success ) {
+			SitekeyConfirmationFlag::markAsCompleted();
+		}
+
 		$task->finish();
 		return $task;
 	}

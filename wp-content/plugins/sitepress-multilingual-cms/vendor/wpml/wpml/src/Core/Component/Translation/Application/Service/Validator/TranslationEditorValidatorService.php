@@ -12,7 +12,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 
 class TranslationEditorValidatorService implements ValidatorServiceInterface {
 
-  /** @var SettingsRepository */
   private $settingsRepository;
 
 
@@ -38,11 +37,6 @@ class TranslationEditorValidatorService implements ValidatorServiceInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return AutomaticMethod[]
-   */
   public function extractAutomaticMethods( SendToTranslationDto $sendToTranslationDto ): array {
     $automaticMethods = array_filter(
       $sendToTranslationDto->getTargetLanguageMethods(),

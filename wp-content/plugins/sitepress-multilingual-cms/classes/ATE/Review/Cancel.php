@@ -9,6 +9,7 @@ use WPML\FP\Fns;
 use WPML\FP\Obj;
 use WPML\FP\Relation;
 use WPML\LIB\WP\Post;
+use WPML\LIB\WP\User;
 use WPML\TM\API\Job\Map;
 use WPML\TM\API\Jobs;
 use function WPML\FP\pipe;
@@ -22,6 +23,14 @@ class Cancel implements IHandler {
 		$reviewJobs = wpml_collect( $jobIds )
 			->map( Jobs::get() )
 			->filter( ReviewStatus::doesJobNeedReview() );
+
+		if ( ! User::canManageTranslations() ) {
+			$isOwnJob = function ( $job ) {
+				return (int) Obj::prop( 'translator_id', $job ) === get_current_user_id();
+			};
+
+			$reviewJobs = $reviewJobs->filter( $isOwnJob );
+		}
 
 		if ( $reviewJobs->count() ) {
 			$reviewJobs->map( Obj::prop( 'job_id' ) )

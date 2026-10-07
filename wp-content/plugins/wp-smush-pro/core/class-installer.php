@@ -15,6 +15,7 @@ namespace Smush\Core;
 use Smush\App\Abstract_Page;
 use Smush\Core\CDN\CDN_Controller;
 use Smush\Core\Smush\Smusher;
+use Smush\Core\Smush\Smusher_Options_Provider;
 use WP_Smush;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -35,13 +36,51 @@ class Installer {
 	 */
 	public static function smush_deactivated() {
 		if ( ! class_exists( '\\Smush\\Core\\Modules\\CDN_Controller' ) ) {
-			require_once __DIR__ . '/cdn/class-cdn-controller.php';
+			$cdn_controller_path = __DIR__ . '/cdn/class-cdn-controller.php';
+			if ( file_exists( $cdn_controller_path ) ) {
+				require_once $cdn_controller_path;
+			}
 		}
 
 		Cron_Controller::get_instance()->unschedule_cron();
 		Settings::get_instance()->delete_setting( 'wp-smush-cdn_status' );
 
 		delete_site_option( 'wp_smush_api_auth' );
+	}
+
+	/**
+	 * Redirect to Smush page after plugin activation if onboarding wizard has not been completed.
+	 *
+	 * @since 3.17.0
+	 *
+	 * @param string $plugin Plugin basename.
+	 */
+	public static function redirect_to_setup_page( $plugin ) {
+		// Check if this is the Smush plugin being activated.
+		if ( WP_SMUSH_BASENAME !== $plugin ) {
+			return;
+		}
+
+		// Check if onboarding wizard has been completed.
+		$skip_quick_setup = ! empty( get_option( 'skip-smush-setup' ) );
+		if ( $skip_quick_setup ) {
+			return;
+		}
+
+		// Don't redirect if activating multiple plugins.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['activate-multi'] ) ) {
+			return;
+		}
+
+		// Don't redirect on AJAX, CLI, REST API, or network admin.
+		if ( wp_doing_ajax() || ( defined( 'WP_CLI' ) && WP_CLI ) || wp_is_serving_rest_request() ) {
+			return;
+		}
+
+		// Redirect to Smush page.
+		wp_safe_redirect( is_network_admin() ? network_admin_url( 'admin.php?page=smush' ) : admin_url( 'admin.php?page=smush' ) );
+		exit;
 	}
 
 	/**
@@ -55,7 +94,7 @@ class Installer {
 		}
 
 		$version = get_site_option( 'wp-smush-version' );
-		self::maybe_mark_as_pre_3_12_6_site( $version );
+		self::maybe_mark_as_pre_3_22_site( $version );
 
 		// Cache activated date time.
 		$event_name = ! empty( $version ) ? 'plugin_activated' : 'plugin_installed';
@@ -66,7 +105,6 @@ class Installer {
 		}
 
 		Settings::get_instance()->initial_default_site_settings();
-		$settings = Settings::get_instance()->get();
 
 		// If the version is not saved or if the version is not same as the current version,.
 		if ( ! $version || WP_SMUSH_VERSION !== $version ) {
@@ -79,7 +117,7 @@ class Installer {
 				)
 			); // db call ok; no-cache ok.
 
-			if ( $results || ( isset( $settings['auto'] ) && false !== $settings['auto'] ) ) {
+			if ( $results || $version ) {
 				update_site_option( 'wp-smush-install-type', 'existing' );
 			}
 
@@ -111,7 +149,7 @@ class Installer {
 		if ( false === $version ) {
 			self::smush_activated();
 		} else {
-			self::maybe_mark_as_pre_3_12_6_site( $version );
+			self::maybe_mark_as_pre_3_22_site( $version );
 		}
 
 		if ( false !== $version && WP_SMUSH_VERSION !== $version ) {
@@ -162,7 +200,27 @@ class Installer {
 				self::upgrade_3_21_0();
 			}
 
-			if ( version_compare( $version, '3.21.0', '<' ) ) {
+			if ( version_compare( $version, '4.0', '<' ) ) {
+				self::upgrade_4_0_0();
+			}
+
+			if ( version_compare( $version, '4.2.0', '<' ) ) {
+				self::upgrade_4_2_0();
+			}
+
+			if ( version_compare( $version, '4.2.1', '<' ) ) {
+				self::upgrade_4_2_1();
+			}
+
+			if ( version_compare( $version, '4.3.2', '<' ) ) {
+				self::upgrade_4_3_2();
+			}
+
+			if ( version_compare( $version, '4.0', '>=' ) && version_compare( $version, '4.3.3', '<' ) ) {
+				self::dismiss_autosave_intro_for_existing_v4_users();
+			}
+
+			if ( version_compare( $version, '4.0', '<' ) ) {
 				$hide_new_feature_highlight_modal = apply_filters( 'wpmudev_branding_hide_doc_link', false );
 				if ( ! $hide_new_feature_highlight_modal ) {
 					// Add the flag to display the new feature background process modal.
@@ -170,7 +228,7 @@ class Installer {
 				}
 
 				// Show new feature hotspot.
-				self::set_new_feature_hotspot_flag();
+				// self::set_new_feature_hotspot_flag();
 			}
 
 			// Create/upgrade directory smush table.
@@ -288,18 +346,230 @@ class Installer {
 		// Rename the default config.
 		$stored_configs = get_site_option( 'wp-smush-preset_configs', false );
 		if ( is_array( $stored_configs ) && isset( $stored_configs[0] ) && isset( $stored_configs[0]['name'] ) && 'Basic config' === $stored_configs[0]['name'] ) {
-			$stored_configs[0]['name'] = __( 'Default config', 'wp-smushit' );
+			$stored_configs[0]['name'] = __( 'Smush', 'wp-smushit' );
 			update_site_option( 'wp-smush-preset_configs', $stored_configs );
 		}
+	}
 
-		// Show new features modal for free users.
-		if ( ! WP_Smush::is_pro() ) {
-			if ( is_multisite() && ! Abstract_Page::should_render( 'bulk' ) ) {
-				return;
-			}
-
-			add_site_option( 'wp-smush-show_upgrade_modal', true );
+	/**
+	 * Upgrade to 4.0.0
+	 *
+	 * @return void
+	 * @since 4.0.0
+	 */
+	private static function upgrade_4_0_0() {
+		$settings     = Settings::get_instance();
+		$lazy_options = $settings->get_setting( 'wp-smush-lazy_load' );
+		if ( ! is_array( $lazy_options ) ) {
+			return;
 		}
+
+		$changed = self::migrate_lazy_load_placeholder_in_options( $lazy_options );
+		$changed = self::migrate_lazy_load_spinner_in_options( $lazy_options ) || $changed;
+
+		if ( $changed ) {
+			$settings->set_setting( 'wp-smush-lazy_load', $lazy_options );
+		}
+	}
+
+	/**
+	 * Upgrade to 4.2.0
+	 *
+	 * Migrates options that moved from PHP-serialized arrays / comma-separated
+	 * strings to raw JSON strings so that the new JSON_Record / JSON_Scalar_Array
+	 * classes can read them without a full reset.
+	 *
+	 * @return void
+	 * @since 4.2.0
+	 */
+	private static function upgrade_4_2_0() {
+		// Global_Stats option: PHP-serialized array → JSON object.
+		self::migrate_serialized_option_to_json( 'wp_smush_global_stats', 'wp_smush_global_stats_json' );
+
+		// Attachment_Id_List options: comma-separated string → JSON array.
+		$attachment_id_list_options = array(
+			'wp-smush-optimize-list',
+			'wp-smush-reoptimize-list',
+			'wp-smush-error-items-list',
+			'wp-smush-ignored-items-list',
+			'wp-smush-animated-items-list',
+		);
+		foreach ( $attachment_id_list_options as $option_id ) {
+			self::migrate_comma_separated_option_to_json_array( $option_id, $option_id . '-json' );
+		}
+	}
+
+	/**
+	 * Upgrade to 4.2.1
+	 *
+	 * Migrate video thumbnail cache to a bounded JSON_Record-based
+	 * implementation.
+	 *
+	 * @since 4.2.1
+	 *
+	 * @return void
+	 */
+	private static function upgrade_4_2_1() {
+		if ( wp_using_ext_object_cache() ) {
+			wp_cache_flush(); // Clear the object cache to avoid stale data.
+			return;
+		}
+
+		if ( is_multisite() ) {
+			self::for_each_public_site( function() {
+				self::flush_video_thumbnail_cache();
+			} );
+		} else {
+			self::flush_video_thumbnail_cache();
+		}
+	}
+
+	/**
+	 * Flush cached video thumbnails and their cache index.
+	 *
+	 * @since 4.2.1
+	 *
+	 * @return void
+	 */
+	private static function flush_video_thumbnail_cache() {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like(
+			'_transient_wp-smush-video-thumbnail-'
+		) . '%';
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options}
+				WHERE option_name LIKE %s",
+				$pattern
+			)
+		);
+
+		delete_option( 'wp-smush-video-thumbnail-cache-index' );
+
+		/*
+		* The direct database query bypasses the WordPress options API.
+		*/
+		wp_cache_delete( 'alloptions', 'options' );
+	}
+
+	private static function upgrade_4_3_2() {
+		if ( is_multisite() ) {
+			self::for_each_public_site( function() {
+				self::delete_transparent_metadata();
+			} );
+		} else {
+			self::delete_transparent_metadata();
+		}
+	}
+
+	private static function delete_transparent_metadata() {
+		$transparent_meta_value = 1;
+		$delete_all             = true;
+		delete_metadata( 'post', null, 'wp-smush-transparent', $transparent_meta_value, $delete_all );
+	}
+
+	/**
+	 * Read an option whose value was written by update_option() as a
+	 * PHP-serialized array and re-save it as a raw JSON string.
+	 *
+	 * @param string $option_id WP option name.
+	 * @param $new_option_id
+	 *
+	 * @return void
+	 */
+	private static function migrate_serialized_option_to_json( $option_id, $new_option_id ) {
+		$value = get_option( $option_id, null );
+		// get_option() calls maybe_unserialize; PHP-serialized array → array.
+		if ( null === $value || ! is_array( $value ) ) {
+			return;
+		}
+		update_option( $new_option_id, wp_json_encode( $value ), false );
+	}
+
+	/**
+	 * Read an option whose value was written as a comma-separated string of
+	 * attachment IDs (e.g. "123,456,789") and re-save it as a JSON array
+	 * (e.g. [123,456,789]) so that JSON_Scalar_Array can read it.
+	 *
+	 * @param string $option_id WP option name.
+	 * @param $new_option_id
+	 *
+	 * @return void
+	 */
+	private static function migrate_comma_separated_option_to_json_array( $option_id, $new_option_id ) {
+		$value = get_option( $option_id, null );
+		if ( null === $value ) {
+			return;
+		}
+
+		// If get_option() already returned an array (e.g. PHP-serialized), encode directly.
+		if ( is_array( $value ) ) {
+			$ids = array_values( array_map( 'intval', $value ) );
+			update_option( $new_option_id, wp_json_encode( $ids ), false );
+			return;
+		}
+
+		$str = (string) $value;
+
+		// Skip if value is already a valid JSON array.
+		if ( '' !== $str && '[' === $str[0] ) {
+			return;
+		}
+
+		if ( '' === trim( $str ) ) {
+			update_option( $new_option_id, '[]', false );
+			return;
+		}
+
+		// Convert "123,456,789" → [123,456,789].
+		$ids = array_values( array_filter( array_map( 'intval', explode( ',', $str ) ) ) );
+		update_option( $new_option_id, wp_json_encode( $ids ), false );
+	}
+
+	/**
+	 * Migrate lazy load placeholder settings.
+	 *
+	 * @param array $lazy_options Lazy load options.
+	 *
+	 * @return bool True when settings were changed.
+	 */
+	private static function migrate_lazy_load_placeholder_in_options( &$lazy_options ) {
+		$selected_placeholder = isset( $lazy_options['animation']['placeholder']['selected'] ) ? (int) $lazy_options['animation']['placeholder']['selected'] : 1;
+		if ( empty( $selected_placeholder ) || 2 !== $selected_placeholder ) {
+			return false;
+		}
+
+		// Update lazy load settings.
+		$lazy_options['animation']['placeholder']['selected'] = 1;
+		return true;
+	}
+
+	/**
+	 * Migrate lazy load spinner settings.
+	 *
+	 * @param array $lazy_options Lazy load options.
+	 *
+	 * @return bool True when settings were changed.
+	 */
+	private static function migrate_lazy_load_spinner_in_options( &$lazy_options ) {
+		$selected_spinner = isset( $lazy_options['animation']['spinner']['selected'] ) ? (int) $lazy_options['animation']['spinner']['selected'] : 1;
+		if ( empty( $selected_spinner ) || $selected_spinner > 5 ) {
+			return false;
+		}
+
+		$default_spinner = 1;
+		$map_spinner     = array(
+			1 => 2,
+			3 => 3,
+		);
+		// Map the selected spinner to the new value.
+		$selected_spinner = isset( $map_spinner[ $selected_spinner ] ) ? $map_spinner[ $selected_spinner ] : $default_spinner;
+
+		// Update lazy load settings.
+		$lazy_options['animation']['spinner']['selected'] = $selected_spinner;
+		return true;
 	}
 
 	/**
@@ -319,14 +589,14 @@ class Installer {
 		}
 	}
 
-	private static function maybe_mark_as_pre_3_12_6_site( $version ) {
-		if ( ! $version || version_compare( $version, '3.12.0', '<' ) || false !== get_site_option( 'wp_smush_pre_3_12_6_site' ) ) {
+	private static function maybe_mark_as_pre_3_22_site( $version ) {
+		if ( ! $version || false !== get_site_option( 'wp_smush_pre_3_22_site' ) ) {
 			return;
 		}
-		if ( version_compare( $version, '3.12.5', '>' ) ) {
+		if ( version_compare( $version, '3.21.1', '>' ) ) {
 			$version = 0;
 		}
-		update_site_option( 'wp_smush_pre_3_12_6_site', $version );
+		update_site_option( 'wp_smush_pre_3_22_site', $version );
 	}
 
 	private static function regenerate_preset_configs_before_3_16_0() {
@@ -336,9 +606,9 @@ class Installer {
 			return;
 		}
 
-		$configs_handler = new Configs();
+		$configs_handler = Configs::get_instance();
 		$new_settings    = array(
-			'background_email' => false,
+			'background_email' => true,
 		);
 		foreach ( $stored_configs as $key => $preset_config ) {
 			if ( empty( $preset_config['config']['configs']['settings'] ) ) {
@@ -359,7 +629,7 @@ class Installer {
 			return;
 		}
 
-		$configs_handler = new Configs();
+		$configs_handler = Configs::get_instance();
 		foreach ( $stored_configs as $key => $preset_config ) {
 			if ( empty( $preset_config['config']['configs'] ) ) {
 				continue;
@@ -409,7 +679,8 @@ class Installer {
 	 * @return void
 	 */
 	private static function reset_smusher_error_counts() {
-		( new Smusher() )->reset_error_counts();
+		$smusher_options = ( new Smusher_Options_Provider() )->get_options();
+		( new Smusher( $smusher_options ) )->reset_error_counts();
 	}
 
 	private static function set_new_feature_hotspot_flag() {
@@ -427,7 +698,45 @@ class Installer {
 		} );
 	}
 
-	private static function for_each_public_site( callable $callback ) {
+	/**
+	 * Dismiss autosave intro for users already on v4 before this feature lands.
+	 *
+	 * @return void
+	 */
+	private static function dismiss_autosave_intro_for_existing_v4_users() {
+		if ( is_multisite() ) {
+			self::for_each_public_site(
+				function () {
+					self::set_dismissed_notice( 'autosave_intro_v4' );
+				}
+			);
+			return;
+		}
+
+		self::set_dismissed_notice( 'autosave_intro_v4' );
+	}
+
+	/**
+	 * Mark a notice as dismissed in the existing dismissed notices option.
+	 *
+	 * @param string $notice_key Notice key.
+	 *
+	 * @return void
+	 */
+	private static function set_dismissed_notice( $notice_key ) {
+		$option_id         = 'wp-smush-dismissed-notices';
+		$dismissed_notices = get_option( $option_id, array() );
+		$dismissed_notices = is_array( $dismissed_notices ) ? $dismissed_notices : array();
+
+		if ( ! empty( $dismissed_notices[ $notice_key ] ) ) {
+			return;
+		}
+
+		$dismissed_notices[ $notice_key ] = true;
+		update_option( $option_id, $dismissed_notices );
+	}
+
+	private static function for_each_public_site( $callback ) {
 		if ( ! is_multisite() ) {
 			return;
 		}

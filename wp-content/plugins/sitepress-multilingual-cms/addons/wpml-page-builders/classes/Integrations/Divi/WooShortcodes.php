@@ -18,13 +18,6 @@ class WooShortcodes implements \IWPML_Frontend_Action {
 			->then( spreadArgs( [ $this, 'translateAttributes' ] ) );
 	}
 
-	/**
-	 * @param array  $shortcodeAttrs
-	 * @param array  $attrs
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	public function translateAttributes( $shortcodeAttrs, $attrs, $slug ) {
 		if ( in_array( $slug, self::WOO_SHORTCODES, true ) && (int) Obj::prop( 'product', $shortcodeAttrs ) ) {
 			$shortcodeAttrs['product'] = apply_filters( 'wpml_object_id', $shortcodeAttrs['product'], 'product', true );

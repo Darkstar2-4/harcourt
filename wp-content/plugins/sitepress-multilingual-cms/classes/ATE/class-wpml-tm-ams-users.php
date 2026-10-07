@@ -4,7 +4,6 @@ use WPML\User\UsersByCapsRepository;
 use WPML\LIB\WP\User;
 class WPML_TM_AMS_Users {
 
-	/** @var UsersByCapsRepository */
 	private $userByCapsRepository;
 
 	public function __construct( UsersByCapsRepository $userByCapsRepository ) {

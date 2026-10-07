@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Table utilities.
- */
 
 namespace PhpMyAdmin\SqlParser\Utils;
 
@@ -17,13 +14,6 @@ use PhpMyAdmin\SqlParser\Statements\CreateStatement;
  */
 class Table
 {
-    /**
-     * Gets the foreign keys of the table.
-     *
-     * @param CreateStatement $statement the statement to be processed
-     *
-     * @return array
-     */
     public static function getForeignKeys($statement)
     {
         if (empty($statement->fields)
@@ -66,9 +56,6 @@ class Table
                     $tmp['on_delete'] = str_replace(' ', '_', $opt);
                 }
 
-                // if (($opt = $field->references->options->has('MATCH'))) {
-                //     $tmp['match'] = str_replace(' ', '_', $opt);
-                // }
             }
 
             $ret[] = $tmp;
@@ -77,13 +64,6 @@ class Table
         return $ret;
     }
 
-    /**
-     * Gets fields of the table.
-     *
-     * @param CreateStatement $statement the statement to be processed
-     *
-     * @return array
-     */
     public static function getFields($statement)
     {
         if (empty($statement->fields)
@@ -96,7 +76,6 @@ class Table
         $ret = array();
 
         foreach ($statement->fields as $field) {
-            // Skipping keys.
             if (empty($field->type)) {
                 continue;
             }

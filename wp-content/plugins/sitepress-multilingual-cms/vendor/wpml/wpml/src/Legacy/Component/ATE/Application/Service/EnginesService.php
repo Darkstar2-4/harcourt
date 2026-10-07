@@ -13,41 +13,10 @@ use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryIn
 use WPML\TM\API\ATE\CachedLanguageMappings;
 use WPML\TM\ATE\API\CachedAMSAPI;
 
-/**
- * @phpstan-type LanguageFormalityInputArray array{
- *    lang_code: string,
- *    formality: string
- *  }
- *
- * @phpstan-type EngineDtoInputArray array{
- *    engine: string,
- *    order: int,
- *    formal_name: string,
- *    cost: int|null,
- *    enabled: bool,
- *    formality_available: bool,
- *    formality_settings: array{ languages: LanguageFormalityInputArray[]}|null
- *  }
- *
- * @phpstan-type AvailableFormalitiesOfLanguageArray array{
- *   formality_enabled: bool,
- *   available_formalities: string[]
- * }
- *
- * @phpstan-type AvailableFormalitiesOfEngineArray array{
- *    languages: array<string, AvailableFormalitiesOfLanguageArray>
- * }
- *
- * @phpstan-type AvailableFormalitiesArray array<string, AvailableFormalitiesOfEngineArray>
- */
 class EnginesService implements EnginesServiceInterface {
 
-  /**
-   * @var \WPML_TM_AMS_API
-   */
   private $amsApi;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
@@ -57,10 +26,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @return EngineDto[]
-   * @throws EngineServiceException
-   */
   public function getList(): array {
     $engines              = $this->fetchEnginesData();
     $availableFormalities = $this->fetchAvailableFormalities();
@@ -75,13 +40,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @param UpdateEngineDto[] $engines
-   *
-   * @return void
-   * @throws EngineServiceException
-   *
-   */
   public function update( array $engines ) {
     $enginesData = [];
     foreach ( $engines as $engine ) {
@@ -92,7 +50,6 @@ class EnginesService implements EnginesServiceInterface {
       ];
 
       if ( $engine->isFormalityAvailable() && $engine->getFormalitySettings() ) {
-        /** @var UpdateEngineFormalitySettingDto[] $formalitySettings */
         $formalitySettings = $engine->getFormalitySettings();
 
         $formalitySettingsData = [];
@@ -130,10 +87,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @return EngineDtoInputArray[]
-   * @throws EngineServiceException
-   */
   private function fetchEnginesData(): array {
     $apiResult = $this->amsApi->get_translation_engines();
 
@@ -153,10 +106,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @return AvailableFormalitiesArray
-   * @throws EngineServiceException
-   */
   private function fetchAvailableFormalities(): array {
     $apiResult = $this->amsApi->get_available_formalities();
 
@@ -176,12 +125,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @param EngineDtoInputArray                                $enginesData
-   * @param array<string, AvailableFormalitiesOfLanguageArray> $availableFormalitiesOfEngine
-   *
-   * @return EngineDto
-   */
   private function buildEngineFromArray( array $enginesData, array $availableFormalitiesOfEngine ): EngineDto {
     $engine             = $enginesData['engine'];
     $formalName         = $enginesData['formal_name'];
@@ -225,11 +168,6 @@ class EnginesService implements EnginesServiceInterface {
   }
 
 
-  /**
-   * @param EngineDtoInputArray $enginesData
-   *
-   * @return array<string, FormalityLevelDto> lang code => FormalityLevelDto
-   */
   private function getEngineCurrentFormalitySettingsGroupedByLanguageCode( array $enginesData ): array {
     $formalitySettingsRaw = $enginesData['formality_settings']['languages'] ?? [];
 

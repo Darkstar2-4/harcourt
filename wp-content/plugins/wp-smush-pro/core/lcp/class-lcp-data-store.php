@@ -14,13 +14,15 @@ abstract class LCP_Data_Store {
 		$this->url_utils = new Url_Utils();
 	}
 
-	abstract public function save( $url, $is_mobile, LCP_Data $lcp_data );
+	abstract public function save( $url, $is_mobile, $lcp_data );
 
-	abstract public function get( $url, $is_mobile ): LCP_Data;
+	abstract public function get( $url, $is_mobile );
 
 	abstract public function delete_all();
 
 	abstract public function get_type();
+
+	abstract public static function get_type_key();
 
 	public function get_object_id() {
 		return false;
@@ -38,6 +40,6 @@ abstract class LCP_Data_Store {
 		$url       = $this->url_utils->normalize_url( $url );
 		$is_mobile = (int) $is_mobile;
 
-		return LCP_Helper::KEY_PREFIX . md5( $url . $is_mobile );
+		return LCP_Helper::get_key_prefix() . md5( $url . $is_mobile );
 	}
 }

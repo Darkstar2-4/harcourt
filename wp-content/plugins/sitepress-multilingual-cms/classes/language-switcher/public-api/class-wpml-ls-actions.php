@@ -6,20 +6,12 @@ class WPML_LS_Actions extends WPML_LS_Public_API {
 		if ( $this->sitepress->get_setting( 'setup_complete' ) ) {
 			add_action( 'wpml_language_switcher', array( $this, 'callback' ) );
 
-			/**
-			 * Backward compatibility
-			 *
-			 * @deprecated see 'wpml_language_switcher'
-			 */
 			add_action( 'icl_language_selector', array( $this, 'callback' ) );
 			add_action( 'wpml_add_language_selector', array( $this, 'callback' ) );
 			add_action( 'wpml_footer_language_selector', array( $this, 'callback' ) );
 		}
 	}
 
-	/**
-	 * @param array       $args
-	 */
 	public function callback( $args ) {
 		if ( '' === $args ) {
 			$args = array();
@@ -30,11 +22,6 @@ class WPML_LS_Actions extends WPML_LS_Public_API {
 		echo $this->render( $args );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function parse_legacy_actions( $args ) {
 		$current_filter = current_filter();
 

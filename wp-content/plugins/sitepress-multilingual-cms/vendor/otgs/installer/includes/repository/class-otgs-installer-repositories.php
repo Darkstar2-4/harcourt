@@ -3,7 +3,7 @@
 class OTGS_Installer_Repositories {
 
 	private $installer;
-	private $repositories;
+	private $_repositories;
 	private $repository_factory;
 	private $subscription_factory;
 
@@ -15,12 +15,20 @@ class OTGS_Installer_Repositories {
 		$this->repository_factory   = $repository_factory;
 		$this->subscription_factory = $subscription_factory;
 		$this->installer            = $installer;
-		$settings                   = $this->installer->get_settings();
-		$this->repositories         = $this->get_repositories( $settings['repositories'] );
 	}
 
 	public function get_all() {
-		return $this->repositories;
+		return $this->repositories();
+	}
+
+
+	private function repositories() {
+		if ( null === $this->_repositories ) {
+			$settings            = $this->installer->get_settings();
+			$this->_repositories = $this->get_repositories( $settings['repositories'] );
+		}
+
+		return $this->_repositories;
 	}
 
 	private function get_repositories( $setting_repositories ) {
@@ -93,13 +101,8 @@ class OTGS_Installer_Repositories {
 		return $products;
 	}
 
-	/**
-	 * @param $id
-	 *
-	 * @return null|OTGS_Installer_Repository
-	 */
 	public function get( $id ) {
-		foreach ( $this->repositories as $repository ) {
+		foreach ( $this->repositories() as $repository ) {
 			if ( $id === $repository->get_id() ) {
 				return $repository;
 			}
@@ -114,11 +117,12 @@ class OTGS_Installer_Repositories {
 
 	public function save_subscription( OTGS_Installer_Repository $repository ) {
 		$subscription = $repository->get_subscription();
-		unset( $this->installer->settings['repositories'][ $repository->get_id() ]['subscription'] );
-		unset( $this->installer->settings['repositories'][ $repository->get_id() ]['last_successful_subscription_fetch'] );
+		$settings     = $this->installer->get_settings();
+		unset( $settings['repositories'][ $repository->get_id() ]['subscription'] );
+		unset( $settings['repositories'][ $repository->get_id() ]['last_successful_subscription_fetch'] );
 
 		if ( $subscription ) {
-			$this->installer->settings['repositories'][ $repository->get_id() ]['subscription'] = array(
+			$settings['repositories'][ $repository->get_id() ]['subscription'] = array(
 				'key'           => $subscription->get_site_key(),
 				'key_type'      => $subscription->get_site_key_type(),
 				'data'          => $subscription->get_data(),
@@ -127,8 +131,8 @@ class OTGS_Installer_Repositories {
 			);
 		}
 		$actualSiteUrl = $this->installer->get_installer_site_url( $repository->get_id() );
-		$this->installer->settings['repositories'][ $repository->get_id() ]['site_key_url'] = $actualSiteUrl;
+		$settings['repositories'][ $repository->get_id() ]['site_key_url'] = $actualSiteUrl;
 
-		$this->installer->save_settings();
+		$this->installer->save_settings( $settings );
 	}
 }

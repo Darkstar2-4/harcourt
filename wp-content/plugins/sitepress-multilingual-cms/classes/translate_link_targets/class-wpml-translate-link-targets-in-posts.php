@@ -1,13 +1,5 @@
 <?php
 
-/**
- * Class WPML_Translate_Link_Targets_In_Posts
- *
- * @package wpml-tm
- *
- * Disable phpcs warnings for prepare. Everything is escaped properly.
- * phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
- */
 class WPML_Translate_Link_Targets_In_Posts extends WPML_Translate_Link_Targets_In_Content {
 
 	protected function get_contents_with_links_needing_fix( $start_id = 0, $count = 0 ) {

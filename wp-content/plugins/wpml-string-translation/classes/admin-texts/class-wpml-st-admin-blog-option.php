@@ -2,16 +2,8 @@
 
 class WPML_ST_Admin_Blog_Option extends WPML_SP_User {
 
-	/** @var WPML_ST_Admin_Option_Translation $admin_option */
 	private $admin_option;
 
-	/**
-	 * WPML_ST_Admin_Blog_Option constructor.
-	 *
-	 * @param SitePress               $sitepress
-	 * @param WPML_String_Translation $st_instance
-	 * @param string                  $option_name
-	 */
 	public function __construct(
 		&$sitepress,
 		&$st_instance,
@@ -24,12 +16,6 @@ class WPML_ST_Admin_Blog_Option extends WPML_SP_User {
 		$this->admin_option = $st_instance->get_admin_option( $option_name );
 	}
 
-	/**
-	 * @param string|array $old_value
-	 * @param string|array $new_value
-	 *
-	 * @return mixed
-	 */
 	public function pre_update_filter(
 		$old_value,
 		$new_value

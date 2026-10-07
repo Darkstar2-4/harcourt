@@ -5,11 +5,6 @@ namespace WPML\TM\Jobs\Query;
 use \WPML_TM_Jobs_Search_Params;
 
 class LimitQueryHelper {
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @return string
-	 */
 	public function get_limit( WPML_TM_Jobs_Search_Params $params ) {
 		$result = '';
 

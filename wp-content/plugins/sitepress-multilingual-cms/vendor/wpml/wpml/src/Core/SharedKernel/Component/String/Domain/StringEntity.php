@@ -1,29 +1,21 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Core\SharedKernel\Component\String\Domain;
 
 class StringEntity {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $language;
 
-  /** @var string */
   private $context;
 
-  /** @var string */
   private $name;
 
-  /** @var string */
   private $value;
 
-  /** @var int */
   private $status;
 
-  /** @var int */
   private $wordCount;
 
 

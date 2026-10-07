@@ -10,7 +10,6 @@ use function WPML\Container\make;
 
 class Glossary {
 
-	/** @var \WPML_TM_AMS_API */
 	private $amsAPI;
 
 	public function __construct( \WPML_TM_AMS_API $amsAPI ) {

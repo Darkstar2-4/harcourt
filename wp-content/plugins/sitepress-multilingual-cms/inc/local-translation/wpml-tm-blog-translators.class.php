@@ -4,26 +4,14 @@ use WPML\LIB\WP\User;
 
 class WPML_TM_Blog_Translators {
 
-	/** @var WPML_TM_Records $tm_records */
 	private $tm_records;
 
-	/**
-	 * @var SitePress;
-	 */
 	private $sitepress;
 
-	/** @var WPML_Translator_Records $translator_records */
 	private $translator_records;
 
-	/** @var  WPML_Cache_Factory */
 	private $cache_factory;
 
-	/**
-	 * @param SitePress               $sitepress
-	 * @param WPML_TM_Records         $tm_records
-	 * @param WPML_Translator_Records $translator_records
-	 * @param WPML_Cache_Factory      $cache_factory
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		WPML_TM_Records $tm_records,
@@ -36,11 +24,6 @@ class WPML_TM_Blog_Translators {
 		$this->cache_factory      = $cache_factory;
 	}
 
-	/**
-	 * It returns true if the site has translators.
-	 *
-	 * @return bool
-	 */
 	public function has_translators() {
 		$cache = $this->cache_factory->get( 'WPML_TM_Blog_Translators::has_translators' );
 
@@ -52,11 +35,6 @@ class WPML_TM_Blog_Translators {
 		);
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	function get_blog_translators( $args = array() ) {
 		$from = isset( $args['from'] ) ? $args['from'] : false;
 		$to   = isset( $args['to'] ) ? $args['to'] : false;
@@ -75,13 +53,6 @@ class WPML_TM_Blog_Translators {
 		return apply_filters( 'blog_translators', $translators, $args );
 	}
 
-	/**
-	 * @param int    $translator_id
-	 * @param string $from
-	 * @param string $to
-	 *
-	 * @return bool
-	 */
 	private function translator_has_language_pair( $translator_id, $from, $to ) {
 		$language_pairs = $this->get_language_pairs( $translator_id );
 
@@ -92,19 +63,10 @@ class WPML_TM_Blog_Translators {
 		return false;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_raw_blog_translators() {
 		return $this->translator_records->get_users_with_capability();
 	}
 
-	/**
-	 * @param int   $user_id
-	 * @param array $args
-	 *
-	 * @return bool
-	 */
 	function is_translator( $user_id, $args = array() ) {
 		$defaults = [
 			'lang_from'      => null,
@@ -122,7 +84,6 @@ class WPML_TM_Blog_Translators {
 
 		$is_translator = $this->sitepress->get_wp_api()
 										 ->user_can( $user_id, 'translate' );
-		// check if user is administrator and return true if he is
 		if ( $admin_override && User::isAdministrator( User::get( $user_id ) ) ) {
 			$is_translator = true;
 			do_action( 'wpml_tm_ate_enable_subscription', $user_id );
@@ -159,11 +120,6 @@ class WPML_TM_Blog_Translators {
 		return apply_filters( 'wpml_override_is_translator', $is_translator, $user_id, $args );
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return array
-	 */
 	public function get_language_pairs( $user_id ) {
 
 		return $this->sitepress->get_wp_api()

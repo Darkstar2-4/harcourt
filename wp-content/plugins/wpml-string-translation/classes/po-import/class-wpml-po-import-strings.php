@@ -6,7 +6,6 @@ class WPML_PO_Import_Strings {
 
 	private $errors;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
 	public function __construct( \SitePress $sitepress ) {
@@ -14,6 +13,10 @@ class WPML_PO_Import_Strings {
 	}
 
 	public function maybe_import_po_add_strings() {
+		if ( ! current_user_can( 'wpml_manage_string_translation' ) && ! current_user_can( 'manage_translations' ) ) {
+			return;
+		}
+
 		if ( array_key_exists( 'icl_po_upload', $_POST ) && isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'icl_po_form' ) ) {
 			add_filter( 'wpml_st_get_po_importer', array( $this, 'import_po' ) );
 			return;
@@ -24,9 +27,6 @@ class WPML_PO_Import_Strings {
 		}
 	}
 
-	/**
-	 * @return null|WPML_PO_Import
-	 */
 	public function import_po() {
 		if ( $_FILES[ 'icl_po_file' ][ 'size' ] === 0 ) {
 			$this->errors = esc_html__( 'File upload error', 'wpml-string-translation' );
@@ -38,15 +38,11 @@ class WPML_PO_Import_Strings {
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_errors() {
 		return $this->errors;
 	}
 
 	private function add_strings() {
-		/** @var WPML_ST_String_Factory $wpml_st_string_factory */
 		$wpml_st_string_factory = WPML\Container\make( WPML_ST_String_Factory::class );
 		$strings                = json_decode( $_POST['strings_json'] );
 		$source_lang            = $this->get_filtered_source_lang();
@@ -75,7 +71,6 @@ class WPML_PO_Import_Strings {
 
 			$registered_string_lang = $wpml_st_string_factory->find_by_id( $string_id )->get_language();
 			if ( $registered_string_lang !== $source_lang ) {
-				// If any string already exists in different language than selected source language, exit with error.
 				$source_lang_details = $this->sitepress->get_language_details( $source_lang );
 				$registered_string_lang_details = $this->sitepress->get_language_details( $registered_string_lang );
 				$this->errors = sprintf(
@@ -93,10 +88,6 @@ class WPML_PO_Import_Strings {
 		}
 	}
 
-	/**
-	 * @param int|false|null $string_id
-	 * @param \stdClass      $string
-	 */
 	private function maybe_add_translation( $string_id, $string ) {
 		if ( $string_id && array_key_exists( 'icl_st_po_language', $_POST ) ) {
 			if ( $string->translation !== '' ) {
@@ -112,10 +103,6 @@ class WPML_PO_Import_Strings {
 		}
 	}
 
-	/**
-	 * Wrapper function for `filter_input()`.
-	 * @return string
-	 */
 	protected function get_filtered_source_lang(): string {
 		return ! empty( $_POST['icl_st_po_source_language'] )
 			? filter_input( INPUT_POST, 'icl_st_po_source_language', FILTER_SANITIZE_FULL_SPECIAL_CHARS )

@@ -5,41 +5,41 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "tr"
+            "lang": "tr_TR"
          },
          "Add glossary terms": [
-            "Sözlük terimlerini ekleyiniz"
+            "Terimler sözlüğüne terim ekle"
          ],
          "Minimize": [
-            "Küçültünüz"
+            "Küçült"
          ],
          "Expand": [
-            "Genişletiniz"
+            "Genişlet"
          ],
          "There's nothing yet in the Glossary": [
-            "Sözlükte henüz hiçbir şey bulunmamaktadır"
+            "Terimler Sözlüğü'nde henüz hiçbir şey yok"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Sözlüğü henüz kullanmadığınız görülmektedir. Sözlük size şu konularda yardımcı olabilir:"
+            "Görünüşe göre henüz terimler sözlüğünü kullanmıyorsunuz. Terimler sözlüğü size şu konularda yardımcı olabilir:"
          ],
          "Improve the quality of the translation": [
-            "Çeviri kalitesini yükseltmek"
+            "Çeviri kalitesini artırın"
          ],
          "Ensure translation consistency": [
-            "Çeviri tutarlılığını sağlamak"
+            "Çeviri tutarlılığını sağlayın"
          ],
          "Reduce translation costs": [
-            "Çeviri maliyetlerini azaltmak"
+            "Çeviri maliyetlerini azaltın"
          ],
          "Improve SEO in translation languages": [
-            "Çeviri dillerinde SEO'yu iyileştirmek"
+            "Çeviri dillerinde SEO'yu iyileştirin"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "Doğru çeviriler için sözlüğün nasıl kullanılacağı"
+            "Doğru çeviriler için terimler sözlüğü nasıl kullanılır?"
          ],
          "%d item in the <a>Glossary</a>": [
-            "<a>Sözlükte</a> %d öğe bulunmaktadır",
-            "<a>Sözlükte</a> %d öğe bulunmaktadır"
+            "<a>Terimler Sözlüğü</a>'nde %d öğe",
+            "<a>Terimler Sözlüğü</a>'nde %d öğe"
          ],
          "Dismiss": [
             "Kapat"

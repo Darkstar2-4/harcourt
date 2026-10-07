@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `BACKUP` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -17,11 +14,6 @@ namespace PhpMyAdmin\SqlParser\Statements;
  */
 class BackupStatement extends MaintenanceStatement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'TABLE' => 1,
 

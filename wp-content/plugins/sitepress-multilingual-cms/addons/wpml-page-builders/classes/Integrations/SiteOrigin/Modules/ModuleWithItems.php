@@ -6,42 +6,16 @@ use WPML\FP\Obj;
 
 abstract class ModuleWithItems implements \IWPML_Page_Builders_Module {
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	abstract protected function get_title( $field );
 
-	/** @return array */
 	abstract protected function get_fields();
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	abstract protected function get_editor_type( $field );
 
-	/**
-	 * @return string
-	 */
 	abstract public function get_items_field();
 
-	/**
-	 * @param mixed $settings
-	 *
-	 * @return array
-	 */
 	abstract public function get_items( $settings );
 
-	/**
-	 * @param string|int        $node_id
-	 * @param mixed             $settings
-	 * @param \WPML_PB_String[] $strings
-	 *
-	 * @return \WPML_PB_String[]
-	 */
 	public function get( $node_id, $settings, $strings ) {
 		foreach ( $this->get_items( $settings ) as $key => $item ) {
 			foreach ( $this->get_fields() as $field ) {
@@ -61,13 +35,6 @@ abstract class ModuleWithItems implements \IWPML_Page_Builders_Module {
 		return $strings;
 	}
 
-	/**
-	 * @param string|int      $node_id
-	 * @param mixed           $element
-	 * @param \WPML_PB_String $pbString
-	 *
-	 * @return array
-	 */
 	public function update( $node_id, $element, \WPML_PB_String $pbString ) {
 		foreach ( $this->get_items( $element ) as $key => $item ) {
 			foreach ( $this->get_fields() as $field ) {
@@ -85,21 +52,10 @@ abstract class ModuleWithItems implements \IWPML_Page_Builders_Module {
 		return [ null, null ];
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param string $type
-	 * @param string $key
-	 * @param string $field
-	 */
 	private function get_string_name( $node_id, $type, $key, $field ) {
 		return $node_id . '-' . $type . '-' . $key . '-' . $field;
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return array
-	 */
 	public function get_field_path( $key ) {
 		$path = $this->get_items_field();
 		if ( strpos( $path, self::FIELD_SEPARATOR ) ) {

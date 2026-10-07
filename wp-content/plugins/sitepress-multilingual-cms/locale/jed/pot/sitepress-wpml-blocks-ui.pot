@@ -101,6 +101,14 @@ msgstr ""
 msgid "Spacing"
 msgstr ""
 
+#: src/js/blocks/LanguageSwitcher/Components/LanguageItem/Edit.js:41
+msgid "Switch to %s"
+msgstr ""
+
+#: src/js/blocks/LanguageSwitcher/Components/LanguageList/Edit.js:49
+msgid "Available languages"
+msgstr ""
+
 #: src/js/blocks/LanguageSwitcher/Components/Layout/Control.js:119
 msgid "Allow wrapping to multiple lines"
 msgstr ""
@@ -123,6 +131,16 @@ msgstr ""
 
 #: src/js/blocks/LanguageSwitcher/Components/Layout/Control.js:74
 msgid "Orientation"
+msgstr ""
+
+#: src/js/blocks/LanguageSwitcher/Components/Layout/Edit.js:31
+#: src/js/blocks/LanguageSwitcher/index.js:42
+#: src/js/blocks/NavigationLanguageSwitcher/index.js:51
+msgid "Language Switcher"
+msgstr ""
+
+#: src/js/blocks/LanguageSwitcher/Components/Layout/LayoutContent.js:168
+msgid "Language switcher, press tab to navigate to other languages"
 msgstr ""
 
 #: src/js/blocks/LanguageSwitcher/Components/Typography/Control.js:160
@@ -216,26 +234,22 @@ msgid "Small"
 msgstr ""
 
 #: src/js/blocks/LanguageSwitcher/index.js:36
+#: src/js/blocks/NavigationLanguageSwitcher/index.js:30
 msgid "Displays the WPML Language Switcher."
 msgstr ""
 
-#: src/js/blocks/LanguageSwitcher/index.js:42
-#: src/js/blocks/NavigationLanguageSwitcher/index.js:47
-msgid "Language Switcher"
-msgstr ""
-
 #: src/js/blocks/LanguageSwitcher/index.js:43
-#: src/js/blocks/NavigationLanguageSwitcher/index.js:48
+#: src/js/blocks/NavigationLanguageSwitcher/index.js:52
 msgid "displays the WPML Language Switcher"
 msgstr ""
 
-#: src/js/blocks/NavigationLanguageSwitcher/index.js:30
+#: src/js/blocks/NavigationLanguageSwitcher/index.js:34
 msgid ""
 "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this "
 "block</a>."
 msgstr ""
 
-#: src/js/blocks/NavigationLanguageSwitcher/index.js:38
+#: src/js/blocks/NavigationLanguageSwitcher/index.js:42
 msgid "Navigation Language Switcher"
 msgstr ""
 

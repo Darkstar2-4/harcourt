@@ -1,20 +1,10 @@
 <?php
 
 class WPML_Change_String_Language_Select {
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @param wpdb      $wpdb
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( wpdb $wpdb, SitePress $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
@@ -35,12 +25,6 @@ class WPML_Change_String_Language_Select {
 
 	}
 
-	/**
-	 * @param int[]  $strings
-	 * @param string $lang
-	 *
-	 * @return array
-	 */
 	public function change_language_of_strings( $strings, $lang ) {
 		$package_translation = new WPML_Package_Helper();
 		$response            = $package_translation->change_language_of_strings( $strings, $lang );

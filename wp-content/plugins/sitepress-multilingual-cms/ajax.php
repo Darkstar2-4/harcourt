@@ -2,13 +2,9 @@
 
 use WPML\UrlHandling\WPLoginUrlConverter;
 use WPML\AdminLanguageSwitcher\AdminLanguageSwitcher;
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
 
-/**
- * @package wpml-core
- * @used-by SitePress::ajax_setup
- */
 global $wpdb, $sitepress, $sitepress_settings, $wp_rewrite;
-/** @var SitePress $this */
 
 $request = filter_input( INPUT_POST, 'icl_ajx_action' );
 $request = $request ? $request : filter_input( INPUT_GET, 'icl_ajx_action' );
@@ -44,8 +40,11 @@ function user_is_translator_or_exit() {
 	}
 }
 
-function user_can_edit_post_or_exit() {
-	if ( ! current_user_can( 'edit_posts' ) ) {
+function user_can_edit_post_or_exit( $post_id = null ) {
+	$is_allowed = null !== $post_id
+		? current_user_can( 'edit_post', (int) $post_id )
+		: current_user_can( 'edit_posts' );
+	if ( ! $is_allowed ) {
 		wp_die( 'Unauthorized', 403 );
 	}
 }
@@ -176,7 +175,7 @@ switch ( $request ) {
 		user_is_admin_or_exit();
 
 		$iclsettings['hidden_languages'] = empty( $_POST['icl_hidden_languages'] ) ? [] : $_POST['icl_hidden_languages'];
-		$this->set_setting( 'hidden_languages', [] ); // reset current value
+		$this->set_setting( 'hidden_languages', [] );
 		$active_languages = $this->get_active_languages();
 		if ( ! empty( $iclsettings['hidden_languages'] ) ) {
 			if ( 1 == count( $iclsettings['hidden_languages'] ) ) {
@@ -242,10 +241,35 @@ switch ( $request ) {
 
 		$new_options      = ! empty( $_POST['icl_sync_tax'] ) ? $_POST['icl_sync_tax'] : [];
 		$unlocked_options = ! empty( $_POST['icl_sync_tax_unlocked'] ) ? $_POST['icl_sync_tax_unlocked'] : [];
-		/** @var WPML_Settings_Helper $settings_helper */
 		$settings_helper = wpml_load_settings_helper();
+
+		$previous_unlocked = $sitepress->get_setting( 'taxonomies_unlocked_option', [] );
+
 		$settings_helper->update_taxonomy_unlocked_settings( $unlocked_options );
 		$settings_helper->update_taxonomy_sync_settings( $new_options );
+
+		foreach ( $unlocked_options as $slug => $is_unlocked ) {
+			$was_previously_unlocked = isset( $previous_unlocked[ $slug ] ) ? (int) $previous_unlocked[ $slug ] : 0;
+			$is_now_unlocked         = (int) $is_unlocked;
+
+			if ( $is_now_unlocked === 1 && $was_previously_unlocked === 0 ) {
+				$taxonomy_object = get_taxonomy( $slug );
+
+				if ( $taxonomy_object ) {
+					$event_props = [
+						'type'          => 'taxonomy',
+						'slug'          => $slug,
+						'name'          => isset( $taxonomy_object->label ) ? $taxonomy_object->label : $slug,
+						'singular_name' => isset( $taxonomy_object->labels->singular_name ) ? $taxonomy_object->labels->singular_name : $slug,
+					];
+
+					\WPML\PostHog\Event\CaptureEvent::capture(
+						( new EventInstanceService() )->getTaxonomyUnlockedEvent( $event_props )
+					);
+				}
+			}
+		}
+
 		echo '1|';
 		break;
 	case 'icl_custom_posts_sync_options':
@@ -253,44 +277,41 @@ switch ( $request ) {
 
 		$new_options      = ! empty( $_POST['icl_sync_custom_posts'] ) ? $_POST['icl_sync_custom_posts'] : [];
 		$unlocked_options = ! empty( $_POST['icl_sync_custom_posts_unlocked'] ) ? $_POST['icl_sync_custom_posts_unlocked'] : [];
-		/** @var WPML_Settings_Helper $settings_helper */
 		$settings_helper = wpml_load_settings_helper();
+
+		$previous_unlocked = $sitepress->get_setting( 'custom_posts_unlocked_option', [] );
+
 		$settings_helper->update_cpt_unlocked_settings( $unlocked_options );
 		$settings_helper->update_cpt_sync_settings( $new_options );
 		$customPostTypes = ( new WPML_Post_Types( $sitepress ) )->get_translatable_and_readonly();
+
+		foreach ( $unlocked_options as $slug => $is_unlocked ) {
+			$was_previously_unlocked = isset( $previous_unlocked[ $slug ] ) ? (int) $previous_unlocked[ $slug ] : 0;
+			$is_now_unlocked         = (int) $is_unlocked;
+
+			if ( $is_now_unlocked === 1 && $was_previously_unlocked === 0 ) {
+				$post_type_object = get_post_type_object( $slug );
+
+				if ( $post_type_object ) {
+					$event_props = [
+						'type'          => 'post_type',
+						'slug'          => $slug,
+						'name'          => isset( $post_type_object->labels->name ) ? $post_type_object->labels->name : $slug,
+						'singular_name' => isset( $post_type_object->labels->singular_name ) ? $post_type_object->labels->singular_name : $slug,
+					];
+
+					\WPML\PostHog\Event\CaptureEvent::capture(
+						( new EventInstanceService() )->getPostTypeUnlockedEvent( $event_props )
+					);
+				}
+			}
+		}
+
 		echo '1|';
 		break;
 	case 'copy_from_original':
 		user_is_translator_or_exit();
 
-		/*
-		 * apply filtering as to add further elements
-		 * filters will have to like as such
-		 * add_filter('wpml_copy_from_original_custom_fields', 'my_copy_from_original_fields');
-		 *
-		 * function my_copy_from_original_fields( $elements ) {
-		 *  $custom_field = 'editor1';
-		 *  $elements[ 'customfields' ][ $custom_fields ] = array(
-		 *    'editor_name' => 'custom_editor_1',
-		 *    'editor_type' => 'editor',
-		 *    'value'       => 'test'
-		 *  );
-		 *
-		 *  $custom_field = 'editor2';
-		 *  $elements[ 'customfields' ][ $custom_fields ] = array(
-		 *    'editor_name' => 'textbox1',
-		 *    'editor_type' => 'text',
-		 *    'value'       => 'testtext'
-		 *  );
-		 *
-		 *  return $elements;
-		 * }
-		 * This filter would result in custom_editor_1 being populated with the value "test"
-		 * and the textfield with id #textbox1 to be populated with "testtext".
-		 * editor type is always either text when populating general fields or editor when populating
-		 * a wp editor. The editor id can be either judged from the arguments used in the wp_editor() call
-		 * or from looking at the tinyMCE.Editors object that the custom post type's editor sends to the browser.
-		 */
 		$content_type = filter_input( INPUT_POST, 'content_type' );
 		$excerpt_type = filter_input( INPUT_POST, 'excerpt_type' );
 		$trid         = filter_input( INPUT_POST, 'trid' );
@@ -348,8 +369,8 @@ switch ( $request ) {
 		$sitepress->set_setting( 'seo', $seo, true );
 		echo '1|';
 		break;
-	case 'connect_translations': // This is used by the "Connect Translations" dialog.
-		user_can_edit_post_or_exit();
+	case 'connect_translations':
+		user_can_edit_post_or_exit( (int) $_POST['post_id'] );
 
 		$new_trid      = $_POST['new_trid'];
 		$post_type     = $_POST['post_type'];
@@ -360,6 +381,17 @@ switch ( $request ) {
 		$language_details = $sitepress->get_element_language_details( $post_id, $element_type );
 
 		if ( $set_as_source ) {
+
+			$new_trid_original_id = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT element_id FROM {$wpdb->prefix}icl_translations WHERE trid = %d AND element_type = %s AND source_language_code IS NULL LIMIT 1",
+					(int) $new_trid,
+					$element_type
+				)
+			);
+			if ( $new_trid_original_id ) {
+				user_can_edit_post_or_exit( $new_trid_original_id );
+			}
 
 			$wpdb->update(
 				$wpdb->prefix . 'icl_translations',
@@ -437,7 +469,7 @@ switch ( $request ) {
 		}
 		echo wp_json_encode( true );
 		break;
-	case 'get_posts_from_trid': // This is used by the "Connect Translations" dialog.
+	case 'get_posts_from_trid':
 		user_can_edit_post_or_exit();
 
 		$trid      = $_POST['trid'];
@@ -458,7 +490,7 @@ switch ( $request ) {
 		}
 		echo wp_json_encode( $results );
 		break;
-	case 'get_orphan_posts': // This is used by the "Connect Translations" dialog.
+	case 'get_orphan_posts':
 		user_can_edit_post_or_exit();
 
 		$trid            = $_POST['trid'];
@@ -469,18 +501,10 @@ switch ( $request ) {
 		echo wp_json_encode( $results );
 
 		break;
-	// classes/ATE/Hooks/class-wpml-tm-old-editor.php
 	case 'icl_doc_translation_method':
 		user_is_translator_or_exit();
 		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
 		break;
-	// modules/cache-plugins-integration/cache-plugins-integration.php
-	case 'wpml_cpi_options':
-	case 'wpml_cpi_clear_cache':
-		user_is_manager_or_exit();
-		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
-		break;
-	// inc/translation-management/translation-management.class.php
 	case 'assign_translator':
 	case 'icl_cf_translation':
 	case 'icl_tcf_translation':
@@ -490,22 +514,14 @@ switch ( $request ) {
 		user_is_translator_or_exit();
 		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
 		break;
-	// inc/translation-proxy/wpml-pro-translation.class.php
 	case 'set_pickup_mode':
 		user_is_manager_or_exit();
 		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
 		break;
-	//inc/upgrade-functions/upgrade-2.0.0.php
-	case 'wpml_upgrade_2_0_0':
-		user_is_manager_or_exit();
-		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
-		break;
-	//wpml-string-translation/inc/wpml-string-translation.class.php
 	case 'icl_st_delete_strings':
 		user_is_translator_or_exit();
 		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );
 		break;
-	//wpml-string-translation/classes/slug-translation/class-wpml-slug-translation.php
 	case 'icl_slug_translation':
 		user_is_translator_or_exit();
 		do_action( 'icl_ajx_custom_call', $request, $_REQUEST );

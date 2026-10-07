@@ -2,27 +2,15 @@
 
 class WPML_TM_Sync_Jobs_Status {
 
-	/** @var WPML_TM_Jobs_Repository */
 	private $jobs_repository;
 
-	/** @var WPML_TP_Jobs_API */
 	private $tp_api;
 
-	/**
-	 * WPML_TM_Sync_Jobs_Status constructor.
-	 *
-	 * @param WPML_TM_Jobs_Repository $jobs_repository
-	 * @param WPML_TP_Jobs_API        $tp_api
-	 */
 	public function __construct( WPML_TM_Jobs_Repository $jobs_repository, WPML_TP_Jobs_API $tp_api ) {
 		$this->jobs_repository = $jobs_repository;
 		$this->tp_api          = $tp_api;
 	}
 
-	/**
-	 * @return WPML_TM_Jobs_Collection
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function sync() {
 		return $this->update_tp_state_of_jobs(
 			$this->jobs_repository->get_collection(
@@ -36,12 +24,6 @@ class WPML_TM_Sync_Jobs_Status {
 		);
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Collection $jobs
-	 *
-	 * @return WPML_TM_Jobs_Collection
-	 * @throws WPML_TP_API_Exception
-	 */
 	private function update_tp_state_of_jobs( WPML_TM_Jobs_Collection $jobs ) {
 		$tp_ids = $this->extract_tp_id_from_jobs( $jobs );
 
@@ -62,11 +44,6 @@ class WPML_TM_Sync_Jobs_Status {
 		return $jobs;
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Collection $jobs
-	 *
-	 * @return array
-	 */
 	private function extract_tp_id_from_jobs( WPML_TM_Jobs_Collection $jobs ) {
 		$tp_ids = array();
 		foreach ( $jobs as $job ) {

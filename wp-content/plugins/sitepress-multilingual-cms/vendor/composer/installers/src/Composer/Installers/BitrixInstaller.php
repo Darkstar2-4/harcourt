@@ -4,44 +4,19 @@ namespace Composer\Installers;
 
 use Composer\Util\Filesystem;
 
-/**
- * Installer for Bitrix Framework. Supported types of extensions:
- * - `bitrix-d7-module` — copy the module to directory `bitrix/modules/<vendor>.<name>`.
- * - `bitrix-d7-component` — copy the component to directory `bitrix/components/<vendor>/<name>`.
- * - `bitrix-d7-template` — copy the template to directory `bitrix/templates/<vendor>_<name>`.
- * 
- * You can set custom path to directory with Bitrix kernel in `composer.json`:
- * 
- * ```json
- * {
- *      "extra": {
- *          "bitrix-dir": "s1/bitrix"
- *      }
- * }
- * ```
- *
- * @author Nik Samokhvalov <nik@samokhvalov.info>
- * @author Denis Kulichkin <onexhovia@gmail.com>
- */
 class BitrixInstaller extends BaseInstaller
 {
     protected $locations = array(
-        'module'    => '{$bitrix_dir}/modules/{$name}/',    // deprecated, remove on the major release (Backward compatibility will be broken)
-        'component' => '{$bitrix_dir}/components/{$name}/', // deprecated, remove on the major release (Backward compatibility will be broken)
-        'theme'     => '{$bitrix_dir}/templates/{$name}/',  // deprecated, remove on the major release (Backward compatibility will be broken)
+        'module'    => '{$bitrix_dir}/modules/{$name}/',
+        'component' => '{$bitrix_dir}/components/{$name}/',
+        'theme'     => '{$bitrix_dir}/templates/{$name}/',
         'd7-module'    => '{$bitrix_dir}/modules/{$vendor}.{$name}/',
         'd7-component' => '{$bitrix_dir}/components/{$vendor}/{$name}/',
         'd7-template'     => '{$bitrix_dir}/templates/{$vendor}_{$name}/',
     );
 
-    /**
-     * @var array Storage for informations about duplicates at all the time of installation packages.
-     */
     private static $checkedDuplicates = array();
 
-    /**
-     * {@inheritdoc}
-     */
     public function inflectPackageVars($vars)
     {
         if ($this->composer->getPackage()) {
@@ -59,9 +34,6 @@ class BitrixInstaller extends BaseInstaller
         return parent::inflectPackageVars($vars);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function templatePath($path, array $vars = array())
     {
         $templatePath = parent::templatePath($path, $vars);
@@ -70,12 +42,6 @@ class BitrixInstaller extends BaseInstaller
         return $templatePath;
     }
 
-    /**
-     * Duplicates search packages.
-     *
-     * @param string $path
-     * @param array $vars
-     */
     protected function checkDuplicates($path, array $vars = array())
     {
         $packageType = substr($vars['type'], strlen('bitrix') + 1);

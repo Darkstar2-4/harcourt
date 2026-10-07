@@ -11,60 +11,6 @@
 
 namespace Symfony\Polyfill\Mbstring;
 
-/**
- * Partial mbstring implementation in PHP, iconv based, UTF-8 centric.
- *
- * Implemented:
- * - mb_chr                  - Returns a specific character from its Unicode code point
- * - mb_convert_encoding     - Convert character encoding
- * - mb_convert_variables    - Convert character code in variable(s)
- * - mb_decode_mimeheader    - Decode string in MIME header field
- * - mb_encode_mimeheader    - Encode string for MIME header XXX NATIVE IMPLEMENTATION IS REALLY BUGGED
- * - mb_decode_numericentity - Decode HTML numeric string reference to character
- * - mb_encode_numericentity - Encode character to HTML numeric string reference
- * - mb_convert_case         - Perform case folding on a string
- * - mb_detect_encoding      - Detect character encoding
- * - mb_get_info             - Get internal settings of mbstring
- * - mb_http_input           - Detect HTTP input character encoding
- * - mb_http_output          - Set/Get HTTP output character encoding
- * - mb_internal_encoding    - Set/Get internal character encoding
- * - mb_list_encodings       - Returns an array of all supported encodings
- * - mb_ord                  - Returns the Unicode code point of a character
- * - mb_output_handler       - Callback function converts character encoding in output buffer
- * - mb_scrub                - Replaces ill-formed byte sequences with substitute characters
- * - mb_strlen               - Get string length
- * - mb_strpos               - Find position of first occurrence of string in a string
- * - mb_strrpos              - Find position of last occurrence of a string in a string
- * - mb_str_split            - Convert a string to an array
- * - mb_strtolower           - Make a string lowercase
- * - mb_strtoupper           - Make a string uppercase
- * - mb_substitute_character - Set/Get substitution character
- * - mb_substr               - Get part of string
- * - mb_stripos              - Finds position of first occurrence of a string within another, case insensitive
- * - mb_stristr              - Finds first occurrence of a string within another, case insensitive
- * - mb_strrchr              - Finds the last occurrence of a character in a string within another
- * - mb_strrichr             - Finds the last occurrence of a character in a string within another, case insensitive
- * - mb_strripos             - Finds position of last occurrence of a string within another, case insensitive
- * - mb_strstr               - Finds first occurrence of a string within another
- * - mb_strwidth             - Return width of string
- * - mb_substr_count         - Count the number of substring occurrences
- *
- * Not implemented:
- * - mb_convert_kana         - Convert "kana" one from another ("zen-kaku", "han-kaku" and more)
- * - mb_ereg_*               - Regular expression with multibyte support
- * - mb_parse_str            - Parse GET/POST/COOKIE data and set global variable
- * - mb_preferred_mime_name  - Get MIME charset string
- * - mb_regex_encoding       - Returns current encoding for multibyte regex as string
- * - mb_regex_set_options    - Set/Get the default options for mbregex functions
- * - mb_send_mail            - Send encoded mail
- * - mb_split                - Split multibyte string using regular expression
- * - mb_strcut               - Get part of string
- * - mb_strimwidth           - Get truncated string with specified width
- *
- * @author Nicolas Grekas <p@tchwork.com>
- *
- * @internal
- */
 final class Mbstring
 {
     const MB_CASE_FOLD = PHP_INT_MAX;
@@ -154,7 +100,7 @@ final class Mbstring
         if (null !== $encoding && !\is_scalar($encoding)) {
             trigger_error('mb_decode_numericentity() expects parameter 3 to be string, '.\gettype($s).' given', E_USER_WARNING);
 
-            return '';  // Instead of null (cf. mb_encode_numericentity).
+            return '';
         }
 
         $s = (string) $s;
@@ -176,7 +122,6 @@ final class Mbstring
         $cnt = floor(\count($convmap) / 4) * 4;
 
         for ($i = 0; $i < $cnt; $i += 4) {
-            // collector_decode_htmlnumericentity ignores $convmap[$i + 3]
             $convmap[$i] += $convmap[$i + 2];
             $convmap[$i + 1] += $convmap[$i + 2];
         }
@@ -214,7 +159,7 @@ final class Mbstring
         if (null !== $encoding && !\is_scalar($encoding)) {
             trigger_error('mb_encode_numericentity() expects parameter 3 to be string, '.\gettype($s).' given', E_USER_WARNING);
 
-            return null;  // Instead of '' (cf. mb_decode_numericentity).
+            return null;
         }
 
         if (null !== $is_hex && !\is_scalar($is_hex)) {
@@ -462,7 +407,6 @@ final class Mbstring
                     if (strncmp($enc, 'ISO-8859-', 9)) {
                         return false;
                     }
-                    // no break
                 case 'ASCII':
                 case 'UTF8':
                 case 'UTF-8':

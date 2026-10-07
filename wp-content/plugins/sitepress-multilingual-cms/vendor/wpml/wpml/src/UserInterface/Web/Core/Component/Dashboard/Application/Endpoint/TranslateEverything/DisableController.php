@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class DisableController implements EndpointInterface {
 
-  /** @var SettingsService */
   private $settingsService;
 
 

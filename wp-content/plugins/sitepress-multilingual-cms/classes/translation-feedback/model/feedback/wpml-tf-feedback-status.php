@@ -1,37 +1,23 @@
 <?php
 
-/**
- * Class WPML_TF_Feedback_Status
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Feedback_Status {
 
-	/** @var string $status */
 	private $status = 'pending';
 
-	/**
-	 * WPML_TF_Feedback_Status constructor.
-	 *
-	 * @param string $status
-	 */
 	public function __construct( $status = null ) {
 		if ( $status ) {
 			$this->set_value( $status );
 		}
 	}
 
-	/** @param string $status*/
 	public function set_value( $status ) {
 		$this->status = sanitize_text_field( $status );
 	}
 
-	/** @return string */
 	public function get_value() {
 		return $this->status;
 	}
 
-	/** @return null|string */
 	public function get_display_text() {
 		switch ( $this->get_value() ) {
 			case 'pending':
@@ -75,16 +61,10 @@ class WPML_TF_Feedback_Status {
 		return null;
 	}
 
-	/** @return bool */
 	private function is_admin_user() {
 		return current_user_can( 'manage_options' );
 	}
 
-	/**
-	 * This is used by the blue button on the feedback list
-	 *
-	 * @return array|null
-	 */
 	public function get_next_status() {
 		if ( $this->is_admin_user() ) {
 			switch ( $this->get_value() ) {
@@ -122,7 +102,6 @@ class WPML_TF_Feedback_Status {
 		return null;
 	}
 
-	/** @return bool */
 	public function is_pending() {
 		$pending_statuses = array( 'pending' );
 

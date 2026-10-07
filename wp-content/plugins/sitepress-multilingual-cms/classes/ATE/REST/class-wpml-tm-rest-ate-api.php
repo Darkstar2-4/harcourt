@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 class WPML_TM_REST_ATE_API extends WPML_TM_ATE_Required_Rest_Base {
 	const CAPABILITY_CREATE = 'manage_translations';
@@ -9,11 +6,6 @@ class WPML_TM_REST_ATE_API extends WPML_TM_ATE_Required_Rest_Base {
 
 	private $api;
 
-	/**
-	 * WPML_TM_REST_AMS_Clients constructor.
-	 *
-	 * @param WPML_TM_ATE_API $api
-	 */
 	public function __construct( WPML_TM_ATE_API $api ) {
 		parent::__construct();
 		$this->api = $api;
@@ -41,22 +33,10 @@ class WPML_TM_REST_ATE_API extends WPML_TM_ATE_Required_Rest_Base {
 		);
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function create_jobs( WP_REST_Request $request ) {
 		return $this->api->create_jobs( $request->get_params() );
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function get_job( WP_REST_Request $request ) {
 		$ate_job_id = $request->get_param( 'ateJobId' );
 

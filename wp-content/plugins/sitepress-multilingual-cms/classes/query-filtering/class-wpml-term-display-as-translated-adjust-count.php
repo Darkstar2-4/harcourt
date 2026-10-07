@@ -1,25 +1,13 @@
 <?php
 
-/**
- * Class WPML_Term_Display_As_Translated_Adjust_Count
- */
 class WPML_Term_Display_As_Translated_Adjust_Count {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var array  */
 	private $taxonomies_display_as_translated;
 
-	/**
-	 * WPML_Term_Display_As_Translated_Adjust_Count constructor.
-	 *
-	 * @param SitePress $sitepress
-	 * @param wpdb      $wpdb
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		wpdb $wpdb
@@ -28,12 +16,10 @@ class WPML_Term_Display_As_Translated_Adjust_Count {
             ! isset( $GLOBALS['wp_version'] )
 			|| version_compare( $GLOBALS['wp_version'], '6.0', '<' )
         ) {
-            // Only needed since WP 6.0.
             return;
         }
 
         if ( is_admin() && ! WPML_Ajax::is_frontend_ajax_request() ) {
-            // No need to adjust on admin sites.
             return;
         }
 
@@ -41,22 +27,17 @@ class WPML_Term_Display_As_Translated_Adjust_Count {
 		$this->wpdb                             = $wpdb;
         $this->taxonomies_display_as_translated = $sitepress->get_display_as_translated_taxonomies();
 
-		// The final hook needs to be on the generic 'get_term', but the logic
-		// should only run when categories or tags are fetched.
 		add_filter( 'get_term', [ $this, 'add_get_term_adjust_count' ], 10, 2 );
 	}
 
 	public function add_get_term_adjust_count( $term, $taxonomy ) {
 
 		if ( ! in_array( $taxonomy, $this->taxonomies_display_as_translated, true ) ) {
-			// Display as translated is not enabled for this taxonomy.
 			return $term;
 		}
 
-		// Adjust the count on the get_term filter.
 		add_filter( 'get_term', [ $this, 'get_term_adjust_count' ] );
 
-		// This is the next hook triggered to remove the previous filter again.
 		add_filter( 'get_terms', [ $this, 'remove_get_term_adjust_count' ] );
 
 		return $term;

@@ -112,7 +112,6 @@ $text = isset( $text ) ? $text : '';
 				}
 
 				$blog_state = '';
-				/** @phpstan-ignore-next-line WP doc issue in above get_blog_status. */
 				if ( ! empty( $blog_states ) ) {
 					$state_count = count( $blog_states );
 					$i           = 0;
@@ -137,7 +136,6 @@ $text = isset( $text ) ? $text : '';
 						<a href="<?php echo esc_url( network_admin_url( 'site-info.php?id=' . $blog['blog_id'] ) ); ?>"
 						   class="edit"><?php echo esc_html( $blog_name ) . $blog_state; ?></a>
 						<?php
-						// Preordered.
 						$actions = array(
 							'edit'       => '',
 							'backend'    => '',

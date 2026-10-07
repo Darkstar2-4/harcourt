@@ -1,95 +1,124 @@
-<?php
-defined( 'ABSPATH' ) or die( "you do not have access to this page!" );
+<?php // phpcs:disable WordPress.Files.FileName.InvalidClassFileName -- Legacy file name retained for backward compatibility.
+defined( 'ABSPATH' ) || die( 'you do not have access to this page!' );
 
-if ( ! class_exists( "cmplz_wizard" ) ) {
+if ( ! class_exists( 'cmplz_wizard' ) ) {
+	// phpcs:disable PEAR.NamingConventions.ValidClassName.StartWithCapital, PEAR.NamingConventions.ValidClassName.Invalid -- Legacy class name retained for backward compatibility.
+	/**
+	 * Wizard handler: enforces the singleton and reacts to wizard field saves.
+	 */
 	class cmplz_wizard {
-		private static $_this;
+		/**
+		 * Singleton instance.
+		 *
+		 * @var cmplz_wizard
+		 */
+		private static $_this; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- Legacy property name kept for backward compatibility.
 
-		function __construct() {
+		/**
+		 * Constructor: enforce the singleton and register wizard hooks.
+		 */
+		public function __construct() {
 			if ( isset( self::$_this ) ) {
-				wp_die( sprintf( '%s is a singleton class and you cannot create a second instance.',
-					get_class( $this ) ) );
+				wp_die(
+					sprintf(
+						'%s is a singleton class and you cannot create a second instance.',
+						esc_html( get_class( $this ) )
+					)
+				);
 			}
 
 			self::$_this = $this;
-			//callback from settings.
+			// callback from settings.
 			add_action( 'cmplz_finish_wizard', array( $this, 'finish_wizard' ), 10, 1 );
-			add_action( "cmplz_before_save_options", array($this,"before_save_options"), 10, 5 );
+			add_action( 'cmplz_before_save_options', array( $this, 'before_save_options' ), 10, 5 );
 		}
 
-		static function this() {
+		/**
+		 * Get the singleton instance.
+		 *
+		 * @return self
+		 */
+		public static function this() {
 			return self::$_this;
 		}
 
 		/**
 		 * On click finish wizard
+		 *
 		 * @return void
 		 */
-		public function finish_wizard(){
-			if (!cmplz_user_can_manage()) {
+		public function finish_wizard() {
+			if ( ! cmplz_user_can_manage() ) {
 				return;
 			}
-			update_option('cmplz_wizard_completed_once', true );
-			//ensure some default values
+			update_option( 'cmplz_wizard_completed_once', true );
+			// ensure some default values.
 			cmplz_update_all_banners();
 		}
 
 		/**
-		 * Do stuff when a field in the wizard is saved
+		 * Do stuff when a field in the wizard is saved.
+		 *
+		 * @param array       $options     Options being saved.
+		 * @param string|bool $field_id    ID of the saved field.
+		 * @param mixed       $field_value New value of the field.
+		 * @param mixed       $prev_value  Previous value of the field.
+		 * @param string|bool $type        Field type.
+		 *
 		 * @return array
-		 * */
-		public function before_save_options( $options=[], $field_id = false, $field_value = false, $prev_value = false, $type = false ): array {
+		 */
+		public function before_save_options( $options = array(), $field_id = false, $field_value = false, $prev_value = false, $type = false ): array {
 			if ( ! cmplz_admin_logged_in() ) {
 				return $options;
 			}
 
-			//clear cookieshredder list, if cps is enabled
-			if ( $field_id === 'consent_per_service' && $field_value === 'yes' ) {
-				cmplz_delete_transient('cmplz_cookie_shredder_list');
+			// clear cookieshredder list, if cps is enabled.
+			if ( 'consent_per_service' === $field_id && 'yes' === $field_value ) {
+				cmplz_delete_transient( 'cmplz_cookie_shredder_list' );
 			}
 
 			if ( $field_value === $prev_value ) {
 				return $options;
 			}
 
-			//if these values are changed, ensure that the services sync starts again.
-			if ($field_id === 'uses_thirdparty_services' || $field_id === 'uses_social_media') {
+			// if these values are changed, ensure that the services sync starts again.
+			if ( 'uses_thirdparty_services' === $field_id || 'uses_social_media' === $field_id ) {
 				COMPLIANZ::$sync->resync();
 			}
 
 			update_option( 'cmplz_documents_update_date', time() );
 			$enable_categories = false;
-			$uses_tagmanager = ($options['compile_statistics'] ?? false) === 'google-tag-manager';
+			$uses_tagmanager   = ( $options['compile_statistics'] ?? false ) === 'google-tag-manager';
 
-			//if the cookie banner is enabled by the user, add complianz cookies to the cookies array
-			if ($field_id === 'enable_cookie_banner' && $field_value==='yes'){
-				$prefix = COMPLIANZ::$banner_loader->get_cookie_prefix();
-				$cookies = [$prefix.'functional', $prefix.'statistics', $prefix.'preferences', $prefix.'marketing'];
-				if (!cmplz_uses_statistic_cookies()) {
-					unset($cookies[1]);
+			// if the cookie banner is enabled by the user, add complianz cookies to the cookies array.
+			if ( 'enable_cookie_banner' === $field_id && 'yes' === $field_value ) {
+				$prefix  = COMPLIANZ::$banner_loader->get_cookie_prefix();
+				$cookies = array( $prefix . 'functional', $prefix . 'statistics', $prefix . 'preferences', $prefix . 'marketing' );
+				if ( ! cmplz_uses_statistic_cookies() ) {
+					unset( $cookies[1] );
 				}
-				$cookies += [$prefix.'policy_id',$prefix.'consented_services', $prefix.'banner-status', $prefix.'saved_categories'];
-				foreach ($cookies as $cookie) {
-					$cookie = new CMPLZ_COOKIE($cookie);
-					$cookie->save(true);
+				$cookies += array( $prefix . 'policy_id', $prefix . 'consented_services', $prefix . 'banner-status', $prefix . 'saved_categories' );
+				foreach ( $cookies as $cookie ) {
+					$cookie = new CMPLZ_COOKIE( $cookie );
+					$cookie->save( true );
 				}
 			}
 
 			/* if tag manager fires scripts, cats should be enabled for each cookiebanner. */
-			if ( $field_id === 'compile_statistics' && $field_value === 'google-tag-manager' ) {
+			if ( 'compile_statistics' === $field_id && 'google-tag-manager' === $field_value ) {
 				$enable_categories = true;
 			}
 
-			if ( ( $field_id === 'consent_for_anonymous_stats' ) && $field_value === 'yes' ) {
+			if ( ( 'consent_for_anonymous_stats' === $field_id ) && 'yes' === $field_value ) {
 				$enable_categories = true;
 			}
 
-			if ( $field_id === 'a_b_testing' && !$field_value ) {
+			if ( 'a_b_testing' === $field_id && ! $field_value ) {
 				$options['a_b_testing_buttons'] = false;
 			}
 
-			//when ab testing is just enabled icw TM, cats should be enabled for each banner.
-			if ( ( $field_id === 'a_b_testing_buttons' && $field_value === true && $prev_value === false ) ) {
+			// when ab testing is just enabled icw TM, cats should be enabled for each banner.
+			if ( ( 'a_b_testing_buttons' === $field_id && true === $field_value && false === $prev_value ) ) {
 				if ( $uses_tagmanager ) {
 					$enable_categories = true;
 				}
@@ -106,46 +135,36 @@ if ( ! class_exists( "cmplz_wizard" ) ) {
 				}
 			}
 
-			//save last changed date.
+			// save last changed date.
 			COMPLIANZ::$banner_loader->update_cookie_policy_date();
 
 			$fields = COMPLIANZ::$config->fields;
-			//if the fieldname is from the "revoke cookie consent on change" list, change the policy if it's changed
+			// if the fieldname is from the "revoke cookie consent on change" list, change the policy if it's changed.
 
-			$ids = array_column($fields, 'id');
+			$ids   = array_column( $fields, 'id' );
 			$index = array_search( $field_id, $ids, true );
 			$field = $fields[ $index ] ?? false;
 			if ( $field && isset( $field['revoke_consent_onchange'] ) && $field['revoke_consent_onchange'] ) {
 				COMPLIANZ::$banner_loader->upgrade_active_policy_id();
-				if ( !get_option( 'cmplz_generate_new_cookiepolicy_snapshot') ) update_option( 'cmplz_generate_new_cookiepolicy_snapshot', time(), false );
+				if ( ! get_option( 'cmplz_generate_new_cookiepolicy_snapshot' ) ) {
+					update_option( 'cmplz_generate_new_cookiepolicy_snapshot', time(), false );
+				}
 			}
 
-			if ( $field_id === 'configuration_by_complianz'
-			     || $field_id === 'gtm_code'
-			     || $field_id === 'matomo_url'
-			     || $field_id === 'matomo_tag_url'
-			     || $field_id === 'matomo_site_id'
-			     || $field_id === 'matomo_container_id'
-			     || $field_id === 'ua_code'
-			) {
-				delete_option( 'cmplz_detected_stats_data' );
-				delete_option( 'cmplz_detected_stats_type' );
-			}
-
-			//if the region is not EU anymore, and it was previously enabled for EU / eu_consent_regions, reset impressum
-			if ( ( $field_id === 'regions' ) && cmplz_get_option('eu_consent_regions') === 'yes' ) {
-				if ( is_array($field_value) && !in_array('eu', $field_value)) {
+			// if the region is not EU anymore, and it was previously enabled for EU / eu_consent_regions, reset impressum.
+			if ( ( 'regions' === $field_id ) && cmplz_get_option( 'eu_consent_regions' ) === 'yes' ) {
+				if ( is_array( $field_value ) && ! in_array( 'eu', $field_value ) ) {
 					$options['eu_consent_regions'] = 'no';
-				} elseif (is_string($field_value) && $field_value !== 'eu') {
+				} elseif ( is_string( $field_value ) && 'eu' !== $field_value ) {
 					$options['eu_consent_regions'] = 'no';
 				}
 			}
 
 			$generate_css = false;
-			//update google analytics service depending on anonymization choices
-			if ( $field_id === 'compile_statistics'
-			     || $field_id === 'compile_statistics_more_info'
-			     || $field_id === 'compile_statistics_more_info_tag_manager'
+			// update google analytics service depending on anonymization choices.
+			if ( 'compile_statistics' === $field_id
+				|| 'compile_statistics_more_info' === $field_id
+				|| 'compile_statistics_more_info_tag_manager' === $field_id
 			) {
 				COMPLIANZ::$banner_loader->maybe_add_statistics_service();
 				$generate_css = true;
@@ -154,28 +173,28 @@ if ( ! class_exists( "cmplz_wizard" ) ) {
 			/**
 			 * If TCF was just disabled or enabled, regenerate the css.
 			 */
-			if ( $field_id === 'uses_ad_cookies_personalized' ) {
+			if ( 'uses_ad_cookies_personalized' === $field_id ) {
 				$generate_css = true;
 			}
 
-			if ( $field_id === 'uses_ad_cookies' && $field_value === 'no' ) {
+			if ( 'uses_ad_cookies' === $field_id && 'no' === $field_value ) {
 				$options['uses_ad_cookies_personalized'] = 'no';
 			}
 
-			if ( $field_id === 'children-safe-harbor' && cmplz_get_option( 'targets-children' ) === 'no' ) {
+			if ( 'children-safe-harbor' === $field_id && cmplz_get_option( 'targets-children' ) === 'no' ) {
 				$options['children-safe-harbor'] = 'no';
 			}
 
-			//when region or policy generation type is changed, update cookiebanner version to ensure the changed banner is loaded
-			if ( $generate_css || $field_id === 'privacy-statement' || $field_id === 'regions' || $field_id === 'cookie-statement' ) {
+			// when region or policy generation type is changed, update cookiebanner version to ensure the changed banner is loaded.
+			if ( $generate_css || 'privacy-statement' === $field_id || 'regions' === $field_id || 'cookie-statement' === $field_id ) {
 				cmplz_update_all_banners();
 			}
 
-			// Disable German imprint appendix option when eu_consent_regions is no
-			$german_imprint = ($options['german_imprint_appendix'] ?? false) === 'yes';
-			if ( $field_id === 'eu_consent_regions'
-			     && $field_value === 'no'
-			     && $german_imprint ) {
+			// Disable German imprint appendix option when eu_consent_regions is no.
+			$german_imprint = ( $options['german_imprint_appendix'] ?? false ) === 'yes';
+			if ( 'eu_consent_regions' === $field_id
+				&& 'no' === $field_value
+				&& $german_imprint ) {
 				$options['german_imprint_appendix'] = 'no';
 			}
 			return $options;
@@ -183,18 +202,14 @@ if ( ! class_exists( "cmplz_wizard" ) ) {
 
 		/**
 		 * Lock the wizard for further use while it's being edited by the current user.
-		 *
 		 * */
-
 		public function lock_wizard(): void {
-			set_transient( 'cmplz_wizard_locked_by_user', get_current_user_id(), apply_filters( "cmplz_wizard_lock_time", 2 * MINUTE_IN_SECONDS ) );
+			set_transient( 'cmplz_wizard_locked_by_user', get_current_user_id(), apply_filters( 'cmplz_wizard_lock_time', 2 * MINUTE_IN_SECONDS ) );
 		}
 
 		/**
 		 * Check if the wizard is locked by another user
-		 *
 		 * */
-
 		public function wizard_is_locked(): bool {
 			$user_id      = get_current_user_id();
 			$lock_user_id = $this->get_lock_user();
@@ -203,6 +218,7 @@ if ( ! class_exists( "cmplz_wizard" ) ) {
 
 		/**
 		 * Get the user that has locked the wizard
+		 *
 		 * @return int
 		 */
 		public function get_lock_user(): int {
@@ -211,14 +227,14 @@ if ( ! class_exists( "cmplz_wizard" ) ) {
 		}
 
 		/**
+		 * Whether the wizard has been completed at least once.
+		 *
 		 * @return bool
 		 */
-
 		public function wizard_completed_once() {
 			return get_option( 'cmplz_wizard_completed_once', false );
 		}
-
 	}
-
+	// phpcs:enable PEAR.NamingConventions.ValidClassName.StartWithCapital, PEAR.NamingConventions.ValidClassName.Invalid
 
 } //class closure

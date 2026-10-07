@@ -4,16 +4,8 @@ class WPML_TP_Refresh_Language_Pairs {
 
 	const AJAX_ACTION = 'wpml-tp-refresh-language-pairs';
 
-	/**
-	 * @var WPML_TP_Project_API
-	 */
 	private $tp_api;
 
-	/**
-	 * WPML_TP_AJAX constructor.
-	 *
-	 * @param WPML_TP_Project_API $wpml_tp_api
-	 */
 	public function __construct( WPML_TP_Project_API $wpml_tp_api ) {
 		$this->tp_api = $wpml_tp_api;
 	}
@@ -47,9 +39,6 @@ class WPML_TP_Refresh_Language_Pairs {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		return array_key_exists( 'nonce', $_POST ) &&
 			   wp_verify_nonce( filter_var( $_POST['nonce'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ), self::AJAX_ACTION );

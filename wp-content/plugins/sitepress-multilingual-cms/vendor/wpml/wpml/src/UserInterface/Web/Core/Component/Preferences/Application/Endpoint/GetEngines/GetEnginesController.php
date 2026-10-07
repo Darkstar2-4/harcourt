@@ -8,7 +8,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetEnginesController implements EndpointInterface {
 
-  /** @var EnginesServiceInterface */
   private $enginesService;
 
 
@@ -17,11 +16,6 @@ class GetEnginesController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed>|null $requestData
-   *
-   * @return array<mixed, mixed>
-   */
   public function handle( $requestData = null ): array {
     try {
       $enginesDto = $this->enginesService->getList();

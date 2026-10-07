@@ -4,25 +4,15 @@ namespace WPML\Core\SharedKernel\Component\Translator\Application\Service\Dto;
 
 class TranslatorDto {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $name;
 
-  /** @var string */
   private $userName;
 
-  /** @var LanguagePairDto[] */
   private $languagePairs;
 
 
-  /**
-   * @param int $id
-   * @param string $name
-   * @param string $userName
-   * @param LanguagePairDto[] $languagePairs
-   */
   public function __construct(
     int $id,
     string $name,
@@ -51,25 +41,11 @@ class TranslatorDto {
   }
 
 
-  /**
-   * @return LanguagePairDto[]
-   */
   public function getLanguagePairs(): array {
     return $this->languagePairs;
   }
 
 
-  /**
-   * @return array{
-   *   id: int,
-   *   name: string,
-   *   userName: string,
-   *   languagePairs: array<array{
-   *   from: string,
-   *   to: string[]
-   * }>
-   * }
-   */
   public function toArray(): array {
     return [
       'id'            => $this->getId(),

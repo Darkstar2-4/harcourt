@@ -5,7 +5,7 @@ namespace Smush\Core\Next_Gen;
 use Smush\Core\Webp\Webp_Configuration;
 
 class Next_Gen_Manager {
-	const PREVIOUSLY_ACTIVE_FORMAT_KEY = 'wp_smush_next_gen_previously_active_format_key';
+	private static $previously_active_format_option_id = 'wp_smush_next_gen_previously_active_format_key';
 
 	/**
 	 * @var self
@@ -189,10 +189,14 @@ class Next_Gen_Manager {
 	}
 
 	public function save_previously_active_format_key( $format ) {
-		update_option( self::PREVIOUSLY_ACTIVE_FORMAT_KEY, $format, false );
+		update_option( self::$previously_active_format_option_id, $format, false );
 	}
 
 	public function get_previously_active_format_key() {
-		return get_option( self::PREVIOUSLY_ACTIVE_FORMAT_KEY );
+		return get_option( self::$previously_active_format_option_id );
+	}
+
+	public static function get_previously_active_format_option_id() {
+		return self::$previously_active_format_option_id;
 	}
 }

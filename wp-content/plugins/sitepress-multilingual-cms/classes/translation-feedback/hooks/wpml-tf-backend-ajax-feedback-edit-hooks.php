@@ -1,28 +1,13 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_AJAX_Feedback_Edit_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_AJAX_Feedback_Edit_Hooks implements IWPML_Action {
 
-	/** @var WPML_TF_Feedback_Edit $feedback_edit */
 	private $feedback_edit;
 
-	/** @var WPML_TF_Backend_Feedback_Row_View $row_view */
 	private $row_view;
 
-	/** @var array $post_data */
 	private $post_data;
 
-	/**
-	 * WPML_TF_Backend_AJAX_Feedback_Edit_Hooks constructor.
-	 *
-	 * @param WPML_TF_Feedback_Edit             $feedback_edit
-	 * @param WPML_TF_Backend_Feedback_Row_View $row_view
-	 * @param array                             $post_data
-	 */
 	public function __construct(
 		WPML_TF_Feedback_Edit $feedback_edit,
 		WPML_TF_Backend_Feedback_Row_View $row_view,
@@ -64,11 +49,6 @@ class WPML_TF_Backend_AJAX_Feedback_Edit_Hooks implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @throws WPML_TF_AJAX_Exception
-	 */
 	private function check_post_data_key( $key ) {
 		if ( ! isset( $this->post_data[ $key ] ) ) {
 			$message = sprintf(

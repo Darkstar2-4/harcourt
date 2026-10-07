@@ -6,9 +6,9 @@ use Smush\Core\Settings;
 use Smush\Core\Next_Gen\Next_Gen_Configuration_Interface;
 
 class Webp_Configuration implements Next_Gen_Configuration_Interface {
-	const FORMAT_KEY = 'webp';
-	const DIRECT_CONVERSION_METHOD = 'direct_conversion';
-	const HIDE_WIZARD_OPTION_KEY = 'wp-smush-webp_hide_wizard';
+	private static $format_key = 'webp';
+	private static $direct_conversion_method_key = 'direct_conversion';
+	private static $hide_wizard_option_key = 'wp-smush-webp_hide_wizard';
 
 	/**
 	 * @var self
@@ -54,8 +54,8 @@ class Webp_Configuration implements Next_Gen_Configuration_Interface {
 		return __( 'WebP', 'wp-smushit' );
 	}
 
-	public function get_format_key() {
-		return self::FORMAT_KEY;
+	public static function get_format_key() {
+		return self::$format_key;
 	}
 
 	public function is_activated() {
@@ -87,7 +87,7 @@ class Webp_Configuration implements Next_Gen_Configuration_Interface {
 	}
 
 	public function set_next_gen_method( $webp_method ) {
-		$enable_direct_conversion = self::DIRECT_CONVERSION_METHOD === $webp_method;
+		$enable_direct_conversion = self::$direct_conversion_method_key === $webp_method;
 		if ( $enable_direct_conversion === $this->direct_conversion_enabled() ) {
 			return;
 		}
@@ -99,7 +99,7 @@ class Webp_Configuration implements Next_Gen_Configuration_Interface {
 			$this->direct_conversion->disable();
 			$this->server_configuration->enable();
 			if ( ! $this->should_show_wizard() ) {
-				$this->toggle_wizard();
+				$this->show_wizard();
 			}
 		}
 
@@ -151,8 +151,16 @@ class Webp_Configuration implements Next_Gen_Configuration_Interface {
 	}
 
 	public function toggle_wizard() {
-		$is_hidden = get_site_option( self::HIDE_WIZARD_OPTION_KEY );
-		update_site_option( self::HIDE_WIZARD_OPTION_KEY, ! $is_hidden );
+		$is_hidden = get_site_option( self::$hide_wizard_option_key );
+		update_site_option( self::$hide_wizard_option_key, ! $is_hidden );
+	}
+
+	public function show_wizard() {
+		update_site_option( self::$hide_wizard_option_key, false );
+	}
+
+	public function hide_wizard() {
+		update_site_option( self::$hide_wizard_option_key, true );
 	}
 
 	public function should_show_wizard() {
@@ -160,11 +168,23 @@ class Webp_Configuration implements Next_Gen_Configuration_Interface {
 			return false;
 		}
 
-		$hide_wizard = get_site_option( self::HIDE_WIZARD_OPTION_KEY );
-		return ! $hide_wizard;
+		return true;
+
+		// $hide_wizard = get_site_option( self::$hide_wizard_option_key );
+		// return ! $hide_wizard;
 	}
 
 	public function delete_all_next_gen_files() {
 		$this->helper->delete_all_webp_files();
 	}
+
+	/**
+	 * Get direct_conversion_method.
+	 *
+	 * @return string
+	 */
+	public static function get_direct_conversion_method_key() {
+		return self::$direct_conversion_method_key;
+	}
+
 }

@@ -2,7 +2,6 @@
 
 class WPML_Translation_Job_Helper_With_API extends WPML_Translation_Job_Helper {
 
-	/** @var  WPML_Element_Translation_Package $package_helper */
 	protected $package_helper;
 
 	function __construct() {

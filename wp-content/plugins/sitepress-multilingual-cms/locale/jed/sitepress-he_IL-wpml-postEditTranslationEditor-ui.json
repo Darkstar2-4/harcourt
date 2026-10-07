@@ -5,22 +5,22 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
+         "Translation Dashboard": [
+            "לוח מחוונים לתרגום"
+         ],
          "WPML Translation Editor": [
-            "עורך התרגומים של WPML"
+            "עורך התרגום של WPML"
          ],
          "WordPress Editor": [
-            "העורך של WordPress"
-         ],
-         "Translation Dashboard": [
-            "לוח בקרה לתרגום"
+            "עורך וורדפרס"
          ],
          "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
-            "בנוסף, מעבר חזרה לעורך התרגום של WPML מאוחר יותר ידרוש תרגום מחדש של תוכן שתרגמת באמצעות עורך וורדפרס."
+            "כמו כן, חזרה מאוחר יותר לעורך התרגום של WPML תדרוש תרגום מחדש של תוכן שתרגמת באמצעות עורך וורדפרס."
          ],
          "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
-            "פעולה זו תדרוס תוכן שתרגמת באמצעות עורך וורדפרס. אם תעבור כעת, תצטרך לתרגם מחדש את התוכן שנבחר."
+            "פעולה זו תחליף תוכן שתרגמת באמצעות עורך וורדפרס. אם תעבור עכשיו, תצטרך לתרגם שוב תוכן נבחר."
          ],
          "You are about to translate with the %s": [
             "אתה עומד לתרגם באמצעות %s"
@@ -41,28 +41,28 @@
             "ביטול"
          ],
          "I understand, switch to %s": [
-            "אני מבין, עבור ל-%s"
+            "אני מבין, עבור אל %s"
          ],
          "Only this %s": [
-            "רק את %s זה"
+            "רק %s זה"
          ],
          "Recommended": [
             "מומלץ"
          ],
          "All %s": [
-            "כל ה-%s"
+            "כל %s"
          ],
          "All the site's content": [
             "כל תוכן האתר"
          ],
          "I understand, switch to Translation Dashboard": [
-            "אני מבין, עבור ללוח הבקרה לתרגום"
+            "אני מבין, עבור ללוח המחוונים לתרגום"
          ],
          "The WordPress Editor doesn't offer Automatic Translation, Translation Memory and other features that make translation easier.": [
-            "עורך וורדפרס אינו מציע תרגום אוטומטי, זיכרון תרגום ותכונות אחרות שהופכות את התרגום לקל יותר."
+            "עורך וורדפרס אינו מציע תרגום אוטומטי, זיכרון תרגום ותכונות נוספות שמקלות על התרגום."
          ],
          "Translate items in batch after reviewing the cost of AI translation": [
-            "תרגם פריטים באצווה לאחר בדיקת עלות התרגום של בינה מלאכותית"
+            "תרגם פריטים בקבוצה לאחר סקירת עלות התרגום באמצעות AI"
          ]
       }
    }

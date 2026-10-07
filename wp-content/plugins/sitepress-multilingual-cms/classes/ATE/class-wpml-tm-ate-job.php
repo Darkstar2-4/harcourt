@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE_Job {
 
 	const ATE_JOB_CREATED     = 0;

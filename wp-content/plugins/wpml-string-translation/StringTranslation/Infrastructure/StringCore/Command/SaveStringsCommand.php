@@ -12,13 +12,10 @@ use WPML\StringTranslation\Application\StringCore\Query\FindByDomainValueAndCont
 
 class SaveStringsCommand implements SaveStringsCommandInterface {
 
-	/** @var FindByDomainValueAndContextQueryInterface */
 	private $findByDomainValueAndContextQuery;
 
-	/** @var InsertStringsCommandInterface */
 	private $insertStringsCommand;
 
-	/** @var UpdateStringsCommandInterface */
 	private $updateStringsCommand;
 
 	public function __construct(
@@ -31,11 +28,6 @@ class SaveStringsCommand implements SaveStringsCommandInterface {
 		$this->updateStringsCommand             = $updateStringsCommand;
 	}
 
-	/**
-	 * @param StringItem[] $allStrings
-	 *
-	 * @return StringItem[]
-	 */
 	private function partStringsBySameComponentIdAndType( array $allStrings ): array {
 		$strings = [];
 
@@ -51,13 +43,6 @@ class SaveStringsCommand implements SaveStringsCommandInterface {
 		return $strings;
 	}
 
-	/**
-	 * Same string can come from multiple urls, so we should keep only one copy for each string for correct processing.
-	 *
-	 * @param StringItem[] $allStrings
-	 *
-	 * @return StringItem[]
-	 */
 	private function filterOutStringDuplicates( array $allStrings ): array {
 		$foundKeys = [];
 		$strings   = [];
@@ -75,19 +60,11 @@ class SaveStringsCommand implements SaveStringsCommandInterface {
 		return $strings;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 *
-	 * @return StringItem[]
-	 */
 	private function findStringsByDomainValueAndContext( array $strings, array $fields ): array {
 		$criteria = new DomainValueAndContextCriteria( $strings, $fields );
 		return $this->findByDomainValueAndContextQuery->execute( $criteria );
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	public function run( array $strings ) {
 		$strings = $this->filterOutStringDuplicates( $strings );
 
@@ -97,9 +74,6 @@ class SaveStringsCommand implements SaveStringsCommandInterface {
 		$this->saveAutoregisterData( $strings );
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	private function saveAutoregisterData( array $strings ) {
 		if ( count( $strings ) ) {
 			$this->updateStringsCommand->run( $strings, ['string_type'], [StringItem::STRING_TYPE_AUTOREGISTER] );

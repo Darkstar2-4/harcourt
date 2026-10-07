@@ -11,10 +11,10 @@ use Smush\Core\Stats\Global_Stats;
 use Smush\Core\Stats\Media_Item_Optimization_Global_Stats_Persistable;
 
 class Webp_Controller extends Controller {
-	const WEBP_OPTIMIZATION_ORDER = 20;
-	const WEBP_TRANSFORM_PRIORITY = 50;
-	const WEBP_CONFIGURATION_ORDER = 10;
-	const GLOBAL_STATS_OPTION_ID = 'wp-smush-webp-global-stats';
+	private static $webp_optimization_order = 20;
+	private static $webp_transform_priority = 50;
+	private static $webp_configuration_order = 10;
+	private static $global_stats_option_id = 'wp-smush-webp-global-stats';
 	/**
 	 * @var Webp_Helper
 	 */
@@ -60,29 +60,24 @@ class Webp_Controller extends Controller {
 		$this->register_filter( 'wp_smush_optimizations', array(
 			$this,
 			'add_webp_optimization',
-		), self::WEBP_OPTIMIZATION_ORDER, 2 );
+		), self::$webp_optimization_order, 2 );
 		$this->register_filter( 'wp_smush_global_optimization_stats', array( $this, 'add_webp_global_stats' ) );
+		$this->register_filter( 'wp_smush_global_stats_digest_keys', array( $this, 'add_digest_keys' ) );
 		$this->register_action( 'wp_smush_before_restore_backup', array(
 			$this,
 			'delete_webp_versions_on_restore',
 		), 10, 2 );
-		$this->register_action( 'wp_smush_settings_updated', array(
-			$this,
-			'maybe_mark_global_stats_as_outdated',
-		), 10, 2 );
 		$this->register_filter( 'wp_smush_content_transforms', array(
 			$this,
 			'add_webp_transform',
-		), self::WEBP_TRANSFORM_PRIORITY );
+		), self::$webp_transform_priority );
 
 		$this->register_filter( 'wp_smush_next_gen_configuration_objects', array(
 			$this,
 			'add_webp_configuration',
-		), self::WEBP_CONFIGURATION_ORDER );
+		), self::$webp_configuration_order );
 
 		/** Ajax actions */
-		$this->register_action( 'wp_ajax_smush_webp_toggle', array( $this, 'ajax_webp_toggle' ) );
-		$this->register_action( 'wp_ajax_webp_switch_method', array( $this, 'ajax_switch_webp_method' ) );
 		$this->register_action( 'wp_ajax_smush_webp_get_status', array(
 			$this,
 			'ajax_get_server_configuration_status',
@@ -92,7 +87,8 @@ class Webp_Controller extends Controller {
 			'ajax_apply_htaccess_rules',
 		) );
 		$this->register_action( 'wp_ajax_smush_webp_delete_all', array( $this, 'ajax_delete_all_webp_files' ) );
-		$this->register_action( 'wp_ajax_smush_toggle_webp_wizard', array( $this, 'ajax_toggle_wizard' ) );
+		$this->register_action( 'wp_ajax_smush_hide_webp_wizard', array( $this, 'ajax_hide_wizard' ) );
+		$this->register_action( 'wp_ajax_smush_show_webp_wizard', array( $this, 'ajax_show_wizard' ) );
 		// TODO: clean rules from .htaccess on deactivate plugin.
 
 		$this->register_action( 'wp_enqueue_scripts', array( $this, 'maybe_enqueue_fallback_js' ) );
@@ -149,62 +145,15 @@ class Webp_Controller extends Controller {
 	}
 
 	public function add_webp_global_stats( $stats ) {
-		$stats[ Webp_Optimization::OPTIMIZATION_KEY ] = new Media_Item_Optimization_Global_Stats_Persistable( self::GLOBAL_STATS_OPTION_ID );
+		$stats[ Webp_Optimization::get_key() ] = new Media_Item_Optimization_Global_Stats_Persistable( self::$global_stats_option_id );
 
 		return $stats;
 	}
 
-	public function maybe_mark_global_stats_as_outdated( $old_settings, $settings ) {
-		$old_webp_status = ! empty( $old_settings['webp_mod'] );
-		$new_webp_status = ! empty( $settings['webp_mod'] );
-		if ( $old_webp_status !== $new_webp_status ) {
-			$this->global_stats->mark_as_outdated();
-		}
-	}
+	public function add_digest_keys( $keys ) {
+		$keys[] = 'webp_mod';
 
-	public function ajax_switch_webp_method() {
-		if ( ! check_ajax_referer( 'wp-smush-ajax', '_nonce', false ) ) {
-			wp_send_json_error(
-				array(
-					'error_msg' => esc_html__( 'Nonce verification failed', 'wp-smushit' ),
-				)
-			);
-		}
-
-		if ( ! Helper::is_user_allowed( 'manage_options' ) || empty( $_POST['method'] ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'User can not modify options', 'wp-smushit' ),
-				),
-				403
-			);
-		}
-
-		$webp_method = wp_unslash( $_POST['method'] );
-		$this->configuration->switch_method( $webp_method );
-
-		wp_send_json_success();
-	}
-
-	public function ajax_webp_toggle() {
-		check_ajax_referer( 'save_wp_smush_options' );
-
-		$capability = is_multisite() ? 'manage_network' : 'manage_options';
-		if ( ! Helper::is_user_allowed( $capability ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( "You don't have permission to do this.", 'wp-smushit' ),
-				),
-				403
-			);
-		}
-
-		$param       = isset( $_POST['param'] ) ? sanitize_text_field( wp_unslash( $_POST['param'] ) ) : '';
-		$enable_webp = 'true' === $param;
-
-		$this->configuration->toggle_module( $enable_webp );
-
-		wp_send_json_success();
+		return $keys;
 	}
 
 	/**
@@ -213,7 +162,11 @@ class Webp_Controller extends Controller {
 	 * Handles "Re-Check Status" button press on the WebP meta box.
 	 */
 	public function ajax_get_server_configuration_status() {
-		if ( ! check_ajax_referer( 'wp-smush-webp-nonce', false, false ) || ! Helper::is_user_allowed( 'manage_options' ) ) {
+		$capability = is_multisite() ? 'manage_network' : 'manage_options';
+		if (
+			! check_ajax_referer( 'wp-smush-ajax', false, false ) ||
+			! Helper::is_user_allowed( $capability )
+		) {
 			wp_send_json_error( esc_html__( "Either the nonce expired or you can't modify options. Please reload the page and try again.", 'wp-smushit' ) );
 		}
 
@@ -230,14 +183,18 @@ class Webp_Controller extends Controller {
 	 * Handles the "Apply Rules" button press on the WebP meta box.
 	 */
 	public function ajax_apply_htaccess_rules() {
-		if ( ! check_ajax_referer( 'wp-smush-webp-nonce', false, false ) || ! Helper::is_user_allowed( 'manage_options' ) ) {
-			wp_send_json_error( "Either the nonce expired or you can't modify options. Please reload the page and try again." );
+		$capability = is_multisite() ? 'manage_network' : 'manage_options';
+		if (
+			! check_ajax_referer( 'wp-smush-ajax', false, false )
+			|| ! Helper::is_user_allowed( $capability )
+		) {
+			wp_send_json_error( esc_html__( "Either the nonce expired or you can't modify options. Please reload the page and try again.", 'wp-smushit' ) );
 		}
 
 		$last_error = $this->configuration->server_configuration()->apply_apache_rewrite_rules();
 
 		if ( ! empty( $last_error ) ) {
-			wp_send_json_error( wp_kses_post( $last_error ) );
+			wp_send_json_error( esc_html( $last_error ) );
 		}
 
 		wp_send_json_success();
@@ -248,11 +205,11 @@ class Webp_Controller extends Controller {
 	 * Triggered by the "Delete WebP images" button in the webp tab.
 	 */
 	public function ajax_delete_all_webp_files() {
-		check_ajax_referer( 'save_wp_smush_options' );
-
+		check_ajax_referer( 'wp-smush-ajax' );
 		$capability = is_multisite() ? 'manage_network' : 'manage_options';
-
-		if ( ! Helper::is_user_allowed( $capability ) ) {
+		if (
+			! Helper::is_user_allowed( $capability )
+		) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'This user can not delete all WebP images.', 'wp-smushit' ),
@@ -266,9 +223,25 @@ class Webp_Controller extends Controller {
 		wp_send_json_success();
 	}
 
-	public function ajax_toggle_wizard() {
-		if ( check_ajax_referer( 'wp-smush-webp-nonce', false, false ) && Helper::is_user_allowed( 'manage_options' ) ) {
-			$this->configuration->toggle_wizard();
+	public function ajax_show_wizard() {
+		$capability = is_multisite() ? 'manage_network' : 'manage_options';
+		if (
+			check_ajax_referer( 'wp-smush-ajax', false, false )
+			&& Helper::is_user_allowed( $capability )
+		) {
+			$this->configuration->show_wizard();
+
+			wp_send_json_success();
+		}
+	}
+
+	public function ajax_hide_wizard() {
+		$capability = is_multisite() ? 'manage_network' : 'manage_options';
+		if (
+			check_ajax_referer( 'wp-smush-ajax', false, false )
+			&& Helper::is_user_allowed( $capability )
+		) {
+			$this->configuration->hide_wizard();
 
 			wp_send_json_success();
 		}

@@ -10,8 +10,8 @@ use WPML\FP\Either;
 use WPML\FP\Right;
 use WPML\FP\Left;
 use WPML\Plugins;
-use WPML\Setup\Option;
-use function WPML\Container\make;
+use WPML\PostHog\Config\PostHogConfig;
+use WPML\PostHog\State\PostHogState;
 
 
 class LicenseStep implements IHandler {
@@ -48,12 +48,19 @@ class LicenseStep implements IHandler {
 				icl_set_setting( 'site_key', $site_key, true );
 				$isTMAllowed = Plugins::updateTMAllowedOption();
 
-				return Right::of(
-					[
-						'isTMAllowed' => $isTMAllowed,
-						'msg'         => __( 'Thank you for registering WPML on this site. You will receive automatic updates when new versions are available.', 'sitepress' )
-					]
-				);
+				$response = [
+					'isTMAllowed' => $isTMAllowed,
+					'msg'         => __( 'Thank you for registering WPML on this site. You will receive automatic updates when new versions are available.', 'sitepress' )
+				];
+
+				if (
+					! wp_script_is( 'wpml-posthog', 'done' ) &&
+					PostHogState::isEnabled()
+				) {
+					$response['postHogConfig'] = PostHogConfig::create();
+				}
+
+				return Right::of( $response );
 			}
 		}
 

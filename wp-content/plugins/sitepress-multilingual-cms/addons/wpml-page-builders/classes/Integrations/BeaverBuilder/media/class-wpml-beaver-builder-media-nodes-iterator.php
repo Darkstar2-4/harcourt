@@ -1,22 +1,13 @@
 <?php
 
-// phpcs:disable WordPress.WP.I18n.NonSingularStringLiteralText, WordPress.WP.I18n.LowLevelTranslationFunction, WordPress.WP.I18n.TooManyFunctionArgs, WordPress.WP.I18n.NonSingularStringLiteralDomain
 class WPML_Beaver_Builder_Media_Nodes_Iterator implements IWPML_PB_Media_Nodes_Iterator {
 
-	/** @var WPML_Beaver_Builder_Media_Node_Provider $node_provider */
 	private $node_provider;
 
 	public function __construct( WPML_Beaver_Builder_Media_Node_Provider $node_provider ) {
 		$this->node_provider = $node_provider;
 	}
 
-	/**
-	 * @param array  $data_array
-	 * @param string $lang
-	 * @param string $source_lang
-	 *
-	 * @return array
-	 */
 	public function translate( $data_array, $lang, $source_lang ) {
 		foreach ( $data_array as &$data ) {
 			if ( is_array( $data ) ) {
@@ -32,13 +23,6 @@ class WPML_Beaver_Builder_Media_Nodes_Iterator implements IWPML_PB_Media_Nodes_I
 		return $data_array;
 	}
 
-	/**
-	 * @param stdClass $settings
-	 * @param string   $lang
-	 * @param string   $source_lang
-	 *
-	 * @return stdClass
-	 */
 	private function translate_node( $settings, $lang, $source_lang ) {
 		$node = $this->node_provider->get( $settings->type );
 
@@ -49,9 +33,6 @@ class WPML_Beaver_Builder_Media_Nodes_Iterator implements IWPML_PB_Media_Nodes_I
 		return $settings;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_media() {
 		return $this->node_provider->get_media();
 	}

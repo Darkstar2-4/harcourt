@@ -2,12 +2,6 @@
 
 use WPML\FP\Lst;
 
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 4/10/17
- * Time: 10:15 AM
- */
 
 class WPML_Translation_Modes {
 

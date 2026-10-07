@@ -9,19 +9,16 @@ use WPML\StringTranslation\Application\StringCore\Domain\StringTranslation;
 
 class TranslationsRepository implements TranslationsRepositoryInterface {
 
-	/* @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct( SettingsRepositoryInterface $settingsRepository ) {
 		$this->settingsRepository = $settingsRepository;
 	}
 
-	public function isTranslationAvailable( string $text, string $domain, string $context = null ): bool {
-		// Use WP i18n global to determine if the string is translated
+	public function isTranslationAvailable( string $text, string $domain, ?string $context = null ): bool {
 		global $l10n;
 		$translations = get_translations_for_domain( $domain );
 
-		// WP_Translation_Controller is for WP 6.5.
 		if ( class_exists('\WP_Translation_Controller') || method_exists( $translations, 'translate' ) ) {
 			$translation = $translations->translate( $text, $context );
 			return $translation !== $text;
@@ -38,13 +35,7 @@ class TranslationsRepository implements TranslationsRepositoryInterface {
 		}
 	}
 
-	/*
-	 * @param Translations|NOOP_Translations $translations
-	 *
-	 * @return string|null
-	 */
-	private function getTranslatedStringText( $translations, string $text, string $context = null ) {
-		// WP_Translation_Controller is for WP 6.5.
+	private function getTranslatedStringText( $translations, string $text, ?string $context = null ) {
 		if ( class_exists('\WP_Translation_Controller') || method_exists( $translations, 'translate' ) ) {
 			$translation = $translations->translate( $text, $context );
 			return ( $translation === $text ) ? null : $translation;
@@ -65,11 +56,6 @@ class TranslationsRepository implements TranslationsRepositoryInterface {
 		}
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 *
-	 * @return StringTranslation[]
-	 */
 	public function createEntitiesForExistingTranslations( array $strings ) {
 		if ( count( $strings ) === 0 ) {
 			return [];
@@ -98,11 +84,6 @@ class TranslationsRepository implements TranslationsRepositoryInterface {
 				$activeLocale,
 				$domains
 			);
-			/**
-			 * This is required because before WP 6.2 sitepress functions called in switchToLocale did not set up
-			 * proper locale and we can get incorrect translations loaded, like for Japanese $activeLocale we could
-			 * load English translations.
-			 */
 			if ( \WPML\LIB\WP\WordPress::versionCompare( '<', '6.2.000') ) {
 				$currentLocale = determine_locale();
 				if ( $currentLocale !== $activeLocale ) {
@@ -149,9 +130,9 @@ class TranslationsRepository implements TranslationsRepositoryInterface {
 			);
 			if ( $translation ) {
 				$stringTranslation = new StringTranslation(
-					$string,
 					$language,
-					$translation
+					$translation,
+					$string
 				);
 
 				$stringTranslations[] = $stringTranslation;

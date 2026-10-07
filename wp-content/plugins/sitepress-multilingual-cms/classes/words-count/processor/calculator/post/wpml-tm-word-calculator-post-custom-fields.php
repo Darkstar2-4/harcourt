@@ -2,36 +2,13 @@
 
 class WPML_TM_Word_Calculator_Post_Custom_Fields implements IWPML_TM_Word_Calculator_Post {
 
-	/** @var WPML_TM_Word_Calculator $calculator */
 	private $calculator;
 
-	/** @var array|null $cf_settings from `$sitepress_settings['translation-management']['custom_fields_translation']` */
 	private $cf_settings;
 
-	/** @var array $fields_to_count */
 	private $fields_to_count = array();
 
-	/**
-	 * WPML_TM_Word_Calculator_Post_Custom_Fields constructor.
-	 *
-	 * $cf_settings:
-	 *
-	 * <code>
-	 * $array = [
-	 *   'custom-field-1'      =>  WPML_TRANSLATE_CUSTOM_FIELD,
-	 *   'custom-field-2'      =>  WPML_COPY_CUSTOM_FIELD,
-	 *   'custom-field-3'      =>  WPML_IGNORE_CUSTOM_FIELD,
-	 *   'custom-field-4'      =>  WPML_IGNORE_CUSTOM_FIELD,
-	 *   'custom-field-5'      =>  WPML_COPY_ONCE_CUSTOM_FIELD,
-	 * ]
-	 * </code>
-	 *
-	 * @param \WPML_TM_Word_Calculator $calculator  An instance of WPML_TM_Word_Calculator.
-	 * @param array|null               $cf_settings An associative array where they key is the name of the custom field and the value is an integer representing the translation method.
-	 *
-	 * @see inc/constants.php for the values of the constsnts
-	 */
-	public function __construct( WPML_TM_Word_Calculator $calculator, array $cf_settings = null ) {
+	public function __construct( WPML_TM_Word_Calculator $calculator, ?array $cf_settings = null ) {
 		$this->calculator  = $calculator;
 		$this->cf_settings = $cf_settings;
 	}
@@ -57,14 +34,12 @@ class WPML_TM_Word_Calculator_Post_Custom_Fields implements IWPML_TM_Word_Calcul
 			}
 
 			if ( is_scalar( $custom_fields_value ) ) {
-				// only support scalar values for now
 				$words += $this->calculator->count_words( $custom_fields_value, $post_lang );
 			} else {
 
 				foreach ( $custom_fields_value as $custom_fields_value_item ) {
 
 					if ( $custom_fields_value_item && is_scalar( $custom_fields_value_item ) ) {
-						// only support scalar values for now
 						$words += $this->calculator->count_words( $custom_fields_value_item, $post_lang );
 					}
 				}
@@ -74,13 +49,11 @@ class WPML_TM_Word_Calculator_Post_Custom_Fields implements IWPML_TM_Word_Calcul
 		return (int) $words;
 	}
 
-	/** @return bool */
 	private function is_registered_type( WPML_Post_Element $post_element ) {
 		$post_types = get_post_types();
 		return in_array( $post_element->get_type(), $post_types );
 	}
 
-	/** @return array */
 	private function get_translatable_fields_to_count( $post_id ) {
 		if ( ! $this->fields_to_count ) {
 			foreach ( $this->cf_settings as $cf => $mode ) {
@@ -90,14 +63,6 @@ class WPML_TM_Word_Calculator_Post_Custom_Fields implements IWPML_TM_Word_Calcul
 			}
 		}
 
-		/**
-		 * Allow to modify the custom fields whose words will be counted.
-		 *
-		 * @param array $fields_to_count The fields to include when counting the words.
-		 * @param int   $post_id         The ID of the post for which we are counting the words.
-		 *
-		 * @see \WPML_TM_Word_Calculator_Post_Custom_Fields::__construct
-		 */
 		return apply_filters( 'wpml_words_count_custom_fields_to_count', $this->fields_to_count, $post_id );
 	}
 }

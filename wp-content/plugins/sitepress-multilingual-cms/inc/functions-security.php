@@ -15,13 +15,6 @@ function wpml_get_authenticated_action() {
 	return $authenticated_action;
 }
 
-/**
- * Validates a nonce according to the schema also used by \wpml_nonce_field
- *
- * @param string $action
- *
- * @return false|int
- */
 function wpml_is_action_authenticated( $action ) {
 	$nonce = isset( $_POST['_icl_nonce'] ) ? $_POST['_icl_nonce'] : '';
 	if ( '' !== $nonce ) {
@@ -33,27 +26,11 @@ function wpml_is_action_authenticated( $action ) {
 	return wp_verify_nonce( $nonce, $action );
 }
 
-/**
- * Generates HTML for the hidden nonce input field following the schema
- * used by \wpml_is_action_authenticated
- *
- * @param string $action
- *
- * @return string
- */
 function wpml_nonce_field( $action ) {
 	return '<input name="_icl_nonce" type="hidden" value="'
 		   . wp_create_nonce( $action . '_nonce' ) . '"/>';
 }
 
-/**
- * RFC 4122 compliant UUID version 5.
- *
- * @param  string $name    The name to generate the UUID from.
- * @param  string $ns_uuid Namespace UUID. Default is for the NS when name string is a URL.
- *
- * @return string          The UUID string.
- */
 if ( ! function_exists( 'uuid_v5' ) ) {
 	function uuid_v5( $name, $ns_uuid = '6ba7b811-9dad-11d1-80b4-00c04fd430c8' ) {
 		$wpml_uuid = new WPML_UUID();
@@ -61,14 +38,6 @@ if ( ! function_exists( 'uuid_v5' ) ) {
 	}
 }
 
-/**
- * @param string   $object_id
- * @param string   $object_type
- * @param int|null $timestamp   If this parameter is `null`, it will be assigned the current time
- *                              Set this parameter to 0 if the uuid should not have a time footprint
- *
- * @return string
- */
 function wpml_uuid( $object_id, $object_type, $timestamp = null ) {
 	$wpml_uuid = new WPML_UUID();
 	return $wpml_uuid->get( $object_id, $object_type, $timestamp );

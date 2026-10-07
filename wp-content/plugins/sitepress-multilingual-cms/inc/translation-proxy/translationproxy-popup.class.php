@@ -12,31 +12,16 @@ class TranslationProxy_Popup {
 			'title'     => null,
 			'class' => '',
 			'id' => '',
-			'ar' => 0, // auto_resize
-			'unload_cb' => false, // onunload callback
+			'ar' => 0,
+			'unload_cb' => false,
 		);
 
 		$args = array_merge($defaults, $args);
 
-		/**
-		 * @var title string
-		 */
 		$title = $args['title'];
-		/**
-		 * @var $class string
-		 */
 		$class = $args['class'];
-		/**
-		 * @var $id int
-		 */
 		$id = $args['id'];
-		/**
-		 * @var $ar int
-		 */
 		$ar = $args['ar'];
-		/**
-		 * @var $unload_cb bool
-		 */
 		$unload_cb = $args['unload_cb'];
 
 		if ( !empty( $ar ) ) {

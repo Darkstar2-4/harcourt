@@ -7,24 +7,12 @@ class OTGS_Installer_WP_Components_Hooks {
 	const REPORT_SCHEDULING_PERIOD = '+1 month';
 	const MONTHLY_CRON = 'monthly';
 
-	/**
-	 * @var OTGS_Installer_WP_Components_Storage
-	 */
 	private $storage;
 
-	/**
-	 * @var OTGS_Installer_WP_Components_Sender
-	 */
 	private $sender;
 
-	/**
-	 * @var OTGS_Installer_WP_Share_Local_Components_Setting
-	 */
 	private $setting;
 
-	/**
-	 * @var OTGS_Installer_PHP_Functions
-	 */
 	private $php_functions;
 
 	public function __construct(
@@ -50,7 +38,11 @@ class OTGS_Installer_WP_Components_Hooks {
 	}
 
 	public function schedule_components_report() {
-		if ( ! wp_next_scheduled( self::EVENT_SEND_COMPONENTS_MONTHLY ) && $this->sender->allow_schedule_event() ) {
+		if ( wp_next_scheduled( self::EVENT_SEND_COMPONENTS_MONTHLY ) ) {
+			return;
+		}
+
+		if ( $this->sender->allow_schedule_event() ) {
 			wp_schedule_event( strtotime( self::REPORT_SCHEDULING_PERIOD ), self::MONTHLY_CRON, self::EVENT_SEND_COMPONENTS_MONTHLY );
 		}
 	}
@@ -72,17 +64,9 @@ class OTGS_Installer_WP_Components_Hooks {
 		}
 	}
 
-	/**
-	 * @return array {
-	 *     The array of cron schedules keyed by the schedule name.
-	 *
-	 *     @type int $interval The schedule interval in seconds.
-	 *     @type string $display The schedule display name.
-	 * }
-	 */
 	public function custom_monthly_cron_schedule( $schedules ) {
 		$schedules[self::MONTHLY_CRON] = array(
-			'interval' => 2592000, // 30 days in seconds
+			'interval' => 2592000,
 			'display' => __( 'Monthly', 'sitepress' )
 		);
 		return $schedules;

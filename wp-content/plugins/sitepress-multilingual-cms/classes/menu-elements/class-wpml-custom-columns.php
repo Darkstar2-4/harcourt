@@ -2,31 +2,17 @@
 
 use WPML\Element\API\TranslationsRepository;
 
-/**
- * Class WPML_Custom_Columns
- */
 class WPML_Custom_Columns implements IWPML_Action {
 	const COLUMN_KEY              = 'icl_translations';
 	const CUSTOM_COLUMNS_PRIORITY = 1010;
 
-	/**
-	 * @param SitePress $sitepress
-	 */
 	private $sitepress;
-	/**
-	 * @var WPML_Post_Status_Display
-	 */
 	public $post_status_display;
 
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * @param array $columns
-	 *
-	 * @return array
-	 */
 	public function add_posts_management_column( $columns ) {
 		$new_columns = $columns;
 
@@ -83,12 +69,6 @@ class WPML_Custom_Columns implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * Add posts management column.
-	 *
-	 * @param string   $column_name
-	 * @param int|null $post_id
-	 */
 	public function add_content_for_posts_management_column( $column_name, $post_id = null ) {
 		global $post;
 
@@ -111,13 +91,6 @@ class WPML_Custom_Columns implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * Check translation management column screen option.
-	 *
-	 * @param string $post_type Current post type.
-	 *
-	 * @return bool
-	 */
 	public function show_management_column_content( $post_type ) {
 		$user           = get_current_user_id();
 		$hidden_columns = get_user_meta( $user, 'manageedit-' . $post_type . 'columnshidden', true );
@@ -132,11 +105,6 @@ class WPML_Custom_Columns implements IWPML_Action {
 		return ! is_array( $hidden_columns ) || ! in_array( self::COLUMN_KEY, $hidden_columns, true );
 	}
 
-	/**
-	 * Get list of active languages.
-	 *
-	 * @return array
-	 */
 	private function get_filtered_active_languages() {
 		$active_languages = $this->sitepress->get_active_languages();
 		return apply_filters( 'wpml_active_languages_access', $active_languages, array( 'action' => 'edit' ) );
@@ -150,12 +118,9 @@ class WPML_Custom_Columns implements IWPML_Action {
 				'add_custom_columns_hooks',
 			),
 			self::CUSTOM_COLUMNS_PRIORITY
-		); // accommodate Types init@999
+		);
 	}
 
-	/**
-	 * Add custom columns hooks.
-	 */
 	public function add_custom_columns_hooks() {
 		$post_type = isset( $_REQUEST['post_type'] ) ? $_REQUEST['post_type'] : 'post';
 		if (
@@ -211,11 +176,6 @@ class WPML_Custom_Columns implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * Check if we need to add custom columns on page.
-	 *
-	 * @return bool
-	 */
 	private function has_custom_columns() {
 		global $pagenow;
 		if ( 'edit.php' === $pagenow

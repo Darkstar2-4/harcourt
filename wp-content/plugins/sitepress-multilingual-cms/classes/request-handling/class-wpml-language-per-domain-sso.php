@@ -2,9 +2,6 @@
 
 use WPML\API\Sanitize;
 
-/**
- * Class WPML_Language_Per_Domain_SSO
- */
 class WPML_Language_Per_Domain_SSO {
 
 	const SSO_NONCE = 'wpml_sso';
@@ -21,22 +18,16 @@ class WPML_Language_Per_Domain_SSO {
 
 	const SSO_TIMEOUT = MINUTE_IN_SECONDS;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_PHP_Functions $php_functions */
 	private $php_functions;
 
-	/** @var WPML_Cookie  */
 	private $wpml_cookie;
 
-	/** @var string */
 	private $site_url;
 
-	/** @var array */
 	private $domains;
 
-	/** @var int $current_user_id */
 	private $current_user_id;
 
 	public function __construct( SitePress $sitepress, WPML_PHP_Functions $php_functions, WPML_Cookie $wpml_cookie ) {
@@ -69,21 +60,10 @@ class WPML_Language_Per_Domain_SSO {
 		}
 	}
 
-	/**
-	 * @param string  $user_login
-	 * @param WP_User $user
-	 */
 	public function wp_login_action( $user_login, WP_User $user ) {
 		$this->init_sso_transients( (int) $user->ID );
 	}
 
-	/**
-	 * @param string           $redirect_to
-	 * @param string           $requested_redirect_to
-	 * @param WP_User|WP_Error $user
-	 *
-	 * @return string
-	 */
 	public function add_redirect_user_token( $redirect_to, $requested_redirect_to, $user ) {
 		if ( ! is_wp_error( $user ) && ! $this->is_sso_started() ) {
 			$this->init_sso_transients( (int) $user->ID );
@@ -123,7 +103,6 @@ class WPML_Language_Per_Domain_SSO {
 		header( sprintf( 'Content-Security-Policy: frame-ancestors %s', implode( ' ', $this->domains ) ) );
 	}
 
-	/** @param int $user_id */
 	private function set_current_user_id( $user_id = null ) {
 		if ( $user_id ) {
 			$this->current_user_id = $user_id;
@@ -168,13 +147,11 @@ class WPML_Language_Per_Domain_SSO {
 		$this->php_functions->exit_php();
 	}
 
-	/** @return bool */
 	private function validate_user_sign_request() {
 		return isset( $_GET[ self::IFRAME_USER_STATUS_KEY ] )
 			   && $this->is_sso_started_for_domain( $this->get_current_domain() );
 	}
 
-	/** @return int */
 	private function get_user_id_from_token() {
 		$user_id = 0;
 
@@ -199,9 +176,6 @@ class WPML_Language_Per_Domain_SSO {
 		return $user_id;
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	private function init_sso_transients( $user_id ) {
 		set_transient( self::TRANSIENT_SSO_STARTED, true, self::SSO_TIMEOUT );
 
@@ -216,9 +190,6 @@ class WPML_Language_Per_Domain_SSO {
 		}
 	}
 
-	/**
-	 * @param string $domain
-	 */
 	private function finish_sso_for_domain( $domain ) {
 		delete_transient(
 			$this->create_transient_key(
@@ -229,11 +200,6 @@ class WPML_Language_Per_Domain_SSO {
 		);
 	}
 
-	/**
-	 * @param string $domain
-	 *
-	 * @return bool
-	 */
 	private function is_sso_started_for_domain( $domain ) {
 		return (bool) get_transient(
 			$this->create_transient_key(
@@ -244,9 +210,6 @@ class WPML_Language_Per_Domain_SSO {
 		);
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_current_domain() {
 		$host = '';
 
@@ -257,16 +220,10 @@ class WPML_Language_Per_Domain_SSO {
 		return $this->get_current_protocol() . $host;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_current_protocol() {
 		return is_ssl() ? 'https://' : 'http://';
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_domains() {
 		$domains = $this->sitepress->get_setting( 'language_domains', array() );
 
@@ -282,9 +239,6 @@ class WPML_Language_Per_Domain_SSO {
 		return $sso_domains;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_iframe_request() {
 		return isset( $_GET[ self::IFRAME_DOMAIN_HASH_KEY ] )
 			   && ! wpml_is_ajax()
@@ -292,18 +246,10 @@ class WPML_Language_Per_Domain_SSO {
 			   && $this->get_hash( $this->get_current_domain() ) === $_GET[ self::IFRAME_DOMAIN_HASH_KEY ];
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_sso_started() {
 		return (bool) get_transient( self::TRANSIENT_SSO_STARTED );
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return string
-	 */
 	private function create_user_token( $user_id ) {
 		$token = wp_create_nonce( self::SSO_NONCE );
 		set_transient(
@@ -315,11 +261,6 @@ class WPML_Language_Per_Domain_SSO {
 		return $token;
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return bool|string
-	 */
 	private function create_user_token_for_domains( $user_id ) {
 		$token = wp_create_nonce( self::SSO_NONCE );
 		foreach ( $this->domains as $domain ) {
@@ -335,10 +276,6 @@ class WPML_Language_Per_Domain_SSO {
 		return $token;
 	}
 
-	/**
-	 * @param string $session_token
-	 * @param int    $user_id
-	 */
 	private function save_session_token( $session_token, $user_id ) {
 		set_transient(
 			$this->create_transient_key( self::TRANSIENT_SESSION_TOKEN, null, $user_id ),
@@ -347,43 +284,19 @@ class WPML_Language_Per_Domain_SSO {
 		);
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return string
-	 */
 	private function get_session_token( $user_id ) {
 		return (string) get_transient( $this->create_transient_key( self::TRANSIENT_SESSION_TOKEN, null, $user_id ) );
 	}
 
-	/**
-	 * @param string                $prefix
-	 * @param string|null           $domain
-	 * @param string|int|null|false $token
-	 *
-	 * @return string
-	 */
 	private function create_transient_key( $prefix, $domain = null, $token = null ) {
 		return $prefix . ( $token ? (string) $token : '' ) . ( $domain ? '_' . $this->get_hash( $domain ) : '' );
 	}
 
-	/**
-	 * @param string $value
-	 *
-	 * @return string
-	 */
 	private function get_hash( $value ) {
 		return hash( 'sha256', self::SSO_NONCE . $value );
 	}
 
 
-	/**
-	 * As the WP doesn't support "SameSite" parameter in cookies, we have to write our own
-	 * function for saving authentication cookies to work with iframes.
-	 *
-	 * @param int $user_id
-	 * @param string $token
-	 */
 	private function set_auth_cookie( $user_id, $token = '' ) {
 		$expiration = time() + apply_filters( 'auth_cookie_expiration', 2 * DAY_IN_SECONDS, $user_id, false );
 		$expire     = 0;

@@ -2,9 +2,6 @@
 
 class WPML_TM_Settings_Post_Process extends WPML_TM_User {
 
-	/**
-	 * Saves TM settings to the database in case they have changed after reading a config file.
-	 */
 	public function run() {
 		$changed  = false;
 		$settings = &$this->tm_instance->settings;

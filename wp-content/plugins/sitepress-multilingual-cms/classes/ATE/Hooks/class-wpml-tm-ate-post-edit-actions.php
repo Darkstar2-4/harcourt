@@ -1,16 +1,8 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 class WPML_TM_ATE_Post_Edit_Actions implements IWPML_Action {
 	private $endpoints;
 
-	/**
-	 * WPML_TM_ATE_Jobs_Actions constructor.
-	 *
-	 * @param WPML_TM_ATE_AMS_Endpoints $endpoints
-	 */
 	public function __construct( WPML_TM_ATE_AMS_Endpoints $endpoints ) {
 		$this->endpoints = $endpoints;
 	}

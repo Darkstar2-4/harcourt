@@ -1,5 +1,7 @@
 <?php
 
+use OTGS\Installer\Settings;
+
 class WP_Installer_API{
 
     public static function get_product_installer_link($repository_id, $package_id = false){
@@ -22,52 +24,31 @@ class WP_Installer_API{
         return $price;
     }
 
-    /**
-     * Retrieve the preferred translation service.
-     *
-     * @since 1.6.5
-     *
-     * @param string $repository_id The repository id (e.g. wpml)
-     * @return string|false The translation service id or false if none is set
-     */
     public static function get_preferred_ts($repository_id = 'wpml'){
+		$ts_info = Settings::load_ts_info();
 
-        if(isset(WP_Installer()->settings['repositories'][$repository_id]['ts_info']['preferred'])){
-            return WP_Installer()->settings['repositories'][$repository_id]['ts_info']['preferred'];
+        if(isset($ts_info['repositories'][$repository_id]['ts_info']['preferred'])){
+            return $ts_info['repositories'][$repository_id]['ts_info']['preferred'];
         }
 
         return false;
 
     }
 
-    /**
-     * Set the preferred translation service.
-     *
-     * @since 1.6.5
-     *
-     * @param string $value The translation service id
-     * @param string $repository_id The repository id (e.g. wpml)
-     */
     public static function set_preferred_ts( $value, $repository_id = 'wpml' ){
+		$installer = WP_Installer::instance();
+		$settings = $installer->get_settings();
 
-        if( isset( WP_Installer()->settings['repositories'][$repository_id]['ts_info']['preferred'] ) ){
+        if( isset( $settings['repositories'][$repository_id]['ts_info']['preferred'] ) ){
 
-            WP_Installer()->settings['repositories'][$repository_id]['ts_info']['preferred'] = $value;
+            $settings['repositories'][$repository_id]['ts_info']['preferred'] = $value;
 
-            WP_Installer()->save_settings();
+            $installer->save_settings( $settings );
 
         }
 
     }
 
-    /**
-     * Retrieve the referring translation service (if any)
-     *
-     * @since 1.6.5
-     *
-     * @param string $repository_id The repository id (e.g. wpml)
-     * @return string The translation service id or false
-     */
     public static function get_ts_referal( $repository_id = 'wpml' ) {
 
         if(isset(WP_Installer()->settings['repositories'][$repository_id]['ts_info']['referal'])){
@@ -78,14 +59,6 @@ class WP_Installer_API{
 
     }
 
-    /**
-     * Retrieve the translation services client id for a specific repository (if any)
-     *
-     * @since 1.7.9
-     *
-     * @param string $repository_id The repository id (e.g. wpml)
-     * @return string|false The client id or false
-     */
     public static function get_ts_client_id( $repository_id = 'wpml' ){
 
         if(isset(WP_Installer()->settings['repositories'][$repository_id]['ts_info']['client_id'])){
@@ -96,30 +69,12 @@ class WP_Installer_API{
 
     }
 
-    /**
-     * Retrieve the site key corresponding to a repository.
-     * This is a wrapper of WP_Installer::get_site_key()
-     * @see WP_Installer::get_site_key()
-     *
-     * @since 1.7.9
-     *
-     * @param string $repository_id The repository id (e.g. wpml)
-     * @return string The site key (or false)
-     */
     public static function get_site_key( $repository_id = 'wpml' ){
 
         return WP_Installer()->get_site_key( $repository_id );
 
     }
 
-	/**
-	 * Retrieve the ID of the last user who registered a repository.
-	 *
-	 * @since 1.7.16
-	 *
-	 * @param string $repository_id The repository id (e.g. wpml)
-	 * @return int The user id (or zero)
-	 */
 	public static function get_registering_user_id( $repository_id = 'wpml' ){
 
 		$user_id = 0;

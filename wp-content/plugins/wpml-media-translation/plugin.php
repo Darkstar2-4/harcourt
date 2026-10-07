@@ -2,10 +2,10 @@
 /**
  * Plugin Name: WPML Media Translation
  * Plugin URI: https://wpml.org/
- * Description: Show different images for content in different languages | <a href="https://wpml.org/documentation/getting-started-guide/media-translation/?utm_source=plugin&utm_medium=gui&utm_campaign=wpmlmedia">Documentation</a> | <a href="https://wpml.org/version/wpml-media-translation-2-7-7/">WPML Media Translation 2.7.7 release notes</a>
+ * Description: Show different images for content in different languages | <a href="https://wpml.org/documentation/getting-started-guide/media-translation/?utm_source=plugin&utm_medium=gui&utm_campaign=wpmlmedia">Documentation</a> | <a href="https://wpml.org/version/wpml-media-translation-3-1-2/">WPML Media Translation 3.1.2 release notes</a>
  * Author: OnTheGoSystems
  * Author URI: http://www.onthegosystems.com/
- * Version: 2.7.7
+ * Version: 3.1.2
  * Plugin Slug: wpml-media-translation
  *
  * @package wpml/media
@@ -15,7 +15,7 @@ if ( defined( 'WPML_MEDIA_VERSION' ) ) {
 	return;
 }
 
-define( 'WPML_MEDIA_VERSION', '2.7.7' );
+define( 'WPML_MEDIA_VERSION', '3.1.2' );
 define( 'WPML_MEDIA_PATH', dirname( __FILE__ ) );
 
 require_once WPML_MEDIA_PATH . '/vendor/autoload.php';
@@ -35,6 +35,7 @@ function wpml_media_remove_flag_notice() {
 	);
 }
 
+// phpcs:disable WordPress.NamingConventions.ValidVariableName.NotSnakeCase
 global $WPML_media, $wpdb, $sitepress, $iclTranslationManagement;
 
 $media_dependencies = new WPML_Media_Dependencies();
@@ -46,15 +47,19 @@ if ( $media_dependencies->check() ) {
 		$loaders = array(
 			'WPML_Media_Factory',
 			'WPML_Media_Save_Translation_Factory',
+			'WPML_Media_Get_Attachment_Translation_Data_Factory',
 			'WPML_Media_Attachment_Image_Update_Factory',
 			'WPML_Media_Screen_Options_Factory',
 			'WPML_Media_Posts_Media_Flag_Notice_Factory',
 			'WPML_Media_Set_Posts_Media_Flag_Factory',
 			'WPML_Media_Set_Initial_Language_Factory',
-			'WPML_Media_Post_Media_Usage_Factory',
 			'WPML_Media_Privacy_Content_Factory',
 			WPML\Media\Widgets\Block\DisplayTranslation::class,
 		);
+
+		if ( class_exists( 'WPML_Media_Usage_Factory' ) ) {
+			$loaders[] = 'WPML_Media_Post_Media_Usage_Factory';
+		}
 
 		$action_filter_loader = new WPML_Action_Filter_Loader();
 		$action_filter_loader->load( $loaders );
@@ -67,7 +72,6 @@ if ( $media_dependencies->check() ) {
 		if ( class_exists( 'WPML_Current_Screen_Loader_Factory' ) ) {
 
 			$loaders = array(
-				'WPML_Media_Attachments_Query_Factory',
 				'WPML_Media_Post_Images_Translation_Factory',
 				'WPML_Media_Post_Batch_Url_Translation_Factory',
 				'WPML_Media_Custom_Field_Images_Translation_Factory',

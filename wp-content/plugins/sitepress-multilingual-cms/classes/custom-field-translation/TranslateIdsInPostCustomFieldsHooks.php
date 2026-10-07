@@ -6,10 +6,6 @@ use WPML_WP_API;
 
 class TranslateIdsInPostCustomFieldsHooks {
 
-	/**
-	 * @param TranslateIdsInPostCustomFields $translateIds
-	 * @param WPML_WP_API                    $wpApi
-	 */
 	public function __construct( $translateIds, &$wpApi ) {
 
 		if ( $translateIds->hasCustomFields() ) {

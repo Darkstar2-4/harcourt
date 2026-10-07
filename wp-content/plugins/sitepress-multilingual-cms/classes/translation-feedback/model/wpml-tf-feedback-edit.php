@@ -1,40 +1,22 @@
 <?php
 
-/**
- * Class WPML_TF_Feedback_Edit
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Feedback_Edit {
 
-	/** @var WPML_TF_Feedback_Query */
 	private $feedback_query;
 
-	/** @var WPML_TF_Data_Object_Storage $feedback_storage */
 	private $feedback_storage;
 
-	/** @var WPML_TF_Data_Object_Storage $message_storage */
 	private $message_storage;
 
-	/** @var null|WPML_TP_Client_Factory $tp_client_factory */
 	private $tp_client_factory;
 
-	/** @var null|WPML_TP_Client $tp_client */
 	private $tp_client;
 
-	/**
-	 * WPML_TF_Feedback_Edit constructor.
-	 *
-	 * @param \WPML_TF_Feedback_Query      $feedback_query
-	 * @param \WPML_TF_Data_Object_Storage $feedback_storage
-	 * @param \WPML_TF_Data_Object_Storage $message_storage
-	 * @param \WPML_TP_Client_Factory|null $tp_client_factory
-	 */
 	public function __construct(
 		WPML_TF_Feedback_Query $feedback_query,
 		WPML_TF_Data_Object_Storage $feedback_storage,
 		WPML_TF_Data_Object_Storage $message_storage,
-		WPML_TP_Client_Factory $tp_client_factory = null
+		?WPML_TP_Client_Factory $tp_client_factory = null
 	) {
 		$this->feedback_query    = $feedback_query;
 		$this->feedback_storage  = $feedback_storage;
@@ -42,13 +24,6 @@ class WPML_TF_Feedback_Edit {
 		$this->tp_client_factory = $tp_client_factory;
 	}
 
-	/**
-	 * @param int   $feedback_id
-	 * @param array $args
-	 *
-	 * @return null|WPML_TF_Feedback
-	 * @throws \WPML_TF_Feedback_Update_Exception
-	 */
 	public function update( $feedback_id, array $args ) {
 		$feedback = $this->feedback_query->get_one( $feedback_id );
 
@@ -64,20 +39,12 @@ class WPML_TF_Feedback_Edit {
 
 		return $feedback;
 	}
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 * @param array            $args
-	 */
 	private function update_feedback_content( WPML_TF_Feedback $feedback, array $args ) {
 		if ( isset( $args['feedback_content'] ) && $this->is_admin_user() ) {
 			$feedback->set_content( $args['feedback_content'] );
 		}
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 * @param array            $args
-	 */
 	private function add_message_to_feedback( WPML_TF_Feedback $feedback, array $args ) {
 		if ( isset( $args['message_content'] ) ) {
 			$message_args = array(
@@ -92,22 +59,12 @@ class WPML_TF_Feedback_Edit {
 		}
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 * @param array            $args
-	 */
 	private function assign_feedback_to_reviewer( WPML_TF_Feedback $feedback, array $args ) {
 		if ( isset( $args['feedback_reviewer_id'] ) && $this->is_admin_user() ) {
 			$feedback->set_reviewer( $args['feedback_reviewer_id'] );
 		}
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 * @param array            $args
-	 *
-	 * @throws \WPML_TF_Feedback_Update_Exception
-	 */
 	private function update_feedback_status( WPML_TF_Feedback $feedback, array $args ) {
 		if ( isset( $args['feedback_status'] )
 		     && in_array( $args['feedback_status'], $this->get_feedback_statuses(), true )
@@ -122,11 +79,6 @@ class WPML_TF_Feedback_Edit {
 		}
 	}
 
-	/**
-	 * @param int $feedback_id
-	 *
-	 * @return bool
-	 */
 	public function delete( $feedback_id ) {
 		if ( $this->is_admin_user() ) {
 			$this->feedback_storage->delete( $feedback_id );
@@ -136,12 +88,10 @@ class WPML_TF_Feedback_Edit {
 		return false;
 	}
 
-	/** @return bool */
 	private function is_admin_user() {
 		return current_user_can( 'manage_options' );
 	}
 
-	/** @return array */
 	private function get_feedback_statuses() {
 		return array(
 			'pending',
@@ -153,11 +103,6 @@ class WPML_TF_Feedback_Edit {
 		);
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 *
-	 * @throws WPML_TF_Feedback_Update_Exception
-	 */
 	private function send_feedback_to_tp( WPML_TF_Feedback $feedback ) {
 		$current_user = wp_get_current_user();
 
@@ -178,11 +123,6 @@ class WPML_TF_Feedback_Edit {
 		$feedback->set_status( $new_status );
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 *
-	 * @throws WPML_TF_Feedback_Update_Exception
-	 */
 	private function update_feedback_status_from_tp( WPML_TF_Feedback $feedback ) {
 		$tp_feedback_status = $this->get_tp_client()->feedback()->status( $feedback );
 
@@ -193,12 +133,6 @@ class WPML_TF_Feedback_Edit {
 		}
 	}
 
-	/**
-	 * @param string $endpoint
-	 *
-	 * @return string
-	 * @throws \WPML_TF_Feedback_Update_Exception
-	 */
 	private function get_communication_error_message( $endpoint ) {
 		$active_service = $this->get_tp_client()->services()->get_active();
 		$service_name = isset( $active_service->name ) ? $active_service->name : esc_html__( 'Translation Service', 'sitepress' );
@@ -234,11 +168,6 @@ class WPML_TF_Feedback_Edit {
 		return $error_message;
 	}
 
-	/**
-	 * @return null|WPML_TP_Client
-	 *
-	 * @throws WPML_TF_Feedback_Update_Exception
-	 */
 	private function get_tp_client() {
 		if ( ! $this->tp_client && $this->tp_client_factory ) {
 			$this->tp_client = $this->tp_client_factory->create();

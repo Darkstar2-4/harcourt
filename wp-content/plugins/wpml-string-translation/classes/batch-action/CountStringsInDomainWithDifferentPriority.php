@@ -10,7 +10,6 @@ use WPML\ST\StringsRepository;
 
 class CountStringsInDomainWithDifferentPriority implements IHandler {
 
-	/** @var StringsRepository $stringsRepository */
 	private $stringsRepository;
 
 	public function __construct(

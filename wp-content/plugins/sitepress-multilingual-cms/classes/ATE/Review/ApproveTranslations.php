@@ -16,7 +16,6 @@ class ApproveTranslations implements IHandler {
 	public function run( Collection $data ) {
 		$jobIds           = $data->get( 'jobsIds' );
 		$TranslatedPostId = function ( $arg ) {
-			// we need to check if it's package type, otherwise this will return a misleading ID.
 			if ( PackageJob::isPackageJob( $arg ) ) {
 				return null;
 			}

@@ -33,7 +33,6 @@ class WPML_Editor_UI_Field {
 	}
 
 	public function get_layout() {
-		// This is a field with no sub fields so just return the id
 		return $this->id;
 	}
 

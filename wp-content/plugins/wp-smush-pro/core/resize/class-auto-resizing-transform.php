@@ -3,7 +3,6 @@
 namespace Smush\Core\Resize;
 
 use Smush\Core\Keyword_Exclusions;
-use Smush\Core\Lazy_Load\Lazy_Load_Helper;
 use Smush\Core\Lazy_Load\Lazy_Load_Transform;
 use Smush\Core\Parser\Composite_Element;
 use Smush\Core\Parser\Element;
@@ -12,6 +11,7 @@ use Smush\Core\Settings;
 use Smush\Core\Srcset\Srcset_Helper;
 use Smush\Core\Transform\Transform;
 use Smush\Core\Url_Utils;
+use Smush\Core\Image_Dimensions\Image_Dimensions_Transform;
 
 class Auto_Resizing_Transform implements Transform {
 	/**
@@ -30,11 +30,6 @@ class Auto_Resizing_Transform implements Transform {
 	private $url_utils;
 
 	/**
-	 * @var Lazy_Load_Helper
-	 */
-	private $lazy_load_helper;
-
-	/**
 	 * Keyword Exclusions.
 	 *
 	 * @var Keyword_Exclusions
@@ -45,7 +40,6 @@ class Auto_Resizing_Transform implements Transform {
 		$this->settings      = Settings::get_instance();
 		$this->srcset_helper = Srcset_Helper::get_instance();
 		$this->url_utils     = new Url_Utils();
-		$this->lazy_load_helper = Lazy_Load_Helper::get_instance();
 	}
 
 	public function should_transform() {
@@ -73,13 +67,13 @@ class Auto_Resizing_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function transform_elements( array $elements ) {
+	private function transform_elements( $elements ) {
 		foreach ( $elements as $element ) {
 			$this->transform_image_element( $element );
 		}
 	}
 
-	private function transform_image_element( Element $element ) {
+	private function transform_image_element( $element ) {
 		if (
 			! $element->is_image_element() ||
 			$this->is_element_excluded( $element )
@@ -94,7 +88,7 @@ class Auto_Resizing_Transform implements Transform {
 		}
 	}
 
-	private function transform_standard_image_element( Element $element ) {
+	private function transform_standard_image_element( $element ) {
 		$src_url = $this->get_element_src_absolute_url( $element );
 		if ( ! $src_url ) {
 			return;
@@ -120,7 +114,7 @@ class Auto_Resizing_Transform implements Transform {
 		}
 	}
 
-	private function image_element_may_have_third_party_lazy_loading( Element $element ) {
+	private function image_element_may_have_third_party_lazy_loading( $element ) {
 		if ( $element->has_attribute( 'data-srcset' ) || $element->has_attribute( 'data-sizes' ) ) {
 			return true;
 		}
@@ -133,7 +127,7 @@ class Auto_Resizing_Transform implements Transform {
 		return apply_filters( 'wp_smush_element_has_third_party_lazy_loading', false, $element->get_markup() );
 	}
 
-	private function generate_and_add_srcset_and_sizes( $src_url, Element $element, $srcset_attr_name, $sizes_attr_name ) {
+	private function generate_and_add_srcset_and_sizes( $src_url, $element, $srcset_attr_name, $sizes_attr_name ) {
 		$original_sizes_value    = (string) $element->get_attribute_value( $sizes_attr_name );
 		$original_has_sizes_auto = $original_sizes_value && wp_sizes_attribute_includes_valid_auto( $original_sizes_value );
 		$raw_width               = $element->get_attribute_value( 'width' );
@@ -159,13 +153,13 @@ class Auto_Resizing_Transform implements Transform {
 		return array( $srcset, $sizes );
 	}
 
-	private function add_sizes_auto_to_native_lazy_loaded_element( Element $element, $sizes ) {
+	private function add_sizes_auto_to_native_lazy_loaded_element( $element, $sizes ) {
 		$sizes               = 'auto, ' . $sizes;
 		$new_sizes_attribute = new Element_Attribute( 'sizes', $sizes );
 		$element->add_or_update_attribute( $new_sizes_attribute );
 	}
 
-	private function get_element_src_absolute_url( Element $element, $source_attribute_name = 'src' ) {
+	private function get_element_src_absolute_url( $element, $source_attribute_name = 'src' ) {
 		$src_attribute = $element->get_attribute( $source_attribute_name );
 		if ( ! $src_attribute ) {
 			return null;
@@ -179,7 +173,7 @@ class Auto_Resizing_Transform implements Transform {
 		return $src_image_url->get_absolute_url();
 	}
 
-	private function transform_smush_lazy_loaded_image_element( Element $element ) {
+	private function transform_smush_lazy_loaded_image_element( $element ) {
 		$src_url = $this->get_element_src_absolute_url( $element, 'data-src' );
 		if ( ! $src_url ) {
 			return;
@@ -199,7 +193,7 @@ class Auto_Resizing_Transform implements Transform {
 		}
 	}
 
-	private function add_data_sizes_auto( Element $element, $original_sizes ) {
+	private function add_data_sizes_auto( $element, $original_sizes ) {
 		if ( $original_sizes ) {
 			$backup_attribute = new Element_Attribute( 'data-original-sizes', $original_sizes );
 			$element->add_attribute( $backup_attribute );
@@ -208,14 +202,14 @@ class Auto_Resizing_Transform implements Transform {
 		$element->add_or_update_attribute( $new_sizes_attribute );
 	}
 
-	private function is_smush_lazy_loaded_element( Element $element ) {
+	private function is_smush_lazy_loaded_element( $element ) {
 		if ( ! $this->settings->is_lazyload_active() ) {
 			return false;
 		}
 
 		$src      = $element->get_attribute_value( 'src' );
 		$data_src = $element->get_attribute_value( 'data-src' );
-		if ( Lazy_Load_Transform::TEMP_SRC !== $src || empty( $data_src ) ) {
+		if ( Lazy_Load_Transform::get_temp_src() !== $src || empty( $data_src ) ) {
 			return false;
 		}
 
@@ -223,7 +217,7 @@ class Auto_Resizing_Transform implements Transform {
 		if (
 			empty( $class ) ||
 			! is_string( $class ) ||
-			! in_array( Lazy_Load_Transform::LAZYLOAD_CLASS, explode( ' ', $class ), true )
+			! in_array( Lazy_Load_Transform::get_lazyload_class(), explode( ' ', $class ), true )
 		) {
 			return false;
 		}
@@ -231,7 +225,7 @@ class Auto_Resizing_Transform implements Transform {
 		return true;
 	}
 
-	private function should_add_new_srcset_and_sizes( Element $element, $attribute_name, $src_url ) {
+	private function should_add_new_srcset_and_sizes( $element, $attribute_name, $src_url ) {
 		if ( $element->has_attribute( $attribute_name ) ) {
 			// Already present
 			return false;
@@ -248,7 +242,7 @@ class Auto_Resizing_Transform implements Transform {
 		return 'lazy' === $element->get_attribute_value( 'loading' );
 	}
 
-	public function should_add_sizes_auto_to_native_lazy_loaded_element( Element $element, $srcset, $sizes ) {
+	public function should_add_sizes_auto_to_native_lazy_loaded_element( $element, $srcset, $sizes ) {
 		if ( ! $this->element_has_native_lazy_loading( $element ) ) {
 			return false;
 		}
@@ -257,9 +251,19 @@ class Auto_Resizing_Transform implements Transform {
 			return false;
 		}
 
-		// @see https://github.com/WordPress/wordpress-develop/pull/7812
-		$width = $element->get_attribute_value( 'width' );
-		if ( ! is_string( $width ) || empty( trim( $width ) ) ) {
+		$width  = $element->get_attribute_value( 'width' );
+		$width  = is_string( $width ) ? trim( $width ) : '';
+		$height = $element->get_attribute_value( 'height' );
+		$height = is_string( $height ) ? trim( $height ) : '';
+
+		if ( empty( $width ) && empty( $height ) ) {
+			// No dimensions specified.
+			return false;
+		}
+
+		$has_single_dimension = empty( $width ) || empty( $height );
+		$has_aspect_ratio     = str_contains( $element->get_markup(), Image_Dimensions_Transform::get_image_aspect_ratio_css_var() );
+		if ( $has_single_dimension && ! $has_aspect_ratio ) {
 			return false;
 		}
 
@@ -275,7 +279,7 @@ class Auto_Resizing_Transform implements Transform {
 		return ! $this->skip_adding_auto_sizes( $element );
 	}
 
-	private function skip_adding_auto_sizes( Element $element ) {
+	private function skip_adding_auto_sizes( $element ) {
 		return apply_filters( 'wp_smush_skip_adding_auto_sizes', false, $element->get_markup() );
 	}
 
@@ -284,7 +288,7 @@ class Auto_Resizing_Transform implements Transform {
 	 *
 	 * @return bool
 	 */
-	private function is_composite_element_excluded( Composite_Element $composite_element ): bool {
+	private function is_composite_element_excluded( $composite_element ) {
 		foreach ( $composite_element->get_elements() as $sub_element ) {
 			if ( $this->is_element_excluded( $sub_element ) ) {
 				return true;
@@ -293,11 +297,11 @@ class Auto_Resizing_Transform implements Transform {
 		return false;
 	}
 
-	private function is_element_excluded( Element $element ) {
+	private function is_element_excluded( $element ) {
 		return $this->element_has_excluded_keywords( $element ) || $this->is_image_element_skipped_through_filter( $element );
 	}
 
-	private function element_has_excluded_keywords( Element $element ) {
+	private function element_has_excluded_keywords( $element ) {
 		$keyword_exclusions = $this->keyword_exclusions();
 		if ( ! $keyword_exclusions->has_excluded_keywords() ) {
 			return false;
@@ -306,7 +310,7 @@ class Auto_Resizing_Transform implements Transform {
 		return $keyword_exclusions->is_markup_excluded( $element->get_markup() );
 	}
 
-	private function is_image_element_skipped_through_filter( Element $element ) {
+	private function is_image_element_skipped_through_filter( $element ) {
 		$image_attributes = $element->get_image_attributes();
 		if ( empty( $image_attributes ) ) {
 			return true;// This should not occur.

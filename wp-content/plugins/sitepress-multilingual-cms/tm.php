@@ -8,8 +8,6 @@ if ( defined( 'WPML_TM_VERSION' ) || get_option( '_wpml_inactive' ) ) {
 
 define( 'WPML_TM_VERSION', '2.11.0' );
 
-// Do not uncomment the following line!
-// If you need to use this constant, use it in the wp-config.php file.
 if ( ! defined( 'WPML_TM_PATH' ) ) {
 	define( 'WPML_TM_PATH', dirname( __FILE__ ) );
 }
@@ -23,13 +21,7 @@ function initialize_wpml_cache_factory() {
 	$wpml_cache_factory->define( 'WPML_TM_Blog_Translators::has_translators', $translator_filters );
 }
 
-/**
- * Load plugin.
- *
- * @param SitePress $sitepress WPML main plugin instance.
- */
 function wpml_tm_load( $sitepress = null ) {
-	// phpcs:disable WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 	global $wpdb, $WPML_Translation_Management, $ICL_Pro_Translation;
 
 	$is_admin   = is_admin();
@@ -55,7 +47,6 @@ function wpml_tm_load( $sitepress = null ) {
 	\WPML\Container\share( \WPML\TM\Container\Config::getSharedClasses() );
 	\WPML\Container\delegate( \WPML\TM\Container\Config::getDelegated() );
 
-	// Always init WPML_Translator_Records as it handles the tranlators cache.
 	\WPML\Container\make( \WPML_Translator_Records::class );
 	\WPML\Container\make( \WPML_Translation_Manager_Records::class );
 
@@ -97,15 +88,9 @@ function wpml_tm_load( $sitepress = null ) {
 			$wpml_tm_pickup_mode_ajax->ajax_hooks();
 		}
 	}
-	// phpcs:disable WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 
 	if ( class_exists( 'WPML_TF_Settings_Read' ) ) {
 		$tf_settings_read = new WPML_TF_Settings_Read();
-		/**
-		 * Translation feedback settings.
-		 *
-		 * @var WPML_TF_Settings $tf_settings
-		 */
 		$tf_settings                 = $tf_settings_read->get( 'WPML_TF_Settings' );
 		$translation_feedback_module = new WPML_TM_TF_Module( $action_filter_loader, $tf_settings );
 		$translation_feedback_module->run();
@@ -127,6 +112,7 @@ function wpml_tm_load( $sitepress = null ) {
 		'WPML_TM_Upgrade_Loader_Factory',
 		\WPML\TM\AutomaticTranslation\Actions\AutomaticTranslationJobCreationFailureNoticeFactory::class,
 		\WPML\ATE\Proxies\Dashboard::class,
+		\WPML\TM\ATE\ClonedSites\AliasDomainCheckHandler::class,
 	];
 	$action_filter_loader->load( $global_actions );
 
@@ -157,7 +143,10 @@ function wpml_tm_load( $sitepress = null ) {
 			'WPML_TM_Reset_Options_Filter_Factory',
 			\WPML\TM\User\Hooks::class,
 			\WPML\TM\Jobs\ExtraFieldDataInEditorFactory::class,
+			\WPML\TM\ATE\Sitekey\DirectSync::class,
 			\WPML\TM\ATE\Sitekey\Sync::class,
+			\WPML\TM\ATE\Sitekey\UnassignDirectSync::class,
+			\WPML\TM\ATE\Sitekey\UnassignSync::class,
 			\WPML\TM\ATE\Review\ReviewCompletedNotice::class,
 			\WPML\TM\Settings\CustomFieldChangeDetector::class,
 			\WPML\MediaTranslation\AddMediaDataToTranslationPackageFactory::class,
@@ -192,8 +181,8 @@ function wpml_tm_load( $sitepress = null ) {
 			'WPML_TM_ATE_Translator_Message_Classic_Editor_Factory',
 			'WPML_TM_Old_Editor_Factory',
 			\WPML\TM\ATE\Log\Hooks::class,
+			\WPML\TM\Jobs\Log\Hooks::class,
 			\WPML\TM\ATE\Hooks\ReturnedJobActionsFactory::class,
-			WPML\TM\ATE\ClonedSites\Loader::class,
 			\WPML\TM\ATE\Loader::class,
 			\WPML\TM\Jobs\Loader::class,
 			\WPML\TM\ATE\Review\ApplyJob::class,
@@ -203,6 +192,7 @@ function wpml_tm_load( $sitepress = null ) {
 			\WPML\TM\Editor\ManualJobCreationErrorNotice::class,
 			\WPML\ICLToATEMigration\Loader::class,
 			\WPML\Support\ATE\Hooks::class,
+			\WPML\Support\TmJobs\Hooks::class,
 			\WPML\TM\ATE\AutoTranslate\Hooks\JobsCountCacheInvalidateAction::class,
 			\WPML\TranslationManagement\Dashboard\Loader::class,
 		];
@@ -212,7 +202,6 @@ function wpml_tm_load( $sitepress = null ) {
 	do_action( 'wpml_after_tm_loaded' );
 
 	if ( $is_admin ) {
-		// This filter is documented WPML Core in classes/support/class-wpml-support-info-ui.php.
 		add_filter( 'wpml_support_info_blocks', 'wpml_tm_support_info' );
 	}
 
@@ -221,14 +210,6 @@ function wpml_tm_load( $sitepress = null ) {
 
 add_action( 'wpml_loaded', 'wpml_tm_load', 10, 1 );
 
-/**
- * Get support info.
- * This filter is documented WPML Core in classes/support/class-wpml-support-info-ui.php.
- *
- * @param array $blocks Support info blocks.
- *
- * @return array
- */
 function wpml_tm_support_info( array $blocks ) {
 	$support_info = new WPML_TM_Support_Info();
 
@@ -238,31 +219,6 @@ function wpml_tm_support_info( array $blocks ) {
 }
 
 
-/**
- * Migration from ICL 2.0
- */
-function wpml_tm_icl20_migration() {
-	// @todo Remove `|| ( defined( 'WPML_TP_ICL_20_MIGRATION_OFF' ) && WPML_TP_ICL_20_MIGRATION_OFF )` after testing?
-	if ( defined( 'WPML_TP_ICL_20_MIGRATION_OFF' ) && WPML_TP_ICL_20_MIGRATION_OFF ) {
-		return;
-	}
-
-	global $sitepress;
-	$loader = new WPML_TM_ICL20_Migration_Loader( $sitepress->get_wp_api(), new WPML_TM_ICL20_Migration_Factory() );
-	$loader->run();
-}
-
-if ( ! empty( $GLOBALS['sitepress'] ) && is_admin() ) {
-	add_action( 'wpml_tm_loaded', 'wpml_tm_icl20_migration' );
-}
-
-/**
- * WPML reset user options filter.
- *
- * @param array $options User options.
- *
- * @return array
- */
 function wpml_tm_reset_user_options( array $options ) {
 	$options[] = WPML_TM_Menus_Management::SKIP_TM_WIZARD_META_KEY;
 

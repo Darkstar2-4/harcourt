@@ -50,7 +50,7 @@ class WPML_Media_Image_Translate {
 	 */
 	public function prefetchDataForFutureGetTranslatedImageCalls( $source_language, $items_to_translate ) {
 		$this->media_attachment_by_url_query->prefetchAllIdsFromGuids(
-			$source_language,
+			[ $source_language ],
 			array_merge(
 				array_map(
 					function( $item ) {
@@ -67,7 +67,7 @@ class WPML_Media_Image_Translate {
 			)
 		);
 		$this->media_attachment_by_url_query->prefetchAllIdsFromMetas(
-			$source_language,
+			[ $source_language ],
 			array_merge(
 				array_map(
 					function( $item ) {
@@ -169,15 +169,15 @@ class WPML_Media_Image_Translate {
 	 * @return null|string
 	 */
 	private function getLanguageByUrl( $url ) {
-		$imageUrl = WPML_Media_Attachment_By_URL::getUrl( $url );
+		$image_url = WPML_Media_Attachment_By_URL::getUrl( $url );
 
-		$imageId = Cache::get( self::URLS_TO_IDS_CACHE_KEY, $imageUrl )->getOrElse( null );
-		if ( ! $imageId ) {
-			$imageId = attachment_url_to_postid( $imageUrl );
-			Cache::set( self::URLS_TO_IDS_CACHE_KEY, $imageUrl, HOUR_IN_SECONDS, $imageId );
+		$image_id = Cache::get( self::URLS_TO_IDS_CACHE_KEY, $image_url )->getOrElse( null );
+		if ( ! $image_id ) {
+			$image_id = attachment_url_to_postid( $image_url );
+			Cache::set( self::URLS_TO_IDS_CACHE_KEY, $image_url, HOUR_IN_SECONDS, $image_id );
 		}
 
-		return $this->sitepress->get_language_for_element( $imageId, 'post_attachment' );
+		return $this->sitepress->get_language_for_element( $image_id, 'post_attachment' );
 	}
 
 	/**
@@ -208,8 +208,11 @@ class WPML_Media_Image_Translate {
 			$file_subdirectory       = $meta_data['file'];
 			$file_subdirectory_parts = explode( '/', $file_subdirectory );
 
-			$filename          = array_pop( $file_subdirectory_parts );
-			$image_url_parts[] = implode( '/', $file_subdirectory_parts );
+			$filename = array_pop( $file_subdirectory_parts );
+
+			if ( ! empty( $file_subdirectory_parts ) ) {
+				$image_url_parts[] = implode( '/', $file_subdirectory_parts );
+			}
 
 			if ( array_key_exists( $size, $meta_data['sizes'] ) ) {
 				$image_url_parts[] = $meta_data['sizes'][ $size ]['file'];

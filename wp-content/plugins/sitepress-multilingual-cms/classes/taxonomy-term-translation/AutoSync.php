@@ -25,29 +25,21 @@ class AutoSync implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 		}
 	}
 
-	/**
-	 * @return \Closure (int, array, object) -> void
-	 */
 	private static function syncTaxonomyHierarchy() {
 		return function( $newPostId, $fields, $job ) {
-			// $isPostJob :: object -> bool
 			$isPostJob = Relation::propEq( 'element_type_prefix', 'post' );
 
-			// $getPostType :: object -> string
 			$getPostType = pipe(
 				Obj::prop( 'original_post_type' ),
 				Str::replace( 'post_', '' )
 			);
 
-			// $isAutomaticPostType :: string -> bool
 			$isAutomaticPostType = [ Automatic::class, 'isAutomatic' ];
 
-			// $isTranslatableTax :: string -> bool
 			$isTranslatableTax = function( $taxonomy ) {
 				return \WPML_Element_Sync_Settings_Factory::createTax()->is_sync( $taxonomy );
 			};
 
-			// $syncTaxonomyHierarchies :: array -> void
 			$syncTaxonomyHierarchies = function( $taxonomies ) {
 				wpml_get_hierarchy_sync_helper( 'term' )->sync_element_hierarchy( $taxonomies, Languages::getDefaultCode() );
 			};

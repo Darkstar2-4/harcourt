@@ -8,13 +8,6 @@ use WPML\PHP\Exception\InvalidItemIdException;
 interface PostQueryInterface {
 
 
-  /**
-   * @param int $id
-   *
-   * @return Post
-   *
-   * @throws InvalidItemIdException
-   */
   public function getById( $id );
 
 

@@ -5,28 +5,28 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
+         "Translation Dashboard": [
+            "Översättningspanel"
+         ],
          "WPML Translation Editor": [
-            "WPML Översättningsredigerare"
+            "WPML-översättningsredigerare"
          ],
          "WordPress Editor": [
             "WordPress-redigerare"
          ],
-         "Translation Dashboard": [
-            "Översättningspanel"
-         ],
          "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
-            "Tänk också på att om du senare byter tillbaka till WPML:s översättningsredigerare kommer du behöva översätta om innehåll som du översatt med WordPress-redigeraren."
+            "Att byta tillbaka till WPML:s översättningsredigerare senare kommer också att kräva att du översätter innehåll som du översatte med WordPress-redigeraren igen."
          ],
          "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
-            "Detta kommer att skriva över innehåll som du har översatt med WordPress-redigeraren. Om du byter nu måste du översätta det valda innehållet igen."
+            "Detta kommer att skriva över innehåll som du översatte med WordPress-redigeraren. Om du byter nu måste du översätta valt innehåll igen."
          ],
          "You are about to translate with the %s": [
-            "Du är på väg att översätta med %s"
+            "Du håller på att översätta med %s"
          ],
          "Translate with the WordPress Editor if you need different designs per language or if the content isn't compatible with WPML's Translation Editor.": [
-            "Översätt med WordPress-redigeraren om du behöver olika design för olika språk eller om innehållet inte är kompatibelt med WPML:s översättningsredigerare."
+            "Översätt med WordPress-redigeraren om du behöver olika layouter per språk eller om innehållet inte är kompatibelt med WPML:s översättningsredigerare."
          ],
          "What do you want to translate?": [
             "Vad vill du översätta?"
@@ -35,7 +35,7 @@
             "Jag förstår, byt till WordPress-redigeraren"
          ],
          "Apply": [
-            "Tillämpa"
+            "Verkställ"
          ],
          "Cancel": [
             "Avbryt"
@@ -44,10 +44,10 @@
             "Jag förstår, byt till %s"
          ],
          "Only this %s": [
-            "Endast detta %s"
+            "Endast denna %s"
          ],
          "Recommended": [
-            "Rekommenderad"
+            "Rekommenderas"
          ],
          "All %s": [
             "Alla %s"
@@ -62,7 +62,7 @@
             "WordPress-redigeraren erbjuder inte automatisk översättning, översättningsminne och andra funktioner som underlättar översättning."
          ],
          "Translate items in batch after reviewing the cost of AI translation": [
-            "Översätt objekt i grupp efter att ha granskat kostnaden för AI-översättning"
+            "Översätt objekt i batch efter att ha granskat kostnaden för AI-översättning"
          ]
       }
    }

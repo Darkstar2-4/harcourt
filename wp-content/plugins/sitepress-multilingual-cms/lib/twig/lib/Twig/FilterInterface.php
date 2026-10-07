@@ -11,22 +11,8 @@ namespace WPML\Core;
  * file that was distributed with this source code.
  */
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a template filter.
- *
- * Use \Twig\TwigFilter instead.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since 1.12 (to be removed in 2.0)
- */
 interface Twig_FilterInterface
 {
-    /**
-     * Compiles a filter.
-     *
-     * @return string The PHP code for the filter
-     */
     public function compile();
     public function needsEnvironment();
     public function needsContext();

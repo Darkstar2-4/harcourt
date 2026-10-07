@@ -6,12 +6,6 @@ require_once WPML_PLUGIN_PATH . '/inc/functions-troubleshooting.php';
 
 global $wpdb;
 
-/* DEBUG ACTION */
-/**
- * @param \stdClass $term_object
- *
- * @return int
- */
 function get_term_taxonomy_id_from_term_object( $term_object ) {
 	return $term_object->term_taxonomy_id;
 }
@@ -57,10 +51,10 @@ if ( $nonce && $action && wp_verify_nonce( $nonce, $action ) ) {
 			icl_cache_clear();
 			$cache_directory = new WPML_Cache_Directory( new WPML_WP_API() );
 			$cache_directory->remove();
+			WPML_Translation_Roles_Records::delete_cache();
 			exit;
 
 		case 'ghost_clean':
-			// clean the icl_translations table
 			$orphans = $wpdb->get_col(
 				"
                 SELECT t.translation_id, t.element_type
@@ -196,8 +190,6 @@ if ( $nonce && $action && wp_verify_nonce( $nonce, $action ) ) {
 				}
 			}
 
-			// remove ghost translations
-			// get unlinked rids
 			$rids = $wpdb->get_col( "SELECT rid FROM {$wpdb->prefix}icl_translation_status WHERE translation_id NOT IN (SELECT translation_id FROM {$wpdb->prefix}icl_translations)" );
 			if ( $rids ) {
 				$jids = $wpdb->get_col( "SELECT job_id FROM {$wpdb->prefix}icl_translate_job WHERE rid IN (" . wpml_prepare_in( $rids, '%d' ) . ')' );
@@ -208,7 +200,6 @@ if ( $nonce && $action && wp_verify_nonce( $nonce, $action ) ) {
 				}
 			}
 
-			// remove any duplicates in icl_translations
 			$trs = $wpdb->get_results(
 				"SELECT element_id, GROUP_CONCAT(translation_id) AS tids FROM {$wpdb->prefix}icl_translations
                 WHERE element_id > 0 AND element_type LIKE 'post\\_%' GROUP BY element_id"
@@ -296,7 +287,6 @@ if ( $nonce && $action && wp_verify_nonce( $nonce, $action ) ) {
 
 				$terms_objects = get_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => 0 ] );
 				if ( is_array( $terms_objects ) ) {
-					/** @phpstan-ignore-next-line For some reason 'get_term_taxonomy_id_from_term_object' is not recognised as function by PHPStan. */
 					$term_taxonomy_ids = array_map( 'get_term_taxonomy_id_from_term_object', $terms_objects );
 					wp_update_term_count( $term_taxonomy_ids, $taxonomy, true );
 				}
@@ -318,7 +308,6 @@ if ( $nonce && $action && wp_verify_nonce( $nonce, $action ) ) {
 			exit;
 	}
 }
-/* DEBUG ACTION */
 global $sitepress;
 
 if ( wp_verify_nonce(
@@ -345,9 +334,7 @@ if ( wp_verify_nonce(
 <?php } ?>
 <?php
 
-// phpcs:disable
 echo \WPML\ICLToATEMigration\Loader::renderContainerIfNeeded();
-// phpcs:enable
 
 echo '<a href="#wpml-settings">' . __( 'WPML Settings', 'sitepress' ) . '</a>';
 echo '<br /><hr /><h3 id="wpml-settings"> ' . __( 'WPML settings', 'sitepress' ) . '</h3>';
@@ -848,7 +835,6 @@ if ( $shared ) {
 
 <br clear="all"/>
 <?php
-// TODO: [WPML 3.3] we should use the new hooks to add elements to the troubleshooting page
 echo WPML_Troubleshooting_Terms_Menu::display_terms_with_suffix();
 ?>
 

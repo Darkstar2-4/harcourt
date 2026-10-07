@@ -7,7 +7,6 @@ use WPML\TM\Jobs\Query\OrderQueryHelper;
 use WPML\TM\Jobs\Query\PackageQuery;
 use WPML\TM\Jobs\Query\PostQuery;
 use WPML\TM\Jobs\Query\QueryBuilder;
-use WPML\TM\Jobs\Query\StringQuery;
 use WPML\TM\Jobs\Query\StringsBatchQuery;
 use WPML\FP\Obj;
 use function WPML\Container\make;
@@ -15,9 +14,6 @@ use \WPML\Setup\Option as SetupOptions;
 
 if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== SetupOptions::isTMAllowed() ) ) {
 
-	/**
-	 * @return WPML_TM_Element_Translations
-	 */
 	function wpml_tm_load_element_translations() {
 		global $wpml_tm_element_translations, $wpdb, $wpml_post_translations, $wpml_term_translations;
 
@@ -53,11 +49,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		$wpml_tm_status_display_filter->init();
 	}
 
-	/**
-	 * @depecated since WPML 4.5.0
-	 *
-	 * @return \WPML_TM_Page_Builders_Hooks
-	 */
 	function wpml_tm_page_builders_hooks() {
 		static $page_builder_hooks;
 		if ( ! $page_builder_hooks ) {
@@ -68,9 +59,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $page_builder_hooks;
 	}
 
-	/**
-	 * @return \WPML_Custom_XML_Factory
-	 */
 	function wpml_tm_custom_xml_factory() {
 		static $tm_custom_xml_factory;
 		if ( ! $tm_custom_xml_factory ) {
@@ -80,9 +68,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $tm_custom_xml_factory;
 	}
 
-	/**
-	 * @return \WPML_Custom_XML_UI_Hooks
-	 */
 	function wpml_tm_custom_xml_ui_hooks() {
 		static $tm_custom_xml_ui_hooks;
 		if ( ! $tm_custom_xml_ui_hooks ) {
@@ -96,9 +81,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $tm_custom_xml_ui_hooks;
 	}
 
-	/**
-	 * @return \WPML_UI_Screen_Options_Factory
-	 */
 	function wpml_ui_screen_options_factory() {
 		static $screen_options_factory;
 		if ( ! $screen_options_factory ) {
@@ -109,9 +91,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $screen_options_factory;
 	}
 
-	/**
-	 * @return \WPML_TM_Loader
-	 */
 	function wpml_tm_loader() {
 		static $tm_loader;
 		if ( ! $tm_loader ) {
@@ -121,9 +100,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $tm_loader;
 	}
 
-	/**
-	 * @return \WPML_TP_Translator
-	 */
 	function wpml_tm_translator() {
 		static $tm_translator;
 		if ( ! $tm_translator ) {
@@ -133,11 +109,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $tm_translator;
 	}
 
-	/**
-	 * It returns a single instance of \WPML_Translation_Management.
-	 *
-	 * @return \WPML_Translation_Management
-	 */
 	function wpml_translation_management() {
 		global $WPML_Translation_Management;
 		if ( ! $WPML_Translation_Management ) {
@@ -148,9 +119,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $WPML_Translation_Management;
 	}
 
-	/**
-	 * @return \WPML_Translation_Basket
-	 */
 	function wpml_translation_basket() {
 		static $translation_basket;
 		if ( ! $translation_basket ) {
@@ -161,9 +129,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $translation_basket;
 	}
 
-	/**
-	 * @return \WPML_TM_Translate_Independently
-	 */
 	function wpml_tm_translate_independently() {
 		static $translate_independently;
 		if ( ! $translate_independently ) {
@@ -175,26 +140,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $translate_independently;
 	}
 
-	/**
-	 * @return WPML_Translation_Proxy_Basket_Networking
-	 */
-	function wpml_tm_load_basket_networking() {
-		global $iclTranslationManagement, $wpdb;
-
-		if ( ! defined( 'WPML_TM_PATH' ) ) {
-			return null;
-		}
-
-		require_once WPML_TM_PATH . '/inc/translation-proxy/wpml-translationproxy-basket-networking.class.php';
-
-		$basket = new WPML_Translation_Basket( $wpdb );
-
-		return new WPML_Translation_Proxy_Basket_Networking( $basket, $iclTranslationManagement );
-	}
-
-	/**
-	 * @return WPML_Translation_Proxy_Networking
-	 */
 	function wpml_tm_load_tp_networking() {
 		global $wpml_tm_tp_networking;
 
@@ -206,9 +151,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wpml_tm_tp_networking;
 	}
 
-	/**
-	 * @return WPML_TM_Blog_Translators
-	 */
 	function wpml_tm_load_blog_translators() {
 		global $wpdb, $sitepress, $wpml_post_translations, $wpml_term_translations, $wpml_cache_factory;
 		static $instance;
@@ -228,9 +170,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $instance;
 	}
 
-	/**
-	 * @return WPML_TM_Translators_Dropdown
-	 */
 	function wpml_tm_get_translators_dropdown() {
 		static $instance;
 
@@ -241,9 +180,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $instance;
 	}
 
-	/**
-	 * @return WPML_TM_Mail_Notification
-	 */
 	function wpml_tm_init_mail_notifications() {
 		global $wpml_tm_mailer, $sitepress, $wpdb, $iclTranslationManagement, $wp_api;
 
@@ -318,11 +254,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wpml_tm_mailer;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return WPML_Dashboard_Ajax
-	 */
 	function wpml_tm_load_tm_dashboard_ajax() {
 		global $wpml_tm_dashboard_ajax, $sitepress;
 
@@ -362,11 +293,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 
 	add_action( 'plugins_loaded', 'wpml_tm_load_and_intialize_dashboard_ajax' );
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return WPML_Translation_Job_Factory
-	 */
 	function wpml_tm_load_job_factory() {
 		global $wpml_translation_job_factory, $wpdb, $wpml_post_translations, $wpml_term_translations;
 
@@ -379,11 +305,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wpml_translation_job_factory;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return WPML_TM_XLIFF_Factory
-	 */
 	function wpml_tm_xliff_factory() {
 		static $xliff_factory;
 
@@ -394,11 +315,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $xliff_factory;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return WPML_TM_XLIFF_Shortcodes
-	 */
 	function wpml_tm_xliff_shortcodes() {
 		static $xliff_shortcodes;
 
@@ -409,11 +325,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $xliff_shortcodes;
 	}
 
-	/**
-	 * It returns an instance of the class.
-	 *
-	 * @return \WPML_TM_Old_Jobs_Editor
-	 */
 	function wpml_tm_load_old_jobs_editor() {
 		static $instance;
 
@@ -442,22 +353,12 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		}
 	}
 
-	/**
-	 * It returns an instance of the class.
-	 *
-	 * @return WPML_TM_Records
-	 */
 	function wpml_tm_get_records() {
 		global $wpdb, $wpml_post_translations, $wpml_term_translations;
 
 		return new WPML_TM_Records( $wpdb, $wpml_post_translations, $wpml_term_translations );
 	}
 
-	/**
-	 * It returns an instance of the class.
-	 *
-	 * @return WPML_TM_Xliff_Frontend
-	 */
 	function setup_xliff_frontend() {
 		global $xliff_frontend;
 
@@ -469,23 +370,16 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $xliff_frontend;
 	}
 
-	/**
-	 * It returns an instance of the class.
-	 *
-	 * @param int $job_id The ID of the job.
-	 * @param bool $applyTranslationMemoryForCompletedJobs
-	 *
-	 * @return WPML_TM_ATE_Models_Job_Create
-	 */
 	function wpml_tm_create_ATE_job_creation_model( $job_id, $applyTranslationMemoryForCompletedJobs = true ) {
 		$job_factory     = wpml_tm_load_job_factory();
 		$translation_job = $job_factory->get_translation_job( $job_id, false, 0, true );
 
 		$rid = \WPML\TM\API\Job\Map::fromJobId( $job_id );
 
-		$job            = new WPML_TM_ATE_Models_Job_Create();
-		$job->id		= $job_id;
-		$job->source_id = $rid;
+		$job             = new WPML_TM_ATE_Models_Job_Create();
+		$job->id         = $job_id;
+		$job->source_id  = $rid;
+		$job->element_id = $translation_job->get_original_element_id();
 
 		$previousStatus = \WPML\Translation\PreviousStateServiceFactory::create()->get( $translation_job->get_translation_id() );
     if ( $previousStatus && (int) $previousStatus['status'] === ICL_TM_ATE_CANCELLED ) {
@@ -494,7 +388,9 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		} else {
 			$completedTranslationService = ( new \WPML\Translation\CompletedTranslationServiceFactory() )->create();
 
-	    $apply_memory = $completedTranslationService->hasJobBeenCompletedBeforeResending( $job_id ) ? $applyTranslationMemoryForCompletedJobs : true;
+			$hasBeenCompletedBefore = $completedTranslationService->hasJobBeenCompletedBeforeResending( $job_id );
+			$isStringBatchJob       = strpos( $translation_job->get_basic_data_property( 'original_post_type' ) ?? '', 'st-batch_' ) === 0;
+			$apply_memory           = ( $hasBeenCompletedBefore || $isStringBatchJob ) ? $applyTranslationMemoryForCompletedJobs : true;
 
 			$job->source_language->code = $translation_job->get_source_language_code();
 			$job->source_language->name = $translation_job->get_source_language_code( true );
@@ -506,9 +402,7 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 
 			try {
 				global $wpml_dic;
-				/** @var \WPML\Core\Component\WordsToTranslate\Application\Service\WordsToTranslateService $wordsToTranslateService */
 				$wordsToTranslateService = $wpml_dic->make( \WPML\Core\Component\WordsToTranslate\Application\Service\WordsToTranslateService::class );
-				/** @var \WPML\Core\Component\WordsToTranslate\Domain\Job\JobDTO $wtt */
 				$wtt = $wordsToTranslateService->getForJob( $job_id, ! $apply_memory );
 
 				$job->wpml_words_to_translate_count    = $wtt->getWordsToTranslate();
@@ -523,7 +417,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 					)
 				);
 			} catch ( Exception $e ) {
-				// Let ATE calculate.
 				$job->wpml_words_to_translate_count    = null;
 				$job->wpml_automatic_translation_costs = null;
 				$job->ate_previous_job_ids			   = [];
@@ -531,7 +424,18 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 
 			$job->permalink = '#';
 			if ( $translation_job instanceof WPML_Post_Translation_Job ) {
-				$job->permalink = get_permalink( $translation_job->get_original_element_id() );
+				$originalElementId = $translation_job->get_original_element_id();
+				$job->permalink    = get_permalink( $originalElementId );
+
+				$orderingService = \WPML\Translation\AteSyncOrderingServiceFactory::create();
+				$tierAndRank     = $orderingService->getTierAndRankForPost( (int) $originalElementId );
+				if ( null !== $tierAndRank ) {
+					$job->tier = (string) $tierAndRank['tier'];
+					$job->rank = $tierAndRank['rank'];
+				}
+			} elseif ( $isStringBatchJob || $translation_job instanceof WPML_Package_Translation_Job ) {
+				$job->tier = '1';
+				$job->rank = [ 0 ];
 			}
 
 			$job->notify_enabled = true;
@@ -550,14 +454,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $job;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @param int   $job_id The ID of the job.
-	 * @param bool  $apply_memory
-	 *
-	 * @return string
-	 */
 	function wpml_tm_get_job_xliff( $job_id, $apply_memory = true ) {
 		static $xliff_writer;
 
@@ -569,11 +465,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $xliff_writer->generate_job_xliff( $job_id, $apply_memory );
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_Rest
-	 */
 	function wpml_tm_get_wpml_rest() {
 		static $wpml_rest;
 
@@ -585,11 +476,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wpml_rest;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_API_Client
-	 */
 	function wpml_tm_get_tp_api_client() {
 		static $client;
 
@@ -605,11 +491,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $client;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_Project
-	 */
 	function wpml_tm_get_tp_project() {
 		static $project;
 
@@ -624,11 +505,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $project;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_Jobs_API
-	 */
 	function wpml_tm_get_tp_jobs_api() {
 		static $api;
 
@@ -643,11 +519,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $api;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_Project_API
-	 */
 	function wpml_tm_get_tp_project_api() {
 		static $api;
 
@@ -662,11 +533,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $api;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_XLIFF_API
-	 */
 	function wpml_tm_get_tp_xliff_api() {
 		static $api;
 
@@ -684,16 +550,7 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $api;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @param bool $forceReload
-	 * @param bool $loadObsoleteStringQuery
-	 * @param bool $dontCache
-	 *
-	 * @return \WPML_TM_Jobs_Repository
-	 */
-	function wpml_tm_get_jobs_repository( $forceReload = false, $loadObsoleteStringQuery = true, $dontCache = false ) {
+	function wpml_tm_get_jobs_repository( $forceReload = false, $dontCache = false ) {
 		static $repository;
 
 		if ( ! $repository || $forceReload ) {
@@ -710,13 +567,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 					$wpdb,
 					new QueryBuilder( $limit_helper, $order_helper )
 				);
-
-				if ( $loadObsoleteStringQuery ) {
-					$subqueries[] = new StringQuery(
-						$wpdb,
-						new QueryBuilder( $limit_helper, $order_helper )
-					);
-				}
 				$subqueries[] = new StringsBatchQuery(
 					$wpdb,
 					new QueryBuilder( $limit_helper, $order_helper )
@@ -747,16 +597,8 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		wpml_tm_get_jobs_repository( true );
 	}
 
-	/**
-	 * Reloading Jobs Repository when WPML String Translation finishes setup.
-	 */
 	add_action( 'wpml_register_string_packages', 'wpml_tm_reload_jobs_repository' );
 
-	/**
-	 * It returns an instance of the class.
-	 *
-	 * @return WPML_TM_ATE_Job_Repository
-	 */
 	function wpml_tm_get_ate_jobs_repository() {
 		static $instance;
 
@@ -767,9 +609,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $instance;
 	}
 
-	/**
-	 * @return \WPML\TM\ATE\JobRecords
-	 */
 	function wpml_tm_get_ate_job_records() {
 		global $wpdb;
 		static $instance;
@@ -781,11 +620,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $instance;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_Sync_Jobs
-	 */
 	function wpml_tm_get_tp_sync_jobs() {
 		static $sync_jobs;
 
@@ -802,11 +636,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $sync_jobs;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TP_Translations_Repository
-	 */
 	function wpml_tm_get_tp_translations_repository() {
 		static $repository;
 
@@ -820,11 +649,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $repository;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_WP_User_Query_Factory
-	 */
 	function wpml_tm_get_wp_user_query_factory() {
 		static $wp_user_query_factory;
 
@@ -835,11 +659,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wp_user_query_factory;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_WP_User_Factory
-	 */
 	function wpml_tm_get_wp_user_factory() {
 		static $wp_user_factory;
 
@@ -850,11 +669,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $wp_user_factory;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TM_Email_Twig_Template_Factory
-	 */
 	function wpml_tm_get_email_twig_template_factory() {
 		static $email_twig_template_factory;
 
@@ -865,11 +679,6 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $email_twig_template_factory;
 	}
 
-	/**
-	 * It returns a single instance of the class.
-	 *
-	 * @return \WPML_TM_AMS_ATE_Factories
-	 */
 	function wpml_tm_ams_ate_factories() {
 		static $tm_ams_ate_factories;
 
@@ -880,52 +689,24 @@ if ( ! \WPML\Plugins::isTMActive() && ( ! wpml_is_setup_complete() || false !== 
 		return $tm_ams_ate_factories;
 	}
 
-	/**
-	 * @return string
-	 * @throws \Auryn\InjectionException
-	 */
 	function wpml_tm_get_ams_ate_console_url() {
-		/** @var WPML_TM_Admin_Sections $admin_sections */
 		$admin_sections = WPML\Container\make( 'WPML_TM_Admin_Sections' );
 
 		return $admin_sections->get_item_url( WPML_TM_AMS_ATE_Console_Section::SLUG );
 	}
 
-	/**
-	 * @param \WPML\TM\ATE\Log\Entry $entry
-	 * @param bool $avoidDuplication
-	 *
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	function wpml_tm_ate_ams_log( WPML\TM\ATE\Log\Entry $entry, $avoidDuplication = false ) {
 		make( WPML\TM\ATE\Log\Storage::class )->add( $entry, $avoidDuplication );
 	}
 
-	/**
-	 * @param \WPML\TM\ATE\Log\Entry $entry
-	 *
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	function wpml_tm_ate_ams_log_remove( WPML\TM\ATE\Log\Entry $entry ) {
 		make( WPML\TM\ATE\Log\Storage::class )->remove( $entry );
 	}
 
-	/**
-	 * @param string $original
-	 * @param string $translation
-	 * @param bool $finished_state
-	 *
-	 * @return WPML_TM_Translated_Field
-	 */
 	function wpml_tm_create_translated_field( $original, $translation, $finished_state ) {
 		return new WPML_TM_Translated_Field( $original, $translation, $finished_state );
 	}
 
-	/**
-	 * @param int $post_id
-	 * @param \WP_Post $post
-	 * @param bool $force_set_status
-	 */
 	function wpml_tm_save_post( $post_id, $post, $force_set_status = false ) {
 		global $wpdb, $wpml_post_translations, $wpml_term_translations;
 

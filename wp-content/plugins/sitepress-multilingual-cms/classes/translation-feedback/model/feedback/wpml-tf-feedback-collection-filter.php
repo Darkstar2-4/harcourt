@@ -1,35 +1,19 @@
 <?php
 
-/**
- * Class WPML_TF_Feedback_Collection_Filter
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Feedback_Collection_Filter implements IWPML_TF_Collection_Filter {
 
-	/** @var bool $exclude_rating_only */
 	private $exclude_rating_only;
 
-	/** @var array $language_pairs */
 	private $language_pairs;
 
-	/** @var int $pending_tp_ratings */
 	private $pending_tp_ratings;
 
-	/** @var int tp_feedback_id */
 	private $tp_feedback_id;
 
-	/** @var int $post_id */
 	private $post_id;
 
-	/** @var int $reviewer_id */
 	private $reviewer_id;
 
-	/**
-	 * WPML_TF_Feedback_Collection_Filter constructor.
-	 *
-	 * @param array $args
-	 */
 	public function __construct( array $args ) {
 		if ( isset( $args['exclude_rating_only'] ) ) {
 			$this->exclude_rating_only = $args['exclude_rating_only'];
@@ -56,37 +40,30 @@ class WPML_TF_Feedback_Collection_Filter implements IWPML_TF_Collection_Filter {
 		}
 	}
 
-	/** @return null|bool */
 	private function get_exclude_rating_only() {
 		return $this->exclude_rating_only;
 	}
 
-	/** @return null|array */
 	private function get_language_pairs() {
 		return $this->language_pairs;
 	}
 
-	/** @return null|int */
 	private function get_pending_tp_ratings() {
 		return $this->pending_tp_ratings;
 	}
 
-	/** @return null|int */
 	private function get_tp_feedback_id() {
 		return $this->tp_feedback_id;
 	}
 
-	/** @return null|int */
 	private function get_reviewer_id() {
 		return $this->reviewer_id;
 	}
 
-	/** @return null|int */
 	private function get_post_id() {
 		return $this->post_id;
 	}
 
-	/** @return array */
 	public function get_posts_args() {
 		$args = array(
 			'posts_per_page'   => -1,
@@ -176,7 +153,6 @@ class WPML_TF_Feedback_Collection_Filter implements IWPML_TF_Collection_Filter {
 		return $args;
 	}
 
-	/** @return WPML_TF_Feedback_Collection */
 	public function get_new_collection() {
 		return new WPML_TF_Feedback_Collection();
 	}

@@ -2,21 +2,14 @@
 
 namespace WPML\Legacy\Component\WordsToTranslate\Domain;
 
-// Legacy
 use WPML\Translation\TranslationElements\FieldCompression;
 use function WPML\Container\make;
 
 trait JobPackageTrait {
 
-  /** @var ?\WPML_Element_Translation_Package */
   private $_wpmlElementTranslationPackage;
 
 
-  /**
-   * @param mixed $package
-   *
-   * @return array<string, string>
-   */
   private function getTranslatableFields( $package ) {
     if ( ! is_array( $package ) || ! isset( $package['contents'] ) ) {
       return [];
@@ -38,10 +31,6 @@ trait JobPackageTrait {
         : $unit['data'];
 
       if ( preg_match( '/^(https?):\/\/[^\s\/$.?#].[^\s]*$/i', $data ) ) {
-        // If the data is a URL, we don't translate it.
-        // But only if there is nothing else on that string, even a space before
-        // the URL will make it translatable (ATE behavior - so we need to adapt
-        // it).
         continue;
       }
 
@@ -53,7 +42,6 @@ trait JobPackageTrait {
         'wpml_tm_job_field_is_translatable',
         $isTranslatable,
         [
-          // Keep these fields for Toolset (and 3rd party) compatibility.
           'field_translate' => $unit['translate'],
           'field_type' => $type,
           'field_data' => $data,
@@ -73,7 +61,6 @@ trait JobPackageTrait {
   }
 
 
-  /** @return \WPML_Element_Translation_Package */
   private function wpmlElementTranslationPackage() {
     if ( ! $this->_wpmlElementTranslationPackage ) {
       $this->_wpmlElementTranslationPackage = make( \WPML_Element_Translation_Package::class );

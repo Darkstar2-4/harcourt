@@ -49,10 +49,6 @@ Version: 3.5.4 Timestamp: Sun Aug 30 13:30:32 EDT 2015
     border-radius: 4px;
 }
 
-html[dir="rtl"] .wpml_select2-container .wpml_select2-choice {
-    padding: 0 8px 0 0;
-}
-
 .wpml_select2-container.wpml_select2-drop-above .wpml_select2-choice {
     border-bottom-color: #aaa;
 

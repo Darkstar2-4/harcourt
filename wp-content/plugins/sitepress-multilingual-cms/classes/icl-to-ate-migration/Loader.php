@@ -27,20 +27,13 @@ class Loader implements \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function shouldShowMigration() {
-		// TODO: Remove wpml_is_ajax condition once wpmltm-4351 is done.
-		// phpcs:disable
 
-		// This feature is disabled by default now. See wpmldev-857.
 		if ( ! defined( 'WPML_ICL_ATE_MIGRATION_ENABLED' ) || ! WPML_ICL_ATE_MIGRATION_ENABLED ) {
 			return false;
 		}
 		return ! wpml_is_ajax() && UIPage::isTroubleshooting( $_GET ) &&
 		       ( isset( $_GET['icl-to-ate'] ) || make(ICLStatus::class)->isActivatedAndAuthorized() || Data::isICLDeactivated() );
-		// phpcs:enable
 	}
 
 	public static function renderContainerIfNeeded() {

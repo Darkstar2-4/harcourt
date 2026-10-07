@@ -27,9 +27,6 @@ class Editor implements \IWPML_Frontend_Action {
 			->then( [ $this, 'maybeDisplayModalPageBuilderWarning' ] );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function maybeDisplayModalPageBuilderWarning() {
 		if ( is_user_logged_in() && get_the_ID() ) {
 			do_action( 'wpml_maybe_display_modal_page_builder_warning', get_the_ID(), 'Beaver Builder' );

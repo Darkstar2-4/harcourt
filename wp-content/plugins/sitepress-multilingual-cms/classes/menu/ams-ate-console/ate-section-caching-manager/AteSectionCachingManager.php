@@ -2,24 +2,11 @@
 
 abstract class AteSectionCachingManager implements AteSectionCachingManagerInterface {
 
-	/** @var string */
 	protected $cacheKey;
 
-	/** @var string */
 	protected $cacheFileName;
 
 
-	/**
-	 * @param array $amsConstructor
-	 *
-	 * @return false|array{
-	 *     app: string,
-	 *     constructor: string,
-	 *     headers: string[],
-	 *     isJs: bool,
-	 *     errors: string[]
-	 * }
-	 */
 	public function getCachedAppData( $amsConstructor ) {
 		$filePath = get_transient( $this->cacheKey );
 
@@ -51,23 +38,12 @@ abstract class AteSectionCachingManager implements AteSectionCachingManagerInter
 		return false;
 	}
 
-	/**
-	 * Checks if there is cached app content available
-	 *
-	 * @return bool True if cached app content exists, false otherwise
-	 */
 	public function hasCachedApp() {
 		$filePath = get_transient( $this->cacheKey );
 
 		return $filePath && file_exists( $filePath );
 	}
 
-	/**
-	 * @param string $appContent
-	 * @param int $refreshCacheIn Represents in how many hours the cache should be refreshed
-	 *
-	 * @return string cached file path
-	 */
 	public function cacheApp( $appContent, $refreshCacheIn = 1 ) {
 		$cacheDir = CacheDirectory::get();
 

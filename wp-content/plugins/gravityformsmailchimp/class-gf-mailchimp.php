@@ -1556,9 +1556,9 @@ class GFMailChimp extends GFFeedAddOn {
 		if ( is_wp_error( $member ) ) {
 			// If the exception code is not 404, abort feed processing.
 			if ( 404 !== $member->get_error_code() ) {
-				$this->add_feed_error( sprintf( esc_html__( 'Unable to check if email address is already used by a contact: %s', 'gravityformsmailchimp' ), $e->getMessage() ), $feed, $entry, $form );
+				$this->add_feed_error( sprintf( esc_html__( 'Unable to check if email address is already used by a contact: %s', 'gravityformsmailchimp' ), $member->get_error_message() ), $feed, $entry, $form );
 
-				return new WP_Error( $e->getCode(), $e->getMessage(), $e->getErrors() );
+				return new WP_Error( $member->get_error_code(), $member->get_error_message(), $member->get_error_data() );
 			}
 
 			$this->log_debug( __METHOD__ . "(): $email was not found on audience." );

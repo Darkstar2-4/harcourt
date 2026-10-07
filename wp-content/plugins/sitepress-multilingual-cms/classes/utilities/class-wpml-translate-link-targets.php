@@ -2,29 +2,14 @@
 
 class WPML_Translate_Link_Targets {
 
-	/* @var AbsoluteLinks $absolute_links */
 	private $absolute_links;
-	/* @var WPML_Absolute_To_Permalinks $permalinks_converter */
 	private $permalinks_converter;
 
-	/**
-	 * WPML_Translate_Link_Targets constructor.
-	 *
-	 * @param AbsoluteLinks               $absolute_links
-	 * @param WPML_Absolute_To_Permalinks $permalinks_converter
-	 */
 	public function __construct( AbsoluteLinks $absolute_links, WPML_Absolute_To_Permalinks $permalinks_converter ) {
 		$this->absolute_links       = $absolute_links;
 		$this->permalinks_converter = $permalinks_converter;
 	}
 
-	/**
-	 * convert_text
-	 *
-	 * @param string $text
-	 *
-	 * @return string
-	 */
 
 	public function convert_text( $text ) {
 		if ( is_string( $text ) ) {
@@ -40,11 +25,6 @@ class WPML_Translate_Link_Targets {
 		return $url != $absolute_url || $this->absolute_links->is_home( $url );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function convert_url( $url ) {
 		$link = '<a href="' . $url . '">removeit</a>';
 		$link = $this->convert_text( $link );

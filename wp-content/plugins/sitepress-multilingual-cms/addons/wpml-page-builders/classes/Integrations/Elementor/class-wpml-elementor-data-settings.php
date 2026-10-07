@@ -8,12 +8,9 @@ class WPML_Elementor_Data_Settings implements IWPML_Page_Builders_Data_Settings 
 	const META_KEY_DATA = '_elementor_data';
 	const META_KEY_MODE = '_elementor_edit_mode';
 
-	/**
-	 * @var WPML_Elementor_DB|null
-	 */
 	private $elementor_db;
 
-	public function __construct( WPML_Elementor_DB $elementor_db = null ) {
+	public function __construct( ?WPML_Elementor_DB $elementor_db = null ) {
 		$this->elementor_db = $elementor_db;
 	}
 
@@ -31,14 +28,6 @@ class WPML_Elementor_Data_Settings implements IWPML_Page_Builders_Data_Settings 
 		}
 	}
 
-	/**
-	 * @param array|mixed $value
-	 * @param int         $translated_post_id
-	 * @param int         $original_post_id
-	 * @param string      $meta_key
-	 *
-	 * @return mixed
-	 */
 	public function mark_css_field_as_empty( $value, $translated_post_id, $original_post_id, $meta_key ) {
 		if ( '_elementor_css' === $meta_key && is_array( $value ) ) {
 			if ( ! isset( $value['status'] ) ) {
@@ -59,23 +48,14 @@ class WPML_Elementor_Data_Settings implements IWPML_Page_Builders_Data_Settings 
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_meta_field() {
 		return self::META_KEY_DATA;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_node_id_field() {
 		return 'id';
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields_to_copy() {
 		return [
 			'_elementor_version',
@@ -88,44 +68,22 @@ class WPML_Elementor_Data_Settings implements IWPML_Page_Builders_Data_Settings 
 		];
 	}
 
-	/**
-	 * @param array|string $data
-	 *
-	 * @return array
-	 */
 	public function convert_data_to_array( $data ) {
 		return DataConvert::unserialize( $data );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return string
-	 */
 	public function prepare_data_for_saving( array $data ) {
 		return DataConvert::serialize( $data );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_pb_name() {
 		return 'Elementor';
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields_to_save() {
 		return array( '_elementor_data' );
 	}
 
-	/**
-	 * @param  array $custom_fields_values
-	 * @param  int   $post_id
-	 *
-	 * @return array
-	 */
 	public function add_data_custom_field_to_md5( array $custom_fields_values, $post_id ) {
 		if ( AutoUpdateSettings::isEnabled() ) {
 			unset( $custom_fields_values[ $this->get_meta_field() ] );
@@ -136,21 +94,11 @@ class WPML_Elementor_Data_Settings implements IWPML_Page_Builders_Data_Settings 
 		return $custom_fields_values;
 	}
 
-	/**
-	 * @param int $postId
-	 *
-	 * @return bool
-	 */
 	public function is_handling_post( $postId ) {
 		return (bool) get_post_meta( $postId, $this->get_meta_field(), true )
 			&& self::is_edited_with_elementor( $postId );
 	}
 
-	/**
-	 * @param int $postId
-	 *
-	 * @return bool
-	 */
 	public static function is_edited_with_elementor( $postId ) {
 		return 'builder' === get_post_meta( $postId, self::META_KEY_MODE, true );
 	}

@@ -9,9 +9,9 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 class Vimeo_Embed implements Video_Embed {
-	const NAME = 'vimeo';
-	const VIDEO_ID_REGEX = '#player\.vimeo\.com\/video\/(?<video_id>[\d]+)#i';
-	const OEMBED_API_URL = 'https://vimeo.com/api/oembed.json?url=%s';
+	private static $name = 'vimeo';
+	private static $video_id_regex = '#player\.vimeo\.com\/video\/(?<video_id>[\d]+)#i';
+	private static $vimeo_oembed_endpoint = 'https://vimeo.com/api/oembed.json';
 
 	/**
 	 *
@@ -41,7 +41,7 @@ class Vimeo_Embed implements Video_Embed {
 	}
 
 	public function get_name() {
-		return self::NAME;
+		return self::$name;
 	}
 
 	public function get_embed_url() {
@@ -53,7 +53,14 @@ class Vimeo_Embed implements Video_Embed {
 	}
 
 	private function is_valid_embed_url() {
-		return ! empty( $this->get_video_id() );
+		$host                = wp_parse_url( $this->embed_url, PHP_URL_HOST );
+		$vimeo_embed_hosts   = array(
+			'player.vimeo.com',
+			'www.player.vimeo.com',
+		);
+		$is_vimeo_embed_host = is_string( $host ) && in_array( strtolower( $host ), $vimeo_embed_hosts, true );
+
+		return $is_vimeo_embed_host && ! empty( $this->get_video_id() );
 	}
 
 	public function get_video_id() {
@@ -65,7 +72,7 @@ class Vimeo_Embed implements Video_Embed {
 	}
 
 	private function prepare_video_id() {
-		$video_id_regex = apply_filters( 'wp_smush_lazy_load_vimeo_id_regex', self::VIDEO_ID_REGEX );
+		$video_id_regex = apply_filters( 'wp_smush_lazy_load_vimeo_id_regex', self::$video_id_regex );
 		if ( preg_match( $video_id_regex, $this->embed_url, $matches ) ) {
 			return $matches['video_id'] ?? '';
 		}
@@ -73,7 +80,7 @@ class Vimeo_Embed implements Video_Embed {
 		return '';
 	}
 
-	public function fetch_video_thumbnail( $video_width, $video_height ): ?Video_Thumbnail {
+	public function fetch_video_thumbnail( $video_width, $video_height ) {
 		$video_id = $this->get_video_id();
 		if ( ! $video_id ) {
 			return null;
@@ -81,7 +88,7 @@ class Vimeo_Embed implements Video_Embed {
 
 		list( $requested_thumb_width, $requested_thumb_height ) = $this->determine_best_thumbnail_size( $video_width, $video_height );
 
-		$cached = $this->video_thumbnail_cache->get( $video_id, self::NAME, $requested_thumb_width, $requested_thumb_height );
+		$cached = $this->video_thumbnail_cache->get( $video_id, self::$name, $requested_thumb_width, $requested_thumb_height );
 		if ( $cached ) {
 			return $cached;
 		}
@@ -104,7 +111,7 @@ class Vimeo_Embed implements Video_Embed {
 			)
 		);
 
-		$this->video_thumbnail_cache->add( $video_id, self::NAME, $requested_thumb_width, $requested_thumb_height, $video_thumbnail );
+		$this->video_thumbnail_cache->add( $video_id, self::$name, $requested_thumb_width, $requested_thumb_height, $video_thumbnail );
 
 		return $video_thumbnail;
 	}
@@ -150,7 +157,7 @@ class Vimeo_Embed implements Video_Embed {
 		return array( (int) ceil( $retina_width ), (int) ceil( $retina_height ) );
 	}
 
-	private function is_smaller_than_video( $thumb_width, $thumb_height, $video_width, $video_height ): bool {
+	private function is_smaller_than_video( $thumb_width, $thumb_height, $video_width, $video_height ) {
 		return $thumb_width < $video_width || ( empty( $video_width ) && $thumb_height < $video_height );
 	}
 
@@ -260,16 +267,14 @@ class Vimeo_Embed implements Video_Embed {
 	}
 
 	private function get_oembed_api_url( $width, $height ) {
-		// @see https://developer.vimeo.com/api/oembed/videos.
-		$embed_url = add_query_arg(
+		$oembed_api_url = add_query_arg(
 			array(
 				'width'  => $width,
 				'height' => $height,
+				'url'    => rawurlencode( $this->embed_url ),
 			),
-			$this->embed_url
+			self::$vimeo_oembed_endpoint
 		);
-
-		$oembed_api_url = sprintf( self::OEMBED_API_URL, $embed_url );
 
 		return apply_filters( 'wp_smush_lazyload_vimeo_oembed_api_url', $oembed_api_url, $this->get_video_id(), $this->embed_url );
 	}
@@ -280,9 +285,9 @@ class Vimeo_Embed implements Video_Embed {
 		return Helper::logger()->lazy();
 	}
 
-	public function get_cached_video_thumbnail( $video_width, $video_height ): ?Video_Thumbnail {
+	public function get_cached_video_thumbnail( $video_width, $video_height ) {
 		list( $thumb_width, $thumb_height ) = $this->determine_best_thumbnail_size( $video_width, $video_height );
 
-		return $this->video_thumbnail_cache->get( $this->get_video_id(), self::NAME, $thumb_width, $thumb_height );
+		return $this->video_thumbnail_cache->get( $this->get_video_id(), self::$name, $thumb_width, $thumb_height );
 	}
 }

@@ -6,10 +6,8 @@ use WPML\StringTranslation\Application\StringCore\Domain\StringItem;
 
 class DomainValueAndContextCriteria {
 
-	/** @var StringItem[] */
 	private $stringsToSearch;
 
-	/** @var string[]  */
 	private $fieldsToHydrate;
 
 	public function __construct(

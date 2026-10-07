@@ -1,22 +1,15 @@
 <?php
 
 use WPML\API\Sanitize;
+use WPML\ST\TranslationFile\StringCollation;
 
 class WPML_ST_Strings {
+	use StringCollation;
 
 	const EMPTY_CONTEXT_LABEL = 'empty-context-domain';
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
-	/**
-	 * @var WP_Query
-	 */
 	private $wp_query;
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
 	public function __construct( $sitepress, $wpdb, $wp_query ) {
@@ -33,7 +26,6 @@ class WPML_ST_Strings {
 
 		$active_languages = $this->sitepress->get_active_languages();
 
-		// phpcs:disable WordPress.CSRF.NonceVerification.NoNonceVerification
 		$status_filter = isset( $_GET['status'] ) ? (int) $_GET['status'] : false;
 
 		$translation_priority = isset( $_GET['translation-priority'] ) ? $_GET['translation-priority'] : false;
@@ -53,7 +45,6 @@ class WPML_ST_Strings {
 		}
 
 		if ( false !== $translation_priority ) {
-			/** @var string $esc_translation_priority */
 			$esc_translation_priority = esc_sql( $translation_priority );
 			if ( __( 'Optional', 'sitepress' ) === $translation_priority ) {
 				$extra_cond .= " AND s.translation_priority IN ( '" . $esc_translation_priority . "', '' ) ";
@@ -65,7 +56,6 @@ class WPML_ST_Strings {
 		$context = $this->get_context();
 
 		if ( isset( $context ) ) {
-			/** @phpstan-ignore-next-line */
 			$extra_cond .= $this->wpdb->prepare( ' AND s.context = %s ', $context );
 		}
 
@@ -98,8 +88,6 @@ class WPML_ST_Strings {
 			}
 
 			if ( $this->is_troubleshooting_filter_enabled() ) {
-				// This is a troubleshooting filter, it should display only String Translation elements that are in a wrong state.
-				// @see wpmldev-1920 - Strings that are incorrectly duplicated when re-translating a post that was edited using native editor.
 				$joins[] = ' INNER JOIN  ' . $this->wpdb->prefix . 'icl_translate it ON it.field_data_translated = sp.name and it.field_type="original_id"';
 			}
 		}
@@ -109,7 +97,6 @@ class WPML_ST_Strings {
 		if ( $res ) {
 			$extra_cond = '';
 			if ( isset( $_GET['translation_language'] ) ) {
-				/** @var string $translation_language */
 				$translation_language = esc_sql( $_GET['translation_language'] );
 				$extra_cond          .= " AND language='" . $translation_language . "'";
 			}
@@ -118,7 +105,6 @@ class WPML_ST_Strings {
 				$string_translations[ $row['string_id'] ] = $row;
 
 				$tr = $this->wpdb->get_results(
-					// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 					$this->wpdb->prepare(
 						"
 							SELECT id, language, status, value, mo_string, translator_id, translation_date  
@@ -127,7 +113,6 @@ class WPML_ST_Strings {
 						",
 						$row['string_id']
 					),
-					// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 					ARRAY_A
 				);
 
@@ -142,12 +127,6 @@ class WPML_ST_Strings {
 		return WPML\ST\Basket\Status::add( $string_translations, array_keys( $active_languages ) );
 	}
 
-	/**
-	 * Get the context from the URL and check if it is a page builder.
-	 * If it is then check that the PB is selected to show. If not then don't use the context.
-	 *
-	 * @return string|null
-	 */
 	private function get_context() {
 		if ( ! array_key_exists( 'context', $_GET ) ) {
 			return null;
@@ -172,14 +151,12 @@ class WPML_ST_Strings {
 			return $context;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$query  = $this->wpdb->prepare(
 			"SELECT kind FROM {$this->wpdb->prefix}icl_string_packages sp WHERE kind_slug = %s AND name = %s {$excluded_package_condition} LIMIT 1",
 			$kind_slug,
 			$name
 		);
 		$result = $this->wpdb->get_row( $query );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		if ( $result ) {
 			return null;
@@ -188,9 +165,6 @@ class WPML_ST_Strings {
 		return $context;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_value_search_query() {
 		$language_where = wpml_collect(
 			[
@@ -213,49 +187,26 @@ class WPML_ST_Strings {
 		return sprintf( '((%s))', $language_where->implode( ') OR (' ) );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_original_value_filter_sql() {
 		return $this->get_column_filter_sql( 's.value', $this->get_search_filter(), $this->is_exact_match() );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_name_filter_sql() {
 		return $this->get_column_filter_sql( 's.name', $this->get_search_filter(), $this->is_exact_match() );
 	}
-	/**
-	 * @return string
-	 */
 	private function get_context_filter_sql() {
 		return $this->get_column_filter_sql( 's.gettext_context', $this->get_search_filter(), $this->is_exact_match() );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_translation_value_filter_sql() {
 		return $this->get_column_filter_sql( 'str.value', $this->get_search_filter(), $this->is_exact_match() );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_mo_file_value_filter_sql() {
 		return $this->get_column_filter_sql( 'str.mo_string', $this->get_search_filter(), $this->is_exact_match() );
 	}
 
-	/**
-	 * @param string            $column
-	 * @param string|null|false $search_filter
-	 * @param bool|null         $exact_match
-	 *
-	 * @return string
-	 */
 	private function get_column_filter_sql( $column, $search_filter, $exact_match ) {
-		/** @var string $search_filter_html */
 		$search_filter_html = esc_html( (string) $search_filter );
 
 		$column             = esc_sql( $column );
@@ -263,13 +214,11 @@ class WPML_ST_Strings {
 		$search_filter_html = esc_sql( $search_filter_html );
 
 		if ( $search_filter === $search_filter_html ) {
-			// No special characters involved.
 			return $exact_match
 				? "$column = '$search_filter'"
 				: "$column LIKE '%$search_filter%'";
 		}
 
-		// Special characters involved - search also for HTML version.
 		return $exact_match
 			? "($column = '$search_filter' OR $column = '$search_filter_html')"
 			: "($column LIKE '%$search_filter%' OR $column LIKE '%$search_filter_html%')";
@@ -307,13 +256,11 @@ class WPML_ST_Strings {
 			{$extra_sql}
 			WHERE 1 {$extra_cond} AND TRIM(s.value) <> ''
 			{$excluded_package_condition}
-			GROUP BY context
+			GROUP BY context {$this->getCollateForContextColumn( $this->wpdb )}
 			ORDER BY context ASC
 		";
 
-		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 		return $this->wpdb->get_results( $query );
-		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	private function get_excluded_string_package_condition( $is_exclusive = true ) {
@@ -359,11 +306,9 @@ class WPML_ST_Strings {
 		$query_count .= " {$extra_cond} ";
 		$query_count .= $this->filter_empty_value();
 
-		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 		$num_rows = $this->wpdb->get_var( $query_count );
 
 		$res = $this->wpdb->get_results( $query, ARRAY_A );
-		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 		$this->set_pagination_counts( $limit, $num_rows );
 
 		return $res;
@@ -395,9 +340,6 @@ class WPML_ST_Strings {
 		return "SELECT COUNT(DISTINCT s.id) FROM {$this->wpdb->prefix}icl_strings s " . implode( PHP_EOL, $joins ) . ' ';
 	}
 
-	/**
-	 * @return string|false
-	 */
 	private function get_search_filter() {
 		if ( array_key_exists( 'search', $_GET ) ) {
 			return stripcslashes( $_GET['search'] );
@@ -406,9 +348,6 @@ class WPML_ST_Strings {
 		return false;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_exact_match() {
 		if ( array_key_exists( 'em', $_GET ) ) {
 			return 1 === (int) $_GET['em'];
@@ -417,9 +356,6 @@ class WPML_ST_Strings {
 		return false;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_search_context_filter() {
 		$result = array(
 			'original'    => true,
@@ -434,16 +370,10 @@ class WPML_ST_Strings {
 		return $result;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_troubleshooting_filter_enabled() {
 		return '1' === array_key_exists( 'troubleshooting', $_GET ) && $_GET['troubleshooting'];
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function must_show_all_results() {
 		return isset( $_GET['show_results'] ) && 'all' === $_GET['show_results'];
 	}

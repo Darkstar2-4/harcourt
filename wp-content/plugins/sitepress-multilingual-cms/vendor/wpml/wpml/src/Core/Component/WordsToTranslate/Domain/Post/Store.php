@@ -4,7 +4,6 @@ namespace WPML\Core\Component\WordsToTranslate\Domain\Post;
 
 class Store {
 
-  /** @var StoreRepositoryInterface */
   private $repository;
 
 
@@ -15,23 +14,11 @@ class Store {
   }
 
 
-  /**
-   * @return void
-   */
   public function save( Post $post ) {
     $this->repository->save( $post );
   }
 
 
-  /**
-   * Loads all the requested languages ($langs) for the given post and returns
-   * an array of missing languages.
-   *
-   * @param Post $post
-   * @param string[] $langs
-   *
-   * @return string[]
-   */
   public function loadLastTranslations( Post $post, $langs ) {
     $missingLangs = [];
     $stored = $this->repository->get( $post->getId() );
@@ -41,7 +28,6 @@ class Store {
     }
 
     if ( $stored->getLastEdit() !== $post->getLastEdit() ) {
-      // The stored data is outdated.
       return $langs;
     }
 
@@ -50,7 +36,6 @@ class Store {
 
     foreach ( $langs as $lang ) {
       if ( ! isset( $lastTranslations[ $lang ] ) ) {
-        // Language not stored.
         $missingLangs[] = $lang;
         continue;
       }

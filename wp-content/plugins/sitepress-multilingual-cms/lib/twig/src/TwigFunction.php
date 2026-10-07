@@ -11,13 +11,6 @@
 namespace WPML\Core\Twig;
 
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a template function.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class TwigFunction
 {
     protected $name;
@@ -86,5 +79,4 @@ class TwigFunction
     }
 }
 \class_alias('WPML\\Core\\Twig\\TwigFunction', 'WPML\\Core\\Twig_SimpleFunction');
-// Ensure that the aliased name is loaded to keep BC for classes implementing the typehint with the old aliased name.
 \class_exists('WPML\\Core\\Twig\\Node\\Node');

@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_XLIFF_Translator_Notes extends WPML_TM_XLIFF_Phase {
 
 	private $post_id;
@@ -10,9 +7,6 @@ class WPML_TM_XLIFF_Translator_Notes extends WPML_TM_XLIFF_Phase {
 		$this->post_id = $post_id;
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function get_data() {
 		if ( $this->post_id ) {
 			return WPML_TM_Translator_Note::get( $this->post_id );

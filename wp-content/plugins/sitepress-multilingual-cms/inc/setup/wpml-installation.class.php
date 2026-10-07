@@ -9,10 +9,8 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 	}
 
 	function go_to_setup1() {
-		// Reverse $this->prepopulate_translations()
 		$this->wpdb->query( "TRUNCATE TABLE {$this->wpdb->prefix}icl_translations" );
 
-		// Unset or reset sitepress settings
 		$settings = $this->sitepress->get_settings();
 
 		unset(
@@ -26,18 +24,11 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 		$GLOBALS['sitepress_settings']['existing_content_language_verified'] = $settings['existing_content_language_verified'];
 		update_option( 'icl_sitepress_settings', $settings );
 
-		// Reverse $this->maybe_set_locale()
 		$this->wpdb->query( "TRUNCATE TABLE {$this->wpdb->prefix}icl_locale_map" );
 
-		// Make sure no language is active
 		$this->wpdb->update( $this->wpdb->prefix . 'icl_languages', array( 'active' => 0 ), array( 'active' => 1 ) );
 	}
 
-	/**
-	 * Sets the locale in the icl_locale_map if it has not yet been set
-	 *
-	 * @param string $initial_language_code
-	 */
 	private function maybe_set_locale( $initial_language_code ) {
 		$q          = "SELECT code FROM {$this->wpdb->prefix}icl_locale_map WHERE code=%s";
 		$q_prepared = $this->wpdb->prepare( $q, $initial_language_code );
@@ -190,11 +181,6 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 		do_action( 'icl_initial_language_set' );
 	}
 
-	/**
-	 * @param string $initial_language_code
-	 *
-	 * @return string
-	 */
 	private function get_admin_language( $initial_language_code ) {
 		$user_locale = get_user_meta( get_current_user_id(), 'locale', true );
 
@@ -243,14 +229,6 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 		) );
 	}
 
-	/**
-	 * @param string $display_language
-	 * @param bool   $active_only
-	 * @param bool   $major_first
-	 * @param string $order_by
-	 *
-	 * @return array<string,\stdClass>
-	 */
 	public function refresh_active_lang_cache( $display_language, $active_only = false, $major_first = false,  $order_by = 'english_name' ) {
 		$active_snippet     = $active_only ? " l.active = 1 AND " : "";
 		$res_query
@@ -342,8 +320,6 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 
 		icl_cache_clear();
 
-		// case of icl_sitepress_settings accidentally lost
-		// if there's at least one translation do not initialize the languages for elements
 		$one_translation = $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				"SELECT translation_id FROM {$this->wpdb->prefix}icl_translations WHERE language_code<>%s",
@@ -407,7 +383,6 @@ class WPML_Installation extends WPML_WPDB_And_SP_User {
 		$this->wpdb->query( "TRUNCATE TABLE `{$this->wpdb->prefix}icl_flags`" );
 		SitePress_Setup::fill_flags();
 
-		//restore active
 		$this->wpdb->query(
 			"UPDATE {$this->wpdb->prefix}icl_languages SET active=1 WHERE code IN(" . wpml_prepare_in( $active ) . ")"
 		);

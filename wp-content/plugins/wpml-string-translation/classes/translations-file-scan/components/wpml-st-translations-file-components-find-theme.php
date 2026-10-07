@@ -1,19 +1,12 @@
 <?php
 
 class WPML_ST_Translations_File_Components_Find_Theme implements WPML_ST_Translations_File_Components_Find {
-	/** @var WPML_Debug_BackTrace */
 	private $debug_backtrace;
 
-	/** @var WPML_File $file */
 	private $file;
 
-	/** @var string */
 	private $theme_dir;
 
-	/**
-	 * @param WPML_Debug_BackTrace $debug_backtrace
-	 * @param WPML_File            $file
-	 */
 	public function __construct( WPML_Debug_BackTrace $debug_backtrace, WPML_File $file ) {
 		$this->debug_backtrace = $debug_backtrace;
 		$this->file            = $file;
@@ -54,11 +47,6 @@ class WPML_ST_Translations_File_Components_Find_Theme implements WPML_ST_Transla
 		return null;
 	}
 
-	/**
-	 * @param string $file_path
-	 *
-	 * @return string
-	 */
 	private function extract_theme_directory( $file_path ) {
 		$file_path = $this->file->fix_dir_separator( $file_path );
 		$dir       = ltrim( str_replace( $this->theme_dir, '', $file_path ), DIRECTORY_SEPARATOR );

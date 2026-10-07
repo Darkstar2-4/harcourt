@@ -1,26 +1,17 @@
 <?php
 
-/**
- * Class WPML_TF_Promote_Notices
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Promote_Notices {
 
 	const NOTICE_GROUP    = 'wpml-tf-promote';
 	const NOTICE_NEW_SITE = 'notice-new-site';
 	const DOC_URL         = 'https://wpml.org/documentation/getting-started-guide/getting-visitor-feedback-about-your-sites-translations/?utm_source=plugin&utm_medium=gui&utm_campaign=wpmlcore';
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function show_notice_for_new_site( $user_id ) {
 		$notices      = wpml_get_admin_notices();
 		$settings_url = admin_url( '?page=' . WPML_PLUGIN_FOLDER . '/menu/languages.php#wpml-translation-feedback-options' );

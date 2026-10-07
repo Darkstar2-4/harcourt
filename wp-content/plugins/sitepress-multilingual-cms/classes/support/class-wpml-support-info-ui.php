@@ -2,13 +2,8 @@
 
 use WPML\Core\Component\MinimumRequirements\Domain\Value\RequirementsConfig;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Support_Info_UI {
-	/** @var WPML_Support_Info */
 	protected $support_info;
-	/** @var IWPML_Template_Service */
 	private $template_service;
 
 	function __construct( WPML_Support_Info $support_info, IWPML_Template_Service $template_service ) {
@@ -16,16 +11,12 @@ class WPML_Support_Info_UI {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function show() {
 		$model = $this->get_model();
 
 		return $this->template_service->show( $model, 'main.twig' );
 	}
 
-	/** @return array */
 	protected function get_model() {
 
 
@@ -153,31 +144,6 @@ class WPML_Support_Info_UI {
 			$blocks['php']['data'] = $new_data;
 		}
 
-		/**
-		 * Allows to extend the data shown in the WPML > Support > Info
-		 *
-		 * This filter is for internal use.
-		 * You can add items to the `$blocks` array, however, it is strongly
-		 * recommended to not modify existing data.
-		 *
-		 * You can see how `$block` is structured by scrolling at the beginning of this method.
-		 *
-		 * The "messages" array can contain just a string (the message) or a string (the message)
-		 * and an URL (message linked to that URL).
-		 * That is, you can have:
-		 * ```
-		 * 'messages' => array(
-		 *    'Some message A' => 'https://domain.tld',
-		 *    'Some message B' => 'https://domain.tld',
-		 *    'Some message C',
-		 * ),
-		 * ```
-		 *
-		 * @param array $blocks
-		 *
-		 * @since 3.8.0
-		 *
-		 */
 		$blocks = apply_filters( 'wpml_support_info_blocks', $blocks );
 
 		$this->set_has_messages( $blocks, 'is_error' );
@@ -191,28 +157,18 @@ class WPML_Support_Info_UI {
 		return $model;
 	}
 
-	/**
-	 * Calculate the available stack size display text
-	 *
-	 * @param int $max_stack_bytes The maximum stack size in bytes
-	 * @param int $reserved_stack_bytes The reserved stack size in bytes
-	 * @return array Array with 'display' => string, 'too_low' => bool
-	 */
 	public function calculate_stack_size_display($max_stack_bytes, $reserved_stack_bytes) {
-		$min_max_stack = 262144;     // 256KB
-		$min_reserved_stack = 49152; // 48KB
+		$min_max_stack = 262144;
+		$min_reserved_stack = 49152;
 		$min_available_stack = $min_max_stack - $min_reserved_stack;
 
-		// Special case handling for unlimited/default values
 		$max_stack_unlimited = $max_stack_bytes === 0 || $max_stack_bytes === -1;
 		$reserved_stack_unlimited = $reserved_stack_bytes === 0;
 
-		// Calculate available stack for display purposes
 		if ( $max_stack_unlimited ) {
 			$available_stack_display = __( 'Automatic', 'sitepress' );
 			$available_stack_too_low = false;
 		} else {
-			// If max_stack has a specific value, check if it meets requirements
 			$available_stack_bytes = ( $reserved_stack_unlimited ) ?
 				$max_stack_bytes :
 				$max_stack_bytes - $reserved_stack_bytes;
@@ -227,15 +183,7 @@ class WPML_Support_Info_UI {
 		];
 	}
 
-	/**
-	 * @param array  $blocks
-	 * @param string $type
-	 */
 	private function set_has_messages( array &$blocks, $type ) {
-		/**
-		 * @var string $id
-		 * @var array  $content
-		 */
 		foreach ( $blocks as $id => $content ) {
 			if ( ! array_key_exists( 'has_messages', $content ) ) {
 				$content['has_messages'] = false;

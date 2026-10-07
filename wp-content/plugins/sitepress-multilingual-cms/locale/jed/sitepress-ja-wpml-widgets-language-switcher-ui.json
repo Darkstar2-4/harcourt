@@ -7,17 +7,17 @@
             "plural_forms": "nplurals=1; plural=0;",
             "lang": "ja"
          },
+         "All": [
+            "すべて"
+         ],
          "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
             "このカスタムHTMLブロックを特定の言語で表示するには、まずグループブロック内に配置してください。"
          ],
          "Place inside Group block": [
-            "グループブロック内に配置する"
-         ],
-         "All": [
-            "すべて"
+            "グループブロック内に配置"
          ],
          "Display on language": [
-            "言語上に表示"
+            "言語で表示"
          ]
       }
    }

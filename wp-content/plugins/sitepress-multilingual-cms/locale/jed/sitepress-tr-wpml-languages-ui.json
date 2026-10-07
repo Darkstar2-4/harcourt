@@ -1,0 +1,63 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "hide the translations instead.": [
+            "çevirileri gizle."
+         ],
+         "Error happened! Please try again.": [
+            "Hata oluştu! Lütfen tekrar deneyin."
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "Choose Content to Automatically Translate into": [
+            "Otomatik olarak çevrilecek içeriği seçin"
+         ],
+         "Save Changes and Enable Automatic Translation": [
+            "Değişiklikleri kaydedin ve otomatik çeviriyi etkinleştirin"
+         ],
+         "Cancel Language Changes": [
+            "Dil değişikliklerini iptal et"
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Add new languages": [
+            "Yeni diller ekle"
+         ],
+         "Add new language": [
+            "Yeni dil ekle"
+         ],
+         "Never mind - don't add new languages": [
+            "Boş ver - yeni dil ekleme"
+         ],
+         "Never mind - don't add new language": [
+            "Boş ver - yeni dil ekleme"
+         ],
+         "Choose which content to translate into the new language": [
+            "Yeni dile hangi içeriğin çevrileceğini seçin"
+         ],
+         "Automatically translate all my posts and pages, plus new content as I create it.": [
+            "Tüm gönderilerimi ve sayfalarımı, ayrıca oluşturduğum yeni içeriği otomatik olarak çevir."
+         ],
+         "Only automatically translate new content.": [
+            "Yalnızca yeni içeriği otomatik olarak çevir."
+         ],
+         "Which content do you want to translate into the new language?": [
+            "Yeni dile hangi içeriği çevirmek istiyorsunuz?"
+         ],
+         "When you unpause automatic translation, this content will be <a>translated automatically</a>.": [
+            "Otomatik çeviriyi duraklattığınızda, bu içerik <a>otomatik olarak çevrilecektir</a>."
+         ],
+         "You can still translate existing content any time from the Translation Management Dashboard.": [
+            "Mevcut içeriği Çeviri Yönetimi Panosu'ndan istediğiniz zaman çevirebilirsiniz."
+         ]
+      }
+   }
+}

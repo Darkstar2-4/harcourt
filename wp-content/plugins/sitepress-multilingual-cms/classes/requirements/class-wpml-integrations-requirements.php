@@ -3,9 +3,6 @@
 use WPML\Core\Twig_Loader_Filesystem;
 use WPML\Core\Twig_Environment;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Integrations_Requirements {
 	const NOTICE_GROUP                    = 'requirements';
 	const CORE_REQ_NOTICE_ID              = 'core-requirements';
@@ -21,28 +18,17 @@ class WPML_Integrations_Requirements {
 	private $integrations;
 	private $requirements_scripts;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var  WPML_Third_Party_Dependencies $third_party_dependencies */
 	private $third_party_dependencies;
 
-	/** @var  WPML_Requirements_Notification $requirements_notification */
 	private $requirements_notification;
 
-	/**
-	 * WPML_Integrations_Requirements constructor.
-	 *
-	 * @param SitePress                      $sitepress
-	 * @param WPML_Third_Party_Dependencies  $third_party_dependencies
-	 * @param WPML_Requirements_Notification $requirements_notification
-	 * @param array                          $integrations
-	 */
 	public function __construct(
 		SitePress $sitepress,
-		WPML_Third_Party_Dependencies $third_party_dependencies = null,
-		WPML_Requirements_Notification $requirements_notification = null,
-		$integrations = null
+		?WPML_Third_Party_Dependencies $third_party_dependencies = null,
+		?WPML_Requirements_Notification $requirements_notification = null,
+		?array $integrations = null
 	) {
 		$this->sitepress                 = $sitepress;
 		$this->third_party_dependencies  = $third_party_dependencies;
@@ -156,7 +142,7 @@ class WPML_Integrations_Requirements {
 			}
 		}
 
-		return $valid_request;
+		return $valid_request && current_user_can( 'manage_options' );
 	}
 
 	private function get_integrations() {
@@ -165,11 +151,6 @@ class WPML_Integrations_Requirements {
 		return $integrations->get_results();
 	}
 
-	/**
-	 * @param string $notice_type
-	 *
-	 * @return array
-	 */
 	private function get_integrations_names( $notice_type ) {
 		$names = array();
 
@@ -183,9 +164,6 @@ class WPML_Integrations_Requirements {
 		return $names;
 	}
 
-	/**
-	 * @return WPML_Requirements_Notification
-	 */
 	private function get_notice_model() {
 		if ( ! $this->requirements_notification ) {
 			$template_paths   = array(
@@ -205,9 +183,6 @@ class WPML_Integrations_Requirements {
 		return $this->requirements_notification;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 */
 	private function add_actions_to_notice( WPML_Notice $notice ) {
 		$dismiss_action = new WPML_Notice_Action( __( 'Dismiss', 'sitepress' ), '#', true, false, true, false );
 		$notice->add_action( $dismiss_action );
@@ -229,11 +204,6 @@ class WPML_Integrations_Requirements {
 		}
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return bool
-	 */
 	private function has_issues( $type ) {
 		$issues = WPML_Integrations::SCOPE_WP_CORE === $type
 			? $this->core_issues : $this->issues;
@@ -249,10 +219,6 @@ class WPML_Integrations_Requirements {
 		return false;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 * @param WPML_WP_API $wp_api
-	 */
 	private function add_callbacks( WPML_Notice $notice, WPML_WP_API $wp_api ) {
 		if ( method_exists( $notice, 'add_display_callback' ) ) {
 			$notice->add_display_callback( array( $wp_api, 'is_core_page' ) );
@@ -261,11 +227,6 @@ class WPML_Integrations_Requirements {
 		}
 	}
 
-	/**
-	 * @param WPML_Requirements_Notification $notice_model
-	 * @param WPML_Notices                   $wpml_admin_notices
-	 * @param WPML_WP_API                    $wp_api
-	 */
 	private function add_core_requirements_notice( WPML_Requirements_Notification $notice_model, WPML_Notices $wpml_admin_notices, WPML_WP_API $wp_api ) {
 		if ( $this->core_issues ) {
 			$message = $notice_model->get_core_message( $this->core_issues );
@@ -278,11 +239,6 @@ class WPML_Integrations_Requirements {
 		}
 	}
 
-	/**
-	 * @param WPML_Requirements_Notification $notice_model
-	 * @param WPML_Notices                   $wpml_admin_notices
-	 * @param WPML_WP_API                    $wp_api
-	 */
 	private function add_requirements_notice( WPML_Requirements_Notification $notice_model, WPML_Notices $wpml_admin_notices, WPML_WP_API $wp_api ) {
 		if ( $this->issues ) {
 			$message = $notice_model->get_message( $this->issues, 1 );
@@ -295,11 +251,6 @@ class WPML_Integrations_Requirements {
 		}
 	}
 
-	/**
-	 * @param WPML_Requirements_Notification $notice_model
-	 * @param WPML_Notices                   $wpml_admin_notices
-	 * @param WPML_WP_API                    $wp_api
-	 */
 	private function add_tm_editor_notice( WPML_Requirements_Notification $notice_model, WPML_Notices $wpml_admin_notices, WPML_WP_API $wp_api ) {
 		if ( $this->should_create_editor_notice ) {
 			$requirements_scripts = $this->get_requirements_scripts();
@@ -320,9 +271,6 @@ class WPML_Integrations_Requirements {
 		}
 	}
 
-	/**
-	 * @return WPML_Integrations_Requirements_Scripts
-	 */
 	private function get_requirements_scripts() {
 		if ( ! $this->requirements_scripts ) {
 			return new WPML_Integrations_Requirements_Scripts();
@@ -331,9 +279,6 @@ class WPML_Integrations_Requirements {
 		return $this->requirements_scripts;
 	}
 
-	/**
-	 * @return WPML_Third_Party_Dependencies
-	 */
 	private function get_third_party_dependencies() {
 		if ( ! $this->third_party_dependencies ) {
 			$integrations                   = new WPML_Integrations( $this->sitepress->get_wp_api() );

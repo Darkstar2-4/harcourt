@@ -4,11 +4,6 @@ namespace WPML;
 
 class DefaultCapabilities {
 
-	/**
-	 * We need the keys in a separate array to avoid triggering translate functions too early.
-	 *
-	 * @return string[]
-	 */
 	public static function getKeys() {
 		return [
 			'wpml_manage_translation_management',

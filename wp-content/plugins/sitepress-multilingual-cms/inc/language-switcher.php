@@ -1,17 +1,7 @@
 <?php
 
-/**
- * Class SitePressLanguageSwitcher
- *
- * @deprecated since 3.6.0
- */
 class SitePressLanguageSwitcher {
 
-	/**
-	 * @deprecated since 3.6.0
-	 *
-	 * @return string
-	 */
 	static function get_language_selector_footer() {
 		ob_start();
 		do_action( 'wpml_footer_language_selector' );
@@ -20,24 +10,10 @@ class SitePressLanguageSwitcher {
 		return $output;
 	}
 
-	/**
-	 * @deprecated since 3.6.0
-	 */
 	function language_selector_footer() {
 		do_action( 'wpml_footer_language_selector' );
 	}
 
-	/**
-	 * @param string $native_name
-	 * @param bool   $translated_name
-	 * @param bool   $show_native_name
-	 * @param bool   $show_translate_name
-	 * @param bool   $include_html
-	 *
-	 * @return string
-	 * @deprecated since 3.6.0
-	 *
-	 */
 	public function language_display( $native_name, $translated_name = false, $show_native_name = false, $show_translate_name = false, $include_html = true ) {
 		$result = '';
 
@@ -97,7 +73,7 @@ class SitePressLanguageSwitcher {
 
 		return sprintf( $result, $native_name, $translated_name );
 	}
-} // end class
+}
 
 global $icl_language_switcher;
 $icl_language_switcher = new SitePressLanguageSwitcher();

@@ -25,9 +25,6 @@ class DomainsWithMultisite implements \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @param string $url The admin area URL.
-	 */
 	public function filterUrl( $url ) {
 		$parsedUrl = wpml_parse_url( $url );
 

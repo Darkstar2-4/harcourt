@@ -4,33 +4,18 @@ namespace WPML\TM\Troubleshooting\Endpoints\RetryStuckAutomaticJobs;
 
 class RepairJobsQuery {
 
-	/**
-	 * @var \wpdb
-	 */
 	private $wpdb;
 
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param array<array<string, int>> $data
-	 *
-	 * @return bool
-	 * @throws \Exception
-	 */
 	public function repair( array $data ): bool {
 		$result = $this->repairJobs( array_column( $data, 'job_id' ) );
 
 		return $result && $this->repairJobsStatus( array_column( $data, 'rid' ) );
 	}
 
-	/**
-	 * @param int[] $jobIds
-	 *
-	 * @return bool
-	 * @throws \Exception
-	 */
 	private function repairJobs( array $jobIds ): bool {
 		$result = (bool) $this->wpdb->query(
 			"UPDATE {$this->wpdb->prefix}icl_translate_job 
@@ -45,12 +30,6 @@ class RepairJobsQuery {
 		return $result;
 	}
 
-	/**
-	 * @param int[] $rids
-	 *
-	 * @return bool
-	 * @throws \Exception
-	 */
 	private function repairJobsStatus( array $rids ): bool {
 		$result = (bool) $this->wpdb->query(
 			"UPDATE {$this->wpdb->prefix}icl_translation_status 

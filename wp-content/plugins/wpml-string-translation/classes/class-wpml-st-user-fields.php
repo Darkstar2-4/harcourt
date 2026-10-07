@@ -2,20 +2,12 @@
 
 class WPML_ST_User_Fields {
 
-	/**
-	 * @var string
-	 */
 	private $context = 'Authors';
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * @var mixed|WP_User|null
-	 */
 	private $authordata;
 
-	/** @var bool */
 	private $lock_get_the_author_filter;
 
 	public function __construct( SitePress $sitepress, &$authordata ) {
@@ -27,6 +19,7 @@ class WPML_ST_User_Fields {
 		if ( ! is_admin() ) {
 			add_action( 'init', array( $this, 'add_get_the_author_field_filters' ) );
 			add_filter( 'the_author', array( $this, 'the_author_filter' ), 10, 1 );
+			add_filter( 'get_user_metadata', array( $this, 'translate_get_user_metadata' ), 10, 4 );
 		}
 
 		add_action( 'profile_update', array( $this, 'profile_update_action' ), 10 );
@@ -40,16 +33,10 @@ class WPML_ST_User_Fields {
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function profile_update_action( $user_id ) {
 		$this->register_user_strings( $user_id );
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	private function register_user_strings( $user_id ) {
 		if ( $this->is_user_role_translatable( $user_id ) ) {
 			$fields = $this->get_translatable_meta_fields();
@@ -57,10 +44,6 @@ class WPML_ST_User_Fields {
 				$name  = $this->get_string_name( $field, $user_id );
 				$value = get_user_meta( $user_id, $field, true );
 
-				/**
-				 * Some fields like "display_name" are not part of user meta
-				 * so we have a fallback to get its value from `get_the_author_meta`
-				 */
 				if ( '' === $value ) {
 					$value = get_the_author_meta( $field, $user_id );
 				}
@@ -70,13 +53,6 @@ class WPML_ST_User_Fields {
 		}
 	}
 
-	/**
-	 * @param string $value
-	 * @param int    $user_id
-	 * @param int    $original_user_id
-	 *
-	 * @return string
-	 */
 	public function get_the_author_field_filter( $value, $user_id, $original_user_id ) {
 		if ( $this->lock_get_the_author_filter ) {
 			return $value;
@@ -87,33 +63,13 @@ class WPML_ST_User_Fields {
 		return $this->apply_filters_for_the_author_field_output( $value, $field, $user_id, $original_user_id );
 	}
 
-	/**
-	 * @param string $value
-	 * @param string $field
-	 * @param int    $user_id
-	 * @param int    $original_user_id
-	 *
-	 * @return string
-	 */
 	private function apply_filters_for_the_author_field_output( $value, $field, $user_id, $original_user_id ) {
 		$this->lock_get_the_author_filter = true;
-		/**
-		 * WP hook described in wp-includes/author-template.php
-		 *
-		 * @see get_the_author_meta
-		 */
 		$value                            = apply_filters( "get_the_author_$field", $value, $user_id, $original_user_id );
 		$this->lock_get_the_author_filter = false;
 		return $value;
 	}
 
-	/**
-	 * This filter will only replace the "display_name" of the current author (in global $authordata)
-	 *
-	 * @param mixed|string|null $value
-	 *
-	 * @return mixed|string|null
-	 */
 	public function the_author_filter( $value ) {
 		if ( isset( $this->authordata->ID ) ) {
 			$value = $this->translate_user_meta_field( 'display_name', $value, $this->authordata->ID );
@@ -121,13 +77,6 @@ class WPML_ST_User_Fields {
 		return $value;
 	}
 
-	/**
-	 * @param string         $field
-	 * @param string         $value
-	 * @param mixed|int|null $user_id
-	 *
-	 * @return string
-	 */
 	private function translate_user_meta_field( $field, $value, $user_id = null ) {
 		if ( ! is_admin() && $this->is_user_role_translatable( $user_id ) ) {
 			$name  = $this->get_string_name( $field, $user_id );
@@ -136,9 +85,6 @@ class WPML_ST_User_Fields {
 		return $value;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_translatable_meta_fields() {
 		$default_fields = array(
 			'first_name',
@@ -151,11 +97,6 @@ class WPML_ST_User_Fields {
 		return apply_filters( 'wpml_translatable_user_meta_fields', $default_fields );
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return bool
-	 */
 	public function is_user_role_translatable( $user_id ) {
 		$ret              = false;
 		$translated_roles = $this->get_translated_roles();
@@ -166,28 +107,16 @@ class WPML_ST_User_Fields {
 		return $ret;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_translated_roles() {
 		$st_settings = $this->sitepress->get_setting( 'st' );
 		return isset( $st_settings['translated-users'] ) && is_array( $st_settings['translated-users'] )
 			? $st_settings['translated-users'] : array();
 	}
 
-	/**
-	 * @param string $field
-	 * @param int    $user_id
-	 *
-	 * @return string
-	 */
 	private function get_string_name( $field, $user_id ) {
 		return $field . '_' . $user_id;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function init_register_strings() {
 		$processed_ids    = array();
 		$translated_roles = $this->get_translated_roles();
@@ -206,5 +135,51 @@ class WPML_ST_User_Fields {
 			}
 		}
 		return $processed_ids;
+	}
+
+	public function translate_get_user_metadata( $check, $user_id, $meta_key, $single ) {
+		$flag = apply_filters( 'wpml_translate_get_user_meta', false );
+		if ( ! $flag ) {
+			return $check;
+		}
+
+		$translatable_fields = $this->get_translatable_meta_fields();
+		if ( ! in_array( $meta_key, $translatable_fields, true ) ) {
+			return $check;
+		}
+
+		if ( ! $this->is_user_role_translatable( $user_id ) ) {
+			return $check;
+		}
+
+		$meta_cache = wp_cache_get( $user_id, 'user_meta' );
+		if ( ! $meta_cache ) {
+			update_meta_cache( 'user', [ $user_id ] );
+			$meta_cache = wp_cache_get( $user_id, 'user_meta' );
+		}
+
+		if ( ! isset( $meta_cache[ $meta_key ] ) ) {
+			return $check;
+		}
+
+		$meta_value = $meta_cache[ $meta_key ][0];
+		if ( empty( $meta_value ) ) {
+			return $check;
+		}
+
+		$name         = $this->get_string_name( $meta_key, $user_id );
+		$string_id    = icl_get_string_id( $meta_value, $this->context, $name );
+		$current_lang = $this->sitepress->get_current_language();
+
+		$translated_value = $string_id ? icl_get_string_by_id( $string_id, $current_lang ) : false;
+		if ( false === $translated_value ) {
+			$translated_value = $meta_value;
+		}
+
+		if ( $single ) {
+			return $translated_value;
+		}
+
+		return array( $translated_value );
 	}
 }

@@ -8,13 +8,13 @@
             "lang": "th"
          },
          "Choose the image file type for flags": [
-            "เลือกชนิดไฟล์ธง"
+            "เลือกประเภทไฟล์รูปภาพสำหรับธง"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "มีผลเฉพาะแฟล็ก WPML ในตัว"
+            "ตัวเลือกนี้มีผลเฉพาะกับธง WPML ในตัวเท่านั้น ไม่ใช่ธงที่อัปโหลดเอง"
          ],
          "%s format": [
-            "%sรูปแบบ"
+            "รูปแบบ %s"
          ],
          "Save": [
             "บันทึก"
@@ -23,7 +23,7 @@
             "บันทึกรูปแบบใหม่แล้ว"
          ],
          "Failed to save the new format": [
-            "ไม่สามารถบันทึกรูปแบบใหม่ได้"
+            "บันทึกรูปแบบใหม่ไม่สำเร็จ"
          ]
       }
    }

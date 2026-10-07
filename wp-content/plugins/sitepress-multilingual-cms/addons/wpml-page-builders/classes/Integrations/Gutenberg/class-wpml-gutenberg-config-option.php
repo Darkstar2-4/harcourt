@@ -4,23 +4,19 @@ use WPML\FP\Obj;
 use WPML\PB\ConvertIds\Helper as ConvertIdsHelper;
 use WPML\PB\Gutenberg\XPath;
 
-/**
- * Class WPML_Gutenberg_Config_Option
- */
 class WPML_Gutenberg_Config_Option {
 
-	const OPTION               = 'wpml-gutenberg-config';
-	const OPTION_IDS_IN_BLOCKS = 'wpml-gutenberg-config-ids-in-blocks';
+	const OPTION                 = 'wpml-gutenberg-config';
+	const OPTION_IDS_IN_BLOCKS   = 'wpml-gutenberg-config-ids-in-blocks';
+	const OPTION_MEDIA_IN_BLOCKS = 'wpml-gutenberg-config-media-in-blocks';
 
 	const SEARCH_METHOD_WILDCARD = 'wildcards';
 	const SEARCH_METHOD_REGEX    = 'regex';
 
-	/**
-	 * @param array $config_data
-	 */
 	public function update_from_config( $config_data ) {
-		$blocks        = [];
-		$ids_in_blocks = [];
+		$blocks          = [];
+		$ids_in_blocks   = [];
+		$media_in_blocks = [];
 
 		if ( isset( $config_data['wpml-config']['gutenberg-blocks']['gutenberg-block'] ) ) {
 			foreach ( $config_data['wpml-config']['gutenberg-blocks']['gutenberg-block'] as $block_config ) {
@@ -37,30 +33,21 @@ class WPML_Gutenberg_Config_Option {
 					}
 				}
 
-				$ids_in_blocks = $this->add_ids_in_block_xpath( $ids_in_blocks, $block_config );
-				$ids_in_blocks = $this->add_ids_in_block_keys( $ids_in_blocks, $block_config );
+				$ids_in_blocks   = $this->add_ids_in_block_xpath( $ids_in_blocks, $block_config );
+				$ids_in_blocks   = $this->add_ids_in_block_keys( $ids_in_blocks, $block_config );
+				$media_in_blocks = $this->add_media_in_block_keys( $media_in_blocks, $block_config );
 			}
 		}
 
 		update_option( self::OPTION, $blocks, 'no' );
 		update_option( self::OPTION_IDS_IN_BLOCKS, $ids_in_blocks, 'yes' );
+		update_option( self::OPTION_MEDIA_IN_BLOCKS, $media_in_blocks, 'yes' );
 	}
 
-	/**
-	 * @param array $block_config
-	 *
-	 * @return string|null
-	 */
 	public static function get_block_name( array $block_config ) {
 		return Obj::path( [ 'attr', 'type' ], $block_config );
 	}
 
-	/**
-	 * @param array $blocks
-	 * @param array $block_config
-	 *
-	 * @return array
-	 */
 	private function add_block_xpaths( array $blocks, array $block_config ) {
 		if ( isset( $block_config['xpath'] ) ) {
 			$block_name    = self::get_block_name( $block_config );
@@ -81,12 +68,6 @@ class WPML_Gutenberg_Config_Option {
 		return $blocks;
 	}
 
-	/**
-	 * @param array $ids_in_blocks
-	 * @param array $block_config
-	 *
-	 * @return array
-	 */
 	private function add_ids_in_block_xpath( array $ids_in_blocks, array $block_config ) {
 		$xpaths = $this->normalize_key_data( (array) Obj::prop( 'xpath', $block_config ) );
 
@@ -108,12 +89,6 @@ class WPML_Gutenberg_Config_Option {
 		return $ids_in_blocks;
 	}
 
-	/**
-	 * @param array $blocks
-	 * @param array $block_config
-	 *
-	 * @return array
-	 */
 	private function add_block_attribute_keys( array $blocks, array $block_config ) {
 		if ( isset( $block_config['key'] ) ) {
 			$keys = $this->get_keys_recursively( $block_config['key'] );
@@ -127,12 +102,6 @@ class WPML_Gutenberg_Config_Option {
 		return $blocks;
 	}
 
-	/**
-	 * @param array $ids_in_blocks
-	 * @param array $block_config
-	 *
-	 * @return array
-	 */
 	private function add_ids_in_block_keys( array $ids_in_blocks, array $block_config ) {
 		$keys_config = $this->find_convert_ids_key_recursively( $block_config );
 
@@ -171,6 +140,42 @@ class WPML_Gutenberg_Config_Option {
 		return $keys_config;
 	}
 
+	private function add_media_in_block_keys( array $media_in_blocks, array $block_config ) {
+		$keys_config = $this->find_media_url_key_recursively( $block_config );
+
+		if ( $keys_config ) {
+			$block_name = self::get_block_name( $block_config );
+
+			$media_in_blocks[ $block_name ]        = isset( $media_in_blocks[ $block_name ] ) ? $media_in_blocks[ $block_name ] : [];
+			$media_in_blocks[ $block_name ]['key'] = isset( $media_in_blocks[ $block_name ]['key'] ) ? $media_in_blocks[ $block_name ]['key'] : [];
+			$media_in_blocks[ $block_name ]['key'] = array_merge( $media_in_blocks[ $block_name ]['key'], $keys_config );
+		}
+
+		return $media_in_blocks;
+	}
+
+	private function find_media_url_key_recursively( array $config, array $path = [] ) {
+		$current_keys = $this->normalize_key_data( (array) Obj::prop( 'key', $config ) );
+		$keys_config  = [];
+
+		if ( $current_keys ) {
+			foreach ( $current_keys as $current_key ) {
+				$current_name = Obj::path( [ 'attr', 'name' ], $current_key );
+				$current_path = array_merge( $path, [ $current_name ] );
+				$keys_config  = array_merge( $keys_config, $this->find_media_url_key_recursively( $current_key, $current_path ) );
+			}
+		} else {
+			$type = Obj::path( [ 'attr', 'type' ], $config );
+
+			if ( WPML_Page_Builders_Media_Gutenberg::TYPE_URL === $type || WPML_Page_Builders_Media_Gutenberg::TYPE_IDS === $type ) {
+				$path_to_key                 = implode( '>', $path );
+				$keys_config[ $path_to_key ] = $type;
+			}
+		}
+
+		return $keys_config;
+	}
+
 	private function add_block_label( array $blocks, array $block_config ) {
 		if ( isset( $block_config['attr']['label'] ) ) {
 			$blocks[ self::get_block_name( $block_config ) ]['label'] = $block_config['attr']['label'];
@@ -179,11 +184,6 @@ class WPML_Gutenberg_Config_Option {
 		return $blocks;
 	}
 
-	/**
-	 * @param array $keys_config
-	 *
-	 * @return array
-	 */
 	private function get_keys_recursively( array $keys_config ) {
 		$final_config = array();
 		$keys_config  = $this->normalize_key_data( $keys_config );
@@ -232,22 +232,12 @@ class WPML_Gutenberg_Config_Option {
 		return $final_config;
 	}
 
-	/**
-	 * @param array $keys
-	 *
-	 * @return array
-	 */
 	private function filter_string_keys( $keys ) {
 		return wpml_collect( $keys )
 			->filter( Obj::prop( 'to_include' ) )
 			->toArray();
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	private function cleanup_to_include_key( $data ) {
 		foreach ( $data as &$item ) {
 			unset( $item['to_include'] );
@@ -260,23 +250,10 @@ class WPML_Gutenberg_Config_Option {
 		return $data;
 	}
 
-	/**
-	 * If a sequence has only one element, we will wrap it
-	 * in order to have the same data shape as for multiple elements.
-	 *
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	private function normalize_key_data( array $data ) {
 		return isset( $data['value'] ) ? array( $data ) : $data;
 	}
 
-	/**
-	 * @param string|null $type
-	 *
-	 * @return bool
-	 */
 	private static function is_string_type( $type ) {
 		return ! ConvertIdsHelper::isValidType( $type );
 	}
@@ -285,10 +262,11 @@ class WPML_Gutenberg_Config_Option {
 		return get_option( self::OPTION, array() );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_ids_in_blocks() {
 		return get_option( self::OPTION_IDS_IN_BLOCKS, [] );
+	}
+
+	public function get_media_in_blocks() {
+		return get_option( self::OPTION_MEDIA_IN_BLOCKS, [] );
 	}
 }

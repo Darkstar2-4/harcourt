@@ -230,7 +230,6 @@ abstract class CallExpression extends \WPML\Core\Twig\Node\Expression\AbstractEx
         }
         if (\is_array($callable)) {
             if (!\method_exists($callable[0], $callable[1])) {
-                // __call()
                 return [null, []];
             }
             $r = new \ReflectionMethod($callable[0], $callable[1]);
@@ -242,7 +241,6 @@ abstract class CallExpression extends \WPML\Core\Twig\Node\Expression\AbstractEx
             $class = \substr($callable, 0, $pos);
             $method = \substr($callable, $pos + 2);
             if (!\method_exists($class, $method)) {
-                // __staticCall()
                 return [null, []];
             }
             $r = new \ReflectionMethod($callable);

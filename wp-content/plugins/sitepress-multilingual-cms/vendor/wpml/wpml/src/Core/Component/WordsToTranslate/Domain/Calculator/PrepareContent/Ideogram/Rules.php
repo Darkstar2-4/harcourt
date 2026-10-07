@@ -17,7 +17,6 @@ class Rules implements RulesInterface {
   use NinjaFormFieldsTrait;
   use UnicodeTrait;
 
-  /** @var ShortcodeInterface $shortcode */
   private $shortcode;
 
 
@@ -26,24 +25,17 @@ class Rules implements RulesInterface {
   }
 
 
-  /** @return string */
   public function applyRules( string $content ) {
-    // Remove HTML tags, but keep translatable attribute's content.
     $content = $this->removeHTMLExceptTranslatableAttributes( $content );
 
-    // Remove ninja form fields.
     $content = $this->removeNinjaFormFields( $content );
 
-    // Remove shortcodes.
     $content = $this->shortcode->removeShortcodes( $content );
 
-    // No charge for puncation changes.
     $content = $this->removePunctuationAndSpaces( $content );
 
-    // Remove standalone numbers.
     $content = $this->removeStandaloneNumbers( $content );
 
-    // Replace unicode characters.
     $content = $this->replaceUnicode( $content );
 
     return $content;

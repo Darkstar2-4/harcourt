@@ -8,10 +8,8 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 class TranslationsQuery {
 	use QueryBuilderTrait;
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var SettingsRepository */
 	private $settingsRepository;
 
 	public function __construct(

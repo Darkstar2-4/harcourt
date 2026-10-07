@@ -10,32 +10,18 @@ use WPML\TM\ATE\Review\ReviewStatus;
 use WPML\TM\Jobs\Utils\ElementLink;
 
 class WPML_TM_Rest_Jobs_View_Model {
-	/** @var WPML_TM_Rest_Jobs_Translation_Service */
 	private $translation_service;
 
-	/** @var WPML_TM_Rest_Jobs_Element_Info */
 	private $element_info;
 
-	/** @var WPML_TM_Rest_Jobs_Language_Names */
 	private $language_names;
 
-	/** @var WPML_TM_Rest_Job_Translator_Name */
 	private $translator_name;
 
-	/** @var WPML_TM_Rest_Job_Progress */
 	private $progress;
 
-	/** @var ElementLink $element_link */
 	private $element_link;
 
-	/**
-	 * @param WPML_TM_Rest_Jobs_Translation_Service $translation_service
-	 * @param WPML_TM_Rest_Jobs_Element_Info $element_info
-	 * @param WPML_TM_Rest_Jobs_Language_Names $language_names
-	 * @param WPML_TM_Rest_Job_Translator_Name $translator_name
-	 * @param WPML_TM_Rest_Job_Progress $progress
-	 * @param ElementLink $element_link
-	 */
 	public function __construct(
 		WPML_TM_Rest_Jobs_Translation_Service $translation_service,
 		WPML_TM_Rest_Jobs_Element_Info $element_info,
@@ -52,13 +38,6 @@ class WPML_TM_Rest_Jobs_View_Model {
 		$this->element_link        = $element_link;
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Collection $jobs
-	 * @param int $total_jobs_count
-	 * @param WPML_TM_Jobs_Search_Params $jobs_search_params
-	 *
-	 * @return array
-	 */
 	public function build( WPML_TM_Jobs_Collection $jobs, $total_jobs_count, WPML_TM_Jobs_Search_Params $jobs_search_params ) {
 		$result = [ 'jobs' => [] ];
 
@@ -71,12 +50,6 @@ class WPML_TM_Rest_Jobs_View_Model {
 		return $result;
 	}
 
-	/**
-	 * @param WPML_TM_Job_Entity $job
-	 * @param WPML_TM_Jobs_Search_Params $jobs_search_params
-	 *
-	 * @return array
-	 */
 	private function map_job( WPML_TM_Job_Entity $job, WPML_TM_Jobs_Search_Params $jobs_search_params ) {
 		$extra_data = [];
 		$viewUrl    = '';
@@ -127,11 +100,6 @@ class WPML_TM_Rest_Jobs_View_Model {
 		];
 	}
 
-	/**
-	 * @param WPML_TM_Job_Entity $job
-	 *
-	 * @return mixed|string|void
-	 */
 	private function get_edit_url( $job ) {
 		$edit_url = '';
 		if ( $job->get_original_element_id() ) {
@@ -148,12 +116,6 @@ class WPML_TM_Rest_Jobs_View_Model {
 		return $edit_url;
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 * @param WPML_TM_Jobs_Search_Params $jobs_search_params
-	 *
-	 * @return string
-	 */
 	private function getViewUrl( WPML_TM_Post_Job_Entity $job, WPML_TM_Jobs_Search_Params $jobs_search_params ) {
 		$needsReview = Lst::includes( $job->get_review_status(), [
 			ReviewStatus::NEEDS_REVIEW,
@@ -163,12 +125,6 @@ class WPML_TM_Rest_Jobs_View_Model {
 		return $needsReview ? $this->getReviewUrl( $job, $jobs_search_params ) : $this->element_link->getTranslation( $job );
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 * @param WPML_TM_Jobs_Search_Params $jobs_search_params
-	 *
-	 * @return string
-	 */
 	private function getReviewUrl( WPML_TM_Post_Job_Entity $job, WPML_TM_Jobs_Search_Params $jobs_search_params ) {
 		$target_language = $jobs_search_params->get_target_language();
 		$element_type    = $jobs_search_params->get_element_type();

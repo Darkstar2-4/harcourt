@@ -4,47 +4,42 @@ namespace WPML\TM\ATE\Download;
 
 class Job {
 
-	/** @var int $ateJobId */
 	public $ateJobId;
 
-	/** @var string $url */
 	public $url;
 
-	/** @var int */
 	public $ateStatus;
 
-	/**
-	 * This property is not part of the database data,
-	 * but it can be added when the job is downloaded
-	 * to provide more information to the UI.
-	 *
-	 * @var int $jobId
-	 */
 	public $jobId;
 
-	/** @var int */
 	public $status = ICL_TM_IN_PROGRESS;
 
-	/**
-	 * @param \stdClass $item
-	 *
-	 * @return Job
-	 */
-	public static function fromAteResponse( \stdClass $item ) {
-		$job            = new self();
-		$job->ateJobId  = $item->ate_id;
-		$job->url       = $item->download_link;
-		$job->ateStatus    = (int) $item->status;
-		$job->jobId = (int) $item->id;
+	public $isUnsolvable = false;
 
+	public $message = '';
+
+	public $errorType = null;
+
+	public $errorData = null;
+
+	public $originalElementId = null;
+
+	public $elementId = null;
+
+	public static function fromAteResponse( \stdClass $item ) {
+		$job               = new self();
+		$job->ateJobId     = $item->ate_id;
+		$job->url          = $item->download_link;
+		$job->ateStatus    = (int) $item->status;
+		$job->isUnsolvable = (bool) ( $item->is_unsolvable ?? false );
+		$job->message      = $item->message ?? '';
+		$job->jobId        = (int) $item->id;
+		if ( $job->isUnsolvable ) {
+			$job->errorType = 'SyncError';
+		}
 		return $job;
 	}
 
-	/**
-	 * @param \stdClass $row
-	 *
-	 * @return Job
-	 */
 	public static function fromDb( \stdClass $row ) {
 		$job           = new self();
 		$job->ateJobId = $row->editor_job_id;

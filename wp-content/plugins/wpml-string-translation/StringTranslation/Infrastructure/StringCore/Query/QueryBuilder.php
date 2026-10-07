@@ -29,9 +29,6 @@ abstract class QueryBuilder {
 		return $this->prepare( ' LIMIT %d OFFSET %d', $criteria->getLimit(), $criteria->getOffset() );
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function buildWhereSql( $criteria ): string {
 		$sqlParts = $this->getWhereSqlParts( $criteria );
 
@@ -88,9 +85,6 @@ abstract class QueryBuilder {
 		return implode( ',', $sql );
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function shouldSelectOnlyAutoregistered( $criteria ) {
 		$hasSource = in_array(
 			$criteria->getSource(),
@@ -104,9 +98,6 @@ abstract class QueryBuilder {
 		return $hasSource && ! $this->shouldSelectOnlyNotAutoregistered( $criteria );
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function shouldSelectOnlyNotAutoregistered( $criteria ): bool {
 		$kind                     = $criteria->getKind();
 		$hasNotAutoregisteredKind = is_int( $kind ) && $kind === StringItem::STRING_TYPE_DEFAULT;
@@ -114,9 +105,6 @@ abstract class QueryBuilder {
 		return $hasNotAutoregisteredKind;
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function shouldCheckForInProgressStatusInStringTranslations( $criteria ): bool {
 		$statuses = $criteria->getTranslationStatuses();
 
@@ -126,14 +114,6 @@ abstract class QueryBuilder {
 		);
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 *
-	 * icl_strings.status(ICL_STRING_TRANSLATION_PARTIAL=2) matches ICL_TM_IN_PROGRESS=2, we should filter it out if we
-	 * need to check for in progress strings only.
-	 *
-	 * @return int[]
-	 */
 	protected function filterOutTranslationPartialStatusFromStrings( $criteria ): array {
 		return array_filter(
 			$criteria->getTranslationStatuses(),
@@ -143,9 +123,6 @@ abstract class QueryBuilder {
 		);
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function getStringTranslationsSql( $criteria ): string {
 		if ( ! $this->shouldCheckForInProgressStatusInStringTranslations( $criteria ) ) {
 			return '';
@@ -157,9 +134,6 @@ abstract class QueryBuilder {
 		";
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function getStringPositionsSql( $criteria ): string {
 		return "
             LEFT JOIN (
@@ -178,9 +152,6 @@ abstract class QueryBuilder {
         ';
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function buildHavingSql( $criteria ): string {
 		$sqlParts = [];
 		foreach ( $criteria->getTranslationStatuses() as $status ) {
@@ -194,9 +165,6 @@ abstract class QueryBuilder {
 		return ' HAVING (' . implode( ' OR ', $sqlParts ) . ')';
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function buildLanguagesCrossJoin( $criteria ): string {
 		$buildLanguageSelect = function ( string $code ): string {
 			return $this->prepare(
@@ -224,9 +192,6 @@ abstract class QueryBuilder {
         ";
 	}
 
-	/**
-	 * @param $source int|null
-	 */
 	private function getSourcesSql( $source ): array {
 		if ( $source === ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_FRONTEND ) {
 			return [ $source ];
@@ -239,9 +204,6 @@ abstract class QueryBuilder {
 		];
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function getWhereSqlParts( $criteria ): array {
 		$selectOnlyAutoregistered    = $this->shouldSelectOnlyAutoregistered( $criteria );
 		$selectOnlyNotAutoregistered = $this->shouldSelectOnlyNotAutoregistered( $criteria );
@@ -306,7 +268,6 @@ abstract class QueryBuilder {
 		$sourceLanguageCode = $criteria->getSourceLanguageCode();
 		$langCodesToShow = $sourceLanguageCode ? [ $sourceLanguageCode ] : [];
 		if ( ! $isDefaultLanguageEn && $sourceLanguageCode === $defaultLanguageCode ) {
-			// Always add english strings when default language is selected.
 			$langCodesToShow[] = 'en';
 		}
 
@@ -314,7 +275,6 @@ abstract class QueryBuilder {
 			$sqlParts[] = 'strings.language IN (' . wpml_prepare_in( $langCodesToShow ) . ')';
 		}
 
-		// We should remove strings with translation partial status when we are on 'In Progress' tab, but not when we are on 'Not Completed' tab.
 		$stringStatuses = $this->shouldCheckForInProgressStatusInStringTranslations( $criteria ) && count( $criteria->getTranslationStatuses() ) === 2
 			? $this->filterOutTranslationPartialStatusFromStrings( $criteria )
 			: $criteria->getTranslationStatuses();

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `LOAD` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -44,22 +41,12 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class LoadStatement extends Statement
 {
-    /**
-     * Options for `LOAD` statements and their slot ID.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'LOW_PRIORITY' => 1,
         'CONCURRENT' => 1,
         'LOCAL' => 2
     );
 
-    /**
-     * FIELDS/COLUMNS Options for `LOAD DATA...INFILE` statements.
-     *
-     * @var array
-     */
     public static $FIELDS_OPTIONS = array(
         'TERMINATED BY' => array(
             1,
@@ -76,11 +63,6 @@ class LoadStatement extends Statement
         )
     );
 
-    /**
-     * LINES Options for `LOAD DATA...INFILE` statements.
-     *
-     * @var array
-     */
     public static $LINES_OPTIONS = array(
         'STARTING BY' => array(
             1,
@@ -92,97 +74,30 @@ class LoadStatement extends Statement
         )
     );
 
-    /**
-     * File name being used to load data.
-     *
-     * @var Expression
-     */
     public $file_name;
 
-    /**
-     * Table used as destination for this statement.
-     *
-     * @var Expression
-     */
     public $table;
 
-    /**
-     * Partitions used as source for this statement.
-     *
-     * @var ArrayObj
-     */
     public $partition;
 
-    /**
-     * Character set used in this statement.
-     *
-     * @var Expression
-     */
     public $charset_name;
 
-    /**
-     * Options for FIELDS/COLUMNS keyword.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$FIELDS_OPTIONS
-     */
     public $fields_options;
 
-    /**
-     * Whether to use `FIELDS` or `COLUMNS` while building.
-     *
-     * @var string
-     */
     public $fields_keyword;
 
-    /**
-     * Options for OPTIONS keyword.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$LINES_OPTIONS
-     */
     public $lines_options;
 
-    /**
-     * Column names or user variables.
-     *
-     * @var Expression[]
-     */
     public $col_name_or_user_var;
 
-    /**
-     * SET clause's updated values(optional).
-     *
-     * @var SetOperation[]
-     */
     public $set;
 
-    /**
-     * Ignore 'number' LINES/ROWS.
-     *
-     * @var Expression
-     */
     public $ignore_number;
 
-    /**
-     * REPLACE/IGNORE Keyword.
-     *
-     * @var string
-     */
     public $replace_ignore;
 
-    /**
-     * LINES/ROWS Keyword.
-     *
-     * @var string
-     */
     public $lines_rows;
 
-    /**
-     * @return string
-     */
     public function build()
     {
         $ret = 'LOAD DATA ' . $this->options
@@ -225,15 +140,10 @@ class LoadStatement extends Statement
         return $ret;
     }
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
-        ++$list->idx; // Skipping `LOAD DATA`.
+        ++$list->idx;
 
-        // parse any options if provided
         $this->options = OptionsArray::parse(
             $parser,
             $list,
@@ -241,27 +151,15 @@ class LoadStatement extends Statement
         );
         ++$list->idx;
 
-        /**
-         * The state of the parser.
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -312,7 +210,6 @@ class LoadStatement extends Statement
                         $state
                     );
                     if ($newState === $state) {
-                        // Avoid infinite loop
                         break;
                     }
                 } elseif ($token->type === Token::TYPE_OPERATOR
@@ -336,7 +233,6 @@ class LoadStatement extends Statement
         ++$list->idx;
 
         if ($keyword === 'FIELDS' || $keyword === 'COLUMNS') {
-            // parse field options
             $this->fields_options = OptionsArray::parse(
                 $parser,
                 $list,
@@ -345,7 +241,6 @@ class LoadStatement extends Statement
 
             $this->fields_keyword = $keyword;
         } else {
-            // parse line options
             $this->lines_options = OptionsArray::parse(
                 $parser,
                 $list,
@@ -367,7 +262,6 @@ class LoadStatement extends Statement
 
                     return $state;
                 }
-                // no break
             case 4:
                 if ($token->keyword === 'CHARACTER SET') {
                     ++$list->idx;
@@ -376,7 +270,6 @@ class LoadStatement extends Statement
 
                     return $state;
                 }
-                // no break
             case 5:
                 if ($token->keyword === 'FIELDS'
                     || $token->keyword === 'COLUMNS'
@@ -387,7 +280,6 @@ class LoadStatement extends Statement
 
                     return $state;
                 }
-                // no break
             case 6:
                 if ($token->keyword === 'IGNORE') {
                     ++$list->idx;
@@ -405,7 +297,6 @@ class LoadStatement extends Statement
 
                     return $state;
                 }
-                // no break
             case 7:
                 if ($token->keyword === 'SET') {
                     ++$list->idx;
@@ -414,7 +305,6 @@ class LoadStatement extends Statement
 
                     return $state;
                 }
-                // no break
             default:
         }
 

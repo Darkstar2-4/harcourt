@@ -2,7 +2,6 @@
 
 class WPML_Menu_Sync_Display {
 	private $menu_id;
-	/** @var ICLMenusSync $icl_ms*/
 	private $icl_ms;
 	private $labels;
 
@@ -23,24 +22,21 @@ class WPML_Menu_Sync_Display {
 		if ( defined( 'WPML_ST_FOLDER' ) ) {
 			$this->labels['label_missing'] = array(
 				esc_html__( 'Untranslated string %s', 'sitepress' ),
-				$this->print_label_missing_text( $icl_ms, $menu_id ),
+				$this->print_label_missing_text(),
 			);
 		}
 
 	}
 
-	private function print_label_missing_text( $icl_menus_sync, $menu_id ) {
-		$context_menu_name = $icl_menus_sync->menus[ $menu_id ]['name'] . ' menu';
-		$res               = '&nbsp;' . sprintf(
+	private function print_label_missing_text() {
+		return '&nbsp;' . sprintf(
 			esc_html__(
-				'The selected strings can now be translated using the %1$s String Translation %2$s screen',
+				'The selected strings can now be translated using the %1$s Translation Dashboard %2$s',
 				'sitepress'
 			),
-			'<a href="admin.php?page=' . WPML_ST_FOLDER . '/menu/string-translation.php&context=' . $context_menu_name . '"',
+			'<a href="admin.php?page=' . WPML_TM_FOLDER . '/menu/main.php"',
 			'</a>'
 		);
-
-		return $res;
 	}
 
 	public function print_sync_field( $index ) {
@@ -48,7 +44,6 @@ class WPML_Menu_Sync_Display {
 
 		$icl_menus_sync = $this->icl_ms;
 		$menu_id        = $this->menu_id;
-		// items translations / del
 		if ( isset( $icl_menus_sync->sync_data[ $index ][ $menu_id ] ) ) {
 			foreach ( $icl_menus_sync->sync_data[ $index ][ $menu_id ] as $item_id => $languages ) {
 				foreach ( $languages as $lang_code => $name ) {

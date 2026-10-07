@@ -1,7 +1,4 @@
 <?php
-/**
- * @package wpml-core
- */
 
 class WPML_UI_Pagination extends WP_List_Table {
 	public function __construct( $total, $number_per_page ) {

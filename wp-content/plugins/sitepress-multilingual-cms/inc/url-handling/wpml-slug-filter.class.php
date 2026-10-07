@@ -1,18 +1,7 @@
 <?php
 
-/**
- * Class WPML_Slug_Filter
- *
- * @package    wpml-core
- * @subpackage url-handling
- */
 class WPML_Slug_Filter extends WPML_Full_PT_API {
 
-	/**
-	 * @param wpdb                  $wpdb
-	 * @param SitePress             $sitepress
-	 * @param WPML_Post_Translation $post_translations
-	 */
 	public function __construct( &$wpdb, &$sitepress, &$post_translations ) {
 		parent::__construct( $wpdb, $sitepress, $post_translations );
 		add_filter( 'wp_unique_term_slug', array( $this, 'wp_unique_term_slug' ), 10, 3 );
@@ -21,13 +10,6 @@ class WPML_Slug_Filter extends WPML_Full_PT_API {
 		add_filter( 'wp_unique_post_slug', array( $this, 'wp_unique_post_slug' ), 100, 6 );
 	}
 
-	/**
-	 * @param string $slug
-	 * @param object $term
-	 * @param string $original_slug
-	 *
-	 * @return string
-	 */
 	public function wp_unique_term_slug( $slug, $term, $original_slug ): string {
 		if ( $slug !== $original_slug ) {
 			$lang = $this->lang_term_slug_save( $term->taxonomy );
@@ -37,14 +19,6 @@ class WPML_Slug_Filter extends WPML_Full_PT_API {
 		return $slug;
 	}
 
-	/**
-	 * @param stdClass $duplicate_term Duplicate term row from terms table, if found.
-	 * @param string   $term           Term being inserted.
-	 * @param string   $taxonomy       Taxonomy name.
-	 * @param array    $args           Array of arguments passed to `wp_insert_term()`.
-	 *
-	 * @return stdClass|null
-	 */
 	public function wp_insert_term_duplicate_term_check( $duplicate_term, $term, $taxonomy, $args ) {
 		if ( $duplicate_term ) {
 

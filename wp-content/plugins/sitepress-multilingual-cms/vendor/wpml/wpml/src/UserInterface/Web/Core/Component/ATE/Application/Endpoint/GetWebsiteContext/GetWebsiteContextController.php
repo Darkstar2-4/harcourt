@@ -8,7 +8,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetWebsiteContextController implements EndpointInterface {
 
-  /** @var WebsiteContextQueryInterface */
   private $websiteContext;
 
 
@@ -17,11 +16,6 @@ class GetWebsiteContextController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string, mixed>
-   */
   public function handle( $requestData = null ): array {
     try {
       return [

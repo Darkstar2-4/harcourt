@@ -1,50 +1,23 @@
 <?php
 
-/**
- * Class WPML_TM_Batch_Report_Email
- */
 class WPML_TM_Batch_Report_Email_Builder {
 
 	const JOBS_LIST_MODE_ASSIGNED  = 'assigned';
 	const JOBS_LIST_MODE_AVAILABLE = 'available';
 	const JOBS_LIST_MODE_WAITING   = 'waiting';
 
-	/**
-	 * @var WPML_TM_Batch_Report
-	 */
 	private $batch_report;
 
-	/**
-	 * @var array
-	 */
 	private $emails;
 
-	/**
-	 * @var WPML_TM_Email_Jobs_Summary_View
-	 */
 	private $email_template;
 
-	/**
-	 * @var int[]
-	 */
 	private $orphaned_translators_ids;
 
-	/**
-	 * @var int[]
-	 */
 	private $dnd_translators_ids;
 
-	/**
-	 * @var array<string,array<string,string>>
-	 */
 	private $job_list_titles = [];
 
-	/**
-	 * WPML_TM_Notification_Batch_Email constructor.
-	 *
-	 * @param WPML_TM_Batch_Report            $batch_report
-	 * @param WPML_TM_Email_Jobs_Summary_View $email_template
-	 */
 	public function __construct( WPML_TM_Batch_Report $batch_report, WPML_TM_Email_Jobs_Summary_View $email_template ) {
 		$this->batch_report             = $batch_report;
 		$this->email_template           = $email_template;
@@ -53,11 +26,6 @@ class WPML_TM_Batch_Report_Email_Builder {
 		$this->dnd_translators_ids      = [];
 	}
 
-	/**
-	 * @param string $mode
-	 *
-	 * @return array<string,string>
-	 */
 	private function get_jobs_list_titles( $mode ) {
 		if ( empty( $this->job_list_titles ) ) {
 			$this->job_list_titles = [
@@ -82,9 +50,6 @@ class WPML_TM_Batch_Report_Email_Builder {
 		return array_key_exists( $mode, $this->job_list_titles ) ? $this->job_list_titles[ $mode ] : $this->job_list_titles[ self::JOBS_LIST_MODE_WAITING ];
 	}
 
-	/**
-	 * @param array $batch_jobs
-	 */
 	public function prepare_assigned_jobs_emails( $batch_jobs ) {
 		$unassigned_jobs = [];
 		if ( array_key_exists( 0, $batch_jobs ) ) {
@@ -158,9 +123,6 @@ class WPML_TM_Batch_Report_Email_Builder {
 		}
 	}
 
-	/**
-	 * @param array $batch_jobs
-	 */
 	public function prepare_unassigned_jobs_emails( $batch_jobs ) {
 		if ( array_key_exists( 0, $batch_jobs ) ) {
 
@@ -204,12 +166,6 @@ class WPML_TM_Batch_Report_Email_Builder {
 		}
 	}
 
-	/**
-	 * @param array $email
-	 * @param array $jobs
-	 *
-	 * @return string|string[]
-	 */
 	private function get_attachments( $email, $jobs ) {
 		$attachments = array();
 		foreach ( $jobs as $job ) {
@@ -232,37 +188,22 @@ class WPML_TM_Batch_Report_Email_Builder {
 		return [];
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_subject_assigned_job() {
 		return sprintf( __( 'New translation job from %s', 'wpml-translation-management' ), get_bloginfo( 'name' ) );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_subject_unassigned_job() {
 		return sprintf( __( 'Job waiting for a translator in %s', 'wpml-translation-management' ), get_bloginfo( 'name' ) );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_emails() {
 		return $this->emails;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_orphaned_translators_ids() {
 		return $this->orphaned_translators_ids;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_dnd_translators_ids() {
 		return $this->dnd_translators_ids;
 	}

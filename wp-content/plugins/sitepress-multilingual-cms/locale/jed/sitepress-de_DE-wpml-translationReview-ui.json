@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Accepted": [
             "Akzeptiert"
@@ -14,16 +14,16 @@
             "Genehmigt!"
          ],
          "Loading the next translation for review...": [
-            "Die nächste zu überprüfende Übersetzung wird geladen ..."
+            "Lade die nächste Übersetzung zur Überprüfung..."
          ],
          "Back": [
             "Zurück"
          ],
          "Turn off to not automatically load the next translation after finishing this review.": [
-            "Schalten Sie dies aus, um nach Beenden dieser Überprüfung nicht automatisch die nächste Übersetzung zu laden."
+            "Deaktivieren, um die nächste Übersetzung nach Abschluss dieser Überprüfung nicht automatisch zu laden."
          ],
          "Turn on to automatically load the next translation after finishing this  .": [
-            "Aktivieren Sie diese Option, um nach Abschluss dieser Übersetzung automatisch die nächste Übersetzung zu laden."
+            "Aktivieren, um die nächste Übersetzung nach Abschluss dieser Überprüfung automatisch zu laden."
          ],
          "Edit": [
             "Bearbeiten"
@@ -44,10 +44,10 @@
             "Veröffentlicht!"
          ],
          "Please wait, applying translation..": [
-            "Bitte warten Sie, die Übersetzung wird übernommen ..."
+            "Bitte warten, Übersetzung wird angewendet..."
          ],
          "There was an error in applying translation.": [
-            "Beim Übernehmen der Übersetzung ist ein Fehler aufgetreten."
+            "Beim Anwenden der Übersetzung ist ein Fehler aufgetreten."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
             "Jemand überprüft diese Übersetzung bereits. Bitte versuchen Sie es später erneut."

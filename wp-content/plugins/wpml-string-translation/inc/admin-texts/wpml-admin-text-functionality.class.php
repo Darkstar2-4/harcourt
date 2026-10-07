@@ -9,16 +9,6 @@ abstract class WPML_Admin_Text_Functionality {
 		global $wp_taxonomies;
 
 		$black_list = array_fill_keys(
-			/**
-			 * Manipulate the list of blacklisted options.
-			 *
-			 * The options in this array should not be translated for different reasons. This filter
-			 * allows other plugins to avoid certain options from being translated.
-			 *
-			 * @since 3.2.3
-			 *
-			 * @param string[] $options
-			 */
 			apply_filters( 'wpml_st_blacklisted_options', [
 				'active_plugins',
 				'wp_user_roles',
@@ -117,19 +107,6 @@ abstract class WPML_Admin_Text_Functionality {
 			   || preg_match( $matcher, $option_name ) === 1;
 	}
 
-	/**
-	 * Read information from XML key nodes with or without nested key nodes.
-	 *
-	 * @param array  $keys
-	 * @param string $admin_text_context
-	 * @param string $type
-	 * @param array  $arr_context
-	 * @param array  $arr_type
-	 *
-	 * @return array|false
-	 *
-	 * @deprecated 3.3.4 Only used by WPML_Admin_Text_Import until 3.3.3, kept for backward compatibility.
-	 */
 	protected function read_admin_texts_recursive( $keys, $admin_text_context, $type, &$arr_context, &$arr_type ) {
 		$keys = ! empty( $keys ) && isset( $keys ['attr']['name'] ) ? array( $keys ) : $keys;
 		foreach ( $keys as $key ) {
@@ -152,12 +129,6 @@ abstract class WPML_Admin_Text_Functionality {
 		return isset( $arr ) ? $arr : false;
 	}
 
-	/**
-	 * @param string $key     Name of option to retrieve. Expected to not be SQL-escaped.
-	 * @param mixed  $default Value to return in case the string does not exists.
-	 *
-	 * @return mixed Value set for the option.
-	 */
 	public function get_option_without_filtering( $key, $default = false ) {
 		global $wpdb;
 

@@ -4,14 +4,8 @@ class WPML_Display_As_Translated_Default_Lang_Messages {
 
 	const PREVIOUS_LANG_KEY = 'wpml-previous-default-language';
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var WPML_Display_As_Translated_Default_Lang_Messages_View
-	 */
 	private $view;
 
 	public function __construct( SitePress $sitepress, WPML_Display_As_Translated_Default_Lang_Messages_View $view ) {
@@ -35,9 +29,6 @@ class WPML_Display_As_Translated_Default_Lang_Messages {
 		);
 	}
 
-	/**
-	 * @param string $prev_lang
-	 */
 	public function save_previous_lang( $prev_lang ) {
 		update_option( self::PREVIOUS_LANG_KEY, $prev_lang );
 	}
@@ -51,16 +42,12 @@ class WPML_Display_As_Translated_Default_Lang_Messages {
 		update_option( self::PREVIOUS_LANG_KEY, $this->sitepress->get_default_language() );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function should_display_message() {
 		$post_types = get_post_types();
 		$taxonomies = get_taxonomies();
 
 		foreach ( $post_types as $post_type ) {
 			if ( $this->sitepress->is_display_as_translated_post_type( $post_type ) && get_posts(
-				/** @phpstan-ignore-next-line get_posts() has no "post_type" key defined. */
 				array(
 					'post_type'      => $post_type,
 					'posts_per_page' => 1,

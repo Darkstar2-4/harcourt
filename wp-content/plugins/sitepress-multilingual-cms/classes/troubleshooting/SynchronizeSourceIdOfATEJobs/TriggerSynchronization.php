@@ -9,12 +9,8 @@ class TriggerSynchronization implements \IWPML_Backend_Action, \IWPML_DIC_Action
 
 	const ACTION_ID = 'wpml-tm-ate-source-id-migration';
 
-	/** @var CommandsStatus */
 	private $commandStatus;
 
-	/**
-	 * @param CommandsStatus $commandStatus
-	 */
 	public function __construct( CommandsStatus $commandStatus ) {
 		$this->commandStatus = $commandStatus;
 	}

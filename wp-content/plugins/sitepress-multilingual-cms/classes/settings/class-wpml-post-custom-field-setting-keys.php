@@ -2,33 +2,21 @@
 
 class WPML_Post_Custom_Field_Setting_Keys {
 
-	/**
-	 * @return string
-	 */
 	public static function get_state_array_setting_index() {
 		return 'custom_fields_translation';
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_unlocked_setting_index() {
 		return defined( 'WPML_POST_META_UNLOCKED_SETTING_INDEX' )
 			? WPML_POST_META_UNLOCKED_SETTING_INDEX
 			: 'custom_fields_unlocked_config';
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_setting_prefix() {
 		return 'custom_fields_';
 	}
 
 
-	/**
-	 * @return  string[]
-	 */
 	public static function get_excluded_keys() {
 		return array(
 			'_edit_last',

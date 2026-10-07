@@ -10,21 +10,10 @@ class WPML_Slash_Management {
 		}
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return bool
-	 */
 	private function has_lang_param( $url ) {
 		return strpos( $url, '?lang=' ) !== false || strpos( $url, '&lang=' ) !== false;
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $method Deprecated.
-	 *
-	 * @return mixed|string
-	 */
 	public function maybe_user_trailingslashit( $url, $method = '' ) {
 		$url_parts = wpml_parse_url( $url );
 
@@ -55,14 +44,6 @@ class WPML_Slash_Management {
 		return http_build_url( $url_parts );
 	}
 
-	/**
-	 * Follows the logic of WordPress core user_trailingslashit().
-	 * Can be called on plugins_loaded event, when $wp_rewrite is not set yet.
-	 *
-	 * @param string $path
-	 *
-	 * @return string
-	 */
 	private function user_trailingslashit( $path ) {
 		global $wp_rewrite;
 
@@ -82,31 +63,14 @@ class WPML_Slash_Management {
 		return apply_filters( 'user_trailingslashit', $path, '' );
 	}
 
-	/**
-	 * @param array $url_parts
-	 *
-	 * @return bool
-	 */
 	private function is_root_url_without_trailingslash_and_without_query_args( array $url_parts ) {
 		return ! isset( $url_parts['path'] ) && ! isset( $url_parts['query'] );
 	}
 
-	/**
-	 * @param array $url_parts
-	 *
-	 * @return bool
-	 */
 	private function is_root_url_with_trailingslash( array $url_parts ) {
 		return isset( $url_parts['path'] ) && '/' === $url_parts['path'];
 	}
 
-	/**
-	 * @see Test_WPML_Lang_Domains_Converter::check_domains_and_subdir
-	 *
-	 * @param array $url_parts
-	 *
-	 * @return array
-	 */
 	public function parse_missing_host_from_path( array $url_parts ) {
 		if ( ! isset( $url_parts['host'] ) && isset( $url_parts['path'] ) ) {
 			$domain_and_subdir = explode( '/', $url_parts['path'] );
@@ -124,11 +88,6 @@ class WPML_Slash_Management {
 		return $url_parts;
 	}
 
-	/**
-	 * @param string $path
-	 *
-	 * @return bool
-	 */
 	private function is_file_path( $path ) {
 		$pathinfo = pathinfo( $path );
 		return isset( $pathinfo['extension'] ) && $pathinfo['extension'];

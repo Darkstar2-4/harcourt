@@ -11,9 +11,6 @@ use WPML\LIB\WP\Hooks as WPHooks;
 
 class UI implements \IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return callable|null
-	 */
 	public function create() {
 		if ( Relation::propEq( 'page', WPML_ST_FOLDER . '/menu/string-translation.php', $_GET ) ) {
 

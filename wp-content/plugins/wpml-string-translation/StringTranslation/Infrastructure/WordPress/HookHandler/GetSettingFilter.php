@@ -7,7 +7,6 @@ class GetSettingFilter extends AbstractFilterHookHandler {
 	const FILTER_NAME = 'wpml_st_get_setting';
 	const FILTER_ARGS = 1;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(

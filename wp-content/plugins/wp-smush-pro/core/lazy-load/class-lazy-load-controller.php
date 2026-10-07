@@ -8,10 +8,12 @@
 
 namespace Smush\Core\Lazy_Load;
 
+use Smush\Core\Array_Utils;
 use Smush\Core\Controller;
 use Smush\Core\Parser\Page_Parser;
 use Smush\Core\Server_Utils;
 use Smush\Core\Settings;
+use Smush\Core\CDN\CDN_Helper;
 
 if ( ! defined( 'WPINC' ) ) {
 	die;
@@ -21,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Class Lazy
  */
 class Lazy_Load_Controller extends Controller {
-	const LAZY_LOAD_TRANSFORM_PRIORITY = 20;
+	private static $lazy_load_transform_priority = 20;
 
 	/**
 	 * Module slug.
@@ -66,6 +68,7 @@ class Lazy_Load_Controller extends Controller {
 	 * @var Lazy_Load_Helper
 	 */
 	private $helper;
+	private $array_utils;
 
 	/**
 	 * Static instance getter
@@ -86,26 +89,30 @@ class Lazy_Load_Controller extends Controller {
 	public function __construct() {
 		$this->settings = Settings::get_instance();
 		$this->helper   = Lazy_Load_Helper::get_instance();
+		$this->array_utils = new Array_Utils();
 
 		$this->register_action( 'wp_smush_content_transforms', array(
 			$this,
 			'register_lazy_load_transform',
-		), self::LAZY_LOAD_TRANSFORM_PRIORITY );
+		), self::$lazy_load_transform_priority );
+
+		// UI script data.
+		$this->register_filter( 'wp_smush_localize_ui_script_data', array( $this, 'localize_lazy_load_script_data' ) );
+
+		// Hook into unified settings sync filter
+		$this->register_filter( 'wp_smush_sync_settings', array( $this, 'handle_settings_sync' ), 10, 3 );
+		$this->register_action( 'wp_smush_lazy_load_updated', array( $this, 'reset_lazy_load_option_cache' ) );
 
 		// Only run on front end and if lazy loading is enabled.
 		if ( is_admin() || ! $this->settings->is_module_active( 'lazy_load' ) ) {
 			return;
 		}
 
-		$this->options = $this->settings->get_setting( 'wp-smush-lazy_load' );
-
-		// Enabled without settings? Don't think so... Exit.
-		if ( ! $this->options ) {
-			return;
-		}
+		$this->options = $this->helper->get_lazy_load_options();
 
 		// Disable WordPress native lazy load.
 		$this->register_filter( 'wp_lazy_loading_enabled', array( $this, 'should_enable_wordpress_native_lazyload' ) );
+		$this->register_filter( 'wp_smush_transformed_page_markup', array( $this, 'add_has_smush_lazyload_video_class' ) );
 
 		// Load js file that is required in public facing pages.
 		$this->register_action( 'wp_head', array( $this, 'add_inline_styles' ) );
@@ -132,6 +139,55 @@ class Lazy_Load_Controller extends Controller {
 			$this->register_action( 'dynamic_sidebar_before', array( $this, 'filter_sidebar_content_start' ), 0 );
 			$this->register_action( 'dynamic_sidebar_after', array( $this, 'filter_sidebar_content_end' ), 1000 );
 		}
+	}
+
+	/**
+	 * Reset lazy load options on update.
+	 */
+	public function reset_lazy_load_option_cache() {
+		$this->helper->set_lazy_load_options( null );
+	}
+
+	public function localize_lazy_load_script_data( $localize ) {
+		if ( ! is_admin() ) {
+			return $localize;
+		}
+
+		$lazy_load_options = $this->helper->get_lazy_load_options();
+
+		$localize['lazyloadSettings']            = Lazy_Load_Settings_DTO::to_react_props( $lazy_load_options );
+		$localize['metaData']['customPostTypes'] = $this->get_custom_post_types_for_ui();
+
+		return $localize;
+	}
+
+	/**
+	 * Get custom post types for UI.
+	 *
+	 * @return array<string|int, array{type: mixed, label: mixed}>
+	 */
+	private function get_custom_post_types_for_ui() {
+		$custom_post_types = get_post_types( // custom post types.
+			array(
+				'public'   => true,
+				'_builtin' => false,
+			),
+			'objects'
+		);
+
+		$custom_post_types_data = array_map(
+			function (
+				$post_type
+			) {
+				return array(
+					'type'  => $post_type->name,
+					'label' => $post_type->label,
+				);
+			},
+			$custom_post_types
+		);
+
+		return $custom_post_types_data;
 	}
 
 	public function add_early_inline_styles() {
@@ -169,22 +225,26 @@ class Lazy_Load_Controller extends Controller {
 			return;
 		}
 
+		$background_size = '16px auto !important';
+
 		// Spinner.
 		if ( 'spinner' === $this->options['animation']['selected'] ) {
-			$loader = WP_SMUSH_URL . 'app/assets/images/smush-lazyloader-' . $this->options['animation']['spinner']['selected'] . '.gif';
-			if ( isset( $this->options['animation']['spinner']['selected'] ) && 5 < (int) $this->options['animation']['spinner']['selected'] ) {
+			$loader = WP_SMUSH_URL . 'app/assets/images/lazyloader-' . $this->options['animation']['spinner']['selected'] . '.svg';
+			if ( isset( $this->options['animation']['spinner']['selected'] ) && 3 < (int) $this->options['animation']['spinner']['selected'] ) {
 				$loader = wp_get_attachment_image_src( $this->options['animation']['spinner']['selected'], 'full' );
-				$loader = $loader[0];
+				if ( empty( $loader[0] ) ) {
+					$loader = WP_SMUSH_URL . 'app/assets/images/lazyloader-1.svg';
+				} else {
+					$loader = $loader[0];
+				}
 			}
 			$background = 'rgba(255, 255, 255, 0)';
 		} else {
+			$background_size = 'max( 16px, min( var(--smush-placeholder-bg-max-width), 37.5% ) ) auto !important;';
 			// Placeholder.
-			$loader     = WP_SMUSH_URL . 'app/assets/images/smush-placeholder.png';
-			$background = '#FAFAFA';
-			if ( isset( $this->options['animation']['placeholder']['selected'] ) && 2 === (int) $this->options['animation']['placeholder']['selected'] ) {
-				$background = '#333333';
-			}
-			if ( isset( $this->options['animation']['placeholder']['selected'] ) && 2 < (int) $this->options['animation']['placeholder']['selected'] ) {
+			$loader     = WP_SMUSH_URL . 'app/assets/images/placeholder.svg';
+			$background = '#F8F8F8';
+			if ( isset( $this->options['animation']['placeholder']['selected'] ) && 1 < (int) $this->options['animation']['placeholder']['selected'] ) {
 				$loader = wp_get_attachment_image_src( (int) $this->options['animation']['placeholder']['selected'], 'full' );
 
 				// Can't find a loader on multisite? Try main site.
@@ -194,7 +254,11 @@ class Lazy_Load_Controller extends Controller {
 					restore_current_blog();
 				}
 
-				$loader = $loader[0];
+				if ( ! empty( $loader[0] ) ) {
+					$loader = $loader[0];
+				} else {
+					$loader = WP_SMUSH_URL . 'app/assets/images/placeholder.svg';
+				}
 			}
 			if ( isset( $this->options['animation']['placeholder']['color'] ) ) {
 				$background = $this->options['animation']['placeholder']['color'];
@@ -217,6 +281,7 @@ class Lazy_Load_Controller extends Controller {
 			.lazyload,
 			.lazyloading {
 				--smush-placeholder-width: 100px;
+				--smush-placeholder-bg-max-width: 120px;
 				--smush-placeholder-aspect-ratio: 1/1;
 				width: var(--smush-image-width, var(--smush-placeholder-width)) !important;
 				aspect-ratio: var(--smush-image-aspect-ratio, var(--smush-placeholder-aspect-ratio)) !important;
@@ -242,7 +307,8 @@ class Lazy_Load_Controller extends Controller {
 				border: 0 !important;
 				opacity: 1;
 				background: <?php echo esc_attr( $background ); ?> url('<?php echo esc_url( $loader ); ?>') no-repeat center !important;
-				background-size: 16px auto !important;
+				background-size: 16px auto !important; /* fallback for browsers without min/max */
+				background-size: <?php echo esc_attr( $background_size ); ?>;
 				min-width: 16px;
 			}
 
@@ -255,10 +321,13 @@ class Lazy_Load_Controller extends Controller {
 		if ( ! $this->helper->should_lazy_load_embed_video() ) {
 			return;
 		}
+
 		?>
 		<style>
 			/* Thanks to https://github.com/paulirish/lite-youtube-embed and https://css-tricks.com/responsive-iframes/ */
 			.smush-lazyload-video {
+				min-height: 240px;
+				min-width: 320px;
 				--smush-video-aspect-ratio: 16/9;background-color: #000;position: relative;display: block;contain: content;background-position: center center;background-size: cover;cursor: pointer;
 			}
 			.smush-lazyload-video.loading{cursor:progress}
@@ -274,7 +343,7 @@ class Lazy_Load_Controller extends Controller {
 			.smush-lazyload-video.video-loaded::before,.smush-lazyload-video.smush-lazyloaded-video > .smush-play-btn,.smush-lazyload-video.loading > .smush-play-btn{display:none;opacity:0;pointer-events:none}
 			.smush-lazyload-video.smush-lazyload-vimeo > .smush-play-btn > .smush-play-btn-inner{background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 203 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m0.25116 9.0474c0-4.9968 4.0507-9.0474 9.0474-9.0474h184.4c4.997 0 9.048 4.0507 9.048 9.0474v101.91c0 4.996-4.051 9.047-9.048 9.047h-184.4c-4.9968 0-9.0474-4.051-9.0474-9.047v-101.91z' fill='%2317d5ff' fill-opacity='.7'/%3E%3Cpath d='m131.1 59.05c0.731 0.4223 0.731 1.4783 0 1.9006l-45.206 26.099c-0.7316 0.4223-1.646-0.1056-1.646-0.9504v-52.199c0-0.8448 0.9144-1.3727 1.646-0.9504l45.206 26.099z' fill='%23fff'/%3E%3C/svg%3E%0A");width:81px}
 			<?php if ( get_theme_support( 'responsive-embeds' ) ) : ?>
-				.wp-embed-responsive .wp-has-aspect-ratio .smush-lazyload-video{position:absolute;width:100%;height:100%;top:0;left:0}.wp-embed-responsive .wp-has-aspect-ratio .smush-lazyload-video::after{padding-bottom:0}
+				.wp-embed-responsive .wp-has-aspect-ratio .wp-block-embed__wrapper.has-smush-lazyload-video:before{padding-top:0!important;}.wp-embed-responsive .wp-embed-aspect-21-9 .smush-lazyload-video::after{padding-bottom:42.85%;}.wp-embed-responsive .wp-embed-aspect-18-9 .smush-lazyload-video::after{padding-bottom:50%;}.wp-embed-responsive .wp-embed-aspect-16-9 .smush-lazyload-video::after{padding-bottom:56.25%;}.wp-embed-responsive .wp-embed-aspect-4-3 .smush-lazyload-video::after{padding-bottom:75%;}.wp-embed-responsive .wp-embed-aspect-1-1 .smush-lazyload-video::after{padding-bottom:100%;}.wp-embed-responsive .wp-embed-aspect-9-16 .smush-lazyload-video::after{padding-bottom:177.77%;}.wp-embed-responsive .wp-embed-aspect-1-2 .smush-lazyload-video::after{padding-bottom:200%;}
 			<?php endif; ?>
 		</style>
 		<?php
@@ -295,7 +364,8 @@ class Lazy_Load_Controller extends Controller {
 
 		$script = WP_SMUSH_URL . 'app/assets/js/smush-lazy-load.min.js';
 
-		$in_footer = isset( $this->options['footer'] ) ? $this->options['footer'] : true;
+		$in_footer  = isset( $this->options['footer'] ) ? $this->options['footer'] : true;
+		$cdn_helper = CDN_Helper::get_instance();
 
 		wp_enqueue_script(
 			'smush-lazy-load',
@@ -310,8 +380,9 @@ class Lazy_Load_Controller extends Controller {
 			array(
 				'autoResizingEnabled' => $this->settings->is_auto_resizing_active(),
 				'autoResizeOptions'   => array(
-					'precision' => 5, //5px.
+					'precision'     => 5, // 5px.
 					'skipAutoWidth' => true, // Whether to skip the image has 'auto' width.
+					'cdnBaseURL'    => $cdn_helper->is_cdn_active() ? $cdn_helper->get_cdn_base_url() : '',
 				),
 			)
 		);
@@ -338,7 +409,6 @@ class Lazy_Load_Controller extends Controller {
 	 *
 	 * @return string
 	 * @since 3.7.0
-	 *
 	 */
 	public function async_load( $tag, $handle ) {
 		if ( 'smush-lazy-load' === $handle ) {
@@ -433,7 +503,6 @@ class Lazy_Load_Controller extends Controller {
 	 *
 	 * @return mixed
 	 * @since 3.2.0
-	 *
 	 */
 	public function add_lazy_load_attributes( $allowedposttags ) {
 		if ( ! isset( $allowedposttags['img'] ) ) {
@@ -460,7 +529,6 @@ class Lazy_Load_Controller extends Controller {
 	 *
 	 * @return string
 	 * @since 3.2.2
-	 *
 	 */
 	public function exclude_from_lazy_loading( $content ) {
 		$server_utils       = new Server_Utils();
@@ -487,7 +555,6 @@ class Lazy_Load_Controller extends Controller {
 			 * @param string $text The image that can be filtered.
 			 *
 			 * @since 3.8.5
-			 *
 			 */
 			$new_markup = apply_filters( 'wp_smush_filter_no_lazyload_image', $image->get_updated_markup() );
 
@@ -503,11 +570,10 @@ class Lazy_Load_Controller extends Controller {
 	 * @param array $composite_elements Array of composite elements.
 	 *
 	 * @return array Array of individual image elements.
-     * @since 3.18.0
-     *
+	 * @since 3.18.0
 	 */
 	private function extract_images_from_composite_elements( $composite_elements ) {
-		$individual_images = [];
+		$individual_images = array();
 
 		foreach ( $composite_elements as $composite_element ) {
 			$element_images = $composite_element->get_elements();
@@ -549,5 +615,59 @@ class Lazy_Load_Controller extends Controller {
 
 	public function should_enable_wordpress_native_lazyload() {
 		return $this->helper->is_native_lazy_loading_enabled();
+	}
+
+	public function add_has_smush_lazyload_video_class( $content ) {
+		if ( ! $this->helper->should_lazy_load_embed_video() || ! get_theme_support( 'responsive-embeds' ) ) {
+			return $content;
+		}
+
+		return preg_replace(
+			'/<div class="wp-block-embed__wrapper">\s*<div class="lazyload smush-lazyload-video\b/',
+			'<div class="wp-block-embed__wrapper has-smush-lazyload-video"><div class="lazyload smush-lazyload-video',
+			$content
+		);
+	}
+
+	/**
+	 * Handle lazy load settings sync via unified endpoint.
+	 *
+	 * @param array|null $saved_settings Saved settings from previous filter, or null.
+	 * @param array      $settings Incoming settings from React (camelCase).
+	 * @param string     $context Context identifier.
+	 *
+	 * @return array|null Saved settings array if context matches, otherwise pass through.
+	 *
+	 * @since 3.25.0
+	 */
+	public function handle_settings_sync( $saved_settings, $settings, $context ) {
+		// Only handle lazyload context
+		if ( 'lazyload' !== $context ) {
+			return $saved_settings;
+		}
+
+		// Convert React camelCase to PHP format using DTO
+		$db_settings = Lazy_Load_Settings_DTO::from_react_props( $settings );
+
+		// Get current settings
+		$current_lazy_settings = $this->settings->get_setting( 'wp-smush-lazy_load', array() );
+		$current_lazy_settings = $this->array_utils->ensure_array( $current_lazy_settings );
+		$main_settings         = $this->settings->get();
+
+		// Split settings: lazy_load goes to main settings, rest to lazy_load option
+		$current_lazy_status  = isset( $main_settings['lazy_load'] ) ? wp_validate_boolean( $main_settings['lazy_load'] ) : false;
+		$new_lazy_load_status = isset( $db_settings['lazy_load'] ) ? wp_validate_boolean( $db_settings['lazy_load'] ) : $current_lazy_status;
+		if ( $current_lazy_status !== $new_lazy_load_status ) {
+			$this->settings->set( 'lazy_load', $new_lazy_load_status );
+		}
+		unset( $db_settings['lazy_load'] );
+
+		// Merge and save remaining settings to wp-smush-lazy_load
+		$updated_lazy_settings = array_merge( $current_lazy_settings, $db_settings );
+		$this->settings->set_setting( 'wp-smush-lazy_load', $updated_lazy_settings );
+
+		// Return transformed data (combine both for React)
+		$combined_settings = array_merge( $updated_lazy_settings, array( 'lazy_load' => $new_lazy_load_status ) );
+		return Lazy_Load_Settings_DTO::to_react_props( $combined_settings );
 	}
 }

@@ -69,18 +69,22 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: src/js/components/roles/ExistingUserSelect.js:46
+#: src/js/components/roles/ExistingUserSelect.js:59
 msgid "Search"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:117
-#: src/js/components/translators/AddTranslatorDialog.js:151
+#: src/js/components/roles/ExistingUserSelect.js:70
+msgid "Your site has a large number of users, please enter the exact username."
+msgstr ""
+
+#: src/js/components/translation-managers/AddManagerDialog.js:118
+#: src/js/components/translators/AddTranslatorDialog.js:152
 #: src/js/components/translators/EditLanguagesDialog.js:73
 #: src/js/setup/components/Steps/AddLanguagesModal.js:496
 msgid "Cancel"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:122
+#: src/js/components/translation-managers/AddManagerDialog.js:123
 msgid "Add Translation Manager"
 msgstr ""
 
@@ -96,7 +100,7 @@ msgstr ""
 msgid "Select an existing %s and set as Translation Manager"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:96
+#: src/js/components/translation-managers/AddManagerDialog.js:97
 msgid "Create a new %s and set as Translation Manager"
 msgstr ""
 
@@ -108,19 +112,19 @@ msgstr ""
 msgid "Select an existing user and set as Translator"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:124
+#: src/js/components/translators/AddTranslatorDialog.js:125
 msgid "Create a new user and set as Translator"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:141
+#: src/js/components/translators/AddTranslatorDialog.js:142
 msgid "Set language pair(s)"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:156
+#: src/js/components/translators/AddTranslatorDialog.js:157
 msgid "Previous"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:159
+#: src/js/components/translators/AddTranslatorDialog.js:160
 #: src/js/components/translators/EditLanguagesDialog.js:78
 msgid "Save"
 msgstr ""
@@ -368,7 +372,7 @@ msgid "Which languages do you want to translate your site into?"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:149
-msgid "If you cannot find languages that you need in the list"
+msgid "If you cannot find languages that you need in the list,"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:150

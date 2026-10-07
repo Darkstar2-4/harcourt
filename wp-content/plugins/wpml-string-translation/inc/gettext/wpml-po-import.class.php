@@ -1,8 +1,5 @@
 <?php
 
-/**
- * A wrapper function for "file" being able to mock it in tests
- */
 if ( ! function_exists('load_file') ) {
 	function load_file($file_name ) {
 		return file( $file_name ) ?: array();
@@ -38,12 +35,9 @@ class WPML_PO_Import {
 				$k ++;
 			}
 
-			if ( preg_match( '#msgctxt "(.*)"#im', trim( $this->lines[ $k ] ), $matches ) ) { //we look for the line that poedit needs for unique identification of the string
+			if ( preg_match( '#msgctxt "(.*)"#im', trim( $this->lines[ $k ] ), $matches ) ) {
 
 				$context = $matches[ 1 ];
-				//if ( preg_match( '/wpmldatei18/', $this->lines[ $k ] ) ) { //if it contains the date_time setting we add the flag to escape the control structures in the date time placeholder string
-				//	$date_time_flag = true;
-				//}
 				$k ++;
 			}
 			$int = preg_match( '#msgid "(.*)"#im', trim( $this->lines[ $k ] ), $matches );
@@ -104,7 +98,6 @@ class WPML_PO_Import {
 	private function get_string( $string, $k ) {
 
 		$string = $this->strip_slashes( $string );
-		// check for multiline strings
 		if ( $k + 1 < count( $this->lines ) ) {
 			$int    = preg_match( '#^"(.*)"$#', trim( $this->lines[ $k + 1 ] ), $matches );
 			while ( $int ) {

@@ -4,21 +4,12 @@ namespace WPML\ST\ThemePluginLocalization;
 
 class OtherLocalizationUI implements \IWPML_Theme_Plugin_Localization_UI_Strategy {
 
-	/** @var \WPML_Localization */
 	private $localization;
 
-	/** @var \WPML\ST\TranslationFile\FilesToScanRepository */
 	private $filesToScanRepository;
 
-	/** @var string */
 	private $base_st_url;
 
-	/**
-	 * WPML_ST_Other_Localization_UI constructor.
-	 *
-	 * @param \WPML_Localization                             $localization
-	 * @param \WPML\ST\TranslationFile\FilesToScanRepository $filesToScanRepository
-	 */
 	public function __construct(
 		\WPML_Localization $localization,
 		\WPML\ST\TranslationFile\FilesToScanRepository $filesToScanRepository
@@ -28,9 +19,6 @@ class OtherLocalizationUI implements \IWPML_Theme_Plugin_Localization_UI_Strateg
 		$this->base_st_url           = admin_url( 'admin.php?page=' . WPML_ST_FOLDER . '/menu/string-translation.php' );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_model() {
 		$filesToScanData = $this->filesToScanRepository->getFilesToScanData();
 		$renderSection   = in_array( 'WordPress', $filesToScanData['other'] );
@@ -61,9 +49,6 @@ class OtherLocalizationUI implements \IWPML_Theme_Plugin_Localization_UI_Strateg
 		return $model;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_components() {
 		$components = [];
 
@@ -86,7 +71,6 @@ class OtherLocalizationUI implements \IWPML_Theme_Plugin_Localization_UI_Strateg
 		return $components;
 	}
 
-	/** @return string */
 	public function get_template() {
 		return 'theme-plugin-localization-ui.twig';
 	}

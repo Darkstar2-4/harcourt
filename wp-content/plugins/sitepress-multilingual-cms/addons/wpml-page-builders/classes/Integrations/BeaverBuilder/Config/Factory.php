@@ -11,9 +11,6 @@ class Factory extends \WPML\PB\Config\Factory {
 		'translatableWidgetsHook' => 'wpml_beaver_builder_modules_to_translate',
 	];
 
-	/**
-	 * @inheritDoc
-	 */
 	protected function getPbData( $key ) {
 		return self::DATA[ $key ];
 	}

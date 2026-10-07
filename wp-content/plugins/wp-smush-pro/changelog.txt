@@ -6,6 +6,149 @@ Change Log:
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 
+= 4.3.4 ( 2026-09-28 ) =
+- Improvement: Security hardening
+
+= 4.3.3 ( 2026-09-15 ) =
+- Improvement: Implement Auto-save UI/UX
+- Improvement: Make email notification enabled by default
+- Fix: Bulk Smush is not running with PHP 7.4
+
+= 4.3.2 ( 2026-08-19 ) =
+- Improvement: Accessibility option in Smush
+- Improvement: Improved transparent PNG detection accuracy
+- Improvement: Improved savings calculation in the optimization complete modal
+- Improvement: Updated Preload card description copy
+- Improvement: Security improvements
+- Improvement: Removed unused scripts
+- Fix: Image sets without a URL not being lazy loaded
+- Fix: Image sets without a URL not served correctly through the CDN
+- Fix: Network activation status not updating without a page reload or button press
+- Fix: Async processing mistakenly turned off on some sites
+- Fix: Network-scoped option writable by a subsite administrator (reported by Jakub Herman)
+
+= 4.3.1 ( 2026-08-11 ) =
+- Fix: Wizard not showing the correct image count
+
+= 4.3.0 ( 2026-08-03 ) =
+- New: CDN 2.0 with multiple performance improvements and bug fixes
+- New: CDN domain migrated from smushcdn.com to assetcdn.net
+- New: Failed images list now displayed on the Directory Smush page
+- Improvement: Implemented missing notices throughout the Smush interface
+- Improvement: Added notice for API update status
+- Improvement: Added Elementor Image Optimizer to the conflict notice
+- Improvement: "Download all" and "Delete all" options now only shown when multiple Configs are selected
+- Improvement: Security improvements
+- Improvement: Minor UI/UX improvements
+- Improvement: Optimization toast now shown on all pages after optimization completes
+- Fix: Image size not updated after editing an image in the media library
+- Fix: Individual Ignore button not working for skipped images in Bulk Smush
+- Fix: Image optimization not applied to large PNG images above 2560px with Super or Ultra Smush settings
+- Fix: Prevented saving corrupted images to avoid broken image issues
+- Fix: Images with URL parameters not served correctly when URL is changed
+- Fix: Images now correctly convert to AVIF when re-enabling WebP after a downgrade and upgrade
+- Fix: Activity Log now records all post types when "All Post Types" toggle is used
+- Fix: Background overlay for RTL deactivation survey
+- Fix: Layout shift when closing popup
+- Fix: Lazy load auto-resizing for new CDN base URL format
+
+= 4.2.0 ( 2026-07-01 ) =
+- New: Full RTL language support across all Smush pages, modals, and UI components
+- Improvement: Improved bulk smush process reliability using atomic operations instead of MySQL locks
+- Improvement: Bulk smush health checks now run via Ajax for faster stall detection
+- Improvement: Visual feedback shown when the optimization process has stalled
+- Improvement: Updated Lazy Load exclusions UI/UX
+- Improvement: Missing feature notices implemented throughout the plugin
+- Improvement: Tooltips now displayed even when a feature is disabled
+- Improvement: Rescan only required when setting changes create new savings opportunities
+- Improvement: Translation improvements and fixes
+- Improvement: Removed unused code
+- Fix: Lazy load iframe causing issues with the browser back button
+- Fix: Smush failing to detect existing Hub connection when WPMU DEV Dashboard plugin is installed first
+- Fix: Site title missing in Bulk Smush completed email notifications
+- Fix: Progress bar infinite loop
+- Fix: Scan stuck at 0% and bulk smush freezing issues
+
+= 4.1.2 ( 2026-06-22 ) =
+- Improvement: UX improvements
+
+= 4.1.1 ( 2026-06-11 ) =
+- Improvement: Stability improvements and minor bug fixes
+
+= 4.1.0 ( 2026-05-25 ) =
+- Improvement: Added notice when images fail to optimize
+- Improvement: CDN generating long database queries resulting in broken images
+- Improvement: Prevented unnecessary settings save and notification when blurring an empty textarea
+- Improvement: UI and UX improvements
+- Fix: Configs created in Smush 4.0 not appearing in Hub "My Configs" list
+- Fix: Activity sidebar sticky position not working correctly on screens wider than 1800px
+- Fix: Optimization action not triggering when Next-Gen formats disabled via dashboard toast notification
+- Fix: Enabling Next-Gen server configuration on multisite triggering console errors
+- Fix: Smush overriding the WordPress dashboard footer
+- Fix: Free version not enforcing 5MB file size limit after downgrading from Pro
+- Fix: PHP warnings and errors
+
+= 4.0.3 ( 2026-04-28 ) =
+- Fix: Resolved issue where Super Smush was not working on main site and subsites.
+- Fix: Improved White Label behavior across plugin UI and status screens.
+- Fix: Prevented opt-in toast from reappearing when restarting Smush without a refresh.
+- Fix: Preload settings changes are now recorded in the Activity Log.
+- Improvement: Updated onboarding and Directory Smush welcome modal UI and copy.
+- Improvement: Minor visual refinements across header and main menu.
+
+= 4.0.2 ( 2026-04-21 ) =
+- Fix: Configs not applied correctly in certain situations.
+- Fix: Corrected settings reset behavior during uninstallation when data preservation is disabled.
+- Fix: Resolved a permissions issue affecting Super Compression access in Multisite environments.
+- Fix: Restored PNG to JPG conversion functionality for free version users.
+- Fix: Minor code improvements and stability refinements.
+
+= 4.0.1 ( 2026-04-15 ) =
+- Improvement: Informational notice when CDN propagation initiated
+- Fix: CDN failing to propagate on new sites
+
+= 4.0 ( 2026-04-14 ) =
+- New: Reimagined Smush interface for a seamless, clutter-free optimization experience
+- New: Comprehensive Activity Log to track real-time scans, optimizations, and configuration changes
+- Improvement: Transitioned to real-time Auto-save for all settings to provide a frictionless workflow
+- Fix: Minor code improvements and performance refinements
+
+= 3.24.0 ( 2026-02-23 ) =
+- Improvement: Stability improvements
+
+= 3.23.4 ( 2026-02-05 ) =
+- Fix: PHP error fixed
+
+= 3.23.3 ( 2026-02-03 ) =
+- Improvement: Stability improvements
+- Fix: Minor bug fixes
+
+= 3.23.2 ( 2026-01-16 ) =
+- Improvement: Dependency updates and minor code improvements
+
+= 3.23.1 ( 2025-12-17 ) =
+- Improvement: Code improvements and minor bug fixes
+
+= 3.23.0 ( 2025-12-03 ) =
+- New: Restore multiple images at once with the new Bulk Restore option on the Media Library page
+- Improvement: Restore All Images feature now shows exact reason for restoration failure
+- Improvement: Backup original images and Optimize original images enabled by default for new users
+- Fix: Smush Directory keeps showing images that need to be optimized
+- Fix: LCP preload tag not added for relative image URLs
+- Fix: Elementor background images not converted to Next-Gen formats
+- Fix: Lazy-loaded video thumbnails not working in Elementor
+
+= 3.22.1 ( 2025-10-01 ) =
+- Fix: Memory issues caused by Elementor integration
+
+= 3.22.0 ( 2025-10-01 ) =
+- Improvement: More accurate use of fetchpriority=high based on LCP data
+- Improvement: General UI enhancements
+- Fix: LCP image not lazy-loaded after disabling preload
+- Fix: Incorrect Preload Critical Images status shown in summary box
+- Fix: Wrong retina image size applied by the auto-resize module
+- Fix: Incorrect LCP image detected on mobile in certain cases
+
 = 3.21.1 ( 2025-09-02 ) =
 - Fix: Auto-resize module using incorrect aspect ratio for cropped images
 - Fix: Auto-resize module using lower quality version in certain situations
@@ -352,4 +495,4 @@ Change Log:
 
 
 
-396564-1757079127-au
+396564-1790785616

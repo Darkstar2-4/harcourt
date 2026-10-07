@@ -4,46 +4,18 @@ namespace WPML\Core\Component\ATE\Application\Service\Dto;
 
 use WPML\Core\Component\ATE\Application\Service\Dto\Engine\FormalitySettingDto;
 
-/**
- * @phpstan-import-type FormalitySettingDtoArray from FormalitySettingDto
- *
- * @phpstan-type EngineDtoArray array{
- *    engine: string,
- *    formalName: string,
- *    cost: int,
- *    enabled: bool,
- *    formalityAvailable: bool,
- *    formalitySettings: FormalitySettingDtoArray[]|null
- *  }
- */
 class EngineDto {
 
-  /**
-   * @var string
-   */
   private $codeName;
 
-  /**
-   * @var string
-   */
   private $formalName;
 
-  /**
-   * @var int
-   */
   private $cost;
 
-  /**
-   * @var bool
-   */
   private $enabled;
 
-  /**
-   * @var bool
-   */
   private $formalityAvailable;
 
-  /** @var FormalitySettingDto[]|null */
   private $formalitySettings;
 
 
@@ -87,27 +59,16 @@ class EngineDto {
   }
 
 
-  /**
-   * @return FormalitySettingDto[]|null
-   */
   public function getFormalitySettings() {
     return $this->formalitySettings;
   }
 
 
-  /**
-   * @param FormalitySettingDto[] $formalitySettings
-   *
-   * @return void
-   */
   public function setFormalitySettings( array $formalitySettings ) {
     $this->formalitySettings = $formalitySettings;
   }
 
 
-  /**
-   * @return EngineDtoArray
-   */
   public function toArray(): array {
     return [
       'engine'             => $this->codeName,
@@ -120,9 +81,6 @@ class EngineDto {
   }
 
 
-  /**
-   * @return FormalitySettingDtoArray[]| null
-   */
   private function formalitySettingsToArray() {
     if ( ! $this->formalitySettings ) {
       return null;

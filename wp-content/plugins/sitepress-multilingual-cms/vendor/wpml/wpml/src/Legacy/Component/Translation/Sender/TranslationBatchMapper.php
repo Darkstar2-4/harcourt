@@ -11,21 +11,9 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\TargetLanguageMethodType;
 use function WPML\PHP\partition;
 
-/**
- * @phpstan-import-type TpBatchInfoArray from TranslationSender
- */
 class TranslationBatchMapper {
 
 
-  /**
-   * Map new batch to two legacy batches containing automatic and manual translations.
-   *
-   * @param TranslationBatch               $batch
-   *
-   * @phpstan-param  TpBatchInfoArray|null $translationProxyBatchInfo
-   *
-   * @return \WPML_TM_Translation_Batch[]
-   */
   public function map( TranslationBatch $batch, $translationProxyBatchInfo = null ): array {
     list(
       $automaticBatch,
@@ -51,11 +39,6 @@ class TranslationBatchMapper {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return array{0: TranslationBatch|null, 1: TranslationBatch|null}
-   */
   private function divideBatchIntoAutomaticAndManual( TranslationBatch $batch ): array {
     list( $automatic, $manual ) = partition(
       $batch->getTargetLanguages(),
@@ -78,13 +61,6 @@ class TranslationBatchMapper {
   }
 
 
-  /**
-   * @param TranslationBatch               $batch
-   *
-   * @phpstan-param  TpBatchInfoArray|null $translationProxyBatchInfo
-   *
-   * @return \WPML_TM_Translation_Batch
-   */
   private function buildBatch(
     TranslationBatch $batch,
     $translationProxyBatchInfo = null
@@ -107,11 +83,6 @@ class TranslationBatchMapper {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return \WPML_TM_Translation_Batch_Element[]
-   */
   private function buildElements( TranslationBatch $batch ): array {
     $sourceLanguageCode = $batch->getSourceLanguageCode();
 
@@ -128,9 +99,8 @@ class TranslationBatchMapper {
 
     foreach ( $elementsGroupedByTypeAndId as $type => $idAndTargetLanguages ) {
       foreach ( $idAndTargetLanguages as $elementId => $targetLanguages ) {
-        $mediaToTranslations = []; // legacy not supported feature
+        $mediaToTranslations = [];
 
-        /** @var array<string, int> $targetLanguages */
         $targetLanguages = array_combine(
           $targetLanguages,
           array_fill( 0, count( $targetLanguages ), 1 )
@@ -150,11 +120,6 @@ class TranslationBatchMapper {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return array<string, int|string>
-   */
   private function buildTranslators( TranslationBatch $batch ): array {
     $translators = [];
 

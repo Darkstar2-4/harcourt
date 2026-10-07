@@ -17,11 +17,6 @@ class StringsLanguageChanged implements \IWPML_Action {
 	private $manager;
 	private $getDomainsByStringIds;
 
-	/**
-	 * @param DomainsAndLanguagesRepository $domainsAndLanguageRepository
-	 * @param Manager                       $manager
-	 * @param callable                      $getDomainsByStringIds
-	 */
 	public function __construct(
 		DomainsAndLanguagesRepository $domainsAndLanguageRepository,
 		Manager $manager,

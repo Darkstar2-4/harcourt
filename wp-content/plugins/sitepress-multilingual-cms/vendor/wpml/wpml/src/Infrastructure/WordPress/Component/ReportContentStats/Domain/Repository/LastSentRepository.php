@@ -9,7 +9,6 @@ class LastSentRepository implements LastSentRepositoryInterface {
 
   const OPTION_KEY = 'wpml-stats-last-sent';
 
-  /** @var Options */
   private $options;
 
 
@@ -18,11 +17,7 @@ class LastSentRepository implements LastSentRepositoryInterface {
   }
 
 
-  /**
-   * @return int|null
-   */
   public function get() {
-    /** @var int|null $currentLastSent */
     $currentLastSent = $this->options->get( self::OPTION_KEY, null );
 
     return $currentLastSent;

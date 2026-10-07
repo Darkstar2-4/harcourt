@@ -10,10 +10,8 @@ use WPML\StringTranslation\Application\StringPackage\Repository\WidgetPackageRep
 
 class StringPackageListApiController extends AbstractItemApiController {
 
-	/** @var FindStringPackagesQueryInterface */
 	private $findStringPackagesQuery;
 
-	/** @var WidgetPackageRepositoryInterface */
 	private $widgetPackageRepository;
 
 	public function __construct(
@@ -26,9 +24,6 @@ class StringPackageListApiController extends AbstractItemApiController {
 		$this->widgetPackageRepository = $widgetPackageRepository;
 	}
 
-	/**
-	 * @return array
-	 */
 	function get_routes() {
 		return [
 			[
@@ -42,10 +37,6 @@ class StringPackageListApiController extends AbstractItemApiController {
 		];
 	}
 
-	/**
-	 * @param StringPackageWithTranslationStatusDto $stringPackage
-	 * @return int|mixed|null
-	 */
 	function getStringPackageCreatedAt( StringPackageWithTranslationStatusDto $stringPackage ) {
 		$date = apply_filters(
 			'wpml_tm_dashboard_date',
@@ -63,10 +54,6 @@ class StringPackageListApiController extends AbstractItemApiController {
 		return $extend;
 	}
 
-	/**
-	 * @return array
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public function get( \WP_REST_Request $request ) {
 		$criteria = new StringPackageCriteria(
 			$request->get_param( 'type' ),

@@ -6,7 +6,6 @@ require_once WPML_TM_PATH . '/inc/translation-jobs/jobs/wpml-string-translation-
 
 class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 
-	/** @var WPML_Translation_Batch[] $translation_batches */
 	private $translation_batches = array();
 
 	private $count = 0;
@@ -14,27 +13,15 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 	private $last_count;
 	private $before_count = 0;
 	private $after_count  = 0;
-	/** @var array $filter */
 	private $filter;
 
-	/** @var string $jobs_union_table_sql */
 	private $jobs_union_table_sql;
 
-	/**
-	 * @param wpdb  $wpdb
-	 * @param array $icl_translation_filter
-	 */
 	public function __construct( &$wpdb, $icl_translation_filter ) {
 		parent::__construct( $wpdb );
 		$this->filter = $icl_translation_filter;
 	}
 
-	/**
-	 * @param int $page
-	 * @param int $per_page
-	 *
-	 * @return array
-	 */
 	public function get_paginated_batches( $page, $per_page ) {
 		$this->load_translation_jobs( $page, $per_page );
 
@@ -63,19 +50,11 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 		);
 	}
 
-	/**
-	 * Returns the number of jobs that meet the filter \WPML_Translation_Jobs_Collection::$filter in the database
-	 *
-	 * @return int
-	 */
 	public function get_count() {
 
 		return $this->count;
 	}
 
-	/**
-	 * @param WPML_Translation_Job $job
-	 */
 	public function add_job( $job ) {
 		$batch_id = $job->get_batch_id();
 		$batch    = array_key_exists( $batch_id, $this->translation_batches )
@@ -106,12 +85,6 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 		}
 	}
 
-	/**
-	 * @param array $args
-	 * @param array $pagination_args
-	 *
-	 * @return array
-	 */
 	private function get_jobs_table( array $args = array(), array $pagination_args = array(
 		'page'     => 1,
 		'per_page' => 10,
@@ -127,21 +100,15 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 		return $result;
 	}
 
-	/**
-	 * @param int $found_rows
-	 *
-	 * @return array
-	 */
 	private function get_default_batch_counts( $found_rows ) {
 		return array( array(), $found_rows, 0, 0, 0, 0 );
 	}
 
-	private function get_jobs_in_db( array $args = array(), array $pagination_args = null ) {
+	private function get_jobs_in_db( array $args = array(), ?array $pagination_args = null ) {
 		$where_jobs       = $this->build_where_clause( $args );
 		$jobs_table_union = $this->get_jobs_union_table_sql( $where_jobs, $args );
 
 		$count_sql = 'SELECT COUNT(*) FROM ' . $jobs_table_union;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$found_rows = (int) $this->wpdb->get_var( $count_sql );
 
 		$only_ids_query  = 'SELECT jobs.job_id, jobs.translator_id, jobs.job_id, jobs.batch_id, jobs.element_type_prefix ';
@@ -153,7 +120,6 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 			$prepare_args[]  = $pagination_args['per_page'];
 			$only_ids_query  = $this->wpdb->prepare( $only_ids_query, $prepare_args );
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$data = $this->wpdb->get_results( $only_ids_query );
 
 		return array( $data, $found_rows );
@@ -165,13 +131,6 @@ class WPML_Translation_Jobs_Collection extends WPML_Abstract_Job_Collection {
 		return $this->plain_objects_to_job_instances( $jobs_in_db );
 	}
 
-	/**
-	 * @param array $data
-	 * @param int   $count
-	 * @param array $pagination_args
-	 *
-	 * @return array
-	 */
 	private function calculate_batch_counts( $data, $count, $pagination_args ) {
 		$first_job                 = reset( $data );
 		$last_job                  = end( $data );

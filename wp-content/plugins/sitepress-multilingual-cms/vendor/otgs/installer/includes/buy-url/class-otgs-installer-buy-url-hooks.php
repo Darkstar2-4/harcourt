@@ -12,11 +12,6 @@ class OTGS_Installer_Buy_URL_Hooks {
 		add_filter( 'wp_installer_buy_url', array( $this, 'append_installer_source' ) );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function append_installer_source( $url ) {
 		$url = add_query_arg( 'embedded_at', $this->embedded_at, $url );
 

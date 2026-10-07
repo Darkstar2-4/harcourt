@@ -6,12 +6,6 @@ use OTGS\Installer\Collection;
 use function OTGS\Installer\FP\partial;
 
 class Notice {
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $config
-	 *
-	 * @return \Closure
-	 */
 	public static function addNoticesForType( $installer, $config ) {
 		return function ( Collection $notices, array $data ) use ( $installer, $config ) {
 			list( $type, $fn ) = $data;
@@ -25,13 +19,6 @@ class Notice {
 		};
 	}
 
-	/**
-	 * @param string $noticeId
-	 * @param array $notices
-	 * @param string $repoId
-	 *
-	 * @return array
-	 */
 	public static function addNotice( $noticeId, array $notices, $repoId ) {
 		return array_merge_recursive( $notices, [ 'repo' => [ $repoId => [ $noticeId ] ] ] );
 	}

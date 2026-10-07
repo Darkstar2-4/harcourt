@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Your site doesn't meet WPML's minimum requirements": [
-            "Uw site voldoet niet aan de minimumvereisten van WPML"
+            "Uw site voldoet niet aan de minimale vereisten van WPML"
          ]
       }
    }

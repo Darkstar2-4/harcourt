@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Not implemented (yet) statements.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -22,22 +19,12 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class NotImplementedStatement extends Statement
 {
-    /**
-     * The part of the statement that can't be parsed.
-     *
-     * @var Token[]
-     */
     public $unknown = array();
 
-    /**
-     * @return string
-     */
     public function build()
     {
-        // Building the parsed part of the query (if any).
         $query = parent::build() . ' ';
 
-        // Rebuilding the unknown part from tokens.
         foreach ($this->unknown as $token) {
             $query .= $token->token;
         }
@@ -45,10 +32,6 @@ class NotImplementedStatement extends Statement
         return $query;
     }
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
         for (; $list->idx < $list->count; ++$list->idx) {

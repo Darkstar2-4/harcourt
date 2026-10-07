@@ -11,13 +11,6 @@
 namespace WPML\Core\Twig\Sandbox;
 
 use WPML\Core\Twig\Markup;
-/**
- * Represents a security policy which need to be enforced when sandbox mode is enabled.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SecurityPolicy implements \WPML\Core\Twig\Sandbox\SecurityPolicyInterface
 {
     protected $allowedTags;

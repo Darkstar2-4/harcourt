@@ -11,9 +11,6 @@ class WPML_Compatibility_Divi_Notice extends WPML_Notice {
 		$this->set_css_class_types( 'warning' );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_message() {
 		$msg = esc_html_x(
 			'You are using DIVI theme, and you have chosen to use the standard editor for translating content.',

@@ -8,13 +8,6 @@ use WPML\StringTranslation\Application\StringPackage\Query\Criteria\SearchPopula
 interface SearchPopulatedKindsQueryInterface {
 
 
-	/**
-	 * Will get all the PostType id's that matches the Criteria.
-	 *
-	 * @param SearchPopulatedKindsCriteria $criteria
-	 *
-	 * @return array<string>
-	 */
 	public function get( SearchPopulatedKindsCriteria $criteria );
 
 }

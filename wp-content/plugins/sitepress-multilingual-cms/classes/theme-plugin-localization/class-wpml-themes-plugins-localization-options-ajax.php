@@ -6,14 +6,8 @@ class WPML_Theme_Plugin_Localization_Options_Ajax implements IWPML_AJAX_Action, 
 
 	const NONCE_LOCALIZATION_OPTIONS = 'wpml-localization-options-nonce';
 
-	/** @var WPML_Save_Themes_Plugins_Localization_Options */
 	private $save_localization_options;
 
-	/**
-	 * WPML_Themes_Plugins_Localization_Options_Ajax constructor.
-	 *
-	 * @param WPML_Save_Themes_Plugins_Localization_Options $save_localization_options
-	 */
 	public function __construct( WPML_Save_Themes_Plugins_Localization_Options $save_localization_options ) {
 		$this->save_localization_options = $save_localization_options;
 	}
@@ -31,7 +25,6 @@ class WPML_Theme_Plugin_Localization_Options_Ajax implements IWPML_AJAX_Action, 
 		}
 	}
 
-	/** @return bool */
 	private function is_valid_request() {
 		return wp_verify_nonce( Obj::propOr( '', 'nonce', $_POST ), self::NONCE_LOCALIZATION_OPTIONS );
 	}

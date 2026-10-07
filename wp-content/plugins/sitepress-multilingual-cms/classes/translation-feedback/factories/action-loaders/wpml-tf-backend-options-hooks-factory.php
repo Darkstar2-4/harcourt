@@ -1,20 +1,12 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Options_Hooks_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Options_Hooks_Factory extends WPML_Current_Screen_Loader_Factory {
 
-	/** @return string */
 	protected function get_screen_regex() {
 		return '#' . WPML_PLUGIN_FOLDER . '/menu/languages#';
 	}
 
-	/** @return null|WPML_TF_Backend_Options_Hooks */
 	protected function create_hooks() {
-		/** @var SitePress $sitepress */
 		global $sitepress;
 
 		if ( $sitepress->is_setup_complete() ) {
@@ -23,7 +15,6 @@ class WPML_TF_Backend_Options_Hooks_Factory extends WPML_Current_Screen_Loader_F
 			);
 
 			$settings_read = new WPML_TF_Settings_Read();
-			/** @var WPML_TF_Settings $tf_settings */
 			$tf_settings = $settings_read->get( 'WPML_TF_Settings' );
 
 			$options_view = new WPML_TF_Backend_Options_View(

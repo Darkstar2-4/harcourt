@@ -6,30 +6,15 @@ use OTGS\Installer\Api\Exception\InvalidProductsResponseException;
 use OTGS\Installer\Api\SiteUrl;
 
 class ProductBucketUrl {
-	/**
-	 * @var SiteUrl
-	 */
 	private $siteUrl;
 
-	/**
-	 * @var string
-	 */
 	private $repositoryId;
 
-	/**
-	 * @param string $repositoryId
-	 * @param SiteUrl $siteUrl
-	 */
 	public function __construct( $repositoryId, SiteUrl $siteUrl ) {
 		$this->siteUrl = $siteUrl;
 		$this->repositoryId = $repositoryId;
 	}
 
-	/**
-	 * @param string $siteKey
-	 *
-	 * @return array
-	 */
 	public function prepareRequest( $siteKey ) {
 		return [
 			'action'   => 'product_bucket_url',
@@ -38,10 +23,6 @@ class ProductBucketUrl {
 		];
 	}
 
-	/**
-	 * @param array $response
-	 * @throws InvalidProductsResponseException
-	 */
 	public function parseResponse( $response ) {
 		if (isset( $response['response']['code'] ) &&
 			$response['response']['code'] == 200

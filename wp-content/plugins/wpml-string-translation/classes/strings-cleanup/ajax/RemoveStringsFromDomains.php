@@ -18,7 +18,6 @@ class RemoveStringsFromDomains implements IHandler {
 
 		if ( $domains !== false ) {
 
-			/** @var UntranslatedStrings $untranslated_strings */
 			$untranslated_strings = make( UntranslatedStrings::class );
 
 			return Either::of(

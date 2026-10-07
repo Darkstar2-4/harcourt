@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "ko"
+            "lang": "ko_KR"
          },
          "Dissmiss Notice": [
-            "알림 해제"
+            "알림 닫기"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
             "WPML의 번역 대시보드를 사용하여 사이트 번역 간소화"
@@ -20,7 +20,7 @@
             "대량 자동 번역"
          ],
          "Translate everything automatically": [
-            "모든 내용을 자동으로 번역"
+            "모든 것을 자동으로 번역"
          ],
          "Go to the Translation Dashboard": [
             "번역 대시보드로 이동"

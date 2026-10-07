@@ -7,12 +7,6 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\Endpoint\Endpoint;
 interface ApiInterface {
 
 
-  /**
-   * @param callable $handle
-   * @param callable $authorisation
-   *
-   * @return void
-   */
   public function registerRoute(
     Endpoint $endpoint,
     $handle,
@@ -23,10 +17,6 @@ interface ApiInterface {
   public function getFullUrl( Endpoint $endpoint ): string;
 
 
-  /**
-   * @param ?string $name
-   * @return string
-   */
   public function nonce( $name = null ): string;
 
 
@@ -36,18 +26,13 @@ interface ApiInterface {
   public function capabilityPlusAdmin( string $capability ): string;
 
 
-  /**
-   * @param array<mixed> $data
-   * @return mixed
-   */
   public function responseJsonSuccess( $data );
 
 
-  /**
-   * @param string $data
-   * @return mixed
-   */
   public function responseJsonError( $data );
+
+
+  public function responseJsonWithStatusCode( $data, $status_code );
 
 
   public function isRestRequest(): bool;

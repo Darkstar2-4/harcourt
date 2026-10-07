@@ -12,6 +12,7 @@ class JobsCountCacheInvalidateAction implements \IWPML_Backend_Action, \IWPML_RE
 		};
 
 		add_action( 'wpml_tm_ate_jobs_created', $clearCache, 10, 0 );
+		add_action( 'wpml_tm_ate_jobs_updated', $clearCache, 10, 0 );
 		add_action( 'wpml_tm_ate_jobs_downloaded', $clearCache, 10, 0 );
 	}
 

@@ -9,7 +9,6 @@ use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery\Q
 class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuilderInterface {
   use SearchQueryBuilderTrait;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
@@ -19,8 +18,8 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
 
 
   public function build( SearchPopulatedTypesCriteria $criteria, string $postTypeId ): string {
-    $sourceLanguage      = $criteria->getSourceLanguageCode();
-    $targetLanguageCodes = $criteria->getTargetLanguageCodes();
+    $preparedSourceLanguage = $this->queryPrepare->prepare( '%s', $criteria->getSourceLanguageCode() );
+    $targetLanguageCodes    = $criteria->getTargetLanguageCodes();
 
     $escapedLanguageCodes = $this->escapeTargetLanguages( $targetLanguageCodes );
 
@@ -31,7 +30,7 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
       INNER JOIN {$this->queryPrepare->prefix()}icl_translations source_t
         ON source_t.element_id = p.ID
           AND source_t.element_type = CONCAT('post_', p.post_type)
-          AND source_t.language_code = '{$sourceLanguage}'
+          AND source_t.language_code = {$preparedSourceLanguage}
       {$this->buildTargetLanguageJoins($escapedLanguageCodes)}
       WHERE
           {$this->buildTranslationStatusCondition( $criteria, $escapedLanguageCodes )}
@@ -44,11 +43,6 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
   }
 
 
-  /**
-   * @param array<string> $targetLanguageCodes
-   *
-   * @return string
-   */
   private function buildTargetLanguageJoins( array $targetLanguageCodes ): string {
     $joins = [];
     foreach ( $targetLanguageCodes as $languageCode ) {
@@ -67,11 +61,6 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
   }
 
 
-  /**
-   * @param string[] $targetLanguageCodes
-   *
-   * @return string[]
-   */
   private function escapeTargetLanguages( array $targetLanguageCodes ): array {
     $escapedLanguageCodes = array_map(
       function ( $languageCode ) {

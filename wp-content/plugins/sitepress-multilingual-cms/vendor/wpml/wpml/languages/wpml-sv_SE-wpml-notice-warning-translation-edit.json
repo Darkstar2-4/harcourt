@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Warning:": [
             "Varning:"
          ],
          "Edits you're about to make will be lost": [
-            "Ändringar du är på väg att göra kommer att gå förlorade"
+            "Ändringar du är på väg att göra kommer att förloras"
          ],
          "You are about to edit this translation using %s.": [
-            "Du är på väg att redigera denna översättning med %s."
+            "Du är på väg att redigera den här översättningen med %s."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "Alla ändringar du gör kommer att gå förlorade nästa gång du skickar denna sida för översättning."
+            "Alla ändringar du gör kommer att förloras nästa gång du skickar den här sidan för översättning."
          ],
          "Go back": [
             "Gå tillbaka"
@@ -26,7 +26,7 @@
             "Redigera i avancerad översättningsredigerare"
          ],
          "Edit anyway (Not recommended)": [
-            "Redigera ändå (Rekommenderas ej)"
+            "Redigera ändå (rekommenderas ej)"
          ]
       }
    }

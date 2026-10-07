@@ -23,11 +23,6 @@ use WPML\Core\Twig\Node\ModuleNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Node\SetNode;
-/**
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SandboxNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
 {
     protected $inAModule = \false;
@@ -44,19 +39,15 @@ class SandboxNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
             $this->functions = [];
             return $node;
         } elseif ($this->inAModule) {
-            // look for tags
             if ($node->getNodeTag() && !isset($this->tags[$node->getNodeTag()])) {
                 $this->tags[$node->getNodeTag()] = $node;
             }
-            // look for filters
             if ($node instanceof \WPML\Core\Twig\Node\Expression\FilterExpression && !isset($this->filters[$node->getNode('filter')->getAttribute('value')])) {
                 $this->filters[$node->getNode('filter')->getAttribute('value')] = $node;
             }
-            // look for functions
             if ($node instanceof \WPML\Core\Twig\Node\Expression\FunctionExpression && !isset($this->functions[$node->getAttribute('name')])) {
                 $this->functions[$node->getAttribute('name')] = $node;
             }
-            // the .. operator is equivalent to the range() function
             if ($node instanceof \WPML\Core\Twig\Node\Expression\Binary\RangeBinary && !isset($this->functions['range'])) {
                 $this->functions['range'] = $node;
             }
@@ -67,7 +58,6 @@ class SandboxNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
             if ($node instanceof \WPML\Core\Twig\Node\SetNode && !$node->getAttribute('capture')) {
                 $this->needsToStringWrap = \true;
             }
-            // wrap outer nodes that can implicitly call __toString()
             if ($this->needsToStringWrap) {
                 if ($node instanceof \WPML\Core\Twig\Node\Expression\Binary\ConcatBinary) {
                     $this->wrapNode($node, 'left');

@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "hide the translations instead.": [
             "masquer les traductions à la place."
@@ -17,10 +17,10 @@
             "Annuler"
          ],
          "Choose Content to Automatically Translate into": [
-            "Choisir des contenus à traduire automatiquement en"
+            "Choisissez le contenu à traduire automatiquement en"
          ],
          "Save Changes and Enable Automatic Translation": [
-            "Sauvegarder les modifications et activer la traduction automatique"
+            "Enregistrer les modifications et activer la traduction automatique"
          ],
          "Cancel Language Changes": [
             "Annuler les modifications de langue"
@@ -35,28 +35,28 @@
             "Ajouter une nouvelle langue"
          ],
          "Never mind - don't add new languages": [
-            "Ce n'est pas grave : ne pas ajouter de nouvelles langues"
+            "Tant pis, ne pas ajouter de nouvelles langues"
          ],
          "Never mind - don't add new language": [
-            "Ce n'est pas grave : ne pas ajouter une nouvelle langue"
+            "Tant pis, ne pas ajouter de nouvelle langue"
          ],
          "Choose which content to translate into the new language": [
-            "Choisir le contenu à traduire dans la nouvelle langue"
+            "Choisissez le contenu à traduire dans la nouvelle langue"
          ],
          "Automatically translate all my posts and pages, plus new content as I create it.": [
-            "Traduire automatiquement toutes mes publications et pages, plus les nouveaux contenus au fur et à mesure que je les crée."
+            "Traduire automatiquement tous mes articles et pages, ainsi que le nouveau contenu au fur et à mesure que je le crée."
          ],
          "Only automatically translate new content.": [
-            "Traduire automatiquement uniquement les nouveaux contenus."
+            "Traduire automatiquement uniquement le nouveau contenu."
          ],
          "Which content do you want to translate into the new language?": [
-            "Quels contenus souhaitez-vous traduire dans la nouvelle langue ?"
+            "Quel contenu souhaitez-vous traduire dans la nouvelle langue ?"
          ],
          "When you unpause automatic translation, this content will be <a>translated automatically</a>.": [
-            "Lorsque vous reprendrez la traduction automatique, ces contenus seront <a>traduits automatiquement</a>."
+            "Lorsque vous réactivez la traduction automatique, ce contenu sera <a>traduit automatiquement</a>."
          ],
          "You can still translate existing content any time from the Translation Management Dashboard.": [
-            "Il est toujours possible, à tout moment, de traduire les contenus disponibles depuis le Tableau de gestion de traduction."
+            "Vous pouvez toujours traduire le contenu existant à tout moment depuis le tableau de bord de gestion des traductions."
          ]
       }
    }

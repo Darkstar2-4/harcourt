@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Accepted": [
-            "התקבלה"
+            "אושר"
          ],
          "Approved!": [
             "אושר!"
@@ -17,13 +17,13 @@
             "טוען את התרגום הבא לבדיקה..."
          ],
          "Back": [
-            "חזרה"
+            "חזור"
          ],
          "Turn off to not automatically load the next translation after finishing this review.": [
-            "כבה כדי לא לטעון באופן אוטומטי את התרגום הבא לאחר סיום הבדיקה."
+            "כבה כדי לא לטעון אוטומטית את התרגום הבא לאחר סיום הבדיקה הזו."
          ],
          "Turn on to automatically load the next translation after finishing this  .": [
-            "הפעל כדי לטעון באופן אוטומטי את התרגום הבא לאחר סיום הנוכחי."
+            "הפעל כדי לטעון אוטומטית את התרגום הבא לאחר סיום הבדיקה הזו."
          ],
          "Edit": [
             "ערוך"
@@ -32,25 +32,25 @@
             "ערוך תרגום"
          ],
          "Next review": [
-            "סקירה הבאה"
+            "בדיקה הבאה"
          ],
          "Publish this translation": [
             "פרסם תרגום זה"
          ],
          "Accept this translation": [
-            "קבל תרגום זה"
+            "אשר תרגום זה"
          ],
          "Published!": [
             "פורסם!"
          ],
          "Please wait, applying translation..": [
-            "אנא המתן, מחיל תרגום.."
+            "אנא המתן, התרגום מיושם.."
          ],
          "There was an error in applying translation.": [
-            "אירעה שגיאה בהחלת התרגום."
+            "אירעה שגיאה ביישום התרגום."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "מישהו כבר סוקר את התרגום הזה. אנא נסה שוב מאוחר יותר."
+            "מישהו כבר בודק את התרגום הזה. אנא נסה שוב מאוחר יותר."
          ]
       }
    }

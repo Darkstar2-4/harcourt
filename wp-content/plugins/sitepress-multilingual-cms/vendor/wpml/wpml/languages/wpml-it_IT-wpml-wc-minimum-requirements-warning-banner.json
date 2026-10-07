@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "it"
+            "lang": "it_IT"
          },
          "Your site doesn't meet WPML's minimum requirements": [
             "Il tuo sito non soddisfa i requisiti minimi di WPML"

@@ -10,38 +10,18 @@ use OTGS_Installer_Plugin_Finder;
 
 class Subscription {
 
-	/**
-	 * @var SiteUrl
-	 */
 	private $siteUrl;
 
-	/**
-	 * @var OTGS_Installer_Plugin_Finder
-	 */
 	private $plugin_finder;
 
-	/**
-	 * @var string
-	 */
 	private $repositoryId;
 
-	/**
-	 * @param string $repositoryId
-	 * @param SiteUrl $siteUrl
-	 * @param OTGS_Installer_Plugin_Finder $plugin_finder
-	 */
 	public function __construct( $repositoryId, SiteUrl $siteUrl, OTGS_Installer_Plugin_Finder $plugin_finder ) {
 		$this->siteUrl       = $siteUrl;
 		$this->plugin_finder = $plugin_finder;
 		$this->repositoryId = $repositoryId;
 	}
 
-	/**
-	 * @param string $siteKey
-	 * @param int $source
-	 *
-	 * @return array
-	 */
 	public function prepareRequest( $siteKey, $source ) {
 		$requestParameters = [
 			'action'            => 'site_key_validation',
@@ -65,11 +45,6 @@ class Subscription {
 		return apply_filters( 'installer_fetch_subscription_data_request', $requestParameters );
 	}
 
-	/**
-	 * @throws \Exception
-	 * @return \stdClass
-	 * @param array $response
-	 */
 	public function parseResponse( $response ) {
 		$body = wp_remote_retrieve_body( $response );
 		if ( ! $body || ! is_serialized( $body ) || ! ( $apiResponse = @unserialize( $body ) ) ) {

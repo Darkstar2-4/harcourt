@@ -13,41 +13,24 @@ class WPML_TM_Post_Edit_Notices {
 	const DO_NOT_SHOW_AGAIN_USE_PREFERABLY_TE_ACTION = 'wpml_dismiss_post_edit_te_notice';
 	const DISPLAY_LIMIT_TRANSLATIONS_IN_PROGRESS = 5;
 
-	/** @var WPML_Post_Status $post_status */
 	private $post_status;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var IWPML_Template_Service $template_render */
 	private $template_render;
 
-	/** @var WPML_Super_Globals_Validation $super_globals */
 	private $super_globals;
 
-	/** @var WPML_TM_Translation_Status_Display $status_display */
 	private $status_display;
 
-	/** @var WPML_Translation_Element_Factory $element_factory */
 	private $element_factory;
 
-	/** @var WPML_TM_ATE $tm_ate */
 	private $tm_ate;
 
-	/** @var WPML_TM_Rest_Job_Translator_Name $translator_name */
 	private $translator_name;
 
-	/** @var WPML_TM_Rest_Jobs_Translation_Service $translation_service */
 	private $translation_service;
 
-	/**
-	 * @param WPML_Post_Status                   $post_status
-	 * @param SitePress                          $sitepress
-	 * @param IWPML_Template_Service             $template_render
-	 * @param WPML_Super_Globals_Validation      $super_globals
-	 * @param WPML_TM_Translation_Status_Display $status_display
-	 * @param WPML_Translation_Element_Factory   $element_factory
-	 */
 	public function __construct(
 		WPML_Post_Status $post_status,
 		SitePress $sitepress,
@@ -99,10 +82,6 @@ class WPML_TM_Post_Edit_Notices {
 
 	public function display_notices() {
 
-		/**
-		 * We don't need to display notices when translate everything automatically is active.
-		 * @see wpmldev-3416
-		 */
 		if ( \WPML\Setup\Option::shouldTranslateEverything() ) {
 			return;
 		}
@@ -242,32 +221,18 @@ class WPML_TM_Post_Edit_Notices {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request( $action ) {
 		return isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], $action );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function should_display_it_to_user( $action ) {
 		return false === get_user_option( $action );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function should_display_it( $action ) {
 		return false === get_option( $action );
 	}
 
-	/**
-	 * @param WPML_Translation_Element $post_element
-	 *
-	 * @return bool
-	 */
 	private function get_translations_in_progress( $post_element ) {
 		$translations = $this->sitepress->get_element_translations(
 			$post_element->get_trid(),
@@ -295,19 +260,9 @@ class WPML_TM_Post_Edit_Notices {
 				$job
 				&& ! $this->is_waiting_for_a_translation( $job->status )
 			) {
-				// Translation is completed - no need for further checks.
 				continue;
 			}
 
-			// For the case that the user opened ATE from post edit screen
-			// and comes back to the post edit screen, WPML needs to fetch
-			// the ATE status directly from ATE API as it's not in the DB yet.
-			//
-			// The check for HTTP_REFERER is quite fragile (can be manipulated)
-			// but totally fine for this case as it's only about showing
-			// a warning or not. In addition the ATE UI "Complete" and "Back"
-			// links are baked in JS so it's not possible to open them in a
-			// new tab/window by usual browser controls.
 			if (
 				$job
 				&& 'ate' === $job->editor
@@ -338,13 +293,11 @@ class WPML_TM_Post_Edit_Notices {
 	}
 
 	private function prepare_translations_for_gui( $translations ) {
-		// Prepare data for GUI.
 		$translations = array_map(
 			[ $this, 'prepare_translation_for_gui' ],
 			$translations
 		);
 
-		// Sort languages by language name (as usual).
 		usort(
 			$translations,
 			function ( $a, $b ) {
@@ -376,7 +329,6 @@ class WPML_TM_Post_Edit_Notices {
 					|| ! property_exists( $element, 'field_finished' )
 					|| 0 !== (int) $element->field_finished
 				) {
-					// No valid element or already finished.
 					continue;
 				}
 
@@ -412,7 +364,6 @@ class WPML_TM_Post_Edit_Notices {
 			property_exists( $job, 'automatic' )
 			&& 1 === (int) $job->automatic
 		) {
-			// Automatic Translation.
 			return __( 'Automatic translation', 'sitepress' );
 		}
 
@@ -420,12 +371,10 @@ class WPML_TM_Post_Edit_Notices {
 			property_exists( $job, 'translation_service' )
 			&& is_numeric( $job->translation_service )
 		) {
-			// Translation Service.
 			return $this->translation_service
 				->get_name( $job->translation_service );
 		}
 
-		// Translator.
 		return property_exists( $job, 'translator_id' )
 			? $this->translator_name->get( $job->translator_id )
 			: null;
@@ -441,7 +390,6 @@ class WPML_TM_Post_Edit_Notices {
 
 		$interval = $since->diff( new \DateTime() );
 
-		// Use: x day(s) if translation is longer than 24 hours in progress.
 		if ( $interval->days > 0 ) {
 			return sprintf(
 				/* translators: %d is for the number of day(s). */
@@ -450,7 +398,6 @@ class WPML_TM_Post_Edit_Notices {
 			);
 		}
 
-		// Use: x hour(s) if translation is longer than 1 hour in progress.
 		if ( $interval->h > 0 ) {
 			return sprintf(
 				/* translators: %d is for the number of hour(s). */
@@ -459,7 +406,6 @@ class WPML_TM_Post_Edit_Notices {
 			);
 		}
 
-		// Use: x minute(s) if translation is less than a hour in progress.
 		return sprintf(
 			/* translators: %d is for the number of minute(s). */
 			_n( '%d minute', '%d minutes', $interval->i, 'sitepress' ),
@@ -467,16 +413,6 @@ class WPML_TM_Post_Edit_Notices {
 		);
 	}
 
-	/**
-	 * Stale jobs are automatic translated jobs, which are in progress for
-	 * 1 or more days. As there is a limit of jobs being shown, this method
-	 * makes sure to move the stale job to the top of the list and returns
-	 * an error message, asking the user to contact support with all
-	 * stale job ate ids.
-	 *
-	 * @param array $translations
-	 * @return string
-	 */
 	private function prepare_stale_jobs_for_gui( &$translations ) {
 		$stale_ids = [];
 		foreach ( $translations as $k => $translation ) {
@@ -489,7 +425,6 @@ class WPML_TM_Post_Edit_Notices {
 			$interval = $since->diff( new \DateTime() );
 
 			if ( 0 === $interval->days ) {
-				// All good with this translation.
 				continue;
 			}
 
@@ -499,8 +434,6 @@ class WPML_TM_Post_Edit_Notices {
 				count( $translations ) >
 					self::DISPLAY_LIMIT_TRANSLATIONS_IN_PROGRESS
 			) {
-				// More translations in progress as the dialog shows.
-				// Move this stale automatic translation to top.
 				unset( $translations[ $k ] );
 				array_unshift( $translations, $translation );
 			}
@@ -525,11 +458,6 @@ class WPML_TM_Post_Edit_Notices {
 	}
 
 
-	/**
-	 * @param int|null $translation_status
-	 *
-	 * @return bool
-	 */
 	private function is_waiting_for_a_translation( $translation_status ) {
 		return ! is_null( $translation_status )
 		       && $translation_status > 0
@@ -537,11 +465,6 @@ class WPML_TM_Post_Edit_Notices {
 		       && $translation_status < ICL_TM_COMPLETE;
 	}
 
-	/**
-	 * @param WPML_Translation_Element $post_element
-	 *
-	 * @return string
-	 */
 	private function get_translation_editor_link( $post_element ) {
 		$post_id             = $post_element->get_id();
 		$source_post_element = $post_element->get_source_element();

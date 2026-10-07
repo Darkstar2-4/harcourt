@@ -6,7 +6,6 @@ use WPML\Core\Component\Communication\Domain\Repository\DismissedNoticesReposito
 
 class DismissNoticeService {
 
-  /** @var DismissedNoticesRepository */
   private $repository;
 
 
@@ -15,22 +14,11 @@ class DismissNoticeService {
   }
 
 
-  /**
-   * @param string $noticeId
-   *
-   * @return void
-   */
   public function dismiss( string $noticeId ) {
     $this->repository->dismiss( $noticeId );
   }
 
 
-  /**
-   * @param string $noticeId
-   * @param int $userId
-   *
-   * @return void
-   */
   public function dismissPerUser( string $noticeId, int $userId ) {
     $this->repository->dismissPerUser( $noticeId, $userId );
   }

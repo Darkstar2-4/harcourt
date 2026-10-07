@@ -10,10 +10,8 @@ use WP_Post;
 
 class LanguageOfAutosavedDraftPostListener implements EventListenerInterface {
 
-  /** @var LanguageService */
   private $languageService;
 
-  /** @var LanguagesQueryInterface */
   private $languageQuery;
 
 
@@ -23,20 +21,11 @@ class LanguageOfAutosavedDraftPostListener implements EventListenerInterface {
   }
 
 
-  /**
-   * @param int          $postId
-   * @param WP_Post      $post
-   * @param bool         $update
-   * @param WP_Post|null $postBefore
-   *
-   * @return void
-   */
   public function setLanguage( $postId, $post, $update, $postBefore ) {
     if ( ! $this->isDoingAutosave() ) {
       return;
     }
 
-    // phpcs:disable Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
     if ( ! $update || $post->post_status !== 'draft' || ! $postBefore || $postBefore->post_status !== 'auto-draft' ) {
       return;
     }
@@ -54,18 +43,12 @@ class LanguageOfAutosavedDraftPostListener implements EventListenerInterface {
         $langData['sourceLang'],
         $langData['trid']
       );
-      // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally ignoring invalid data
     } catch ( InvalidArgumentException $e ) {
-      // Do nothing
     }
-    // phpcs:enable Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 
   }
 
 
-  /**
-   * @return array{sourceLang:string|null, trid:int|null}
-   */
   private function maybeGetSourceLanguageCodeAndTridOfOriginalPostIfCurrentPostIsATranslation() {
     $sourceLang = null;
     $trid       = null;
@@ -97,7 +80,6 @@ class LanguageOfAutosavedDraftPostListener implements EventListenerInterface {
 
 
   protected function isDoingAutosave(): bool {
-    /** @psalm-suppress RedundantCondition */
     return defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE;
   }
 

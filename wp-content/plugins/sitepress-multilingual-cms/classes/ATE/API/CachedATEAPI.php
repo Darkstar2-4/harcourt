@@ -13,17 +13,12 @@ class CachedATEAPI {
 
 	const CACHE_OPTION = 'wpml-tm-ate-api-cache';
 
-	/** @var  \WPML_TM_ATE_API */
 	private $ateAPI;
 
-	/** @var Storage */
 	private $storage;
 
 	private $cachedFns = [ 'get_languages_supported_by_automatic_translations', 'get_language_details', 'get_language_mapping' ];
 
-	/**
-	 * @param \WPML_TM_ATE_API $ateAPI
-	 */
 	public function __construct( \WPML_TM_ATE_API $ateAPI, Storage $storage ) {
 		$this->ateAPI = $ateAPI;
 		$this->storage = $storage;
@@ -57,13 +52,7 @@ class CachedATEAPI {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * @param mixed $args
-	 *
-	 * @return string
-	 */
 	private function getKey( $args ) {
-		// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 		return \serialize( $args );
 	}
 }

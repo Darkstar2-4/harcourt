@@ -5,7 +5,7 @@ class WPML_Config_Built_With_Page_Builders extends WPML_WP_Option implements IWP
 	const CONFIG_KEY = 'built-with-page-builder';
 
 	public function create() {
-		return $this; // Use same instance for action
+		return $this;
 	}
 
 	public function get_key() {
@@ -20,11 +20,6 @@ class WPML_Config_Built_With_Page_Builders extends WPML_WP_Option implements IWP
 		add_filter( 'wpml_config_array', array( $this, 'wpml_config_filter' ) );
 	}
 
-	/**
-	 * @param array $config_data
-	 *
-	 * @return array
-	 */
 	public function wpml_config_filter( $config_data ) {
 		if ( isset( $config_data['wpml-config'][ self::CONFIG_KEY ] ) && $config_data['wpml-config'][ self::CONFIG_KEY ] ) {
 			$data_saved = $this->get();

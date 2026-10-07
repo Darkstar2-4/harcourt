@@ -5,12 +5,6 @@ namespace WPML\LIB\WP;
 use WPML\Collect\Support\Traits\Macroable;
 use function WPML\FP\curryN;
 
-/**
- * @method static callable|mixed get( ...$name ) - Curried :: string → mixed
- * @method static callable|mixed getOr( ...$name, ...$default ) - Curried :: string → mixed → mixed
- * @method static callable|mixed set( ...$name, ...$value, ...$expiration ) - Curried :: string → mixed → int -> mixed
- * @method static callable|mixed delete( ...$name ) - Curried :: string → mxied
- */
 class Transient {
 	use Macroable;
 

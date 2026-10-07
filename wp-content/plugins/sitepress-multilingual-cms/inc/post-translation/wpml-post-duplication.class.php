@@ -2,12 +2,6 @@
 
 require_once dirname( __FILE__ ) . '/wpml-wordpress-actions.class.php';
 
-/**
- * Class WPML_Post_Duplication
- *
- * @package    wpml-core
- * @subpackage post-translation
- */
 class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 
 	function get_duplicates( $master_post_id ) {
@@ -37,10 +31,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 	function make_duplicate( $master_post_id, $lang ) {
 		global $wpml_post_translations;
 
-		/**
-		 * @deprecated Use 'wpml_before_make_duplicate' instead
-		 * @since      3.4
-		 */
 		do_action( 'icl_before_make_duplicate', $master_post_id, $lang );
 		do_action( 'wpml_before_make_duplicate', $master_post_id, $lang );
 		$master_post = get_post( $master_post_id );
@@ -53,6 +43,21 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		$translations  = $wpml_post_translations->get_element_translations( $master_post_id, false, false );
 		if ( isset( $translations[ $lang ] ) ) {
 			$post_array[ 'ID' ] = $translations[ $lang ];
+			if ( $post_array[ 'ID' ]  == $master_post_id ) {
+				wpml_trigger_error(
+					__FUNCTION__,
+					"WPML: Prevented self-duplication loop for post {$master_post_id} in language '{$lang}'. " .
+					"Data corruption detected: This typically occurs when a duplicated post's language_code is corrupted. " .
+					"While this protection prevents the duplication loop from occurring, it is important to identify and fix the underlying data corruption. " .
+					"Please report this issue to the WPML support team with the full error details for further investigation. " .
+					"To identify the root cause: Find duplicated posts for post {$master_post_id} by querying {$this->wpdb->prefix}postmeta table with meta_value={$master_post_id} and meta_key=_icl_lang_duplicate_of. " .
+					"For each duplicated post, check in {$this->wpdb->prefix}icl_translations if language_code is not '{$lang}'. If so, the data is corrupt and those records should be removed. " .
+					"[" . __FILE__ . ":" . __LINE__ . "]",
+					E_USER_WARNING
+				);
+				return true;
+			}
+
 			if ( WPML_WordPress_Actions::is_bulk_trash( $post_array[ 'ID' ] ) || WPML_WordPress_Actions::is_bulk_untrash( $post_array[ 'ID' ] ) ) {
 				return true;
 			}
@@ -94,7 +99,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		icl_cache_clear();
 
 		global $ICL_Pro_Translation;
-		/** @var WPML_Pro_Translation $ICL_Pro_Translation */
 		if ( $ICL_Pro_Translation ) {
 			$ICL_Pro_Translation->fix_links_to_translated_content( $id, $lang );
 		}
@@ -107,11 +111,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		return $ret;
 	}
 
-	/**
-	 * @param int $element_id
-	 *
-	 * @return null|string
-	 */
 	private function is_external( $element_id ) {
 		$query = "SELECT element_type FROM {$this->wpdb->prefix}icl_translations WHERE element_id=%d AND element_type LIKE %s LIMIT 1";
 
@@ -125,7 +124,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		$this->sync_page_template( $master_post_id, $id );
 		$this->duplicate_fix_children( $master_post_id, $lang );
 
-		// make sure post name is copied
 		$this->wpdb->update( $this->wpdb->posts, array( 'post_name' => $master_post->post_name ), array( 'ID' => $id ) );
 
 		if ( $this->sitepress->get_setting( 'sync_post_taxonomies', false ) ) {
@@ -134,8 +132,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		$this->duplicate_custom_fields( $master_post_id, $lang );
 		update_post_meta( $id, '_icl_lang_duplicate_of', $master_post->ID );
 
-		// Duplicate post format after the taxonomies because post format is stored
-		// as a taxonomy by WP.
 		if ( $this->sitepress->get_setting( 'sync_post_format' ) ) {
 			$_wp_post_format = get_post_format( $master_post_id );
 			$_wp_post_format && set_post_format( $id, $_wp_post_format );
@@ -148,6 +144,10 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		$status_helper->set_update_status( $id, false );
 		do_action( 'icl_make_duplicate', $master_post_id, $lang, $post_array, $id );
 		clean_post_cache( $id );
+
+		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( 'WPML_Page_Name_Query_Filter' );
+		}
 
 		return $id;
 	}
@@ -180,12 +180,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		wp_update_comment_count_now( $translated_id );
 	}
 
-	/**
-	 * @param array  $post_array
-	 * @param string $lang
-	 *
-	 * @return int|WP_Error
-	 */
 	private function save_duplicate( array $post_array, $lang ) {
 		return wpml_get_create_post_helper()->insert_post( $post_array, $lang, true );
 	}
@@ -220,12 +214,9 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 			$translations = $this->sitepress->get_element_translations( $trid, 'post_' . $post_type, false, false, true );
 			if ( isset( $translations[ $lang ] ) ) {
 				$duplicate_post_id = $translations[ $lang ]->element_id;
-				/* If we have an existing post, we first of all remove all terms currently attached to it.
-				 * The main reason behind is the removal of the potentially present default category on the post.
-				 */
 				wp_delete_object_term_relationships( $duplicate_post_id, $taxonomies );
 			} else {
-				return false; // translation not found!
+				return false;
 			}
 		}
 		$term_helper = wpml_get_term_translation_util();
@@ -255,7 +246,7 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 			if ( isset( $translations[ $lang ] ) ) {
 				$duplicate_post_id = $translations[ $lang ]->element_id;
 			} else {
-				return false; // translation not found!
+				return false;
 			}
 		}
 		$default_exceptions = WPML_Config::get_custom_fields_translation_settings();
@@ -282,9 +273,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 				'master_post_id' => $master_post_id,
 			);
 
-			/**
-			 * @deprecated use 'wpml_duplicate_generic_string' instead, with the same arguments
-			 */
 			$icl_duplicate_generic_string = apply_filters( 'icl_duplicate_generic_string',
 														   $post_meta->meta_value,
 														   $lang,
@@ -310,7 +298,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		if ( ! empty( $values ) ) {
 			$values = implode( ', ', $values );
 			$this->wpdb->query(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"INSERT INTO `{$this->wpdb->postmeta}` (`post_id`, `meta_key`, `meta_value`) VALUES {$values}"
 				);
 		}
@@ -318,12 +305,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		return true;
 	}
 
-	/**
-	 * @param string   $lang
-	 * @param \WP_Post $master_post
-	 *
-	 * @return array<string,mixed>
-	 */
 	private function duplicate_post_content( $lang, $master_post ) {
 		$duplicated_post_content_meta = array(
 			'context'   => 'post',
@@ -337,12 +318,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		return $duplicated_post_content;
 	}
 
-	/**
-	 * @param string   $lang
-	 * @param \WP_Post $master_post
-	 *
-	 * @return mixed
-	 */
 	private function duplicate_post_title( $lang, $master_post ) {
 		$duplicated_post_title_meta = array(
 			'context'   => 'post',
@@ -356,12 +331,6 @@ class WPML_Post_Duplication extends WPML_WPDB_And_SP_User {
 		return $duplicated_post_title;
 	}
 
-	/**
-	 * @param string $lang
-	 * @param WP_Post $master_post
-	 *
-	 * @return mixed
-	 */
 	private function duplicate_post_excerpt( $lang, $master_post ) {
 		$duplicated_post_excerpt_meta = array(
 			'context'   => 'post',

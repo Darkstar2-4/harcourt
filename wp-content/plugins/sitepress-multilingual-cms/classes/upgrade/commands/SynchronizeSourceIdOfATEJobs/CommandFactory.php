@@ -9,9 +9,6 @@ class CommandFactory {
 
 	const PAGER_OPTION_NAME = 'sync-source-id-ate-jobs-pager';
 
-	/**
-	 * @return Command
-	 */
 	public function create() {
 		return make( Command::class, [ ':pager' => new Pager( self::PAGER_OPTION_NAME, 1 ) ] );
 	}

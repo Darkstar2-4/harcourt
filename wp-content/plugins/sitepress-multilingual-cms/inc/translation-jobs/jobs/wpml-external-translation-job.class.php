@@ -17,11 +17,6 @@ class WPML_External_Translation_Job extends WPML_Element_Translation_Job {
 		);
 	}
 
-	/**
-	 * @param bool|false $original
-	 *
-	 * @return string
-	 */
 	public function get_url( $original = false ) {
 
 		$url        = null;
@@ -35,9 +30,6 @@ class WPML_External_Translation_Job extends WPML_Element_Translation_Job {
 		return apply_filters( 'wpml_element_translation_job_url', $url, $original, $element_id, $this->get_original_document() );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_title() {
 		$title = $this->get_title_from_db();
 
@@ -52,9 +44,6 @@ class WPML_External_Translation_Job extends WPML_Element_Translation_Job {
 			: $this->original_del_text;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_type_title() {
 		$original_element = $this->get_original_document();
 		return $original_element->kind;

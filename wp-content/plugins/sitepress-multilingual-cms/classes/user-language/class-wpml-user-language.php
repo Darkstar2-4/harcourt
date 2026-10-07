@@ -12,29 +12,15 @@ use WPML\UrlHandling\WPLoginUrlConverter;
 use function WPML\Container\make;
 use function WPML\FP\spreadArgs;
 
-/**
- * @package    wpml-core
- * @subpackage wpml-user-language
- */
 class WPML_User_Language {
-	/** @var  SitePress $sitepress */
 	protected $sitepress;
 
 	private $language_changes_history       = array();
 	private $admin_language_changes_history = array();
 
-	/**
-	 * @var \wpdb|null
-	 */
 	private $wpdb;
 
-	/**
-	 * WPML_User_Language constructor.
-	 *
-	 * @param SitePress $sitepress
-	 * @param wpdb|null $wpdb
-	 */
-	public function __construct( SitePress $sitepress, wpdb $wpdb = null ) {
+	public function __construct( SitePress $sitepress, ?wpdb $wpdb = null ) {
 		$this->sitepress = $sitepress;
 
 		if ( ! $wpdb ) {
@@ -58,6 +44,7 @@ class WPML_User_Language {
 		add_action( 'wpml_switch_language_for_email', array( $this, 'switch_language_for_email_action' ), 10, 1 );
 		add_action( 'wpml_restore_language_from_email', array( $this, 'restore_language_from_email_action' ), 10, 0 );
 		add_action( 'profile_update', array( $this, 'sync_admin_user_language_action' ), 10, 1 );
+		add_action( 'wp_update_user', array( $this, 'clear_user_admin_language_cache_on_wp_update_user' ), 10, 1 );
 		add_action( 'wpml_language_cookie_added', array( $this, 'update_user_lang_on_cookie_update' ) );
 
 		if ( $this->is_editing_current_profile() || $this->is_editing_other_profile() ) {
@@ -70,11 +57,6 @@ class WPML_User_Language {
 		);
 	}
 
-	/**
-	 * @param array $wp_languages
-	 *
-	 * @return array
-	 */
 	public function intersect_wpml_wp_languages( $wp_languages ) {
 		$active_wpml_languages         = wp_list_pluck( $this->sitepress->get_active_languages(), 'default_locale' );
 		$active_wpml_codes             = array_flip( $active_wpml_languages );
@@ -84,16 +66,10 @@ class WPML_User_Language {
 		return array_merge( $intersect_languages_by_code, $intersect_languages_by_locale );
 	}
 
-	/**
-	 * @param string $email
-	 */
 	public function switch_language_for_email_action( $email ) {
 		$this->switch_language_for_email( $email );
 	}
 
-	/**
-	 * @param string $email
-	 */
 	private function switch_language_for_email( $email ) {
 		$language = apply_filters( 'wpml_user_language', null, $email );
 
@@ -125,13 +101,14 @@ class WPML_User_Language {
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function sync_admin_user_language_action( $user_id ) {
 		if ( $this->user_needs_sync_admin_lang() ) {
 			$this->sync_admin_user_language( $user_id );
 		}
+	}
+
+	public function clear_user_admin_language_cache_on_wp_update_user( $user_id ) {
+		wp_cache_delete( $user_id, WPML_User_Admin_Language::CACHE_GROUP );
 	}
 
 	public function sync_default_admin_user_languages() {
@@ -146,12 +123,17 @@ class WPML_User_Language {
 			$query = $this->wpdb->prepare( $sql, array( $language, 'icl_admin_language' ) );
 
 			$this->wpdb->query( $query );
+
+			if ( is_array( $user_ids ) ) {
+				foreach ( $user_ids as $user_id ) {
+					$this->flush_user_language_cache( $user_id );
+				}
+			}
+		} else {
+			$this->flush_user_language_cache();
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	private function sync_admin_user_language( $user_id ) {
 		$wp_language = get_user_meta( $user_id, 'locale', true );
 
@@ -167,11 +149,6 @@ class WPML_User_Language {
 		}
 	}
 
-	/**
-	 * @param string $wp_locale
-	 *
-	 * @return null|string
-	 */
 	private function select_language_code_from_locale( $wp_locale ) {
 		$code = $this->sitepress->get_language_code_from_locale( $wp_locale );
 
@@ -201,18 +178,10 @@ class WPML_User_Language {
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 *
-	 * @return mixed
-	 */
 	private function user_admin_language_for_edit( $user_id ) {
 		return get_user_meta( $user_id, 'icl_admin_language_for_edit', true );
 	}
 
-	/**
-	 * @param string $lang
-	 */
 	public function update_user_lang_on_cookie_update( $lang ) {
 		$user_id = get_current_user_id();
 
@@ -225,6 +194,8 @@ class WPML_User_Language {
 			               ->getOrElse( null );
 
 			update_user_meta( $user_id, 'locale', $wpLang );
+
+			wp_cache_delete( $user_id, WPML_User_Admin_Language::CACHE_GROUP );
 		}
 	}
 
@@ -364,6 +335,19 @@ class WPML_User_Language {
 				</td>
 			</tr>
 			<?php
+		}
+	}
+
+	private function flush_user_language_cache( $user_id = null ) {
+		if ( $user_id ) {
+			wp_cache_delete( $user_id, 'user_meta' );
+			wp_cache_delete( $user_id, WPML_User_Admin_Language::CACHE_GROUP );
+		} elseif (
+			function_exists( 'wp_cache_supports' )
+			&& wp_cache_supports( 'flush_group' )
+		) {
+			wp_cache_flush_group( 'user_meta' );
+			wp_cache_flush_group( WPML_User_Admin_Language::CACHE_GROUP );
 		}
 	}
 }

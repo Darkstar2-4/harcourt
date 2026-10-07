@@ -18,25 +18,18 @@ class CustomTextDomains implements \IWPML_Action {
 	const CACHE_KEY_DOMAINS = 'domains';
 	const CACHE_KEY_FILES = 'files';
 
-	/** @var Manager $manager */
 	private $manager;
 
-	/** @var Domains $domains */
 	private $domains;
 
-	/** @var LoadedMODictionary $loadedDictionary */
 	private $loadedDictionary;
 
-	/** @var StoragePerLanguageInterface */
 	private $cache;
 
-	/** @var WPML_Locale */
 	private $locale;
 
-	/** @var callable */
 	private $syncMissingFile;
 
-	/** @var string[] $loaded_custom_domains */
 	private $loaded_custom_domains = [];
 
 	public function __construct(
@@ -45,7 +38,7 @@ class CustomTextDomains implements \IWPML_Action {
 		LoadedMODictionary $loadedDictionary,
 		StoragePerLanguageInterface $cache,
 		WPML_Locale $locale,
-		callable $syncMissingFile = null
+		?callable $syncMissingFile = null
 	) {
 		$this->manager          = $file_manager;
 		$this->domains          = $domains;
@@ -54,28 +47,21 @@ class CustomTextDomains implements \IWPML_Action {
 		$this->locale           = $locale;
 		$this->syncMissingFile  = $syncMissingFile ?: function () {};
 
-		// Flush cache when a custom MO file is written, removed or updated.
 		add_action( 'wpml_st_translation_file_written', [ $this, 'clear_cache' ], 10, 0 );
 		add_action( 'wpml_st_translation_file_removed', [ $this, 'clear_cache' ], 10, 0 );
-		// The filename could be changed on update, that's why we need to clear the cache.
 		add_action( 'wpml_st_translation_file_updated', [ $this, 'clear_cache' ], 10, 0 );
 	}
 
 	public function clear_cache() {
 		$locales = $this->cache->get( self::CACHE_ALL_LOCALES );
 		if ( ! is_array( $locales ) ) {
-			// No cache.
 			return;
 		}
 
-		// Clear cache for all locales, because the domains list will change
-		// for all languages when a the first custom translation file is written
-		// for a new domain (even if the other locales don't get that file).
 		foreach ( $locales as $locale ) {
 			$this->cache->delete( $locale );
 		}
 
-		// Also flush the list of cached locales.
 		$this->cache->delete( self::CACHE_ALL_LOCALES );
 	}
 
@@ -88,10 +74,6 @@ class CustomTextDomains implements \IWPML_Action {
 		$locale = $locale ?: determine_locale();
 
 		$addJitMoToL10nGlobal = pipe( Lst::nth( 0 ), function ( $domain ) use ( $locale ) {
-			// Following unset is important because WordPress is setting their
-			// static $noop_translation variable by reference. Without unset it
-			// would become our JustInTime/MO and is used for other domains.
-			// @see wpmldev-2508
 			unset( $GLOBALS['l10n'][ $domain ] );
 
 			$this->loaded_custom_domains[] = $domain;
@@ -104,12 +86,9 @@ class CustomTextDomains implements \IWPML_Action {
 
 		$cache = $this->cache->get( $locale );
 
-		// Get domains.
 		if ( isset( $cache[ self::CACHE_KEY_DOMAINS ] ) ) {
-			// Cache hit.
 			$domains = \wpml_collect( $cache[ self::CACHE_KEY_DOMAINS ] );
 		} else {
-			// No cache for site domains.
 			$cache_update_required = true;
 
 			$domains = \wpml_collect( $this->domains->getCustomMODomains() );
@@ -119,12 +98,9 @@ class CustomTextDomains implements \IWPML_Action {
 			->each( spreadArgs( $this->syncMissingFile ) )
 			->each( spreadArgs( [ $this->loadedDictionary, 'addFile' ] ) );
 
-		// Load local files.
 		if ( isset( $cache[ self::CACHE_KEY_FILES ] ) ) {
-			// Cache hit.
 			$localeFiles = \wpml_collect( $cache[ self::CACHE_KEY_FILES ] );
 		} else {
-			// No cache for this locale readable custom .mo files.
 			$cache_update_required = true;
 
 			$isReadableFile = function ( $domainAndFilePath ) {

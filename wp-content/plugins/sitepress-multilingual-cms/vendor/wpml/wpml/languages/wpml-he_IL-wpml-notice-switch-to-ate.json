@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Get More Features with WPML's Advanced Translation Editor": [
             "קבל תכונות נוספות עם עורך התרגום המתקדם של WPML"
          ],
          "Close banner": [
-            "סגור כרזה"
+            "סגור באנר"
          ],
          "You're using the Classic Translation Editor, an old legacy tool, and missing out on the many features and efficiency of our Advanced Translation Editor:": [
-            "אתה משתמש בעורך התרגום הקלאסי, כלי ישן מדור קודם, ומפספס את התכונות הרבות והיעילות של עורך התרגום המתקדם שלנו:"
+            "אתה משתמש בעורך התרגום הקלאסי, כלי מדור קודם וישן, ומחמיץ את התכונות הרבות והיעילות של עורך התרגום המתקדם שלנו:"
          ],
          "Translation Memory": [
             "זיכרון תרגום"
@@ -35,7 +35,7 @@
             "תרגום אוטומטי"
          ],
          "Switch now for a faster, more convenient, and reliable translation experience.": [
-            "עבור עכשיו לחוויית תרגום מהירה יותר, נוחה יותר ואמינה יותר."
+            "עבור עכשיו לחוויית תרגום מהירה, נוחה ואמינה יותר."
          ],
          "Switch Now": [
             "עבור עכשיו"

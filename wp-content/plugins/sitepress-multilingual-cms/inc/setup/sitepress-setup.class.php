@@ -22,9 +22,6 @@ class SitePress_Setup {
 		return $result;
 	}
 
-	/**
-	 * @return array
-	 */
 	private static function get_languages_codes() {
 		static $languages_codes = array();
 		if ( ! $languages_codes ) {
@@ -34,9 +31,6 @@ class SitePress_Setup {
 		return $languages_codes;
 	}
 
-	/**
-	 * @return array
-	 */
 	private static function get_languages_names() {
 		static $languages_names = array();
 		if ( ! $languages_names ) {
@@ -119,11 +113,6 @@ class SitePress_Setup {
 		return true;
 	}
 
-	/**
-	 * @param string $language_name
-	 *
-	 * @return string
-	 */
 	protected static function fix_language_name( $language_name ) {
 		if ( strpos( $language_name, 'Norwegian Bokm' ) === 0 ) {
 			$language_name = 'Norwegian Bokmål';
@@ -161,7 +150,6 @@ class SitePress_Setup {
 		}
 
 		if ( ! self::languages_table_is_complete() ) {
-			// First truncate the table
 			$active_languages = ( $sitepress !== null
 								  && $sitepress->is_setup_complete() ) ? $sitepress->get_active_languages() : array();
 
@@ -223,7 +211,6 @@ class SitePress_Setup {
 
 		if ( ! self::languages_table_is_complete() ) {
 
-			// First truncate the table
 			$wpdb->hide_errors();
 
 			$sql = 'TRUNCATE ' . $table_name;
@@ -354,7 +341,6 @@ class SitePress_Setup {
 			return;
 		}
 
-		// Get default categories.
 		$default_categories = $sitepress->get_setting( 'default_categories', array() );
 		if ( isset( $default_categories[ $lang_code ] ) ) {
 			return;
@@ -366,19 +352,16 @@ class SitePress_Setup {
 		$tr_term = term_exists( $tr_cat, 'category' );
 		$sitepress->switch_locale();
 
-		// check if the term already exists
 		if ( $tr_term !== 0 && $tr_term !== null ) {
 			$tmp = get_term( (int) $tr_term['term_taxonomy_id'], 'category', ARRAY_A );
 		} else {
 			$tmp = wp_insert_term( $tr_cat, 'category' );
 		}
 
-		// add it to settings['default_categories']
 		$default_categories[ $lang_code ] = $tmp['term_taxonomy_id'];
 
 		$sitepress->set_default_categories( $default_categories );
 
-		// update translations table
 		$default_category_trid = $sitepress->get_element_trid(
 			get_option( 'default_category' ),
 			'tax_category'

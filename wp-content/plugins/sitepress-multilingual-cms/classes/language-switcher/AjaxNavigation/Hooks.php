@@ -19,18 +19,7 @@ class Hooks implements \IWPML_Frontend_Action, \IWPML_DIC_Action {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function isEnabled() {
-		/**
-		 * This filter allows to enable/disable the feature to automatically
-		 * refresh the language switchers on AJAX navigation.
-		 *
-		 * @since 4.4.0
-		 *
-		 * @param bool $is_enabled Is the feature enabled (default: false).
-		 */
 		return apply_filters( 'wpml_ls_enable_ajax_navigation', false );
 	}
 }

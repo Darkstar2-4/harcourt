@@ -8,22 +8,13 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 
-/**
- * @phpstan-type RemoteJobsCount int
- */
 class RemoteJobsQuery implements RemoteJobsQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, RemoteJobsCount> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
-  /**
-   * @param QueryHandlerInterface<int, RemoteJobsCount> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare

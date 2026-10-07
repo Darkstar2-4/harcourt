@@ -8,7 +8,7 @@ use Smush\Core\Next_Gen\Next_Gen_Helper;
 use Smush\Core\Smush\Smush_Optimization;
 
 class Webp_Helper {
-	const WEBP_FLAG = 'webp_flag';
+	private static $webp_flag = 'webp_flag';
 	/**
 	 * @var Webp_Dir
 	 */
@@ -64,10 +64,14 @@ class Webp_Helper {
 		return $this->get_legacy_webp_flag( $attachment_id );
 	}
 
+	public static function get_webp_flag_key() {
+		return self::$webp_flag;
+	}
+
 	public function get_legacy_webp_flag( $attachment_id ) {
 		$meta = $this->get_smush_meta( $attachment_id );
 
-		return empty( $meta[ self::WEBP_FLAG ] ) ? '' : $meta[ self::WEBP_FLAG ];
+		return empty( $meta[ self::$webp_flag ] ) ? '' : $meta[ self::$webp_flag ];
 	}
 
 	public function file_path_to_webp_flag( $webp_file_path ) {
@@ -100,11 +104,11 @@ class Webp_Helper {
 	public function update_legacy_webp_flag( $attachment_id, $value ) {
 		$meta = $this->get_smush_meta( $attachment_id );
 		if ( empty( $value ) ) {
-			unset( $meta[ self::WEBP_FLAG ] );
+			unset( $meta[ self::$webp_flag ] );
 		} else {
-			$meta[ self::WEBP_FLAG ] = $value;
+			$meta[ self::$webp_flag ] = $value;
 		}
-		update_post_meta( $attachment_id, Smush_Optimization::SMUSH_META_KEY, $meta );
+		update_post_meta( $attachment_id, Smush_Optimization::get_smush_meta_key(), $meta );
 	}
 
 	public function unset_webp_flag( $attachment_id ) {
@@ -121,7 +125,7 @@ class Webp_Helper {
 	 * @return array|mixed
 	 */
 	private function get_smush_meta( $attachment_id ) {
-		$meta = get_post_meta( $attachment_id, Smush_Optimization::SMUSH_META_KEY, true );
+		$meta = get_post_meta( $attachment_id, Smush_Optimization::get_smush_meta_key(), true );
 
 		return empty( $meta ) ? array() : $meta;
 	}

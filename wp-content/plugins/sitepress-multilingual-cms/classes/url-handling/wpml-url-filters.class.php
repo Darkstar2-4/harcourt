@@ -4,34 +4,19 @@ use WPML\FP\Relation;
 use \WPML\FP\Str;
 use \WPML\SuperGlobals\Server;
 
-/**
- * Class WPML_URL_Filters
- */
 class WPML_URL_Filters {
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var \WPML_Post_Translation $post_translation */
 	private $post_translation;
 
-	/** @var \WPML_Canonicals */
 	private $canonicals;
 
-	/** @var \WPML_URL_Converter $url_converter */
 	private $url_converter;
 
-	/** @var \WPML_Debug_BackTrace */
 	private $debug_backtrace;
 
-	/**
-	 * WPML_URL_Filters constructor.
-	 *
-	 * @param \WPML_Post_Translation $post_translation
-	 * @param string                 $url_converter
-	 * @param \WPML_Canonicals        $canonicals
-	 * @param \SitePress             $sitepress
-	 * @param \WPML_Debug_BackTrace   $debug_backtrace
-	 */
+	private $post_type_link_hook_priority;
+
 	public function __construct(
 		&$post_translation,
 		&$url_converter,
@@ -42,9 +27,10 @@ class WPML_URL_Filters {
 		$this->sitepress        = &$sitepress;
 		$this->post_translation = &$post_translation;
 
-		$this->url_converter   = &$url_converter;
-		$this->canonicals      = $canonicals;
-		$this->debug_backtrace = $debug_backtrace;
+		$this->url_converter                = &$url_converter;
+		$this->canonicals                   = $canonicals;
+		$this->debug_backtrace              = $debug_backtrace;
+		$this->post_type_link_hook_priority = 1;
 
 		if ( $this->frontend_uses_root() === true ) {
 			WPML_Root_Page::init();
@@ -68,39 +54,30 @@ class WPML_URL_Filters {
 	}
 
 	public function add_global_hooks() {
+		$this->post_type_link_hook_priority = intval( apply_filters( 'wpml_post_type_link_priority', 1 ) ) + 1;
+
 		add_filter( 'home_url', [ $this, 'home_url_filter' ], - 10, 4 );
-		// posts, pages & attachments links filters
 		add_filter( 'post_link', [ $this, 'permalink_filter' ], 1, 2 );
 		add_filter( 'attachment_link', [ $this, 'permalink_filter' ], 1, 2 );
-		add_filter( 'post_type_link', [ $this, 'permalink_filter' ], 1, 2 );
+		add_filter( 'post_type_link', [ $this, 'permalink_filter' ], $this->post_type_link_hook_priority, 2 );
 		add_filter( 'wpml_filter_link', [ $this, 'permalink_filter' ], 1, 2 );
 		add_filter( 'get_edit_post_link', [ $this, 'get_edit_post_link' ], 1, 3 );
 		add_filter( 'oembed_request_post_id', [ $this, 'embedded_front_page_id_filter' ], 1, 2 );
 		add_filter( 'post_embed_url', [ $this, 'fix_post_embedded_url' ], 1, 1 );
-
 	}
 
 	public function remove_global_hooks() {
-		// posts and pages links filters
 		remove_filter( 'oembed_request_post_id', [ $this, 'embedded_front_page_id_filter' ], 1 );
 		remove_filter( 'post_embed_url', [ $this, 'fix_post_embedded_url' ], 1 );
 		remove_filter( 'get_edit_post_link', [ $this, 'get_edit_post_link' ], 1 );
 		remove_filter( 'wpml_filter_link', [ $this, 'permalink_filter' ], 1 );
-		remove_filter( 'post_type_link', [ $this, 'permalink_filter' ], 1 );
+		remove_filter( 'post_type_link', [ $this, 'permalink_filter' ], $this->post_type_link_hook_priority );
 		remove_filter( 'attachment_link', [ $this, 'permalink_filter' ], 1 );
 		remove_filter( 'post_link', [ $this, 'permalink_filter' ], 1 );
 
 		remove_filter( 'home_url', [ $this, 'home_url_filter' ], - 10 );
 	}
 
-	/**
-	 * @param int    $post_id
-	 * @param string $url
-	 *
-	 * @return int
-	 *
-	 * @hook oembed_request_post_id
-	 */
 	public function embedded_front_page_id_filter( $post_id, $url ) {
 		if ( ! $post_id && $this->is_front_page( $url ) ) {
 			$page_on_front = get_option( 'page_on_front' );
@@ -113,11 +90,6 @@ class WPML_URL_Filters {
 		return $post_id;
 	}
 
-	/**
-	 * @param string $embedded_url
-	 *
-	 * @return string
-	 */
 	public function fix_post_embedded_url( $embedded_url ) {
 		$query = wpml_parse_url( $embedded_url, PHP_URL_QUERY );
 		$embed = user_trailingslashit( 'embed' );
@@ -129,17 +101,6 @@ class WPML_URL_Filters {
 		return $embedded_url;
 	}
 
-	/**
-	 * Filters the link to a post's edit screen by appending the language query argument
-	 *
-	 * @param string $link
-	 * @param int    $id
-	 * @param string $context
-	 *
-	 * @return string
-	 *
-	 * @hook get_edit_post_link
-	 */
 	public function get_edit_post_link( $link, $id, $context = 'display' ) {
 		if ( $id && (bool) ( $lang = $this->post_translation->get_element_lang_code( $id ) ) === true ) {
 			$link .= ( 'display' === $context ? '&amp;' : '&' ) . 'lang=' . $lang;
@@ -152,14 +113,6 @@ class WPML_URL_Filters {
 		return $link;
 	}
 
-	/**
-	 * Permalink filter that is used when the site uses a root page
-	 *
-	 * @param string      $link
-	 * @param int|WP_Post $pid
-	 *
-	 * @return string
-	 */
 	public function permalink_filter_root( $link, $pid ) {
 		$pid  = is_object( $pid ) ? $pid->ID : $pid;
 		$link = $this->sitepress->get_root_page_utils()->get_root_page_id() != $pid
@@ -168,12 +121,6 @@ class WPML_URL_Filters {
 		return $link;
 	}
 
-	/**
-	 * @param string $link
-	 * @param int $pid
-	 *
-	 * @return string|WPML_Notice|WPML_Notice_Render
-	 */
 	public function page_link_filter_root( $link, $pid ) {
 		$pid  = is_object( $pid ) ? $pid->ID : $pid;
 		$link = $this->sitepress->get_root_page_utils()->get_root_page_id() != $pid
@@ -182,16 +129,13 @@ class WPML_URL_Filters {
 		return $link;
 	}
 
-	/**
-	 * Filters links to the root page, so that they are displayed properly in the front-end.
-	 *
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function filter_root_permalink( $url ) {
 		$root_page_utils = $this->sitepress->get_root_page_utils();
 		if ( $root_page_utils->get_root_page_id() > 0 && $root_page_utils->is_url_root_page( $url ) ) {
+			if ( strpos( $url, 'rest_route=' ) !== false ) {
+				return $url;
+			}
+
 			$url_parts = wpml_parse_url( $url );
 			$query     = isset( $url_parts['query'] ) ? $url_parts['query'] : '';
 			$path      = isset( $url_parts['path'] ) ? $url_parts['path'] : '';
@@ -207,12 +151,6 @@ class WPML_URL_Filters {
 		return $url;
 	}
 
-	/**
-	 * @param string      $link
-	 * @param int|WP_Post $post
-	 *
-	 * @return string
-	 */
 	public function permalink_filter( $link, $post ) {
 		if ( ! $post ) {
 			return $link;
@@ -224,7 +162,6 @@ class WPML_URL_Filters {
 			$post_id = $post->ID;
 		}
 
-		/** @var int $post_id */
 		if ( $post_id < 1 ) {
 			return $link;
 		}
@@ -246,12 +183,6 @@ class WPML_URL_Filters {
 		return $this->url_converter->get_strategy()->fix_trailingslashit( $link );
 	}
 
-	/**
-	 * @param string      $link
-	 * @param int|WP_Post $post
-	 *
-	 * @return string
-	 */
 	public function page_link_filter( $link, $post ) {
 		return $this->permalink_filter( $link, $post );
 	}
@@ -260,34 +191,16 @@ class WPML_URL_Filters {
 		return $this->sitepress->get_wp_api()->function_exists( 'wp_get_canonical_url' );
 	}
 
-	/**
-	 * @param string|bool $canonical_url
-	 * @param WP_Post     $post
-	 *
-	 * @return mixed
-	 * @throws \InvalidArgumentException
-	 */
 	public function get_canonical_url_filter( $canonical_url, $post ) {
 		return $this->canonicals->get_canonical_url( $canonical_url, $post, $this->get_request_language() );
 	}
 
-	/**
-	 * @param WP_Screen $current_screen
-	 */
 	public function permalink_options_home_url( $current_screen ) {
 		if ( Relation::propEq( 'id', 'options-permalink', $current_screen ) ) {
 			add_filter( 'wpml_get_home_url', 'untrailingslashit' );
 		}
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $path
-	 * @param string $orig_scheme
-	 * @param int    $blog_id
-	 *
-	 * @return string
-	 */
 	public function home_url_filter( $url, $path, $orig_scheme, $blog_id ) {
 		$language_negotiation_type = (int) $this->sitepress->get_setting( 'language_negotiation_type' );
 
@@ -315,7 +228,6 @@ class WPML_URL_Filters {
 	}
 
 	public function frontend_uses_root() {
-		/** @var array $urls */
 		$urls = $this->sitepress->get_setting( 'urls' );
 
 		if ( is_admin() ) {
@@ -332,13 +244,6 @@ class WPML_URL_Filters {
 		return $uses_root;
 	}
 
-	/**
-	 * Finds the correct language a post belongs to by handling the special case of the post edit screen.
-	 *
-	 * @param int $post_id
-	 *
-	 * @return bool|mixed|null|String
-	 */
 	private function get_permalink_filter_lang( $post_id ) {
 		if ( isset( $_POST['action'] ) && $_POST['action'] === 'sample-permalink' ) {
 			$code = $this->get_language_from_url();
@@ -383,13 +288,6 @@ class WPML_URL_Filters {
 		return $language;
 	}
 
-	/**
-	 * @param string            $link
-	 * @param int               $post
-	 * @param WPML_Post_Element $post_element
-	 *
-	 * @return bool|false|mixed|string
-	 */
 	public function get_translated_permalink( $link, $post, $post_element ) {
 		$code                      = $this->get_permalink_filter_lang( $post );
 		$force_translate_permalink = apply_filters( 'wpml_force_translated_permalink', false );
@@ -409,13 +307,6 @@ class WPML_URL_Filters {
 		return $link;
 	}
 
-	/**
-	 * @param string             $link
-	 * @param int                $post_id
-	 * @param \WPML_Post_Element $post_element
-	 *
-	 * @return bool|mixed|string
-	 */
 	public function get_translated_page_link( $link, $post_id, $post_element ) {
 		$code = $this->get_permalink_filter_lang( $post_id );
 		if ( ! is_admin() && $this->should_use_permalink_of_post_translation( $post_element ) ) {
@@ -459,11 +350,6 @@ class WPML_URL_Filters {
 		return $this->post_translation->element_id_in( $post_id, $current_language );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return bool
-	 */
 	private function is_front_page( $url ) {
 		return $this->canonicals->get_general_canonical_url( $url ) === home_url() && 'page' === get_option( 'show_on_front' );
 	}

@@ -2,18 +2,10 @@
 
 use WPML\API\Sanitize;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Languages_AJAX {
 	private $sitepress;
 	private $default_language;
 
-	/**
-	 * WPML_Languages_AJAX constructor.
-	 *
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress        = $sitepress;
 		$this->default_language = $this->sitepress->get_default_language();
@@ -28,7 +20,7 @@ class WPML_Languages_AJAX {
 		$action = Sanitize::stringProp( 'action', $_POST );
 		$nonce  = Sanitize::stringProp( 'nonce', $_POST );
 
-		return $action && $nonce && wp_verify_nonce( $nonce, $action );
+		return $action && $nonce && wp_verify_nonce( $nonce, $action ) && current_user_can( 'manage_options' );
 	}
 
 	public function set_active_languages_action() {
@@ -65,7 +57,6 @@ class WPML_Languages_AJAX {
 
 			icl_cache_clear();
 
-			/** @deprecated Use `wpml_update_active_languages` instead */
 			do_action( 'icl_update_active_languages' );
 			do_action( 'wpml_update_active_languages', $old_active_languages );
 		}
@@ -129,6 +120,8 @@ class WPML_Languages_AJAX {
 				if ( 1 === $status ) {
 					$response['message'] = __( 'WordPress language file (.mo) is missing. Keeping existing display language.', 'sitepress' );
 				}
+
+				( new WPML_WP_Cache( WPML_URL_Cached_Converter::CACHE_GROUP ) )->flush_group_cache();
 			}
 		}
 

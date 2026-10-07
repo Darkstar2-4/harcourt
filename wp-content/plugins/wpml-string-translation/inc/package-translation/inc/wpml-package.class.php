@@ -21,18 +21,8 @@ class WPML_Package {
 
 	private $element_type_prefix;
 
-	/**
-	 * This gives a context to determine what's really
-	 * required to load. When set to `true`, we skip
-	 * some useless DB queries in the constructor.
-	 *
-	 * @var bool
-	 */
 	private $translate_only = false;
 
-	/**
-	 * @param stdClass|WPML_Package|array|int|WP_Post $data_item
-	 */
 	function __construct( $data_item ) {
 		$this->element_type_prefix = 'package';
 		$this->view_link           = '';
@@ -138,11 +128,6 @@ class WPML_Package {
 		}
 	}
 
-	/**
-	 * @param bool $refresh
-	 *
-	 * @return mixed
-	 */
 	public function get_package_strings( $refresh = false ) {
 		global $wpdb;
 		$package_id = $this->ID;
@@ -178,20 +163,13 @@ class WPML_Package {
 			$update_prepare = $wpdb->prepare( $update_query, $language_code, $package_id );
 			$wpdb->query( $update_prepare );
 
-			// Action called after string is updated.
 			do_action( 'wpml_st_string_updated' );
 		}
 
 	}
 
-	/**
-	 * @param \stdClass $result
-	 *
-	 * @return string
-	 */
 	private function get_package_string_name_from_st_name( $result ) {
 
-		// package string name is the same as the string name.
 		return $result->name;
 	}
 
@@ -267,12 +245,6 @@ class WPML_Package {
 		return $string_name;
 	}
 
-	/**
-	 * @param string $string_value
-	 * @param string $sanitized_string_name
-	 *
-	 * @return string|mixed
-	 */
 	function translate_string( $string_value, $sanitized_string_name ) {
 		if ( $this->translate_only || $this->get_package_id() ) {
 			$sanitized_string_name = $this->sanitize_string_name( $sanitized_string_name );
@@ -300,14 +272,6 @@ class WPML_Package {
 			'name'    => $string_name,
 		);
 
-		/**
-		 * @param int|null $default
-		 * @param array    $string_data {
-		 *
-		 * @type string    $context
-		 * @type string    $name        Optional
-		 *                           }
-		 */
 		$string_id = apply_filters( 'wpml_string_id', null, $string_data );
 
 		if ( ! $string_id ) {
@@ -449,9 +413,6 @@ class WPML_Package {
 		return $result;
 	}
 
-	/**
-	 * @return bool|mixed
-	 */
 	protected function package_exists() {
 		$existing_package = false;
 		if ( $this->has_id() ) {
@@ -463,16 +424,10 @@ class WPML_Package {
 		return $existing_package;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function has_id() {
 		return isset( $this->ID ) && $this->ID;
 	}
 
-	/**
-	 * @param \stdClass $package
-	 */
 	private function object_to_package( $package ) {
 		$this->ID        = $package->ID;
 		$this->kind_slug = $package->kind_slug;
@@ -512,9 +467,6 @@ class WPML_Package {
 		return 'package_' . $this->kind_slug;
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function get_package_language() {
 		global $sitepress;
 
@@ -538,7 +490,6 @@ class WPML_Package {
 	}
 
 	public function are_all_strings_included( $strings ) {
-		// check to see if all the strings in this package are present in $strings
 		$package_strings = $this->get_package_strings();
 		if ( is_array( $package_strings ) ) {
 			foreach ( $package_strings as $string ) {

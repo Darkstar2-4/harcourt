@@ -6,7 +6,6 @@ use WPML\Core\Component\TranslationProxy\Application\Service\LastPickedUpDateSer
 
 class LastPickedUpDateService implements LastPickedUpDateServiceInterface {
 
-  /** @var \WPML_TM_Last_Picked_Up */
   private $legacyLastPickedUp;
 
 

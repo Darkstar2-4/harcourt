@@ -74,7 +74,7 @@ function icl_plugin_upgrade() {
 			update_option( 'icl_sitepress_settings', $iclsettings );
 		}
 
-		$wpdb->query( "UPDATE {$wpdb->prefix}icl_translations SET element_type='tax_post_tag' WHERE element_type='tag'" ); // @since 3.1.5 - mysql_* function deprecated in php 5.5+
+		$wpdb->query( "UPDATE {$wpdb->prefix}icl_translations SET element_type='tax_post_tag' WHERE element_type='tag'" );
 		$wpdb->query( "UPDATE {$wpdb->prefix}icl_translations SET element_type='tax_category' WHERE element_type='category'" );
 	}
 
@@ -87,10 +87,9 @@ function icl_plugin_upgrade() {
 		foreach ( $post_types as $type => $ids ) {
 			$q          = "UPDATE {$wpdb->prefix}icl_translations SET element_type=%s WHERE element_type='post' AND element_id IN(" . join( ',', $ids ) . ')';
 			$q_prepared = $wpdb->prepare( $q, 'post_' . $type );
-			$wpdb->query( $q_prepared );    // @since 3.1.5 - mysql_* function deprecated in php 5.5+
+			$wpdb->query( $q_prepared );
 		}
 
-		// fix categories & tags in icl_translations
 		$res = $wpdb->get_results( "SELECT term_taxonomy_id, taxonomy FROM {$wpdb->term_taxonomy}" );
 		foreach ( $res as $row ) {
 			$icltr = $wpdb->get_row(
@@ -102,15 +101,6 @@ function icl_plugin_upgrade() {
 			if ( 'tax_' . $row->taxonomy != $icltr->element_type ) {
 				$wpdb->update( $wpdb->prefix . 'icl_translations', array( 'element_type' => 'tax_' . $row->taxonomy ), array( 'translation_id' => $icltr->translation_id ) );
 			}
-		}
-	}
-
-	if ( get_option( 'icl_sitepress_version' ) && version_compare( get_option( 'icl_sitepress_version' ), '2.0.0', '<' ) ) {
-		include_once WPML_PLUGIN_PATH . '/inc/upgrade-functions/upgrade-2.0.0.php';
-
-		if ( empty( $iclsettings['migrated_2_0_0'] ) ) {
-			define( 'ICL_MULTI_STEP_UPGRADE', true );
-			return; // GET OUT AND DO NOT SET THE NEW VERSION
 		}
 	}
 
@@ -147,9 +137,6 @@ function icl_plugin_upgrade() {
 		icl_upgrade_version( $version );
 	}
 
-	// Forcing upgrade logic when ICL_SITEPRESS_DEV_VERSION is defined
-	// This allow to run the logic between different alpha/beta/RC versions
-	// since we are now storing only the formal version in the options
 	if ( defined( 'ICL_SITEPRESS_DEV_VERSION' ) ) {
 		icl_upgrade_version( ICL_SITEPRESS_DEV_VERSION, true );
 	}
@@ -344,12 +331,6 @@ function icl_create_table_index( $table_name, $index_definition ) {
 	return $result;
 }
 
-/**
- * @param array<mixed>  $array
- * @param array<string> $required_keys
- *
- * @return bool
- */
 function icl_array_has_required_keys( $array, $required_keys ) {
 	return count( array_intersect_key( array_flip( $required_keys ), $array ) ) === count( $required_keys );
 }

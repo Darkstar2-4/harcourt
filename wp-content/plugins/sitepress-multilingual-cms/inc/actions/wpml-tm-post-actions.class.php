@@ -2,22 +2,12 @@
 
 class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 
-	/** @var  WPML_TM_Action_Helper $action_helper */
 	private $action_helper;
 
-	/** @var  WPML_TM_Blog_Translators $blog_translators */
 	private $blog_translators;
 
-	/** @var  WPML_TM_Records $tm_records */
 	private $tm_records;
 
-	/**
-	 * WPML_TM_Post_Actions constructor.
-	 *
-	 * @param WPML_TM_Action_Helper    $helper
-	 * @param WPML_TM_Blog_Translators $blog_translators
-	 * @param WPML_TM_Records          $tm_records
-	 */
 	public function __construct(
 		WPML_TM_Action_Helper $helper,
 		WPML_TM_Blog_Translators $blog_translators,
@@ -34,14 +24,12 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 		$trid = isset( $_POST['icl_trid'] ) && is_numeric( $_POST['icl_trid'] )
 			? $_POST['icl_trid'] : $sitepress->get_element_trid( $post_id, 'post_' . $post->post_type );
 
-		// set trid and lang code if front-end translation creating
 		$trid = apply_filters( 'wpml_tm_save_post_trid_value', isset( $trid ) ? $trid : '', $post_id );
 		$lang = apply_filters( 'wpml_tm_save_post_lang_value', '', $post_id );
 
 		$trid = $this->maybe_retrive_trid_again( $trid, $post );
 		$needs_second_update = array_key_exists( 'needs_second_update', $_POST ) ? (bool) $_POST['needs_second_update'] : false;
 
-		// is this the original document?
 		$is_original = empty( $trid )
 			? false
 			: ! (bool) $this->tm_records
@@ -93,7 +81,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 
 					wpml_tm_load_old_jobs_editor()->set( $job_id, WPML_TM_Editors::WP );
 
-					// saving the translation
 					do_action( 'wpml_save_job_fields_from_post', $job_id );
 				}
 			}
@@ -112,16 +99,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 			if ( $is_original ) {
 				$statusesUpdater = $this->get_translation_statuses_updater( $post_id, $translations );
 
-				/**
-				 * The filter allows to delegate the status update for translations.
-				 *
-				 * @param bool $update_directly false (default) if we should update immediately or true if done at a different stage.
-				 * @param int $post_id The original post ID.
-				 * @param callable $callback The updater function to execute.
-				 *
-				 * @since 2.11.0
-				 *
-				 */
 				if ( ! apply_filters( 'wpml_tm_delegate_translation_statuses_update', false, $post_id, $statusesUpdater ) ) {
 					call_user_func( $statusesUpdater );
 				}
@@ -136,12 +113,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 		return $_POST['action'] === 'inline-save';
 	}
 
-	/**
-	 * @param int        $post_id
-	 * @param stdClass[] $translations
-	 *
-	 * @return Closure
-	 */
 	public function get_translation_statuses_updater( $post_id, $translations ) {
 		return function () use ( $post_id, $translations ) {
 			$needsUpdate = false;
@@ -167,16 +138,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 		};
 	}
 
-	/**
-	 * Adds the given language pair to the user.
-	 *
-	 * @param int    $user_id
-	 * @param string $target_lang
-	 * @param string $source_lang
-	 *
-	 * @used-by \WPML_TM_Post_Actions::save_post_actions to add language pairs to admin users automatically when saving
-	 *                                                   a translation in a given language pair.
-	 */
 	private function maybe_add_as_translator( $user_id, $target_lang, $source_lang ) {
 
 		$user = new WP_User( $user_id );
@@ -218,9 +179,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 		return $trid;
 	}
 
-	/**
-	 * @param int $post_id
-	 */
 	public function save_translation_priority( $post_id ) {
 		$translation_priority = (int) filter_var(
 			( isset( $_POST['icl_translation_priority'] ) ? $_POST['icl_translation_priority'] : '' ),
@@ -244,11 +202,6 @@ class WPML_TM_Post_Actions extends WPML_Translation_Job_Helper {
 		}
 	}
 
-	/**
-	 * @param int $element_id
-	 *
-	 * @return WP_Term|null
-	 */
 	private function get_term_obj( $element_id ) {
 		$terms = wp_get_object_terms( $element_id, \WPML_TM_Translation_Priorities::TAXONOMY );
 		if ( is_wp_error( $terms ) ) {

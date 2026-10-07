@@ -1,16 +1,10 @@
 <?php
 
 class WPML_ST_Translations_File_String_Status_Update {
-	/** @var int */
 	private $number_of_secondary_languages;
 
-	/** @var wpdb */
 	private $wpdb;
 
-	/**
-	 * @param int  $number_of_secondary_languages
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( $number_of_secondary_languages, wpdb $wpdb ) {
 		$this->number_of_secondary_languages = $number_of_secondary_languages;
 		$this->wpdb                          = $wpdb;

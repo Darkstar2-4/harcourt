@@ -8,57 +8,35 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 use WPML\PHP\ConstructableFromArrayInterface;
 use WPML\PHP\ConstructableFromArrayTrait;
 
-/**
- * @implements ConstructableFromArrayInterface<TranslationStatusDto>
- */
 final class TranslationStatusDto implements ConstructableFromArrayInterface {
-  /** @use ConstructableFromArrayTrait<TranslationStatusDto> */
   use ConstructableFromArrayTrait;
 
-  /** @var int */
   private $status;
 
-  /** @var ?ReviewStatus::* */
   private $reviewStatus;
 
-  /** @var int|null */
   private $jobId;
 
-  /** @var ?TargetLanguageMethodType::* */
   private $method;
 
-  /** @var TranslationEditorType::* */
   private $editor;
 
-  /** @var bool */
   private $isTranslated;
 
-  /** @var int|null */
   private $translatorId;
 
-  /** @var int|null */
   private $ateJobId;
 
 
-  /**
-   * @param int                          $status
-   * @param int|null                     $jobId
-   * @param ?ReviewStatus::*             $reviewStatus
-   * @param ?TargetLanguageMethodType::* $method
-   * @param TranslationEditorType::*     $editor
-   * @param bool                         $isTranslated
-   * @param int|null                     $translatorId
-   * @param int|null                     $ateJobId
-   */
   public function __construct(
     int $status,
     $reviewStatus = null,
-    int $jobId = null,
+    ?int $jobId = null,
     $method = null,
     $editor = TranslationEditorType::NONE,
     bool $isTranslated = false,
-    int $translatorId = null,
-    int $ateJobId = null
+    ?int $translatorId = null,
+    ?int $ateJobId = null
   ) {
     $this->status       = $status;
     $this->reviewStatus = $reviewStatus;
@@ -76,56 +54,31 @@ final class TranslationStatusDto implements ConstructableFromArrayInterface {
   }
 
 
-  /**
-   * @return ?ReviewStatus::*
-   */
   public function getReviewStatus() {
     return $this->reviewStatus;
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getJobId() {
     return $this->jobId;
   }
 
 
-  /**
-   * @return ?TargetLanguageMethodType::*
-   */
   public function getMethod() {
     return $this->method;
   }
 
 
-  /** @return TranslationEditorType::* */
   public function getEditor() {
     return $this->editor;
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getAteJobId() {
     return $this->ateJobId;
   }
 
 
-  /**
-   * @return array{
-   *  status: int,
-   *  reviewStatus: ?ReviewStatus::*,
-   *  jobId: int|null,
-   *  method: ?TargetLanguageMethodType::*,
-   *  editor: TranslationEditorType::*,
-   *  isTranslated: bool,
-   *  translatorId: int|null,
-   *  ateJobId: int|null
-   *  }
-   */
   public function toArray(): array {
     return [
       'status'       => $this->status,

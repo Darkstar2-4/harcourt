@@ -1,13 +1,7 @@
 <?php
 
-/**
- * Class WPML_TP_Client_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TP_Client_Factory {
 
-	/** @return WPML_TP_Client */
 	public function create() {
 		global $sitepress, $wpdb;
 

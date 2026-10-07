@@ -29,19 +29,16 @@ use WPML\UIPage;
 class TranslationMethodSettings {
 
 	public static function addHooks() {
-		if ( UIPage::isMainSettingsTab( $_GET ) ) {
-			if ( Obj::prop( 'disable_translate_everything', $_GET ) ) {
+		if ( Obj::prop( 'disable_translate_everything', $_GET ) ) {
+			if ( \WPML\LIB\WP\User::currentUserIsTranslationManagerOrHigher() ) {
 				Hooks::onAction( 'wp_loaded' )
-				     ->then( Fns::tap( partial( [ Option::class, 'setTranslateEverything' ], false ) ) )
-				     ->then( Fns::tap( partial( 'do_action', 'wpml_set_translate_everything', false ) ) );
+						->then( Fns::tap( partial( [ Option::class, 'setTranslateEverything' ], false ) ) )
+						->then( Fns::tap( partial( 'do_action', 'wpml_set_translate_everything', false ) ) );
 			}
 		}
 	}
 
 
-	/**
-	 * @return array
-	 */
 	public static function getModeSettingsData() {
 		$defaultServiceName = self::getDefaultTranslationServiceName();
 		Option::setDefaultTranslationMode( ! empty( $defaultServiceName ) );
@@ -54,11 +51,6 @@ class TranslationMethodSettings {
 		];
 	}
 
-	/**
-	 * Get the actual service name, or empty string if there's no default service.
-	 *
-	 * @return string
-	 */
 	private static function getDefaultTranslationServiceName() {
 		return Maybe::fromNullable( \TranslationProxy::get_tp_default_suid() )
 			->map( [ \TranslationProxy_Service::class, 'get_service_by_suid'] )

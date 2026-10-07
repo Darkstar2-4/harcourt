@@ -16,15 +16,6 @@ class WPML_Post_Status_Display {
 		$this->active_langs = $active_languages;
 	}
 
-	/**
-	 * Returns the html of a status icon.
-	 *
-	 * @param string $link Link the status icon is to point to.
-	 * @param string $text Hover text for the status icon.
-	 * @param string $css_class
-	 *
-	 * @return string
-	 */
 	private function render_status_icon( $link, $text, $css_class ) {
 		$icon = $this->get_action_icon( $css_class, $text );
 		if ( strpos( $icon, 'disabled' ) ) {
@@ -46,16 +37,6 @@ class WPML_Post_Status_Display {
 		return '<i class="' . $css_class . ' js-otgs-popover-tooltip" title="' . esc_attr( $label ) . '" data-original-title="' . esc_attr( $label ) . '"></i>';
 	}
 
-	/**
-	 * This function takes a post ID and a language as input.
-	 * It will always return the status icon,
-	 * of the version of the input post ID in the language given as the second parameter.
-	 *
-	 * @param int    $post_id  original post ID
-	 * @param string $lang     language of the translation
-	 *
-	 * @return string
-	 */
 	public function get_status_html( $post_id, $lang ) {
 		list( $text, $link, $trid, $css_class, $status ) = $this->get_status_data( $post_id, $lang );
 
@@ -71,58 +52,14 @@ class WPML_Post_Status_Display {
 			do_action( 'wpml_pre_status_icon_display' );
 		}
 
-		/**
-		 * Filters the translation edit link.
-		 *
-		 * @param string $link
-		 * @param int    $post_id
-		 * @param string $lang
-		 * @param int    $trid
-		 * @param string $css_class
-		 * @param int $status
-		 * @param ?string $review_status
-		 */
 		$link = apply_filters( 'wpml_link_to_translation', $link, $post_id, $lang, $trid, $css_class, $status, $review_status );
 
-		/**
-		 * Filters the translation status text.
-		 *
-		 * @param string $text
-		 * @param int    $post_id
-		 * @param string $lang
-		 * @param int    $trid
-		 * @param string $css_class
-		 * @param int $status
-		 * @param ?string $review_status
-		 */
 		$text = apply_filters( 'wpml_text_to_translation', $text, $post_id, $lang, $trid, $css_class, $status, $review_status );
 
-		/**
-		 * Filter the CSS class for the status icon.
-		 *
-		 * @since 4.2.0
-		 *
-		 * @param string $css_class
-		 * @param int    $post_id
-		 * @param string $lang
-		 * @param int    $trid
-		 * @param int $status
-		 * @param ?string $review_status
-		 */
 		$css_class = apply_filters( 'wpml_css_class_to_translation', $css_class, $post_id, $lang, $trid, $status, $review_status );
 
 		$css_class = $this->map_old_icon_filter_to_css_class( $css_class, $post_id, $lang, $trid );
 
-		/**
-		 * Filter the HTML link to edit the translation
-		 *
-		 * @since 4.2.0
-		 *
-		 * @param string $html_link
-		 * @param int    $post_id
-		 * @param string $lang
-		 * @param int    $trid
-		 */
 		return apply_filters(
 			'wpml_post_status_display_html',
 			$this->render_status_icon( $link, $text, $css_class ),
@@ -132,14 +69,6 @@ class WPML_Post_Status_Display {
 		);
 	}
 
-	/**
-	 * @param string $css_class
-	 * @param int    $post_id
-	 * @param string $lang
-	 * @param int    $trid
-	 *
-	 * @return string
-	 */
 	private function map_old_icon_filter_to_css_class( $css_class, $post_id, $lang, $trid ) {
 		$map = array(
 			'edit_translation.png'          => self::ICON_TRANSLATION_EDIT,
@@ -152,18 +81,6 @@ class WPML_Post_Status_Display {
 
 		$old_icon = array_search( $css_class, $map, true );
 
-		/**
-		 * Filters the old icon image
-		 *
-		 * @deprecated since 4.2.0, use `wpml_css_class_to_translation` instead
-		 *
-		 * @param string|false $old_icon
-		 * @param int          $post_id
-		 * @param string       $lang
-		 * @param int          $trid
-		 * @param string       $css_class
-		 *
-		 */
 		$old_icon = apply_filters( 'wpml_icon_to_translation', $old_icon, $post_id, $lang, $trid, $css_class );
 
 		if ( $old_icon && array_key_exists( $old_icon, $map ) ) {
@@ -196,13 +113,6 @@ class WPML_Post_Status_Display {
 		return array( $text, $link, $trid, $css_class, $status );
 	}
 
-	/**
-	 * @param int $post_id
-	 * @param bool $update   true if the translation in questions is in need of an update,
-	 *                       false otherwise.
-	 *
-	 * @return array
-	 */
 	private function generate_edit_allowed_data( $post_id, $update = false ) {
 		global $wpml_post_translations;
 
@@ -233,17 +143,6 @@ class WPML_Post_Status_Display {
 		return array( $text, $link, $css_class );
 	}
 
-	/**
-	 * Generates the data for displaying a link element pointing towards a translation, that the current user can
-	 * create.
-	 *
-	 * @param int    $trid
-	 * @param int    $original_id
-	 * @param string $lang_code
-	 * @param string $source_language
-	 *
-	 * @return array
-	 */
 	private function generate_add_data( $trid, $lang_code, $source_language, $original_id ) {
 		$link = 'post-new.php?' . http_build_query (
 				array(

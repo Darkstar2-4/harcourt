@@ -8,7 +8,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class Repository implements RepositoryInterface {
 
-  /** @var DatabaseWriteInterface */
   private $dbWriter;
 
 

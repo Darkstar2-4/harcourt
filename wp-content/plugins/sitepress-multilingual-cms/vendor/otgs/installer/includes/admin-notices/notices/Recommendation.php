@@ -21,11 +21,6 @@ class Recommendation {
 		);
 	}
 
-	/**
-	 * @param array $initialNotices
-	 *
-	 * @return array
-	 */
 	public static function getCurrentNotices( array $initialNotices ) {
 		$activatedPluginsConfig = apply_filters('wpml_installer_get_stored_recommendation_notices', []);
 		$addNoticeIdField       = function ( $item ) {
@@ -50,20 +45,10 @@ class Recommendation {
 		return array_merge_recursive( $initialNotices, $activatedPluginsConfig );
 	}
 
-	/**
-	 * @param array $initialConfig
-	 *
-	 * @return array
-	 */
 	public static function config( array $initialConfig ) {
 		return self::screens( $initialConfig );
 	}
 
-	/**
-	 * @param array $screens
-	 *
-	 * @return array
-	 */
 	public static function screens( array $screens ) {
 		$config = [
 			self::PLUGIN_ACTIVATED => [ 'screens' => [ 'plugins' ] ],
@@ -76,11 +61,6 @@ class Recommendation {
 		] );
 	}
 
-	/**
-	 * @param array $initialTexts
-	 *
-	 * @return array
-	 */
 	public static function texts( array $initialTexts ) {
 		return array_merge_recursive(
 			$initialTexts,
@@ -94,11 +74,6 @@ class Recommendation {
 		);
 	}
 
-	/**
-	 * @param array $initialDismissions
-	 *
-	 * @return array
-	 */
 	public static function dismissions( array $initialDismissions ) {
 		return array_merge_recursive(
 			$initialDismissions,

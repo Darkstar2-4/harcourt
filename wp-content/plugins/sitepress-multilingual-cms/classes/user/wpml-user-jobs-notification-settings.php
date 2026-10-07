@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Jobs_Notification_Settings
- */
 class WPML_User_Jobs_Notification_Settings {
 
 	const BLOCK_NEW_NOTIFICATION_FIELD = 'wpml_block_new_email_notifications';
@@ -13,9 +10,6 @@ class WPML_User_Jobs_Notification_Settings {
 
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function save_new_job_notifications_setting( $user_id ) {
 		$val = 1;
 		if ( array_key_exists( self::BLOCK_NEW_NOTIFICATION_FIELD, $_POST ) ) {

@@ -6,7 +6,6 @@ class WPML_Language_Records {
 
 	private $languages;
 
-	/** @var null|array $locale_lang_map */
 	private $locale_lang_map;
 
 	public function __construct( wpdb $wpdb ) {
@@ -25,22 +24,12 @@ class WPML_Language_Records {
 		$this->languages = $this->wpdb->get_col( "SELECT code FROM {$this->get_table()}" );
 	}
 
-	/**
-	 * @param string $lang_code
-	 *
-	 * @return string|null
-	 */
 	public function get_locale( $lang_code ) {
 		$this->init_locale_lang_map();
 		$locale = array_search( $lang_code, $this->locale_lang_map, true );
 		return $locale ? $locale : null;
 	}
 
-	/**
-	 * @param string $locale
-	 *
-	 * @return string|null
-	 */
 	public function get_language_code( $locale ) {
 		$this->init_locale_lang_map();
 		return isset( $this->locale_lang_map[ $locale ] ) ? $this->locale_lang_map[ $locale ] : null;
@@ -59,9 +48,6 @@ class WPML_Language_Records {
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_locale_lang_map() {
 		$this->init_locale_lang_map();
 		return $this->locale_lang_map;

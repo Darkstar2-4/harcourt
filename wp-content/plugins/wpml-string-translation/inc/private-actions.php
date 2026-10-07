@@ -25,13 +25,7 @@ function wpml_st_parse_config( $file_or_object ) {
 add_action( 'wpml_parse_config_file', 'wpml_st_parse_config', 10, 1 );
 add_action( 'wpml_parse_custom_config', 'wpml_st_parse_config', 10, 1 );
 
-/**
- * Action run on the wp_loaded hook that registers widget titles,
- * tagline and bloginfo as well as the current theme's strings when
- * String translation is first activated
- */
 function wpml_st_initialize_basic_strings() {
-	/** @var WPML_String_Translation $WPML_String_Translation */
 	global $sitepress, $pagenow, $WPML_String_Translation;
 	
 	if ( ! class_exists( 'WPML_ST_WP_Loaded_Action' ) ) {
@@ -53,10 +47,6 @@ if ( is_admin() ) {
 	add_action( 'wp_loaded', 'wpml_st_initialize_basic_strings' );
 }
 
-/**
- * @param string $old
- * @param string $new
- */
 function icl_st_update_blogname_actions( $old, $new ) {
 	icl_st_update_string_actions(
 		WPML_ST_Blog_Name_And_Description_Hooks::STRING_DOMAIN,
@@ -67,10 +57,6 @@ function icl_st_update_blogname_actions( $old, $new ) {
 	);
 }
 
-/**
- * @param string $old
- * @param string $new
- */
 function icl_st_update_blogdescription_actions( $old, $new ) {
 	icl_st_update_string_actions(
 		WPML_ST_Blog_Name_And_Description_Hooks::STRING_DOMAIN,

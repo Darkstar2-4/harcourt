@@ -1,0 +1,36 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "How Browser Language Redirect Affects Google Indexing": [
+            "Tarayıcı dil yönlendirmesi Google dizinini nasıl etkiler?"
+         ],
+         "Documentation": [
+            "Dokümantasyon"
+         ],
+         "Browser redirect affects Google indexing and search results": [
+            "Tarayıcı yönlendirmesi Google dizinini ve arama sonuçlarını etkiler"
+         ],
+         "Got it, activate anyway": [
+            "Anladım, yine de etkinleştir"
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "When you redirect visitors based on their language, you also redirect Google. Google wants to see your site exactly like visitors see it, including any redirects that you apply.": [
+            "Ziyaretçileri dillerine göre yönlendirdiğinizde, Google'ı da yönlendirmiş olursunuz. Google, sitenizi ziyaretçilerin gördüğü gibi, uyguladığınız tüm yönlendirmeler dahil olmak üzere görmek ister."
+         ],
+         "It is OK to redirect visitors based on their language, but you need to realize that this feature affects SEO.": [
+            "Ziyaretçileri dillerine göre yönlendirmek sorun değildir, ancak bu özelliğin SEO'yu etkilediğini bilmeniz gerekir."
+         ],
+         "Before proceeding, we recommend that you read these two pages:": [
+            "Devam etmeden önce bu iki sayfayı okumanızı öneririz:"
+         ]
+      }
+   }
+}

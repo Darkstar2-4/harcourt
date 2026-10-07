@@ -1,10 +1,4 @@
 <?php
-/*
- * NextGen Gallery plugin integration.
- *
- * - Filters the_content
- * -- Adjusts gallery preview image URL from default to current language (2.0.66 <=)
- */
 
 class WPML_Plugin_Integration_Nexgen_Gallery {
 
@@ -15,17 +9,6 @@ class WPML_Plugin_Integration_Nexgen_Gallery {
 		}
 	}
 
-	/**
-	 * Filters post content and fixes gallery preview images URL.
-	 *
-	 * Adjust gallery preview image URL from default to current language.
-	 * Allows NextGen to match and replace preview images with gallery.
-	 * NextGen inserts image previews with default language URL.
-	 *
-	 * @global SitePress $sitepress
-	 * @param string $content
-	 * @return string
-	 */
 	public static function the_content_gallery_preview_images( $content ) {
 		global $sitepress;
 		if ( $sitepress->get_current_language() != $sitepress->get_default_language() ) {

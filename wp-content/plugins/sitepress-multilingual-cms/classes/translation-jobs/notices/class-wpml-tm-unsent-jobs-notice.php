@@ -3,37 +3,19 @@
 use WPML\Core\Twig_Loader_Filesystem;
 use WPML\Core\Twig_Environment;
 
-/**
- * Class WPML_TM_Unsent_Jobs_Notice
- */
 class WPML_TM_Unsent_Jobs_Notice {
 
 	const OPT_JOBS_NOT_NOTIFIED = '_wpml_jobs_not_notified';
 	const NOTICE_ID             = 'job-not-notified';
 	const NOTICE_GROUP_ID       = 'tm-jobs-notification';
 
-	/**
-	 * @var string
-	 */
 	private $body;
 
-	/**
-	 * @var WPML_WP_API
-	 */
 	private $wp_api;
 
-	/**
-	 * @var WPML_TM_Unsent_Jobs_Notice_Template
-	 */
 	private $notice_template;
 
-	/**
-	 * WPML_TM_Unsent_Jobs_Notice constructor.
-	 *
-	 * @param WPML_WP_API                              $wp_api
-	 * @param WPML_TM_Unsent_Jobs_Notice_Template|null $notice_template
-	 */
-	public function __construct( WPML_WP_API $wp_api, WPML_TM_Unsent_Jobs_Notice_Template $notice_template = null ) {
+	public function __construct( WPML_WP_API $wp_api, ?WPML_TM_Unsent_Jobs_Notice_Template $notice_template = null ) {
 		$this->wp_api          = $wp_api;
 		$this->notice_template = $notice_template;
 	}
@@ -42,9 +24,6 @@ class WPML_TM_Unsent_Jobs_Notice {
 		$this->body = $this->get_notice_template()->get_notice_body( $this->get_jobs() );
 	}
 
-	/**
-	 * @return null|WPML_TM_Unsent_Jobs_Notice_Template
-	 */
 	private function get_notice_template() {
 		if ( ! $this->notice_template ) {
 			$template_paths   = array(
@@ -64,9 +43,6 @@ class WPML_TM_Unsent_Jobs_Notice {
 		return $this->notice_template;
 	}
 
-	/**
-	 * @param WPML_Notices $wpml_admin_notices
-	 */
 	public function add_notice( WPML_Notices $wpml_admin_notices, $dismissed_option_key ) {
 		if ( $this->get_jobs() ) {
 			$this->prepare_notice_body();
@@ -98,17 +74,11 @@ class WPML_TM_Unsent_Jobs_Notice {
 		}
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 */
 	private function add_actions( WPML_Notice $notice ) {
 		$dismiss_action = new WPML_Notice_Action( __( 'Dismiss', 'wpml-translation-management' ), '#', true, false, false, true );
 		$notice->add_action( $dismiss_action );
 	}
 
-	/**
-	 * @param array $args
-	 */
 	public function add_job( $args ) {
 		$job_id    = $args['job']->get_id();
 		$lang_from = $args['job']->get_source_language_code( true );
@@ -127,9 +97,6 @@ class WPML_TM_Unsent_Jobs_Notice {
 		}
 	}
 
-	/**
-	 * @param array $args
-	 */
 	public function remove_job( $args ) {
 		$job_id      = $args['job']->get_id();
 		$unsent_jobs = $this->get_jobs();
@@ -144,17 +111,12 @@ class WPML_TM_Unsent_Jobs_Notice {
 		$this->update_jobs_option( $unsent_jobs );
 	}
 
-	/**
-	 * @param array $jobs
-	 */
 	private function update_jobs_option( $jobs ) {
 		update_option( self::OPT_JOBS_NOT_NOTIFIED, $jobs );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_jobs() {
-		return get_option( self::OPT_JOBS_NOT_NOTIFIED );
+		$jobs = get_option( self::OPT_JOBS_NOT_NOTIFIED, array() );
+		return is_array( $jobs ) ? $jobs : array();
 	}
 }

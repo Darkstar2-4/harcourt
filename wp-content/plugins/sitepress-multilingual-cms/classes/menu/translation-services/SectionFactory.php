@@ -9,9 +9,6 @@ use function WPML\FP\partial;
 use function WPML\FP\partialRight;
 
 class SectionFactory implements \IWPML_TM_Admin_Section_Factory {
-	/**
-	 * @return Section
-	 */
 	public function create() {
 		global $sitepress;
 
@@ -23,9 +20,6 @@ class SectionFactory implements \IWPML_TM_Admin_Section_Factory {
 		);
 	}
 
-	/**
-	 * @return bool|string
-	 */
 	private function site_key_exists() {
 		$site_key = false;
 
@@ -37,16 +31,7 @@ class SectionFactory implements \IWPML_TM_Admin_Section_Factory {
 		return $site_key;
 	}
 
-	/**
-	 * @param  \WPML_Twig_Template_Loader $twig_loader
-	 * @param  \WPML_TP_Client            $tp_client
-	 *
-	 * @return callable
-	 */
 	private function createServicesListRenderer() {
-		/**
-		 * Section: "Partner services", "Other services" and "Translation Management Services"
-		 */
 		$getServicesTabs = partial(
 			ServicesRetriever::class . '::get',
 			$this->getTpApiServices(),
@@ -66,9 +51,6 @@ class SectionFactory implements \IWPML_TM_Admin_Section_Factory {
 		);
 	}
 
-	/**
-	 * @return callable
-	 */
 	private function getTemplateRenderer() {
 		$template = make(
 			\WPML_Twig_Template_Loader::class,
@@ -83,9 +65,6 @@ class SectionFactory implements \IWPML_TM_Admin_Section_Factory {
 		return [ $template, 'show' ];
 	}
 
-	/**
-	 * @return \WPML_TP_API_Services
-	 */
 	private function getTpApiServices() {
 		return make( \WPML_TP_Client_Factory::class )->create()->services();
 	}

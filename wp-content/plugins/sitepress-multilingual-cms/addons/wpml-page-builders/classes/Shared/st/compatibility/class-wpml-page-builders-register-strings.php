@@ -1,39 +1,24 @@
 <?php
 
-/**
- * Class WPML_Page_Builders_Register_Strings
- */
 abstract class WPML_Page_Builders_Register_Strings {
 
-	/**
-	 * @var IWPML_Page_Builders_Translatable_Nodes
-	 */
 	private $translatable_nodes;
 
-	/**
-	 * @var IWPML_Page_Builders_Data_Settings
-	 */
 	protected $data_settings;
 
-	/**
-	 * @var WPML_PB_String_Registration
-	 */
 	private $string_registration;
 
-	/** @var WPML_PB_Reuse_Translations_By_Strategy|null $reuse_translations */
 	private $reuse_translations;
 
-	/** @var int $string_location */
 	private $string_location;
 
-	/** @var int $group_index */
 	private $group_index;
 
 	public function __construct(
 		IWPML_Page_Builders_Translatable_Nodes $translatable_nodes,
 		IWPML_Page_Builders_Data_Settings $data_settings,
 		WPML_PB_String_Registration $string_registration,
-		WPML_PB_Reuse_Translations_By_Strategy $reuse_translations = null
+		?WPML_PB_Reuse_Translations_By_Strategy $reuse_translations = null
 	) {
 
 		$this->data_settings       = $data_settings;
@@ -42,10 +27,6 @@ abstract class WPML_Page_Builders_Register_Strings {
 		$this->reuse_translations  = $reuse_translations;
 	}
 
-	/**
-	 * @param WP_Post $post
-	 * @param array   $package
-	 */
 	public function register_strings( WP_Post $post, array $package ) {
 
 		do_action( 'wpml_start_string_package_registration', $package );
@@ -80,11 +61,6 @@ abstract class WPML_Page_Builders_Register_Strings {
 		do_action( 'wpml_delete_unused_package_strings', $package );
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param mixed  $element
-	 * @param array  $package
-	 */
 	protected function register_strings_for_node( $node_id, $element, array $package ) {
 		$strings = $this->translatable_nodes->get( $node_id, $element );
 		foreach ( $strings as $string ) {
@@ -107,21 +83,9 @@ abstract class WPML_Page_Builders_Register_Strings {
 		$this->group_index ++;
 	}
 
-	/**
-	 * @param WPML_PB_String $string
-	 * @param string         $node_id
-	 * @param mixed          $element
-	 * @param array          $package
-	 *
-	 * @return WPML_PB_String
-	 */
 	protected function filter_string_to_register( WPML_PB_String $string, $node_id, $element, $package ) {
 		return $string;
 	}
 
-	/**
-	 * @param array $data_array
-	 * @param array $package
-	 */
 	abstract protected function register_strings_for_modules( array $data_array, array $package );
 }

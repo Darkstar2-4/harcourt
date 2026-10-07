@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "tr"
+            "lang": "tr_TR"
          },
          "Add glossary terms": [
-            "Sözlük terimleri ekle"
+            "Terimler sözlüğüne terim ekle"
          ],
          "Minimize": [
             "Küçült"
@@ -23,19 +23,19 @@
             "Görünüşe göre henüz sözlüğü kullanmıyorsunuz. Sözlük size şu konularda yardımcı olabilir:"
          ],
          "Improve the quality of the translation": [
-            "Çeviri kalitesini artırmak"
+            "Çeviri kalitesini artırın"
          ],
          "Ensure translation consistency": [
-            "Çeviri tutarlılığını sağlamak"
+            "Çeviri tutarlılığını sağlayın"
          ],
          "Reduce translation costs": [
-            "Çeviri maliyetlerini azaltmak"
+            "Çeviri maliyetlerini azaltın"
          ],
          "Improve SEO in translation languages": [
-            "Çeviri dillerinde SEO'yu iyileştirmek"
+            "Çeviri dillerinde SEO'yu iyileştirin"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "Doğru Çeviriler için Sözlüğü Kullanma Yöntemi"
+            "Doğru çeviriler için sözlük nasıl kullanılır"
          ],
          "%d item in the <a>Glossary</a>": [
             "<a>Sözlükte</a> %d öğe",

@@ -14,11 +14,6 @@ class WPML_Display_As_Translated_Attachments_Query {
 		add_filter( 'wpml_post_parse_query', array( $this, 'adjust_post_parent' ) );
 	}
 
-	/**
-	 * @param \WP_Query $q
-	 *
-	 * @return \WP_Query
-	 */
 	public function adjust_post_parent( $q ) {
 		if ( ! empty( $q->query_vars['post_parent'] ) && isset( $q->query['post_type'] ) &&
 			 'attachment' === $q->query['post_type'] &&

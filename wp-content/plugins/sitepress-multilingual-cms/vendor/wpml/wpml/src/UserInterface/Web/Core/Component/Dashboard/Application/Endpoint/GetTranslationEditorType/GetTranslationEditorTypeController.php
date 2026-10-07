@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetTranslationEditorTypeController implements EndpointInterface {
 
-  /** @var SettingsRepository */
   private $translationSettingsRepository;
 
 

@@ -13,12 +13,6 @@ use function WPML\Container\make;
 
 class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Frontend_Action_Loader {
 
-	/**
-	 * Create hooks.
-	 *
-	 * @return IWPML_Action[]
-	 * @throws \WPML\Auryn\InjectionException Auryn Exception.
-	 */
 	public function create() {
 		$manager = ManagerFactory::create();
 

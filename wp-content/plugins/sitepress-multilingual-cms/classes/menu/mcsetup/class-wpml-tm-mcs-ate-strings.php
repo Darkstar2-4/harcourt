@@ -1,28 +1,13 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_MCS_ATE_Strings {
 
 	const AMS_STATUS_ACTIVE_NOT_ALL_SUBSCRIBED = 'active-not-all-subscribed';
-	/**
-	 * @var WPML_TM_ATE_Authentication
-	 */
 	private $authentication;
 	private $authentication_data;
-	/**
-	 * @var WPML_TM_ATE_AMS_Endpoints
-	 */
 	private $endpoints;
 	private $statuses;
 
-	/**
-	 * WPML_TM_MCS_ATE constructor.
-	 *
-	 * @param WPML_TM_ATE_Authentication $authentication
-	 * @param WPML_TM_ATE_AMS_Endpoints  $endpoints
-	 */
 	public function __construct( WPML_TM_ATE_Authentication $authentication, WPML_TM_ATE_AMS_Endpoints $endpoints ) {
 		$this->authentication = $authentication;
 		$this->endpoints      = $endpoints;
@@ -68,10 +53,6 @@ class WPML_TM_MCS_ATE_Strings {
 		);
 	}
 
-	/**
-	 * @return string|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function get_auto_login() {
 		$shared = null;
 		if ( array_key_exists( 'shared', $this->authentication_data ) ) {
@@ -107,9 +88,6 @@ class WPML_TM_MCS_ATE_Strings {
 		return '<strong>' . $message['status'] . '</strong>' . $message['text'];
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_status() {
 		$ate_status = WPML_TM_ATE_Authentication::AMS_STATUS_NON_ACTIVE;
 		if ( array_key_exists( 'status', $this->authentication_data ) ) {
@@ -119,23 +97,10 @@ class WPML_TM_MCS_ATE_Strings {
 		return $ate_status;
 	}
 
-	/**
-	 * @param string     $attribute
-	 * @param null|mixed $default
-	 *
-	 * @return mixed
-	 */
 	public function get_current_status_attribute( $attribute, $default = null ) {
 		return $this->get_status_attribute( $this->get_status(), $attribute, $default );
 	}
 
-	/**
-	 * @param string     $status
-	 * @param string     $attribute
-	 * @param null|mixed $default
-	 *
-	 * @return mixed
-	 */
 	public function get_status_attribute( $status, $attribute, $default = null ) {
 		$status_attributes = $this->statuses[ $status ];
 

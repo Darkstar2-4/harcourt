@@ -6,17 +6,11 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 
 class EvalFunctionRequirement extends RequirementBase {
 
-  /** @var ServerInfoInterface */
   private $serverInfo;
 
   const EXTENSION_NAME = 'suhosin';
 
 
-  /**
-   * Constructor.
-   *
-   * @param ServerInfoInterface $serverInfo The server info service.
-   */
   public function __construct( ServerInfoInterface $serverInfo ) {
     $this->serverInfo = $serverInfo;
   }
@@ -55,7 +49,6 @@ class EvalFunctionRequirement extends RequirementBase {
 
 
   protected function doIsValid(): bool {
-    // Only check if eval is available when Suhosin is enabled
     if ( ! $this->serverInfo->isExtensionLoaded( self::EXTENSION_NAME ) ) {
       return true;
     }

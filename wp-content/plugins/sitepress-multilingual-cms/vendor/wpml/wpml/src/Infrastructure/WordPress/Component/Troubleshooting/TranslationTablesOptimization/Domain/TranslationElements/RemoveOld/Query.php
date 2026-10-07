@@ -6,13 +6,9 @@ use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\Mig
 
 class Query implements QueryInterface {
 
-  /** @var \wpdb */
   private $wpdb;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct( $wpdb ) {
     $this->wpdb = $wpdb;
   }
@@ -22,7 +18,6 @@ class Query implements QueryInterface {
     $jobTable = $this->wpdb->prefix . 'icl_translate_job';
     $tmpTable = $this->wpdb->prefix . CompletedRecordsStorage::TMP_TABLE_NAME;
 
-    /** @var string $sql */
     $sql = $this->wpdb->prepare(
       'SELECT COUNT(DISTINCT j.rid)
       FROM %i j
@@ -33,21 +28,16 @@ class Query implements QueryInterface {
       $tmpTable
     );
 
-    /** @var string|int|null $count */
     $count = $this->wpdb->get_var( $sql );
 
     return (int) $count;
   }
 
 
-  /**
-   * @return array<array{rid: int}>
-   */
   public function getRemaining( int $limit ): array {
     $jobTable = $this->wpdb->prefix . 'icl_translate_job';
     $tmpTable = $this->wpdb->prefix . CompletedRecordsStorage::TMP_TABLE_NAME;
 
-    /** @var string $sql */
     $sql = $this->wpdb->prepare(
       'SELECT DISTINCT j.rid
       FROM %i j
@@ -60,7 +50,6 @@ class Query implements QueryInterface {
       $limit
     );
 
-    /** @var array<array{rid: int}>|null $results */
     $results = $this->wpdb->get_results( $sql, ARRAY_A );
 
     return $results ?: [];

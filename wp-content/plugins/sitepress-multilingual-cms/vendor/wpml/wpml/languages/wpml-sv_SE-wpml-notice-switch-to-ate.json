@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Get More Features with WPML's Advanced Translation Editor": [
             "Få fler funktioner med WPML:s avancerade översättningsredigerare"
@@ -14,7 +14,7 @@
             "Stäng banner"
          ],
          "You're using the Classic Translation Editor, an old legacy tool, and missing out on the many features and efficiency of our Advanced Translation Editor:": [
-            "Du använder den klassiska översättningsredigeraren, ett äldre verktyg, och går miste om många funktioner och effektiviteten i vår avancerade översättningsredigerare:"
+            "Du använder den klassiska översättningsredigeraren, ett gammalt verktyg, och missar många funktioner och effektiviteten i vår avancerade översättningsredigerare:"
          ],
          "Translation Memory": [
             "Översättningsminne"
@@ -41,7 +41,7 @@
             "Byt nu"
          ],
          "Learn more about Advanced Translation Editor": [
-            "Läs mer om den avancerade översättningsredigeraren"
+            "Läs mer om avancerad översättningsredigerare"
          ],
          "Learn More": [
             "Läs mer"

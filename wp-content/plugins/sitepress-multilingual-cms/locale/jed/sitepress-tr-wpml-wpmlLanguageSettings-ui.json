@@ -1,0 +1,30 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Choose the image file type for flags": [
+            "Bayraklar için görsel dosya türünü seçin"
+         ],
+         "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
+            "Bu seçenek yalnızca yerleşik WPML bayraklarını etkiler, özel olarak yüklenenleri değil."
+         ],
+         "%s format": [
+            "%s formatı"
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "The new format has been saved.": [
+            "Yeni format kaydedildi."
+         ],
+         "Failed to save the new format": [
+            "Yeni format kaydedilemedi"
+         ]
+      }
+   }
+}

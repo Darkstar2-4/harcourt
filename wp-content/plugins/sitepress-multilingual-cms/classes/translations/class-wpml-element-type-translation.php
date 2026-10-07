@@ -1,17 +1,10 @@
 <?php
 
-/** NOTE:
- *  Use the $wpml_post_translations or $wpml_term_translations globals for posts and taxonomy
- *  They are more efficient
- */
 
 class WPML_Element_Type_Translation {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
-	/** @var  WPML_Cache_Factory $cache_factory */
 	private $cache_factory;
-	/** @var  string $element_type */
 	private $element_type;
 
 	public function __construct( wpdb $wpdb, WPML_Cache_Factory $cache_factory, $element_type ) {

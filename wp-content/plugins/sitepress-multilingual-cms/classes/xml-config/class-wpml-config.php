@@ -7,7 +7,6 @@ class WPML_Config {
 
 	const PATH_TO_XSD = WPML_PLUGIN_PATH . '/res/xsd/wpml-config.xsd';
 
-	/** @var bool $has_run */
 	static $has_run = false;
 
 	static $wpml_config_files = array();
@@ -33,7 +32,6 @@ class WPML_Config {
 		}
 		$white_list_pages = apply_filters( 'wpml_config_white_list_pages', $white_list_pages );
 
-		// Runs the load config process only on specific pages
 		$current_page = isset( $_GET['page'] ) ? $_GET['page'] : null;
 		if ( ( isset( $current_page ) && in_array( $current_page, $white_list_pages ) ) || ( isset( $pagenow ) && in_array( $pagenow, $white_list_pages ) ) ) {
 			self::load_config_run();
@@ -141,7 +139,6 @@ class WPML_Config {
 
 	static function load_plugins_wpml_config() {
 		if ( is_multisite() ) {
-			// Get multi site plugins
 			$plugins = get_site_option( 'active_sitewide_plugins' );
 			if ( ! empty( $plugins ) ) {
 				foreach ( $plugins as $p => $dummy ) {
@@ -157,7 +154,6 @@ class WPML_Config {
 			}
 		}
 
-		// Get single site or current blog active plugins
 		$plugins = get_option( 'active_plugins' );
 		if ( ! empty( $plugins ) ) {
 			foreach ( $plugins as $p ) {
@@ -173,7 +169,6 @@ class WPML_Config {
 			}
 		}
 
-		// Get the must-use plugins
 		$mu_plugins = wp_get_mu_plugins();
 
 		if ( ! empty( $mu_plugins ) ) {
@@ -321,7 +316,7 @@ class WPML_Config {
 
 		$config_all_updated = false;
 
-		$validate  = new WPML_XML_Config_Validate(); // Validate with no XSD file (see wpmlcore-8444).
+		$validate  = new WPML_XML_Config_Validate();
 		$transform = new WPML_XML2Array();
 
 		if ( ! empty( self::$wpml_config_files ) ) {
@@ -349,12 +344,6 @@ class WPML_Config {
 		self::parse_wpml_config_post_process( $config_all );
 	}
 
-	/**
-	 * @param array<string,array<string,mixed>> $config_files
-	 * @param bool|null                         $updated
-	 *
-	 * @return array
-	 */
 	private static function append_custom_xml_config( $config_files, &$updated = null ) {
 		$validate      = new WPML_XML_Config_Validate( self::PATH_TO_XSD );
 		$transform     = new WPML_XML2Array();
@@ -367,12 +356,6 @@ class WPML_Config {
 		return $config_files;
 	}
 
-	/**
-	 * @param \WPML_XML_Config_Validate $validate
-	 * @param \WPML_XML_Transform       $transform
-	 *
-	 * @return mixed
-	 */
 	private static function get_custom_xml_config( $validate, $transform ) {
 		if ( class_exists( 'WPML_Custom_XML' ) ) {
 			$custom_xml_option = new WPML_Custom_XML();
@@ -394,12 +377,6 @@ class WPML_Config {
 		return null;
 	}
 
-	/**
-	 * @param array<string,array<string,mixed>> $all_configs
-	 * @param array<string,array<string,mixed>> $config
-	 *
-	 * @return mixed
-	 */
 	private static function merge_with( $all_configs, $config ) {
 		if ( isset( $config['wpml-config'] ) ) {
 			$wpml_config     = $config['wpml-config'];
@@ -418,9 +395,8 @@ class WPML_Config {
 			$wpml_config_all = self::parse_config_index( $wpml_config_all, $wpml_config, 'allow-translatable-job-field', 'allow-translatable-job-fields' );
 			$wpml_config_all = self::parse_config_index( $wpml_config_all, $wpml_config, 'notice', 'notices' );
 
-			// language-switcher-settings
 			if ( isset( $wpml_config['language-switcher-settings']['key'] ) ) {
-				if ( ! is_numeric( key( $wpml_config['language-switcher-settings']['key'] ) ) ) { // single
+				if ( ! is_numeric( key( $wpml_config['language-switcher-settings']['key'] ) ) ) {
 					$wpml_config_all['language-switcher-settings']['key'][] = $wpml_config['language-switcher-settings']['key'];
 				} else {
 					foreach ( $wpml_config['language-switcher-settings']['key'] as $cf ) {
@@ -443,11 +419,7 @@ class WPML_Config {
 		return $all_configs;
 	}
 
-	/**
-	 * @param array<string,array<string,mixed>> $config
-	 */
 	protected static function parse_custom_fields( $config ) {
-		/** @var TranslationManagement $iclTranslationManagement */
 		global $iclTranslationManagement;
 
 		$setting_factory = $iclTranslationManagement->settings_factory();
@@ -458,7 +430,7 @@ class WPML_Config {
 
 	private static function parse_config_index( $config_all, $wpml_config, $index_sing, $index_plur ) {
 		if ( isset( $wpml_config[ $index_plur ][ $index_sing ] ) ) {
-			if ( isset( $wpml_config[ $index_plur ][ $index_sing ]['value'] ) ) { // single
+			if ( isset( $wpml_config[ $index_plur ][ $index_sing ]['value'] ) ) {
 				$config_all[ $index_plur ][ $index_sing ][] = $wpml_config[ $index_plur ][ $index_sing ];
 			} else {
 				foreach ( (array) $wpml_config[ $index_plur ][ $index_sing ] as $cf ) {

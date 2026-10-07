@@ -12,7 +12,7 @@ use WP_Error;
 use WP_Smush;
 
 class CDN_Controller extends Controller {
-	const CDN_TRANSFORM_PRIORITY = 10;
+	private static $cdn_transform_priority = 10;
 	/**
 	 * @var CDN_Helper
 	 */
@@ -40,13 +40,15 @@ class CDN_Controller extends Controller {
 		$this->register_filter( 'wp_smush_content_transforms', array(
 			$this,
 			'register_cdn_transform',
-		), self::CDN_TRANSFORM_PRIORITY );
+		), self::$cdn_transform_priority );
 		$this->register_action( 'wp_ajax_get_cdn_stats', array( $this, 'ajax_update_stats' ) );
 		$this->register_action( 'wp_ajax_smush_toggle_cdn', array( $this, 'ajax_toggle_cdn' ) );
 		$this->register_filter( 'wp_resource_hints', array( $this, 'dns_prefetch' ), 99, 2 );
+		$this->register_filter( 'wp_smush_localize_ui_script_data', array( $this, 'localize_cdn_script_data' ) );
+		$this->register_filter( 'wp_smush_sync_settings', array( $this, 'handle_settings_sync' ), 10, 3 );
 
 		if ( $this->cdn_helper->is_cdn_active() ) {
-			$this->register_action( Cron_Controller::CRON_HOOK, array( $this, 'cron_update_stats' ) );
+			$this->register_action( Cron_Controller::get_cron_hook(), array( $this, 'cron_update_stats' ) );
 			$this->register_filter( 'wp_smush_lcp_allowed_url_hostnames', array( $this, 'add_lcp_allowed_hostname' ), 10, 2 );
 			$this->register_filter( 'wp_smush_get_image_dimensions', array( $this, 'find_image_dimensions_for_cdn_url' ), 10, 2 );
 			$this->register_filter( 'wp_smush_get_image_dimensions_url', array( $this, 'return_original_url_from_image_dimensions' ) );
@@ -70,6 +72,15 @@ class CDN_Controller extends Controller {
 	}
 
 	public function ajax_update_stats() {
+		check_ajax_referer( 'wp-smush-ajax' );
+		$capatibility = is_multisite() ? 'manage_network' : 'manage_options';
+
+		if ( ! Helper::is_user_allowed( $capatibility ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Unauthorized', 'wp-smushit' ),
+			), 403 );
+		}
+
 		$status = $this->cdn_helper->get_cdn_status_setting();
 		$smush  = WP_Smush::get_instance();
 		if ( isset( $status->cdn_enabling ) && $status->cdn_enabling ) {
@@ -82,10 +93,10 @@ class CDN_Controller extends Controller {
 				), $code );
 			} else {
 				$this->settings->set_setting( 'wp-smush-cdn_status', $new_status );
-				wp_send_json_success( $new_status );
+				wp_send_json_success( $this->cdn_settings_to_react_props( $new_status ) );
 			}
 		} else {
-			wp_send_json_success( $status );
+			wp_send_json_success( $this->cdn_settings_to_react_props( $status ) );
 		}
 	}
 
@@ -127,14 +138,7 @@ class CDN_Controller extends Controller {
 		if ( $enable ) {
 			$smush  = WP_Smush::get_instance();
 			$status = $this->cdn_helper->get_cdn_status_setting();
-			if ( ! $status ) {
-				$check_response = $this->process_cdn_status_response( $smush->api()->check() );
-				if ( is_wp_error( $check_response ) ) {
-					return $check_response;
-				}
-
-				$this->settings->set_setting( 'wp-smush-cdn_status', $check_response );
-			} elseif ( empty( $status->endpoint_url ) ) {
+			if ( empty( $status->endpoint_url ) ) {
 				$enable_response = $this->process_cdn_status_response( $smush->api()->enable( true ) );
 				if ( is_wp_error( $enable_response ) ) {
 					return $enable_response;
@@ -153,9 +157,9 @@ class CDN_Controller extends Controller {
 	}
 
 	public function ajax_toggle_cdn() {
-		check_ajax_referer( 'save_wp_smush_options' );
+		check_ajax_referer( 'wp-smush-ajax' );
 
-		if ( ! Helper::is_user_allowed() ) {
+		if ( ! Helper::is_user_allowed() || ! $this->settings->has_cdn_page() ) {
 			wp_send_json_error( array(
 				'message' => __( 'User can not modify options', 'wp-smushit' ),
 			), 403 );
@@ -170,7 +174,7 @@ class CDN_Controller extends Controller {
 			) );
 		}
 
-		wp_send_json_success();
+		wp_send_json_success( $this->get_cdn_status_react_props() );
 	}
 
 	public function register_cdn_transform( $transforms ) {
@@ -187,7 +191,6 @@ class CDN_Controller extends Controller {
 	 *
 	 * @return array
 	 * @since 3.0
-	 *
 	 */
 	public function dns_prefetch( $urls, $relation_type ) {
 		// Add only if CDN active.
@@ -233,5 +236,97 @@ class CDN_Controller extends Controller {
 		}
 
 		return $original_url ?: $image_url;
+	}
+
+	/**
+	 * Builds the full CDN status props for React, including the 'disabled' state.
+	 * CDN_Status::to_react_props() cannot determine 'disabled' on its own.
+	 *
+	 * @return array
+	 */
+	private function get_cdn_status_react_props() {
+		return $this->cdn_settings_to_react_props( $this->cdn_helper->get_cdn_status_setting() );
+	}
+
+	/**
+	 * Convert CDN status to React props.
+	 * @param mixed $cdn_status
+	 * @return array
+	 */
+	private function cdn_settings_to_react_props( $cdn_status ) {
+		$cdn_status_dto        = CDN_Status::from_setting( $cdn_status );
+		$props                 = $cdn_status_dto ? $cdn_status_dto->to_react_props() : array();
+		$props['statusString'] = $this->cdn_helper->get_cdn_status_string();
+
+		return $props;
+	}
+
+	/**
+	 * Localize CDN settings for React.
+	 *
+	 * @param array $localize Current localize data.
+	 *
+	 * @return array
+	 */
+	public function localize_cdn_script_data( $localize ) {
+		if ( ! is_admin() ) {
+			return $localize;
+		}
+
+		$localize['cdnSettings'] = CDN_Settings_DTO::to_react_props( $this->cdn_helper->get_cdn_options() );
+		$localize['cdnStatus']   = $this->get_cdn_status_react_props();
+
+		return $localize;
+	}
+
+	/**
+	 * Handle CDN settings sync via unified endpoint.
+	 *
+	 * @param array|null $saved_settings Saved settings from previous filter, or null.
+	 * @param array $settings Incoming settings from React (camelCase).
+	 * @param string $context Context identifier.
+	 *
+	 * @return array|null Saved settings array if context matches, otherwise pass through.
+	 *
+	 * @since 3.25.0
+	 */
+	public function handle_settings_sync( $saved_settings, $settings, $context ) {
+		// Only handle CDN context
+		if ( 'cdn' !== $context ) {
+			return $saved_settings;
+		}
+
+		// Convert React camelCase to PHP format using DTO
+		$db_settings = CDN_Settings_DTO::from_react_props( $settings );
+
+		// Separate main CDN settings from advanced settings.
+		$cdn_fields        = $this->settings->get_cdn_fields();
+		$main_settings     = array();
+		$advanced_settings = array();
+
+		foreach ( $db_settings as $key => $value ) {
+			if ( in_array( $key, $cdn_fields, true ) ) {
+				// These go to wp-smush-settings.
+				$main_settings[ $key ] = $value;
+			} else {
+				// These go to wp-smush-cdn-advanced-settings (e.g., excluded-keywords).
+				$advanced_settings[ $key ] = $value;
+			}
+		}
+
+		// Save main CDN settings to wp-smush-settings.
+		foreach ( $main_settings as $key => $value ) {
+			$this->settings->set( $key, $value );
+		}
+
+		// Save advanced settings to wp-smush-cdn-advanced-settings.
+		if ( ! empty( $advanced_settings ) ) {
+			$current_advanced_settings = $this->cdn_helper->get_cdn_advanced_settings();
+			$updated_advanced_settings = array_merge( $current_advanced_settings, $advanced_settings );
+			$this->settings->set_setting( 'wp-smush-cdn-advanced-settings', $updated_advanced_settings );
+		}
+
+		// Return transformed data.
+		return CDN_Settings_DTO::to_react_props( $this->cdn_helper->get_cdn_options() );
 	}
 }

@@ -208,6 +208,73 @@ div.portalcategory img { vertical-align: middle; }
 
 #catalog_subcategory_wrapper { padding: 20px; }
 
+.catalog_unit_filter {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 10px 0 15px 0;
+}
+.catalog_unit_filter_label {
+	font-size: 13px;
+	font-weight: bold;
+	color: #404040;
+	margin-right: 2px;
+}
+.catalog_unit_filter_pill {
+	display: inline-block;
+	font-family: "Open Sans",sans-serif;
+	font-size: 13px;
+	color: #404040;
+	background: #eeeeee;
+	border: 1px solid #dddddd;
+	border-radius: 20px;
+	padding: 6px 16px;
+	text-decoration: none;
+}
+.catalog_unit_filter_pill:hover {
+	background: #404040;
+	color: #ffffff;
+	text-decoration: none;
+}
+.catalog_unit_filter_pill.active {
+	background: #c00000;
+	border-color: #c00000;
+	color: #ffffff;
+	font-weight: bold;
+}
+.products_summary.catalog_loading {
+	opacity: 0.5;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+.catalog_unit_filter_spinner {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	width: 44px;
+	height: 44px;
+	margin: -22px 0 0 -22px;
+	border: 5px solid #dddddd;
+	border-top-color: #c00000;
+	border-radius: 50%;
+	animation: catalog_unit_filter_spin 0.7s linear infinite;
+	z-index: 9999;
+}
+@keyframes catalog_unit_filter_spin {
+	to { transform: rotate(360deg); }
+}
+
+.products_summary {
+	max-width: 1800px;
+	margin: 0 auto;
+	padding: 0 40px;
+	box-sizing: border-box;
+}
+@media only screen and ( max-width : 576px ) {
+	.products_summary { padding: 0 15px; }
+}
+
 .catalog_subcategory_list {
 	overflow:auto;
     padding-bottom: 10px;
@@ -221,24 +288,22 @@ div.portalcategory img { vertical-align: middle; }
 }
 .catalog_subcategory_list ul li {
     background-color: White;
-    border: 1px solid #eee;
     display: block;
     overflow: hidden;
     float: left;
     width: 100px;
-	height: 140px;
+	height: 160px;
     padding: 0px 0px 0px 0px;
 }
 .catalog_subcategory_list a {
 	text-decoration: none;
 	color: black;
     background-color: White;
-    border: 1px solid #eee;
     display: block;
     overflow: hidden;
     float: left;
     width: 100px;
-	height: 140px;
+	height: 160px;
     padding: 0px 0px 0px 0px;
 }
 .catalog_subcategory_list :hover {
@@ -250,7 +315,10 @@ div.portalcategory img { vertical-align: middle; }
 @media only screen and ( max-width : 576px ) {
 	.catalog_subcategory_list ul li {
 		width: 50%;
-		height: 150px;
+		height: 170px;
+	}
+	.catalog_subcategory_list a {
+		height: 170px;
 	}
 }
 .catalog_text {

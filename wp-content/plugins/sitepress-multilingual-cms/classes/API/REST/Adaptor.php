@@ -6,7 +6,6 @@ use \WP_REST_Request;
 
 class Adaptor extends \WPML_REST_Base {
 
-	/** @var ITarget $target */
 	private $target;
 
 	public function set_target( ITarget $target ) {
@@ -21,11 +20,6 @@ class Adaptor extends \WPML_REST_Base {
 		}
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	public function get_allowed_capabilities( WP_REST_Request $request ) {
 		return $this->target->get_allowed_capabilities( $request );
 	}

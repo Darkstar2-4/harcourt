@@ -67,7 +67,7 @@ class WPML_Media_Translated_Images_Update {
 		};
 
 		$remove_dimension_suffix = function ( $media_src, $media_extension ) {
-			$sanitize_pattern    = "/-\d+x\d+\." . $media_extension . "$/";
+			$sanitize_pattern = '/-\d+x\d+\.' . $media_extension . '$/';
 
 			return preg_replace( $sanitize_pattern, '.' . $media_extension, $media_src );
 		};
@@ -255,7 +255,7 @@ class WPML_Media_Translated_Images_Update {
 	private function replaceAttributeInHref( $text, $from, $to, $source_lang ) {
 		$pattern = '/<a.*?href="(.*?)".*?>/u';
 
-		$attach_id = $this->image_translator->get_attachment_id_by_url( $from, $source_lang );
+		$attach_id = $this->image_translator->get_attachment_id_by_url( $from, $this->getSourceLanguage( $source_lang ) );
 		$from      = get_post_field( 'guid', $attach_id );
 
 		$replacement = function ( $matches ) use ( $from, $to ) {

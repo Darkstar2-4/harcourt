@@ -4,10 +4,8 @@ class WPML_TM_Translation_Jobs_Fix_Summary {
 
 	const INVALID_JOBS_SYNCED_KEY = 'wpml_tm_migration_invalid_jobs_already_synced';
 
-	/** @var WPML_TM_Translation_Jobs_Fix_Summary_Notice  */
 	private $notice;
 
-	/** @var WPML_TM_Jobs_Migration_State */
 	private $migration_state;
 
 	public function __construct(

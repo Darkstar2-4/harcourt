@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -80,6 +89,10 @@ if ( ! class_exists( 'ACF_Admin' ) ) :
 
 			// Add body class.
 			$classes .= ' acf-admin-5-3';
+
+			if ( version_compare( $wp_version, '7.0', '>=' ) ) {
+				$classes .= ' acf-admin-7-0';
+			}
 
 			// Add browser for specific CSS.
 			$classes .= ' acf-browser-' . esc_attr( acf_get_browser() );

@@ -1,24 +1,9 @@
 <?php
 
-/**
- * @package wpml-core
- */
 class WPML_UI_Screen_Options_Pagination {
-	/**
-	 * @var string $option_name
-	 */
 	private $option_name;
-	/**
-	 * @var int $default_per_page
-	 */
 	private $default_per_page;
 
-	/**
-	 * WPML_UI_Screen_Options_Pagination constructor.
-	 *
-	 * @param string $option_name
-	 * @param int    $default_per_page
-	 */
 	public function __construct( $option_name, $default_per_page ) {
 		$this->option_name      = $option_name;
 		$this->default_per_page = $default_per_page;

@@ -8,19 +8,19 @@
             "lang": "ar"
          },
          "hide the translations instead.": [
-            "إخفاء الترجمات بدلًا من ذلك."
+            "إخفاء الترجمات بدلاً من ذلك."
          ],
          "Error happened! Please try again.": [
-            "حدث خطأ ما! يُرجى إعادة المحاولة لاحقًا."
+            "حدث خطأ! الرجاء المحاولة مرة أخرى."
          ],
          "Cancel": [
             "إلغاء"
          ],
          "Choose Content to Automatically Translate into": [
-            "اختر المحتوى المراد ترجمته آليًا إلى"
+            "اختر المحتوى للترجمة التلقائية إلى"
          ],
          "Save Changes and Enable Automatic Translation": [
-            "حفظ التغييرات وتمكين الترجمة الآلية"
+            "حفظ التغييرات وتمكين الترجمة التلقائية"
          ],
          "Cancel Language Changes": [
             "إلغاء تغييرات اللغة"
@@ -35,28 +35,28 @@
             "إضافة لغة جديدة"
          ],
          "Never mind - don't add new languages": [
-            "لا توجد مشكلة - لا تقم بإضافة لغات جديدة"
+            "لا يهم - لا تضف لغات جديدة"
          ],
          "Never mind - don't add new language": [
-            "لا توجد مشكلة - لا تقم بإضافة لغة جديدة"
+            "لا يهم - لا تضف لغة جديدة"
          ],
          "Choose which content to translate into the new language": [
-            "اختر المحتوى الذي ترغب في ترجمته إلى اللغة الجديدة"
+            "اختر المحتوى الذي تريد ترجمته إلى اللغة الجديدة"
          ],
          "Automatically translate all my posts and pages, plus new content as I create it.": [
-            "ترجمة جميع مقالاتي وصفحاتي تلقائيًا، بالإضافة إلى المحتوى الجديد الذي قمت بإنشائه."
+            "ترجمة جميع منشوراتي وصفحاتي تلقائيًا، بالإضافة إلى المحتوى الجديد عند إنشائه."
          ],
          "Only automatically translate new content.": [
-            "ترجمة المحتوى الجديد فقط آليًا."
+            "ترجمة المحتوى الجديد تلقائيًا فقط."
          ],
          "Which content do you want to translate into the new language?": [
-            "ما المحتوى الذي ترغب في ترجمته إلى اللغة الجديدة؟"
+            "ما المحتوى الذي تريد ترجمته إلى اللغة الجديدة؟"
          ],
          "When you unpause automatic translation, this content will be <a>translated automatically</a>.": [
-            "عند إلغاء الإيقاف المؤقت للترجمة الآلية، ستتم <a>ترجمة هذا المحتوى تلقائيًا</a>."
+            "عند إلغاء إيقاف الترجمة التلقائية مؤقتًا، سيتم <a>ترجمة هذا المحتوى تلقائيًا</a>."
          ],
          "You can still translate existing content any time from the Translation Management Dashboard.": [
-            "ما زال بإمكانك ترجمة المحتوى الحالي في أي وقت من خلال 'لوحة أدوات الترجمة' (Translation Management Dashboard)."
+            "لا يزال بإمكانك ترجمة المحتوى الحالي في أي وقت من لوحة تحكم إدارة الترجمة."
          ]
       }
    }

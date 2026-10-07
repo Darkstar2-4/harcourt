@@ -1,14 +1,8 @@
 <?php
-/**
- * Class WPML_Elementor_Integration_Factory
- */
 class WPML_Elementor_Integration_Factory {
 
 	const SLUG = 'elementor';
 
-	/**
-	 * @return WPML_Page_Builders_Integration
-	 */
 	public function create() {
 
 		$action_filter_loader = new WPML_Action_Filter_Loader();
@@ -23,11 +17,15 @@ class WPML_Elementor_Integration_Factory {
 				\WPML\PB\Elementor\Hooks\WooCommerce::class,
 				\WPML\PB\Elementor\LanguageSwitcher\LanguageSwitcher::class,
 				\WPML\PB\Elementor\Hooks\DynamicElements::class,
+				\WPML\PB\Elementor\V4\Hooks::class,
+				\WPML\PB\Elementor\V4\Component\QueryHooks::class,
+				\WPML\PB\Elementor\V4\Component\Cache::class,
 				\WPML\PB\Elementor\Hooks\FormPopup::class,
 				\WPML\PB\Elementor\Hooks\GutenbergCleanup::class,
 				\WPML\PB\Elementor\Hooks\Frontend::class,
 				\WPML\PB\Elementor\Hooks\DomainsWithMultisite::class,
 				\WPML\PB\Elementor\Config\Factory::class,
+				\WPML\PB\Elementor\AutoConfig\Factory::class,
 				\WPML\PB\Elementor\Hooks\LandingPages::class,
 				\WPML\PB\Elementor\Hooks\Editor::class,
 				\WPML\PB\Elementor\Hooks\WordPressWidgets::class,

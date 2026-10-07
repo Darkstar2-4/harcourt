@@ -11,16 +11,12 @@ use WPML\Core\SharedKernel\Component\Post\Application\Query\TranslatableTypesQue
 
 class HasPostsUsingNativeEditorController implements EndpointInterface {
 
-  /** @var SettingsRepository */
   private $translationSettingsRepository;
 
-  /** @var HasPostsUsingNativeEditorQueryInterface */
   private $query;
 
-  /** @var TranslatableTypesQueryInterface */
   private $translatableTypesQuery;
 
-  /** @var string[] | null */
   private $translatablePostTypes;
 
 
@@ -54,9 +50,6 @@ class HasPostsUsingNativeEditorController implements EndpointInterface {
     $nativeEditorGlobalSetting = $editorSettings->useNativeEditorForAllPostTypes();
     $postTypesSettings = $editorSettings->getPostTypesUsingNativeEditor();
 
-    // If using native editor globally, remove post types those are not using native editor from all
-    // translatable post types, so we can treat reaming post types as using native editor.
-    // If NOT using native editor globally, only include post types that are using native editor.
     $postTypesUsingWpEditor = $nativeEditorGlobalSetting
       ? array_diff( $this->getTranslatablePostTypes(), $this->getPostTypes( $postTypesSettings, false ) )
       : $this->getPostTypes( $postTypesSettings, true );
@@ -75,12 +68,6 @@ class HasPostsUsingNativeEditorController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string, bool> $postTypesSettings
-   * @param bool  $usingWpEditor
-   *
-   * @return string[]
-   */
   private function getPostTypes( array $postTypesSettings, bool $usingWpEditor ) : array {
     return array_keys(
       array_filter(
@@ -93,15 +80,11 @@ class HasPostsUsingNativeEditorController implements EndpointInterface {
   }
 
 
-  /**
-   * @return string[]
-   */
   private function getTranslatablePostTypes() : array {
     if ( $this->translatablePostTypes === null ) {
       $this->translatablePostTypes = array_filter(
         array_map(
           function ( PostTypeDto $postType ) {
-            // Hardcode "attachment" post, we don't need it.
             return $postType->isPublic() && $postType->hasUi() && $postType->getId() !== 'attachment'
               ? $postType->getId()
               : null;

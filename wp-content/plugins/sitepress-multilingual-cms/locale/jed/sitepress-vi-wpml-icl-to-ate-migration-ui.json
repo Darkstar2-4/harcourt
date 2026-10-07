@@ -20,25 +20,25 @@
             "Chọn %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "Thiết lập cặp ngôn ngữ cho Người dịch %s:"
+            "Đặt cặp ngôn ngữ cho Trình dịch %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ Thêm cặp ngôn ngữ khác cho người dịch này"
+            "+ Thêm cặp ngôn ngữ cho trình dịch này"
          ],
          "Translation Memory was successfully copied to Advanced Translation Editor.": [
-            "Bộ nhớ dịch đã được sao chép thành công vào Trình biên tập dịch nâng cao."
+            "Bộ nhớ dịch đã được sao chép thành công vào Trình chỉnh sửa bản dịch nâng cao."
          ],
          "Deactivate ICanLocalize.com as Translation Service on this site": [
-            "Hủy kích hoạt ICanLocalize.com làm Dịch vụ Dịch thuật trên trang web này"
+            "Hủy kích hoạt ICanLocalize.com làm Dịch vụ dịch trên trang này"
          ],
          "Missing a translator? Or were new jobs since the last copy of the Translation Memory?": [
-            "Thiếu người dịch? Hoặc có công việc mới kể từ lần sao chép Bộ nhớ dịch gần nhất?"
+            "Thiếu trình dịch? Hoặc có công việc mới kể từ lần sao chép Bộ nhớ dịch cuối cùng?"
          ],
          "Enter here your ICanLocalize authentication details.": [
             "Nhập thông tin xác thực ICanLocalize của bạn tại đây."
          ],
          "API Token:": [
-            "Mã thông báo API:"
+            "Mã API:"
          ],
          "Please enter valid value for ICL token.": [
             "Vui lòng nhập giá trị hợp lệ cho mã thông báo ICL."
@@ -53,7 +53,7 @@
             "Đăng ký"
          ],
          "to ICanLocalize to receive your API token.": [
-            "với ICanLocalize để nhận mã thông báo API của bạn."
+            "vào ICanLocalize để nhận mã API của bạn."
          ],
          "Already have an account? Login and": [
             "Đã có tài khoản? Đăng nhập và"
@@ -68,16 +68,16 @@
             "Nhập bộ nhớ dịch"
          ],
          "ICanLocalize is already deactivated on this site": [
-            "ICanLocalize đã bị hủy kích hoạt trên trang web này"
+            "ICanLocalize đã bị hủy kích hoạt trên trang này"
          ],
          "You can still import Translators or Copy Translation Memory to Advanced Translator Editor": [
-            "Bạn vẫn có thể nhập Người dịch hoặc Sao chép Bộ nhớ dịch vào Trình biên tập dịch nâng cao"
+            "Bạn vẫn có thể nhập Trình dịch hoặc Sao chép Bộ nhớ dịch vào Trình chỉnh sửa bản dịch nâng cao"
          ],
          "Move from ICanLocalize.com to Advanced Translation Editor": [
-            "Chuyển từ ICanLocalize.com sang Trình biên tập dịch nâng cao"
+            "Chuyển từ ICanLocalize.com sang trình chỉnh sửa bản dịch nâng cao"
          ],
          "Import translators": [
-            "Nhập người dịch"
+            "Nhập trình dịch"
          ],
          "Come back": [
             "Quay lại"
@@ -95,7 +95,7 @@
             "Cặp ngôn ngữ"
          ],
          "Not supported pairs:": [
-            "Cặp không được hỗ trợ:"
+            "Các cặp không được hỗ trợ:"
          ],
          "ICanLocalize.com deactivated": [
             "ICanLocalize.com đã bị hủy kích hoạt"
@@ -104,13 +104,13 @@
             "Bộ nhớ dịch đã được nhập"
          ],
          "There is no translators in ICL": [
-            "Không có người dịch nào trong ICL"
+            "Không có trình dịch nào trong ICL"
          ],
          "Translators saved": [
-            "Đã lưu người dịch"
+            "Đã lưu trình dịch"
          ],
          "%s file upload failed.": [
-            "Tải lên tệp %s thất bại."
+            "Tải lên tệp %s không thành công."
          ],
          "Flag": [
             "Cờ"
@@ -119,22 +119,22 @@
             "Tệp cờ"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "Bạn vừa thêm ngôn ngữ. Tiếp theo, hãy chọn nó làm ngôn ngữ mặc định của trang web hoặc ngôn ngữ dịch."
+            "Bạn vừa thêm ngôn ngữ. Tiếp theo, chọn ngôn ngữ đó làm ngôn ngữ mặc định của trang web hoặc ngôn ngữ dịch."
          ],
          "Language added": [
             "Đã thêm ngôn ngữ"
          ],
          "The value \"%s\" already exists": [
-            "Giá trị <q id=\"q-first-1\">%s</q> đã tồn tại"
+            "Giá trị “%s” đã tồn tại"
          ],
          "Add a new language": [
             "Thêm ngôn ngữ mới"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "Tạo ngôn ngữ theo quốc gia cụ thể bằng cách chọn ngôn ngữ chung từ danh sách bên dưới. Sau đó, chọn quốc gia mà nó nên được bản địa hóa."
+            "Tạo ngôn ngữ dành riêng cho quốc gia bằng cách chọn ngôn ngữ chung từ danh sách bên dưới. Sau đó, chọn quốc gia mà ngôn ngữ đó sẽ được bản địa hóa."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "Bằng cách chọn một tổ hợp đã tồn tại trong cơ sở dữ liệu, WPML có thể giúp điền các trường cần thiết. Đọc thêm về <AddingACustomLanguageLink />."
+            "Bằng cách chọn một sự kết hợp đã tồn tại trong cơ sở dữ liệu, WPML có thể giúp điền vào các trường cần thiết. Đọc thêm về <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
             "Không tìm thấy?"
@@ -143,7 +143,7 @@
             "Nhấp vào đây"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "Định dạng sai. Nó chỉ có thể chứa các chữ cái thường và <q id=\"q-first-1\">-</q>. Ví dụ: <q id=\"q-first-2\">fr</q>, <q id=\"q-first-3\">pt-br</q>, <q id=\"q-first-4\">zh-hans</q>"
+            "Định dạng sai. Nó chỉ có thể chứa các chữ cái nhỏ và “-”. Ví dụ: “fr”, “pt-br”, “zh-hans”"
          ],
          "Language": [
             "Ngôn ngữ"
@@ -155,7 +155,7 @@
             "Mã"
          ],
          "The language will not be supported by automatic translations": [
-            "Ngôn ngữ này sẽ không được hỗ trợ bởi dịch tự động"
+            "Ngôn ngữ sẽ không được hỗ trợ bởi bản dịch tự động"
          ],
          "Language mapping": [
             "Ánh xạ ngôn ngữ"
@@ -164,10 +164,10 @@
             "Không ánh xạ ngôn ngữ này"
          ],
          "Default locale": [
-            "Vùng mặc định"
+            "Ngôn ngữ mặc định"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "Định dạng sai. Nó chỉ có thể chứa các chữ cái thường và <q id=\"q-first-1\">_</q>. Ví dụ: <q id=\"q-first-2\">de</q>, <q id=\"q-first-3\">de_DE</q>, <q id=\"q-first-4\">zh_Hant_TW</q>"
+            "Định dạng sai. Nó chỉ có thể chứa các chữ cái nhỏ và “_”. Ví dụ: “de”, “de_DE”, “zh_Hant_TW”"
          ],
          "hreflang": [
             "hreflang"
@@ -188,10 +188,10 @@
             " (bắt buộc)"
          ],
          "Please fill in the field": [
-            "Vui lòng điền vào trường này"
+            "Vui lòng điền vào trường"
          ],
          "PNG, SVG, or JPG files": [
-            "Tệp PNG, SVG, hoặc JPG"
+            "Tệp PNG, SVG hoặc JPG"
          ],
          "Save language": [
             "Lưu ngôn ngữ"
@@ -203,19 +203,19 @@
             "Đọc thêm về "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "Tên của ngôn ngữ của bạn như nó sẽ xuất hiện trên bộ chuyển đổi ngôn ngữ của trang web của bạn."
+            "Tên ngôn ngữ của bạn như nó sẽ xuất hiện trên bộ chuyển đổi ngôn ngữ của trang web của bạn."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "Một giá trị duy nhất xác định ngôn ngữ trong cơ sở dữ liệu và URL. Sau khi lưu, mã ngôn ngữ không thể thay đổi được."
+            "Một giá trị duy nhất xác định ngôn ngữ trong cơ sở dữ liệu và URL. Sau khi lưu, mã ngôn ngữ không thể thay đổi."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "Nếu ngôn ngữ tùy chỉnh của bạn tương tự với một ngôn ngữ hiện có, bạn có thể sử dụng kiểm tra chính tả và dịch tự động của ngôn ngữ hiện có đó. Ví dụ, nếu ngôn ngữ tùy chỉnh của bạn là tiếng Đức-Thụy Sĩ, bạn có thể ánh xạ nó với tiếng Đức làm ngôn ngữ để sử dụng cho kiểm tra chính tả và dịch tự động. Nếu bạn không ánh xạ ngôn ngữ tùy chỉnh của mình với một ngôn ngữ hiện có, các tính năng kiểm tra chính tả và dịch tự động sẽ không khả dụng trong ngôn ngữ đó."
+            "Nếu ngôn ngữ tùy chỉnh của bạn tương tự như một ngôn ngữ hiện có, bạn có thể sử dụng tính năng kiểm tra chính tả và dịch tự động của ngôn ngữ hiện có. Ví dụ: nếu ngôn ngữ tùy chỉnh của bạn là tiếng Đức-Thụy Sĩ, bạn có thể ánh xạ sang tiếng Đức làm ngôn ngữ để sử dụng cho tính năng kiểm tra chính tả và dịch tự động. Nếu bạn không ánh xạ ngôn ngữ tùy chỉnh của mình sang một ngôn ngữ hiện có, các tính năng kiểm tra chính tả và dịch tự động sẽ không khả dụng trong ngôn ngữ đó."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "Giá trị mà WPML kiểm tra khi tải bản dịch từ các tệp MO và PO. Vùng mặc định được bao gồm trong tên tệp trong thư mục  /wp-content/languages/ trong cài đặt WordPress của bạn."
+            "Giá trị WPML kiểm tra khi tải bản dịch từ các tệp MO và PO. Ngôn ngữ mặc định được bao gồm trong tên tệp trong thư mục /wp-content/languages/ trong thiết lập WordPress của bạn."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Google sử dụng thuộc tính hreflang để chuyển hướng người dùng đến các trang web bằng ngôn ngữ và vị trí phù hợp với họ. Ví dụ:"
+            "Google sử dụng thuộc tính hreflang để hướng người dùng đến các trang web bằng ngôn ngữ và vị trí liên quan của họ. Ví dụ:"
          ],
          "All English-speaking users: en": [
             "Tất cả người dùng nói tiếng Anh: en"
@@ -227,7 +227,7 @@
             "Tiếng Anh cho người dùng Hoa Kỳ: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "Xác định xem URL trong ngôn ngữ này có được mã hóa hay sử dụng ký tự ASCII (nếu không chắc chắn, hãy để là <q id=\"q-first-1\">Không</q>)."
+            "Xác định xem URL trong ngôn ngữ này có được mã hóa hay sử dụng ký tự ASCII (nếu không chắc chắn, hãy để là “Không”)."
          ],
          "adding a custom language": [
             "thêm ngôn ngữ tùy chỉnh"
@@ -247,8 +247,8 @@
          "Which languages do you want to translate your site into?": [
             "Bạn muốn dịch trang web của mình sang những ngôn ngữ nào?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "Nếu bạn không thể tìm thấy ngôn ngữ bạn cần trong danh sách"
+         "If you cannot find languages that you need in the list,": [
+            "Nếu bạn không thể tìm thấy ngôn ngữ bạn cần trong danh sách,"
          ],
          "create a custom language": [
             "tạo ngôn ngữ tùy chỉnh"

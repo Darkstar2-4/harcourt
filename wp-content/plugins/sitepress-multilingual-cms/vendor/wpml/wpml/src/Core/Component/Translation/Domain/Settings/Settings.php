@@ -2,23 +2,18 @@
 
 namespace WPML\Core\Component\Translation\Domain\Settings;
 
-use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationEditorSetting;
+use WPML\Core\SharedKernel\Component\Setting\Domain\TranslationEditorSetting;
 
 class Settings {
 
-  /** @var bool */
   private $isTMAllowed;
 
-  /** @var ReviewMode|null */
   private $reviewMode;
 
-  /** @var TranslationEditorSetting|null */
   private $translationEditor;
 
-  /** @var TranslateEverything */
   private $translateEverything;
 
-  /** @var TranslateAutomaticallyPerPostType */
   private $translateAutomaticallyPerPostType;
 
 
@@ -26,8 +21,8 @@ class Settings {
     bool $isTMAllowed,
     TranslateEverything $translateEverything,
     TranslateAutomaticallyPerPostType $translateAutomaticallyPerPostType,
-    ReviewMode $reviewMode = null,
-    TranslationEditorSetting $translationEditor = null
+    ?ReviewMode $reviewMode = null,
+    ?TranslationEditorSetting $translationEditor = null
   ) {
     $this->isTMAllowed                       = $isTMAllowed;
     $this->translateEverything               = $translateEverything;
@@ -42,17 +37,11 @@ class Settings {
   }
 
 
-  /**
-   * @return ReviewMode|null
-   */
   public function getReviewMode() {
     return $this->reviewMode;
   }
 
 
-  /**
-   * @return TranslationEditorSetting|null
-   */
   public function getTranslationEditor() {
     return $this->translationEditor;
   }
@@ -68,23 +57,15 @@ class Settings {
   }
 
 
-  /**
-   * @param ReviewMode|null               $reviewMode
-   * @param TranslationEditorSetting|null $translationEditor
-   *
-   * @return Settings
-   * @throws SettingsException
-   */
   public function enableTranslateEverything(
-    ReviewMode $reviewMode = null,
-    TranslationEditorSetting $translationEditor = null
+    ?ReviewMode $reviewMode = null,
+    ?TranslationEditorSetting $translationEditor = null
   ): self {
     if ( ! $this->isTMAllowed() ) {
       throw new SettingsException( 'TM is not allowed' );
     }
 
     if ( ! $reviewMode ) {
-      // We have to have a review mode set. Therefore, if a user doesn't specify it, we set the default one.
       $reviewMode = $this->getReviewMode() ?: ReviewMode::createDefault();
     }
 

@@ -12,7 +12,6 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\Query\FetchRemoteTr
 
 class AssignedTranslationServiceValidatorService implements ValidatorServiceInterface {
 
-  /** @var AssignedTranslationServiceValidator */
   private $assignedTranslationServiceValidator;
 
 
@@ -21,12 +20,6 @@ class AssignedTranslationServiceValidatorService implements ValidatorServiceInte
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return ValidationResultDto
-   * @throws FetchRemoteTranslationServiceException
-   */
   public function validate( SendToTranslationDto $sendToTranslationDto ): ValidationResultDto {
     $translationServiceMethods = $this->extractTranslationServiceMethods( $sendToTranslationDto );
 
@@ -41,11 +34,6 @@ class AssignedTranslationServiceValidatorService implements ValidatorServiceInte
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return TranslationServiceMethod[]
-   */
   private function extractTranslationServiceMethods( SendToTranslationDto $sendToTranslationDto ): array {
     $translationServiceMethodsDto = array_filter(
       $sendToTranslationDto->getTargetLanguageMethods(),
@@ -57,7 +45,6 @@ class AssignedTranslationServiceValidatorService implements ValidatorServiceInte
     return array_map(
       function ( TargetLanguageMethodDto $translationServiceMethod ) {
         return new TranslationServiceMethod(
-        // Validator will handle checking if the value is valid or not
           $translationServiceMethod->getTranslatorId() ?? 0
         );
       },

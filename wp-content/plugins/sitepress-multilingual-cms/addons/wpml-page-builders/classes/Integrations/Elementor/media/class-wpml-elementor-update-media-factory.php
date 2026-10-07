@@ -17,11 +17,6 @@ class WPML_Elementor_Update_Media_Factory implements IWPML_PB_Media_Update_Facto
 		);
 	}
 
-	/**
-	 * @param boolean $find_usage_instead_of_translate
-	 *
-	 * @return IWPML_PB_Media_Find_And_Translate
-	 */
 	private function get_media_translate( $find_usage_instead_of_translate ) {
 		global $sitepress;
 

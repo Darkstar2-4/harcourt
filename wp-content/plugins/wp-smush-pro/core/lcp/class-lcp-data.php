@@ -42,9 +42,9 @@ class LCP_Data {
 	private $version;
 	private $allowed_url_hostnames;
 
-	public function __construct( array $data, int $version = LCP_Helper::DEFAULT_VERSION ) {
+	public function __construct( $data, $version = null ) {
 		$this->data        = $data;
-		$this->version     = $version;
+		$this->version     = $version ?? LCP_Helper::get_default_version();
 		$this->array_utils = new Array_Utils();
 	}
 
@@ -136,14 +136,6 @@ class LCP_Data {
 		return $this->background_type;
 	}
 
-	public function get_background_property() {
-		if ( is_null( $this->background_property ) ) {
-			$this->background_property = $this->array_utils->get_array_value( $this->data, array( 'background_data', 'property' ) );
-		}
-
-		return $this->background_property;
-	}
-
 	public function get_background_urls() {
 		if ( is_null( $this->background_urls ) ) {
 			$background_urls       = $this->array_utils->get_array_value( $this->data, array( 'background_data', 'urls' ) );
@@ -165,7 +157,7 @@ class LCP_Data {
 	public static function from_array( $data ) {
 		$version = ! empty( $data['version'] )
 			? (int) $data['version']
-			: LCP_Helper::DEFAULT_VERSION;
+			: LCP_Helper::get_default_version();
 
 		unset( $data['version'] );
 

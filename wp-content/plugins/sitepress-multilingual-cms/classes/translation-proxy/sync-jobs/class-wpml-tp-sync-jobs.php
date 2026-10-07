@@ -2,22 +2,12 @@
 
 class WPML_TP_Sync_Jobs {
 
-	/** @var WPML_TM_Sync_Jobs_Status */
 	private $jobs_status_sync;
 
-	/** @var WPML_TM_Sync_Jobs_Revision */
 	private $jobs_revision_sync;
 
-	/** @var WPML_TP_Sync_Update_Job */
 	private $update_job;
 
-	/**
-	 * WPML_TP_Sync_Jobs constructor.
-	 *
-	 * @param WPML_TM_Sync_Jobs_Status   $jobs_status_sync
-	 * @param WPML_TM_Sync_Jobs_Revision $jobs_revision_sync
-	 * @param WPML_TP_Sync_Update_Job    $update_job
-	 */
 	public function __construct(
 		WPML_TM_Sync_Jobs_Status $jobs_status_sync,
 		WPML_TM_Sync_Jobs_Revision $jobs_revision_sync,
@@ -28,10 +18,6 @@ class WPML_TP_Sync_Jobs {
 		$this->update_job         = $update_job;
 	}
 
-	/**
-	 * @return WPML_TM_Jobs_Collection
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function sync() {
 		return new WPML_TM_Jobs_Collection(
 			$this->jobs_status_sync

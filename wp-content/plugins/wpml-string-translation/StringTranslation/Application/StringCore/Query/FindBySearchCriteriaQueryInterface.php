@@ -7,8 +7,5 @@ use WPML\StringTranslation\Application\StringCore\Query\Dto\StringWithTranslatio
 
 interface FindBySearchCriteriaQueryInterface {
 
-	/**
-	 * @return StringWithTranslationStatusDto[]
-	 */
 	public function execute( SearchCriteria $criteria );
 }

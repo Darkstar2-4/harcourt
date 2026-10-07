@@ -7,10 +7,8 @@ use WPML\TM\ATE\TranslateEverything\UntranslatedPosts;
 
 class PostTypesMigration {
 
-	/** @var UntranslatedPosts */
 	private $untranslatedPosts;
 
-	/** @var ExecutionStatus */
 	private $executionStatus;
 
 
@@ -22,15 +20,6 @@ class PostTypesMigration {
 		$this->executionStatus   = $executionStatus;
 	}
 
-	/**
-	 * It marks all `display as translated` post types as completed in TEA.
-	 * It is identical action as when a user enables TEA and chooses to translate only new content.
-	 * In this case, existing content is not translated.
-	 *
-	 * At the end, we mark the migration as done.
-	 *
-	 * @return void
-	 */
 	public function run() {
 		$postTypes = PostTypes::getDisplayAsTranslated();
 

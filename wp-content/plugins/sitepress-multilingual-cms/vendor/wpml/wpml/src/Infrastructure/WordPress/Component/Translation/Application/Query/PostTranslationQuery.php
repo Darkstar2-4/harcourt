@@ -9,18 +9,11 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class PostTranslationQuery implements PostTranslationQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, int|bool> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, int|bool> $queryHandler
-   *
-   * @param QueryPrepareInterface                        $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -50,8 +43,6 @@ class PostTranslationQuery implements PostTranslationQueryInterface {
       $originalPostId = 0;
     }
 
-    // If $originalPostId is zero, it means that the post is also the original post.
-    // It means that the post is not translated.
     return $originalPostId ?: $translatedPostId;
   }
 

@@ -2,16 +2,12 @@
 
 class WPML_TM_Upgrade_Default_Editor_For_Old_Jobs implements IWPML_Upgrade_Command {
 
-	/** @var SitePress */
 	private $sitepress;
 
 	public function __construct( $args ) {
 		$this->sitepress = $args[0];
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function run() {
 		$default = get_option( WPML_TM_Old_Jobs_Editor::OPTION_NAME );
 		if ( ! $default ) {
@@ -36,7 +32,6 @@ class WPML_TM_Upgrade_Default_Editor_For_Old_Jobs implements IWPML_Upgrade_Comma
 		return $this->run();
 	}
 
-	/** @return bool */
 	public function get_results() {
 		return true;
 	}

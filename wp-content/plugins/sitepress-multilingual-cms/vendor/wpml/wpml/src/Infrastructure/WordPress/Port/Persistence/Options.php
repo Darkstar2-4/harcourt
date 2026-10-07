@@ -12,25 +12,18 @@ class Options implements OptionsInterface {
   }
 
 
-  /**
-   * @param string $optionName
-   * @param mixed  $value
-   * @param bool   $autoload
-   *
-   * @return void
-   */
   public function save( string $optionName, $value, $autoload = false ) {
     \update_option( $optionName, $value, $autoload );
   }
 
 
-  /**
-   * @param string $optionName
-   *
-   * @return void
-   */
   public function delete( string $optionName ) {
     \delete_option( $optionName );
+  }
+
+
+  public function add( string $optionName, $value, bool $autoload = true ): bool {
+    return \add_option( $optionName, $value, '', $autoload ? 'yes' : 'no' );
   }
 
 

@@ -9,3 +9,34 @@ How to update the icons:
 3. run npm script "create-otgs-font" to generate new font files
 
 This project also uses [SVG Fixer](https://www.npmjs.com/package/oslllo-svg-fixer) npm package that attempts to fix SVG files by turning it into a fill / single path (and making it font compatible).
+
+
+== Changelog ==
+1.0.7
+* Updated all plugin thumbnail images
+* Updated font icons:
+  * needs-review
+* Added new font icons:
+    * glossary
+    * dashboard
+    * spelling
+    * add-user
+    * ai
+    * asterisk
+    * click
+    * credits
+    * doc-check
+    * doc-filled
+    * happy
+    * menu
+    * needs-scanning
+    * not-allowed-o
+    * not-scanned
+    * not-scanned-question
+    * operator
+    * page-builder
+    * question-user
+    * reply
+    * scanned
+    * stop
+    * tag

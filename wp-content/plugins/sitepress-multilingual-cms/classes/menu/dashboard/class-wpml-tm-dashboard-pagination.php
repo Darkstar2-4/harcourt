@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_TM_Dashboard_Pagination
- */
 class WPML_TM_Dashboard_Pagination {
 
 	private $post_limit_number = 0;
@@ -18,42 +15,19 @@ class WPML_TM_Dashboard_Pagination {
 		}
 	}
 
-	/**
-	 * Sets value for posts limit query to be used in post_limits filter
-	 *
-	 * @param int $value
-	 *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-	 */
 	public function setPostsLimitValue( $value ) {
 		$this->post_limit_number = ( is_int( $value ) && $value > 0 ) ? $value : $this->post_limit_number;
 	}
 
-	/**
-	 * Resets value of posts limit variable.
-	 *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-	 */
 	public function resetPostsLimitValue() {
 		$this->post_limit_number = 0;
 	}
 
-	/**
-	 * Custom callback that's hooked into 'post_limits' filter to set custom limit of retrieved posts.
-	 *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-	 *
-	 * @return string
-	 */
 	public function getPostsLimitQueryValue() {
 		return ( 0 === $this->post_limit_number ) ? '' : 'LIMIT ' . $this->post_limit_number;
 	}
 
 
-	/**
-	 * @param integer $posts_per_page
-	 * @param integer $found_documents
-	 */
 	public function add_tm_dashboard_pagination( $posts_per_page, $found_documents ) {
 		$found_documents = $found_documents;
 		$total_pages     = ceil( $found_documents / $posts_per_page );

@@ -18,22 +18,27 @@ use function WPML\FP\pipe;
 
 class EnableATE implements IHandler {
 
+
 	public function run( Collection $data ) {
-		Settings::assoc( 'translation-management', 'doc_translation_method', ICL_TM_TMETHOD_ATE );
+		if ( ! User::canManageTranslations() ) {
+			return Either::left( 'Insufficient permissions' );
+		}
+
+		return $this->enable();
+	}
+
+	public function enable() {
 
 		$cache = wpml_get_cache( \WPML_Translation_Roles_Records::CACHE_GROUP );
 		$cache->flush_group_cache();
 
-		/** @var \WPML_TM_AMS_API $ateApi */
 		$ateApi = make( \WPML_TM_AMS_API::class );
 		$status = $ateApi->get_status();
 		if ( Obj::propOr( false, 'activated', $status ) ) {
 			$result = Either::right( true );
 		} else {
-			/** @var \WPML_TM_AMS_Users $amsUsers */
 			$amsUsers = make( \WPML_TM_AMS_Users::class );
 
-			/** @var \WPML_TM_AMS_API $amsApi */
 			$amsApi = make( \WPML_TM_AMS_API::class );
 
 			$saveLanguageMapping = Fns::tap( pipe(
@@ -47,10 +52,32 @@ class EnableATE implements IHandler {
 				$amsUsers->get_managers()
 			)->map( $saveLanguageMapping );
 
-			$ateApi->get_status(); // Required to get the active status and store it.
+			$ateApi->get_status();
 		}
 
+		$setTranslationMethod = Fns::tap( function () {
+			Settings::assoc( 'translation-management', 'doc_translation_method', ICL_TM_TMETHOD_ATE );
+		} );
+
 		return $result->map( Fns::tap( [ make( \WPML_TM_AMS_Synchronize_Actions::class ), 'synchronize_translators' ] ) )
-		              ->bimap( pipe( Lst::make(), Lst::keyWith( 'error' ), Lst::nth(0) ), Fns::identity() );
+									->map( $this->confirmSiteKey() )
+									->map( $setTranslationMethod )
+		              ->bimap(
+		              	$this->formatError(),
+		              	Fns::identity()
+		              );
+	}
+
+	private function confirmSiteKey() {
+		return Fns::tap(function() {
+			$confirmationService = make( \WPML\TM\ATE\Sitekey\SitekeyConfirmationService::class );
+			$confirmationService->confirm();
+		});
+	}
+
+	private function formatError() {
+		return function( $errorData ) {
+			return [ 'error' => $errorData ];
+		};
 	}
 }

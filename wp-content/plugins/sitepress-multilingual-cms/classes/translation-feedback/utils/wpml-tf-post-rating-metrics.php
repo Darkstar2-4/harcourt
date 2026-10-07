@@ -1,27 +1,16 @@
 <?php
 
-/**
- * Class WPML_TF_Rating_Average
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Post_Rating_Metrics {
 
 	const QUANTITY_KEY = 'wpml_tf_post_rating_quantity';
 	const AVERAGE_KEY  = 'wpml_tf_post_rating_average';
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return string
-	 */
 	public function get_display( $post_id ) {
 		$quantity = (int) get_post_meta( $post_id, self::QUANTITY_KEY, true );
 
@@ -52,7 +41,6 @@ class WPML_TF_Post_Rating_Metrics {
 
 	}
 
-	/** @param int $post_id */
 	public function refresh( $post_id ) {
 		$document_id_key = WPML_TF_Data_Object_Storage::META_PREFIX . 'document_id';
 		$rating_key      = WPML_TF_Data_Object_Storage::META_PREFIX . 'rating';

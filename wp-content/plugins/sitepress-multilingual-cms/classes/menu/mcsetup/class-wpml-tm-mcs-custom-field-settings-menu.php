@@ -4,34 +4,24 @@ use WPML\TM\Menu\McSetup\CfMetaBoxOption;
 
 abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 
-	/** @var  WPML_Custom_Field_Setting_Factory $settings_factory */
 	protected $settings_factory;
 
-	/** @var WPML_UI_Unlock_Button $unlock_button_ui */
 	private $unlock_button_ui;
 
-	/** @var WPML_Custom_Field_Setting_Query_Factory $query_factory */
 	private $query_factory;
 
-	/** @var WPML_Custom_Field_Setting_Query $query */
 	private $query;
 
-	/** @var string[] Custom field keys */
 	private $custom_fields_keys;
 
-	/** @var bool $has_more If there are more fields to load. */
 	private $has_more;
 
-	/** @var bool If all fields should be loaded. */
 	private $load_all_fields = false;
 
-	/** @var int $highest_page_loaded */
 	private $highest_page_loaded;
 
-	/** @var array Custom field options */
 	private $custom_field_options;
 
-	/** @var int Initial setting of items per page */
 	const ITEMS_PER_PAGE = 20;
 
 	public function __construct(
@@ -51,12 +41,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		);
 	}
 
-	/**
-	 * This will fetch the data from DB
-	 * depending on the user inputs (pagination/search)
-	 *
-	 * @param array $args
-	 */
 	public function init_data( array $args = array() ) {
 		if ( null === $this->custom_fields_keys ) {
 			$args = array_merge(
@@ -72,16 +56,13 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 			$this->load_all_fields     = (int) $args['page'] < 0;
 			$this->highest_page_loaded = (int) $args['highest_page_loaded'];
 
-			// Fetch one more item than the wanted items per page.
 			$this->custom_fields_keys = $this->get_query()->get( array_merge( $args, [ 'items_per_page' => $args['items_per_page'] + 1 ] ) );
 
-			// Check if we have more items to load.
 			$this->has_more = $this->load_all_fields
 				? false
 				: count( $this->custom_fields_keys ) > $args['items_per_page'];
 
 			if ( $this->has_more ) {
-				// Remove the extra loaded item as it should not be displayed.
 				array_pop( $this->custom_fields_keys );
 			}
 
@@ -89,9 +70,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render() {
 		ob_start();
 		?>
@@ -101,7 +79,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 				<h3><?php echo esc_html( $this->get_title() ); ?></h3>
 				<p>
 					<?php
-					// We need htmlspecialchars() here only for testing, as DOMDocument::loadHTML() cannot parse url with '&'.
 					$toggle_system_fields = array(
 						'url'  => htmlspecialchars(
 							add_query_arg(
@@ -177,23 +154,12 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		return ob_get_clean();
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function kind_shorthand();
 
-	/**
-	 * @return string
-	 */
 	abstract protected function get_title();
 
 	abstract protected function get_meta_type();
 
-	/**
-	 * @param string $key
-	 *
-	 * @return WPML_Custom_Field_Setting
-	 */
 	abstract protected function get_setting( $key );
 
 	private function render_radio( $cf_key, $html_disabled, $status, $ref_status ) {
@@ -220,9 +186,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		return 'cf_unlocked[' . esc_attr( base64_encode( $cf_key ) ) . ']';
 	}
 
-	/**
-	 * @return string header and footer of the setting table
-	 */
 	private function render_heading() {
 		ob_start();
 		?>
@@ -259,19 +222,11 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		return ob_get_clean();
 	}
 
-	/**
-	 * Render search box for Custom Field Settings.
-	 *
-	 * @param string $search_string Search String.
-	 */
 	public function render_search( $search_string = '' ) {
 		$search = new WPML_TM_MCS_Search_Factory();
 		echo $search->create( $search_string )->render();
 	}
 
-	/**
-	 * Render body of Custom Field Settings.
-	 */
 	public function render_body() {
 		foreach ( $this->custom_fields_keys as $cf_key ) {
 			$setting       = $this->get_setting( $cf_key );
@@ -283,15 +238,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 				<div class="wpml-flex-table-cell name">
 					<?php
 					$override = false;
-					/**
-					 * This filter hook give the ability to override the
-					 * default custom field lock rendering.
-					 *
-					 * @since 4.6.0
-					 *
-					 * @param bool                      $override
-					 * @param WPML_Custom_Field_Setting $setting
-					 */
 					if ( ! apply_filters( 'wpml_custom_field_settings_override_lock_render', $override, $setting ) ) {
 						$this->unlock_button_ui->render( $setting->is_read_only(), $setting->is_unlocked(), $this->get_radio_name( $cf_key ), $this->get_unlock_name( $cf_key ) );
 					}
@@ -315,17 +261,10 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 		}
 	}
 
-	/**
-	 * Render pagination for Custom Field Settings.
-	 *
-	 * @param int $items_per_page Items per page to display.
-	 * @param int $current_page Which page to display.
-	 */
 	public function render_pagination( $items_per_page, $current_page ) {
 		$pagination = new WPML_TM_MCS_Pagination_Render_Factory( $items_per_page );
 
 		if ( $this->load_all_fields ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo $pagination->create( count( $this->custom_fields_keys ), $current_page )->render();
 			return;
 		}
@@ -335,7 +274,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 			? $current_fields_count
 			: $items_per_page * $this->highest_page_loaded + ( $this->has_more ? 1 : 0 );
 
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo $pagination->create( $total_items_so_far, $current_page )->render();
 	}
 
@@ -343,9 +281,6 @@ abstract class WPML_TM_MCS_Custom_Field_Settings_Menu {
 
 	abstract public function get_column_header( $id );
 
-	/**
-	 * @return WPML_Custom_Field_Setting_Query
-	 */
 	private function get_query() {
 		if ( null === $this->query ) {
 			$this->query = $this->query_factory->create( $this->get_meta_type() );

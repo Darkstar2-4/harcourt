@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_XLIFF_Factory {
 	const WPML_XLIFF_DEFAULT_VERSION = WPML_XLIFF_DEFAULT_VERSION;
 	const CREATE_FOR_WRITE           = 'WPML_TM_Xliff_Writer';

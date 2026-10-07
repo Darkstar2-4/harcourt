@@ -1,9 +1,9 @@
 @font-face {
     font-family: "otgs-icons";
-    src: url("../fonts/otgs-icons.eot?49e5d3e0aad3ed901389857c5c1533e7#iefix") format("embedded-opentype"),
-url("../fonts/otgs-icons.ttf?49e5d3e0aad3ed901389857c5c1533e7") format("truetype"),
-url("../fonts/otgs-icons.woff?49e5d3e0aad3ed901389857c5c1533e7") format("woff"),
-url("../fonts/otgs-icons.woff2?49e5d3e0aad3ed901389857c5c1533e7") format("woff2");
+    src: url("../fonts/otgs-icons.eot?650c72727e879e301607a0c551d7ea04#iefix") format("embedded-opentype"),
+url("../fonts/otgs-icons.ttf?650c72727e879e301607a0c551d7ea04") format("truetype"),
+url("../fonts/otgs-icons.woff?650c72727e879e301607a0c551d7ea04") format("woff"),
+url("../fonts/otgs-icons.woff2?650c72727e879e301607a0c551d7ea04") format("woff2");
 }
 
 [class*="otgs-ico"] {
@@ -487,6 +487,93 @@ url("../fonts/otgs-icons.woff2?49e5d3e0aad3ed901389857c5c1533e7") format("woff2"
 }
 .otgs-ico-youtube:before {
     content: "\f665";
+}
+.otgs-ico-fast:before {
+    content: "\f666";
+}
+.otgs-ico-generated:before {
+    content: "\f667";
+}
+.otgs-ico-guarantee-warning:before {
+    content: "\f668";
+}
+.otgs-ico-merge:before {
+    content: "\f669";
+}
+.otgs-ico-stop-circle-o:before {
+    content: "\f66a";
+}
+.otgs-ico-stop-circle:before {
+    content: "\f66b";
+}
+.otgs-ico-glossary:before {
+    content: "\f66c";
+}
+.otgs-ico-dashboard:before {
+    content: "\f66d";
+}
+.otgs-ico-spelling:before {
+    content: "\f66e";
+}
+.otgs-ico-add-user:before {
+    content: "\f66f";
+}
+.otgs-ico-ai:before {
+    content: "\f670";
+}
+.otgs-ico-asterisk:before {
+    content: "\f671";
+}
+.otgs-ico-click:before {
+    content: "\f672";
+}
+.otgs-ico-credits:before {
+    content: "\f673";
+}
+.otgs-ico-doc-check:before {
+    content: "\f674";
+}
+.otgs-ico-doc-filled:before {
+    content: "\f675";
+}
+.otgs-ico-happy:before {
+    content: "\f676";
+}
+.otgs-ico-menu:before {
+    content: "\f677";
+}
+.otgs-ico-needs-scanning:before {
+    content: "\f678";
+}
+.otgs-ico-not-allowed-o:before {
+    content: "\f679";
+}
+.otgs-ico-not-scanned:before {
+    content: "\f67a";
+}
+.otgs-ico-not-scanned-question:before {
+    content: "\f67b";
+}
+.otgs-ico-operator:before {
+    content: "\f67c";
+}
+.otgs-ico-page-builder:before {
+    content: "\f67d";
+}
+.otgs-ico-question-user:before {
+    content: "\f67e";
+}
+.otgs-ico-reply:before {
+    content: "\f67f";
+}
+.otgs-ico-scanned:before {
+    content: "\f680";
+}
+.otgs-ico-stop:before {
+    content: "\f681";
+}
+.otgs-ico-tag:before {
+    content: "\f682";
 }
 .otgs-ico-external-link:before {
     content: "\f101";

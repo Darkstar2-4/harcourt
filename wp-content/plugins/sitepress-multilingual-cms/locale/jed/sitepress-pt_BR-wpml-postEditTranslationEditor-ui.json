@@ -4,20 +4,20 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
+         "Translation Dashboard": [
+            "Painel de tradução"
+         ],
          "WPML Translation Editor": [
-            "WPML Translation Editor"
+            "Editor de tradução do WPML"
          ],
          "WordPress Editor": [
             "Editor do WordPress"
          ],
-         "Translation Dashboard": [
-            "Painel de tradução"
-         ],
          "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
-            "Além disso, voltar para o Editor de Tradução do WPML posteriormente exigirá retraduzir o conteúdo que você traduziu com o editor do WordPress."
+            "Além disso, voltar para o Editor de Tradução do WPML mais tarde exigirá retraduzir o conteúdo que você traduziu com o editor do WordPress."
          ],
          "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
             "Isso substituirá o conteúdo que você traduziu com o Editor do WordPress. Se você mudar agora, terá que traduzir o conteúdo selecionado novamente."
@@ -26,10 +26,10 @@
             "Você está prestes a traduzir com o %s"
          ],
          "Translate with the WordPress Editor if you need different designs per language or if the content isn't compatible with WPML's Translation Editor.": [
-            "Traduza com o Editor do WordPress se você precisar de designs diferentes para cada idioma ou se o conteúdo não for compatível com o Editor de Tradução do WPML."
+            "Traduza com o Editor do WordPress se precisar de designs diferentes por idioma ou se o conteúdo não for compatível com o Editor de Tradução do WPML."
          ],
          "What do you want to translate?": [
-            "O que você deseja traduzir?"
+            "O que você quer traduzir?"
          ],
          "I understand, switch to the WordPress Editor": [
             "Entendi, mudar para o Editor do WordPress"
@@ -50,7 +50,7 @@
             "Recomendado"
          ],
          "All %s": [
-            "Todos %s"
+            "Todos os %s"
          ],
          "All the site's content": [
             "Todo o conteúdo do site"
@@ -62,7 +62,7 @@
             "O Editor do WordPress não oferece Tradução Automática, Memória de Tradução e outros recursos que facilitam a tradução."
          ],
          "Translate items in batch after reviewing the cost of AI translation": [
-            "Traduzir itens em lote depois de revisar o custo da tradução por IA"
+            "Traduzir itens em lote após revisar o custo da tradução por IA"
          ]
       }
    }

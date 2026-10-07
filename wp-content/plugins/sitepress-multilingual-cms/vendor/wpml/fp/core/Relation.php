@@ -4,22 +4,10 @@ namespace WPML\FP;
 
 use WPML\Collect\Support\Traits\Macroable;
 
-/**
- * @method static callable|bool equals( ...$a, ...$b ) - Curried :: a->b->bool
- * @method static callable|bool lt( ...$a, ...$b ) - Curried :: a->b->bool
- * @method static callable|bool lte( ...$a, ...$b ) - Curried :: a->b->bool
- * @method static callable|bool gt( ...$a, ...$b ) - Curried :: a->b->bool
- * @method static callable|bool gte( ...$a, ...$b ) - Curried :: a->b->bool
- * @method static callable|bool propEq( ...$prop, ...$value, ...$obj ) - Curried :: String → a → array → bool
- * @method static callable|array sortWith( ...$comparators, ...$array ) - Curried :: [(a, a) → int] → [a] → [a]
- */
 class Relation {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 
 		self::macro( 'equals', curryN( 2, function ( $a, $b ) {

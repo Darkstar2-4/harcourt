@@ -8,7 +8,6 @@ use WPML\Core\SharedKernel\Component\String\Application\Query\StringLanguageQuer
 
 class StringLanguageQuery implements ItemLanguageQueryInterface {
 
-  /** @var StringLanguageQueryInterface */
   private $stringLanguageQuery;
 
 
@@ -17,11 +16,6 @@ class StringLanguageQuery implements ItemLanguageQueryInterface {
   }
 
 
-  /**
-   * @param array{itemId: int, type: TranslationType}[] $items
-   *
-   * @return array{itemId: int, type: TranslationType, language: string}[]
-   */
   public function getManyOriginalLanguagesOfItems( array $items ): array {
       $stringItems = array_filter(
         $items,

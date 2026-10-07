@@ -6,20 +6,9 @@ use OTGS\Installer\Collection;
 use OTGS\Installer\NullCollection;
 use OTGS\Installer\Collect\Support\Macroable;
 
-/**
- * @method static callable|mixed prop( ...$key, ...$obj ) - Curried :: string->Collection|array|object->mixed|null
- * @method static callable|mixed propOr( ...$default, ...$key, ...$obj ) - Curried :: mixed->string->Collection|array|object->mixed|null
- * @method static callable|mixed path( ...$path, ...$obj ) - Curried :: array->Collection|array|object->mixed|null
- * @method static callable|mixed pathOr( ...$default, ...$path, ...$obj ) - Curried :: mixed → array → Collection|array|object → mixed
- * @method static callable|bool has( ...$prop, ...$item ) - Curried :: string → a → bool
- * @method static callable|bool hasPath( ...$path, ...$item ) - Curried :: array<string> → a → bool
- */
 class Obj {
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 		self::macro( 'prop', curryN( 2, function ( $key, $item ) {
 			return self::propOr( null, $key, $item );

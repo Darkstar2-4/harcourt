@@ -1,20 +1,12 @@
 <?php
 abstract class WPML_TM_Translatable_Element {
 
-	/** @var WPML_TM_Word_Count_Records $word_count_records */
 	protected $word_count_records;
 
-	/** @var WPML_TM_Word_Count_Single_Process $single_process */
 	protected $single_process;
 
-	/** @var int $id */
 	protected $id;
 
-	/**
-	 * @param int|false                         $id
-	 * @param WPML_TM_Word_Count_Records        $word_count_records
-	 * @param WPML_TM_Word_Count_Single_Process $single_process
-	 */
 	public function __construct(
 		$id,
 		WPML_TM_Word_Count_Records $word_count_records,
@@ -42,7 +34,6 @@ abstract class WPML_TM_Translatable_Element {
 
 	abstract protected function get_total_words();
 
-	/** @return int */
 	public function get_words_count() {
 		$total_words = $this->get_total_words();
 

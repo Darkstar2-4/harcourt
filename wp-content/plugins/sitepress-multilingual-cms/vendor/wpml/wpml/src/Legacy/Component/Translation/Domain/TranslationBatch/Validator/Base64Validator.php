@@ -15,10 +15,8 @@ class Base64Validator implements ValidatorInterface {
 
   const IGNORED_ELEMENT_REASON = 'base64_encoded';
 
-  /** @var Validator */
   private $base64Validator;
 
-  /** @var array<string, int[]> */
   private $alreadyIgnoredElementIds = [
     TranslationType::POST    => [],
     TranslationType::PACKAGE => [],
@@ -30,11 +28,6 @@ class Base64Validator implements ValidatorInterface {
   }
 
 
-  /**
-   * @param TranslationBatch $translationBatch
-   *
-   * @return array{0: TranslationBatch, 1: IgnoredElement[]}
-   */
   public function validate( TranslationBatch $translationBatch ): array {
     $ignoredElements = [];
     $targetLanguages = [];
@@ -58,13 +51,11 @@ class Base64Validator implements ValidatorInterface {
     foreach ( $translationBatch->getTargetLanguages() as $targetLanguage ) {
       list( $postElements, $packageElements, $otherElements ) = $this->separateElements( $targetLanguage );
 
-      // Initially set the validElements value to be all elements that are not posts or packages
       $validElements = $otherElements;
 
-      // If the $invalidPostIds is empty, just add the post elements to $validElements immediately
       if ( empty( $invalidPostIds ) ) {
         $validElements = array_merge( $validElements, $postElements );
-      } else { // If we have invalid posts, we need to separate the valid and invalid post elements
+      } else {
         list( $ignoredPosts, $validPosts ) = $this->validateElementsOfType(
           TranslationType::POST,
           $invalidPostIds,
@@ -76,10 +67,9 @@ class Base64Validator implements ValidatorInterface {
         $validElements   = array_merge( $validElements, $validPosts );
       }
 
-      // If the $invalidPackageIds is empty, just add the package elements to $validElements immediately
       if ( empty( $invalidPackageIds ) ) {
         $validElements = array_merge( $validElements, $packageElements );
-      } else { // If we have invalid packages, we need to separate the valid and invalid package elements
+      } else {
         list( $ignoredPackages, $validPackages ) = $this->validateElementsOfType(
           TranslationType::PACKAGE,
           $invalidPackageIds,
@@ -106,14 +96,6 @@ class Base64Validator implements ValidatorInterface {
   }
 
 
-  /**
-   * @param string $type
-   * @param int[] $invalidIds
-   * @param Element[] $elements
-   * @param TargetLanguage $targetLanguage
-   *
-   * @return array{0: IgnoredElement[], 1: Element[]}
-   */
   private function validateElementsOfType(
     string $type,
     array $invalidIds,
@@ -150,11 +132,6 @@ class Base64Validator implements ValidatorInterface {
   }
 
 
-  /**
-   * @param TargetLanguage $targetLanguage
-   *
-   * @return Element[][]
-   */
   private function separateElements( TargetLanguage $targetLanguage ): array {
     $postElements    = [];
     $packageElements = [];
@@ -182,11 +159,6 @@ class Base64Validator implements ValidatorInterface {
   }
 
 
-  /**
-   * @param TranslationBatch $translationBatch
-   *
-   * @return int[][]
-   */
   private function extractPostAndPackageIds( TranslationBatch $translationBatch ): array {
     $ids = [
       TranslationType::POST    => [],

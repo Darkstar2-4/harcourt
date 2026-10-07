@@ -37,7 +37,7 @@ class LCP_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function set_fetch_priority_high( Element $lcp_element ) {
+	private function set_fetch_priority_high( $lcp_element ) {
 		$fetch_priority_attribute = $lcp_element->get_attribute( 'fetchpriority' );
 		if ( $fetch_priority_attribute ) {
 			if ( $fetch_priority_attribute->get_value() !== 'high' ) {
@@ -53,7 +53,7 @@ class LCP_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function remove_native_lazy_loading( Element $lcp_element ) {
+	private function remove_native_lazy_loading( $lcp_element ) {
 		if ( $lcp_element->has_attribute( 'loading' ) ) {
 			$loading_attribute = $lcp_element->get_attribute( 'loading' );
 			if ( $loading_attribute->get_value() === 'lazy' ) {
@@ -71,7 +71,7 @@ class LCP_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function update_priority_attributes( Element $element ) {
+	private function update_priority_attributes( $element ) {
 		$this->remove_native_lazy_loading( $element );
 		if ( $element->get_tag() === 'img' ) {
 			$this->set_fetch_priority_high( $element );

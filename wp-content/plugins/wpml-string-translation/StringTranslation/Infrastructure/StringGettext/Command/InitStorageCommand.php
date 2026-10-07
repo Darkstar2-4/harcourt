@@ -7,7 +7,6 @@ use WPML\StringTranslation\Infrastructure\Factory;
 
 class InitStorageCommand implements InitStorageCommandInterface {
 
-	/** @var Factory */
 	private $factory;
 
 	public function __construct(

@@ -13,11 +13,7 @@ class Cache implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 			->then( spreadArgs( [ $this, 'flush' ] ) );
 	}
 
-	/**
-	 * @param int $postId
-	 */
 	public function flush( $postId ) {
-		// @phpstan-ignore-next-line
 		if ( class_exists( FLBuilderModel::class ) && method_exists( FLBuilderModel::class, 'delete_all_asset_cache' ) ) {
 			FLBuilderModel::delete_all_asset_cache( $postId );
 		}

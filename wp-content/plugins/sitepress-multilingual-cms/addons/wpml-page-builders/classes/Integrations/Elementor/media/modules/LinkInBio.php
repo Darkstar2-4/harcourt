@@ -4,13 +4,6 @@ namespace WPML\PB\Elementor\Media\Modules;
 
 class LinkInBio extends \WPML_Elementor_Media_Node {
 
-	/**
-	 * @param array  $settings
-	 * @param string $target_lang
-	 * @param string $source_lang
-	 *
-	 * @return mixed
-	 */
 	public function translate( $settings, $target_lang, $source_lang ) {
 
 		foreach ( [ 'identity_image', 'identity_image_cover' ] as $key ) {
@@ -28,13 +21,6 @@ class LinkInBio extends \WPML_Elementor_Media_Node {
 		return $settings;
 	}
 
-	/**
-	 * @param array  $image
-	 * @param string $targetLang
-	 * @param string $sourceLang
-	 *
-	 * @return array
-	 */
 	private function convertImageArray( $image, $targetLang, $sourceLang ) {
 		if ( isset( $image['id'] ) ) {
 			$translatedId = $this->media_translate->translate_id( (int) $image['id'], $targetLang );
@@ -56,13 +42,6 @@ class LinkInBio extends \WPML_Elementor_Media_Node {
 		return $image;
 	}
 
-	/**
-	 * @param array  $images
-	 * @param string $targetLang
-	 * @param string $sourceLang
-	 *
-	 * @return array
-	 */
 	private function convertArrayOfImages( $images, $imageKey, $targetLang, $sourceLang ) {
 		foreach ( $images as &$image ) {
 			if ( isset( $image[ $imageKey ] ) ) {

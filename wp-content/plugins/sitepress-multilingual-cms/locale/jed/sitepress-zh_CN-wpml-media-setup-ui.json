@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "zh@Hans"
+            "lang": "zh_CN"
          },
          "But...": [
-            "但是"
+            "但是..."
          ],
          "Wait to translate any content that contains media until we're finished configuring it. It will be just a moment.": [
-            "在我们完成配置之前，请不要翻译任何包含媒体的内容。只需稍等片刻。"
+            "请等待我们完成配置后再翻译任何包含媒体的内容。这只需要片刻时间。"
          ]
       }
    }

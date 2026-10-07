@@ -7,12 +7,6 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\RemoteTranslationSe
 interface RemoteTranslationServiceQueryInterface {
 
 
-  /**
-   * @param bool $forceRefreshExtraFields
-   *
-   * @return RemoteTranslationServiceDomain|null
-   * @throws FetchRemoteTranslationServiceException
-   */
   public function getCurrent( bool $forceRefreshExtraFields = false );
 
 

@@ -11,11 +11,6 @@
 namespace WPML\Core\Twig\Profiler\Dumper;
 
 use WPML\Core\Twig\Profiler\Profile;
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class HtmlDumper extends \WPML\Core\Twig\Profiler\Dumper\BaseDumper
 {
     private static $colors = ['block' => '#dfd', 'macro' => '#ddf', 'template' => '#ffd', 'big' => '#d44'];

@@ -4,12 +4,6 @@ namespace WPML\TM\Jobs\Dispatch;
 
 class Messages {
 
-	/**
-	 * @param \WP_Post $post
-	 * @param string $language
-	 *
-	 * @return string
-	 */
 	public function ignoreOriginalPostMessage( $post, $language ) {
 		return sprintf(
 			__(
@@ -21,12 +15,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 * @param string $language
-	 *
-	 * @return string
-	 */
 	public function ignoreInProgressPostMessage( $post, $language ) {
 		return sprintf(
 			__(
@@ -38,12 +26,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param \WPML_ST_String $string
-	 * @param $language
-	 *
-	 * @return string
-	 */
 	public function ignoreInProgressStringMessage( \WPML_ST_String $string, $language ) {
 		return sprintf(
 			__(
@@ -55,12 +37,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param \WPML_Package $package
-	 * @param string $language
-	 *
-	 * @return string
-	 */
 	public function ignoreInProgressPackageMessage( $package, $language ) {
 		return sprintf(
 			__(
@@ -72,12 +48,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param \WPML_Package $package
-	 * @param string $language
-	 *
-	 * @return string
-	 */
 	public function ignoreOriginalPackageMessage( $package, $language ) {
 		return sprintf(
 			__(
@@ -89,10 +59,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param array $messages
-	 * @param string $type
-	 */
 	public function showForPosts( array $messages, $type ) {
 		$this->show(
 			'translation-basket-notification',
@@ -103,10 +69,6 @@ class Messages {
 		);
 	}
 
-	/**
-	 * @param array $messages
-	 * @param string $type
-	 */
 	public function showForStrings( array $messages, $type ) {
 		if ( defined( 'WPML_ST_FOLDER' ) ) {
 			$this->show(
@@ -119,13 +81,6 @@ class Messages {
 		}
 	}
 
-	/**
-	 * @param string $id
-	 * @param array $pages
-	 * @param string $group
-	 * @param array $messages
-	 * @param string $type
-	 */
 	private function show( $id, array $pages, $group, array $messages, $type ) {
 		if ( $messages ) {
 			$messageArgs = [

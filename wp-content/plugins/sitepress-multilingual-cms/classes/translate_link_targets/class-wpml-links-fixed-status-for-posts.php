@@ -1,13 +1,7 @@
 <?php
 
-/**
- * Class WPML_Links_Fixed_Status_For_Posts
- *
- * @package wpml-tm
- */
 class WPML_Links_Fixed_Status_For_Posts extends WPML_Links_Fixed_Status {
 
-	/* @var int $translation_id */
 	private $translation_id;
 	private $wpdb;
 

@@ -1,14 +1,10 @@
 <?php
 
 class WPML_ST_Upgrade_String_Index {
-	/** @var wpdb */
 	private $wpdb;
 
 	const OPTION_NAME = 'wpml_string_table_ok_for_mo_import';
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
@@ -17,7 +13,6 @@ class WPML_ST_Upgrade_String_Index {
 		$key_exists = get_option( self::OPTION_NAME );
 		if ( ! $key_exists ) {
 			$sql = "SHOW KEYS FROM  {$this->wpdb->prefix}icl_strings WHERE Key_name='uc_domain_name_context_md5' AND Non_unique = 0";
-			/** @var array<int, object> $results */
 			$results = $this->wpdb->get_results( $sql );
 			$key_exists = 0 < count( $results ) ? 'yes' : 'no';
 			update_option( self::OPTION_NAME, $key_exists, true );

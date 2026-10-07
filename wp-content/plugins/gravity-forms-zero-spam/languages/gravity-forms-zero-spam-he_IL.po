@@ -1,0 +1,1093 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: gravity-forms-zero-spam\n"
+"PO-Revision-Date: 2026-08-13 23:42:32+0000\n"
+"Language: he_IL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: gravityforms-zero-spam.php
+msgid "Gravity Forms Zero Spam"
+msgstr "Gravity Forms Zero Spam"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=pluginuri"
+msgstr ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=pluginuri"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"Enhance Gravity Forms to include effective anti-spam measures—without using "
+"a CAPTCHA."
+msgstr "שפר את Gravity Forms לכלול אמצעי אנטי-ספאם יעילים—ללא שימוש ב-CAPTCHA."
+
+#: gravityforms-zero-spam.php
+msgid "GravityKit"
+msgstr "GravityKit"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=authoruri"
+msgstr ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=authoruri"
+
+#: includes/class-email-rejection-settings.php:203
+msgid ""
+"Block, flag, or log email submissions matching specific addresses, domains, "
+"or patterns. Rules apply to all email fields unless overridden per field."
+msgstr ""
+"חסום, סמן או רשום הגשות דוא\"ל התואמות לכתובות, דומיינים או תבניות "
+"ספציפיות. החוקים חלים על כל שדות הדוא\"ל אלא אם כן הוחלף עבור שדה מסוים."
+
+#: includes/class-email-rejection-settings.php:204
+msgid ""
+"Flag or log email submissions matching specific addresses, domains, or "
+"patterns. Rules apply to all email fields unless overridden per field."
+msgstr ""
+"סמן או רשום הגשות דוא\"ל התואמות לכתובות, דומיינים או תבניות ספציפיות. "
+"החוקים חלים על כל שדות הדוא\"ל אלא אם כן הוחלף עבור שדה מסוים."
+
+#: includes/class-email-rejection-settings.php:207
+msgid "Email Rejection Rules"
+msgstr "חוקי דחיית דוא\"ל"
+
+#: includes/class-email-rejection-settings.php:212
+msgid "Enable Email Rejection Rules"
+msgstr "הפעל חוקי דחיית דוא\"ל"
+
+#: includes/class-email-rejection-settings.php:218
+msgid "Rules"
+msgstr "חוקים"
+
+#: includes/class-email-rejection-settings.php:232
+msgid "Default Validation Message"
+msgstr "הודעת אימות ברירת מחדל"
+
+#: includes/class-email-rejection-settings.php:236
+msgid "Shown when action is \"Block\". Can be overridden per email field."
+msgstr "מוצגת כאשר הפעולה היא \"חסום\". ניתן להחליף עבור כל שדה דוא\"ל."
+
+#: includes/class-email-rejection-settings.php:346
+msgid "Add Rule"
+msgstr "הוסף חוק"
+
+#: includes/class-email-rejection-settings.php:347
+msgid "Remove"
+msgstr "הסר"
+
+#: includes/class-email-rejection-settings.php:348
+msgid "Edit"
+msgstr "ערוך"
+
+#: includes/class-email-rejection-settings.php:349
+msgid "Enable"
+msgstr "הפעל"
+
+#: includes/class-email-rejection-settings.php:350
+msgid "Disable"
+msgstr "השבת"
+
+#: includes/class-email-rejection-settings.php:351
+msgid "Save"
+msgstr "שמור"
+
+#: includes/class-email-rejection-settings.php:352
+msgid "Cancel"
+msgstr "ביטול"
+
+#: includes/class-email-rejection-settings.php:353
+msgid "Domain"
+msgstr "דומיין"
+
+#: includes/class-email-rejection-settings.php:354
+msgid "Email"
+msgstr "אימייל"
+
+#: includes/class-email-rejection-settings.php:355
+msgid "Wildcard"
+msgstr "תו כללי"
+
+#: includes/class-email-rejection-settings.php:356
+msgid "Regex"
+msgstr "ביטוי רגולרי"
+
+#: includes/class-email-rejection-settings.php:357
+msgid "Block"
+msgstr "חסימה"
+
+#: includes/class-email-rejection-settings.php:358
+msgid "Flag as Spam"
+msgstr "סמן כספאם"
+
+#: includes/class-email-rejection-settings.php:359
+msgid "Log Only"
+msgstr "רק רישום"
+
+#: includes/class-email-rejection-settings.php:360
+msgid "Type"
+msgstr "סוג"
+
+#: includes/class-email-rejection-settings.php:361
+msgid "Value"
+msgstr "ערך"
+
+#: includes/class-email-rejection-settings.php:362
+msgid "Action"
+msgstr "פעולה"
+
+#: includes/class-email-rejection-settings.php:363
+msgid "No rules defined yet."
+msgstr "טרם הוגדרו חוקים."
+
+#: includes/class-email-rejection-settings.php:364
+msgid "Import Rules"
+msgstr "ייבא חוקים"
+
+#: includes/class-email-rejection-settings.php:365
+msgid ""
+"Paste values, one per line or comma-separated. Auto-detected as Domain or "
+"Email type."
+msgstr ""
+"הדבק ערכים, אחד בכל שורה או מופרדים בפסיקים. סוג יזוהה אוטומטית כדומיין או "
+"אימייל."
+
+#: includes/class-email-rejection-settings.php:366
+msgid "Import"
+msgstr "ייבא"
+
+#: includes/class-email-rejection-settings.php:367
+msgid "Remove this rule?"
+msgstr "להסיר חוק זה?"
+
+#: includes/class-email-rejection-settings.php:368
+msgid "Invalid regular expression."
+msgstr "ביטוי רגולרי לא חוקי."
+
+#: includes/class-email-rejection-settings.php:369
+msgid "Please enter a valid email address."
+msgstr "נא להזין כתובת אימייל תקינה."
+
+#: includes/class-email-rejection-settings.php:370
+msgid "Please enter a valid domain."
+msgstr "נא להזין דומיין תקין."
+
+#: includes/class-email-rejection-settings.php:373
+msgid "No valid rules found to import."
+msgstr "לא נמצאו חוקים תקינים לייבוא."
+
+#: includes/class-email-rejection-settings.php:374
+msgid "1 rule imported."
+msgstr "חוק אחד יובא."
+
+#: includes/class-email-rejection-settings.php:377
+msgid "Skipped 1 invalid value."
+msgstr "דילג על ערך אחד לא חוקי."
+
+#: includes/class-email-rejection-settings.php:380
+msgid ""
+"Some rules use the Block action, which requires Gravity Forms 2.9.15+. "
+"These rules are inactive until you update."
+msgstr ""
+"חלק מהכללים משתמשים בפעולת החסימה, שדורשת Gravity Forms 2.9.15 ומעלה. כללים "
+"אלה אינם פעילים עד שתעדכן."
+
+#: includes/class-email-rejection-settings.php:381
+msgid ""
+"Upgrading to Gravity Forms 2.9.15 or higher enables the ability to "
+"configure rules that block matching form submissions."
+msgstr ""
+"שדרוג ל-Gravity Forms 2.9.15 או יותר יאפשר להגדיר כללים שחוסמים הגשות טפסים "
+"שתואמות."
+
+#: includes/class-email-rejection-settings.php:382
+msgid "Requires Gravity Forms 2.9.15+"
+msgstr "דורש Gravity Forms 2.9.15 ומעלה"
+
+#: includes/class-email-rejection-settings.php:383
+msgid "e.g., spamdomain.com"
+msgstr "לדוגמה, spamdomain.com"
+
+#: includes/class-email-rejection-settings.php:384
+msgid "Enable rejection rules"
+msgstr "אפשר כללי דחייה"
+
+#: includes/class-email-rejection-settings.php:385
+msgid ""
+"Add rules to block, flag, or log submissions based on the email entered in "
+"this field. Rules can extend or replace the global rejection rules."
+msgstr ""
+"הוסף כללים לחסימה, סימון או רישום של הגשות על בסיס האימייל שהוזן בשדה זה. "
+"הכללים יכולים להרחיב או להחליף את כללי הדחייה הכלליים."
+
+#: includes/class-email-rejection-settings.php:386
+msgid ""
+"Add rules to block, flag, or log submissions based on the email entered in "
+"this field. Rules can extend or replace the "
+msgstr ""
+"הוסף כללים לחסימה, סימון או רישום של הגשות על בסיס האימייל שהוזן בשדה זה. "
+"הכללים יכולים להרחיב או להחליף את "
+
+#: includes/class-email-rejection-settings.php:387
+msgid "global rejection rules"
+msgstr "כללי הדחייה הכלליים"
+
+#: includes/class-email-rejection-settings.php:388
+msgid "."
+msgstr "."
+
+#: includes/class-email-rejection-settings.php:389
+msgid "Rule Mode"
+msgstr "מצב כללים"
+
+#: includes/class-email-rejection-settings.php:390
+msgid "Inherit global rules + add field-specific rules"
+msgstr "ירש כללים כלליים + הוסף כללים ייחודיים לשדה"
+
+#: includes/class-email-rejection-settings.php:391
+msgid "Use only field-specific rules (ignore global)"
+msgstr "השתמש רק בכללים ייחודיים לשדה (התעלם מכלליים)"
+
+#: includes/class-email-rejection-settings.php:392
+msgid "Field-Specific Rules"
+msgstr "כללים ייחודיים לשדה"
+
+#: includes/class-email-rejection-settings.php:393
+msgid "Validation Message (optional)"
+msgstr "הודעת אימות (אופציונלי)"
+
+#: includes/class-email-rejection-settings.php:394
+msgid "Leave blank to use the global default message."
+msgstr "השאר ריק כדי להשתמש בהודעה ברירת המחדל הכללית."
+
+#: includes/class-email-rejection.php:639
+msgid ""
+"The email address you entered is not allowed. Please use a different email "
+"address."
+msgstr "כתובת האימייל שהזנת אינה מותרת. אנא השתמש בכתובת אימייל אחרת."
+
+#: includes/class-gf-zero-spam-addon.php:353
+#: includes/class-gf-zero-spam-addon.php:468
+msgid ""
+"Enable to fight spam using a simple, effective method that is more "
+"effective than the built-in anti-spam honeypot."
+msgstr ""
+"אפשר להילחם בספאם באמצעות שיטה פשוטה ויעילה, שיותר יעילה ממלכודת הספאם "
+"המובנית."
+
+#: includes/class-gf-zero-spam-addon.php:406
+msgid "Prevent spam using Gravity Forms Zero Spam"
+msgstr "מנע ספאם באמצעות Gravity Forms Zero Spam"
+
+#: includes/class-gf-zero-spam-addon.php:435
+msgid "Know when entries are flagged as spam."
+msgstr "דע מתי רשומות מסומנות כספאם."
+
+#: includes/class-gf-zero-spam-addon.php:436
+msgid ""
+"It can be hard to know when entries are being marked as spam. When enabled, "
+"this feature will send an automated spam report, giving you a summary of "
+"recent spam entries. If no spam entries have been submitted, no report will "
+"be sent."
+msgstr ""
+"יכול להיות קשה לדעת מתי רשומות מסומנות כספאם. כאשר מפעילים את הפיצ׳ר הזה, "
+"תישלח דוח ספאם אוטומטי, שמספק סיכום של רשומות ספאם אחרונות. אם לא הוגשו "
+"רשומות ספאם, לא יישלח דוח."
+
+#: includes/class-gf-zero-spam-addon.php:437
+msgid ""
+"This feature works with any spam filter, including the Gravity Forms spam "
+"honeypot, Gravity Forms Zero Spam, reCAPTCHA, or others."
+msgstr ""
+"פיצ׳ר זה עובד עם כל מסנן ספאם, כולל Gravity Forms spam honeypot, Gravity "
+"Forms Zero Spam, reCAPTCHA או אחרים."
+
+#: includes/class-gf-zero-spam-addon.php:439
+msgid ""
+"Note: Depending on site traffic, time-based reports may not always be sent "
+"at the scheduled frequency. {{link}}See how to set up a \"cron\" to make "
+"this more reliable{{/link}}."
+msgstr ""
+"הערה: בהתאם לתנועת האתר, ייתכן כי דוחות מבוססי זמן לא יישלחו תמיד בתדירות "
+"המתוזמנת. {{link}}ראה כיצד להגדיר \"cron\" כדי להפוך זאת לאמין "
+"יותר{{/link}}."
+
+#: includes/class-gf-zero-spam-addon.php:442
+msgid "Link opens in a new tab"
+msgstr "הקישור נפתח בכרטיסייה חדשה"
+
+#: includes/class-gf-zero-spam-addon.php:451
+msgid ""
+"You have received {{total_spam_count}} spam entries from the following "
+"form(s):"
+msgstr "קיבלת {{total_spam_count}} רשומות ספאם מהטופס(ים) הבאים:"
+
+#: includes/class-gf-zero-spam-addon.php:454
+msgid ""
+"To modify or disable this email, visit {{settings_link}}the Gravity Forms "
+"Zero Spam settings page{{/settings_link}}."
+msgstr ""
+"כדי לשנות או להשבית את האימייל הזה, בקר ב{{settings_link}}דף הגדרות Gravity "
+"Forms Zero Spam{{/settings_link}}."
+
+#: includes/class-gf-zero-spam-addon.php:456
+msgid "The following variables may be used:"
+msgstr "ניתן להשתמש במשתנים הבאים:"
+
+#: includes/class-gf-zero-spam-addon.php:458
+msgid "The name of this website"
+msgstr "שם האתר הזה"
+
+#: includes/class-gf-zero-spam-addon.php:459
+msgid "The email of the site administrator"
+msgstr "האימייל של מנהל האתר"
+
+#: includes/class-gf-zero-spam-addon.php:460
+msgid "The total number of spam emails received since the last report."
+msgstr "מספר כולל של הודעות ספאם שהתקבלו מאז הדוח האחרון."
+
+#: includes/class-gf-zero-spam-addon.php:461
+msgid "A list of forms and the number of spam entries since the last report."
+msgstr "רשימת טפסים ומספר רשומות הספאם מאז הדוח האחרון."
+
+#: includes/class-gf-zero-spam-addon.php:462
+msgid ""
+"A link to the plugin settings page. Text inside the variables will be the "
+"link text. Make sure to include both the opening and closing variables."
+msgstr ""
+"קישור לעמוד הגדרות התוסף. הטקסט בתוך המשתנים יהיה טקסט הקישור. ודא לכלול גם "
+"את משתני הפתיחה וגם את הסגירה."
+
+#: includes/class-gf-zero-spam-addon.php:467
+msgid "Spam Blocking"
+msgstr "חסימת ספאם"
+
+#: includes/class-gf-zero-spam-addon.php:468
+msgid ""
+"It is possible to enable or disable spam blocking on a per-form basis "
+"inside each form's settings."
+msgstr "ניתן להפעיל או להשבית חסימת ספאם על בסיס כל טופס בנפרד בתוך הגדרות כל טופס."
+
+#: includes/class-gf-zero-spam-addon.php:471
+msgid "Enable Zero Spam by Default"
+msgstr "הפעל את Zero Spam כברירת מחדל"
+
+#: includes/class-gf-zero-spam-addon.php:477
+msgid "Enabled: Add Zero Spam to Gravity Forms forms"
+msgstr "מופעל: הוסף Zero Spam לטפסים של Gravity Forms"
+
+#: includes/class-gf-zero-spam-addon.php:481
+msgid "Disabled: Use Gravity Forms' built-in spam prevention"
+msgstr "מושבת: השתמש במניעת הספאם המובנית של Gravity Forms"
+
+#: includes/class-gf-zero-spam-addon.php:488
+msgid "Anti-Spam Expiration"
+msgstr "פג תוקף אנטי-ספאם"
+
+#: includes/class-gf-zero-spam-addon.php:507
+msgid "Spam Report Email"
+msgstr "אימייל דוח ספאם"
+
+#: includes/class-gf-zero-spam-addon.php:511
+msgid "Spam Report Frequency"
+msgstr "תדירות דיווח דואר זבל"
+
+#: includes/class-gf-zero-spam-addon.php:513
+msgid "How frequently should spam report emails be sent?"
+msgstr "באיזו תדירות יש לשלוח מיילי דיווח דואר זבל?"
+
+#: includes/class-gf-zero-spam-addon.php:519
+msgid "Disabled"
+msgstr "מושבת"
+
+#: includes/class-gf-zero-spam-addon.php:523
+msgid "Threshold-Based"
+msgstr "מבוסס סף"
+
+#: includes/class-gf-zero-spam-addon.php:527
+msgid "Twice Daily"
+msgstr "פעמיים ביום"
+
+#: includes/class-gf-zero-spam-addon.php:531
+msgid "Daily"
+msgstr "יומי"
+
+#: includes/class-gf-zero-spam-addon.php:535
+msgid "Weekly"
+msgstr "שבועי"
+
+#: includes/class-gf-zero-spam-addon.php:539
+msgid "Monthly"
+msgstr "חודשי"
+
+#: includes/class-gf-zero-spam-addon.php:550
+msgid "Spam Entry Threshold"
+msgstr "סף כניסות דואר זבל"
+
+#: includes/class-gf-zero-spam-addon.php:551
+msgid ""
+"A spam report email will be sent when the specified number of spam entries "
+"is reached."
+msgstr "מייל דיווח דואר זבל יישלח כאשר יושג מספר הכניסות שצוין."
+
+#: includes/class-gf-zero-spam-addon.php:569
+msgid "Entry limit has to be 1 or more."
+msgstr "מגבלת הכניסות חייבת להיות 1 או יותר."
+
+#: includes/class-gf-zero-spam-addon.php:575
+msgid "Email Address"
+msgstr "כתובת דואר אלקטרוני"
+
+#: includes/class-gf-zero-spam-addon.php:576
+msgid "Send spam report to this email address."
+msgstr "שלח דיווח דואר זבל לכתובת הדואר האלקטרוני הזו."
+
+#: includes/class-gf-zero-spam-addon.php:586
+msgid "The email entered is invalid."
+msgstr "כתובת הדואר שהוזנה אינה תקינה."
+
+#: includes/class-gf-zero-spam-addon.php:600
+msgid "Email Subject"
+msgstr "נושא המייל"
+
+#: includes/class-gf-zero-spam-addon.php:602
+msgid "Your Gravity Forms spam report for {{site_name}}"
+msgstr "דיווח דואר הזבל שלך ב-Gravity Forms עבור {{site_name}}"
+
+#: includes/class-gf-zero-spam-addon.php:615
+msgid "Email Message"
+msgstr "הודעת דואר אלקטרוני"
+
+#: includes/class-gf-zero-spam-addon.php:645
+msgid "Send Test Email & Save Settings"
+msgstr "שלח מייל בדיקה ושמור הגדרות"
+
+#: includes/class-gf-zero-spam-addon.php:646
+msgid "Send Email & Save Settings"
+msgstr "שלח מייל ושמור הגדרות"
+
+#: includes/class-gf-zero-spam-addon.php:883
+msgid "Once Monthly"
+msgstr "פעם בחודש"
+
+#: includes/class-gf-zero-spam-addon.php:1075
+msgid "spam entry"
+msgid_plural "spam entries"
+msgstr[0] "רשומת ספאם"
+msgstr[1] "רשומות ספאם"
+
+#: includes/class-gf-zero-spam-addon.php:1162
+msgid ""
+"How long a spam prevention token remains valid after a visitor loads your "
+"form. If form submissions are being incorrectly flagged as spam, try "
+"increasing this value. (Default: 7 days)"
+msgstr ""
+"משך הזמן שבו אסימון למניעת ספאם נשאר בתוקף לאחר שהמבקר טען את הטופס שלך. אם "
+"הגשות טופס מסומנות בטעות כספאם, נסה להגדיל ערך זה. (ברירת מחדל: 7 ימים)"
+
+#: includes/class-gf-zero-spam-addon.php:1166
+msgid "Expiration length"
+msgstr "משך התפוגה"
+
+#: includes/class-gf-zero-spam-addon.php:1178
+msgid "Expiration unit"
+msgstr "יחידת תפוגה"
+
+#: includes/class-gf-zero-spam-addon.php:1186
+msgid "hours"
+msgstr "שעות"
+
+#: includes/class-gf-zero-spam-addon.php:1189
+msgid "days"
+msgstr "ימים"
+
+#: includes/class-gf-zero-spam-addon.php:1205
+msgid "Short expiration times may cause false positives on sites with page caching."
+msgstr "זמני תפוגה קצרים עלולים לגרום לזיהויים שגויים באתרים עם מטמון דפים."
+
+#: includes/class-gf-zero-spam-addon.php:1284
+msgid "Please enter at least 1 day."
+msgstr "אנא הזן לפחות יום אחד."
+
+#: includes/class-gf-zero-spam-addon.php:1285
+msgid "Please enter at least 1 hour."
+msgstr "אנא הזן לפחות שעה אחת."
+
+#: includes/class-gf-zero-spam-addon.php:1291
+msgid "Please select hours or days."
+msgstr "אנא בחר שעות או ימים."
+
+#: includes/class-gf-zero-spam-addon.php:1296
+msgid "The maximum expiration is 90 days."
+msgstr "התפוגה המרבית היא 90 ימים."
+
+#: includes/class-gf-zero-spam-addon.php:1298
+msgid "The maximum expiration is 2160 hours (90 days)."
+msgstr "התפוגה המרבית היא 2160 שעות (90 ימים)."
+
+#: includes/class-gf-zero-spam-token-endpoint.php:68
+msgid "A valid form_id is required."
+msgstr "נדרש form_id תקין."
+
+#: includes/class-gf-zero-spam-token-endpoint.php:74
+msgid "Form not found."
+msgstr "הטופס לא נמצא."
+
+#: includes/class-gf-zero-spam-token-endpoint.php:81
+msgid "Zero Spam is not enabled for this form."
+msgstr "Zero Spam אינו מופעל עבור טופס זה."
+
+#: includes/class-gf-zero-spam-token-endpoint.php:145
+msgid "Too many requests. Please try again later."
+msgstr "בקשות רבות מדי. אנא נסה שוב מאוחר יותר."
+
+#: includes/class-gf-zero-spam.php:546
+#: includes/class-gf-zero-spam.php:568
+msgid "The submission did not include a spam prevention token."
+msgstr "ההגשה לא כללה אסימון למניעת ספאם."
+
+#: includes/class-gf-zero-spam.php:547
+msgid "The spam prevention token format is invalid."
+msgstr "פורמט אסימון מניעת הספאם אינו תקין."
+
+#: includes/class-gf-zero-spam.php:548
+msgid "The spam prevention token has expired. This may be caused by page caching."
+msgstr "אסימון מניעת הספאם פג תוקף. ייתכן שזה נגרם על ידי מטמון דפים."
+
+#: includes/class-gf-zero-spam.php:549
+msgid "The spam prevention token was issued for a different form."
+msgstr "אסימון מניעת הספאם הונפק עבור טופס שונה."
+
+#: includes/class-gf-zero-spam.php:550
+msgid "The spam prevention token signature is invalid."
+msgstr "חתימת אסימון מניעת הספאם אינה תקפה."
+
+#: includes/class-gf-zero-spam.php:724
+msgid "Legacy spam prevention key no longer accepted. Please clear your page cache."
+msgstr "מפתח מניעת הספאם הישן אינו מתקבל יותר. נא נקה את מטמון הדף שלך."
+
+#: includes/class-gf-zero-spam.php:730
+#: includes/class-gf-zero-spam.php:734
+msgid "The submitted key is invalid."
+msgstr "המפתח שהוגש אינו תקף."
+
+#: includes/class-gf-zero-spam.php:766
+msgid ""
+"Gravity Forms Zero Spam has been upgraded with improved spam protection. "
+"Please clear your page cache to ensure all forms use the new protection. "
+"Legacy support ends on %s."
+msgstr ""
+"Gravity Forms Zero Spam שודרג עם הגנה משופרת מפני ספאם. נא נקה את מטמון הדף "
+"שלך כדי לוודא שכל הטפסים משתמשים בהגנה החדשה. התמיכה הישנה מסתיימת ב-%s."
+
+#: includes/class-gf-zero-spam.php:810
+msgid "This entry has been marked as spam."
+msgstr "רשומה זו סומנה כספאם."
+
+#: includes/class-email-rejection-settings.php:376
+msgid "[count] rules imported."
+msgstr "יובאו [count] כללים."
+
+#: includes/class-email-rejection-settings.php:379
+msgid "Skipped [count] invalid values."
+msgstr "דולגו [count] ערכים לא חוקיים."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:97
+msgid "Copy global instructions"
+msgstr "העתק הוראות כלליות"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:98
+msgid ""
+"Copies the global AI instructions into this field so you can edit them for "
+"this form."
+msgstr "מעתיק את הוראות ה-AI הכלליות לשדה זה כדי שתוכל לערוך אותן עבור טופס זה."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:239
+msgid ""
+"Zero Spam blocks most spam with an invisible token check before AI is "
+"involved. Turn on the tools below to let AI handle the edge cases — "
+"catching spam that slips past, or rescuing real submissions blocked by "
+"mistake. Both use the same instructions and the same {{link}}AI "
+"service{{/link}}."
+msgstr ""
+"Zero Spam חוסם את רוב הספאם באמצעות בדיקת טוקן בלתי נראית לפני מעורבות "
+"ה-AI. הפעל את הכלים למטה כדי לאפשר ל-AI לטפל במקרים קיצוניים — ללכוד ספאם "
+"שחולף, או להציל הגשות אמיתיות שחוסמו בטעות. שניהם משתמשים באותן הוראות "
+"ובאותו {{link}}שירות AI{{/link}}."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:288
+#: includes/class-gf-zero-spam-ai-review-settings.php:455
+msgid "Catch spam the token check misses"
+msgstr "לכוד ספאם שהבדיקה בטוקן מפספסת"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:289
+msgid ""
+"Reviews submissions that were allowed through — a second opinion to catch "
+"bots that defeated the token check."
+msgstr ""
+"בוחן הגשות שאושרו לעבור — חוות דעת שנייה ללכידת בוטים שהצליחו לעקוף את "
+"בדיקת הטוקן."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:290
+msgid ""
+"After a submission passes the normal spam checks, AI reads it and flags it "
+"as spam if it looks suspicious."
+msgstr ""
+"לאחר שההגשה עוברת את בדיקות הספאם הרגילות, ה-AI קורא אותה ומסמן כספאם אם "
+"היא נראית חשודה."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:297
+#: includes/class-gf-zero-spam-ai-review-settings.php:463
+msgid "Rescue good submissions blocked by mistake"
+msgstr "הצלת הגשות טובות שחוסמו בטעות"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:298
+msgid ""
+"Reviews submissions blocked by Zero Spam's own token check (not Akismet, "
+"the honeypot, or email rules). Always runs before notifications are sent."
+msgstr ""
+"בוחן הגשות שחוסמו על ידי בדיקת הטוקן של Zero Spam (לא Akismet, מלכודת הדבש "
+"או כללי אימייל). תמיד פועל לפני שליחת ההתראות."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:299
+msgid ""
+"If the token check blocks a submission but the content looks genuine, AI "
+"can let it through. Only submissions blocked by Zero Spam's token check are "
+"eligible; during a token-failure flood this can increase AI usage."
+msgstr ""
+"אם בדיקת הטוקן חוסמת הגשה אך התוכן נראה אמיתי, ה-AI יכול לאפשר לה לעבור. רק "
+"הגשות שחוסמו על ידי בדיקת הטוקן של Zero Spam זכאיות לכך; במהלך הצפה של "
+"כישלונות טוקן זה עלול להגדיל את השימוש ב-AI."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:306
+msgid "AI instructions"
+msgstr "הוראות AI"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:307
+msgid ""
+"Tell the AI how to evaluate submissions — what counts as spam for your site "
+"and what doesn't."
+msgstr "הסבר ל-AI כיצד להעריך הגשות — מה נחשב כספאם באתר שלך ומה לא."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:308
+msgid ""
+"Tell the AI what counts as spam on your site. These instructions are used "
+"by both tools above; the default works well for most sites."
+msgstr ""
+"הסבר ל-AI מה נחשב כספאם באתר שלך. הוראות אלה משמשות את שני הכלים למעלה; "
+"ההגדרות המומלצות עובדות היטב ברוב האתרים."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:316
+msgid "AI spam protection"
+msgstr "הגנת ספאם ב-AI"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:326
+msgid "AI service"
+msgstr "שירות AI"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:327
+msgid "Chooses which configured AI service Zero Spam uses to review submissions."
+msgstr "בוחר איזה שירות AI מוגדר Zero Spam ישתמש כדי לבדוק הגשות."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:328
+msgid "Automatic uses the site default AI service."
+msgstr "אוטומטי משתמש בשירות AI ברירת המחדל של האתר."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:338
+msgid "How sure must AI be to flag spam?"
+msgstr "כמה ה-AI צריך להיות בטוח כדי לסמן ספאם?"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:339
+msgid "Sets how confident AI must be before Zero Spam marks a submission as spam."
+msgstr "מגדיר עד כמה ה-AI צריך להיות בטוח לפני ש-Zero Spam יסמן הגשה כספאם."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:340
+msgid "Stricter = fewer real submissions flagged, but more spam may slip through."
+msgstr "קפדני יותר = פחות הגשות אמיתיות יסומנו, אבל יותר ספאם עלול לעבור."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:345
+msgid "Balanced — flag when fairly sure (recommended)"
+msgstr "מאוזן — סמן כאשר די בטוח (מומלץ)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:349
+msgid "Strict — only flag when very sure"
+msgstr "מחמיר — לסמן רק כאשר בטוחים מאוד"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:359
+msgid "How sure must AI be to rescue a blocked submission?"
+msgstr "כמה בטוח על ה-AI להיות כדי להציל הגשה חסומה?"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:360
+msgid ""
+"Sets how confident AI must be before Zero Spam restores a submission "
+"blocked by the token check."
+msgstr ""
+"מגדיר עד כמה ה-AI צריך להיות בטוח לפני ש-Zero Spam משחזר הגשה שנחסמה על ידי "
+"בדיקת הטוקן."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:361
+msgid ""
+"Balanced works well for most sites; a restore cannot be undone, so more "
+"cautious options are available."
+msgstr ""
+"מאוזן עובד טוב ברוב האתרים; השחזור לא ניתן לביטול, לכן קיימות אפשרויות "
+"זהירות יותר."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:366
+msgid "Balanced — rescue when fairly sure (recommended)"
+msgstr "מאוזן — להציל כאשר די בטוח (מומלץ)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:370
+msgid "Cautious — rescue only when very sure"
+msgstr "זהיר — להציל רק כאשר בטוח מאוד"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:374
+msgid "Very cautious — rescue only when almost certain"
+msgstr "זהיר מאוד — להציל רק כאשר כמעט בטוח"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:383
+msgid "Advanced AI settings"
+msgstr "הגדרות AI מתקדמות"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:456
+msgid ""
+"When enabled, the AI reads each submission to this form and flags it as "
+"spam if the content looks suspicious."
+msgstr "כאשר מופעל, ה-AI קורא כל הגשה לטופס זה ומסמן אותה כספאם אם התוכן נראה חשוד."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:464
+msgid ""
+"When enabled, AI can restore this form's submissions that the Zero Spam "
+"token check flagged but the content appears legitimate."
+msgstr ""
+"כאשר מופעל, ה-AI יכול לשחזר הגשות לטופס זה שנבדקו על ידי Zero Spam והוספו "
+"לספאם למרות שהתוכן נראה לגיטימי."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:465
+msgid "Rescue always runs during submission, before notifications are sent."
+msgstr "ההצלה תמיד מתבצעת במהלך ההגשה, לפני שליחת ההתראות."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:472
+msgid "AI instructions for this form"
+msgstr "הוראות AI לטופס זה"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:473
+msgid "Tell the AI how to evaluate this form's submissions."
+msgstr "הגדר ל-AI כיצד להעריך את ההגשות לטופס זה."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:474
+msgid "Leave blank to use the global instructions."
+msgstr "השאר ריק כדי להשתמש בהוראות הגלובליות."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:482
+msgid "Skip these fields"
+msgstr "דלג על שדות אלה"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:483
+msgid ""
+"Selected fields are left out of the content the AI reviews — use this for "
+"fields with sensitive data."
+msgstr "השדות שנבחרו לא ייכללו בתוכן שה-AI סוקר — השתמש בזה לשדות עם מידע רגיש."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:484
+msgid "Left out of what AI reads — use for sensitive data."
+msgstr "לא כלול במה שה-AI קורא — השתמש למידע רגיש."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:496
+msgid "Limit AI checks per hour"
+msgstr "הגבל בדיקות AI לשעה"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:497
+msgid ""
+"Limits how many of this form's submissions are sent to the AI each hour, to "
+"control usage."
+msgstr "מגביל כמה מההגשות לטופס זה נשלחות ל-AI בכל שעה, כדי לשלוט בשימוש."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:498
+msgid "0 = no limit."
+msgstr "0 = ללא הגבלה."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:530
+msgid "Minimum confidence must be a number between 0.5 and 1."
+msgstr "רמת הביטחון המינימלית חייבת להיות מספר בין 0.5 ל-1."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:711
+msgid "Automatic (site default)"
+msgstr "אוטומטי (ברירת מחדל של האתר)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:765
+msgid ""
+"The selected AI service is no longer available; switch to Automatic, choose "
+"another service, or update connectors in [link]Settings > Connectors[/link]."
+msgstr ""
+"שירות ה-AI שנבחר אינו זמין יותר; עבור לאוטומטי, בחר שירות אחר, או עדכן "
+"מחברים ב-[link]הגדרות > מחברים[/link]."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:771
+msgid ""
+"AI review or rescue is enabled, but no AI service is configured for text "
+"generation. Set one up in [link]Settings > Connectors[/link]."
+msgstr ""
+"סקירת AI או הצלת AI מופעלת, אך לא הוגדר שירות AI ליצירת טקסט. הגדיר אחד "
+"ב-[link]הגדרות > מחברים[/link]."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:848
+msgid "Review this Gravity Forms submission and decide whether it is spam."
+msgstr "סקור את שליחת Gravity Forms זו והחליט האם היא ספאם."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:849
+msgid ""
+"Classify it as spam only when it is clearly unsolicited, deceptive, "
+"malicious, automated, or sent in bulk."
+msgstr ""
+"סווג כספאם רק כאשר הוא ברור כבלתי מבוקש, מטעה, זדוני, אוטומטי, או נשלח "
+"בכמויות גדולות."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:850
+msgid ""
+"Treat ordinary customer messages — questions, support requests, quote "
+"requests, bookings, job applications, and other coherent human inquiries — "
+"as legitimate, even when they are brief or short on detail."
+msgstr ""
+"טפל בהודעות לקוחות רגילות — שאלות, בקשות תמיכה, בקשות הצעת מחיר, הזמנות, "
+"בקשות עבודה ושאלות אנושיות אחרות ברורות — כהודעות לגיטימיות, אפילו אם הן "
+"קצרות או חסרות פרטים."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:851
+msgid ""
+"The confidence value reports how certain you are of the classification you "
+"return, whether spam or legitimate. It is not a measure of how spam-like "
+"the message is."
+msgstr ""
+"ערך הביטחון מדווח עד כמה אתה בטוח בסיווג שאתה מחזיר, בין אם ספאם או "
+"לגיטימי. זה לא מדד למידת הדמיון לספאם של ההודעה."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:852
+msgid ""
+"When the classification is clear, report high confidence: use 0.98 to 1.00 "
+"for obvious spam, and equally for an ordinary, coherent human submission "
+"that shows no spam signals."
+msgstr ""
+"כאשר הסיווג ברור, דווח על ביטחון גבוה: השתמש ב-0.98 עד 1.00 עבור ספאם ברור, "
+"וכך גם עבור שליחה אנושית רגילה וברורה שאינה מראה סימני ספאם."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:853
+msgid ""
+"Use 0.85 to 0.97 when your classification is probable but some context is "
+"missing or mixed."
+msgstr "השתמש ב-0.85 עד 0.97 כאשר הסיווג שלך סביר אך חסר או מעורב חלק מהקשר."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:854
+msgid ""
+"Use a value below 0.85 only when the submission is genuinely ambiguous or "
+"too sparse to judge."
+msgstr ""
+"השתמש בערך נמוך מ-0.85 רק כאשר השליחה אמיתית אמביוולנטית או דלה מדי כדי "
+"לשפוט."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:855
+msgid "It is better to miss a piece of spam than to block a legitimate submission."
+msgstr "עדיף לפספס חלק מספאם מאשר לחסום שליחה לגיטימית."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:856
+msgid ""
+"Use only the form title, source path, field labels, field types, and "
+"submitted values provided, and do not guess about missing context."
+msgstr ""
+"השתמש רק בכותרת הטופס, נתיב המקור, תוויות השדות, סוגי השדות והערכים שנשלחו, "
+"ואל תנחש לגבי הקשר חסר."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:857
+msgid "Return JSON matching the supplied schema."
+msgstr "החזר JSON התואם לסכימה המסופקת."
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:858
+msgid ""
+"The reason must be concise and must not quote personal data such as names "
+"or email addresses."
+msgstr ""
+"הסיבה חייבת להיות תמציתית ואסור שתכלול נתונים אישיים כמו שמות או כתובות "
+"דואר אלקטרוני."
+
+#: includes/class-gf-zero-spam-ai-review.php:1615
+msgid "AI classified this submission as spam."
+msgstr "AI סיווג שליחה זו כספאם."
+
+#: includes/class-gf-zero-spam-ai-review.php:1865
+msgid ""
+"Zero Spam: AI recovered this submission as legitimate (confidence "
+"[confidence])."
+msgstr "אפס ספאם: AI שחזר שליחה זו כלגיטימית (רמת ביטחון [confidence])."
+
+#: includes/class-gf-zero-spam-addon.php:353
+msgid ""
+"When Zero Spam is disabled in the global plugin settings, all spam checks "
+"are turned off for every form and this setting has no effect."
+msgstr ""
+"כאשר Zero Spam מושבת בהגדרות התוסף הגלובליות, כל בדיקות הספאם כבויות עבור "
+"כל טופס והגדרה זו אינה משפיעה."
+
+#: includes/class-gf-zero-spam-addon.php:681
+msgid "Zero Spam token"
+msgstr "אסימון Zero Spam"
+
+#: includes/class-gf-zero-spam-addon.php:685
+msgid "Shield silentCAPTCHA"
+msgstr "Shield silentCAPTCHA"
+
+#: includes/class-gf-zero-spam-addon.php:689
+msgid "AI Spam Review"
+msgstr "סקירת ספאם מבוססת בינה מלאכותית"
+
+#: includes/class-gf-zero-spam-addon.php:697
+msgid "Shield Security is not active — this check is skipped."
+msgstr "Shield Security אינו פעיל — בדיקה זו מדולגת."
+
+#: includes/class-gf-zero-spam-addon.php:701
+msgid "AI Spam Review is not configured — this check is skipped."
+msgstr "סקירת ספאם מבוססת בינה מלאכותית אינה מוגדרת — בדיקה זו מדולגת."
+
+#: includes/class-gf-zero-spam-addon.php:706
+msgid "First check"
+msgstr "בדיקה ראשונה"
+
+#: includes/class-gf-zero-spam-addon.php:707
+msgid "Second check"
+msgstr "בדיקה שנייה"
+
+#: includes/class-gf-zero-spam-addon.php:708
+msgid "Third check"
+msgstr "בדיקה שלישית"
+
+#: includes/class-gf-zero-spam-addon.php:724
+msgid "Stop after first detection"
+msgstr "עצור לאחר זיהוי ראשון"
+
+#: includes/class-gf-zero-spam-addon.php:728
+msgid ""
+"When enabled, remaining checks are skipped once a check flags a submission "
+"as spam. When disabled, every check still runs and records its verdict as "
+"an entry note; a flagged submission is never restored by a later check."
+msgstr ""
+"כאשר מופעל, בדיקות נוספות מדולגות ברגע שבדיקה מזהה הגשה כספאם. כאשר כבוי, "
+"כל בדיקה עדיין מתבצעת ורושמת את פסק הדין שלה כהערת כניסה; הגשה שסומנה לעולם "
+"לא משוחזרת על ידי בדיקה מאוחרת יותר."
+
+#: includes/class-gf-zero-spam-addon.php:732
+msgid "Spam Check Order"
+msgstr "סדר בדיקות הספאם"
+
+#: includes/class-gf-zero-spam-addon.php:733
+msgid ""
+"Controls the order in which the spam checks run during form submission. "
+"Unavailable checks keep their position and are skipped."
+msgstr ""
+"שולט בסדר שבו מתבצעות בדיקות הספאם בעת שליחת הטופס. בדיקות שאינן זמינות "
+"שומרות על מיקומן ומדלגות."
+
+#: includes/class-gf-zero-spam-ai-review.php:348
+msgid "AI review also classified this submission as spam (confidence [confidence])."
+msgstr "סקירת בינה מלאכותית גם סיווגה הגשה זו כספאם (רמת ביטחון [confidence])."
+
+#: includes/class-gf-zero-spam-ai-review.php:354
+msgid ""
+"AI review classified this submission as legitimate (confidence "
+"[confidence])."
+msgstr "סקירת בינה מלאכותית סיווגה הגשה זו כחוקית (רמת ביטחון [confidence])."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:307
+msgid "This submission was flagged as spam by [filter]."
+msgstr "הגשה זו סומנה כספאם על ידי [filter]."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:362
+msgid "Shield silentCAPTCHA also identified this submission as spam."
+msgstr "Shield silentCAPTCHA גם זיהה הגשה זו כספאם."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:367
+msgid "Shield silentCAPTCHA did not identify this submission as spam."
+msgstr "Shield silentCAPTCHA לא זיהה הגשה זו כספאם."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:429
+msgid "This entry has been marked as spam by [filter]."
+msgstr "כניסה זו סומנה כספאם על ידי [filter]."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:530
+msgid "Enable Shield silentCAPTCHA by Default"
+msgstr "הפעלת Shield silentCAPTCHA כבררת מחדל"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:574
+msgid "Enable Shield silentCAPTCHA for this form"
+msgstr "הפעל את Shield silentCAPTCHA עבור טופס זה"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:940
+msgid "This setting is currently overriding the global default setting."
+msgstr "הגדרה זו מבטלת כרגע את הגדרת ברירת המחדל הגלובלית."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:941
+msgid "This setting is currently inheriting the global default setting."
+msgstr "הגדרה זו יורשת כרגע את הגדרת ברירת המחדל הגלובלית."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:990
+msgid "Learn More"
+msgstr "למידע נוסף"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1102
+msgid ""
+"Runs Shield silentCAPTCHA server-side for this form. No field needs to be "
+"added to the form."
+msgstr ""
+"מריץ את Shield silentCAPTCHA בצד השרת עבור טופס זה. אין צורך להוסיף שדה "
+"לטופס."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1113
+msgid ""
+"Enable Shield silentCAPTCHA by default for forms. No field needs to be "
+"added to the form. Forms without their own Shield setting will use this "
+"default."
+msgstr ""
+"הפעל את Shield silentCAPTCHA כברירת מחדל עבור טפסים. אין צורך להוסיף שדה "
+"לטופס. טפסים ללא הגדרת Shield משלהם ישתמשו בהגדרה זו כברירת מחדל."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1124
+msgid ""
+"Shield silentCAPTCHA is currently unavailable because Shield Security is "
+"not installed or active. This setting is disabled until Shield becomes "
+"available again."
+msgstr ""
+"Shield silentCAPTCHA אינו זמין כרגע כי Shield Security אינו מותקן או פעיל. "
+"הגדרה זו מושבתת עד ש-Shield יהיה זמין שוב."
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1135
+msgid ""
+"Shield silentCAPTCHA is available, but Shield's bot threshold is 0, so it "
+"will not flag submissions until that threshold is increased."
+msgstr ""
+"Shield silentCAPTCHA זמין, אך סף הבוט של Shield הוא 0, לכן לא יסמן הגשות עד "
+"שהסף יוגדל."
+
+#: includes/class-gf-zero-spam.php:611
+msgid "The Zero Spam token check also flagged this submission: [reason]"
+msgstr "בדיקת אסימון Zero Spam גם סימנה הגשה זו: [reason]"
+
+#: includes/class-gf-zero-spam.php:618
+msgid "The Zero Spam token check found a valid token for this submission."
+msgstr "בדיקת אסימון Zero Spam מצאה אסימון תקף עבור הגשה זו."
+
+#: includes/class-email-rejection-settings.php:372
+msgid ""
+"Email Rejection Rules are turned off, so these rules will not run. "
+"[link]Turn on Email Rejection Rules[/link] in the Zero Spam settings."
+msgstr ""
+"כללי דחיית אימייל כבויים, ולכן כללים אלה לא יופעלו. [link]הפעל את כללי "
+"דחיית האימייל[/link] בהגדרות Zero Spam."
+
+#: includes/class-gf-zero-spam-addon.php:449
+msgctxt "The heading inside the email body."
+msgid "Gravity Forms Spam Report"
+msgstr "דוח ספאם של Gravity Forms"

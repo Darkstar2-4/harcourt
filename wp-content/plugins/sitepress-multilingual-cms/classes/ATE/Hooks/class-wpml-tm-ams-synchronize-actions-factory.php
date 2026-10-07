@@ -3,14 +3,8 @@
 use WPML\TM\ATE\UsersByCapsRepository;
 use function WPML\Container\make;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_AMS_Synchronize_Actions_Factory implements IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return WPML_TM_AMS_Synchronize_Actions|null
-	 */
 	public function create() {
 		if ( WPML_TM_ATE_Status::is_enabled_and_activated() ) {
 			$ams_api = make( WPML_TM_AMS_API::class );

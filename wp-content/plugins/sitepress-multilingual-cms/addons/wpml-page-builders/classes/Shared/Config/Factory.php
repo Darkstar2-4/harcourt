@@ -6,9 +6,6 @@ use WPML\WP\OptionManager;
 
 abstract class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Frontend_Action_Loader {
 
-	/**
-	 * @return \IWPML_Action
-	 */
 	public function create() {
 		return new Hooks(
 			new Parser(
@@ -23,10 +20,5 @@ abstract class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Frontend_
 		);
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return mixed
-	 */
 	abstract protected function getPbData( $key );
 }

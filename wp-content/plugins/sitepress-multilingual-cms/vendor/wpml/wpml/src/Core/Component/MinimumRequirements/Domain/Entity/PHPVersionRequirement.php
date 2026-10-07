@@ -7,7 +7,6 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 
 class PHPVersionRequirement extends RequirementBase {
 
-  /** @var ServerInfoInterface  */
   private $serverInfo;
 
 

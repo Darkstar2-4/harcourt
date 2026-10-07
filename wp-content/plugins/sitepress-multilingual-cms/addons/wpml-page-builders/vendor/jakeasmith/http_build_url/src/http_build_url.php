@@ -1,11 +1,5 @@
 <?php
 
-/**
- * URL constants as defined in the PHP Manual under "Constants usable with
- * http_build_url()".
- *
- * @see http://us2.php.net/manual/en/http.constants.php#http.constants.url
- */
 if (!defined('HTTP_URL_REPLACE')) {
 	define('HTTP_URL_REPLACE', 1);
 }
@@ -42,21 +36,6 @@ if (!defined('HTTP_URL_STRIP_ALL')) {
 
 if (!function_exists('http_build_url')) {
 
-	/**
-	 * Build a URL.
-	 *
-	 * The parts of the second URL will be merged into the first according to
-	 * the flags argument.
-	 *
-	 * @param mixed $url     (part(s) of) an URL in form of a string or
-	 *                       associative array like parse_url() returns
-	 * @param mixed $parts   same as the first argument
-	 * @param int   $flags   a bitmask of binary or'ed HTTP_URL constants;
-	 *                       HTTP_URL_REPLACE is the default
-	 * @param array $new_url if set, it will be filled with the parts of the
-	 *                       composed url like parse_url() would return
-	 * @return string
-	 */
 	function http_build_url($url, $parts = array(), $flags = HTTP_URL_REPLACE, &$new_url = array())
 	{
 		is_array($url) || $url = parse_url($url);
@@ -67,7 +46,6 @@ if (!function_exists('http_build_url')) {
 
 		$keys = array('user', 'pass', 'port', 'path', 'query', 'fragment');
 
-		// HTTP_URL_STRIP_ALL and HTTP_URL_STRIP_AUTH cover several other flags.
 		if ($flags & HTTP_URL_STRIP_ALL) {
 			$flags |= HTTP_URL_STRIP_USER | HTTP_URL_STRIP_PASS
 				| HTTP_URL_STRIP_PORT | HTTP_URL_STRIP_PATH
@@ -76,7 +54,6 @@ if (!function_exists('http_build_url')) {
 			$flags |= HTTP_URL_STRIP_USER | HTTP_URL_STRIP_PASS;
 		}
 
-		// Schema and host are alwasy replaced
 		foreach (array('scheme', 'host') as $part) {
 			if (isset($parts[$part])) {
 				$url[$part] = $parts[$part];
@@ -92,7 +69,6 @@ if (!function_exists('http_build_url')) {
 		} else {
 			if (isset($parts['path']) && ($flags & HTTP_URL_JOIN_PATH)) {
 				if (isset($url['path']) && substr($parts['path'], 0, 1) !== '/') {
-					// Workaround for trailing slashes
 					$url['path'] .= 'a';
 					$url['path'] = rtrim(
 							str_replace(basename($url['path']), '', $url['path']),

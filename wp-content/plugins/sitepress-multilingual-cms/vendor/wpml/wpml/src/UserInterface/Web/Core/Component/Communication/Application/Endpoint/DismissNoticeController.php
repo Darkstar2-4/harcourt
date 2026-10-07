@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class DismissNoticeController implements EndpointInterface {
 
-  /** @var DismissNoticeService */
   private $service;
 
 
@@ -16,11 +15,6 @@ class DismissNoticeController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string, mixed>
-   */
   public function handle( $requestData = null ): array {
     if ( ! isset( $requestData['noticeId'] ) ) {
       return [

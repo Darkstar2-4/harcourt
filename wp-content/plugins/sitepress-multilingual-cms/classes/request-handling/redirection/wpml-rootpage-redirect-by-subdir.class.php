@@ -2,15 +2,8 @@
 
 class WPML_Rootpage_Redirect_By_Subdir extends WPML_Redirect_By_Subdir {
 
-	/** @var array $urls */
 	private $urls;
 
-	/**
-	 * @param  array                    $urls
-	 * @param  WPML_Request             $request_handler
-	 * @param  WPML_URL_Converter       $url_converter
-	 * @param WPML_Language_Resolution $lang_resolution
-	 */
 	public function __construct( $urls, &$request_handler, &$url_converter, &$lang_resolution ) {
 		parent::__construct( $url_converter, $request_handler, $lang_resolution );
 		$this->urls = $urls;
@@ -41,7 +34,6 @@ class WPML_Rootpage_Redirect_By_Subdir extends WPML_Redirect_By_Subdir {
 				$html_file = ( false === strpos( $this->urls['root_html_file_path'], '/' ) ? ABSPATH : '' )
 							 . $this->urls['root_html_file_path'];
 
-				/** @noinspection PhpIncludeInspection */
 				include $html_file;
 				exit;
 			} else {

@@ -7,16 +7,10 @@ use WPML\StringTranslation\Application\Translation\Query\FindTranslationDetailsQ
 
 class FindTranslationDetailsQuery implements FindTranslationDetailsQueryInterface {
 
-	/** @var FindTranslationDataQueryBuilder */
 	private $findTranslationDataQueryBuilder;
 
-	/** @var FindJobAndStatusDataQueryBuilder */
 	private $findJobAndStatusDataQueryBuilder;
 
-	/**
-	 * @param FindTranslationDataQueryBuilder  $findTranslationDataQueryBuilder
-	 * @param FindJobAndStatusDataQueryBuilder $findJobAndStatusDataQueryBuilder
-	 */
 	public function __construct(
 		FindTranslationDataQueryBuilder  $findTranslationDataQueryBuilder,
 		FindJobAndStatusDataQueryBuilder $findJobAndStatusDataQueryBuilder
@@ -25,12 +19,6 @@ class FindTranslationDetailsQuery implements FindTranslationDetailsQueryInterfac
 		$this->findJobAndStatusDataQueryBuilder = $findJobAndStatusDataQueryBuilder;
 	}
 
-	/**
-	 * @param int[]    $stringIds
-	 * @param string[] $languageCodes
-	 *
-	 * @return TranslationDetailsDto[]
-	 */
 	public function execute( array $stringIds, array $languageCodes ): array {
 		global $wpdb;
 
@@ -88,7 +76,8 @@ class FindTranslationDetailsQuery implements FindTranslationDetailsQueryInterfac
 					$getStringOrNull( $row, 'editor' ),
 					$getStringOrNull( $row, 'translation_service' ),
 					$getStringOrNull( $row, 'review_status' ),
-					$getIntOrNull( $row, 'translator_id' )
+					$getIntOrNull( $row, 'translator_id' ),
+					$getIntOrNull( $row, 'editor_job_id' )
 				);
 			},
 			$res

@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Choose the image file type for flags": [
             "בחר את סוג קובץ התמונה עבור דגלים"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "אפשרות זו תשפיע רק על הדגלים המובנים של WPML ולא על אלו המותאמים אישית ומועלים."
+            "אפשרות זו משפיעה רק על דגלי WPML המובנים, לא על אלה שהועלו בהתאמה אישית."
          ],
          "%s format": [
-            "תבנית %s"
+            "פורמט %s"
          ],
          "Save": [
             "שמור"
          ],
          "The new format has been saved.": [
-            "התבנית החדשה נשמרה."
+            "הפורמט החדש נשמר."
          ],
          "Failed to save the new format": [
-            "שמירת התבנית החדשה נכשלה."
+            "שמירת הפורמט החדש נכשלה"
          ]
       }
    }

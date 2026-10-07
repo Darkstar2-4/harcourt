@@ -10,13 +10,10 @@ use function WPML\PHP\Logger\error;
 
 class PackageCalculator {
 
-  /** @var StringRepositoryInterface */
   private $stringRepository;
 
-  /** @var PackageRepositoryInterface */
   private $packageRepository;
 
-  /** @var StringCalculator */
   private $stringCalculator;
 
 
@@ -31,12 +28,6 @@ class PackageCalculator {
   }
 
 
-  /**
-   * @param int $itemId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   */
   public function calculate( int $itemId ): int {
     $strings = $this->stringRepository->getBelongingToPackage( $itemId );
 

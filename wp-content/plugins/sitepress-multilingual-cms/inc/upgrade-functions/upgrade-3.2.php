@@ -1,7 +1,4 @@
 <?php
-/**
- * @package wpml-core
- */
 
 global $wpdb;
 
@@ -11,11 +8,9 @@ if ( ! isset( $sitepress_settings ) ) {
 	$sitepress_settings = get_option( 'icl_sitepress_settings' );
 }
 
-// change icl_translate.field_type size to 160
 $sql = "ALTER TABLE {$wpdb->prefix}icl_translate MODIFY COLUMN field_type VARCHAR( 160 ) NOT NULL";
 $wpdb->query( $sql );
 
-// Add 'batch_id' column to icl_translation_status
 $sql             = $wpdb->prepare(
 	"SELECT count(*) FROM information_schema.COLUMNS
      WHERE COLUMN_NAME = 'batch_id'
@@ -28,7 +23,6 @@ if ( ! $batch_id_exists || ! (int) $batch_id_exists ) {
 	$wpdb->query( $sql );
 }
 
-// Add 'batch_id' column to icl_string_translations
 $sql             = $wpdb->prepare(
 	"SELECT count(*) FROM information_schema.COLUMNS
      WHERE COLUMN_NAME = 'batch_id'
@@ -44,7 +38,6 @@ if ( ! $batch_id_exists || ! (int) $batch_id_exists ) {
 	fix_icl_string_status();
 }
 
-// Add 'translation_service' column to icl_string_translations
 $sql             = $wpdb->prepare(
 	"SELECT count(*) FROM information_schema.COLUMNS
      WHERE COLUMN_NAME = 'translation_service'
@@ -57,7 +50,6 @@ if ( ! $batch_id_exists || ! (int) $batch_id_exists ) {
 	$wpdb->query( $sql );
 }
 
-// Add 'icl_translation_batches' table
 $sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}icl_translation_batches (
 				  `id` int(11) NOT NULL AUTO_INCREMENT,
 				  `batch_name` text NOT NULL,

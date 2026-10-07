@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `CALL` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -24,18 +21,8 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class CallStatement extends Statement
 {
-    /**
-     * The name of the function and its parameters.
-     *
-     * @var FunctionCall
-     */
     public $call;
 
-    /**
-     * Build statement for CALL.
-     *
-     * @return string
-     */
     public function build()
     {
         return "CALL " . $this->call->name . "(" . ($this->call->parameters ? implode(",", $this->call->parameters->raw) : "") . ")";

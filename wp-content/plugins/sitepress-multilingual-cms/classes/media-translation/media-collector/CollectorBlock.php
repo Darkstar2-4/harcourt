@@ -3,26 +3,14 @@
 namespace WPML\MediaTranslation\MediaCollector;
 
 class CollectorBlock {
-	/** @var string */
 	private $name;
 
-	/** @var PathResolverInterface[] */
 	private $path_to_id = [];
 
-	/** @var PathResolverInterface[] */
 	private $path_to_url = [];
 
-	/** @var PathResolverInterface[] */
 	private $path_to_multiple_media = [];
 
-	/**
-	 * MediaBlock constructor.
-	 *
-	 * @param string                  $name
-	 * @param PathResolverInterface[] $pathToId
-	 * @param PathResolverInterface[] $pathToUrl
-	 * @param PathResolverInterface[] $pathToMultipleMedia
-	 */
 	public function __construct(
 		$name,
 		$pathToId = [],
@@ -35,17 +23,10 @@ class CollectorBlock {
 		$this->path_to_multiple_media = $pathToMultipleMedia;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getName() {
 		return $this->name;
 	}
 
-	/**
-	 * @param mixed $block
-	 * @param array $mediaCollection
-	 */
 	public function collectIdsAndUrls( $block, &$mediaCollection ) {
 		$mediaData = $this->getMultipleMediaArray( $block );
 
@@ -73,32 +54,16 @@ class CollectorBlock {
 
 	}
 
-	/**
-	 * @param mixed $data
-	 *
-	 * @return int|null
-	 */
 	private function getId( $data ) {
 		$id = $this->getByPath( $data, $this->path_to_id );
 		return is_numeric( $id ) ? (int) $id : null;
 	}
 
-	/**
-	 * @param mixed $data
-	 *
-	 * @return string|null
-	 */
 	private function getUrl( $data ) {
 		$url = $this->getByPath( $data, $this->path_to_url );
 		return is_string( $url ) ? $url : null;
 	}
 
-	/**
-	 * @param mixed $data
-	 * @param PathResolverInterface[] $path
-	 *
-	 * @return mixed
-	 */
 	private function getByPath( $data, $path ) {
 		$keys     = array_keys( $path );
 		$last_key = end( $keys );

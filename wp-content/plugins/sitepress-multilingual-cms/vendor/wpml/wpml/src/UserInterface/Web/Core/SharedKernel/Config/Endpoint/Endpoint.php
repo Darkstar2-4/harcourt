@@ -5,25 +5,18 @@ namespace WPML\UserInterface\Web\Core\SharedKernel\Config\Endpoint;
 class Endpoint {
   const NAMESPACE = 'wpml';
 
-  /** @var string $id */
   private $id;
 
-  /** @var string $path */
   private $path;
 
-  /** @var MethodType::* $method */
   private $method;
 
-  /** @var class-string|null $handler ; */
   private $handler;
 
-  /** @var ?string $capability */
   private $capability;
 
-  /** @var int $version */
   private $version = 1;
 
-  /** @var bool $isAjax */
   private $isAjax;
 
 
@@ -60,18 +53,11 @@ class Endpoint {
   }
 
 
-  /** @return MethodType::* */
   public function method() {
     return $this->method;
   }
 
 
-  /**
-   *
-   * @param MethodType::* $method
-   *
-   * @return static
-   */
   public function setMethod( $method ) {
     $this->method = $method;
 
@@ -79,16 +65,11 @@ class Endpoint {
   }
 
 
-  /** @return class-string|null */
   public function handler() {
     return $this->handler;
   }
 
 
-  /**
-   * @param class-string $handler
-   * @return static
-   */
   public function setHandler( $handler ) {
     $this->handler = $handler;
 
@@ -101,7 +82,6 @@ class Endpoint {
   }
 
 
-  /** @return static */
   public function setCapability( string $capability ) {
     $this->capability = $capability;
 
@@ -114,7 +94,6 @@ class Endpoint {
   }
 
 
-  /** @return static */
   public function setVersion( int $version ) {
     $this->version = $version;
 

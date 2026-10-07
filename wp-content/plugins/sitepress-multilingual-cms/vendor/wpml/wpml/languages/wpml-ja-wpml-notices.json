@@ -8,7 +8,7 @@
             "lang": "ja"
          },
          "Add glossary terms": [
-            "用語集に用語を追加"
+            "用語集の用語を追加"
          ],
          "Minimize": [
             "最小化"
@@ -20,7 +20,7 @@
             "用語集にはまだ何もありません"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "まだ用語集を使用していないようです。用語集は以下の点で役立ちます："
+            "用語集をまだ使用していないようです。用語集は次のことに役立ちます。"
          ],
          "Improve the quality of the translation": [
             "翻訳の品質を向上させる"
@@ -32,13 +32,13 @@
             "翻訳コストを削減する"
          ],
          "Improve SEO in translation languages": [
-            "翻訳言語のSEOを改善する"
+            "翻訳言語でのSEOを改善する"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "正確な翻訳のための用語集の使用方法"
+            "正確な翻訳のために用語集を使用する方法"
          ],
          "%d item in the <a>Glossary</a>": [
-            "<a>用語集</a>に%d項目"
+            "<a>用語集</a>に%d個の項目"
          ]
       }
    }

@@ -16,11 +16,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 use function WPML\PHP\array_keys_exists;
 
 
-/**
- * @phpstan-import-type TargetLanguageMethodTypeValues from TargetLanguageMethodType
- * @phpstan-import-type PostsData from SearchQuery
- * @phpstan-import-type SearchQueryJobData from TranslationsQuery
- */
 class ItemWithTranslationStatusDtoMapper {
 
   const REQUIRED_RAW_KEYS = [
@@ -29,12 +24,10 @@ class ItemWithTranslationStatusDtoMapper {
     'post_status',
     'post_date',
     'post_type',
-    'word_count',
     'translator_note',
     'use_native_editor'
   ];
 
-  /** @var CompletedTranslationService */
   private $completedTranslationService;
 
 
@@ -43,16 +36,6 @@ class ItemWithTranslationStatusDtoMapper {
   }
 
 
-  /**
-   * @param ResultCollectionInterface<int,PostsData>          $items
-   * @param ResultCollectionInterface<int,SearchQueryJobData> $jobs
-   * @param SearchCriteria                                    $searchCriteria
-   *
-   * @psalm-suppress ArgumentTypeCoercion Validation on mapSingle().
-   *
-   * @return ResultCollectionInterface<int,PostWithTranslationStatusDto>
-   * @throws InvalidArgumentException
-   */
   public function mapCollection(
     ResultCollectionInterface $items,
     ResultCollectionInterface $jobs,
@@ -73,15 +56,6 @@ class ItemWithTranslationStatusDtoMapper {
   }
 
 
-  /**
-   * @param PostsData                      $rawData
-   * @param array<int, SearchQueryJobData> $jobs
-   * @param SearchCriteria                 $searchCriteria
-   *
-   * @return PostWithTranslationStatusDto
-   * @throws InvalidArgumentException One of the required keys is missing.
-   *
-   */
   private function mapSingle( array $rawData, array $jobs, SearchCriteria $searchCriteria ) {
     if ( ! array_keys_exists( self::REQUIRED_RAW_KEYS, $rawData ) ) {
       throw new InvalidArgumentException(
@@ -99,28 +73,20 @@ class ItemWithTranslationStatusDtoMapper {
       $rawData['post_date'],
       $rawData['post_type'],
       $translationStatuses,
-      is_numeric( $rawData['word_count'] ) ? (int) $rawData['word_count'] : null,
+      isset( $rawData['word_count'] ) && is_numeric( $rawData['word_count'] ) ? (int) $rawData['word_count'] : null,
       $rawData['translator_note'],
       in_array( $rawData['use_native_editor'], [ 'yes', 'no' ], true ) ? $rawData['use_native_editor'] : ''
     );
   }
 
 
-  /**
-   * @param array<int, SearchQueryJobData> $jobs
-   * @param SearchCriteria                 $searchCriteria
-   *
-   * @return array<string, TranslationStatusDto>
-   */
   private function mapTranslationStatuses( array $jobs, SearchCriteria $searchCriteria ): array {
     $translationStatuses = [];
 
-    // First, create default TranslationStatusDto for all target languages
     foreach ( $searchCriteria->getTargetLanguageCodes() as $langCode ) {
       $translationStatuses[ $langCode ] = new TranslationStatusDto( 0 );
     }
 
-    // Then override with actual translation statuses from jobs
     foreach ( $jobs as $job ) {
       $langCode = $job['language_code'];
 
@@ -157,12 +123,7 @@ class ItemWithTranslationStatusDtoMapper {
   }
 
 
-  /**
-   * @param string|null $editor
-   *
-   * @return TranslationEditorType::*
-   */
-  private function parseEditor( string $editor = null ) {
+  private function parseEditor( ?string $editor = null ) {
     if ( ! $editor || $editor === 'NULL' ) {
       return TranslationEditorType::NONE;
     }
@@ -183,14 +144,6 @@ class ItemWithTranslationStatusDtoMapper {
   }
 
 
-  /**
-   * @param int    $status
-   * @param string $translationService
-   * @param bool   $automatic
-   * @param int    $jobId
-   *
-   * @return TargetLanguageMethodTypeValues|null
-   */
   private function getMethod( int $status, string $translationService, bool $automatic, int $jobId ) {
     $method = null;
     if ( $status === TranslationStatus::DUPLICATE ) {

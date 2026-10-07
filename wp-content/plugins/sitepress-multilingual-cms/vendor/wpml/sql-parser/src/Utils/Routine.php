@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Routine utilities.
- */
 
 namespace PhpMyAdmin\SqlParser\Utils;
 
@@ -21,18 +18,10 @@ use PhpMyAdmin\SqlParser\Statements\CreateStatement;
  */
 class Routine
 {
-    /**
-     * Parses a parameter of a routine.
-     *
-     * @param string $param parameter's definition
-     *
-     * @return array
-     */
     public static function getReturnType($param)
     {
         $lexer = new Lexer($param);
 
-        // A dummy parser is used for error reporting.
         $type = DataType::parse(new Parser(), $lexer->list);
 
         if ($type === null) {
@@ -59,18 +48,10 @@ class Routine
         );
     }
 
-    /**
-     * Parses a parameter of a routine.
-     *
-     * @param string $param parameter's definition
-     *
-     * @return array
-     */
     public static function getParameter($param)
     {
         $lexer = new Lexer('(' . $param . ')');
 
-        // A dummy parser is used for error reporting.
         $param = ParameterDefinition::parse(new Parser(), $lexer->list);
 
         if (empty($param[0])) {
@@ -99,13 +80,6 @@ class Routine
         );
     }
 
-    /**
-     * Gets the parameters of a routine from the parse tree.
-     *
-     * @param CreateStatement $statement the statement to be processed
-     *
-     * @return array
-     */
     public static function getParameters($statement)
     {
         $retval = array(

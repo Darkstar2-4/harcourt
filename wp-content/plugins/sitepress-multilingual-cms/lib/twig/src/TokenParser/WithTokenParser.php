@@ -12,13 +12,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\WithNode;
 use WPML\Core\Twig\Token;
-/**
- * Creates a nested scope.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class WithTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

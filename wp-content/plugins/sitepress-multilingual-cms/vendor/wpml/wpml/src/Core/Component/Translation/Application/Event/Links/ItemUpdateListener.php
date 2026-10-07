@@ -10,10 +10,8 @@ use WPML\PHP\Exception\InvalidTypeException;
 
 class ItemUpdateListener implements EventListenerInterface {
 
-  /** @var HandleUpdateOriginal */
   private $handleOriginal;
 
-  /** @var HandleUpdateTranslation */
   private $handleTranslation;
 
 
@@ -26,13 +24,11 @@ class ItemUpdateListener implements EventListenerInterface {
   }
 
 
-  /** @return void */
   public function onItemSave( Item $item ) {
     try {
       $this->handleOriginal->handle( $item );
       $this->handleTranslation->handle( $item );
     } catch ( InvalidTypeException $e ) {
-      // CMS error - some type name has changed.
       return;
     }
   }

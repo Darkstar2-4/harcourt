@@ -1,0 +1,57 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
+            "lang": "pt_PT"
+         },
+         "Accepted": [
+            "Aceite"
+         ],
+         "Approved!": [
+            "Aprovado!"
+         ],
+         "Loading the next translation for review...": [
+            "A carregar a próxima tradução para revisão..."
+         ],
+         "Back": [
+            "Voltar"
+         ],
+         "Turn off to not automatically load the next translation after finishing this review.": [
+            "Desativar para não carregar automaticamente a próxima tradução após terminar esta revisão."
+         ],
+         "Turn on to automatically load the next translation after finishing this  .": [
+            "Ativar para carregar automaticamente a próxima tradução após terminar esta."
+         ],
+         "Edit": [
+            "Editar"
+         ],
+         "Edit translation": [
+            "Editar tradução"
+         ],
+         "Next review": [
+            "Próxima revisão"
+         ],
+         "Publish this translation": [
+            "Publicar esta tradução"
+         ],
+         "Accept this translation": [
+            "Aceitar esta tradução"
+         ],
+         "Published!": [
+            "Publicado!"
+         ],
+         "Please wait, applying translation..": [
+            "Aguarde, a aplicar a tradução..."
+         ],
+         "There was an error in applying translation.": [
+            "Ocorreu um erro ao aplicar a tradução."
+         ],
+         "Someone is already reviewing this translation. Please try again later.": [
+            "Alguém já está a rever esta tradução. Tente novamente mais tarde."
+         ]
+      }
+   }
+}

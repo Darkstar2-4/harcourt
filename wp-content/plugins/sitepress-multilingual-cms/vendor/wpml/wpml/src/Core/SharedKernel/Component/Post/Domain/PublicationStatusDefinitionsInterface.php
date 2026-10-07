@@ -11,9 +11,6 @@ interface PublicationStatusDefinitionsInterface {
   public function isPublishable( string $status ) : bool;
 
 
-  /**
-   * @param ?string $statusBefore
-   */
   public function gotPublished( string $status, $statusBefore ) : bool;
 
 

@@ -5,28 +5,28 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "tr"
+            "lang": "tr_TR"
          },
          "Warning:": [
-            "İkaz:"
+            "Uyarı:"
          ],
          "Edits you're about to make will be lost": [
-            "Yapmak üzere olduğunuz düzenlemeler kaybedilecektir"
+            "Yapmak üzere olduğunuz düzenlemeler kaybolacak"
          ],
          "You are about to edit this translation using %s.": [
             "Bu çeviriyi %s kullanarak düzenlemek üzeresiniz."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "Yaptığınız değişiklikler, bu sayfayı bir sonraki çeviri için gönderdiğinizde kaybedilecektir."
+            "Yaptığınız tüm değişiklikler, bu sayfayı bir sonraki çeviriye gönderdiğinizde kaybolacaktır."
          ],
          "Go back": [
-            "Geri dönün"
+            "Geri dön"
          ],
          "Edit in Advanced Translation Editor": [
-            "Gelişmiş çeviri düzenleyicisinde düzenleyin"
+            "Gelişmiş çeviri düzenleyicisinde düzenle"
          ],
          "Edit anyway (Not recommended)": [
-            "Yine de düzenleyin (Tavsiye edilmez)"
+            "Yine de düzenle (Önerilmez)"
          ]
       }
    }

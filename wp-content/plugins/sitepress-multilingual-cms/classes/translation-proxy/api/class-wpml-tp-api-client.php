@@ -1,16 +1,12 @@
 <?php
 
 class WPML_TP_API_Client {
-	/** @var string */
 	private $proxy_url;
 
-	/** @var WP_Http $http */
 	private $http;
 
-	/** @var WPML_TP_Lock $tp_lock */
 	private $tp_lock;
 
-	/** @var WPML_TP_HTTP_Request_Filter */
 	private $request_filter;
 
 	public function __construct(
@@ -25,13 +21,6 @@ class WPML_TP_API_Client {
 		$this->request_filter = $request_filter;
 	}
 
-	/**
-	 * @param WPML_TP_API_Request $request
-	 * @param bool                $raw_json_response
-	 *
-	 * @return array|mixed|stdClass|string
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function send_request( WPML_TP_API_Request $request, $raw_json_response = false ) {
 		if ( $this->tp_lock->is_locked( $request->get_url() ) ) {
 			throw new WPML_TP_API_Exception( 'Communication with translation proxy is not allowed.', $request );
@@ -68,23 +57,12 @@ class WPML_TP_API_Client {
 	}
 
 
-	/**
-	 * @param WPML_TP_API_Request $request
-	 *
-	 * @return null|WP_Error|string
-	 */
 	private function call_remote_api( WPML_TP_API_Request $request ) {
 		$context = $this->filter_request_params( $request->get_params(), $request->get_method() );
 
 		return $this->http->request( $this->proxy_url . $request->get_url(), $context );
 	}
 
-	/**
-	 * @param array  $params request parameters
-	 * @param string $method HTTP request method
-	 *
-	 * @return array
-	 */
 	private function filter_request_params( $params, $method ) {
 		return $this->request_filter->build_request_context(
 			array(
@@ -96,13 +74,6 @@ class WPML_TP_API_Client {
 		);
 	}
 
-	/**
-	 * @param WPML_TP_API_Request $request
-	 * @param stdClass            $response
-	 *
-	 * @return mixed
-	 * @throws WPML_TP_API_Exception
-	 */
 	private function handle_json_response( WPML_TP_API_Request $request, $response ) {
 		if ( $request->has_api_response() ) {
 			if ( ! isset( $response->status->code ) || $response->status->code !== 0 ) {

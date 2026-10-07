@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "From:": [
-            "מ:"
+            "מאת:"
          ],
          "--Choose language--": [
             "--בחר שפה--"
          ],
          "to:": [
-            "ל:"
+            "אל:"
          ],
          "Select %s": [
             "בחר %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "הגדר זוגות שפות עבור מתרגם %s:"
+            "הגדר צמדי שפות עבור מתרגם %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ הוסף עוד זוגות שפות עבור מתרגם זה"
+            "+ הוסף צמדי שפות נוספים עבור מתרגם זה"
          ],
          "First Name": [
             "שם פרטי"
@@ -35,28 +35,31 @@
             "תפקיד"
          ],
          "(required)": [
-            "(חובה)"
+            "(נדרש)"
          ],
          "Select a role for the user": [
             "בחר תפקיד עבור המשתמש"
          ],
          "Make sure that you have provided a correct email address e.g. name@domain.com": [
-            "ודא שסיפקת כתובת דוא\"ל נכונה, למשל name@domain.com"
+            "ודא שסיפקת כתובת אימייל נכונה, לדוגמה name@domain.com"
          ],
          "This field is required": [
-            "זה שדה חובה"
+            "שדה זה נדרש"
          ],
          "A translator can be any WordPress role.": [
-            "מתרגם יכול להיות בכל תפקיד WordPress."
+            "מתרגם יכול להיות כל תפקיד בוורדפרס."
          ],
          "Username": [
             "שם משתמש"
          ],
          "Email": [
-            "דואר אלקטרוני"
+            "אימייל"
          ],
          "Search": [
             "חיפוש"
+         ],
+         "Your site has a large number of users, please enter the exact username.": [
+            "באתר שלך יש משתמשים רבים, אנא הזינו את שם המשתמש המדויק."
          ],
          "Cancel": [
             "ביטול"
@@ -71,10 +74,10 @@
             "עורך"
          ],
          "Select an existing %s and set as Translation Manager": [
-            "בחר %s קיים והגדר כ'מנהל התרגום'"
+            "בחר %s קיים והגדר כמנהל תרגום"
          ],
          "Create a new %s and set as Translation Manager": [
-            "צור %s חדש והגדר אותו כ'מנהל התרגום'"
+            "צור %s חדש והגדר כמנהל תרגום"
          ],
          "Add a Translation Manager": [
             "הוסף מנהל תרגום"
@@ -86,10 +89,10 @@
             "צור משתמש חדש והגדר כמתרגם"
          ],
          "Set language pair(s)": [
-            "הגדר זוגות שפות"
+            "הגדר צמדי שפות"
          ],
          "Previous": [
-            "הקודם"
+            "קודם"
          ],
          "Save": [
             "שמור"
@@ -98,37 +101,37 @@
             "הוסף מתרגם"
          ],
          "Edit language pair(s) for translator": [
-            "ערוך זוגות שפות עבור מתרגם"
+            "ערוך צמדי שפות עבור מתרגם"
          ],
          "Name": [
             "שם"
          ],
          "Language Pairs": [
-            "זוגות שפות"
+            "צמדי שפות"
          ],
          "You can translate to and from all languages": [
-            "ניתן לתרגם לכל שפה ואל כל שפה"
+            "ניתן לתרגם לכל השפות ומכל השפות"
          ],
          "Edit language pair(s)": [
-            "ערוך צמד(י) שפות"
+            "ערוך צמדי שפות"
          ],
          "Delete language pair(s)": [
-            "מחק צמד(י) שפות"
+            "מחק צמדי שפות"
          ],
          "%s file upload failed.": [
-            "העלאת הקובץ %s נכשלה."
+            "העלאת קובץ %s נכשלה."
          ],
          "Flag": [
             "דגל"
          ],
          "Flag file": [
-            "סמן בדגל את הקובץ"
+            "קובץ דגל"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "זה עתה הוספת שפה. עכשיו, בחור אותה כשפת ברירת המחדל של האתר או כשפת תרגום."
+            "זה עתה הוספת שפה. כעת, בחר אותה כשפת ברירת המחדל של האתר או כשפת תרגום."
          ],
          "Language added": [
-            "נוספה שפה"
+            "השפה נוספה"
          ],
          "The value \"%s\" already exists": [
             "הערך \"%s\" כבר קיים"
@@ -137,10 +140,10 @@
             "הוסף שפה חדשה"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "צור שפה ספציפית לארץ על-ידי בחירת השפה הכללית מהרשימה שלהלן. לאחר מכן בחר את הארץ שעבורה יש לבצע לוקליזציה."
+            "צור שפה ספציפית למדינה על ידי בחירת השפה הכללית מהרשימה למטה. לאחר מכן, בחר את המדינה שעבורה יש לתרגם אותה."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "על-ידי בחירה של שילוב שכבר קיים במסד הנתונים, WPML יכול לעזור במילוי השדות הנחוצים. קרא עוד אודות <AddingACustomLanguageLink />."
+            "על ידי בחירת שילוב שכבר קיים במסד הנתונים, WPML יכול לעזור למלא את השדות הנדרשים. קרא עוד על <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
             "לא מוצא?"
@@ -149,7 +152,7 @@
             "לחץ כאן"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "הפורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"-\". לדוגמה: \"fr\", \"pt-br\", \"zh-hans\""
+            "פורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"-\". לדוגמה: \"fr\", \"pt-br\", \"zh-hans\""
          ],
          "Language": [
             "שפה"
@@ -161,7 +164,7 @@
             "קוד"
          ],
          "The language will not be supported by automatic translations": [
-            "בשפה לא תיתמך על-ידי תרגומים אוטומטיים"
+            "השפה לא תיתמך על ידי תרגומים אוטומטיים"
          ],
          "Language mapping": [
             "מיפוי שפה"
@@ -173,13 +176,13 @@
             "אזור ברירת מחדל"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "הפורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"_\". לדוגמה: \"de\", \"de_DE\", \"zh_Hant_TW\""
+            "פורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"_\". לדוגמה: \"de\", \"de_DE\", \"zh_Hant_TW\""
          ],
          "hreflang": [
             "hreflang"
          ],
          "Encode url?": [
-            "לקודד את כתובת ה-URL?"
+            "לקודד כתובת אתר?"
          ],
          "Flags must be:": [
             "דגלים חייבים להיות:"
@@ -191,13 +194,13 @@
             "כן"
          ],
          " (required)": [
-            "(חובה)"
+            " (נדרש)"
          ],
          "Please fill in the field": [
-            "מלא את השדה"
+            "אנא מלא את השדה"
          ],
          "PNG, SVG, or JPG files": [
-            "קובצי PNG, SVG או JPG"
+            "קבצי PNG, SVG או JPG"
          ],
          "Save language": [
             "שמור שפה"
@@ -206,73 +209,73 @@
             "18 x 12 פיקסלים"
          ],
          "Read more about ": [
-            "קרא עוד אודות"
+            "קרא עוד על "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "שם השפה כפי שיופיע במעביר השפה באתר שלך."
+            "שם השפה שלך כפי שיופיע במחליף השפות של האתר שלך."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "ערך ייחודי שמזהה את השפה במסד הנתונים ובכתובת ה-URL. לאחר השמירה לא יהיה ניתן לשנות את קוד השפה."
+            "ערך ייחודי המזהה את השפה במסד הנתונים ובכתובת האתר. לאחר השמירה, לא ניתן לשנות את קוד השפה."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "אם השפה המותאמת אישית דומה לשפה קיימת, תוכל להשתמש בבדיקת האיות ובתרגום האוטומטי של השפה הקיימת. לדוגמה, אם השפה המותאמת אישת שלך היא דרמנית-שוויצרית, תוכל למפות לגרמנית כשפה לשימוש עבור בדיקת איות ותרגום אוטומטי. אם לא תמפה את השפה המותאמת אישית לשפה קיימת, התכונות בדיקת איות ותרגום אוטומטי לא יהיו זמינות בשפה זו."
+            "אם השפה המותאמת אישית שלך דומה לשפה קיימת, תוכל להשתמש בבדיקת האיות ובתרגום האוטומטי של השפה הקיימת. לדוגמה, אם השפה המותאמת אישית שלך היא גרמנית שוויצרית, תוכל למפות לגרמנית כשפה לשימוש עבור בדיקת איות ותרגום אוטומטי. אם לא תמפה את השפה המותאמת אישית שלך לשפה קיימת, תכונות בדיקת האיות והתרגום האוטומטי לא יהיו זמינות בשפה זו."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "הערך ש-WPML בודק בעת טעינת תרגומים מקובצי MO ו-PO. מיקום ברירת המחדל כלות בשמות הקבצים בתיקייה /wp-content/languages/ של הגדרת WordPress."
+            "הערך ש-WPML בודק בעת טעינת תרגומים מקבצי MO ו-PO. אזור ברירת המחדל כלול בשמות הקבצים בתיקיית /wp-content/languages/ בהגדרת וורדפרס שלך."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Google משתמשת במאפיין hreflang כדי לכוון משתמשים לאתרים הבשפות שרלוונטיות עבורם. דוגמאות:"
+            "גוגל משתמשת בתכונת hreflang כדי להפנות משתמשים לאתרים בשפה ובמיקום הרלוונטיים להם. דוגמאות:"
          ],
          "All English-speaking users: en": [
-            "כל המשתמשים שהם דוברי אנגלית: en"
+            "כל המשתמשים דוברי האנגלית: en"
          ],
          "English for UK users: en-gb": [
-            "אנגלית עבור משתמשי UK: en-gb"
+            "אנגלית למשתמשים בבריטניה: en-gb"
          ],
          "English for US users: en-us": [
-            "אנגלית עבור משתמשי ארה\"ב: en-us"
+            "אנגלית למשתמשים בארה\"ב: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "קובע אם כתובות URL בשפה זו מקודדות או משתמשות בתווי ASCII (אם אינך בטוח, השאר זאת כ-\"לא\")."
+            "קובע אם כתובות אתרים בשפה זו מקודדות או משתמשות בתווי ASCII (אם אינך בטוח, השאר כ-\"לא\")."
          ],
          "adding a custom language": [
-            "מוסיף שפה מותאמת אישית"
+            "הוספת שפה מותאמת אישית"
          ],
          "What are the languages of your site?": [
-            "מה השפות של האתר שלך?"
+            "מהן שפות האתר שלך?"
          ],
          "Default language": [
             "שפת ברירת מחדל"
          ],
          "What is the current language of your website?": [
-            "מה השפה הנוכחית של אתר האינטרנט שלך?"
+            "מהי השפה הנוכחית של האתר שלך?"
          ],
          "Translation languages": [
             "שפות תרגום"
          ],
          "Which languages do you want to translate your site into?": [
-            "לאיזה שפות אתה רוצה לתרגם את האתר שלך?"
+            "לאילו שפות ברצונך לתרגם את האתר שלך?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "אם אינך מוצא שפות שאתה צריך ברשימה"
+         "If you cannot find languages that you need in the list,": [
+            "אם אינך מוצא את השפות שאתה צריך ברשימה,"
          ],
          "create a custom language": [
             "צור שפה מותאמת אישית"
          ],
          "You can add a dedicated person to oversee everything translation-related on your site. %sTranslation Managers%s can add new local translators or professional translation services, create and assign translation jobs, review completed translations, and change translation-related settings.": [
-            "ניתן להוסיף אדם ייעודי שיפקח על כל מה שקשור לתרגומים באתר שלך. %sמנהלי תרגום%s יכולים להוסיף מתרגמים מקומיים חדשים או שירותי תרגום מקצועיים, ליצור משימות תרגום ולהקצות אותם, לבדוק תרגומים שהושלמו ולשנות הגדרות שקשורות בתרגום."
+            "באפשרותך להוסיף אדם ייעודי שיפקח על כל מה שקשור לתרגום באתר שלך. %sמנהלי תרגום%s יכולים להוסיף מתרגמים מקומיים חדשים או שירותי תרגום מקצועיים, ליצור ולהקצות משימות תרגום, לסקור תרגומים שהושלמו ולשנות הגדרות הקשורות לתרגום."
          ],
          "Translation Managers": [
             "מנהלי תרגום"
          ],
          "Note: All Administrators are automatically given Translation Manager privileges.": [
-            "הערה: כל מנהלי המערכת מקבליםבאופן אוטומטי זכויות של 'מנהל תרגום'."
+            "הערה: כל מנהלי המערכת מקבלים באופן אוטומטי הרשאות מנהל תרגום."
          ],
          "%sLocal translators%s are users of your site that can log in and add, edit, and review your site's translations. Add a translator and their associated translation pairs to assign them translation jobs.": [
-            "%sמתרגמים מקומיים%s הם משתמשים באתר שלך מיכולים להיכנס, להוסיף, לערוך ולבדוק את התרגומים באתר שלך. הוסף מתרגם ואת זוגות השפות המשוייכים אליו כדי להקצות לו משימות תרגום."
+            "%sמתרגמים מקומיים%s הם משתמשים באתר שלך שיכולים להתחבר ולהוסיף, לערוך ולסקור את תרגומי האתר שלך. הוסף מתרגם וצמדי התרגום המשויכים אליו כדי להקצות לו משימות תרגום."
          ],
          "You can %shire an experienced translator%s to review your automatic translations for perfect quality.": [
-            "תוכל %sלשכור מתרגם מנוסה%s שיבדוק את התרגומים האוטומטיים כדי שתקבל איכות מושלמת."
+            "באפשרותך %sלשכור מתרגם מנוסה%s כדי לסקור את התרגומים האוטומטיים שלך לאיכות מושלמת."
          ],
          "Translators": [
             "מתרגמים"

@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Add glossary terms": [
             "Lägg till ordlistetermer"
@@ -20,7 +20,7 @@
             "Det finns inget i ordlistan än"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Det ser ut som att du inte använder ordlistan ännu. Ordlistan kan hjälpa dig att:"
+            "Det verkar som att du inte använder ordlistan än. Ordlistan kan hjälpa dig att:"
          ],
          "Improve the quality of the translation": [
             "Förbättra översättningskvaliteten"
@@ -29,17 +29,17 @@
             "Säkerställa översättningskonsistens"
          ],
          "Reduce translation costs": [
-            "Minska översättningskostnader"
+            "Minska översättningskostnaderna"
          ],
          "Improve SEO in translation languages": [
-            "Förbättra SEO i översättningsspråk"
+            "Förbättra SEO på översatta språk"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "Hur man använder ordlistan för korrekta översättningar"
+            "Så här använder du ordlistan för korrekta översättningar"
          ],
          "%d item in the <a>Glossary</a>": [
-            "%d objekt i <a>Ordlistan</a>",
-            "%d objekt i <a>Ordlistan</a>"
+            "%d objekt i <a>ordlistan</a>",
+            "%d objekt i <a>ordlistan</a>"
          ],
          "Dismiss": [
             "Avfärda"

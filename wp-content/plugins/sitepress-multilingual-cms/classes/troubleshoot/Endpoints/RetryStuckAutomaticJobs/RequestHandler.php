@@ -11,10 +11,8 @@ class RequestHandler implements IHandler{
 
 	const LIMIT = 100;
 
-	/** @var GetJobsQuery */
 	private $getJobsQuery;
 
-	/** @var RepairJobsQuery */
 	private $repairJobsQuery;
 
 	public function __construct( GetJobsQuery $getJobsQuery, RepairJobsQuery $repairJobsQuery ) {
@@ -22,11 +20,6 @@ class RequestHandler implements IHandler{
 		$this->repairJobsQuery = $repairJobsQuery;
 	}
 
-	/**
-	 * @param Collection $payload
-	 *
-	 * @return callable|Right
-	 */
 	public function run( Collection $payload ) {
 		try {
 			$result    = $this->getJobsQuery->get( self::LIMIT + 1 );
@@ -43,7 +36,6 @@ class RequestHandler implements IHandler{
 			}
 
 			if ( $jobsCount && ! $harMore ) {
-				// Clear the cache to force ATE to retry the jobs immediately.
 				delete_option( 'WPML(last)' );
 			}
 

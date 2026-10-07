@@ -27,18 +27,6 @@ use WPML\Core\Twig\Node\IncludeNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Node\SetTempNode;
-/**
- * Tries to optimize the AST.
- *
- * This visitor is always the last registered one.
- *
- * You can configure which optimizations you want to activate via the
- * optimizer mode.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
 {
     const OPTIMIZE_ALL = -1;
@@ -51,9 +39,6 @@ class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisit
     protected $optimizers;
     protected $prependedNodes = [];
     protected $inABody = \false;
-    /**
-     * @param int $optimizers The optimizer mode
-     */
     public function __construct($optimizers = -1)
     {
         if (!\is_int($optimizers) || $optimizers > (self::OPTIMIZE_FOR | self::OPTIMIZE_RAW_FILTER | self::OPTIMIZE_VAR_ACCESS)) {
@@ -115,15 +100,6 @@ class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisit
         }
         return $node;
     }
-    /**
-     * Optimizes print nodes.
-     *
-     * It replaces:
-     *
-     *   * "echo $this->render(Parent)Block()" with "$this->display(Parent)Block()"
-     *
-     * @return \Twig_NodeInterface
-     */
     protected function optimizePrintNode(\WPML\Core\Twig_NodeInterface $node, \WPML\Core\Twig\Environment $env)
     {
         if (!$node instanceof \WPML\Core\Twig\Node\PrintNode) {
@@ -136,11 +112,6 @@ class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisit
         }
         return $node;
     }
-    /**
-     * Removes "raw" filters.
-     *
-     * @return \Twig_NodeInterface
-     */
     protected function optimizeRawFilter(\WPML\Core\Twig_NodeInterface $node, \WPML\Core\Twig\Environment $env)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\FilterExpression && 'raw' == $node->getNode('filter')->getAttribute('value')) {
@@ -148,19 +119,14 @@ class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisit
         }
         return $node;
     }
-    /**
-     * Optimizes "for" tag by removing the "loop" variable creation whenever possible.
-     */
     protected function enterOptimizeFor(\WPML\Core\Twig_NodeInterface $node, \WPML\Core\Twig\Environment $env)
     {
         if ($node instanceof \WPML\Core\Twig\Node\ForNode) {
-            // disable the loop variable by default
             $node->setAttribute('with_loop', \false);
             \array_unshift($this->loops, $node);
             \array_unshift($this->loopsTargets, $node->getNode('value_target')->getAttribute('name'));
             \array_unshift($this->loopsTargets, $node->getNode('key_target')->getAttribute('name'));
         } elseif (!$this->loops) {
-            // we are outside a loop
             return;
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\NameExpression && 'loop' === $node->getAttribute('name')) {
             $node->setAttribute('always_defined', \true);
@@ -177,9 +143,6 @@ class OptimizerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisit
             $this->addLoopToAll();
         }
     }
-    /**
-     * Optimizes "for" tag by removing the "loop" variable creation whenever possible.
-     */
     protected function leaveOptimizeFor(\WPML\Core\Twig_NodeInterface $node, \WPML\Core\Twig\Environment $env)
     {
         if ($node instanceof \WPML\Core\Twig\Node\ForNode) {

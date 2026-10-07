@@ -9,45 +9,28 @@ class WPML_TM_Word_Count_Report {
 	const PACKAGE_KINDS       = 'package_kinds';
 	const IS_REQUESTED        = 'isRequested';
 
-	/** @var WPML_TM_Word_Count_Records $records */
 	private $records;
 
-	/** @var WPML_TM_Word_Count_Report_View $view */
 	private $view;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var array $post_types */
 	private $post_types;
 
-	/** @var WPML_Package_Helper $st_package_helper */
 	private $st_package_helper;
 
-	/** @var array $package_kinds */
 	private $package_kinds = array();
 
-	/** @var bool $requested_types_status */
 	private $requested_types_status;
 
-	/** @var array $data */
 	private $data;
 
-	/**
-	 * WPML_TM_Word_Count_Report constructor.
-	 *
-	 * @param WPML_TM_Word_Count_Report_View $view
-	 * @param WPML_TM_Word_Count_Records     $records
-	 * @param SitePress                      $sitepress
-	 * @param string|false                   $requested_types_status
-	 * @param WPML_Package_Helper|null       $st_package_helper
-	 */
 	public function __construct(
 		WPML_TM_Word_Count_Report_View $view,
 		WPML_TM_Word_Count_Records $records,
 		SitePress $sitepress,
 		$requested_types_status,
-		WPML_Package_Helper $st_package_helper = null
+		?WPML_Package_Helper $st_package_helper = null
 	) {
 		$this->view                   = $view;
 		$this->records                = $records;
@@ -56,9 +39,6 @@ class WPML_TM_Word_Count_Report {
 		$this->requested_types_status = $requested_types_status;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render() {
 		$this->init_data();
 		$data = array(
@@ -91,16 +71,9 @@ class WPML_TM_Word_Count_Report {
 		       && $this->data[ $group ][ $type ][ self::IS_REQUESTED ];
 	}
 
-	/**
-	 * @param string                $group
-	 * @param WP_Post_Type|stdClass $type_object
-	 *
-	 * @return array|null
-	 */
 	private function build_type_row( $group, $type_object ) {
 		$count_items = $this->records->count_items_by_type( $group, $type_object->name );
 
-		// Do not include in the report if it has no item
 		if ( ! $count_items ) {
 			return null;
 		}

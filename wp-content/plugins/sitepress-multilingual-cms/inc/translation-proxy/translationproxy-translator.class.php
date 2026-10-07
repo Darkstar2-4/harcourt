@@ -1,16 +1,7 @@
 <?php
 
 class TranslationProxy_Translator {
-	/**
-	 * Get information about translators from current project. Works only for ICL as a Translation Service
-	 *
-	 * @param bool $force
-	 *
-	 * @return array|bool
-	 */
 	public static function get_icl_translator_status( $force = false ) {
-		/** @var SitePress $sitepress */
-		/** @var WPML_Pro_Translation $ICL_Pro_Translation */
 		global $sitepress, $ICL_Pro_Translation;
 
 		if ( ! $ICL_Pro_Translation ) {
@@ -112,12 +103,6 @@ class TranslationProxy_Translator {
 		return TranslationProxy_Popup::get_link( $matches[2] );
 	}
 
-	/**
-	 *
-	 * Get information about language pairs (including translators). Works only for ICL as a Translation Service
-	 *
-	 * @return array
-	 */
 	public static function get_language_pairs() {
 		global $sitepress;
 
@@ -150,14 +135,6 @@ class TranslationProxy_Translator {
 		return $icl_lang_sub_status;
 	}
 
-	/**
-	 * Sends request to ICL to get website details (including language pairs)
-	 *
-	 * @param TranslationProxy_Project $project
-	 * @param bool                     $force
-	 *
-	 * @return array
-	 */
 	private static function get_website_details( $project, $force = false ) {
 
 		require_once ICL_PLUGIN_PATH . '/inc/utilities/xml2array.php';
@@ -178,11 +155,6 @@ class TranslationProxy_Translator {
 	}
 
 
-	/**
-	 * @param $translator_id
-	 *
-	 * @return string|false
-	 */
 	public static function get_translator_name( $translator_id ) {
 		if ( TranslationProxy::translator_selection_available() ) {
 			$lang_status = self::get_language_pairs();
@@ -199,16 +171,7 @@ class TranslationProxy_Translator {
 		return isset( $translators[ $translator_id ] ) ? $translators[ $translator_id ] : false;
 	}
 
-	/**
-	 * Synchronizes language pairs with ICL
-	 *
-	 * @global object $sitepress
-	 *
-	 * @param $project
-	 * @param $language_pairs
-	 */
 	public static function update_language_pairs( $project, $language_pairs ) {
-		/** @var WPML_Pro_Translation $ICL_Pro_Translation */
 		global $sitepress, $ICL_Pro_Translation;
 
 		$params = array(
@@ -222,7 +185,6 @@ class TranslationProxy_Translator {
 			$lang_server[ $lang['code'] ] = $ICL_Pro_Translation->server_languages_map( $lang['english_name'] );
 		}
 
-		// update account - add language pair
 		$incr = 0;
 		foreach ( $language_pairs as $k => $v ) {
 			if ( ! array_key_exists( $k, $lang_server ) ) {

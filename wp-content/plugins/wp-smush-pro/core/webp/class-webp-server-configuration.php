@@ -4,6 +4,7 @@ namespace Smush\Core\Webp;
 
 use Smush\Core\File_System;
 use Smush\Core\Helper;
+use Smush\Core\Modules\Helpers\WhiteLabel;
 use Smush\Core\Server_Utils;
 
 class Webp_Server_Configuration {
@@ -81,6 +82,9 @@ class Webp_Server_Configuration {
 	}
 
 	private function recheck_server_configuration_status() {
+		// Ensure lock file is removed before testing.
+		$this->remove_lock_file();
+
 		$test_png_file_prepared = $this->prepare_test_png_file();
 		if ( is_wp_error( $test_png_file_prepared ) ) {
 			return array(
@@ -113,7 +117,7 @@ class Webp_Server_Configuration {
 				$config_status->get_error_message() :
 				sprintf(
 				/* translators: 1. error code, 2. error message. */
-					__( "We couldn't check the WebP server rules status because there was an error with the test request. Please contact support for assistance. Code %1\$s: %2\$s.", 'wp-smushit' ),
+					__( "We couldn't check the WebP rules due to a test request error. Contact your hosting provider for help. Code %1\$s: %2\$s.", 'wp-smushit' ),
 					$code,
 					wp_remote_retrieve_response_message( $config_status )
 				);
@@ -121,10 +125,15 @@ class Webp_Server_Configuration {
 			if ( $success ) {
 				$message = __( 'The images are served in WebP format.', 'wp-smushit' );
 			} else {
+				$whitelabel = new WhiteLabel();
 				$error_code = $is_rules_applied ? 'htaccess_error' : 'config_pending';
-				$message    = $is_rules_applied ?
-					__( 'The rules have been applied, but the images are still not being served in WebP format. We recommend that you contact your hosting provider to learn more about the cause of this problem.', 'wp-smushit' ) :
-					__( "Server configurations haven't been applied yet. Configure now to start serving images in WebP format.", 'wp-smushit' );
+				if ( $is_rules_applied ) {
+					$message = __( "Rules applied, but WebP delivery isn't working. Contact your hosting provider for help.", 'wp-smushit' );
+				} elseif ( $whitelabel->should_hide_doc_link() ) {
+					$message = __( 'WebP server rules aren’t set up yet. Configure them now. If you run into issues, your hosting provider can help confirm the required server rules.', 'wp-smushit' );
+				} else {
+					$message = __( 'WebP server rules aren’t set up yet. Configure them now, or <supportLink>contact support</supportLink> if you need help.', 'wp-smushit' );
+				}
 			}
 		}
 
@@ -164,7 +173,7 @@ class Webp_Server_Configuration {
 			$error_message = sprintf(
 			/* translators: path that couldn't be written */
 				__( 'We couldn\'t create the WebP test files. This is probably due to your current folder permissions. Please adjust the permissions for "%s" to 755 and try again.', 'wp-smushit' ),
-				$uploads_path
+				Helper::clean_file_path( $uploads_path )
 			);
 
 			return new \WP_Error( 'cannot_create_test_png_file', $error_message );
@@ -192,14 +201,14 @@ class Webp_Server_Configuration {
 			$error_message = sprintf(
 			/* translators: path that couldn't be written */
 				__( 'We couldn\'t create the WebP test files. This is probably due to your current folder permissions. Please adjust the permissions for "%s" to 755 and try again.', 'wp-smushit' ),
-				$webp_path
+				Helper::clean_file_path( $webp_path, dirname( WP_CONTENT_DIR ) )
 			);
 
 		} else {
 			$error_message = sprintf(
 			/* translators: path that couldn't be written */
 				__( 'We couldn\'t create the WebP directory "%s". This is probably due to your current folder permissions. You can also try to create this directory manually and try again.', 'wp-smushit' ),
-				$webp_path
+				Helper::clean_file_path( $webp_path, dirname( WP_CONTENT_DIR ) )
 			);
 		}
 
@@ -252,7 +261,7 @@ class Webp_Server_Configuration {
 	}
 
 	public function apply_apache_rewrite_rules() {
-		$cannot_write_message = __( 'Automatic updation of .htaccess rules failed. Please ensure the file permissions on your .htaccess file are set to 644, or switch to manual mode to add the rules yourself.', 'wp-smushit' );
+		$cannot_write_message = __( 'Automatic update of .htaccess rules failed. Please ensure the file permissions on your .htaccess file are set to 644, or switch to manual mode to add the rules yourself.', 'wp-smushit' );
 		$last_error           = __( 'The rules have been applied, but the images are still not being served in WebP format. We recommend that you contact your hosting provider to learn more about the cause of this problem.', 'wp-smushit' );
 
 		$locations = $this->apache->get_htaccess_locations();

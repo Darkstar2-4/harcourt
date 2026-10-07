@@ -13,12 +13,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 class ResultBuilder {
 
 
-  /**
-   * @param Translation[]    $translations
-   * @param IgnoredElement[] $ignoredElements
-   *
-   * @return ResultDto
-   */
   public function build( array $translations, array $ignoredElements ): ResultDto {
     $createdTranslations = array_map(
       function ( Translation $translation ) {

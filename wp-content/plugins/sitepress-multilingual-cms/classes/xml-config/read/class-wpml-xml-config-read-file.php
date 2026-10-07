@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_XML_Config_Read_File implements WPML_XML_Config_Read {
 	private $file_full_path;
 	private $transform;

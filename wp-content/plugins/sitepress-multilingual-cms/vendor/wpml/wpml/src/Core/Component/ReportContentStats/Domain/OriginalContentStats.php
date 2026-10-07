@@ -4,13 +4,10 @@ namespace WPML\Core\Component\ReportContentStats\Domain;
 
 class OriginalContentStats {
 
-  /** @var string */
   private $postType;
 
-  /** @var int */
   private $postsCount;
 
-  /** @var int */
   private $charactersCount;
 
 

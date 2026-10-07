@@ -2,39 +2,20 @@
 
 class WPML_TM_Array_Search {
 
-	/**
-	 * @var array
-	 */
 	private $where;
 
-	/**
-	 * @var array
-	 */
 	private $data;
 
-	/**
-	 * @param array $data
-	 *
-	 * @return $this
-	 */
 	public function set_data( $data ) {
 		$this->data = $data;
 		return $this;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return $this
-	 */
 	public function set_where( $args ) {
 		$this->where = $args;
 		return $this;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_results() {
 		$results = array();
 

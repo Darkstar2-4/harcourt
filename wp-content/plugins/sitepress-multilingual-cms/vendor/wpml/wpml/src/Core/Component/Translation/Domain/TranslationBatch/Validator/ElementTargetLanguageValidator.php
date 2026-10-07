@@ -10,13 +10,6 @@ class ElementTargetLanguageValidator implements ValidatorInterface {
   const IGNORED_ELEMENT_REASON = 'invalid_source_language';
 
 
-  /**
-   * Check if the target language of given elements is not their actual source language.
-   *
-   * @param TranslationBatch $translationBatch
-   *
-   * @return array{0: TranslationBatch, 1: IgnoredElement[]}
-   */
   public function validate( TranslationBatch $translationBatch ): array {
     $ignoredElements = [];
     $targetLanguages = [];

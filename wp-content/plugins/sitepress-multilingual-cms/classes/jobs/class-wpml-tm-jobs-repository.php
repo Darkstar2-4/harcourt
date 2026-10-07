@@ -4,20 +4,12 @@ use \WPML\TM\Jobs\Query\Query;
 use WPML\FP\Fns;
 
 class WPML_TM_Jobs_Repository {
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var Query */
 	private $query_builder;
 
-	/** @var WPML_TM_Job_Elements_Repository */
 	private $elements_repository;
 
-	/**
-	 * @param wpdb                            $wpdb
-	 * @param Query              $query_builder
-	 * @param WPML_TM_Job_Elements_Repository $elements_repository
-	 */
 	public function __construct(
 		wpdb $wpdb,
 		Query $query_builder,
@@ -28,11 +20,6 @@ class WPML_TM_Jobs_Repository {
 		$this->elements_repository = $elements_repository;
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @return WPML_TM_Jobs_Collection|array
-	 */
 	public function get( WPML_TM_Jobs_Search_Params $params ) {
 		if ( $params->get_columns_to_select() ) {
 			return $this->wpdb->get_results( $this->query_builder->get_data_query( $params ) );
@@ -47,13 +34,6 @@ class WPML_TM_Jobs_Repository {
 			: new WPML_TM_Jobs_Collection( [] );
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @throws \InvalidArgumentException When get_columns_to_select() is used. In that case use get().
-	 *
-	 * @return WPML_TM_Jobs_Collection
-	 */
 	public function get_collection( WPML_TM_Jobs_Search_Params $params ) {
 		if ( $params->get_columns_to_select() ) {
 			throw new \InvalidArgumentException( 'Not valid with get_columns_to_select().' );
@@ -62,11 +42,6 @@ class WPML_TM_Jobs_Repository {
 		return $this->get( $params );
 	}
 
-	/**
-	 * @param array $ateJobIds
-	 *
-	 * @return bool
-	 */
 	public function increment_ate_sync_count( array $ateJobIds ) {
 		if ( empty( $ateJobIds ) ) {
 			return true;
@@ -81,22 +56,10 @@ class WPML_TM_Jobs_Repository {
 		}
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @return int
-	 */
 	public function get_count( WPML_TM_Jobs_Search_Params $params ) {
 		return (int) $this->wpdb->get_var( $this->query_builder->get_count_query( $params ) );
 	}
 
-	/**
-	 * @param int    $local_job_id
-	 * @param string $job_type
-	 *
-	 * @throws InvalidArgumentException
-	 * @return WPML_TM_Job_Entity|false
-	 */
 	public function get_job( $local_job_id, $job_type ) {
 		$params = new WPML_TM_Jobs_Search_Params();
 		$params->set_local_job_id( $local_job_id );
@@ -110,11 +73,6 @@ class WPML_TM_Jobs_Repository {
 		return $data;
 	}
 
-	/**
-	 * @param object $raw_data
-	 *
-	 * @return WPML_TM_Job_Entity
-	 */
 	private function build_job_entity( $raw_data ) {
 		$types = [ WPML_TM_Job_Entity::POST_TYPE, WPML_TM_Job_Entity::PACKAGE_TYPE, WPML_TM_Job_Entity::STRING_BATCH ];
 		$batch = new WPML_TM_Jobs_Batch( $raw_data->local_batch_id, $raw_data->batch_name, $raw_data->tp_batch_id );
@@ -167,11 +125,6 @@ class WPML_TM_Jobs_Repository {
 		return $job;
 	}
 
-	/**
-	 * @param object $raw_data
-	 *
-	 * @return DateTime|null
-	 */
 	private function get_deadline( $raw_data ) {
 		if ( $raw_data->deadline_date && '0000-00-00 00:00:00' !== $raw_data->deadline_date ) {
 			return new DateTime( $raw_data->deadline_date );

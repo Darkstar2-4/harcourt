@@ -2,13 +2,10 @@
 
 class WPML_ST_Slug_Custom_Type_Factory {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Slug_Translation_Records $slug_records */
 	private $slug_records;
 
-	/** @var WPML_ST_Slug_Translations */
 	private $slug_translations;
 
 
@@ -23,12 +20,6 @@ class WPML_ST_Slug_Custom_Type_Factory {
 	}
 
 
-	/**
-	 * @param string $name
-	 * @param bool   $display_as_translated
-	 *
-	 * @return WPML_ST_Slug_Custom_Type
-	 */
 	public function create( $name, $display_as_translated ) {
 		$slug = $this->slug_records->get_slug( $name );
 

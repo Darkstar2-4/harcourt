@@ -23,12 +23,9 @@ class TranslationQuery implements TranslationQueryInterface {
     );
 
     if ( $translatedContent ) {
-      // Translation exists - a string is only translated once - so the last
-      // translated original content is the current content.
       return $string->getContent() ?? '';
     }
 
-    // Not translated yet.
     return '';
   }
 

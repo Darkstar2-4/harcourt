@@ -9,19 +9,14 @@ use WPML\Core\Component\WordsToTranslate\Domain\Post\Query\TranslationQueryInter
 
 class PostContentLoader {
 
-  /** @var WordsToTranslate */
   private $wordsToTranslate;
 
-  /** @var Store */
   private $store;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var JobQueryInterface */
   private $jobQuery;
 
-  /** @var LastTranslationFactory */
   private $lastTranslationFactory;
 
 
@@ -40,14 +35,6 @@ class PostContentLoader {
   }
 
 
-  /**
-   * @param Post $post
-   * @param string[] $langs
-   * @param bool $freshTranslation When true, previous translations will be
-   * ignored.
-   *
-   * @return void
-   */
   public function loadWordsToTranslateForLangs( Post $post, $langs, $freshTranslation = false ) {
     if ( ! $freshTranslation ) {
       $missingTranslations = $this->store->loadLastTranslations( $post, $langs );
@@ -56,7 +43,6 @@ class PostContentLoader {
       }
     }
 
-    // Some languages are missing.
     foreach ( $langs as $lang ) {
       $job = $this->jobQuery->getContentToTranslateForLang( $post, $lang );
       $post->setContent( $job->getContent() );
@@ -68,7 +54,6 @@ class PostContentLoader {
       } else {
         $lastTranslationContent = $lastTranslation->getOriginalContent();
         if ( $lastTranslationContent === null ) {
-          // Load last translation content for the missing languages.
           $lastTranslationContent =
           $this->translationQuery->getLastTranslatedOriginalContentForPost(
             $post,
@@ -85,7 +70,6 @@ class PostContentLoader {
   }
 
 
-  /** @return JobQueryInterface */
   public function getJobQuery() {
     return $this->jobQuery;
   }

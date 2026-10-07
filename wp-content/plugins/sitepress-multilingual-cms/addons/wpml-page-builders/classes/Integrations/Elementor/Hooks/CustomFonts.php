@@ -16,11 +16,6 @@ class CustomFonts implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @param array[] $fonts
-	 *
-	 * @return array[]
-	 */
 	public function replaceUrls( $fonts ) {
 		$defaultLanguage = apply_filters( 'wpml_default_language', false );
 		$currentLanguage = apply_filters( 'wpml_current_language', false );

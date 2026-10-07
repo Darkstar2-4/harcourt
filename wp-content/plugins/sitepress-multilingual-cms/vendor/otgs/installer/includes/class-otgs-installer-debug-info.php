@@ -3,9 +3,6 @@
 class OTGS_Installer_Debug_Info {
 	private $installer;
 
-	/**
-	 * @var OTGS_Products_Config_Db_Storage
-	 */
 	private $products_config_storage;
 
 	public function __construct( WP_Installer $installer, OTGS_Products_Config_Db_Storage $products_config_storage ) {
@@ -17,11 +14,6 @@ class OTGS_Installer_Debug_Info {
 		add_filter( 'icl_get_extra_debug_info', array( $this, 'add_installer_config_in_debug_information' ) );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	public function add_installer_config_in_debug_information( $data ) {
 		global $wp_installer_instances;
 

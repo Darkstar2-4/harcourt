@@ -16,18 +16,13 @@ class Groups {
 	const TOP_LEVEL_WIDGETS_DESCRIPTION = 'Widgets';
 	const WIDGET_GROUP_NAME             = 'Widget';
 
-	/**
-	 * @param array $elements
-	 *
-	 * @return array
-	 */
 	public static function flattenHierarchy( $elements ) {
 		$groups = self::extractGroupIds( $elements );
 		if ( ! $groups ) {
 			return $elements;
 		}
 
-		$flattenGroup = function( $element ) use ( $groups ) {
+		$flattenGroup = function ( $element ) use ( $groups ) {
 			if ( ! isset( $element['extradata'] ) ) {
 				return $element;
 			}
@@ -59,20 +54,10 @@ class Groups {
 			->all();
 	}
 
-	/**
-	 * @param string $groupId
-	 *
-	 * @return bool
-	 */
 	private static function isPBGroup( $groupId ) {
 		return (bool) Str::startsWith( \WPML_TM_Page_Builders::TOP_LEVEL_GROUP_ID, $groupId );
 	}
 
-	/**
-	 * @param array $elements
-	 *
-	 * @return array
-	 */
 	public static function extractGroupIds( $elements ) {
 		return pipe(
 			Lst::pluck( 'extradata' ),
@@ -80,12 +65,6 @@ class Groups {
 		)( $elements );
 	}
 
-	/**
-	 * @param string $needle
-	 * @param array  $haystack
-	 *
-	 * @return bool
-	 */
 	public static function isSingleElementInGroup( $needle, $haystack ) {
 		$count = wpml_collect( $haystack )
 			->map( 'trailingslashit' )
@@ -95,24 +74,13 @@ class Groups {
 		return 1 === $count;
 	}
 
-	/**
-	 * @param string $groupId
-	 *
-	 * @return bool
-	 */
 	public static function isBlockElementInGroup( $groupId ) {
 		return (bool) preg_match( '/\/block-\d+\//', $groupId );
 	}
 
-	/**
-	 * @param string $group
-	 *
-	 * @return string
-	 */
 	public static function removeLastCrumb( $group ) {
 		$crumbs = explode( self::PATH_SEPARATOR, $group );
 
-		// Except if there is only 1 (ie: Main Content).
 		if ( count( $crumbs ) > 1 ) {
 			array_pop( $crumbs );
 		}
@@ -120,11 +88,6 @@ class Groups {
 		return self::removeAllExceptLastCrumb( implode( self::PATH_SEPARATOR, $crumbs ) );
 	}
 
-	/**
-	 * @param string $group
-	 *
-	 * @return string
-	 */
 	public static function removeAllExceptLastCrumb( $group ) {
 		$crumbs = explode( self::PATH_SEPARATOR, $group );
 
@@ -133,12 +96,7 @@ class Groups {
 			: $group;
 	}
 
-	/**
-	 * @param string $groupIds
-	 *
-	 * @return string[]
-	 */
-	private static function getBlockGroup( string $groupIds ) : array {
+	private static function getBlockGroup( string $groupIds ): array {
 		$blockId = null;
 
 		if ( preg_match( '/block-\d+/', $groupIds, $matches ) ) {
@@ -170,11 +128,6 @@ class Groups {
 		];
 	}
 
-	/**
-	 * @param string $sidebarId
-	 *
-	 * @return string
-	 */
 	private static function getSidebarName( $sidebarId ) {
 		global $wp_registered_sidebars;
 
@@ -183,22 +136,10 @@ class Groups {
 			: Labels::convertToHuman( $sidebarId, true );
 	}
 
-	/**
-	 * @param string $title
-	 *
-	 * @return bool
-	 */
 	public static function isGroupLabel( $title ) {
 		return false !== strpos( $title, self::LABEL_SEPARATOR );
 	}
 
-	/**
-	 * @param string[] $groups
-	 * @param string   $title
-	 * @param int|null $sequence
-	 *
-	 * @return string
-	 */
 	public static function buildGroupLabel( $groups, $title, $sequence = null ) {
 		if ( ! $groups ) {
 			return $title;
@@ -209,13 +150,8 @@ class Groups {
 			. self::LABEL_SEPARATOR . $title;
 	}
 
-	/**
-	 * @param string $string
-	 *
-	 * @return array{string[], string}
-	 */
-	public static function parseGroupLabel( $string ) {
-		list( $groups, $title ) = explode( self::LABEL_SEPARATOR, $string, 2 );
+	public static function parseGroupLabel( $groupLabel ) {
+		list( $groups, $title ) = explode( self::LABEL_SEPARATOR, $groupLabel, 2 );
 
 		return [
 			explode( self::PATH_SEPARATOR, $groups ),
@@ -223,16 +159,9 @@ class Groups {
 		];
 	}
 
-	/**
-	 * @param string $groupLabel
-	 * @param string $imageId
-	 *
-	 * @return string
-	 */
 	public static function appendImageIdToGroupLabel( $groupLabel, $imageId ) {
 		list( $group, $title ) = explode( self::LABEL_SEPARATOR, $groupLabel, 2 );
 
-		return $group . '-' . $imageId . self::LABEL_SEPARATOR . $title;
+		return $group . '-' . (string) $imageId . self::LABEL_SEPARATOR . $title;
 	}
-
 }

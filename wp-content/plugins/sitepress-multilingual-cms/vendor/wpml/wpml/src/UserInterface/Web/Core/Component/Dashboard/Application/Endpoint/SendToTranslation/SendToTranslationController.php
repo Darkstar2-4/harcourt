@@ -8,13 +8,8 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 use WPML\PHP\Exception\Exception;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-import-type ResultDtoArray from \WPML\Core\Component\Translation\Application\Service\TranslationService\Dto\ResultDto
- * @phpstan-import-type SendToTranslationDtoArray from \WPML\Core\Component\Translation\Application\Service\Dto\SendToTranslationDto
- */
 class SendToTranslationController implements EndpointInterface {
 
-  /** @var TranslationService */
   private $translationService;
 
 
@@ -23,13 +18,6 @@ class SendToTranslationController implements EndpointInterface {
   }
 
 
-  /**
-   * @phpstan-param  SendToTranslationDtoArray $requestData
-   *
-   * @phpstan-return  array{success: bool, data: ResultDtoArray|string}
-   *
-   * @psalm-suppress MoreSpecificImplementedParamType
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 
@@ -45,9 +33,9 @@ class SendToTranslationController implements EndpointInterface {
     } catch ( InvalidArgumentException $e ) {
       return [
         'success' => false,
-        'data'    => __(
-          'The request data for SendToTranslation is not valid.',
-          'wpml'
+        'data' => sprintf(
+          __( 'The request data for SendToTranslation is not valid: %s', 'wpml' ),
+          $e->getMessage()
         )
       ];
     } catch ( TranslationService\TranslationServiceException $e ) {

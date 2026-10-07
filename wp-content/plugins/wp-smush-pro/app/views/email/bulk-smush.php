@@ -44,7 +44,7 @@
                                 <span style="line-height:18px;padding-top:3px;display:block;font-family: Roboto, Arial, sans-serif;font-size: 13px;font-weight:400;letter-spacing:-0.307692px;color:#1A1A1A;"><?php echo esc_html( $total_desc ); ?></span>
                             </td>
                             <td align="right" width="60" style="vertical-align:top;padding:10px 0;text-align:right;white-space:nowrap;font-family: Roboto, Arial, sans-serif;font-size: 16px;font-weight:800;color:#1A1A1A;">
-                                <?php echo number_format( $total_items ); ?>
+                                <?php echo size_format( $session_savings, 1 ); ?>
                             </td>
                         </tr>
                         </tbody>
@@ -102,7 +102,7 @@
     <p style="margin:27px 0 11px;padding: 0;text-align: center">
         <a class="button"
         style="background:#0059FF;border-radius: 6px;font-family: Roboto, Arial, sans-serif;font-size: 13px;width: 141px;height:40px;padding: 0!important;font-weight: 500;line-height: 40px;text-align: center;margin-bottom: 0;display:inline-block!important;color:#fff!important;text-decoration:none!important;"
-        href="<?php echo esc_url( $redirect_url ); ?>"><?php esc_html_e( 'View Full Report', 'wp-smushit' ); ?></a>
+        href="<?php echo esc_url( $redirect_url ); ?>"><?php echo esc_html( $cta_label ); ?></a>
     </p>
 </div>
 <?php //phpcs:enable ?>

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * CLI interface.
- */
 
 namespace PhpMyAdmin\SqlParser\Utils;
 
@@ -239,10 +236,8 @@ class CLI
         $write = array();
         $except = array();
 
-        // Assume there's nothing to be read from STDIN.
         $stdin = null;
 
-        // Try to read from STDIN.  Wait 0.2 second before timing out.
         $result = stream_select($read, $write, $except, 0, 2000);
 
         if ($result > 0) {

@@ -4,7 +4,6 @@ namespace WPML\ST\Rest;
 
 class Settings extends Base {
 
-	/** @var \WPML\WP\OptionManager $option_manager */
 	private $option_manager;
 
 	public function __construct( \WPML\Rest\Adaptor $adaptor, \WPML\WP\OptionManager $option_manager ) {

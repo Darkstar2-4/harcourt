@@ -4,10 +4,8 @@ namespace WPML\StringTranslation\Infrastructure\StringPackage\Query;
 
 class JobsQuery {
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var \SitePress */
 	private $sitepress;
 
 	public function __construct(
@@ -47,7 +45,8 @@ class JobsQuery {
                 tj.automatic,
                 ts.translation_service,
                 tj.editor,
-                tj.translated
+                tj.translated,
+                tj.editor_job_id
             FROM {$this->wpdb->prefix}icl_translate_job tj
             LEFT JOIN {$this->wpdb->prefix}icl_translation_status ts
                 ON tj.rid = ts.rid
@@ -66,10 +65,6 @@ class JobsQuery {
 		return $this->wpdb->get_results( $sql, ARRAY_A );
 	}
 
-	/**
-	 * @param string $translationStatus
-	 * @return int|null
-	 */
 	private function getRidFromTranslationStatus( string $translationStatus ) {
 		$matches = [];
 		preg_match( '/rid:(\d+)/', $translationStatus, $matches );

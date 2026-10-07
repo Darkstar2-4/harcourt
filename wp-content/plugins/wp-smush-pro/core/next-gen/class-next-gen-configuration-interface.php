@@ -11,7 +11,7 @@ interface Next_Gen_Configuration_Interface {
 	/**
 	 * @return string
 	 */
-	public function get_format_key();
+	public static function get_format_key();
 
 	/**
 	 * @return bool

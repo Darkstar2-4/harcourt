@@ -6,19 +6,14 @@ use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\Mig
 
 final class MigrationStatusDTO {
 
-  /** @var bool */
   private $prevStateCompleted;
 
-  /** @var bool */
   private $translationPackageCompleted;
 
-  /** @var bool */
   private $obsoleteTranslationElementsRemovalCompleted;
 
-  /** @var bool */
   private $translationElementsCompressionCompleted;
 
-  /** @var bool */
   private $translationElementsCompressionFixedCompleted;
 
 

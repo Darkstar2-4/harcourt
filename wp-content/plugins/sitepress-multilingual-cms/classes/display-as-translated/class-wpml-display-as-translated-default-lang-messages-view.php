@@ -4,29 +4,16 @@ class WPML_Display_As_Translated_Default_Lang_Messages_View {
 
 	const TEMPLATE = 'default-language-change.twig';
 
-	/**
-	 * @var WPML_Twig_Template
-	 */
 	private $template_service;
 
 	public function __construct( WPML_Twig_Template $template_service ) {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * @param string $prev_default_lang
-	 * @param string $default_lang
-	 */
 	public function display( $prev_default_lang, $default_lang ) {
 		echo $this->template_service->show( $this->get_model( $prev_default_lang, $default_lang ), self::TEMPLATE );
 	}
 
-	/**
-	 * @param string $prev_default_lang
-	 * @param string $default_lang
-	 *
-	 * @return array
-	 */
 	private function get_model( $prev_default_lang, $default_lang ) {
 		$doc_link = 'https://wpml.org/documentation/translating-your-contents/displaying-untranslated-content-on-pages-in-secondary-languages/manage-archive-listings-default-language-change/';
 

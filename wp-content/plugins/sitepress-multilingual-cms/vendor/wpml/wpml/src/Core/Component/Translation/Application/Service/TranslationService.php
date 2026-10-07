@@ -3,6 +3,7 @@
 namespace WPML\Core\Component\Translation\Application\Service;
 
 use WPML\Core\Component\Translation\Application\Service\Dto\SendToTranslationDto;
+use WPML\Core\Component\Translation\Application\Service\Event\CancelAllAutomaticJobsEvent;
 use WPML\Core\Component\Translation\Application\Service\Event\TranslationsSentEvent;
 use WPML\Core\Component\Translation\Application\Service\TranslationService\BatchBuilder\BatchBuilderInterface;
 use WPML\Core\Component\Translation\Application\Service\TranslationService\Dto\ResultDto;
@@ -21,22 +22,16 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class TranslationService {
 
-  /** @var BatchBuilderInterface */
   private $batchBuilder;
 
-  /** @var TranslationSenderInterface */
   private $translationSender;
 
-  /** @var DuplicationSenderInterface */
   private $duplicationSender;
 
-  /** @var StringBatchToStringsTranslationsMapper */
   private $stringBatchToStringsTranslationsMapper;
 
-  /** @var ResultBuilder */
   private $resultBuilder;
 
-  /** @var DispatcherInterface */
   private $eventDispatcher;
 
 
@@ -57,13 +52,6 @@ class TranslationService {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return ResultDto
-   * @throws TranslationServiceException
-   * @throws InvalidArgumentException
-   */
   public function send( SendToTranslationDto $sendToTranslationDto ): ResultDto {
     list( $translationBatch, $duplicationBatch, $ignoredElements ) =
       $this->batchBuilder->build( $sendToTranslationDto );
@@ -80,12 +68,12 @@ class TranslationService {
   }
 
 
-  /**
-   * @param DuplicationBatch|null $duplicationBatch
-   *
-   * @return Translation[]
-   */
-  private function byDuplicate( DuplicationBatch $duplicationBatch = null ): array {
+  public function cancelAllAutomaticJobs() {
+      $this->eventDispatcher->dispatch( new CancelAllAutomaticJobsEvent() );
+  }
+
+
+  private function byDuplicate( ?DuplicationBatch $duplicationBatch = null ): array {
     if ( $duplicationBatch ) {
       return $this->duplicationSender->send( $duplicationBatch );
     }
@@ -94,13 +82,7 @@ class TranslationService {
   }
 
 
-  /**
-   * @param TranslationBatch|null $translationBatch
-   *
-   * @return Translation[]
-   * @throws TranslationServiceException
-   */
-  private function byTranslation( TranslationBatch $translationBatch = null ): array {
+  private function byTranslation( ?TranslationBatch $translationBatch = null ): array {
     if ( $translationBatch ) {
       try {
 

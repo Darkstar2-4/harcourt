@@ -1,19 +1,7 @@
 <?php
 
-/**
- * Class WPML_Nav_Menu_Actions
- *
- * @package    wpml-core
- * @subpackage taxonomy-term-translation
- */
 class WPML_Nav_Menu_Actions extends WPML_Full_Translation_API {
 
-	/**
-	 * @param SitePress             $sitepress
-	 * @param wpdb                  $wpdb
-	 * @param WPML_Post_Translation $post_translations
-	 * @param WPML_Term_Translation $term_translations
-	 */
 	public function __construct( &$sitepress, &$wpdb, &$post_translations, &$term_translations ) {
 		parent::__construct( $sitepress, $wpdb, $post_translations, $term_translations );
 		add_action( 'wp_delete_nav_menu', array( $this, 'wp_delete_nav_menu' ) );
@@ -160,9 +148,6 @@ class WPML_Nav_Menu_Actions extends WPML_Full_Translation_API {
 		return $language_code;
 	}
 
-	/**
-	 * @return bool|int|mixed|null|string
-	 */
 	private function get_trid_from_post_data() {
 		$trid = null;
 		if ( ! empty( $_POST['icl_translation_of'] ) && $_POST['icl_translation_of'] !== 'none' ) {

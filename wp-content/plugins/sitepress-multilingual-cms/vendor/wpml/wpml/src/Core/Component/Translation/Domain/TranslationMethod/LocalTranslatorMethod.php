@@ -6,15 +6,8 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 
 class LocalTranslatorMethod implements TranslationMethodInterface {
 
-  /**
-   * The value can be 0. It means that any available translator can take the job.
-   * Such job also has WAITING FOR TRANSLATOR status.
-   *
-   * @var int
-   */
   private $translatorId;
 
-  /** @var string */
   private $targetLanguageCode;
 
 
@@ -24,7 +17,6 @@ class LocalTranslatorMethod implements TranslationMethodInterface {
   }
 
 
-  /** @return TargetLanguageMethodType::LOCAL_TRANSLATOR */
   public function get() {
     return TargetLanguageMethodType::LOCAL_TRANSLATOR;
   }

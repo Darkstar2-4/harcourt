@@ -1,7 +1,6 @@
 <?php
 
 class WPML_ST_Translations_File_Unicode_Characters_Filter {
-	/** @var string */
 	private $pattern;
 
 	public function __construct() {
@@ -21,20 +20,10 @@ class WPML_ST_Translations_File_Unicode_Characters_Filter {
 		$this->pattern = '/' . implode( '|', $parts ) . '/u';
 	}
 
-	/**
-	 * @param WPML_ST_Translations_File_Translation[] $translations
-	 *
-	 * @return WPML_ST_Translations_File_Translation[]
-	 */
 	public function filter( array $translations ) {
 		return array_filter( $translations, array( $this, 'is_valid' ) );
 	}
 
-	/**
-	 * @param \WPML_ST_Translations_File_Translation $translation
-	 *
-	 * @return bool
-	 */
 	public function is_valid( WPML_ST_Translations_File_Translation $translation ) {
 		if ( preg_match( $this->pattern, $translation->get_original() ) ||
 			 preg_match( $this->pattern, $translation->get_translation() ) ) {

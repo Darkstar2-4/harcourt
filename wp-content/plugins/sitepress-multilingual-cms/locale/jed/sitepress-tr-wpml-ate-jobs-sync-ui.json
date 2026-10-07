@@ -1,0 +1,199 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Sending for translation": [
+            "Çeviriye gönderiliyor"
+         ],
+         "This content is being automatically translated. If you want to do something different with it cancel translation jobs first.": [
+            "Bu içerik otomatik olarak çevriliyor. Farklı bir işlem yapmak isterseniz, önce çeviri işlerini iptal edin."
+         ],
+         "Connecting to WPML’s Advanced Translation Editor": [
+            "WPML'in gelişmiş çeviri düzenleyicisine bağlanılıyor"
+         ],
+         "Try again": [
+            "Tekrar deneyin"
+         ],
+         "You don't have the rights to review this language": [
+            "Bu dili inceleme hakkınız yok"
+         ],
+         "translations": [
+            "çeviriler"
+         ],
+         "left in the queue": [
+            "kuyrukta kaldı"
+         ],
+         "Translation on hold": [
+            "Çeviri bekletiliyor"
+         ],
+         "No translations in the queue": [
+            "Kuyrukta çeviri yok"
+         ],
+         "%d translations left": [
+            "%d çeviri kaldı"
+         ],
+         "%d min remaining": [
+            "Kalan süre: %d dk"
+         ],
+         "less than 1 min remaining": [
+            "1 dakikadan az kaldı"
+         ],
+         "%d translation waiting for review": [
+            "İnceleme bekleyen %d çeviri",
+            "İnceleme bekleyen %d çeviri"
+         ],
+         "Translate Everything Automatically has unresolved jobs": [
+            "Her Şeyi Otomatik Çevir'in çözülmemiş işleri var"
+         ],
+         "Automatic translation has unresolved jobs": [
+            "Otomatik çevirinin çözülmemiş işleri var"
+         ],
+         "%d job couldn't be completed. Go to Translation Dashboard to review and resolve.": [
+            "%d iş tamamlanamadı. İncelemek ve çözmek için Çeviri Panosu'na gidin.",
+            "%d iş tamamlanamadı. İncelemek ve çözmek için Çeviri Panosu'na gidin."
+         ],
+         "Automatic translation status": [
+            "Otomatik çeviri durumu"
+         ],
+         "Translate Everything Automatically": [
+            "Her şeyi otomatik çevir"
+         ],
+         "Translate Everything Automatically is active": [
+            "Her Şeyi Otomatik Çevir etkin"
+         ],
+         "Translate Everything Automatically is paused — payment required": [
+            "Her Şeyi Otomatik Çevir duraklatıldı — ödeme gerekli"
+         ],
+         "Automatic translation is paused — payment required": [
+            "Otomatik çeviri duraklatıldı — ödeme gerekli"
+         ],
+         "We couldn’t process your payment. Click “Pay now” to complete the transaction and resume automatic translation.": [
+            "Ödemenizi işleyemedik. İşlemi tamamlamak ve otomatik çeviriye devam etmek için “Şimdi öde” seçeneğine tıklayın."
+         ],
+         "Translate Everything automatically is paused - not enough credits": [
+            "Her Şeyi Otomatik Çevir duraklatıldı - yeterli kredi yok"
+         ],
+         "Automatic translation is paused — not enough credits": [
+            "Otomatik çeviri duraklatıldı — yeterli kredi yok"
+         ],
+         "Translation will resume automatically once you assign more credits.": [
+            "Daha fazla kredi atadığınızda çeviri otomatik olarak devam edecektir."
+         ],
+         "You have %s prepaid translation credit in your WPML account. Assign these credits to this site to resume automatic translation": [
+            "WPML hesabınızda %s ön ödemeli çeviri krediniz var. Otomatik çeviriye devam etmek için bu kredileri bu siteye atayın",
+            "WPML hesabınızda %s ön ödemeli çeviri krediniz var. Otomatik çeviriye devam etmek için bu kredileri bu siteye atayın"
+         ],
+         "Preparing content for translation": [
+            "İçerik çeviri için hazırlanıyor"
+         ],
+         "Preparing more content for translation": [
+            "Daha fazla içerik çeviri için hazırlanıyor"
+         ],
+         "Your default language, %s, must be mapped to a supported language in order to use automatic translation.": [
+            "Otomatik çeviriyi kullanmak için varsayılan diliniz olan %s, desteklenen bir dille eşleştirilmelidir."
+         ],
+         "Your language, %s, must be mapped to a supported language in order to use automatic translation.": [
+            "Otomatik çeviriyi kullanmak için diliniz olan %s, desteklenen bir dille eşleştirilmelidir.",
+            "Otomatik çeviriyi kullanmak için sitenizdeki şu dillerin desteklenen bir dille eşleştirilmesi gerekir: %s"
+         ],
+         "Content in those languages: %s, cannot be automatically translated unless you map them to a language that's different from the default.": [
+            "Bu dillerdeki içerik: %s, varsayılandan farklı bir dille eşleştirilmedikçe otomatik olarak çevrilemez."
+         ],
+         "Account credits used": [
+            "Kullanılan hesap kredileri"
+         ],
+         "Once you’ve used all your prepaid credits, we’ll invoice you for any additional credits you use after the end of the month": [
+            "Tüm ön ödemeli kredilerinizi kullandıktan sonra, ay sonundan sonra kullandığınız ek krediler için size fatura keseceğiz"
+         ],
+         "Payment limit:": [
+            "Ödeme limiti:"
+         ],
+         "%s credits": [
+            "%s kredi"
+         ],
+         "Credits used:": [
+            "Kullanılan krediler:"
+         ],
+         "Credits left:": [
+            "Kalan krediler:"
+         ],
+         "The number of credit you will receive an invoice for at the end of the month. View your pay-as-you-go details in your site’s automatic translation settings.": [
+            "Ay sonunda faturalandırılacak kredi sayısı. Kullandıkça öde ayrıntılarınızı sitenizin otomatik çeviri ayarlarında görüntüleyin."
+         ],
+         "Calculating": [
+            "Hesaplanıyor"
+         ],
+         "Remaining prepaid credits that are assigned to this site on WPML.org.": [
+            "WPML.org'da bu siteye atanmış kalan ön ödemeli krediler."
+         ],
+         "Prepaid credits left": [
+            "Kalan ön ödemeli krediler"
+         ],
+         "Pay-as-you-go credits used": [
+            "Kullandıkça öde kredileri kullanıldı"
+         ],
+         "Your site doesn't meet WPML's minimum requirements": [
+            "Siteniz WPML'in minimum gereksinimlerini karşılamıyor"
+         ],
+         "Fix it": [
+            "Düzelt"
+         ],
+         "Stop": [
+            "Durdur"
+         ],
+         "Pay now": [
+            "Şimdi öde"
+         ],
+         "Get more credits": [
+            "Daha fazla kredi al"
+         ],
+         "Assign credits": [
+            "Kredi ata"
+         ],
+         "Go to Translation Jobs": [
+            "Çeviri işlerine git"
+         ],
+         "Resume": [
+            "Devam et"
+         ],
+         "This translation couldn't be completed due to an unexpected error. Please try resending it.": [
+            "Beklenmeyen bir hata nedeniyle bu çeviri tamamlanamadı. Lütfen tekrar göndermeyi deneyin."
+         ],
+         "Refreshing translation status": [
+            "Çeviri durumu yenileniyor"
+         ],
+         "Read more about how to translate your content in the <a>Getting Started Guide</a>": [
+            "İçeriğinizi nasıl çevireceğiniz hakkında daha fazla bilgi için <a>Başlangıç Kılavuzu</a>'nu okuyun"
+         ],
+         "Let's Start Translating!": [
+            "Çevirmeye başlayalım!"
+         ],
+         "Choose your content from the Translation Dashboard below and create your first translation job!": [
+            "Aşağıdaki Çeviri Panosu'ndan içeriğinizi seçin ve ilk çeviri işinizi oluşturun!"
+         ],
+         "Change your <a>automatic translation settings</a> (in-progress translation jobs will be completed with the current settings).": [
+            "<a>Otomatik çeviri ayarlarınızı</a> değiştirin (devam eden çeviri işleri mevcut ayarlarla tamamlanacaktır)."
+         ],
+         "Read more about translating your site automatically.": [
+            "Sitenizi otomatik olarak çevirme hakkında daha fazla bilgi edinin."
+         ],
+         "Your site is being automatically translated!": [
+            "Siteniz otomatik olarak çevriliyor!"
+         ],
+         "Calculating...": [
+            "Hesaplanıyor..."
+         ],
+         "Do not close WP admin!": [
+            "WP yönetici panelini kapatmayın!"
+         ],
+         "The number of translations": [
+            "Çeviri sayısı"
+         ]
+      }
+   }
+}

@@ -9,10 +9,8 @@ use function WPML\FP\pipe;
 
 class UsersByCapsRepository {
 
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var ILanguagePairs */
 	private $languagePairs;
 
 	public function __construct( \wpdb $wpdb, ILanguagePairs $languagePairs ) {
@@ -20,20 +18,6 @@ class UsersByCapsRepository {
 		$this->languagePairs = $languagePairs;
 	}
 
-	/**
-	 * @param string[] $ownedCaps
-	 * @param string[] $excludeCaps
-	 *
-	 * @return array{
-	 *     "ID": string,
-	 *     "full_name": string,
-	 *     "user_login": string,
-	 *     "user_email": string,
-	 *     "display_name": string,
-	 *     "roles": string[],
-	 *     "language_pairs": array{string:string[]}
-	 *  }[]
-	 */
 	public function get( array $ownedCaps, array $excludeCaps = [] ) {
 		$sql = "
 			SELECT user_id

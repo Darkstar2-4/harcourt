@@ -3,17 +3,8 @@
 namespace WPML\MediaTranslation;
 
 class MediaAttachmentByUrl {
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
-	/**
-	 * @var string
-	 */
 	private $url;
-	/**
-	 * @var string
-	 */
 	private $language;
 
 	const SIZE_SUFFIX_REGEXP = '/-([0-9]+)x([0-9]+)\.([a-z]{3,4})$/';
@@ -24,13 +15,6 @@ class MediaAttachmentByUrl {
 
 	public $cache_hit_flag = null;
 
-	/**
-	 * WPML_Media_Attachment_By_URL constructor.
-	 *
-	 * @param \wpdb   $wpdb
-	 * @param string $url
-	 * @param string $language
-	 */
 	public function __construct( \wpdb $wpdb, $url, $language ) {
 		$this->url      = $url;
 		$this->language = $language;
@@ -79,7 +63,6 @@ class MediaAttachmentByUrl {
 		$uploads_dir   = wp_get_upload_dir();
 		$relative_path = ltrim( preg_replace( '@^' . $uploads_dir['baseurl'] . '@', '', $this->url ), '/' );
 
-		// using _wp_attached_file
 		$attachment_id = $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				"
@@ -94,7 +77,6 @@ class MediaAttachmentByUrl {
 			)
 		);
 
-		// using attachment meta (fallback)
 		if ( ! $attachment_id && preg_match( self::SIZE_SUFFIX_REGEXP, $relative_path ) ) {
 			$attachment_id = $this->get_attachment_image_from_meta_fallback( $relative_path );
 		}
@@ -119,7 +101,6 @@ class MediaAttachmentByUrl {
 				$this->language
 			)
 		);
-		// validate size
 		if ( $attachment_id_original ) {
 			$attachment_meta_data = wp_get_attachment_metadata( $attachment_id_original );
 			if ( $this->validate_image_size( $relative_path, $attachment_meta_data ) ) {

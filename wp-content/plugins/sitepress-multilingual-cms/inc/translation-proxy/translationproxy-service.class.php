@@ -1,8 +1,4 @@
 <?php
-/**
- * @package wpml-core
- * @subpackage wpml-core
- */
 
 require_once dirname( __FILE__ ) . '/translationproxy-api.class.php';
 
@@ -12,7 +8,7 @@ class TranslationProxy_Service {
 	public $name;
 	public $description;
 	public $default_service;
-	public $has_translator_selection = true;    // Todo: read this from service properties
+	public $has_translator_selection = true;
 	public $delivery_method;
 	public $project_details_url;
 	public $custom_text_url;
@@ -32,7 +28,6 @@ class TranslationProxy_Service {
 
 	public static function is_authenticated( $service ) {
 
-		// for services that do not require authentication return true by default
 		if ( ! TranslationProxy::service_requires_authentication( $service ) ) {
 			return true;
 		}
@@ -76,15 +71,6 @@ class TranslationProxy_Service {
 		return $language;
 	}
 
-	/**
-	 * Returns a WPML readable string that allows to tell translation service and translator id
-	 * (typically used for translators dropdowns)
-	 *
-	 * @param int|float|string|bool $translation_service_id
-	 * @param int|float|string|bool $translator_id
-	 *
-	 * @return string
-	 */
 	public static function get_wpml_translator_id( $translation_service_id = false, $translator_id = false ) {
 		if ( $translation_service_id === false ) {
 			$translation_service_id = TranslationProxy::get_current_service_id();
@@ -97,11 +83,6 @@ class TranslationProxy_Service {
 		return $result;
 	}
 
-	/**
-	 * @param string $translator_id
-	 *
-	 * @return array Returns a two elements array, respectively containing translation_service and translator_id
-	 */
 	public static function get_translator_data_from_wpml( $translator_id ) {
 		$result = array();
 		if ( is_numeric( $translator_id ) ) {

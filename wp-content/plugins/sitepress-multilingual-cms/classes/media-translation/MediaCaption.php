@@ -26,9 +26,6 @@ class MediaCaption {
 	}
 
 
-	/**
-	 * @return int
-	 */
 	public function get_id() {
 		return $this->attachment_id;
 	}
@@ -57,11 +54,6 @@ class MediaCaption {
 		return $this->link;
 	}
 
-	/**
-	 * @param string $attributes_list
-	 *
-	 * @return array
-	 */
 	private function find_attributes_array( $attributes_list ) {
 		$attributes = array();
 		if ( preg_match_all( '/(\S+)=["\']?((?:.(?!["\']?\s+(?:\S+)=|[>"\']))+.)["\']?/', $attributes_list, $attribute_matches ) ) {
@@ -73,11 +65,6 @@ class MediaCaption {
 		return $attributes;
 	}
 
-	/**
-	 * @param array $attributes
-	 *
-	 * @return null|int
-	 */
 	private function find_attachment_id( $attributes ) {
 		$attachment_id = null;
 		if ( isset( $attributes['id'] ) ) {
@@ -91,11 +78,6 @@ class MediaCaption {
 		return $attachment_id;
 	}
 
-	/**
-	 * @param $string
-	 *
-	 * @return array
-	 */
 	private function find_link( $string ) {
 		$link = array();
 		if ( preg_match( '/<a ([^>]+)>(.+)<\/a>/s', $string, $a_match ) ) {

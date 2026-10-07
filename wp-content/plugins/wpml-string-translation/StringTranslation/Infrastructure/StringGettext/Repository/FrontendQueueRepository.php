@@ -12,19 +12,14 @@ use WPML\StringTranslation\Infrastructure\StringGettext\Repository\Util\LimitMax
 
 class FrontendQueueRepository implements FrontendQueueRepositoryInterface {
 
-	/** @var StringItemFactory */
 	private $stringItemFactory;
 
-	/** @var Factory */
 	private $factory;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var LimitMaxQueuedFrontendStrings */
 	private $limitMaxQueuedFrontendStrings;
 
-	/** @var FilterOnlyNewFrontendStrings */
 	private $filterOnlyNewFrontendStrings;
 
 	public function __construct(
@@ -41,12 +36,6 @@ class FrontendQueueRepository implements FrontendQueueRepositoryInterface {
 		$this->filterOnlyNewFrontendStrings  = $filterOnlyNewFrontendStrings;
 	}
 
-	/**
-	 * @var array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * } $newData
-	 */
 	public function save( array $newData ) {
 		$existingData = $this->factory->getFrontendQueueRepository()->get();
 		if ( count( $existingData ) > 0 ) {
@@ -68,9 +57,6 @@ class FrontendQueueRepository implements FrontendQueueRepositoryInterface {
 		$this->factory->getFrontendQueueRepository()->save( $allData );
 	}
 
-	/**
-	 * @return GettextStringsByUrl[]
-	 */
 	public function get(): array {
 		$data = $this->factory->getFrontendQueueRepository()->get();
 
@@ -81,8 +67,8 @@ class FrontendQueueRepository implements FrontendQueueRepositoryInterface {
 				function ($item) {
 					return $this->stringItemFactory->create(
 						$item['domain'] ?? '',
-						$item['context'] ?? '',
-						$item['value'] ?? ''
+						$item['value'] ?? '',
+						$item['context'] ?? ''
 					);
 				},
 				$entry['gettextStrings']

@@ -10,23 +10,11 @@
  */
 namespace WPML\Core\Twig;
 
-/**
- * Holds information about a non-compiled Twig template.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class Source
 {
     private $code;
     private $name;
     private $path;
-    /**
-     * @param string $code The template source code
-     * @param string $name The template logical name
-     * @param string $path The filesystem path of the template if any
-     */
     public function __construct($code, $name, $path = '')
     {
         $this->code = $code;

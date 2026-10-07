@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "ru"
+            "lang": "ru_RU"
          },
          "Dissmiss Notice": [
-            "Закрыть уведомление"
+            "Отклонить уведомление"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "Оптимизируйте перевод вашего сайта с помощью Панели управления переводами WPML"
+            "Оптимизируйте перевод вашего сайта с помощью панели управления переводами WPML"
          ],
          "Translate pages, posts, products and strings from one place": [
             "Переводите страницы, записи, товары и строки из одного места"
@@ -20,7 +20,7 @@
             "Массовый автоматический перевод"
          ],
          "Translate everything automatically": [
-            "Переводите все автоматически"
+            "Перевести всё автоматически"
          ],
          "Go to the Translation Dashboard": [
             "Перейти в панель управления переводами"

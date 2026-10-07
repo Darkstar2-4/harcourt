@@ -7,7 +7,6 @@ use WPML\Core\Port\Event\EventListenerInterface;
 
 class CountListener implements EventListenerInterface {
 
-  /** @var Calculator */
   private $calculator;
 
 

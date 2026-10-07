@@ -4,27 +4,16 @@ use WPML\FP\Obj;
 use WPML\PB\Elementor\DynamicContent\Strings as DynamicContentStrings;
 use WPML\PB\Elementor\Modules\ModuleWithItemsFromConfig;
 
-/**
- * Class WPML_Elementor_Translatable_Nodes
- */
 class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translatable_Nodes {
 
 	const SETTINGS_FIELD      = 'settings';
 	const TYPE                = 'widgetType';
+	const TYPE_KEY            = \WPML\PB\Elementor\V4\Hooks::TYPE_KEY;
 	const DEFAULT_HEADING_TAG = 'h2';
 	const ELEMENT_TYPE        = 'elType';
 
-	/**
-	 * @var array
-	 */
 	private $nodes_to_translate;
 
-	/**
-	 * @param string|int $node_id Translatable node id.
-	 * @param array      $element
-	 *
-	 * @return WPML_PB_String[]
-	 */
 	public function get( $node_id, $element ) {
 
 		if ( ! $this->nodes_to_translate ) {
@@ -36,13 +25,26 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 		foreach ( $this->nodes_to_translate as $node_type => $node_data ) {
 			if ( $this->conditions_ok( $node_data, $element ) ) {
 				foreach ( $node_data['fields'] as $key => $field ) {
-					$field_key       = $field['field'];
+					$field_key = $field['field'];
+
+					if ( ! $this->is_field_active( $field_key, $element ) ) {
+						continue;
+					}
+
 					$pathInFlatField = array_merge( [ self::SETTINGS_FIELD ], self::get_partial_path( $field_key ) );
 					$string_value    = Obj::pathOr( null, $pathInFlatField, $element );
 
 					if ( ! is_string( $string_value ) ) {
 						$pathInArrayField = array_merge( [ self::SETTINGS_FIELD, $key ], self::get_partial_path( $field_key ) );
 						$string_value     = Obj::pathOr( null, $pathInArrayField, $element );
+
+						if ( ! is_string( $string_value ) ) {
+							$pathInOverridableField = $this->get_overridable_string_path( $element, $pathInFlatField );
+
+							if ( $pathInOverridableField ) {
+								$string_value = Obj::pathOr( null, $pathInOverridableField, $element );
+							}
+						}
 					}
 
 					if ( $string_value ) {
@@ -59,9 +61,7 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 				foreach ( $this->get_integration_instances( $node_data ) as $instance ) {
 					try {
 						$strings = $instance->get( $node_id, $element, $strings );
-						// phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 					} catch ( Exception $e ) {
-						// phpcs:enable Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 					}
 				}
 			}
@@ -70,13 +70,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 		return DynamicContentStrings::filter( $strings, $node_id, $element );
 	}
 
-	/**
-	 * @param int|string     $node_id
-	 * @param array          $element
-	 * @param WPML_PB_String $pbString
-	 *
-	 * @return array
-	 */
 	public function update( $node_id, $element, WPML_PB_String $pbString ) {
 
 		if ( ! $this->nodes_to_translate ) {
@@ -89,6 +82,10 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 				foreach ( $node_data['fields'] as $key => $field ) {
 					$field_key = $field['field'];
 
+					if ( ! $this->is_field_active( $field_key, $element ) ) {
+						continue;
+					}
+
 					if ( $this->get_string_name( $node_id, $field, $element ) === $pbString->get_name() ) {
 						$pathInFlatField    = array_merge( [ self::SETTINGS_FIELD ], self::get_partial_path( $field_key ) );
 						$stringInFlatField  = Obj::pathOr( null, $pathInFlatField, $element );
@@ -99,6 +96,13 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 							$element = Obj::assocPath( $pathInFlatField, $pbString->get_value(), $element );
 						} elseif ( is_string( $stringInArrayField ) ) {
 							$element = Obj::assocPath( $pathInArrayField, $pbString->get_value(), $element );
+						} else {
+							$pathInOverridableField   = $this->get_overridable_string_path( $element, $pathInFlatField );
+							$stringInOverridableField = $pathInOverridableField ? Obj::pathOr( null, $pathInOverridableField, $element ) : null;
+
+							if ( is_string( $stringInOverridableField ) ) {
+								$element = Obj::assocPath( $pathInOverridableField, $pbString->get_value(), $element );
+							}
 						}
 					}
 				}
@@ -118,7 +122,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 							$element = Obj::assocPath( $path, $item, $element );
 						}
 					} catch ( Exception $e ) {
-						// Silently fail.
 					}
 				}
 			}
@@ -127,20 +130,103 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 		return DynamicContentStrings::updateNode( $element, $pbString );
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string[]
-	 */
 	private static function get_partial_path( $field ) {
 		return explode( '>', $field );
 	}
 
-	/**
-	 * @param array $node_data
-	 *
-	 * @return WPML_Elementor_Module_With_Items[]
-	 */
+	private static $active_settings_cache = null;
+
+	private static $active_settings_cache_enabled = false;
+
+	public static function with_active_element_settings_cache( callable $callback ) {
+		$was_enabled = self::$active_settings_cache_enabled;
+
+		if ( ! $was_enabled ) {
+			self::$active_settings_cache_enabled = true;
+			self::clear_active_element_settings_cache();
+		}
+
+		try {
+			return $callback();
+		} finally {
+			if ( ! $was_enabled ) {
+				self::clear_active_element_settings_cache();
+				self::$active_settings_cache_enabled = false;
+			}
+		}
+	}
+
+	private static function clear_active_element_settings_cache() {
+		self::$active_settings_cache = null;
+	}
+
+	public static function get_active_element_settings( array $element ) {
+		if ( self::$active_settings_cache_enabled && null !== self::$active_settings_cache ) {
+			return self::$active_settings_cache;
+		}
+
+		$active = [];
+
+		try {
+			$active = \Elementor\Plugin::$instance->elements_manager
+				->create_element_instance( $element )
+				->get_active_settings();
+		} catch ( \Throwable $e ) {
+			$active = [];
+		}
+
+		if ( ! is_array( $active ) ) {
+			$active = [];
+		}
+
+		if ( self::$active_settings_cache_enabled ) {
+			self::$active_settings_cache = $active;
+		}
+
+		return $active;
+	}
+
+	private function is_field_active( $field_key, array $element ) {
+		$active = self::get_active_element_settings( $element );
+
+		$top = self::get_partial_path( $field_key )[0];
+
+		if ( ! array_key_exists( $top, $active ) ) {
+			return true;
+		}
+
+		return null !== $active[ $top ];
+	}
+
+	private function get_overridable_string_path( array $element, array $path ) {
+		$fieldPath = [ 'value', 'content', 'value' ] === array_slice( $path, -3 )
+			? array_slice( $path, 0, -3 )
+			: array_slice( $path, 0, -1 );
+
+		if ( empty( $fieldPath ) ) {
+			return null;
+		}
+
+		$type = Obj::pathOr( null, array_merge( $fieldPath, [ self::TYPE_KEY ] ), $element );
+
+		if ( 'overridable' !== $type ) {
+			return null;
+		}
+
+		$originTypePath = array_merge( $fieldPath, [ 'value', 'origin_value', self::TYPE_KEY ] );
+		$originType     = Obj::pathOr( null, $originTypePath, $element );
+
+		if ( 'string' === $originType ) {
+			return array_merge( $fieldPath, [ 'value', 'origin_value', 'value' ] );
+		}
+
+		if ( 'html-v3' === $originType ) {
+			return array_merge( $fieldPath, [ 'value', 'origin_value', 'value', 'content', 'value' ] );
+		}
+
+		return null;
+	}
+
 	private function get_integration_instances( $node_data ) {
 		$instances = [];
 
@@ -158,7 +244,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 					try {
 						$instances[] = new $class_or_instance();
 					} catch ( Exception $e ) {
-						// Allow to continue if an integration class fails.
 					}
 				}
 			}
@@ -170,16 +255,9 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 			}
 		}
 
-		return array_filter( $instances );
+		return $instances;
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param array  $field
-	 * @param array  $settings
-	 *
-	 * @return string
-	 */
 	public function get_string_name( $node_id, $field, $settings ) {
 		$field_id = isset( $field['field_id'] ) ? $field['field_id'] : $field['field'];
 		$type     = isset( $settings[ self::TYPE ] ) ? $settings[ self::TYPE ] : $settings[ self::ELEMENT_TYPE ];
@@ -187,14 +265,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 		return $field_id . '-' . $type . '-' . $node_id;
 	}
 
-	/**
-	 * Get wrap tag for string.
-	 * Used for SEO, can contain (h1...h6, etc.)
-	 *
-	 * @param array $settings Field settings.
-	 *
-	 * @return string
-	 */
 	private function get_wrap_tag( $settings ) {
 		if ( isset( $settings[ self::TYPE ] ) && 'heading' === $settings[ self::TYPE ] ) {
 			$header_size = isset( $settings[ self::SETTINGS_FIELD ]['header_size'] ) ?
@@ -206,16 +276,10 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 		return '';
 	}
 
-	/**
-	 * @param array $node_data
-	 * @param array $element
-	 *
-	 * @return bool
-	 */
 	private function conditions_ok( $node_data, $element ) {
 		$conditions_meet = true;
 		foreach ( $node_data['conditions'] as $field_key => $field_value ) {
-			if ( ! isset( $element[ $field_key ] ) || $element[ $field_key ] !== $field_value ) {
+			if ( Obj::prop( $field_key, $element ) !== $field_value && Obj::prop( 'elType', $element ) !== $field_value ) {
 				$conditions_meet = false;
 				break;
 			}
@@ -226,8 +290,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 
 	public static function get_nodes_to_translate() {
 		return array(
-			// Container for the flexbox layout.
-			// It is not actually a widget but may have an URL to translate.
 			'container'            => [
 				'conditions' => [ self::ELEMENT_TYPE => 'container' ],
 				'fields'     => [
@@ -238,7 +300,6 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 					],
 				],
 			],
-			// Everything below is a widget and has strings to translate.
 			'heading'              => array(
 				'conditions' => array( self::TYPE => 'heading' ),
 				'fields'     => array(
@@ -794,22 +855,29 @@ class WPML_Elementor_Translatable_Nodes implements IWPML_Page_Builders_Translata
 					'\WPML\PB\Elementor\Modules\Reviews',
 				],
 			),
-			'galleries'            => array(
+			'gallery'              => array(
 				'conditions'        => array( self::TYPE => 'gallery' ),
 				'fields'            => array(
 					array(
 						'field'       => 'show_all_galleries_label',
-						'type'        => __( 'Galleries: All Label', 'sitepress' ),
+						'type'        => __( 'Gallery: All Label', 'sitepress' ),
 						'editor_type' => 'LINE',
 					),
 					'url' => array(
 						'field'       => 'url',
-						'type'        => __( 'Galleries: Gallery custom link', 'sitepress' ),
+						'type'        => __( 'Gallery: Gallery custom link', 'sitepress' ),
 						'editor_type' => 'LINK',
 					),
 				),
 				'integration-class' => [
 					'\WPML\PB\Elementor\Modules\MultipleGallery',
+				],
+			),
+			'e-component'          => array(
+				'conditions'        => array( self::TYPE => 'e-component' ),
+				'fields'            => array(),
+				'integration-class' => [
+					'\WPML\PB\Elementor\V4\Component\Overrides',
 				],
 			),
 		);

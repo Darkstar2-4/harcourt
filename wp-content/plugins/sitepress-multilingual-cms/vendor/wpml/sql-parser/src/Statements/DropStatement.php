@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `DROP` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -18,11 +15,6 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class DropStatement extends Statement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'DATABASE' => 1,
         'EVENT' => 1,
@@ -42,24 +34,15 @@ class DropStatement extends Statement
         'IF EXISTS' => 3
     );
 
-    /**
-     * The clauses of this statement, in order.
-     *
-     * @see Statement::$CLAUSES
-     *
-     * @var array
-     */
     public static $CLAUSES = array(
         'DROP' => array(
             'DROP',
             2,
         ),
-        // Used for options.
         '_OPTIONS' => array(
             '_OPTIONS',
             1,
         ),
-        // Used for select expressions.
         'DROP_' => array(
             'DROP',
             1,
@@ -70,17 +53,7 @@ class DropStatement extends Statement
         )
     );
 
-    /**
-     * Dropped elements.
-     *
-     * @var Expression[]
-     */
     public $fields;
 
-    /**
-     * Table of the dropped index.
-     *
-     * @var Expression
-     */
     public $table;
 }

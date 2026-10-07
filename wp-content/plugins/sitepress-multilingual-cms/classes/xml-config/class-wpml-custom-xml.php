@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Custom_XML extends WPML_WP_Option {
 
 	public function get_key() {

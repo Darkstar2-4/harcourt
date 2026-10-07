@@ -8,10 +8,8 @@ use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryIn
 
 class LanguagePreferencesLoader {
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
-  /** @var PluginInterface */
   private $pluginInterface;
 
 
@@ -21,13 +19,6 @@ class LanguagePreferencesLoader {
   }
 
 
-  /**
-   * @return array<string, array{
-   *   code: string,
-   *   name: string,
-   *   flagUrl: string|null,
-   * }>
-   */
   private function getLanguages(): array {
 
     return array_reduce(
@@ -48,9 +39,6 @@ class LanguagePreferencesLoader {
   }
 
 
-  /**
-   * @return string[]
-   */
   private function getLanguagesTo(): array {
     return array_map(
       function ( LanguageDto $language ) {
@@ -61,20 +49,6 @@ class LanguagePreferencesLoader {
   }
 
 
-  /**
-   * @return array{
-   *   languages: array<string, array{
-   *   code: string,
-   *   name: string,
-   *   flagUrl: string|null,
-   * }>,
-   *   languagesSettings: array{
-   *   from: string,
-   *   to: string[],
-   *   default: string,
-   * }
-   * }
-   */
   public function get(): array {
     return [
       'languages'         => $this->getLanguages(),

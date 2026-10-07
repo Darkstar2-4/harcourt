@@ -17,14 +17,8 @@ class MediaTranslationStatus implements \IWPML_Action {
 
 	const STATUS_PREFIX = '_translation_status_';
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 	
-	/**
-	 * @var MediaField
-	 */
 	private $media_field;
 
 	public function __construct( SitePress $sitepress ) {
@@ -96,14 +90,6 @@ class MediaTranslationStatus implements \IWPML_Action {
 		return $media;
 	}
 
-	/**
-	 * @param int $attachment_id
-	 * @param array $translation_data
-	 * @param WPML_Element_Translation_Package $translation_package
-	 * @param string $language
-	 *
-	 * @return bool|int|WP_Error
-	 */
 	private function save_attachment_translation( $attachment_id, $translation_data, $translation_package, $language ) {
 		$postarr             = [];
 		$alt_text            = null;

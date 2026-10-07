@@ -108,7 +108,7 @@ class Media_Item_Query {
 	public function get_lossy_count() {
 		global $wpdb;
 
-		$query = $wpdb->prepare( "SELECT COUNT(DISTINCT post_id) FROM $wpdb->postmeta WHERE meta_key = %s AND meta_value = 1", Smush_Optimization::LOSSY_META_KEY );
+		$query = $wpdb->prepare( "SELECT COUNT(DISTINCT post_id) FROM $wpdb->postmeta WHERE meta_key = %s AND meta_value = 1", Smush_Optimization::get_lossy_meta_key() );
 
 		return $wpdb->get_var( $query );
 	}
@@ -120,8 +120,8 @@ class Media_Item_Query {
 			"SELECT COUNT(DISTINCT post_meta_optimized.post_id) FROM $wpdb->postmeta as post_meta_optimized
 			LEFT JOIN $wpdb->postmeta as post_meta_ignored ON post_meta_optimized.post_id = post_meta_ignored.post_id AND post_meta_ignored.meta_key= %s
 			WHERE post_meta_optimized.meta_key = %s AND post_meta_ignored.meta_value IS NULL",
-			Media_Item::IGNORED_META_KEY,
-			Smush_Optimization::SMUSH_META_KEY
+			Media_Item::get_ignored_meta_key(),
+			Smush_Optimization::get_smush_meta_key()
 		);
 
 		return $wpdb->get_var( $query );
@@ -130,7 +130,7 @@ class Media_Item_Query {
 	public function get_ignored_count() {
 		global $wpdb;
 
-		$query = $wpdb->prepare( "SELECT COUNT(DISTINCT post_id) FROM $wpdb->postmeta WHERE meta_key = %s", Media_Item::IGNORED_META_KEY );
+		$query = $wpdb->prepare( "SELECT COUNT(DISTINCT post_id) FROM $wpdb->postmeta WHERE meta_key = %s", Media_Item::get_ignored_meta_key() );
 
 		return $wpdb->get_var( $query );
 	}
@@ -167,12 +167,29 @@ class Media_Item_Query {
 		$escaped_relative_urls = array_map( function ( $relative_url ) {
 			return "'" . esc_sql( $relative_url ) . "'";
 		}, $absolute_key_relative_value );
-		$in                    = join( ',', $escaped_relative_urls );
 
 		global $wpdb;
-		$sql = "SELECT post_id, meta_value FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value IN ({$in})";
 
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Maximum number of URLs per IN() clause when resolving attachment IDs.
+		 * Lower this on hosts that kill long queries (e.g. WP Engine).
+		 * 100 is summing to good enough number of characters usually.
+		 *
+		 * @param int $chunk_size Default 100.
+		 */
+		$chunk_size = (int) apply_filters( 'wp_smush_attachment_urls_chunk_size', 100 );
+		$chunks     = array_chunk( $escaped_relative_urls, $chunk_size );
+
+		$results = array();
+		foreach ( $chunks as $chunk ) {
+			$in           = join( ',', $chunk );
+			$sql          = "SELECT post_id, meta_value FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value IN ({$in})";
+			$chunk_result = $wpdb->get_results( $sql, ARRAY_A );
+			if ( ! empty( $chunk_result ) ) {
+				$results = array_merge( $results, $chunk_result );
+			}
+		}
+
 		if ( empty( $results ) ) {
 			return array();
 		}
@@ -311,7 +328,21 @@ class Media_Item_Query {
 	 *
 	 * @return bool
 	 */
-	private function is_non_media_library_url( $url ): bool {
+	private function is_non_media_library_url( $url ) {
 		return $this->convert_attachment_url_to_relative( $url ) === $url;
+	}
+
+	/**
+	 * Get the count of optimization errors.
+	 *
+	 * @return int
+	 */
+	public function get_optimization_errors_count() {
+		global $wpdb;
+
+		return (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(DISTINCT post_id) FROM $wpdb->postmeta WHERE meta_key = %s",
+			'wp-smush-optimization-errors'
+		) );
 	}
 }

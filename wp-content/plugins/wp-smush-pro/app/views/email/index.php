@@ -60,6 +60,11 @@
                     <td align="left" style="font-size:0px;padding:0;word-break:break-word;">
                       <div style="margin:0px auto;max-width: 600px;font-family:Roboto, Arial, sans-serif;font-size:18px;letter-spacing:-.25px;line-height:30px;text-align:left;color:#1A1A1A;">
                         <?php echo $content_body;//phpcs:ignore ?>
+                         <?php
+                          if( ! empty( $content_upsell ) ) {
+                            echo $content_upsell;//phpcs:ignore
+                          }
+                        ?>
                         <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%" style="margin:0px auto;max-width: 600px;padding:0 0;">
                           <tbody>
                               <tr>
@@ -79,20 +84,15 @@
                                         </tr>
                                       </tbody>
                                     </table>
-                                  <?php
-                                    if( ! empty( $content_upsell ) ) {
-                                      echo $content_upsell;//phpcs:ignore
-                                    }
-                                  ?>
-                                </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
             </div>
             <!--[if mso | IE]></td></tr></table><![endif]-->
           </td>

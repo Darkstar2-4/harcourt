@@ -1,9 +1,6 @@
 <?php
 namespace Composer\Installers;
 
-/**
- * An installer to handle TAO extensions.
- */
 class TaoInstaller extends BaseInstaller
 {
     const EXTRA_TAO_EXTENSION_NAME = 'tao-extension-name';

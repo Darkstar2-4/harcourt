@@ -13,22 +13,16 @@ use function WPML\Container\make;
 
 class ProcessStringsQueueApiController extends AbstractController {
 
-	/** @var StringsService */
 	private $stringsService;
 
-	/** @var HtmlStringsService */
 	private $htmlStringsService;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
-	/** @var QueueRepositoryInterface */
 	private $queueRepository;
 
-	/** @var FrontendQueueRepositoryInterface */
 	private $frontendQueueRepository;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(
@@ -49,9 +43,6 @@ class ProcessStringsQueueApiController extends AbstractController {
 		$this->settingsRepository      = $settingsRepository;
 	}
 
-	/**
-	 * @return array
-	 */
 	function get_routes() {
 		return [
 			[
@@ -64,9 +55,6 @@ class ProcessStringsQueueApiController extends AbstractController {
 		];
 	}
 
-	/**
-	 * @return array
-	 */
 	public function post( \WP_REST_Request $request ) {
 		if ( ! $this->gettextStringsService->isAutoregisterEnabled() ) {
 			return [

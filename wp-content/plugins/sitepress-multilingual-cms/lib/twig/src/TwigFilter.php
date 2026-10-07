@@ -11,13 +11,6 @@
 namespace WPML\Core\Twig;
 
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a template filter.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class TwigFilter
 {
     protected $name;
@@ -93,5 +86,4 @@ class TwigFilter
     }
 }
 \class_alias('WPML\\Core\\Twig\\TwigFilter', 'WPML\\Core\\Twig_SimpleFilter');
-// Ensure that the aliased name is loaded to keep BC for classes implementing the typehint with the old aliased name.
 \class_exists('WPML\\Core\\Twig\\Node\\Node');

@@ -3,14 +3,11 @@
 use WPML\TM\Jobs\Utils\ElementLinkFactory;
 
 class WPML_TM_REST_Jobs_Factory extends WPML_REST_Factory_Loader {
-	/**
-	 * @return WPML_TM_REST_Jobs
-	 */
 	public function create() {
 		global $sitepress, $wpdb;
 
 		return new WPML_TM_REST_Jobs(
-			wpml_tm_get_jobs_repository( true, false, true ),
+			wpml_tm_get_jobs_repository( true, true ),
 			new WPML_TM_Rest_Jobs_Criteria_Parser(),
 			new WPML_TM_Rest_Jobs_View_Model(
 				new WPML_TM_Rest_Jobs_Translation_Service(),

@@ -5,11 +5,6 @@ namespace WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Ap
 interface DashboardTranslationsRepositoryInterface {
 
 
-  /**
-   * @param int $translatorId
-   *
-   * @return void
-   */
   public function recordTranslator( int $translatorId );
 
 

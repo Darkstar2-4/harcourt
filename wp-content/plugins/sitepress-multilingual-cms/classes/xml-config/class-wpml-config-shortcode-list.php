@@ -3,7 +3,7 @@
 class WPML_Config_Shortcode_List extends WPML_WP_Option implements IWPML_Action, IWPML_Backend_Action_Loader, IWPML_AJAX_Action_Loader {
 
 	public function create() {
-		return $this; // Use same instance for action
+		return $this;
 	}
 
 	public function get_key() {

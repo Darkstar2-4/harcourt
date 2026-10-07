@@ -1,15 +1,9 @@
 <?php
 
-/**
- * Class WPML_Page_Builders_Update_Translation
- */
 abstract class WPML_Page_Builders_Update_Translation extends WPML_Page_Builders_Update {
 
 	const TRANSLATION_COMPLETE = 10;
 
-	/**
-	 * @var IWPML_Page_Builders_Translatable_Nodes
-	 */
 	protected $translatable_nodes;
 
 	private $string_translations;
@@ -23,12 +17,6 @@ abstract class WPML_Page_Builders_Update_Translation extends WPML_Page_Builders_
 		parent::__construct( $data_settings );
 	}
 
-	/**
-	 * @param int               $translated_post_id
-	 * @param \WP_Post|stdClass $original_post
-	 * @param array             $string_translations
-	 * @param string            $lang
-	 */
 	public function update( $translated_post_id, $original_post, $string_translations, $lang ) {
 		$this->string_translations = $string_translations;
 		$this->lang                = $lang;
@@ -39,11 +27,6 @@ abstract class WPML_Page_Builders_Update_Translation extends WPML_Page_Builders_
 
 	}
 
-	/**
-	 * @param WPML_PB_String $string
-	 *
-	 * @return WPML_PB_String
-	 */
 	protected function get_translation( WPML_PB_String $string ) {
 		if ( array_key_exists( $string->get_name(), $this->string_translations ) &&
 		     array_key_exists( $this->lang, $this->string_translations[ $string->get_name() ] ) ) {

@@ -13,50 +13,26 @@ class Data {
 	const ICL_DEACTIVATED = 'icl-deactivated';
 	const ICL_CREDENTIALS = 'icl-credentials';
 
-	/**
-	 * @param bool $flag
-	 *
-	 * @return void
-	 */
 	public static function setMemoryMigrated( $flag = true ) {
 		self::save( self::MEMORY_MIGRATED, $flag );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function isMemoryMigrated() {
 		return self::get( self::MEMORY_MIGRATED );
 	}
 
-	/**
-	 * @param bool $flag
-	 *
-	 * @return void
-	 */
 	public static function setICLDeactivated( $flag = true ) {
 		self::save( self::ICL_DEACTIVATED, $flag );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function isICLDeactivated() {
 		return self::get( self::ICL_DEACTIVATED );
 	}
 
-	/**
-	 * @param array $credentials
-	 *
-	 * @return void
-	 */
 	public static function saveICLCredentials( array $credentials ) {
 		self::save( self::ICL_CREDENTIALS, $credentials );
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function getICLCredentials() {
 		return self::get( self::ICL_CREDENTIALS );
 	}

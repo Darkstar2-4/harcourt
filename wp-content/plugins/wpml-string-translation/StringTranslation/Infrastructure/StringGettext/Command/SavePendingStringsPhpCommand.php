@@ -7,10 +7,8 @@ use WPML\StringTranslation\Application\StringGettext\Command\SavePendingStringsC
 
 class SavePendingStringsPhpCommand implements SavePendingStringsCommandInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
-	/** @var CreateFileCommand */
 	private $createPhpFile;
 
 	public function __construct(

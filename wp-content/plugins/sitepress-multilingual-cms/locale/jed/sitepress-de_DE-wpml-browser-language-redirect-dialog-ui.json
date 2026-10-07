@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "How Browser Language Redirect Affects Google Indexing": [
-            "Wie die Umleitung nach Browser-Sprache die Google-Indizierung beeinflusst"
+            "Wie die Browser-Sprachumleitung die Google-Indexierung beeinflusst"
          ],
          "Documentation": [
-            "Produktdokumentation"
+            "Dokumentation"
          ],
          "Browser redirect affects Google indexing and search results": [
-            "Die Browser-Umleitung beeinflusst die Google-Indizierung und die Suchergebnisse"
+            "Browser-Umleitung beeinflusst Google-Indexierung und Suchergebnisse"
          ],
          "Got it, activate anyway": [
             "Verstanden, trotzdem aktivieren"
@@ -23,10 +23,10 @@
             "Abbrechen"
          ],
          "When you redirect visitors based on their language, you also redirect Google. Google wants to see your site exactly like visitors see it, including any redirects that you apply.": [
-            "Wenn Sie Besucher auf Basis ihrer Sprache umleiten, leiten Sie auch Google um. Google möchte Ihre Website exakt so sehen, wie Besucher sie sehen, einschließlich aller Umleitungen, die Sie anwenden."
+            "Wenn Sie Besucher basierend auf ihrer Sprache umleiten, leiten Sie auch Google um. Google möchte Ihre Website genau so sehen, wie Besucher sie sehen, einschließlich aller Umleitungen, die Sie anwenden."
          ],
          "It is OK to redirect visitors based on their language, but you need to realize that this feature affects SEO.": [
-            "Es ist OK, Besucher auf Basis ihrer Sprache umzuleiten, doch Ihnen muss bewusst sein, dass diese Funktion sich auf die SEO auswirkt."
+            "Es ist in Ordnung, Besucher basierend auf ihrer Sprache umzuleiten, aber Sie müssen sich bewusst sein, dass diese Funktion die SEO beeinflusst."
          ],
          "Before proceeding, we recommend that you read these two pages:": [
             "Bevor Sie fortfahren, empfehlen wir Ihnen, diese beiden Seiten zu lesen:"

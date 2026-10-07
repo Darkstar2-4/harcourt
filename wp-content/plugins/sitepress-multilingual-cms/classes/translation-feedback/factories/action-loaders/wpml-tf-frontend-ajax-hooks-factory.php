@@ -1,20 +1,10 @@
 <?php
 
-/**
- * Class WPML_TF_Frontend_AJAX_Hooks_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Frontend_AJAX_Hooks_Factory extends WPML_AJAX_Base_Factory {
 
 	const AJAX_ACTION = 'wpml-tf-frontend-feedback';
 
-	/**
-	 * @return IWPML_Action|null
-	 */
 	public function create() {
-		/** @var SitePress $sitepress */
-		/** @var wpdb $wpdb */
 		global $sitepress, $wpdb;
 
 		if ( $this->is_valid_action( self::AJAX_ACTION ) ) {

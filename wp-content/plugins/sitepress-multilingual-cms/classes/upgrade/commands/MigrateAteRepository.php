@@ -10,19 +10,14 @@ class MigrateAteRepository implements \IWPML_Upgrade_Command {
 
 	const OPTION_NAME_REPO = 'WPML_TM_ATE_JOBS';
 
-	/** @var \WPML_Upgrade_Schema $schema */
 	private $schema;
 
-	/** @var bool $result */
 	private $result = false;
 
 	public function __construct( array $args ) {
 		$this->schema = $args[0];
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run() {
 		$this->result = $this->addColumnsToJobsTable();
 
@@ -69,11 +64,6 @@ class MigrateAteRepository implements \IWPML_Upgrade_Command {
 		$this->disableAutoloadOnOldOption();
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return \Closure
-	 */
 	private function getCasesReducer() {
 		$wpdb  = $this->schema->get_wpdb();
 
@@ -95,36 +85,18 @@ class MigrateAteRepository implements \IWPML_Upgrade_Command {
 		);
 	}
 
-	/**
-	 * Runs in admin pages.
-	 *
-	 * @return bool
-	 */
 	public function run_admin() {
 		return $this->run();
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_ajax() {
 		return null;
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_frontend() {
 		return null;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function get_results() {
 		return $this->result;
 	}

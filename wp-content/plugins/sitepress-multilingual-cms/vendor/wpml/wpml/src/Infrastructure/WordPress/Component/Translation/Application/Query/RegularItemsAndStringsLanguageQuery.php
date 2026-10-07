@@ -7,10 +7,8 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 
 class RegularItemsAndStringsLanguageQuery implements ItemLanguageQueryInterface {
 
-  /** @var StringLanguageQuery */
   private $stringLanguageQuery;
 
-  /** @var ItemLanguageQuery */
   private $itemLanguageQuery;
 
 

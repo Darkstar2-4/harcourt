@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Please wait, applying translation..": [
-            "Bitte warten, Übersetzung wird angewendet..."
+            "Bitte warten Sie, die Übersetzung wird angewendet."
          ],
          "There was an error in applying translation.": [
             "Beim Anwenden der Übersetzung ist ein Fehler aufgetreten."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "Diese Übersetzung wird bereits von jemandem überprüft. Bitte versuchen Sie es später erneut."
+            "Jemand überprüft diese Übersetzung bereits. Bitte versuchen Sie es später noch einmal."
          ]
       }
    }

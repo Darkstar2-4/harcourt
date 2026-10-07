@@ -1,16 +1,12 @@
 <?php
 
 class WPML_ST_Slug_Translation_Taxonomy_Custom_Types_Repository implements WPML_ST_Slug_Translation_Custom_Types_Repository {
-	/** @var SitePress */
 	private $sitepress;
 
-	/** @var WPML_ST_Slug_Custom_Type_Factory */
 	private $custom_type_factory;
 
-	/** @var WPML_ST_Tax_Slug_Translation_Settings $settings */
 	private $settings_repository;
 
-	/** @var array */
 	private $settings;
 
 	public function __construct(
@@ -34,11 +30,6 @@ class WPML_ST_Slug_Translation_Taxonomy_Custom_Types_Repository implements WPML_
 		);
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return bool
-	 */
 	private function filter( $type ) {
 		$settings = $this->get_taxonomy_slug_translation_settings();
 
@@ -47,18 +38,10 @@ class WPML_ST_Slug_Translation_Taxonomy_Custom_Types_Repository implements WPML_
 		       && $this->sitepress->is_translated_taxonomy( $type );
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return WPML_ST_Slug_Custom_Type
-	 */
 	private function build_object( $type ) {
 		return $this->custom_type_factory->create( $type, $this->is_display_as_translated( $type ) );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_taxonomy_slug_translation_settings() {
 		if ( null === $this->settings ) {
 			$this->settings = $this->settings_repository->get_types();
@@ -68,11 +51,6 @@ class WPML_ST_Slug_Translation_Taxonomy_Custom_Types_Repository implements WPML_
 	}
 
 
-	/**
-	 * @param string $type
-	 *
-	 * @return bool
-	 */
 	private function is_display_as_translated( $type ) {
 		return $this->sitepress->is_display_as_translated_taxonomy( $type );
 	}

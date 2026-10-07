@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Connect this site to your %s account": [
-            "Anslut denna webbplats till ditt %s-konto"
+            "Anslut den här webbplatsen till ditt %s-konto"
          ],
          "Error": [
             "Fel"
@@ -33,6 +33,15 @@
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
             "Det är för närvarande inte möjligt att ansluta en översättningstjänst när WPML är inställt på att översätta din webbplats innehåll automatiskt. För att använda en översättningstjänst, vänligen ändra ditt översättningsläge på sidan <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Sortera fallande"
+         ],
+         "Sort ascending": [
+            "Sortera stigande"
+         ],
+         "Cancel sorting": [
+            "Avbryt sortering"
          ],
          "Documentation": [
             "Dokumentation"

@@ -12,13 +12,6 @@ namespace WPML\Core\Twig\Node\Expression\Test;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\TestExpression;
-/**
- * Checks that a variable is null.
- *
- *  {{ var is none }}
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class NullTest extends \WPML\Core\Twig\Node\Expression\TestExpression
 {
     public function compile(\WPML\Core\Twig\Compiler $compiler)

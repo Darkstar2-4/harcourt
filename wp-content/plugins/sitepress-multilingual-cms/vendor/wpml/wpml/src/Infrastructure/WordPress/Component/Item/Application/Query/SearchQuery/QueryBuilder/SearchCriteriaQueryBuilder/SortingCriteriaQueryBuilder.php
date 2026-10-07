@@ -11,11 +11,6 @@ class SortingCriteriaQueryBuilder {
   const SORT_BY_TITLE_QUERY_PART = 'ORDER BY p.post_title %s';
 
 
-  /**
-   * @phpstan-param  SortingCriteria | null $sortingCriteria
-   *
-   * @return string
-   */
   public function build( $sortingCriteria ): string {
     if ( ! $sortingCriteria ) {
       return $this->getDefaultSortingQueryPart();

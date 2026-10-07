@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Infrastructure\WordPress\Component\String\Application\Query;
 
 use WPML\Core\Port\Persistence\Exception\DatabaseErrorException;
@@ -9,25 +8,13 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\Core\SharedKernel\Component\String\Application\Query\StringLanguageQueryInterface;
 
 
-/**
- * @phpstan-type StringLanguageRow array{
- *   stringId: int,
- *   language: string
- * }
- */
 class StringLanguageQuery implements StringLanguageQueryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, StringLanguageRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @phpstan-param  QueryHandlerInterface<int, StringLanguageRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -37,11 +24,6 @@ class StringLanguageQuery implements StringLanguageQueryInterface {
   }
 
 
-  /**
-   * @param int[] $strings
-   *
-   * @return array<int, string> [stringId => language]
-   */
   public function getStringLanguages( array $strings ): array {
     if ( ! $strings ) {
       return [];

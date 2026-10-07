@@ -133,10 +133,23 @@ class Token_Verifier {
 	 *
 	 * @since 1.0
 	 *
-	 * @return stdClass|null
+	 * @return stdClass|array|null
 	 */
 	public function get_recaptcha_result() {
 		return $this->recaptcha_result;
+	}
+
+	/**
+	 * Populates the reCAPTCHA result with the given data.
+	 *
+	 * @since 2.2.0
+	 *
+	 * @param array $result The reCAPTCHA result.
+	 *
+	 * @return void
+	 */
+	public function set_recaptcha_result( $result ) {
+		$this->recaptcha_result = $result;
 	}
 
 	/**

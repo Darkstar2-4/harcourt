@@ -2,7 +2,6 @@
 
 class WPML_ST_Upgrade_DB_String_Packages_Word_Count implements IWPML_St_Upgrade_Command {
 
-	/** @var WPML_Upgrade_Schema $upgrade_schema */
 	private $upgrade_schema;
 
 	public function __construct( WPML_Upgrade_Schema $upgrade_schema ) {
@@ -32,9 +31,6 @@ class WPML_ST_Upgrade_DB_String_Packages_Word_Count implements IWPML_St_Upgrade_
 		return $this->run();
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_command_id() {
 		return __CLASS__;
 	}

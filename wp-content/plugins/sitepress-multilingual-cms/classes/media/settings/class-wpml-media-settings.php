@@ -72,7 +72,6 @@ class WPML_Media_Settings {
 										<span
 											class="wpml-tooltip-button wpml-tooltip-button-inline js-wpml-hoverable-tooltip js-wpml-hoverable-tooltip-wide"
 											data-content="<?php echo esc_attr__(
-												// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 												'This option ensures image texts (like alt, title, and caption) are translatable and displayed on the front-end. ' .
 												'WPML duplicates media only when needed and only during translation, keeping your database clean and avoiding unnecessary entries.',
 												'sitepress'
@@ -217,7 +216,6 @@ class WPML_Media_Settings {
 								<span
 									class="wpml-tooltip-button wpml-tooltip-button-inline js-wpml-hoverable-tooltip js-wpml-hoverable-tooltip-wide"
 									data-content="<?php echo esc_attr__(
-										// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 										'This will duplicate media texts (alt, title, caption) to all languages using the options you selected above. ' .
 										'Please stay on this page until the process completes - it may take a few minutes.',
 										'sitepress'
@@ -262,7 +260,6 @@ class WPML_Media_Settings {
 												<span
 													class="wpml-tooltip-button wpml-tooltip-button-inline js-wpml-hoverable-tooltip js-wpml-hoverable-tooltip-wide"
 													data-content="<?php echo esc_attr__(
-														// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 														'Enable this option to translate image texts (alt, caption, title) for images connected to Media Library. ' .
 														'Such images reuse the same texts across all posts and pages. This setting is required for page builders like Elementor and Divi.',
 														'sitepress'

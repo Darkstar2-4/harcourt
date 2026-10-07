@@ -11,19 +11,8 @@
  */
 namespace WPML\Core\Twig\Error;
 
-/**
- * \Exception thrown when a syntax error occurs during lexing or parsing of a template.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SyntaxError extends \WPML\Core\Twig\Error\Error
 {
-    /**
-     * Tweaks the error message to include suggestions.
-     *
-     * @param string $name  The original name of the item that does not exist
-     * @param array  $items An array of possible items
-     */
     public function addSuggestions($name, array $items)
     {
         if (!($alternatives = self::computeAlternatives($name, $items))) {
@@ -31,11 +20,6 @@ class SyntaxError extends \WPML\Core\Twig\Error\Error
         }
         $this->appendMessage(\sprintf(' Did you mean "%s"?', \implode('", "', $alternatives)));
     }
-    /**
-     * @internal
-     *
-     * To be merged with the addSuggestions() method in 2.0.
-     */
     public static function computeAlternatives($name, $items)
     {
         $alternatives = [];

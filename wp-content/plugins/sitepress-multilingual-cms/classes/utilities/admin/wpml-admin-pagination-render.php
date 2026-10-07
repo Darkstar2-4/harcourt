@@ -4,14 +4,8 @@ class WPML_Admin_Pagination_Render {
 
 	const TEMPLATE = 'pagination.twig';
 
-	/**
-	 * @var IWPML_Template_Service
-	 */
 	private $template;
 
-	/**
-	 * @var WPML_Admin_Pagination
-	 */
 	private $pagination;
 
 	public function __construct( IWPML_Template_Service $template, WPML_Admin_Pagination $pagination ) {
@@ -43,14 +37,9 @@ class WPML_Admin_Pagination_Render {
 		];
 	}
 
-	/**
-	 * @param array $items
-	 *
-	 * @return array
-	 */
 	public function paginate( $items ) {
 		$total       = count( $items );
-		$limit       = $this->pagination->get_items_per_page(); // per page
+		$limit       = $this->pagination->get_items_per_page();
 		$total_pages = ceil( $total / $limit );
 		$page        = max( $this->pagination->get_current_page(), 1 );
 		$page        = min( $page, $total_pages );

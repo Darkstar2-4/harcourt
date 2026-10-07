@@ -11,41 +11,26 @@ class SettingsRepository implements SettingsRepositoryInterface {
 
 	const STRING_TRACKING_SETTINGS_KEY = 'track_strings';
 
-	/**
-	 * Some plugin in the frontend can contain bug and output random string, example:
-	 * echo __( 'Some string from plugin' . rand(1, X), 'Y');
-	 * We will queue all such strings and if TEA is enabled we will start translating when admin will visit admin panel.
-	 * We should limit how many strings are queued to be set as frontend simultaneously.
-	 * Queue will be flushed once admin will visit the page.
-	 */
+	const DETECT_JS_STRINGS = 'detect_js_strings';
+
 	const MAX_QUEUED_FRONTEND_STRINGS_COUNT = 2500;
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var UrlRepositoryInterface */
 	private $urlRepository;
 
-	/** @var array */
 	private $settings;
 
-	/** @var boolean|null */
 	private $isAdmin;
 
-	/** @var boolean */
 	private $isAutoregistrationEnabled = false;
 
-	/** @var null|boolean */
 	private $shouldSkipAutoregistrationForCurrentLanguage;
 
-	/** @var null|boolean */
 	private $shouldNotAutoregisterStringsFromCurrentUrl;
 
 	private $maxQueuedFrontendStringsCount = self::MAX_QUEUED_FRONTEND_STRINGS_COUNT;
 
-	/**
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct(
 		$sitepress,
 		UrlRepositoryInterface $urlRepository
@@ -79,9 +64,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		return $this->getAutoregisterStringsTypeSetting() === SettingsRepositoryInterface::AUTOREGISTER_STRINGS_TYPE_DISABLED;
 	}
 
-	/**
-	 * @param int|string $value
-	 */
 	public function setAutoregisterStringsTypeSetting( $value ) {
 		$allowedValues = [
 			SettingsRepositoryInterface::AUTOREGISTER_STRINGS_TYPE_ONLY_VIEWED_BY_ADMIN,
@@ -167,9 +149,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		return $settings['autoregister_strings_were_new_translations_loaded'];
 	}
 
-	/**
-	 * @param int|string $value
-	 */
 	public function saveKeyToSettings( string $keyName, $value = 1 ) {
 		$settings = $this->getSettings();
 		$settings[ $keyName ] = $value;
@@ -263,9 +242,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		return $activeLanguages[ $this->getDefaultLanguageCode() ]['default_locale'];
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public function getActiveSecondaryLanguageCodes(): array {
 		$activeLanguageCodes = $this->getActiveLanguageCodes();
 		$defaultLanguageCode = $this->getDefaultLanguageCode();
@@ -282,10 +258,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		return $languageCodes;
 	}
 
-	/**
-	 * Returns full locale names like 'es_ES' or 'it_IT'.
-	 * @return string[]
-	 */
 	public function getActiveSecondaryLanguageLocales(): array {
 		$activeLanguages       = $this->getActiveLanguages();
 		$defaultLanguageLocale = $activeLanguages[ $this->getDefaultLanguageCode() ]['default_locale'];
@@ -302,9 +274,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		return $locales;
 	}
 
-	/**
-	 * @return array {languageCode: string, languageFullName: string, languageFlagUrl: string}
-	 */
 	public function getLanguageDetails( string $languageCode ): array {
 		$details = $this->sitepress->get_language_details( $languageCode );
 		$flagUrl = $this->sitepress->get_flag_url( $languageCode );
@@ -376,20 +345,8 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		$this->isAdmin = $this->getIsAdminFromCapabilities();
 	}
 
-	/**
-	 * @param string[] $domainsToAllowReloadTranslations
-	 *
-	 * $domainsToAllowReloadTranslations param is required for example in the following case:
-	 *     When we are switching secondary languages and loading translations for each language in the
-	 *     \WPML\StringTranslation\Infrastructure\StringCore\Repository\TranslationsRepository.php
-	 *     in the older WP versions(< 6 like in 5.9.3 for example) the translations will be loaded only
-	 *     for the first language. After that domain will be set in $l10n_unloaded array and translations
-	 *     for the next languages will not be loaded. So, we need to clean it up in such cases to allow reloading.
-	 */
 	public function switchToLocale( string $locale, array $domainsToAllowReloadTranslations = [] ) {
 		switch_to_locale( $locale );
-		// Without switch_lang in sitepress determine_locale() in load_plugin_textdomain/load_theme_textdomain
-		// will return default language locale and file with translations will not be loaded.
 		$languageCode = explode('_', $locale )[0];
 		$this->sitepress->switch_lang( $languageCode );
 
@@ -404,11 +361,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 		$this->sitepress->switch_lang();
 	}
 
-	/**
-	 * @param string|null $sourceLanguageCode
-	 *
-	 * @return string[]
-	 */
 	public function getAllTargetLanguagesBySource( $sourceLanguageCode ): array {
 		if ( $sourceLanguageCode === 'en' ) {
 			return array_filter(
@@ -419,12 +371,6 @@ class SettingsRepository implements SettingsRepositoryInterface {
 			);
 		}
 
-		// In this case we need to select all languages, because we may be need to add source language as target for strings.
-		// Example: Default Language = Italian, Secondary Languages = French, Spanish.
-		// Strings in the strings table have English as language field.
-		// In such case default Italian language will be source language only to post types,
-		// but for strings source language is English and translation languages are Italian, French, Spanish.
-		// We should be able to render all 3 translation statuses in the strings table, so we are selecting all codes here including default one.
 		return $this->getActiveLanguageCodes();
 	}
 
@@ -494,5 +440,17 @@ class SettingsRepository implements SettingsRepositoryInterface {
 
 		$settings['visible_columns'] = $filteredColumns;
 		$this->saveSettings( $settings );
+	}
+
+	public function setDetectStringsInJS( int $detectStringsInJS ) {
+		$settings = $this->getSettings();
+		$settings[ self::DETECT_JS_STRINGS ] = $detectStringsInJS;
+		$this->saveSettings( $settings );
+	}
+
+	public function getDetectStringsInJS(): bool {
+		$settings = $this->getSettings();
+
+		return (bool) ( $settings[ self::DETECT_JS_STRINGS ] ?? false );
 	}
 }

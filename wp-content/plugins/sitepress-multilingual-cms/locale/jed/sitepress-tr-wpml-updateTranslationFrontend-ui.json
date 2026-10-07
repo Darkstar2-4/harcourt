@@ -1,0 +1,21 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Please wait, applying translation..": [
+            "Lütfen bekleyin, çeviri uygulanıyor.."
+         ],
+         "There was an error in applying translation.": [
+            "Çeviri uygulanırken bir hata oluştu."
+         ],
+         "Someone is already reviewing this translation. Please try again later.": [
+            "Bu çeviri zaten başka biri tarafından inceleniyor. Lütfen daha sonra tekrar deneyin."
+         ]
+      }
+   }
+}

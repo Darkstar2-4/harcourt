@@ -8,46 +8,29 @@ use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 
 class WidgetAdaptor {
 
-	/** @var Widget $widget */
 	private $widget;
 
 	public function setTarget( Widget $widget ) {
 		$this->widget = $widget;
 	}
 
-	/** @return string */
 	public function getName() {
 		return 'wpml-language-switcher';
 	}
 
-	/** @return string */
 	public function getTitle() {
 		return __( 'WPML Language Switcher', 'sitepress' );
 	}
 
-	/** @return string */
 	public function getIcon() {
 		return 'fa fa-globe';
 	}
 
-	/** @return array */
 	public function getCategories() {
 		return [ 'general' ];
 	}
 
-	/**
-	 * Register controls.
-	 *
-	 * Used to add new controls to any element type. For example, external
-	 * developers use this method to register controls in a widget.
-	 *
-	 * Should be inherited and register new controls using `add_control()`,
-	 * `add_responsive_control()` and `add_group_control()`, inside control
-	 * wrappers like `start_controls_section()`, `start_controls_tabs()` and
-	 * `start_controls_tab()`.
-	 */
 	public function registerControls() {
-		// Content Tab.
 		$this->widget->start_controls_section(
 			'section_content',
 			[
@@ -310,11 +293,6 @@ class WidgetAdaptor {
 
 	}
 
-	/**
-	 * Render element.
-	 *
-	 * Generates the final HTML on the frontend.
-	 */
 	public function render() {
 		$settings = $this->widget->get_settings_for_display();
 

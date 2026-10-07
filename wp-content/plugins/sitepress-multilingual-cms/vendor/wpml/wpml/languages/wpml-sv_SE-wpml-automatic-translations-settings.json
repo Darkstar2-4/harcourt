@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Could not fetch engines data": [
             "Kunde inte hämta motordata"
@@ -26,25 +26,25 @@
             "Inställningar sparade"
          ],
          "Some error occurred": [
-            "Ett fel uppstod"
+            "Något fel uppstod"
          ],
          "AI Translation": [
             "AI-översättning"
          ],
          "Don't translate drafts. Only translate when I publish content.": [
-            "Översätt inte utkast. Översätt endast när jag publicerar innehåll."
+            "Översätt inte utkast. Översätt bara när jag publicerar innehåll."
          ],
          "Translate drafts as I save them (consumes a bit more translation credits).": [
-            "Översätt utkast när jag sparar dem (förbrukar lite fler översättningskrediter)."
+            "Översätt utkast när jag sparar dem (förbrukar lite mer översättningskrediter)."
          ],
          "Do you want to translate drafts automatically?": [
             "Vill du översätta utkast automatiskt?"
          ],
          "This feature is only available when you enable \"Translate Everything Automatically\" from the %sTranslation Dashboard%s.": [
-            "Denna funktion är endast tillgänglig när du aktiverar “Översätt allt automatiskt” från %sÖversättningspanelen%s."
+            "Denna funktion är endast tillgänglig när du aktiverar “Översätt allt automatiskt” från %söversättningspanelen%s."
          ],
          "What would you like to do after WPML finishes translating your content automatically?": [
-            "Vad vill du göra efter att WPML har avslutat den automatiska översättningen av ditt innehåll?"
+            "Vad vill du göra efter att WPML har översatt ditt innehåll automatiskt?"
          ],
          "Publish without review": [
             "Publicera utan granskning"
@@ -53,10 +53,10 @@
             "Rekommenderas med PTC"
          ],
          "PTC provides Better Than Human Translations that rarely need improvements, so you can confidently skip the review process. For other translation engines, a human review is recommended to confirm accuracy.": [
-            "PTC ger översättningar som är bättre än mänskliga och som sällan behöver förbättringar, så du kan tryggt hoppa över granskningsprocessen. För andra översättningsmotorer rekommenderas en mänsklig granskning för att bekräfta noggrannheten."
+            "PTC tillhandahåller bättre än mänskliga översättningar som sällan behöver förbättringar, så du kan tryggt hoppa över granskningsprocessen. För andra översättningsmotorer rekommenderas en mänsklig granskning för att bekräfta noggrannheten."
          ],
          "WPML publishes translations immediately, skipping the review process.": [
-            "WPML publicerar översättningar omedelbart, utan granskningsprocessen."
+            "WPML publicerar översättningar omedelbart och hoppar över granskningsprocessen."
          ],
          "Wait for review": [
             "Vänta på granskning"
@@ -65,7 +65,7 @@
             "Rekommenderas med DeepL, Google och Microsoft"
          ],
          "DeepL, Google, and Microsoft deliver great translations, but we recommend a human review to confirm they are correct. PTC provides Better Than Human Translations that understand context, so you can confidently skip the review process.": [
-            "DeepL, Google och Microsoft levererar bra översättningar, men vi rekommenderar en mänsklig granskning för att bekräfta att de är korrekta. PTC ger översättningar som är bättre än mänskliga och som förstår sammanhang, så du kan tryggt hoppa över granskningsprocessen."
+            "DeepL, Google och Microsoft levererar utmärkta översättningar, men vi rekommenderar en mänsklig granskning för att bekräfta att de är korrekta. PTC tillhandahåller bättre än mänskliga översättningar som förstår sammanhang, så du kan tryggt hoppa över granskningsprocessen."
          ],
          "WPML keeps translations unpublished, so you can review them first.": [
             "WPML håller översättningar opublicerade så att du kan granska dem först."
@@ -77,10 +77,10 @@
             "Publicera och markera för granskning"
          ],
          "WPML publishes translations immediately but flags them for you to check at your convenience.": [
-            "WPML publicerar översättningar omedelbart men flaggar dem för att du ska kunna kontrollera dem när det passar dig."
+            "WPML publicerar översättningar omedelbart men flaggar dem för dig att kontrollera när det passar dig."
          ],
          "WPML publishes translations immediately but flags them for translators to review later.": [
-            "WPML publicerar översättningar omedelbart men flaggar dem för att översättare ska granska dem senare."
+            "WPML publicerar översättningar omedelbart men flaggar dem för översättare att granska senare."
          ]
       }
    }

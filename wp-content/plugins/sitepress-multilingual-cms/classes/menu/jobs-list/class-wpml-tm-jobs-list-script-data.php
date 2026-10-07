@@ -11,7 +11,6 @@ use WPML\UIPage;
 use WPML\TM\ATE\Review\ApproveTranslations;
 use WPML\TM\ATE\Review\Cancel;
 use WPML\TM\Jobs\Endpoint\Resign;
-use WPML\TM\API\Basket;
 use WPML\TM\API\Translators;
 use WPML\Element\API\Languages;
 use function WPML\FP\pipe;
@@ -25,29 +24,19 @@ class WPML_TM_Jobs_List_Script_Data {
 
 	private $exportAllToXLIFFLimit;
 
-	/** @var WPML_TM_Rest_Jobs_Language_Names */
 	private $language_names;
 
-	/** @var WPML_TM_Jobs_List_Translated_By_Filters */
 	private $translated_by_filter;
 
-	/** @var WPML_TM_Jobs_List_Translators */
 	private $translators;
 
-	/** @var WPML_TM_Jobs_List_Services */
 	private $services;
 
-	/**
-	 * @param WPML_TM_Rest_Jobs_Language_Names|null $language_names
-	 * @param WPML_TM_Jobs_List_Translated_By_Filters|null $translated_by_filters
-	 * @param WPML_TM_Jobs_List_Translators|null $translators
-	 * @param WPML_TM_Jobs_List_Services|null $services
-	 */
 	public function __construct(
-		WPML_TM_Rest_Jobs_Language_Names $language_names = null,
-		WPML_TM_Jobs_List_Translated_By_Filters $translated_by_filters = null,
-		WPML_TM_Jobs_List_Translators $translators = null,
-		WPML_TM_Jobs_List_Services $services = null
+		?WPML_TM_Rest_Jobs_Language_Names $language_names = null,
+		?WPML_TM_Jobs_List_Translated_By_Filters $translated_by_filters = null,
+		?WPML_TM_Jobs_List_Translators $translators = null,
+		?WPML_TM_Jobs_List_Services $services = null
 	) {
 		if ( ! $language_names ) {
 			global $sitepress;
@@ -87,9 +76,6 @@ class WPML_TM_Jobs_List_Script_Data {
 		$this->services             = $services;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get() {
 		$translation_service = TranslationProxy::get_current_service();
 		if ( $translation_service ) {
@@ -101,7 +87,6 @@ class WPML_TM_Jobs_List_Script_Data {
 
 		$isATEEnabled = \WPML_TM_ATE_Status::is_enabled_and_activated();
 
-		/** @var Jobs $jobs */
 		$jobs = make( Jobs::class );
 
 		$data = [
@@ -111,7 +96,7 @@ class WPML_TM_Jobs_List_Script_Data {
 			'translatedByFilters' => $this->translated_by_filter->get(),
 			'localTranslators'    => $this->translators->get(),
 			'translationServices' => $this->services->get(),
-			'isBasketUsed'        => Basket::shouldUse(),
+			'isBasketUsed'        => false,
 			'translationService'  => $translation_service,
 			'siteKey'             => WP_Installer::instance()->get_site_key( 'wpml' ),
 			'batchUrl'            => OTG_TRANSLATION_PROXY_URL . '/projects/%d/external',
@@ -189,9 +174,6 @@ class WPML_TM_Jobs_List_Script_Data {
 		return \wpml_collect( $pairs )->map( $buildPair )->values()->toArray();
 	}
 
-	/**
-	 * @return Closure
-	 */
 	private function extractDesiredPropertiesFromLanguage() {
 		return function ( $language ) {
 			return [
@@ -202,7 +184,7 @@ class WPML_TM_Jobs_List_Script_Data {
 	}
 
 	private function getTypesForFilter() {
-		$postTypeFilters = new PostTypeFilters( wpml_tm_get_jobs_repository( true, false ) );
+		$postTypeFilters = new PostTypeFilters( wpml_tm_get_jobs_repository( true ) );
 
 		return \wpml_collect( $postTypeFilters->get( [ 'include_unassigned' => true ] ) )
 			->map( function ( $label, $name ) {
@@ -241,9 +223,6 @@ class WPML_TM_Jobs_List_Script_Data {
 		return $filters;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function hasTranslationServiceJobs() {
 		$searchParams = new WPML_TM_Jobs_Search_Params();
 		$searchParams->set_scope( WPML_TM_Jobs_Search_Params::SCOPE_REMOTE );

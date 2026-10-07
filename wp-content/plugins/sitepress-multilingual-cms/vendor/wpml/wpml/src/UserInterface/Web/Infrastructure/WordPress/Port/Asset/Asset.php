@@ -3,6 +3,7 @@
 namespace WPML\UserInterface\Web\Infrastructure\WordPress\Port\Asset;
 
 use WPML\UserInterface\Web\Core\Port\Asset\AssetInterface;
+use WPML\UserInterface\Web\Core\SharedKernel\Config\AssetInterface as ConfigAssetInterface;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Script;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Style;
 
@@ -13,7 +14,7 @@ class Asset implements AssetInterface {
 
     wp_enqueue_script(
       $script->id(),
-      plugins_url( $script->src()  ?: '', WPML_PUBLIC_DIR ),
+      $this->assetUrl( $script ),
       $script->dependencies(),
       WPML_VERSION,
       [
@@ -28,7 +29,6 @@ class Asset implements AssetInterface {
     );
 
     if ( ! empty( $script->scriptData() ) && ! empty( $script->scriptVarName() ) ) {
-      /* @phpstan-ignore-next-line */
       $scriptVarName = $script->scriptVarName() ?: '';
       wp_add_inline_script(
         $script->id(),
@@ -40,21 +40,28 @@ class Asset implements AssetInterface {
   }
 
 
-  /**
-   * @param Style $style
-   * @return void
-   */
   public function enqueueStyle( Style $style ) {
     if ( $style->src() === null ) {
       return;
     }
     wp_enqueue_style(
       $style->id(),
-      plugins_url( $style->src()  ?: '', WPML_PUBLIC_DIR ),
+      $this->assetUrl( $style ),
       $style->dependencies(),
       WPML_VERSION
     );
 
+  }
+
+
+  private function assetUrl( ConfigAssetInterface $asset ): string {
+    $relativePath = $asset->src() ?: '';
+
+    if ( defined( 'WPML_HMR_SERVER' ) && $asset->supportsHMR() ) {
+      return WPML_HMR_SERVER . preg_replace( '#public/(js|css)/#', '', $relativePath );
+    }
+
+      return plugins_url( $relativePath, WPML_PUBLIC_DIR );
   }
 
 

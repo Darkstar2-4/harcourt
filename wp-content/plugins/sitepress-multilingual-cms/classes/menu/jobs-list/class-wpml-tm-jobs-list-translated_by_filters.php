@@ -1,24 +1,15 @@
 <?php
 
 class WPML_TM_Jobs_List_Translated_By_Filters {
-	/** @var WPML_TM_Jobs_List_Services */
 	private $services;
 
-	/** @var WPML_TM_Jobs_List_Translators */
 	private $translators;
 
-	/**
-	 * @param WPML_TM_Jobs_List_Services    $services
-	 * @param WPML_TM_Jobs_List_Translators $translators
-	 */
 	public function __construct( WPML_TM_Jobs_List_Services $services, WPML_TM_Jobs_List_Translators $translators ) {
 		$this->services    = $services;
 		$this->translators = $translators;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get() {
 		$options = array(
 			array(

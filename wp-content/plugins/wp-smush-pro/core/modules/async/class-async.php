@@ -12,6 +12,7 @@
 
 namespace Smush\Core\Modules\Async;
 use Exception;
+use Smush\Core\Optimizer;
 use WP_Smush;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -100,8 +101,8 @@ class Async extends Abstract_Async {
 		}
 
 		$attachment_id = $data['id'];
-		$smush         = WP_Smush::get_instance()->core()->mod->smush;
+		$optimizer         = Optimizer::get_instance();
 
-		return $smush->should_auto_smush( $attachment_id );
+		return $optimizer->should_auto_optimize( $attachment_id );
 	}
 }

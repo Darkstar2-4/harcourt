@@ -6,7 +6,6 @@ use WPML\Core\Component\Translation\Application\Repository\SettingsRepository;
 
 class TranslateExistingContentService {
 
-  /** @var SettingsRepository */
   private $settingsRepository;
 
 
@@ -15,12 +14,6 @@ class TranslateExistingContentService {
   }
 
 
-  /**
-   * @param string[] $postTypes
-   * @param string[] $packageTypes
-   *
-   * @return void
-   */
   public function handle( array $postTypes, array $packageTypes ) {
     $settings = $this->settingsRepository->getSettings();
 

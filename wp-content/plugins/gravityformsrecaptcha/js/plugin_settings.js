@@ -525,6 +525,7 @@
           project_id: $selected_project.data('project-id'),
           project_name: $selected_project.data('project-name'),
           site_key_v3_enterprise: $selected_site_key.val(),
+          site_key_type_v3_enterprise: $selected_site_key.data('site-key-type'),
           site_key_display_name: $selected_site_key.data('site-key-display-name'),
           score_threshold_v3: $form.find('#score_threshold_v3').val(),
           disable_badge_v3: $form.find('input[name="_gform_setting_disable_badge_v3"]').val(),
@@ -567,6 +568,7 @@
             option.value = key.value;
             option.textContent = key.displayName;
             option.setAttribute('data-site-key-display-name', key.displayName);
+            option.setAttribute('data-site-key-type', key.type);
             select.appendChild(option);
           });
           var container = document.querySelector('#recaptcha-site-keys');

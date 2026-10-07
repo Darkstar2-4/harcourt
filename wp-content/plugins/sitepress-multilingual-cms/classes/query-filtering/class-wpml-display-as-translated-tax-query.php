@@ -4,16 +4,10 @@ use WPML\Collect\Support\Collection;
 
 class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 
-	// Regex to find the term query.
-	// eg. term_taxonomy_id IN (8)
-	// We then add the fallback term to the query
-	// eg. term_taxonomy_id IN (8,9)
 	const TERM_REGEX = '/term_taxonomy_id\s+(IN|in)\s*\(([^\)]+)\)/';
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Term_Translation $term_translation */
 	private $term_translation;
 
 	public function __construct( SitePress $sitepress, WPML_Term_Translation $term_translation ) {
@@ -25,12 +19,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		add_filter( 'posts_where', array( $this, 'posts_where_filter' ), 10, 2 );
 	}
 
-	/**
-	 * @param string   $where
-	 * @param WP_Query $q
-	 *
-	 * @return string
-	 */
 	public function posts_where_filter( $where, WP_Query $q ) {
 		if ( $this->is_not_the_default_language() && $this->is_taxonomy_archive( $q ) ) {
 			$post_types = $this->get_linked_post_types( $q );
@@ -44,39 +32,16 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return $where;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_not_the_default_language() {
 		return $this->sitepress->get_default_language() !== $this->sitepress->get_current_language();
 	}
 
-	/**
-	 * @param WP_Query $q
-	 *
-	 * @return bool
-	 */
 	private function is_taxonomy_archive( WP_Query $q ) {
 		$originalIsTaxonomyArchive = $q->is_archive() && ( $q->is_category() || $q->is_tax() || $q->is_tag() );
 
-		/**
-		 * This filter allows to programmatically enable/disable the taxonomy archive
-		 *
-		 * @since 4.7.2
-		 *
-		 * @param bool     $is_taxonomy_archive The original state.
-		 * @param WP_Query $q
-		 *
-		 * @return bool
-		 */
 		return (bool) apply_filters( 'wpml_display_as_translated_tax_query_is_archive', $originalIsTaxonomyArchive, $q );
 	}
 
-	/**
-	 * @param WP_Query $q
-	 *
-	 * @return array
-	 */
 	private function get_linked_post_types( WP_Query $q ) {
 		$post_types = array();
 		foreach ( $q->tax_query->queries as $tax_query ) {
@@ -88,11 +53,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return $post_types;
 	}
 
-	/**
-	 * @param array $post_types
-	 *
-	 * @return bool
-	 */
 	private function is_display_as_translated_mode( $post_types ) {
 		foreach ( $post_types as $post_type ) {
 			if ( $this->sitepress->is_display_as_translated_post_type( $post_type ) ) {
@@ -103,11 +63,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return false;
 	}
 
-	/**
-	 * @param string $where
-	 *
-	 * @return array
-	 */
 	private function find_terms( $where ) {
 		$terms = array();
 		if ( preg_match_all( self::TERM_REGEX, $where, $matches ) ) {
@@ -120,11 +75,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return $terms;
 	}
 
-	/**
-	 * @param array $terms
-	 *
-	 * @return array
-	 */
 	private function get_fallback_terms( $terms ) {
 		$default_language = $this->sitepress->get_default_language();
 		$fallback_terms   = array();
@@ -138,13 +88,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return $fallback_terms;
 	}
 
-	/**
-	 * @param string   $where
-	 * @param array    $fallback_terms
-	 * @param WP_Query $q
-	 *
-	 * @return string
-	 */
 	private function add_fallback_terms_to_where_clause( $where, $fallback_terms, WP_Query $q ) {
 		if ( preg_match_all( self::TERM_REGEX, $where, $matches ) ) {
 			foreach ( $matches[2] as $index => $terms_string ) {
@@ -158,13 +101,6 @@ class WPML_Display_As_Translated_Tax_Query implements IWPML_Action {
 		return $where;
 	}
 
-	/**
-	 * @param string   $terms_string
-	 * @param array    $fallback_terms
-	 * @param WP_Query $q
-	 *
-	 * @return string
-	 */
 	private function add_fallback_terms( $terms_string, $fallback_terms, WP_Query $q ) {
 		$mergeFallbackTerms = function ( $term ) use ( $fallback_terms ) {
 			return isset( $fallback_terms[ $term ] ) ? [ $term, $fallback_terms[ $term ] ] : $term;

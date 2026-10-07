@@ -4,14 +4,12 @@ class WPML_WP_Cron_Check {
 
 	const TRANSIENT_NAME = 'wpml_cron_check';
 
-	/** @var WPML_PHP_Functions $php_functions */
 	private $php_functions;
 
 	public function __construct( WPML_PHP_Functions $php_functions ) {
 		$this->php_functions = $php_functions;
 	}
 
-	/** @return bool */
 	public function verify() {
 		if ( $this->is_doing_cron() ) {
 			return true;
@@ -40,7 +38,6 @@ class WPML_WP_Cron_Check {
 		return (bool) $is_on;
 	}
 
-	/** @return bool */
 	public function is_doing_cron() {
 		return (bool) $this->php_functions->constant( 'DOING_CRON' );
 	}

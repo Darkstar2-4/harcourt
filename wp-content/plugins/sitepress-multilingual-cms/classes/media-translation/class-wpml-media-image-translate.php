@@ -3,36 +3,16 @@
 use WPML\LIB\WP\Cache;
 use WPML\Media\Classes\WPML_Media_Element_Translation_Factory;
 
-/**
- * Class WPML_Media_Image_Translate
- * Allows getting translated images in a give language from an attachment
- */
 class WPML_Media_Image_Translate {
 
 	const URLS_TO_IDS_CACHE_KEY = 'urls-to-ids-cache-key';
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var WPML_Media_Attachment_By_URL_Factory
-	 */
 	private $attachment_by_url_factory;
 
-	/**
-	 * @var \WPML\Media\Classes\WPML_Media_Attachment_By_URL_Query
-	 */
 	private $media_attachment_by_url_query;
 
-	/**
-	 * WPML_Media_Image_Translate constructor.
-	 *
-	 * @param SitePress                                                        $sitepress
-	 * @param WPML_Media_Attachment_By_URL_Factory                             $attachment_by_url_factory
-	 * @param \WPML\Media\Factories\WPML_Media_Attachment_By_URL_Query_Factory $media_attachment_by_url_query_factory
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		WPML_Media_Attachment_By_URL_Factory $attachment_by_url_factory,
@@ -44,10 +24,6 @@ class WPML_Media_Image_Translate {
 		wp_cache_add_non_persistent_groups( self::URLS_TO_IDS_CACHE_KEY );
 	}
 
-	/**
-	 * @param string $source_language
-	 * @param array  $items_to_translate
-	 */
 	public function prefetchDataForFutureGetTranslatedImageCalls( $source_language, $items_to_translate ) {
 		$this->media_attachment_by_url_query->prefetchAllIdsFromGuids(
 			[ $source_language ],
@@ -93,13 +69,6 @@ class WPML_Media_Image_Translate {
 		);
 	}
 
-	/**
-	 * @param int         $attachment_id
-	 * @param string|null $language
-	 * @param string|null $size
-	 *
-	 * @return string
-	 */
 	public function get_translated_image( $attachment_id, $language = null, $size = null ) {
 		if ( ! $language ) {
 			$language = $this->sitepress->get_current_language();
@@ -122,13 +91,6 @@ class WPML_Media_Image_Translate {
 		return $image_url;
 	}
 
-	/**
-	 * @param string      $img_src
-	 * @param string|null $source_language
-	 * @param string|null $target_language
-	 *
-	 * @return string|bool
-	 */
 	public function get_translated_image_by_url( $img_src, $source_language, $target_language ) {
 
 		$attachment_id = $this->get_attachment_id_by_url( $img_src, $source_language );
@@ -147,12 +109,6 @@ class WPML_Media_Image_Translate {
 		return $img_src;
 	}
 
-	/**
-	 * @param string      $img_src
-	 * @param string|null $source_language
-	 *
-	 * @return int
-	 */
 	public function get_attachment_id_by_url( $img_src, $source_language = null ) {
 		if ( ! $source_language ) {
 			$source_language = $this->getLanguageByUrl( $img_src ) ?: $this->sitepress->get_current_language();
@@ -163,11 +119,6 @@ class WPML_Media_Image_Translate {
 		return (int) $attachment_by_url->get_id();
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return null|string
-	 */
 	private function getLanguageByUrl( $url ) {
 		$image_url = WPML_Media_Attachment_By_URL::getUrl( $url );
 
@@ -180,25 +131,12 @@ class WPML_Media_Image_Translate {
 		return $this->sitepress->get_language_for_element( $image_id, 'post_attachment' );
 	}
 
-	/**
-	 * @param string $url
-	 * @param int    $attachment_id
-	 *
-	 * @return string
-	 */
 	private function get_image_size_from_url( $url, $attachment_id ) {
 		$media_sizes = new WPML_Media_Sizes();
 
 		return $media_sizes->get_image_size_from_url( $url, $attachment_id );
 	}
 
-	/**
-	 * @param int    $attachment_id
-	 * @param string $size
-	 * @param array  $uploads_dir
-	 *
-	 * @return string
-	 */
 	private function get_sized_image_url( $attachment_id, $size, $uploads_dir ) {
 		$image_url       = '';
 		$meta_data       = wp_get_attachment_metadata( $attachment_id );

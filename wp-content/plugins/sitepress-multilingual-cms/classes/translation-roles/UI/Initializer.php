@@ -41,34 +41,41 @@ class Initializer {
 			'data' => [
 				'endpoints'   => self::getEndPoints(),
 				'languages'   => self::getLanguagesData(),
-				/** @phpstan-ignore-next-line */
 				'translation' => self::getTranslationData( User::withEditLink() ),
 			]
 		];
 	}
 
 	public static function getEndPoints() {
-		return [
+		$endpoints = [
 			'findAvailableByRole'  => FindAvailableByRole::class,
 			'saveTranslator'       => SaveTranslator::class,
 			'removeTranslator'     => RemoveTranslator::class,
 			'getTranslatorRecords' => GetTranslatorRecords::class,
 			'getManagerRecords'    => GetManagerRecords::class,
-			'saveManager'          => SaveManager::class,
-			'removeManager'        => RemoveManager::class,
 			'getTranslationServices' => TranslationServices::class,
 			'activateService'        => Activate::class,
 			'deactivateService'      => Deactivate::class,
 		];
+
+		if ( User::canManageOptions() ) {
+			$endpoints['saveManager']   = SaveManager::class;
+			$endpoints['removeManager'] = RemoveManager::class;
+		}
+
+		return $endpoints;
 	}
 
-	public static function getTranslationData( callable $userExtra = null, $preload = true ) {
+	public static function getTranslationData( $userExtra = null, $preload = true ) {
+		global $wpdb;
 		$currentUser = User::getCurrent();
 		$service     = Option::isTMAllowed() ? \TranslationProxy::get_current_service() : null;
+		$highUserCount = $wpdb->get_var("SELECT 1 FROM {$wpdb->prefix}users LIMIT 3000,1");
 
 		return [
 			'canManageOptions' => $currentUser->has_cap( 'manage_options' ),
 			'adminUserName'    => $currentUser->display_name,
+			'highUserCount'    => (int)$highUserCount === 1,
 			'translators'      => $preload ? Fns::map(
 				User::withAvatar(),
 				make( \WPML_Translator_Records::class )->get_users_with_capability()
@@ -93,11 +100,6 @@ class Initializer {
 		];
 	}
 
-	/**
-	 * @param \WP_User|null $currentUser
-	 *
-	 * @return array
-	 */
 	private static function getTranslationManagerRoles( $currentUser ) {
 		$editorRoles        = wpml_collect( \WPML_WP_Roles::get_editor_roles() )
 			->pluck( 'id' )
@@ -108,13 +110,7 @@ class Initializer {
 		return Fns::filter( $filterManagerRoles, \WPML_WP_Roles::get_roles_up_to_user_level( $currentUser ) );
 	}
 
-	/**
-	 * @param callable $userExtra
-	 *
-	 * @return array
-	 * @throws \WPML\Auryn\InjectionException
-	 */
-	private static function getManagers( callable $userExtra = null ) {
+	private static function getManagers( ?callable $userExtra = null ) {
 		$isAdministrator = pipe( Obj::prop( 'roles' ), Lst::includes( 'administrator' ) );
 
 		return wpml_collect( make( \WPML_Translation_Manager_Records::class )->get_users_with_capability() )

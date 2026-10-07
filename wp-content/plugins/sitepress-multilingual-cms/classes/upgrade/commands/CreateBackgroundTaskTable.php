@@ -7,19 +7,14 @@ use SitePress_Setup;
 
 class CreateBackgroundTaskTable implements \IWPML_Upgrade_Command {
 
-	/** @var \WPML_Upgrade_Schema $schema */
 	private $schema;
 
-	/** @var bool $result */
 	private $result = false;
 
 	public function __construct( array $args ) {
 		$this->schema = $args[0];
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run() {
 		$wpdb = $this->schema->get_wpdb();
 
@@ -28,44 +23,22 @@ class CreateBackgroundTaskTable implements \IWPML_Upgrade_Command {
 		return $this->result;
 	}
 
-	/**
-	 * Runs in admin pages.
-	 *
-	 * @return bool
-	 */
 	public function run_admin() {
 		return $this->run();
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_ajax() {
 		return null;
 	}
 
-	/**
-	 * Unused.
-	 *
-	 * @return null
-	 */
 	public function run_frontend() {
 		return null;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function get_results() {
 		return $this->result;
 	}
 
-	/**
-	 * @param \wpdb $wpdb
-	 * @return bool
-	 */
 	public static function create_table_if_not_exists( $wpdb ) {
 		$table_name      = $wpdb->prefix . BackgroundTask::TABLE_NAME;
 		$charset_collate = SitePress_Setup::get_charset_collate();
@@ -84,7 +57,6 @@ class CreateBackgroundTaskTable implements \IWPML_Upgrade_Command {
 			) {$charset_collate};
 		";
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return $wpdb->query( $query );
 	}
 

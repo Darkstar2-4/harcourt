@@ -12,11 +12,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\DoNode;
 use WPML\Core\Twig\Token;
-/**
- * Evaluates an expression, discarding the returned value.
- *
- * @final
- */
 class DoTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

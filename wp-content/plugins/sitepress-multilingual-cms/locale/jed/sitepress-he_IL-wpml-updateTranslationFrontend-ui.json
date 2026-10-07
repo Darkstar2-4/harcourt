@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Please wait, applying translation..": [
-            "אנא המתן, מחיל תרגום..."
+            "המתן, התרגום מיושם."
          ],
          "There was an error in applying translation.": [
-            "אירעה שגיאה בהחלת התרגום."
+            "אירעה שגיאה בעת יישום התרגום."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "מישהו כבר בודק את התרגום הזה. אנא נסה שוב מאוחר יותר."
+            "מישהו כבר בודק את התרגום הזה. נסה שוב מאוחר יותר."
          ]
       }
    }

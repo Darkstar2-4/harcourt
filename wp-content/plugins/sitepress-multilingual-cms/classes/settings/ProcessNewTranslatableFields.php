@@ -18,22 +18,12 @@ class ProcessNewTranslatableFields extends AbstractTaskEndpoint {
 	const DESCRIPTION       = 'Updating affected posts for changes in translatable fields %s.';
 	const POSTS_PER_REQUEST = 10;
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var \WPML_TM_Post_Actions $postActions */
 	private $postActions;
 
-	/** @var AutotranslateActions $autotranslateActions */
 	private $autotranslateActions;
 
-	/**
-	 * @param \wpdb                         $wpdb
-	 * @param \WPML_TM_Post_Actions         $postActions
-	 * @param AutotranslateActions          $autotranslateActions
-	 * @param UpdateBackgroundTask          $updateBackgroundTask
-	 * @param BackgroundTaskService      $backgroundTaskService
-	 */
 	public function __construct(
 		\wpdb $wpdb,
 		\WPML_TM_Post_Actions $postActions,
@@ -81,12 +71,6 @@ class ProcessNewTranslatableFields extends AbstractTaskEndpoint {
 		return $this->getPostsCount( $data->all()['newFields'] );
 	}
 
-	/**
-	 * @param array $fields
-	 * @param int $page
-	 *
-	 * @return array
-	 */
 	private function getPosts( array $fields, $page ) {
 		if ( empty( $fields ) ) {
 			return [];
@@ -108,18 +92,12 @@ class ProcessNewTranslatableFields extends AbstractTaskEndpoint {
 		);
 	}
 
-	/**
-	 * @param array $fields
-	 *
-	 * @return int
-	 */
 	private function getPostsCount( array $fields ) {
 		if ( empty( $fields ) ) {
 			return 0;
 		}
 		$fields_in = wpml_prepare_in( $fields, '%s' );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $this->wpdb->get_var(
 			"SELECT COUNT(DISTINCT(post_id))
 					FROM {$this->wpdb->prefix}postmeta
@@ -132,9 +110,6 @@ class ProcessNewTranslatableFields extends AbstractTaskEndpoint {
 			&& Option::shouldTranslateEverything();
 	}
 
-	/**
-	 * @param array $postIds
-	 */
 	private function updateNeedsUpdate( array $postIds ) {
 		foreach ( $postIds as $postId ) {
 			$translations = PostTranslations::getIfOriginal( $postId );

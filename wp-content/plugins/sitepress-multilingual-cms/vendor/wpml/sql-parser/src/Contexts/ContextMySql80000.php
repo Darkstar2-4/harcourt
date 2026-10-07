@@ -1,13 +1,5 @@
 <?php
 
-/**
- * Context for MySQL 8.0.
- *
- * This file was auto-generated from tools/contexts/*.txt.
- * Use tools/run_generators.sh for update.
- *
- * @see https://dev.mysql.com/doc/refman/8.0/en/keywords.html
- */
 
 namespace PhpMyAdmin\SqlParser\Contexts;
 
@@ -23,17 +15,6 @@ use PhpMyAdmin\SqlParser\Token;
  */
 class ContextMySql80000 extends Context
 {
-    /**
-     * List of keywords.
-     *
-     * The value associated to each keyword represents its flags.
-     *
-     * @see Token::FLAG_KEYWORD_RESERVED Token::FLAG_KEYWORD_COMPOSED
-     *      Token::FLAG_KEYWORD_DATA_TYPE Token::FLAG_KEYWORD_KEY
-     *      Token::FLAG_KEYWORD_FUNCTION
-     *
-     * @var array
-     */
     public static $KEYWORDS = array(
         'AT' => 1, 'DO' => 1, 'IO' => 1, 'NO' => 1, 'XA' => 1,
         'ANY' => 1, 'CPU' => 1, 'END' => 1, 'IPC' => 1, 'NDB' => 1, 'NEW' => 1,

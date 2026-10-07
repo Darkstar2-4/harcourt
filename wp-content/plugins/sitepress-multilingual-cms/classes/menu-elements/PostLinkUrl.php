@@ -14,11 +14,6 @@ use WPML\LIB\WP\Post;
 use function WPML\FP\pipe;
 
 class PostLinkUrl {
-	/**
-	 * @param int $postId
-	 *
-	 * @return string
-	 */
 	public function viewLinkUrl( $postId ) {
 		return Maybe::of( $postId )
 		            ->map( Post::get() )

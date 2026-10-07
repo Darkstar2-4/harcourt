@@ -1,43 +1,39 @@
 <?php
 
-/**
- * Class WPML_PB_Register_Shortcodes
- */
 class WPML_PB_Shortcode_Encoding {
 	const ENCODE_TYPES_BASE64                 = 'base64';
 	const ENCODE_TYPES_VISUAL_COMPOSER_LINK   = 'vc_link';
 	const ENCODE_TYPES_VISUAL_COMPOSER_VALUES = 'vc_values';
 	const ENCODE_TYPES_ENFOLD_LINK            = 'av_link';
 
-	public function decode( $string, $encoding, $encoding_condition = '' ) {
-		$encoded_string = $string;
+	public function decode( $content, $encoding, $encoding_condition = '' ) {
+		$encoded_content = $content;
 
 		if (
-			! is_string( $string ) ||
+			! is_string( $content ) ||
 			( $encoding_condition && ! $this->should_decode( $encoding_condition ) )
 		) {
-			return html_entity_decode( $string );
+			return html_entity_decode( $content );
 		}
 
 		switch ( $encoding ) {
 			case self::ENCODE_TYPES_BASE64:
-				/* phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode */
-				$string = html_entity_decode( rawurldecode( base64_decode( strip_tags( $string ) ) ) );
+				$content = html_entity_decode( rawurldecode( base64_decode( wp_strip_all_tags( $content ) ) ) );
 				break;
 
 			case self::ENCODE_TYPES_VISUAL_COMPOSER_LINK:
-				$parts  = explode( '|', $string );
-				$string = [];
+				$parts   = explode( '|', $content );
+				$content = [];
 				foreach ( $parts as $part ) {
 					$data = explode( ':', $part );
 					if ( count( $data ) === 2 ) {
 						if ( in_array( $data[0], [ 'url', 'title' ], true ) ) {
-							$string[ $data[0] ] = [
+							$content[ $data[0] ] = [
 								'value'     => urldecode( $data[1] ),
 								'translate' => true,
 							];
 						} else {
-							$string[ $data[0] ] = [
+							$content[ $data[0] ] = [
 								'value'     => urldecode( $data[1] ),
 								'translate' => false,
 							];
@@ -47,17 +43,17 @@ class WPML_PB_Shortcode_Encoding {
 				break;
 
 			case self::ENCODE_TYPES_VISUAL_COMPOSER_VALUES:
-				$string = [];
-				$rows   = (array) json_decode( urldecode( $encoded_string ), true );
+				$content = [];
+				$rows    = (array) json_decode( urldecode( $encoded_content ), true );
 				foreach ( $rows as $i => $row ) {
 					foreach ( $row as $key => $value ) {
 						if ( 'label' === $key ) {
-							$string[ $key . '_' . $i ] = [
+							$content[ $key . '_' . $i ] = [
 								'value'     => $value,
 								'translate' => true,
 							];
 						} else {
-							$string[ $key . '_' . $i ] = [
+							$content[ $key . '_' . $i ] = [
 								'value'     => $value,
 								'translate' => false,
 							];
@@ -67,46 +63,44 @@ class WPML_PB_Shortcode_Encoding {
 				break;
 
 			case self::ENCODE_TYPES_ENFOLD_LINK:
-				// Note: We can't handle 'lightbox' mode because we don't know how to re-encode it.
-				$link = explode( ',', $string, 2 );
+				$link = explode( ',', $content, 2 );
 				if ( 'manually' === $link[0] ) {
-					$string = $link[1];
+					$content = $link[1];
 				} elseif ( post_type_exists( $link[0] ) ) {
-					$string = get_permalink( $link[1] );
+					$content = get_permalink( (int) $link[1] );
 				} elseif ( taxonomy_exists( $link[0] ) ) {
-					$term_link = get_term_link( get_term( $link[1], $link[0] ) );
+					$term_link = get_term_link( get_term( (int) $link[1], $link[0] ) );
 					if ( ! is_wp_error( $term_link ) ) {
-						$string = $term_link;
+						$content = $term_link;
 					}
 				}
 				break;
 		}
 
-		return apply_filters( 'wpml_pb_shortcode_decode', $string, $encoding, $encoded_string );
+		return apply_filters( 'wpml_pb_shortcode_decode', $content, $encoding, $encoded_content );
 	}
 
-	public function encode( $string, $encoding ) {
-		$decoded_string = $string;
+	public function encode( $content, $encoding ) {
+		$decoded_content = $content;
 
 		switch ( $encoding ) {
 			case self::ENCODE_TYPES_BASE64:
-				/* phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode */
-				$string = base64_encode( $string );
+				$content = base64_encode( $content );
 				break;
 
 			case self::ENCODE_TYPES_VISUAL_COMPOSER_LINK:
 				$output = '';
-				if ( is_array( $string ) ) {
-					foreach ( $string as $key => $value ) {
+				if ( is_array( $content ) ) {
+					foreach ( $content as $key => $value ) {
 						$output .= $key . ':' . rawurlencode( $value ) . '|';
 					}
 				}
-				$string = $output;
+				$content = $output;
 				break;
 
 			case self::ENCODE_TYPES_VISUAL_COMPOSER_VALUES:
 				$output = [];
-				foreach ( (array) $decoded_string as $combined_key => $value ) {
+				foreach ( (array) $decoded_content as $combined_key => $value ) {
 					$parts = explode( '_', $combined_key );
 					$i     = array_pop( $parts );
 					$key   = implode( '_', $parts );
@@ -115,26 +109,21 @@ class WPML_PB_Shortcode_Encoding {
 					}
 					$output[ $i ][ $key ] = $value;
 				}
-				$string = rawurlencode( wp_json_encode( $output ) );
+				$content = rawurlencode( wp_json_encode( $output ) );
 				break;
 
 			case self::ENCODE_TYPES_ENFOLD_LINK:
-				$link = explode( ',', $string, 2 );
+				$link = explode( ',', $content, 2 );
 				if ( 'lightbox' !== $link[0] ) {
-					$string = 'manually,' . $string;
+					$content = 'manually,' . $content;
 				}
 				break;
 
 		}
 
-		return apply_filters( 'wpml_pb_shortcode_encode', $string, $encoding, $decoded_string );
+		return apply_filters( 'wpml_pb_shortcode_encode', $content, $encoding, $decoded_content );
 	}
 
-	/**
-	 * @param string $condition
-	 *
-	 * @return bool
-	 */
 	private function should_decode( $condition ) {
 		preg_match( '/(?P<type>\w+):(?P<field>\w+)=(?P<value>\w+)/', $condition, $matches );
 

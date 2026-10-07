@@ -11,11 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a flush node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class FlushNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($lineno, $tag)

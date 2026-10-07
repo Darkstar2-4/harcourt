@@ -11,7 +11,7 @@ abstract class Monoid {
 		return call_user_func_array( curryN( 2, [ static::class, '_concat' ] ), func_get_args() );
 	}
 
-	public static function of( array $array = null ) {
+	public static function of( ?array $array = null ) {
 		return call_user_func_array( Fns::reduce( self::concat(), static::mempty() ), func_get_args() );
 	}
 }

@@ -4,39 +4,34 @@ namespace WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\Endp
 
 use WPML\Core\Component\PostHog\Application\Repository\PostHogStateRepositoryInterface;
 use WPML\Core\Port\Endpoint\EndpointInterface;
+use WPML\Core\Port\PluginInterface;
+use WPML\Core\SharedKernel\Component\Setting\Application\Query\TranslationEditorQueryInterface;
 use WPML\Core\SharedKernel\Component\WpmlOrgClient\Application\Service\PostHogRecording\PostHogRecordingService;
 
 class UpdatePostHogStateController implements EndpointInterface {
 
-  /** @var PostHogStateRepositoryInterface */
   private $posthogStateRepository;
 
-  /** @var PostHogRecordingService */
   private $postHogRecordingService;
+
+  private $plugin;
+
+  private $translationEditorQuery;
 
 
   public function __construct(
     PostHogStateRepositoryInterface $posthogStateRepository,
-    PostHogRecordingService $postHogRecordingService
+    PostHogRecordingService $postHogRecordingService,
+    PluginInterface $plugin,
+    TranslationEditorQueryInterface $translationEditorQuery
   ) {
     $this->posthogStateRepository  = $posthogStateRepository;
     $this->postHogRecordingService = $postHogRecordingService;
+    $this->plugin                  = $plugin;
+    $this->translationEditorQuery  = $translationEditorQuery;
   }
 
 
-  /**
-   * Handle the request to update the PostHog state
-   *
-   * @param array<string, mixed>|null $requestData The request data containing the enabled state
-   *
-   * @return array{
-   *   success: bool,
-   *   data: array{
-   *   message: string,
-   *   enabled: bool,
-   *   }
-   * } Response data
-   */
   public function handle( $requestData = null ): array {
     if (
       ! isset( $requestData['enabled'] ) ||
@@ -53,19 +48,49 @@ class UpdatePostHogStateController implements EndpointInterface {
       ];
     }
 
+    $teaSetting  = $this->translationEditorQuery->getTranslationEditorSetting();
+    $wpmlVersion = $this->plugin->getVersion();
+    $teaState    = $teaSetting !== null ? $teaSetting->getValue() : '';
+    $enabling    = $requestData['enabled'];
+
     $result = $this->postHogRecordingService->run(
       $requestData['siteKey'],
-      $requestData['enabled'] ? 'force_enable' : 'force_disable'
+      $enabling ? 'force_enable' : 'force_disable',
+      $wpmlVersion,
+      $teaState
     );
 
-    // Update the option in the wp_options table
-    $this->posthogStateRepository->setIsEnabled( $result['shouldRecord'] );
+    if ( $result['isResponseError'] ) {
+      if ( ! $enabling ) {
+        $this->posthogStateRepository->setTrackingMode( 'disabled' );
+        return [
+          'success' => true,
+          'data'    => [
+            'message'            => 'PostHog disabled locally; remote update failed',
+            'enabled'            => false,
+            'trackingMode'       => 'disabled',
+            'remoteUpdateFailed' => true,
+          ]
+        ];
+      }
+
+      return [
+        'success' => false,
+        'data'    => [
+          'message' => 'Failed to contact PostHog service',
+          'enabled' => false,
+        ]
+      ];
+    }
+
+    $this->posthogStateRepository->setTrackingMode( $result['trackingMode'] );
 
     return [
       'success' => true,
       'data'    => [
-        'message' => 'PostHog state updated',
-        'enabled' => $result['shouldRecord']
+        'message'      => 'PostHog state updated',
+        'enabled'      => $result['shouldRecord'],
+        'trackingMode' => $result['trackingMode'],
       ]
     ];
   }

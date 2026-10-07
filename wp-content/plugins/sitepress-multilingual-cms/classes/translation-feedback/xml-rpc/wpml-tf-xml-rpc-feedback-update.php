@@ -1,16 +1,9 @@
 <?php
 
-/**
- * Class WPML_TF_XML_RPC_Feedback_Update
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_XML_RPC_Feedback_Update {
 
-	/** @var WPML_TF_Data_Object_Storage $feedback_storage */
 	private $feedback_storage;
 
-	/** @var WPML_TP_Project $tp_project */
 	private $tp_project;
 
 	public function __construct( WPML_TF_Data_Object_Storage $feedback_storage, WPML_TP_Project $tp_project ) {
@@ -23,18 +16,12 @@ class WPML_TF_XML_RPC_Feedback_Update {
 			$feedback = $this->get_feedback( $args['feedback']['id'] );
 
 			if ( $feedback ) {
-				/** @var WPML_TF_Feedback $feedback */
 				$feedback->set_status( $args['feedback']['status'] );
 				$this->feedback_storage->persist( $feedback );
 			}
 		}
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return bool
-	 */
 	private function valid_arguments( array $args ) {
 		$valid = false;
 
@@ -49,11 +36,6 @@ class WPML_TF_XML_RPC_Feedback_Update {
 		return $valid;
 	}
 
-	/**
-	 * @param int $tp_feedback_id
-	 *
-	 * @return null|WPML_TF_Feedback
-	 */
 	private function get_feedback( $tp_feedback_id ) {
 		$feedback    = null;
 		$filter_args = array(

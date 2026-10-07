@@ -1,12 +1,10 @@
 <?php
 
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Legacy\Component\WordsToTranslate\Domain\StringPackage;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Item;
 use WPML\Core\Component\WordsToTranslate\Domain\StringPackage\Query\TranslationQueryInterface;
 
-// Legacy
 use WPML\Translation\TranslationElements\FieldCompression;
 
 class TranslationQuery implements TranslationQueryInterface {
@@ -28,7 +26,6 @@ class TranslationQuery implements TranslationQueryInterface {
 
     $wpdb = $GLOBALS['wpdb'];
 
-    // Get the last completed job ID
     $jobId = $wpdb->get_var(
       $wpdb->prepare(
         "SELECT j.job_id
@@ -47,7 +44,6 @@ class TranslationQuery implements TranslationQueryInterface {
     );
 
     if ( $jobId === null ) {
-      // No completed job found for this post.
       return '';
     }
 
@@ -61,9 +57,6 @@ class TranslationQuery implements TranslationQueryInterface {
     );
 
     if ( ! $elements ) {
-      // No elements found for this job. Probably an older job as only the
-      // elements of the latest completed job are stored. How can the job not be
-      // the lastest compelted? When the user switched to CTE.
       return '';
     }
 
@@ -74,7 +67,6 @@ class TranslationQuery implements TranslationQueryInterface {
         continue;
       }
 
-      // Exclude all term related fields (handled separately).
       if (
         strpos( $element->field_type, 't_' ) === 0
         || strpos( $element->field_type, 'tdesc_' ) === 0

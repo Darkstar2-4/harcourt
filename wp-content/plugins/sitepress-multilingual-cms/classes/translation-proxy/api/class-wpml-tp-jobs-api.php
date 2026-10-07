@@ -4,12 +4,6 @@ class WPML_TP_Jobs_API extends WPML_TP_API {
 
 	const CHUNK_SIZE = 100;
 
-	/**
-	 * @param int[] $tp_job_ids
-	 *
-	 * @return WPML_TP_Job_Status[]
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function get_jobs_statuses( array $tp_job_ids ) {
 		$this->log( 'Get jobs status', $tp_job_ids );
 
@@ -40,13 +34,6 @@ class WPML_TP_Jobs_API extends WPML_TP_API {
 		return $this->client->send_request( $request );
 	}
 
-	/**
-	 * @param array $cms_ids
-	 * @param bool  $archived
-	 *
-	 * @return array|mixed|stdClass|string
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function get_jobs_per_cms_ids( array $cms_ids, $archived = false ) {
 		$request = new WPML_TP_API_Request( '/jobs.json' );
 
@@ -65,13 +52,6 @@ class WPML_TP_Jobs_API extends WPML_TP_API {
 		return $this->client->send_request( $request );
 	}
 
-	/**
-	 * @param WPML_TM_Job_Entity $job
-	 * @param string             $state
-	 * @param string             $post_url
-	 *
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function update_job_state(
 		WPML_TM_Job_Entity $job,
 		$state = WPML_TP_Job_States::DELIVERED,
@@ -109,10 +89,6 @@ class WPML_TP_Jobs_API extends WPML_TP_API {
 		);
 	}
 
-	/**
-	 * @return WPML_TP_Job_Status[]
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function get_revised_jobs() {
 		$this->log( 'Get revised jobs' );
 

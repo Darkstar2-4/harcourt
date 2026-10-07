@@ -1,26 +1,14 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 17/10/17
- * Time: 10:56 PM
- */
 
 use WPML\FP\Obj;
 
 class WPML_LS_Display_As_Translated_Link {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
-	/** @var IWPML_URL_Converter_Strategy $url_converter */
 	private $url_converter;
-	/** @var WP_Query $wp_query */
 	private $wp_query;
-	/** @var WPML_Translation_Element_Factory $element_factory */
 	private $element_factory;
-	/** @var string $default_language */
 	private $default_language;
-	/** @var string $processed_language */
 	private $processed_language;
 
 	public function __construct(
@@ -86,13 +74,6 @@ class WPML_LS_Display_As_Translated_Link {
 		return $url;
 	}
 
-	/**
-	 * The permalink needs to be adjusted when the URL structure contains the category tag (%category%).
-	 *
-	 * @param WP_Term $cat
-	 *
-	 * @return WP_Term
-	 */
 	public function adjust_category_in_post_permalink( $cat ) {
 		$cat_element = $this->element_factory->create( $cat->term_id, 'term' );
 		$translation = $cat_element->get_translation( $this->processed_language );

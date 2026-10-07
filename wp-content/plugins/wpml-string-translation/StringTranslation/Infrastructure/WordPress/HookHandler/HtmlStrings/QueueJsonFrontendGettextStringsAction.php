@@ -9,10 +9,8 @@ class QueueJsonFrontendGettextStringsAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_queue_json_frontend_gettext_strings';
 	const ACTION_ARGS = 1;
 
-	/** @var HtmlStringsService */
 	private $htmlStringsService;
 
-	/** @var JsonStringsRepositoryInterface */
 	private $jsonStringsRepository;
 
 	public function __construct(

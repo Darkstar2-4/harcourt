@@ -2,12 +2,8 @@
 
 class WPML_ST_String_Translation_Priority_AJAX implements IWPML_Action {
 
-	/** @var wpdb */
 	private $wpdb;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
@@ -17,6 +13,11 @@ class WPML_ST_String_Translation_Priority_AJAX implements IWPML_Action {
 	}
 
 	public function change_string_translation_priority() {
+
+		if ( ! current_user_can( 'wpml_manage_string_translation' ) && ! current_user_can( 'manage_translations' ) ) {
+			wp_send_json_error( __( 'not allowed', 'wpml-string-translation' ) );
+			return;
+		}
 
 		if ( $this->verify_ajax( 'wpml_change_string_translation_priority_nonce' ) ) {
 

@@ -16,11 +16,6 @@ class OrderQueryHelper {
 		}
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @return array
-	 */
 	private function map_sort_parameters( WPML_TM_Jobs_Search_Params $params ) {
 		$orders = array();
 		if ( $params->get_sorting() ) {

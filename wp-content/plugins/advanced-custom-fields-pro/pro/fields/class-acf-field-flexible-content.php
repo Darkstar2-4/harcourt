@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 use ACF\Pro\Fields\FlexibleContent\Render;
 use ACF\Pro\Fields\FlexibleContent\Layout;
@@ -83,7 +92,8 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					'layouts' => esc_html__( 'layouts', 'acf' ),
 					'Fields'  => esc_html__( 'Fields', 'acf' ),
 
-					// Deleting a layout.
+					// Adding/deleting a layout.
+					'Duplicate' => esc_html__( 'Duplicate', 'acf' ),
 					'Delete' => esc_html__( 'Delete', 'acf' ),
 					'Delete Layout' => esc_html__( 'Delete Layout', 'acf' ),
 					/* translators: %s - Name of the Flexible content layout */
@@ -101,6 +111,8 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					// min / max
 					'This field requires at least {min} {label} {identifier}' => esc_html__( 'This field requires at least {min} {label} {identifier}', 'acf' ),
 					'This field has a limit of {max} {label} {identifier}' => esc_html__( 'This field has a limit of {max} {label} {identifier}', 'acf' ),
+					'Maximum rows reached ({max})' => esc_html__( 'Maximum rows reached ({max})', 'acf' ),
+					'Maximum {label} {identifier} reached ({max})' => esc_html__( 'Maximum {label} {identifier} reached ({max})', 'acf' ),
 
 					// popup badge
 					'{available} {label} {identifier} available (max {max})' => esc_html__( '{available} {label} {identifier} available (max {max})', 'acf' ),
@@ -614,12 +626,33 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					array(
 						'action' => '',
 						'query'  => '',
+						'block'  => null,
 					)
 				);
 
+				$wp_block_type = null;
+
+				// If we are dealing with a flexible content field inside a block.
+				if ( ! empty( $args['block'] ) ) {
+					$block_data = json_decode( wp_unslash( $args['block'] ), true );
+
+					if ( JSON_ERROR_NONE === json_last_error() && is_array( $block_data ) && isset( $block_data['name'] ) ) {
+						$registry      = WP_Block_Type_Registry::get_instance();
+						$wp_block_type = $registry->get_registered( $block_data['name'] );
+					}
+				}
+
 				// If this is a block preview, disable the layout.
-				if ( ( $args['action'] === 'acf/ajax/fetch-block' && ! empty( $args['query']['preview'] ) ) ||
-					acf_get_data( 'acf_doing_block_preview' ) ) {
+				if (
+					// Blocks v2 preview check
+					(
+						$args['action'] === 'acf/ajax/fetch-block' &&
+						! empty( $args['query']['preview'] ) &&
+						( $wp_block_type && isset( $wp_block_type->acf_block_version ) && $wp_block_type->acf_block_version <= 2 )
+					) ||
+					// Blocks v3 preview check
+					acf_get_data( 'acf_doing_block_preview' )
+				) {
 					return true;
 				}
 
@@ -711,7 +744,6 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 		 * @return  $post_id (int)
 		 */
 		public function validate_value( $valid, $value, $field, $input ) {
-
 			// vars
 			$count = 0;
 
@@ -723,8 +755,13 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					unset( $value['acfcloneindex'] );
 				}
 
-				// count
-				$count = count( $value );
+				foreach ( $value as $row_value ) {
+					// Don't count disabled rows;
+					if ( ! empty( $row_value['acf_fc_layout_disabled'] ) ) {
+						continue;
+					}
+					++$count;
+				}
 			}
 
 			// validate required
@@ -770,6 +807,10 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 				foreach ( $value as $i => $row ) {
 					// ensure row is an array
 					if ( ! is_array( $row ) ) {
+						continue;
+					}
+
+					if ( ! empty( $row['acf_fc_layout_disabled'] ) ) {
 						continue;
 					}
 
@@ -889,8 +930,9 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 			}
 
 			// Return the cached meta if we have it.
-			if ( ! empty( $this->layout_meta[ $field_name ] ) ) {
-				return $this->layout_meta[ $field_name ];
+			$cache_key = "$post_id:$field_name";
+			if ( ! empty( $this->layout_meta[ $cache_key ] ) ) {
+				return $this->layout_meta[ $cache_key ];
 			}
 
 			$layout_meta = acf_get_metadata_by_field(
@@ -904,9 +946,9 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 				return array();
 			}
 
-			$this->layout_meta[ $field_name ] = $layout_meta;
+			$this->layout_meta[ $cache_key ] = $layout_meta;
 
-			return $this->layout_meta[ $field_name ];
+			return $this->layout_meta[ $cache_key ];
 		}
 
 		/**
@@ -1090,7 +1132,7 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					unset( $row['acf_fc_layout_disabled'] );
 
 					if ( ! empty( $row['acf_fc_layout_custom_label'] ) ) {
-						$renamed_layouts[ $i ] = $row['acf_fc_layout_custom_label'];
+						$renamed_layouts[ $i ] = sanitize_text_field( $row['acf_fc_layout_custom_label'] );
 					}
 					unset( $row['acf_fc_layout_custom_label'] );
 
@@ -1149,8 +1191,16 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 		 */
 		public function delete_value( $post_id, $key, $field ) {
 
+			// Delete layout meta (disabled and renamed layouts).
+			acf_delete_metadata_by_field(
+				$post_id,
+				array(
+					'name' => '_' . $field['name'] . '_layout_meta',
+				)
+			);
+
 			// vars
-			$old_value = acf_get_metadata_by_field( $post_id, $field['name'] );
+			$old_value = acf_get_metadata_by_field( $post_id, $field );
 			$old_value = is_array( $old_value ) ? $old_value : array();
 
 			// bail early if no rows or no sub fields
@@ -1270,7 +1320,7 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 		public function ajax_layout_title() {
 
 			$options = acf_parse_args(
-				$_POST, // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified elsewhere.
+				$_POST, // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified below via acf_verify_ajax.
 				array(
 					'post_id'   => 0,
 					'i'         => 0,
@@ -1280,6 +1330,10 @@ if ( ! class_exists( 'acf_field_flexible_content' ) ) :
 					'value'     => array(),
 				)
 			);
+
+			if ( ! acf_verify_ajax( $options['nonce'], $options['field_key'], true, 'flexible_content' ) ) {
+				die();
+			}
 
 			// load field
 			$field = acf_get_field( $options['field_key'] );

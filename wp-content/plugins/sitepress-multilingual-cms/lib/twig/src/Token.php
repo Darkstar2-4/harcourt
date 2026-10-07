@@ -11,13 +11,6 @@
  */
 namespace WPML\Core\Twig;
 
-/**
- * Represents a Token.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class Token
 {
     protected $value;
@@ -37,11 +30,6 @@ class Token
     const INTERPOLATION_START_TYPE = 10;
     const INTERPOLATION_END_TYPE = 11;
     const ARROW_TYPE = 12;
-    /**
-     * @param int    $type   The type of the token
-     * @param string $value  The token value
-     * @param int    $lineno The line position in the source
-     */
     public function __construct($type, $value, $lineno)
     {
         $this->type = $type;
@@ -52,19 +40,6 @@ class Token
     {
         return \sprintf('%s(%s)', self::typeToString($this->type, \true), $this->value);
     }
-    /**
-     * Tests the current token for a type and/or a value.
-     *
-     * Parameters may be:
-     *  * just type
-     *  * type and value (or array of possible values)
-     *  * just value (or array of possible values) (NAME_TYPE is used as type)
-     *
-     * @param array|string|int  $type   The type to test
-     * @param array|string|null $values The token value
-     *
-     * @return bool
-     */
     public function test($type, $values = null)
     {
         if (null === $values && !\is_int($type)) {
@@ -73,35 +48,18 @@ class Token
         }
         return $this->type === $type && (null === $values || \is_array($values) && \in_array($this->value, $values) || $this->value == $values);
     }
-    /**
-     * @return int
-     */
     public function getLine()
     {
         return $this->lineno;
     }
-    /**
-     * @return int
-     */
     public function getType()
     {
         return $this->type;
     }
-    /**
-     * @return string
-     */
     public function getValue()
     {
         return $this->value;
     }
-    /**
-     * Returns the constant representation (internal) of a given type.
-     *
-     * @param int  $type  The type as an integer
-     * @param bool $short Whether to return a short representation or not
-     *
-     * @return string The string representation
-     */
     public static function typeToString($type, $short = \false)
     {
         switch ($type) {
@@ -152,13 +110,6 @@ class Token
         }
         return $short ? $name : 'Twig\\Token::' . $name;
     }
-    /**
-     * Returns the English representation of a given type.
-     *
-     * @param int $type The type as an integer
-     *
-     * @return string The string representation
-     */
     public static function typeToEnglish($type)
     {
         switch ($type) {

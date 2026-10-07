@@ -17,19 +17,10 @@ use WPML\TM\ATE\Log\EventsTypes;
 
 class FixJob extends Base {
 
-	/**
-	 * @var WPML_TM_ATE_Jobs
-	 */
 	private $ateJobs;
 
-	/**
-	 * @var WPML_TM_ATE_API
-	 */
 	private $ateApi;
 
-	/**
-	 * @var WPML_TM_Jobs_Repository
-	 */
 	private $jobsRepository;
 
 	const PARAM_ATE_JOB_ID = 'ateJobId';
@@ -43,9 +34,6 @@ class FixJob extends Base {
 		$this->jobsRepository = wpml_tm_get_jobs_repository();
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_routes() {
 		return [
 			[
@@ -58,11 +46,6 @@ class FixJob extends Base {
 			];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	public function get_allowed_capabilities( WP_REST_Request $request ) {
 		return [
 			'manage_options',
@@ -71,11 +54,6 @@ class FixJob extends Base {
 		    ];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return bool[]
-	 */
 	public function fix_job( WP_REST_Request $request ) {
 		try {
 			$ateJobId = $request->get_param( self::PARAM_ATE_JOB_ID );
@@ -93,15 +71,6 @@ class FixJob extends Base {
 		return [ 'completed' => false, 'error' => false ];
 	}
 
-	/**
-	 * Processes the job status.
-	 *
-	 * @param $ateJobId
-	 * @param $wpmlJobId
-	 *
-	 * @return bool
-	 * @throws RequestException
-	 */
 	public function process( $ateJobId, $wpmlJobId ) {
 		$ateJob = $this->ateApi->get_job( $ateJobId )->$ateJobId;
 		$xliffUrl = Obj::prop('translated_xliff', $ateJob);
@@ -123,10 +92,6 @@ class FixJob extends Base {
 		return false;
 	}
 
-	/**
-	 * @param \Exception $e
-	 * @param array|null  $job
-	 */
 	private function logException( \Exception $e, $job = null ) {
 		$entry              = new Entry();
 		$entry->description = $e->getMessage();

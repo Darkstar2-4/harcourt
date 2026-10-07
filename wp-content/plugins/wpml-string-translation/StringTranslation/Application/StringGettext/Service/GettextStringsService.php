@@ -13,47 +13,27 @@ use WPML\StringTranslation\Application\StringCore\Domain\StringItem;
 
 class GettextStringsService {
 
-	/** @var IsExcludedDomainStringValidatorInterface */
 	private $isExcludedDomainStringValidator;
 
-	/** @var TranslationsRepositoryInterface  */
 	private $translationsRepository;
 
-	/** @var QueueRepositoryInterface  */
 	private $queueRepository;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var ProcessPendingStringsCommandInterface */
 	private $processPendingStrings;
 
-	/** @var UrlRepositoryInterface */
 	private $urlRepository;
 
-	/**
-	 * This is required to prevent endless loops - if we will call some function from WordPress core from inside of the
-	 * queueStringAsPendingIfUntranslatedOrNotTracked or queueCustomStringAsPending function it can launch
-	 * some hook and some plugin can listen for this hook and require translation again which will get us here again.
-	 * Example:
-	 *   /StringTranslation/Application/StringGettext/Service/GettextStringsService.php
-	 *       public function isAutoregisterEnabled()
-	 *           if ( $this->settingsRepository->isAutoregisterStringsTypeOnlyViewedByAdmin() && ! $this->settingsRepository->getIsCurrentUserAdmin() )
-	 *   getIsCurrentUserAdmin will call current_user_can which calls WP_User has_cap fn. Than function fires 'user_has_cap' hook and for example
-	 *   in 'types-access' plugin for Toolset we listen for that hook and require translation again 'title' => __( 'Read post', 'wpcf-access' ),
-	 *   thus it will lead to the endless loop. So, we can split all translation function calls into 2 types - 'internal' and 'external'.
-	 *   'External' are the ones which are called not starting from the function calls of this class and 'internal' are ones which are called
-	 *   starting from the functions from this class. We should register external ones and ignore internal to avoid endless loops.
-	 */
 	private $isProcessingString = false;
 
 	public function __construct(
 		IsExcludedDomainStringValidatorInterface $isExcludedDomainStringValidator,
-		TranslationsRepositoryInterface          $translationsRepository,
-		QueueRepositoryInterface                 $queueRepository,
-		SettingsRepositoryInterface              $settingsRepository,
-		ProcessPendingStringsCommandInterface    $processPendingStringsCommand,
-		UrlRepositoryInterface                   $urlRepository
+		TranslationsRepositoryInterface $translationsRepository,
+		QueueRepositoryInterface $queueRepository,
+		SettingsRepositoryInterface $settingsRepository,
+		ProcessPendingStringsCommandInterface $processPendingStringsCommand,
+		UrlRepositoryInterface $urlRepository
 	) {
 		$this->isExcludedDomainStringValidator = $isExcludedDomainStringValidator;
 		$this->translationsRepository          = $translationsRepository;
@@ -64,9 +44,6 @@ class GettextStringsService {
 	}
 
 	public function isAutoregisterEnabled(): bool {
-		// This check should always be first, at least before getIsCurrentUserAdmin which calls
-		// internally current_user_can. It should be allowed only after functions in WP core were
-		// fully initialised to avoid errors.
 		if ( ! $this->settingsRepository->getIsAutoregistrationEnabled() ) {
 			return false;
 		}
@@ -104,14 +81,14 @@ class GettextStringsService {
 		$requestUrl = $this->urlRepository->getClientFrontendRequestUrl();
 
 		if ( $this->queueRepository->isStringAlreadyRegistered( $text, $domain, $context ) ) {
-			$this->maybeTrackString( $text, $domain, $context, $requestUrl );
+			$this->maybeTrackString( $text, $domain, $requestUrl, $context );
 			$this->isProcessingString = false;
 			return $text;
 		}
 
 		$wasQueued = $this->queueRepository->queueStringAsPending( $text, $domain, $context );
 		if ( $wasQueued ) {
-			$this->queueRepository->trackString( $text, $domain, $context, $requestUrl );
+			$this->queueRepository->trackString( $text, $domain, $requestUrl, $context );
 		}
 		$this->isProcessingString = false;
 
@@ -139,7 +116,7 @@ class GettextStringsService {
 		$requestUrl = $this->urlRepository->getClientFrontendRequestUrl();
 
 		if ( $this->queueRepository->isStringAlreadyRegistered( $text, $domain, $context, $name ) ) {
-			$this->maybeTrackString( $text, $domain, $context, $requestUrl );
+			$this->maybeTrackString( $text, $domain, $requestUrl, $context );
 			$this->isProcessingString = false;
 			return $text;
 		}
@@ -147,24 +124,24 @@ class GettextStringsService {
 		$wasQueued = $this->queueRepository->queueStringAsPending( $text, $domain, $context, $name );
 		if (
 			$wasQueued &&
-			! $this->queueRepository->isStringAlreadyTrackedOnUrl( $text, $domain, $context, $requestUrl )
+			! $this->queueRepository->isStringAlreadyTrackedOnUrl( $text, $domain, $requestUrl, $context )
 		) {
-			$this->queueRepository->trackString($text, $domain, $context, $requestUrl);
+			$this->queueRepository->trackString( $text, $domain, $requestUrl, $context );
 		}
 
 		$this->isProcessingString = false;
 		return $text;
 	}
 
-	private function maybeTrackString( string $text, string $domain, string $context = null, string $requestUrl ) {
+	private function maybeTrackString( string $text, string $domain, string $requestUrl, ?string $context = null ) {
 		if (
-			$this->queueRepository->isStringAlreadyTrackedOnUrl( $text, $domain, $context, $requestUrl ) ||
+			$this->queueRepository->isStringAlreadyTrackedOnUrl( $text, $domain, $requestUrl, $context ) ||
 			! $this->queueRepository->canTrackString( $text, $domain, $context )
 		) {
 			return;
 		}
 
-		$this->queueRepository->trackString( $text, $domain, $context, $requestUrl );
+		$this->queueRepository->trackString( $text, $domain, $requestUrl, $context );
 	}
 
 	public function savePendingStringsQueue() {
@@ -182,3 +159,4 @@ class GettextStringsService {
 		}
 	}
 }
+

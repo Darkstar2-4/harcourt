@@ -2,7 +2,6 @@
 
 class WPML_Cache_Factory {
 
-	/** @var array */
 	private $valid_caches = [
 		'TranslationManagement::get_translation_job_id' => [
 			'clear_actions' => [ 'wpml_tm_save_post', 'wpml_cache_clear' ],
@@ -23,12 +22,6 @@ class WPML_Cache_Factory {
 		}
 	}
 
-	/**
-	 * @param string $cache_name
-	 *
-	 * @return WPML_WP_Cache
-	 * @throws InvalidArgumentException Exception.
-	 */
 	public function get( $cache_name ) {
 		if ( isset( $this->valid_caches[ $cache_name ] ) ) {
 			return new WPML_WP_Cache( $cache_name );
@@ -37,10 +30,6 @@ class WPML_Cache_Factory {
 		}
 	}
 
-	/**
-	 * @param string $cache_name
-	 * @param array  $clear_actions
-	 */
 	public function define( $cache_name, array $clear_actions ) {
 		if ( isset( $this->valid_caches[ $cache_name ] ) ) {
 			return;

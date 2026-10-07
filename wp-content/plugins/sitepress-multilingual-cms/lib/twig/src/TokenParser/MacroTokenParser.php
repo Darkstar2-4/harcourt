@@ -15,15 +15,6 @@ use WPML\Core\Twig\Node\BodyNode;
 use WPML\Core\Twig\Node\MacroNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Token;
-/**
- * Defines a macro.
- *
- *   {% macro input(name, value, type, size) %}
- *      <input type="{{ type|default('text') }}" name="{{ name }}" value="{{ value|e }}" size="{{ size|default(20) }}" />
- *   {% endmacro %}
- *
- * @final
- */
 class MacroTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

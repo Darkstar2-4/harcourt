@@ -8,17 +8,11 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class Query implements QueryInterface {
 
-  /** @var QueryHandlerInterface<int, array{translationId: int, previousState: string}[]> */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
-  /**
-   * @param QueryHandlerInterface<int, array{translationId: int, previousState: string}[]> $queryHandler
-   * @param QueryPrepareInterface                                                              $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -41,7 +35,6 @@ class Query implements QueryInterface {
     ";
 
     try {
-      /** @var int|string $count */
       $count = $this->queryHandler->querySingle( $query );
 
       return (int) $count;
@@ -51,9 +44,6 @@ class Query implements QueryInterface {
   }
 
 
-  /**
-   * @return array<array{translationId: int, previousState: string}>
-   */
   public function getRemaining( int $limit ): array {
     $statusTable = $this->queryPrepare->prefix() . 'icl_translation_status';
     $tmpTable    = $this->queryPrepare->prefix() . CompletedRecordsStorage::TMP_TABLE_NAME;
@@ -72,7 +62,6 @@ class Query implements QueryInterface {
     try {
       $preparedQuery = $this->queryPrepare->prepare( $query, $limit );
 
-      /** @var array{translationId: int, previousState: string}[] $result */
       $result = $this->queryHandler->query( $preparedQuery )->getResults();
 
       return $result;

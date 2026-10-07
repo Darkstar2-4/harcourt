@@ -10,9 +10,6 @@
  */
 namespace WPML\Core\Twig\Extension;
 
-/**
- * @author Grégoire Pineau <lyrixx@lyrixx.info>
- */
 interface RuntimeExtensionInterface
 {
 }

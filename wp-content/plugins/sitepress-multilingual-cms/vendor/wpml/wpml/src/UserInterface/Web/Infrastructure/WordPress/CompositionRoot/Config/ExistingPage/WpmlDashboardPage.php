@@ -17,11 +17,6 @@ class WpmlDashboardPage implements ExistingPageInterface {
   }
 
 
-  /**
-   * @param Notice $notice
-   *
-   * @return void
-   */
   public function renderNotice( Notice $notice ) {
     $notice->render();
   }

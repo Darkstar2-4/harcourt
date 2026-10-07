@@ -4,7 +4,9 @@ namespace WPML\TM\PostEditScreen\Endpoints;
 
 use WPML\Ajax\IHandler;
 use WPML\Collect\Support\Collection;
+use WPML\FP\Either;
 use WPML\FP\Right;
+use WPML\LIB\WP\User;
 use WPML_TM_Post_Edit_TM_Editor_Mode;
 
 class SetEditorMode implements IHandler {
@@ -17,7 +19,6 @@ class SetEditorMode implements IHandler {
 	const MODE_FOR_POST_TYPE = 'all_posts_of_type';
 	const MODE_FOR_THIS_POST = 'this_post';
 
-	/** @var \SitePress $sitepress */
 	private $sitepress;
 
 	public function __construct( \SitePress $sitepress ) {
@@ -36,6 +37,10 @@ class SetEditorMode implements IHandler {
 
 		$isSwitchingWpmlNative = $data->get( 'isSwitchingWpmlNative' );
 
+		if ( ! $this->isAuthorized( $editorModeFor, $postId ) ) {
+			return Either::left( 'Insufficient permissions' );
+		}
+
 		switch ( $editorModeFor ) {
 			case self::MODE_FOR_GLOBAL:
 				if ( $useNativeEditor ) {
@@ -50,7 +55,6 @@ class SetEditorMode implements IHandler {
 					unset( $tmSettings[ WPML_TM_Post_Edit_TM_Editor_Mode::TM_KEY_GLOBAL_USE_WPML ] );
 				}
 
-				// If we are switching from WPML <-> native, we need to remove all posts option: post meta and post type settings.
 				if ( $isSwitchingWpmlNative ) {
 					unset( $tmSettings[ WPML_TM_Post_Edit_TM_Editor_Mode::TM_KEY_FOR_POST_TYPE_USE_NATIVE ] );
 					unset( $tmSettings[ WPML_TM_Post_Edit_TM_Editor_Mode::TM_KEY_FOR_POST_TYPE_USE_WPML ] );
@@ -77,7 +81,6 @@ class SetEditorMode implements IHandler {
 						unset( $tmSettings[ WPML_TM_Post_Edit_TM_Editor_Mode::TM_KEY_FOR_POST_TYPE_USE_WPML ][ $post_type ] );
 					}
 
-					// If we are switching from WPML <-> native, we need to remove all post meta.
 					if ( $isSwitchingWpmlNative ) {
 						WPML_TM_Post_Edit_TM_Editor_Mode::delete_all_posts_option( $post_type );
 					}
@@ -106,5 +109,13 @@ class SetEditorMode implements IHandler {
 		}
 
 		return Right::of( true );
+	}
+
+	private function isAuthorized( $editorModeFor, $postId ) {
+		if ( self::MODE_FOR_THIS_POST === $editorModeFor ) {
+			return User::canManageTranslations() || current_user_can( 'edit_post', (int) $postId );
+		}
+
+		return User::canManageTranslations();
 	}
 }

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Multilingual_Options
- */
 class WPML_Multilingual_Options {
 
 	const NOTICE_GROUP = 'wpml-multilingual-options';
@@ -12,23 +9,12 @@ class WPML_Multilingual_Options {
 	private $sitepress;
 	private $utils;
 
-	/**
-	 * WPML_Multilingual_Options constructor.
-	 *
-	 * @param SitePress                              $sitepress
-	 * @param WPML_Multilingual_Options_Array_Helper $array_helper
-	 * @param WPML_Multilingual_Options_Utils        $utils
-	 */
 	public function __construct( SitePress $sitepress, WPML_Multilingual_Options_Array_Helper $array_helper, WPML_Multilingual_Options_Utils $utils ) {
 		$this->sitepress    = $sitepress;
 		$this->array_helper = $array_helper;
 		$this->utils        = $utils;
 	}
 
-	/**
-	 * @param string $new_code         New WPML default language code
-	 * @param string $previous_default Previous WPML default language code
-	 */
 	public function default_language_changed_action( $new_code, $previous_default ) {
 		if ( $new_code !== $previous_default ) {
 			foreach ( $this->registered_options as $option_name ) {
@@ -60,10 +46,6 @@ class WPML_Multilingual_Options {
 		}
 	}
 
-	/**
-	 * @param string|null $option_name
-	 * @param string[]    $option_pages
-	 */
 	public function multilingual_options_action( $option_name = null, $option_pages = [] ) {
 		if ( $option_name && ! in_array( $option_name, $this->registered_options, true ) ) {
 			$this->registered_options[] = $option_name;
@@ -79,9 +61,6 @@ class WPML_Multilingual_Options {
 		}
 	}
 
-	/**
-	 * @param string $page_id
-	 */
 	private function add_notice( $page_id ) {
 		$notice_id     = md5( $page_id );
 		$admin_notices = wpml_get_admin_notices();
@@ -101,12 +80,6 @@ class WPML_Multilingual_Options {
 		add_action( 'icl_after_set_default_language', array( $this, 'default_language_changed_action' ), 10, 2 );
 	}
 
-	/**
-	 * @param mixed  $value
-	 * @param string $option_name
-	 *
-	 * @return mixed
-	 */
 	public function pre_option_filter( $value, $option_name ) {
 		$current_language = $this->sitepress->get_current_language();
 		$cache_found      = null;
@@ -124,24 +97,10 @@ class WPML_Multilingual_Options {
 		return $value;
 	}
 
-	/**
-	 * @param string $option_name
-	 * @param string $language
-	 * @param mixed  $value
-	 *
-	 * @return bool
-	 */
 	private function update_cache( $option_name, $language, $value ) {
 		return wp_cache_set( "{$option_name}_{$language}_filtered", $value, 'options' );
 	}
 
-	/**
-	 * @param array<mixed>|mixed $new_value
-	 * @param array<mixed>|mixed $old_value
-	 * @param string $option_name
-	 *
-	 * @return array
-	 */
 	public function pre_update_option_filter( $new_value, $old_value, $option_name ) {
 
 		$current_language  = $this->sitepress->get_current_language();
@@ -160,22 +119,10 @@ class WPML_Multilingual_Options {
 		return $default_options;
 	}
 
-	/**
-	 * @param string $option_name
-	 * @param string $language
-	 *
-	 * @return bool
-	 */
 	private function invalidate_cache( $option_name, $language ) {
 		return wp_cache_delete( "{$option_name}_{$language}_filtered", 'options' );
 	}
 
-	/**
-	 * @param array $target
-	 * @param array $source
-	 *
-	 * @return array
-	 */
 	private function merge( $target, $source ) {
 		$value = $source;
 		if ( is_array( $source ) && is_array( $target ) ) {

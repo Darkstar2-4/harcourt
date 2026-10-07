@@ -12,11 +12,9 @@ class WPML_Posts_Listing_Page {
 		}
 
 		if ( 'edit.php' !== $pagenow ) {
-			// Don't initalize on other pages than the post listing page.
 			return;
 		}
 
-		// Hook to 'wp' to work on the main query result (list of posts).
 		add_action( 'wp', [ $this, 'pre_populate_caches' ] );
 	}
 
@@ -31,10 +29,8 @@ class WPML_Posts_Listing_Page {
 			return $post->ID;
 		}, $wp_query->posts );
 
-		// Get and cache all trids for the listed posts.
 		$wpml_post_translations->prefetch_ids( $post_ids );
 
-		// Get and cache all translations for the listed posts.
 		$wpml_tm_element_translations = wpml_tm_load_element_translations();
 		$wpml_tm_element_translations->init_jobs( $wpml_post_translations->get_trids() );
 	}

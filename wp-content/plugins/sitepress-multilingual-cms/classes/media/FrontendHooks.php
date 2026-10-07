@@ -19,14 +19,7 @@ class FrontendHooks implements \IWPML_Frontend_Action {
 			->then( spreadArgs( Fns::withoutRecursion(  Fns::identity(), [ __CLASS__, 'translateCaption' ] ) ) );
 	}
 
-	/**
-	 * @param string $caption
-	 * @param int    $postId
-	 *
-	 * @return string
-	 */
 	public static function translateCaption( $caption, $postId ) {
-		// $convertId :: int -> string|int|null
 		$convertId = pipe( PostTranslations::getInCurrentLanguage(), Obj::prop( 'element_id' ) );
 
 		return Maybe::of( $postId )

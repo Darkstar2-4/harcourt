@@ -10,16 +10,12 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\NoticeRequirementsInterface;
 
 class SwitchToAteNoticeController implements NoticeRenderInterface, NoticeRequirementsInterface {
 
-  /** @var DismissedNoticesQuery */
   private $dismissedNoticesQuery;
 
-  /** @var UserQueryInterface */
   private $userQuery;
 
-  /** @var SettingsRepository */
   private $settingsRepository;
 
-  /** @var string */
   private $noticeId;
 
 
@@ -35,9 +31,6 @@ class SwitchToAteNoticeController implements NoticeRenderInterface, NoticeRequir
   }
 
 
-  /**
-   * @return void
-   */
   public function render() {
     echo <<<HTML
       <div class="wpml-notice-ate-banner-wrapper" id="wpml-switch-to-ate-notice"></div>

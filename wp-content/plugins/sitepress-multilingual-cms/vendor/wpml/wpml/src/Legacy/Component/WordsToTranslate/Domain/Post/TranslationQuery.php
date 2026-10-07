@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Legacy\Component\WordsToTranslate\Domain\Post;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Post;
@@ -8,33 +7,21 @@ use WPML\Core\Component\WordsToTranslate\Domain\Post\Term\Term;
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Term\TermContent;
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Query\TranslationQueryInterface;
 
-// Legacy
 use WPML\Translation\TranslationElements\FieldCompression;
 
 class TranslationQuery implements TranslationQueryInterface {
 
-  /** @var array<string, ?LegacyJob> $jobs */
   private $jobs = [];
 
-  /** @var array<string, bool> $isTermTranslatable */
+  private $trids = [];
+
   private $isTermTranslatable = [];
 
-  /** @var array<string, array<string, string|array<string, array<int, string>>>> $termTranslationCache */
   private $termTranslationCache = [];
 
-  /** @var ?bool */
   private $_isTermRetranslationAllowed;
 
 
-  /**
-   * Returns the last translated original content (original = source language).
-   *
-   * @param Post $post
-   * @param string $lang
-   * @param string[] $fieldsToTranslate
-   *
-   * @return string
-   */
   public function getLastTranslatedOriginalContentForPost(
     $post,
     $lang,
@@ -47,7 +34,6 @@ class TranslationQuery implements TranslationQueryInterface {
       return $lastTranslatedContent;
     }
 
-    /** @var array<LegacyElement> $elements */
     $elements = $job->elements;
 
     if ( ! $elements ) {
@@ -63,12 +49,9 @@ class TranslationQuery implements TranslationQueryInterface {
         strpos( $element->field_type, 'package-string' ) !== 0 &&
         ! in_array( $element->field_type, $fieldsToTranslate, true )
       ) {
-        // Skip fields that are neither string package (which can change their
-        // id between jobs) nor on the list of fields to translate.
         continue;
       }
 
-      // Exclude all term related fields (handled separately).
       if (
         strpos( $element->field_type, 't_' ) === 0
         || strpos( $element->field_type, 'tdesc_' ) === 0
@@ -88,30 +71,21 @@ class TranslationQuery implements TranslationQueryInterface {
   }
 
 
-  /**
-   * @param Post $post
-   * @param string $lang
-   *
-   * @return ?LegacyJob
-   */
   private function getJobByPost( Post $post, string $lang ) {
     $jobKey = $post->getType() . $post->getId() . $lang;
     if ( isset( $this->jobs[ $jobKey ] ) ) {
       return $this->jobs[ $jobKey ];
     }
 
-    $sitepress = $GLOBALS['sitepress'];
-    $trid = $sitepress->get_element_trid( $post->getId(), 'post_' );
+    $trid = $this->getJobTridByPost( $post, $lang );
 
     if ( ! $trid ) {
-      // No translation found for this post.
       $this->jobs[ $jobKey ] = null;
       return null;
     }
 
     global $wpdb;
 
-    // Get the last completed job ID
     $jobId = $wpdb->get_var(
       $wpdb->prepare(
         "SELECT j.job_id
@@ -130,7 +104,6 @@ class TranslationQuery implements TranslationQueryInterface {
     );
 
     if ( $jobId === null ) {
-      // No completed job found for this post.
       $this->jobs[ $jobKey ] = null;
       return null;
     }
@@ -145,9 +118,6 @@ class TranslationQuery implements TranslationQueryInterface {
     );
 
     if ( ! $elements ) {
-      // No elements found for this job. Probably an older job as only the
-      // elements of the latest completed job are stored. How can the job not be
-      // the lastest compelted? When the user switched to CTE.
       $this->jobs[ $jobKey ] = null;
       return null;
     }
@@ -160,32 +130,34 @@ class TranslationQuery implements TranslationQueryInterface {
   }
 
 
-  /**
-   * Checks if the term is translatable.
-   * A term is translatable if...
-   *  ...it was never translated before
-   *  ...OR the setting 'tm_block_retranslating_terms' is set to true.
-   *
-   * NOTE: This has nothing to do with the WPML settings for taxonomies. At this
-   * point, only terms appear that belong to a translatable taxonomy.
-   *
-   * @param Term $term
-   * @param string $lang
-   *
-   * @return bool
-   */
+  private function getJobTridByPost( Post $post, string $lang ) {
+    $jobKey = $post->getType() . $post->getId() . $lang;
+    if ( isset( $this->trids[ $jobKey ] ) ) {
+      return $this->trids[ $jobKey ];
+    }
+
+    $sitepress = $GLOBALS['sitepress'];
+    $trid = $sitepress->get_element_trid( $post->getId(), 'post_' );
+
+    if ( ! $trid ) {
+      $this->trids[ $jobKey ] = null;
+      return null;
+    }
+
+    $this->trids[ $jobKey ] = $trid;
+    return $trid;
+  }
+
+
   public function isTermTranslatable( Term $term, string $lang ) {
     if ( $this->isTermRetranslationAllowed() ) {
-      // The setting is enabled, so we can retranslate terms.
       return true;
     }
 
-    // Term re-translation is not allowed. Check if the term was translated before.
     $idTerm = $term->getId();
     $cache = $lang . $idTerm;
 
     if ( isset( $this->isTermTranslatable[ $cache ] ) ) {
-      // The term was already checked.
       return $this->isTermTranslatable[ $cache ];
     }
 
@@ -217,7 +189,6 @@ class TranslationQuery implements TranslationQueryInterface {
     $isMeta = ! in_array( $termContent->getType(), [ 'description', 'name' ] );
 
     if ( isset( $this->termTranslationCache[ $cacheKey ] ) ) {
-      // The term was already checked.
       if ( $isMeta ) {
         $metaData = $this->termTranslationCache[ $cacheKey ]['meta_data'] ?? [];
 
@@ -225,7 +196,6 @@ class TranslationQuery implements TranslationQueryInterface {
           return '';
         }
 
-        // Separated conditions, because of Psalm.
         if ( ! isset( $metaData[ $termContent->getType() ][0] ) ) {
           return '';
         }
@@ -238,12 +208,9 @@ class TranslationQuery implements TranslationQueryInterface {
       return '';
     }
 
-    // Maybe there is no translation for this termContent and lang.
     $this->termTranslationCache[ $cacheKey ] = [];
 
-    // Load all available translations (all fields and langs) for this term.
     $wpdb = $GLOBALS['wpdb'];
-    $sitepress = $GLOBALS['sitepress'];
 
     $translations = $wpdb->get_results(
       $wpdb->prepare(
@@ -296,9 +263,6 @@ class TranslationQuery implements TranslationQueryInterface {
   }
 
 
-  /**
-   * @return bool
-   */
   private function isTermRetranslationAllowed() {
     if ( $this->_isTermRetranslationAllowed === null ) {
       $sitepress = $GLOBALS['sitepress'];
@@ -314,7 +278,6 @@ class TranslationQuery implements TranslationQueryInterface {
 
 class LegacyJob {
 
-  /** @var LegacyElement[] */
   public $elements = [];
 
 }
@@ -322,13 +285,10 @@ class LegacyJob {
 
 class LegacyElement {
 
-  /** @var bool */
   public $field_translate = false;
 
-  /** @var string */
   public $field_type = '';
 
-  /** @var string */
   public $field_data = '';
 
 }

@@ -1,17 +1,8 @@
 <?php
 
-/**
- * Based on https://github.com/paulgb/simplediff/blob/master/php/simplediff.php
- */
 
 class WPML_ST_Diff {
 
-	/**
-	 * @param string[] $old_words
-	 * @param string[] $new_words
-	 *
-	 * @return array
-	 */
 	public static function diff( $old_words, $new_words ) {
 		$matrix     = array();
 		$max_length = 0;
@@ -40,12 +31,6 @@ class WPML_ST_Diff {
 		);
 	}
 
-	/**
-	 * @param string $old_text
-	 * @param string $new_text
-	 *
-	 * @return float|int
-	 */
 	public static function get_sameness_percent( $old_text, $new_text ) {
 		$old_text = $old_text ? strip_tags( $old_text ) : $old_text;
 		if ( $old_text ) {

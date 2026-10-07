@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 class WPML_TM_REST_XLIFF extends WPML_TM_ATE_Required_Rest_Base {
 	const CAPABILITY = 'translate';
@@ -20,32 +17,26 @@ class WPML_TM_REST_XLIFF extends WPML_TM_ATE_Required_Rest_Base {
 		);
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 * @throws \InvalidArgumentException
-	 */
 	public function fetch_xliff( WP_REST_Request $request ) {
-		$result = null;
+		$job_factory = wpml_tm_load_job_factory();
+		$job_id      = (int) $request->get_param( 'jobId' );
+		$job         = $job_factory->get_translation_job( $job_id, false, 1, true );
 
-		$wpml_translation_job_factory = wpml_tm_load_job_factory();
-		$iclTranslationManagement     = wpml_load_core_tm();
+		if ( $job && ( current_user_can( 'manage_translations' ) || $job->user_can_translate( wp_get_current_user() ) ) ) {
+			$writer = new WPML_TM_Xliff_Writer( $job_factory );
 
-		$job_id = $request->get_param( 'jobId' );
+			return array(
+				'content'    => base64_encode( $writer->generate_job_xliff( $job_id ) ),
+				'sourceLang' => $job->get_source_language_code(),
+				'targetLang' => $job->get_language_code(),
+			);
+		}
 
-		$writer = new WPML_TM_Xliff_Writer( $wpml_translation_job_factory );
-		$xliff  = base64_encode( $writer->generate_job_xliff( $job_id ) );
-
-		$job = $iclTranslationManagement->get_translation_job( (int) $job_id, false, false, 1 );
-
-		$result = array(
-			'content'    => $xliff,
-			'sourceLang' => $job->source_language_code,
-			'targetLang' => $job->language_code,
+		return new WP_Error(
+			'wpml_tm_xliff_forbidden',
+			__( 'You are not allowed to access this translation job.', 'sitepress' ),
+			array( 'status' => 403 )
 		);
-
-		return $result;
 	}
 
 	function get_allowed_capabilities( WP_REST_Request $request ) {

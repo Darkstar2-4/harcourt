@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 28/08/17
- * Time: 11:54 AM
- */
 class WPML_TM_Editor_Notice extends WPML_Notice {
 
 	public function is_different( WPML_Notice $other_notice ) {

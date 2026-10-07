@@ -4,36 +4,16 @@ class WPML_TM_Troubleshooting_Reset_Pro_Trans_Config_UI {
 
 	const TROUBLESHOOTING_RESET_PRO_TRANS_TEMPLATE = 'reset-pro-trans-config.twig';
 
-	/**
-	 * Template service.
-	 *
-	 * @var IWPML_Template_Service
-	 */
 	private $template_service;
 
-	/**
-	 * WPML_TM_Troubleshooting_Reset_Pro_Trans_Config_UI constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service WPML_Twig_Template twig service.
-	 */
 	public function __construct( IWPML_Template_Service $template_service ) {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * Returns of template service render result.
-	 *
-	 * @return string
-	 */
 	public function show() {
 		return $this->template_service->show( $this->get_model(), self::TROUBLESHOOTING_RESET_PRO_TRANS_TEMPLATE );
 	}
 
-	/**
-	 * Returns model array for Troubleshooting Reset Pro Trans.
-	 *
-	 * @return array
-	 */
 	private function get_model() {
 		$translation_service_name = TranslationProxy::get_current_service_name();
 

@@ -9,12 +9,10 @@ class StoreRepository implements StoreRepositoryInterface {
 
 
   public function save( Post $post ) {
-    // Implement cache.
   }
 
 
   public function get( $idPost ) {
-    // Implement cache.
     return null;
   }
 

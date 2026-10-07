@@ -81,10 +81,6 @@ class WPML_Translation_Selector extends WPML_SP_User {
 		);
 	}
 
-	/**
-	 * @param int $trid
-	 * @return null|object
-	 */
 	private function get_original_name_by_trid( $trid ) {
 		global $wpdb;
 

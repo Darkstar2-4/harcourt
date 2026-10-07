@@ -17,9 +17,6 @@ class InternalTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataGetValueFromArray
-   */
   public function testGetValueFromArray( $input, $expected ) {
     $this->assertEquals( $expected, Internal::getValueFromArray( $input ) );
   }

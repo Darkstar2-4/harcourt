@@ -1,0 +1,24 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "All": [
+            "Tümü"
+         ],
+         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
+            "Bu Özel HTML bloğunu belirli bir dilde görüntülemek için öncelikle bir Grup bloğunun içine yerleştirin."
+         ],
+         "Place inside Group block": [
+            "Grup bloğunun içine yerleştirin"
+         ],
+         "Display on language": [
+            "Dilde görüntüle"
+         ]
+      }
+   }
+}

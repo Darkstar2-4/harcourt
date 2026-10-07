@@ -8,6 +8,7 @@
 
 namespace Smush\Core\Modules;
 
+use Smush\Core\Membership\Membership;
 use Smush\Core\Settings;
 use WP_Smush;
 
@@ -43,6 +44,7 @@ abstract class Abstract_Module {
 	 * @var Settings
 	 */
 	protected $settings;
+	private $membership;
 
 	/**
 	 * Abstract_Module constructor.
@@ -50,7 +52,8 @@ abstract class Abstract_Module {
 	 * @since 3.0
 	 */
 	public function __construct() {
-		$this->settings = Settings::get_instance();
+		$this->settings   = Settings::get_instance();
+		$this->membership = Membership::get_instance();
 
 		$this->init();
 	}
@@ -71,11 +74,7 @@ abstract class Abstract_Module {
 	 */
 	public function is_active() {
 		if ( $this->slug ) {
-			if ( ! $this->is_pro ) {
-				return (bool) $this->settings->get( $this->slug );
-			} else {
-				return WP_Smush::is_pro() && $this->settings->get( $this->slug );
-			}
+			return $this->settings->is_module_active( $this->slug );
 		}
 		return true;
 	}

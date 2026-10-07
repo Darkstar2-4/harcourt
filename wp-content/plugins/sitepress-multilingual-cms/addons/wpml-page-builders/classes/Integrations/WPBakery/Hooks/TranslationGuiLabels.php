@@ -16,9 +16,6 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 			->then( spreadArgs( [ $this, 'adjustJobListElementLabel' ] ) );
 	}
 
-	/**
-	 *
-	 */
 	public function adjustJobListElementLabel( $label, $elementType ) {
 		if ( $elementType === 'post_' . self::POST_TYPE_TEMPLATE ) {
 			return $this->formatLabel( __( 'Grid template', 'js_composer' ), self::POST_TYPE_TEMPLATE, false );
@@ -26,16 +23,10 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 		return $label;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	protected function getPostTypes() {
 		return [ self::POST_TYPE_TEMPLATE ];
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function getFormat() {
 		// Translators: %s: Post type label. For example, WPBakery Templates.
 		return __( 'WPBakery %s', 'sitepress' );

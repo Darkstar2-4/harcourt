@@ -6,7 +6,6 @@ use WPML\Core\Component\Translation\Application\Query\TranslationBatchesQueryInt
 
 class BatchNamePreparer {
 
-  /** @var TranslationBatchesQueryInterface */
   private $translationBatchesQuery;
 
 

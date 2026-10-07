@@ -2,7 +2,6 @@
 
 class WPML_Integration_Requirements_Block_Editor implements IWPML_Integration_Requirements_Module {
 
-	/** @var WPML_Requirements $requirements */
 	private $requirements;
 
 	public function __construct( WPML_Requirements $requirements ) {

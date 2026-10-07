@@ -24,7 +24,6 @@ class LanguageMappings {
 	const IGNORE_MAPPING_OPTION = 'wpml-languages-ignore-mapping';
 	const IGNORE_MAPPING_ID = - 1;
 
-
 	public static function getAllLanguagesWithAutomaticSupportInfo( $sourceLang = null ): array {
 		return static::withCanBeTranslatedAutomatically( Languages::getActive(), $sourceLang );
 	}
@@ -87,9 +86,6 @@ class LanguageMappings {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * @return LanguageMapping[] $mappings
-	 */
 	public static function get() {
 		$ignoredMappings = Fns::map( function ( $code ) {
 			return new LanguageMapping( $code, '', self::IGNORE_MAPPING_ID );
@@ -120,9 +116,6 @@ class LanguageMappings {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function getAvailable() {
 		$mapping = static::getATEAPI()->get_available_languages();
 
@@ -130,11 +123,6 @@ class LanguageMappings {
 	}
 
 
-	/**
-	 * @param LanguageMapping[] $mappings
-	 *
-	 * @return Either
-	 */
 	public static function saveMapping( array $mappings ) {
 		list( $ignoredMapping, $mappingSet ) = \wpml_collect( $mappings )->partition( Relation::propEq( 'targetId', self::IGNORE_MAPPING_ID ) );
 
@@ -153,9 +141,6 @@ class LanguageMappings {
 		return $ateAPI->create_language_mapping( $mappingSet->values()->toArray() );
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function getLanguagesEligibleForAutomaticTranslations() {
 		return Wrapper::of( Languages::getSecondaries() )
 		              ->map( static::withCanBeTranslatedAutomatically() )
@@ -163,9 +148,6 @@ class LanguageMappings {
 		              ->get();
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public static function geCodesEligibleForAutomaticTranslations() {
 		return Lst::pluck( 'code', static::getLanguagesEligibleForAutomaticTranslations() );
 	}
@@ -190,9 +172,6 @@ class LanguageMappings {
 		return $hasMapping;
 	}
 
-	/**
-	 * @return CachedATEAPI
-	 */
 	protected static function getATEAPI() {
 		return new CachedATEAPI( make( \WPML_TM_ATE_API::class ), StaticVariable::getInstance() );
 	}

@@ -6,7 +6,7 @@ use \WP_REST_Response;
 
 class Push {
 
-	const REFRESH_INTERVAL = 7200; //2 hours
+	const REFRESH_INTERVAL = 7200;
 
 	const REST_NAMESPACE = 'otgs/installer/v1';
 

@@ -4,29 +4,30 @@
 {% set css_classes_display = ('wpml-ls-display ' ~ backward_compatibility.css_classes_display)|trim %}
 {% set css_classes_bracket = ('wpml-ls-bracket ' ~ backward_compatibility.css_classes_bracket)|trim %}
 
-<div class="{{ css_classes }} wpml-ls-legacy-dropdown-click js-wpml-ls-legacy-dropdown-click"{% if backward_compatibility.css_id %} id="{{ backward_compatibility.css_id }}"{% endif %}>
-	<ul role="menu">
+<div role="navigation" aria-label="{{ ls_aria_label }}" class="{{ css_classes }} wpml-ls-legacy-dropdown-click js-wpml-ls-legacy-dropdown-click"{% if backward_compatibility.css_id %} id="{{ backward_compatibility.css_id }}"{% endif %}>
+	<ul>
 
-		<li class="{{ current_language.css_classes }} wpml-ls-item-legacy-dropdown-click" role="none">
+		<li class="{{ current_language.css_classes }} wpml-ls-item-legacy-dropdown-click">
 
-			<a href="#" class="{{ ('js-wpml-ls-item-toggle wpml-ls-item-toggle ' ~ current_language.backward_compatibility.css_classes_a)|trim }}" role="menuitem" title="{{ current_language.menu_item_label }}">
-                {% include 'flag.twig' with {language: current_language, css_classes_flag: css_classes_flag} %}
+			{% set current_language_name = current_language.display_name|default(current_language.native_name) %}
+			{% set toggle_aria_label = current_language_name ? (current_language_name ~ ' – ' ~ dropdown_click_ls_aria_label) : dropdown_click_ls_aria_label %}
+			<a href="#" hreflang="{{ current_language.code }}" lang="{{ current_language.code }}" class="{{ ('js-wpml-ls-item-toggle wpml-ls-item-toggle ' ~ current_language.backward_compatibility.css_classes_a)|trim }}" aria-current="page" aria-expanded="false" aria-controls="wpml-ls-submenu-click-{{ backward_compatibility.css_id|default('default') }}" aria-haspopup="true" aria-label="{{ toggle_aria_label }}" tabindex="0" role="button" title="{{ current_language.menu_item_label }}">
+				{% include 'flag.twig' with {language: current_language, css_classes_flag: css_classes_flag} %}
 
-				{%- if current_language.display_name or current_language.native_name -%}
-					{%- set current_language_name = current_language.display_name|default(current_language.native_name) -%}
-					<span class="{{ css_classes_native }}" role="menuitem">{{- current_language_name -}}</span>
+				{%- if current_language_name -%}					
+					<span class="{{ css_classes_native }}">{{- current_language_name -}}</span>
 				{%- endif -%}
 			</a>
 
-			<ul class="js-wpml-ls-sub-menu wpml-ls-sub-menu" role="menu">
+			<ul id="wpml-ls-submenu-click-{{ backward_compatibility.css_id|default('default') }}" class="js-wpml-ls-sub-menu wpml-ls-sub-menu">
 				{% for language in languages if not language.is_current %}
 
-					<li class="{{ language.css_classes }}" role="none">
-						<a href="{{ language.url }}" class="{{ css_classes_link }}" role="menuitem" aria-label="{{ language.menu_item_label }}" title="{{ language.menu_item_label }}">
-                            {% include 'flag.twig' %}
+					<li class="{{ language.css_classes }}">
+						<a href="{{ language.url }}" hreflang="{{ language.code }}" lang="{{ language.code }}" class="{{ css_classes_link }}" aria-label="{{ language.menu_item_label }}" title="{{ language.menu_item_label }}">
+							{% include 'flag.twig' %}
 
 							{%- if language.native_name -%}
-								<span class="{{ css_classes_native }}" lang="{{ language.code }}">{{ language.native_name }}</span>
+								<span class="{{ css_classes_native }}">{{ language.native_name }}</span>
 							{%- endif -%}
 							{%- if language.display_name and (language.display_name != language.native_name) -%}
 								<span class="{{ css_classes_display }}">

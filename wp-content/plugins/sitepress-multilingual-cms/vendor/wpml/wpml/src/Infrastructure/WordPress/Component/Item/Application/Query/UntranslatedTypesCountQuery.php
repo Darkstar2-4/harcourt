@@ -12,36 +12,19 @@ use WPML\Core\SharedKernel\Component\Post\Application\Query\Dto\PostTypeDto;
 use WPML\Core\SharedKernel\Component\Post\Application\Query\TranslatableTypesQueryInterface;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 
-/**
- * @phpstan-type UntranslatedCountRow array{
- *   post_type: string,
- *   count: int,
- * }
- */
 class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterface {
 
   const POST_META_KEY_USE_NATIVE_EDITOR = '_wpml_post_translation_editor_native';
 
-  /** @phpstan-var  QueryHandlerInterface<int, UntranslatedCountRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var TranslatableTypesQueryInterface */
   private $translatableTypesQuery;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, UntranslatedCountRow> $queryHandler
-   *
-   * @param QueryPrepareInterface $queryPrepare
-   * @param TranslatableTypesQueryInterface $translatableTypesQuery
-   * @param LanguagesQueryInterface $languagesQuery
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -55,14 +38,11 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /**
-   * @phpstan-param array{
-   *    nativeEditorGlobalSetting?: bool,
-   *    nativeEditorSettingPerType?: array<string, bool>
-   *  } $queryData
-   *
-   * @return UntranslatedTypeCountDto[]
-   */
+  public function forKind() {
+    return UntranslatedTypesCountQueryInterface::KIND_POST;
+  }
+
+
   public function get( array $queryData = [] ) : array {
     $translatableTypes = $this->translatableTypesQuery->getTranslatable();
     $nativeEditorGlobalSetting = $queryData['nativeEditorGlobalSetting'] ?? false;
@@ -84,29 +64,23 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
 
     $typesIn = implode( ',', $postTypes );
 
-    $statusesIn = implode(
-      ',',
-      [
-        TranslationStatus::NOT_TRANSLATED,
-        TranslationStatus::ATE_CANCELED
-      ]
-    );
-
+    $statusesIn = $this->getStatusesIn();
     $defaultLanguageCode = $this->languagesQuery->getDefaultCode();
 
     $secondaryLanguages = $this->languagesQuery->getSecondary();
 
     $sql = "
-    SELECT translations.post_type, COUNT(translations.ID) count
+    SELECT translations.post_type,
+            COUNT(translations.ID) count
 			FROM (
 	            SELECT RIGHT(element_type, LENGTH(element_type) - 5) as post_type, posts.ID
 	            FROM {$this->queryPrepare->prefix()}icl_translations
 	            INNER JOIN {$this->queryPrepare->prefix()}posts posts ON element_id = ID
-                
-                LEFT JOIN {$this->queryPrepare->prefix()}postmeta postmeta 
-                  ON postmeta.post_id = posts.ID 
+
+                LEFT JOIN {$this->queryPrepare->prefix()}postmeta postmeta
+                  ON postmeta.post_id = posts.ID
                   AND postmeta.meta_key = %s
-	                                        
+
 	            WHERE element_type IN ($typesIn)
 		           AND post_status = 'publish'
 		           AND source_language_code IS NULL
@@ -133,7 +107,6 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
     );
 
     try {
-      /** @var array<array{post_type: string, count: int}> $untranslatedTypesCount */
       $untranslatedTypesCount = $this->queryHandler->query( $preparedSql )->getResults();
     } catch ( DatabaseErrorException $e ) {
       $untranslatedTypesCount = [];
@@ -143,17 +116,71 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /**
-   * @param array<array{post_type: string, count: int}> $untranslatedTypesCount
-   * @param PostTypeDto[] $translatablePostTypesDto
-   *
-   * @return UntranslatedTypeCountDto[]
-   */
+  public function getSomeIds( $numberOfIdsToFetch, $offset, $type ) {
+    $statusesIn = $this->getStatusesIn();
+    $defaultLanguageCode = $this->languagesQuery->getDefaultCode();
+    $secondaryLanguages = $this->languagesQuery->getSecondary();
+
+    $sql = "
+      SELECT p.ID
+      FROM {$this->queryPrepare->prefix()}icl_translations AS itr
+      INNER JOIN {$this->queryPrepare->prefix()}posts AS p
+              ON itr.element_id = p.ID
+      LEFT JOIN {$this->queryPrepare->prefix()}postmeta AS pm
+             ON pm.post_id = p.ID
+            AND pm.meta_key = %s
+      WHERE itr.element_type = CONCAT('post_', %s)
+        AND p.post_status = 'publish'
+        AND itr.source_language_code IS NULL
+        AND itr.language_code = %s
+        AND (
+          SELECT COUNT(inner_itr.trid)
+          FROM {$this->queryPrepare->prefix()}icl_translations AS inner_itr
+          INNER JOIN {$this->queryPrepare->prefix()}icl_translation_status AS its
+                  ON inner_itr.translation_id = its.translation_id
+          WHERE inner_itr.trid = itr.trid
+            AND its.status NOT IN ({$statusesIn})
+            AND its.needs_update != 1
+        ) < %d
+        AND ( pm.meta_value IS NULL OR pm.meta_value = 'no' )
+      ORDER BY p.ID ASC
+      LIMIT %d OFFSET %d
+    ";
+
+    try {
+      $ids = $this->queryHandler->queryColumn(
+        $this->queryPrepare->prepare(
+          $sql,
+          self::POST_META_KEY_USE_NATIVE_EDITOR,
+          $type,
+          $defaultLanguageCode,
+          count( $secondaryLanguages ),
+          $numberOfIdsToFetch,
+          $offset
+        )
+      );
+      return $ids;
+    } catch ( DatabaseErrorException $e ) {
+      return [];
+    }
+  }
+
+
+  private function getStatusesIn() : string {
+    return implode(
+      ',',
+      [
+        TranslationStatus::NOT_TRANSLATED,
+        TranslationStatus::ATE_CANCELED
+      ]
+    );
+  }
+
+
   private function mapTypesToTypeWithCountDto( array $untranslatedTypesCount, array $translatablePostTypesDto ): array {
     return array_map(
       function ( $typeWithCount ) use ( $translatablePostTypesDto ) {
 
-        /** @var PostTypeDto|false $postTypeDto */
         $postTypeDto = current(
           array_filter(
             $translatablePostTypesDto,
@@ -166,7 +193,9 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
         return new UntranslatedTypeCountDto(
           $postTypeDto ? $postTypeDto->getPlural() : $typeWithCount['post_type'],
           $postTypeDto ? $postTypeDto->getSingular() : $typeWithCount['post_type'],
-          $typeWithCount['count']
+          $typeWithCount['count'],
+          UntranslatedTypesCountQueryInterface::KIND_POST,
+          $typeWithCount['post_type']
         );
       },
       $untranslatedTypesCount
@@ -174,12 +203,6 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /**
-   * @param bool $nativeEditorGlobalSetting
-   * @param array<string, bool> $nativeEditorSettingPerType
-   *
-   * @return string
-   */
   private function getPostMetaConditions(
     bool $nativeEditorGlobalSetting,
     array $nativeEditorSettingPerType
@@ -190,56 +213,32 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /**
-   * When using native editor globally, we should check for where post meta is NO
-   * OR post types not using native editor and post meta is NULL.
-   * If no post type exception is defined just check for where post meta is NO.
-   *
-   * @param array<string, bool> $nativeEditorSettingPerType
-   *
-   * @return string
-   */
   private function getGlobalNativeEditorCondition( array $nativeEditorSettingPerType ) : string {
     $typesNotUsingNativeEditor = $this->getPostTypes( $nativeEditorSettingPerType, false );
 
     return $typesNotUsingNativeEditor
       ? '(
-              (posts.post_type IN (' . $this->queryPrepare->prepareIn( $typesNotUsingNativeEditor ) . ') 
-                AND postmeta.meta_value IS NULL) 
-              OR postmeta.meta_value = \'no\' 
+              (posts.post_type IN (' . $this->queryPrepare->prepareIn( $typesNotUsingNativeEditor ) . ')
+                AND postmeta.meta_value IS NULL)
+              OR postmeta.meta_value = \'no\'
            )'
       : 'postmeta.meta_value = \'no\'';
   }
 
 
-  /**
-   * If not using native editor globally, we should check for where post meta is NULL
-   * AND post type is not using native editor.
-   * If no post type using native editor just check for post meta is NO or NULL.
-   *
-   * @param array<string, bool> $nativeEditorSettingPerType
-   *
-   * @return string
-   */
   private function getPerPostTypeNativeEditorCondition( array $nativeEditorSettingPerType ) : string {
     $typesUsingNativeEditor = $this->getPostTypes( $nativeEditorSettingPerType, true );
 
     return $typesUsingNativeEditor
       ? '(
-              (posts.post_type NOT IN (' . $this->queryPrepare->prepareIn( $typesUsingNativeEditor ) . ') 
-                AND postmeta.meta_value IS NULL) 
+              (posts.post_type NOT IN (' . $this->queryPrepare->prepareIn( $typesUsingNativeEditor ) . ')
+                AND postmeta.meta_value IS NULL)
                OR postmeta.meta_value = \'no\'
            )'
       : '( postmeta.meta_value IS NULL OR postmeta.meta_value = \'no\' )';
   }
 
 
-  /**
-   * @param array<string, bool> $nativeEditorSettingPerType
-   * @param bool  $usingWpEditor
-   *
-   * @return string[]
-   */
   private function getPostTypes( array $nativeEditorSettingPerType, bool $usingWpEditor ) : array {
     return array_keys(
       array_filter(

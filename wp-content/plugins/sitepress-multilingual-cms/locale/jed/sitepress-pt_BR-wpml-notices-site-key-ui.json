@@ -4,7 +4,7 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
          "Get a key for this site": [
@@ -14,7 +14,7 @@
             "Chave do site:"
          ],
          "Enter your site key here": [
-            "Digite sua chave do site aqui"
+            "Insira a chave do seu site aqui"
          ],
          "Registering...": [
             "Registrando..."
@@ -23,10 +23,10 @@
             "Registrar"
          ],
          "A New Site Key Is Required": [
-            "É necessária uma nova chave de site"
+            "É necessária uma nova chave do site"
          ],
          "To continue using WPML features like automatic translation and plugin updates, please register your site again. Don’t worry, your existing content and translations are safe.": [
-            "Para continuar usando os recursos do WPML, como tradução automática e atualizações de plugins, por favor, registre seu site novamente. Não se preocupe, seu conteúdo e traduções existentes estão seguros."
+            "Para continuar usando os recursos do WPML, como tradução automática e atualizações de plugins, registre seu site novamente. Não se preocupe, seu conteúdo e traduções existentes estão seguros."
          ],
          "Site key registered successfully!": [
             "Chave do site registrada com sucesso!"
@@ -35,7 +35,7 @@
             "A página será recarregada em %d segundos..."
          ],
          "Registration failed. Please try again.": [
-            "Falha no registro. Por favor, tente novamente."
+            "O registro falhou. Tente novamente."
          ]
       }
    }

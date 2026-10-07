@@ -8,15 +8,6 @@ use function WPML\Container\make;
 use function WPML\FP\curryN;
 use function WPML\FP\partial;
 
-/**
- * Class Module
- * @package WPML\ST\Batch\Translation
- *
- * @phpstan-type curried '__CURRIED_PLACEHOLDER__'
- *
- * @method static callable getBatchId() :: ( string → int )
- * @method static callable|void setBatchLanguage( ...$batchId, ...$sourceLang ) :: int → string → void
- */
 class Module {
 
 	use Macroable;
@@ -37,12 +28,10 @@ class Module {
 
 		self::macro( 'setBatchLanguage', $setLanguage( Fns::__, self::EXTERNAL_TYPE, null, Fns::__ ) );
 
-		/** @var callable $initializeTranslation */
 		$initializeTranslation = StringTranslations::markTranslationsAsInProgress(
 			partial( [ Status::class, 'getStatusesOfBatch' ], $wpdb )
 		);
 
-		/** @var callable $recordSetter */
 		$recordSetter = Records::set( $wpdb );
 
 		Hooks::addHooks(
@@ -55,11 +44,6 @@ class Module {
 		Hooks::addStringTranslationStatusHooks( StringTranslations::updateStatus(), $initializeTranslation );
 	}
 
-	/**
-	 * @param int $id
-	 * @return string|callable
-	 * @phpstan-return ($id is not null ? string : callable )
-	 */
 	public static function getString( $id = null ) {
 		return call_user_func_array(
 			curryN( 1, function ( $id ) {
@@ -69,22 +53,7 @@ class Module {
 		);
 	}
 
-	/**
-	 * @param callable|curried $saveBatch
-	 * @param int|curried $batchId
-	 * @param int|curried $stringId
-	 * @param string|curried $sourceLang
-	 * @return void|callable
-	 *
-	 * @phpstan-param ?callable $saveBatch
-	 * @phpstan-param ?int $batchId
-	 * @phpstan-param ?int $stringId
-	 * @phpstan-param ?string $sourceLang
-	 *
-	 * @phpstan-return ( $sourceLang is not null ? void : callable )
-	 *
-	 */
-	public static function batchStringsStorage( callable $saveBatch = null, $batchId  = null, $stringId  = null, $sourceLang  = null ) {
+	public static function batchStringsStorage( ?callable $saveBatch = null, $batchId  = null, $stringId  = null, $sourceLang  = null ) {
 		return call_user_func_array(
 			curryN( 4, function ( callable $saveBatch, $batchId, $stringId, $sourceLang ) {
 				self::setBatchLanguage( $batchId, $sourceLang );

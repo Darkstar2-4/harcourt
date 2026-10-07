@@ -6,29 +6,19 @@ namespace WPML\ST\MO\Hooks;
 use WPML\ST\Gettext\Settings;
 
 class DetectPrematurelyTranslatedStrings implements \IWPML_Action {
-	/** @var string[] */
 	private $domains = [];
 
-	/** @var string[] */
 	private $preloadedDomains = [];
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var Settings */
 	private $gettextHooksSettings;
 
-	/**
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct( \SitePress $sitepress, Settings $settings ) {
 		$this->sitepress            = $sitepress;
 		$this->gettextHooksSettings = $settings;
 	}
 
-	/**
-	 * Init gettext hooks.
-	 */
 	public function add_hooks() {
 		if ( $this->gettextHooksSettings->isAutoRegistrationEnabled() ) {
 			$domains                = $this->sitepress->get_setting( 'gettext_theme_domain_name' );
@@ -43,59 +33,24 @@ class DetectPrematurelyTranslatedStrings implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string       $translation
-	 * @param string       $text
-	 * @param string|array $domain
-	 *
-	 * @return string
-	 */
 	public function gettext_filter( $translation, $text, $domain ) {
 		$this->registerDomain( $domain );
 
 		return $translation;
 	}
 
-	/**
-	 * @param string $translation
-	 * @param string $text
-	 * @param string $context
-	 * @param string $domain
-	 *
-	 * @return string
-	 */
 	public function gettext_with_context_filter( $translation, $text, $context, $domain ) {
 		$this->registerDomain( $domain );
 
 		return $translation;
 	}
 
-	/**
-	 * @param string       $translation
-	 * @param string       $single
-	 * @param string       $plural
-	 * @param string       $number
-	 * @param string|array $domain
-	 *
-	 * @return string
-	 */
 	public function ngettext_filter( $translation, $single, $plural, $number, $domain ) {
 		$this->registerDomain( $domain );
 
 		return $translation;
 	}
 
-	/**
-	 * @param string $translation
-	 * @param string $single
-	 * @param string $plural
-	 * @param string $number
-	 * @param string $context
-	 * @param string $domain
-	 *
-	 * @return string
-	 *
-	 */
 	public function ngettext_with_context_filter( $translation, $single, $plural, $number, $context, $domain ) {
 		$this->registerDomain( $domain );
 

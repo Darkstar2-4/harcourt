@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Get More Features with WPML's Advanced Translation Editor": [
-            "Erhalten Sie mehr Funktionen mit WPMLs Erweitertem Übersetzungs-Editor"
+            "Erhalten Sie mehr Funktionen mit dem erweiterten Übersetzungseditor von WPML"
          ],
          "Close banner": [
             "Banner schließen"
          ],
          "You're using the Classic Translation Editor, an old legacy tool, and missing out on the many features and efficiency of our Advanced Translation Editor:": [
-            "Sie verwenden den Classic Translation Editor, ein altes Legacy-Tool, und verpassen viele Funktionen und die Effizienz unseres Erweiterten Übersetzungs-Editors:"
+            "Sie verwenden den klassischen Übersetzungseditor, ein altes Legacy-Tool, und verpassen die vielen Funktionen und die Effizienz unseres erweiterten Übersetzungseditors:"
          ],
          "Translation Memory": [
             "Übersetzungsspeicher"
@@ -35,13 +35,13 @@
             "Automatische Übersetzung"
          ],
          "Switch now for a faster, more convenient, and reliable translation experience.": [
-            "Wechseln Sie jetzt für eine schnellere, bequemere und zuverlässigere Übersetzungserfahrung."
+            "Wechseln Sie jetzt für ein schnelleres, bequemeres und zuverlässigeres Übersetzungserlebnis."
          ],
          "Switch Now": [
             "Jetzt wechseln"
          ],
          "Learn more about Advanced Translation Editor": [
-            "Mehr über den Erweiterten Übersetzungs-Editor erfahren"
+            "Erfahren Sie mehr über den erweiterten Übersetzungseditor"
          ],
          "Learn More": [
             "Mehr erfahren"

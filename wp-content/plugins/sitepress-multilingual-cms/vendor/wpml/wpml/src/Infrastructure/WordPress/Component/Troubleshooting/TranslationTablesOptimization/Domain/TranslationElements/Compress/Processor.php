@@ -5,28 +5,16 @@ namespace WPML\Infrastructure\WordPress\Component\Troubleshooting\TranslationTab
 use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\MigrationDataService\ProcessorInterface;
 use WPML\Translation\TranslationElements\FieldCompression;
 
-/**
- * @implements ProcessorInterface<object{tid: int, fieldData: string, fieldDataTranslated: string}>
- */
 class Processor implements ProcessorInterface {
 
-  /** @var \wpdb */
   private $wpdb;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct( $wpdb ) {
     $this->wpdb = $wpdb;
   }
 
 
-  /**
-   * @param array<object{tid: int, fieldData: string, fieldDataTranslated: string}> $records
-   *
-   * @return int[]
-   */
   public function process( array $records ): array {
     $processed  = [];
     $updateData = [];
@@ -50,21 +38,13 @@ class Processor implements ProcessorInterface {
   }
 
 
-  /**
-   * @param array<array{tid: int|string, field_data: string|null, field_data_translated: string|null}> $data
-   *
-   * @return void
-   */
   private function bulkUpdateTranslateTable( array $data ) {
     if ( empty( $data ) ) {
       return;
     }
 
-    /** @var array<string> $fieldDataCases */
     $fieldDataCases = [];
-    /** @var array<string> $fieldDataTranslatedCases */
     $fieldDataTranslatedCases = [];
-    /** @var array<int> $tidValues */
     $tidValues = [];
 
     foreach ( $data as $record ) {
@@ -75,10 +55,6 @@ class Processor implements ProcessorInterface {
       $tidValues[]                = $tid;
     }
 
-    /**
-     * @var string[] $fieldDataCases
-     * @var string[] $fieldDataTranslatedCases
-     */
 
     $tableName = $this->wpdb->prefix . 'icl_translate';
     $sql       = "UPDATE {$tableName} SET

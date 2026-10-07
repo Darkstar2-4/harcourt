@@ -4,12 +4,6 @@ class WPML_TM_Email_Notification_View extends WPML_TM_Email_View {
 
 	const PROMOTE_TRANSLATION_SERVICES_TEMPLATE = 'notification/promote-translation-services.twig';
 
-	/**
-	 * @param array  $model
-	 * @param string $template
-	 *
-	 * @return string
-	 */
 	public function render_model( array $model, $template ) {
 		if ( isset( $model['casual_name'] ) && $model['casual_name'] ) {
 			$content = $this->render_casual_header( $model['casual_name'] );
@@ -23,11 +17,6 @@ class WPML_TM_Email_Notification_View extends WPML_TM_Email_View {
 		return $content;
 	}
 
-	/**
-	 * @param array $model
-	 *
-	 * @return string
-	 */
 	private function render_promote_translation_services( array $model ) {
 		$content = '';
 
@@ -47,7 +36,6 @@ class WPML_TM_Email_Notification_View extends WPML_TM_Email_View {
 		return $content;
 	}
 
-	/** @return string */
 	private function render_footer() {
 		$notifications_url  = esc_url( admin_url( 'admin.php?page=' . WPML_TM_FOLDER . WPML_Translation_Management::PAGE_SLUG_SETTINGS . '&sm=notifications' ) );
 		$notifications_text = esc_html__( 'WPML Notification Settings', 'wpml-translation-management' );

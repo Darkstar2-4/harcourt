@@ -5,19 +5,10 @@ $isJs        = false;
 $errors      = [];
 $response    = [];
 
-$tryFromCache = false;
+$factory           = new WPML_TM_AMS_ATE_Console_Section_Factory();
+$ateConsoleSection = $factory->create();
 
-if ( isset( $_GET['section'] ) && $_GET['section'] === WPML_TM_AMS_Translation_Quality_Console_Section::SLUG ) {
-	$factory           = new WPML_TM_AMS_Translation_Quality_Console_Section_Factory();
-	$ateConsoleSection = $factory->create();
-
-	$tryFromCache = true; // try to fetch from cache for translation quality
-} else {
-	$factory           = new WPML_TM_AMS_ATE_Console_Section_Factory();
-	$ateConsoleSection = $factory->create();
-}
-
-$appData = $ateConsoleSection->getAppData( $tryFromCache);
+$appData = $ateConsoleSection->getAppData();
 
 $app         = $appData['app'];
 $constructor = $appData['constructor'];

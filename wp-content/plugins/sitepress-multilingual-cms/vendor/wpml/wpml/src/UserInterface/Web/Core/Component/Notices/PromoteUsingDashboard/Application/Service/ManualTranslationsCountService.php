@@ -8,27 +8,13 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\ExistingPageInterface;
 
 final class ManualTranslationsCountService {
 
-  /** @var ManualTranslationsCountRepositoryInterface */
   private $repository;
 
-  /**
-   * IMPORTANT!
-   * We have to use UserQueryInterface, not TranslatorsQueryInterface.
-   * A user who is NOT translator, but is an admin is still able to click "+" on the post list.
-   *
-   * @var UserQueryInterface
-   */
   private $userQuery;
 
-  /** @var ExistingPageInterface[] */
   private $allowedPages;
 
 
-  /**
-   * @param ManualTranslationsCountRepositoryInterface $repository
-   * @param UserQueryInterface                         $userQuery
-   * @param ExistingPageInterface[]                    $allowedPages
-   */
   public function __construct(
     ManualTranslationsCountRepositoryInterface $repository,
     UserQueryInterface $userQuery,
@@ -50,9 +36,6 @@ final class ManualTranslationsCountService {
   }
 
 
-  /**
-   * @return void
-   */
   public function increment() {
     $translator = $this->userQuery->getCurrent();
     if ( ! $translator ) {

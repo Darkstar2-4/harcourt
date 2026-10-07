@@ -6,17 +6,8 @@ use WP_Locale;
 
 class WPLocaleProxy {
 
-	/**
-	 * @var WP_Locale|null $wp_locale
-	 */
 	private $wp_locale;
 
-	/**
-	 * @param string $method
-	 * @param array  $args
-	 *
-	 * @return mixed|null
-	 */
 	public function __call( $method, array $args ) {
 		$callback = [ $this->getWPLocale(), $method ];
 		if ( method_exists( $this->getWPLocale(), $method ) && is_callable( $callback ) ) {
@@ -26,11 +17,6 @@ class WPLocaleProxy {
 		return null;
 	}
 
-	/**
-	 * @param string $property
-	 *
-	 * @return bool
-	 */
 	public function __isset( $property ) {
 		if ( property_exists( \WP_Locale::class, $property ) ) {
 			return true;
@@ -39,11 +25,6 @@ class WPLocaleProxy {
 		return false;
 	}
 
-	/**
-	 * @param string $property
-	 *
-	 * @return mixed|null
-	 */
 	public function __get( $property ) {
 		if ( $this->__isset( $property ) ) {
 			return $this->getWPLocale()->{$property};
@@ -52,9 +33,6 @@ class WPLocaleProxy {
 		return null;
 	}
 
-	/**
-	 * @return WP_Locale|null
-	 */
 	private function getWPLocale() {
 		if ( ! $this->wp_locale ) {
 			$this->wp_locale = new WP_Locale();

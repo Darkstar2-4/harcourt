@@ -1,27 +1,17 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Feedback_Row_View
- */
 class WPML_TF_Backend_Feedback_Row_View {
 
 	const TEMPLATE_FOLDER  = '/templates/translation-feedback/backend/';
 	const SUMMARY_TEMPLATE = 'feedback-list-page-table-row.twig';
 	const DETAILS_TEMPLATE = 'feedback-list-page-table-row-details.twig';
 
-	/** @var IWPML_Template_Service $template_service */
 	private $template_service;
 
-	/**
-	 * WPML_TF_Backend_Feedback_Row_View constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service
-	 */
 	public function __construct( IWPML_Template_Service $template_service ) {
 		$this->template_service = $template_service;
 	}
 
-	/** @param WPML_TF_Feedback $feedback */
 	public function render_summary_row( WPML_TF_Feedback $feedback ) {
 		$model = array(
 			'strings'                => self::get_summary_strings(),
@@ -32,7 +22,6 @@ class WPML_TF_Backend_Feedback_Row_View {
 		return $this->template_service->show( $model, self::SUMMARY_TEMPLATE );
 	}
 
-	/** @param WPML_TF_Feedback $feedback */
 	public function render_details_row( WPML_TF_Feedback $feedback ) {
 		$model = array(
 			'strings'                => self::get_details_strings(),
@@ -43,7 +32,6 @@ class WPML_TF_Backend_Feedback_Row_View {
 		return $this->template_service->show( $model, self::DETAILS_TEMPLATE );
 	}
 
-	/** @return array */
 	public static function get_columns_strings() {
 		return array(
 			'feedback' => __( 'Feedback', 'sitepress' ),
@@ -54,7 +42,6 @@ class WPML_TF_Backend_Feedback_Row_View {
 		);
 	}
 
-	/** @return array */
 	public static function get_summary_strings() {
 		return array(
 			'select_validation' => __( 'Select Validation', 'sitepress' ),
@@ -69,7 +56,6 @@ class WPML_TF_Backend_Feedback_Row_View {
 		);
 	}
 
-	/** @return array */
 	public static function get_details_strings() {
 		return array(
 			'title'                     => __( 'Translation Feedback', 'sitepress' ),

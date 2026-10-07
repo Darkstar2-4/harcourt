@@ -14,13 +14,6 @@ use function WPML\Container\make;
 use function WPML\FP\pipe;
 
 abstract class Elements {
-	/**
-	 * @param callable $sendBatch
-	 * @param Messages $messages
-	 * @param callable $buildBatch
-	 * @param array    $data
-	 * @param string   $type
-	 */
 	public static function dispatch(
 		callable $sendBatch,
 		Messages $messages,
@@ -95,46 +88,18 @@ abstract class Elements {
 		return array_filter( $elementsToTranslation, pipe( Obj::prop( 'target_languages' ), Lst::length() ) );
 	}
 
-	/**
-	 * @param \stdClass $job
-	 *
-	 * @return bool
-	 */
 	protected static function isProgressJob( $job ) {
 		return Lst::includes( (int) $job->status, [ ICL_TM_WAITING_FOR_TRANSLATOR, ICL_TM_IN_PROGRESS ] ) && ! $job->needs_update;
 	}
 
-	/**
-	 * @param \stdClass $job
-	 *
-	 * @return bool
-	 */
 	protected static function isCompletedJob( $job ) {
 		return (int) $job->status === ICL_TM_COMPLETE && ! $job->needs_update;
 	}
 
-	/**
-	 * @param Messages $messages
-	 * @param array    $elementsData
-	 * @param array    $targetLanguages
-	 * @param string   $howToHandleExisting
-	 * @param bool     $translateAutomatically
-	 *
-	 * phpcs:disable Squiz.Commenting.FunctionComment.InvalidNoReturn
-	 * @return array
-	 * @throws Exception Throws an exception if the method is not properly extended.
-	 */
 	protected static function filterElements( Messages $messages, $elementsData, $targetLanguages, $howToHandleExisting, $translateAutomatically ) {
 		throw new Exception( ' this method is mandatory' );
 	}
 
-	/**
-	 * @param \stdClass $job
-	 * @param string|null  $howToHandleExisting
-	 * @param bool $translateAutomatically
-	 *
-	 * @return bool
-	 */
 	protected static function shouldJobBeIgnoredBecauseIsCompleted( $job, $howToHandleExisting, $translateAutomatically ) {
 		return $translateAutomatically && $job && self::isCompletedJob( $job ) && $howToHandleExisting === \WPML_TM_Translation_Batch::HANDLE_EXISTING_LEAVE;
 	}

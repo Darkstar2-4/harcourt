@@ -8,13 +8,10 @@ class Hooks implements \IWPML_Action {
 
 	const PRIORITY_AFTER_DEFAULT = 20;
 
-	/** @var Parser $parser */
 	private $parser;
 
-	/** @var Storage $storage */
 	private $storage;
 
-	/** @var string $translatableWidgetsHook */
 	private $translatableWidgetsHook;
 
 	public function __construct(
@@ -29,18 +26,15 @@ class Hooks implements \IWPML_Action {
 
 	public function add_hooks() {
 		add_filter( 'wpml_config_array', tap( [ $this, 'extractConfig' ] ) );
-		add_filter( $this->translatableWidgetsHook , [ $this, 'extendTranslatableWidgets' ], self::PRIORITY_AFTER_DEFAULT );
+		add_filter( $this->translatableWidgetsHook, [ $this, 'extendTranslatableWidgets' ], self::PRIORITY_AFTER_DEFAULT );
 	}
 
 	public function extractConfig( array $allConfig ) {
 		$this->storage->update( $this->parser->extract( $allConfig ) );
+
+		do_action( 'wpml_elementor_auto_config_clear_cache' );
 	}
 
-	/**
-	 * @param array $widgets
-	 *
-	 * @return array
-	 */
 	public function extendTranslatableWidgets( array $widgets ) {
 		return array_merge( $widgets, $this->storage->get() );
 	}

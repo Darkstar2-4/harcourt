@@ -11,7 +11,6 @@ class TranslationStatusesParser {
 		foreach (
 			array_filter( explode( ';', $translationStatusesRawString ) ) as $row
 		) {
-			// Split the row by comma and map the values to an associative array
 			$values = [];
 			foreach ( explode( ',', $row ) as $pair ) {
 				$fields = explode( ':', $pair );
@@ -35,7 +34,7 @@ class TranslationStatusesParser {
 				$values['automatic'] = 'NULL';
 			}
 
-			$status = (int) ( $values['status'] ?? ICL_TM_NOT_TRANSLATED ); // Status as integer
+			$status = (int) ( $values['status'] ?? ICL_TM_NOT_TRANSLATED );
 
 			$rid = isset( $values['rid'] ) ? (int) $values['rid'] : 0;
 			if ( $rid > 0 && isset( $ridIndexedJobsArray[ $rid ] ) ) {
@@ -47,6 +46,7 @@ class TranslationStatusesParser {
 				$values['reviewStatus']       = $job['review_status'];
 				$values['translated']         = $job['translated'];
 				$values['translatorId']       = $job['translator_id'];
+				$values['editorJobId']        = $job['editor_job_id'];
 
 			}
 
@@ -57,6 +57,7 @@ class TranslationStatusesParser {
 			$translationService = $values['translationService'] ?? 'local';
 			$editor             = $values['editor'] ?? null;
 			$translatorId       = isset( $values['translatorId'] ) && $values['translatorId'] !== 'NULL' ? (int) $values['translatorId'] : null;
+			$editorJobId        = isset( $values['editorJobId'] ) && $values['editorJobId'] !== 'NULL' ? (int) $values['editorJobId'] : null;
 
 			$method = null;
 			if ( $status === ICL_TM_DUPLICATE ) {
@@ -71,7 +72,6 @@ class TranslationStatusesParser {
 
 			$editor = $this->parseEditor( $editor );
 
-			// Construct the nested array
 			$translationStatuses[ $langCode ] = new TranslationStatusDto(
 				$status,
 				$reviewStatus,
@@ -79,18 +79,14 @@ class TranslationStatusesParser {
 				$method,
 				$editor,
 				$isTranslated,
-				$translatorId
+				$translatorId,
+				$editorJobId
 			);
 		}
 
 		return $translationStatuses;
 	}
 
-	/**
-	 * @param string|null $editor
-	 *
-	 * @return string|null
-	 */
 	private function parseEditor( $editor ) {
 		if ( $editor === 'wpml' ) {
 			$editor = 'classic';

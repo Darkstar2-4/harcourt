@@ -8,12 +8,7 @@ use \WPML_Request;
 use \WPML_WP_Comments;
 use function WPML\FP\System\filterVar;
 
-/**
- * @package    wpml-core
- * @subpackage wpml-requests
- */
 class Frontend extends WPML_Request {
-	/** @var \WPML_WP_API */
 	private $wp_api;
 
 	public function __construct(
@@ -32,9 +27,6 @@ class Frontend extends WPML_Request {
 		return $this->wp_api->is_comments_post_page() ? $this->get_comment_language() : $this->get_request_uri_lang();
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_comment_language() {
 		return Maybe::of( $_POST )
 					->map( Obj::prop( WPML_WP_Comments::LANG_CODE_FIELD ) )

@@ -11,21 +11,10 @@ use function WPML\FP\curryN;
 use WPML\FP\Obj;
 use function WPML\FP\pipe;
 
-/**
- * Class PostType
- * @package WPML\LIB\WP
- * @method static callable|int getPublishedCount( ...$postType ) - Curried :: string → int
- * @method static callable|Just|Nothing getObject( ...$postType ) - Curried :: string → Maybe( WP_Post_Type )|Nothing
- * @method static callable|Just|Nothing getPluralName( ...$postType ) - Curried :: string → Maybe(string) |Nothing
- * @method static callable|Just|Nothing getSingularName( ...$postType ) - Curried :: string → Maybe(string) |Nothing
- */
 class PostType {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 
 		self::macro( 'getPublishedCount', curryN( 1, pipe( 'wp_count_posts', Obj::propOr( 0, 'publish' ) ) ) );

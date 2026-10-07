@@ -22,7 +22,6 @@ class Hooks {
 
 			$prevValue = Post::getMetaSingle( $object_id, $meta_key );
 
-			// $isMetaSameAsPrevious :: id → bool
 			$isMetaSameAsPrevious = pipe( Post::getMetaSingle( Fns::__, $meta_key ), Relation::equals( $prevValue ) );
 
 			IfOriginalPost::getTranslationIds( $object_id )

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @group media
- */
 class WPML_Beaver_Builder_Media_Node_Slideshow extends WPML_Beaver_Builder_Media_Node {
 
 	private $url_properties = array(

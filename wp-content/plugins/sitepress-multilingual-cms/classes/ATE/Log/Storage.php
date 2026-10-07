@@ -14,6 +14,8 @@ class Storage {
 	public static function add( Entry $entry, $avoidDuplication = false ) {
 		$entry->timestamp = $entry->timestamp ?: time();
 
+		self::mirrorToJobLog( $entry );
+
 		$entries = self::getAll();
 
 		if ( $avoidDuplication ) {
@@ -40,9 +42,6 @@ class Storage {
 		OptionManager::updateWithoutAutoLoad( self::OPTION_NAME, self::OPTION_GROUP, $newOptionValue );
 	}
 
-	/**
-	 * @param Entry $entry
-	 */
 	public static function remove( Entry $entry ) {
 		$entries        = self::getAll();
 		$entries        = $entries->reject(
@@ -59,9 +58,6 @@ class Storage {
 		OptionManager::updateWithoutAutoLoad( self::OPTION_NAME, self::OPTION_GROUP, $newOptionValue );
 	}
 
-	/**
-	 * @return Collection Collection of Entry objects.
-	 */
 	public static function getAll() {
 		return wpml_collect( OptionManager::getOr( [], self::OPTION_NAME, self::OPTION_GROUP ) )
 			->map(
@@ -73,5 +69,30 @@ class Storage {
 
 	public function getCount(): int {
 		return count( OptionManager::getOr( [], self::OPTION_NAME, self::OPTION_GROUP ) );
+	}
+
+	private static function mirrorToJobLog( Entry $entry ) {
+		try {
+			if ( ! class_exists( \WPML\TM\Jobs\JobLog::class ) ) {
+				return;
+			}
+
+			$data = [
+				'description' => $entry->description,
+				'event_type'  => $entry->eventType,
+				'wpmlJobId'   => $entry->wpmlJobId,
+				'ateJobId'    => $entry->ateJobId,
+				'extraData'   => $entry->extraData,
+			];
+
+			$eventLabel = 'ate_log_event_type_' . (int) $entry->eventType;
+
+			if ( ! empty( $entry->description ) ) {
+				\WPML\TM\Jobs\JobLog::addError( $eventLabel, $data );
+			} else {
+				\WPML\TM\Jobs\JobLog::add( $eventLabel, $data );
+			}
+		} catch ( \Throwable $e ) {
+		}
 	}
 }

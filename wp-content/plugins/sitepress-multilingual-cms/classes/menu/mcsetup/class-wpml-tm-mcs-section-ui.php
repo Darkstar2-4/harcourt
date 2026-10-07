@@ -10,9 +10,6 @@ abstract class WPML_TM_MCS_Section_UI {
 		$this->title = $title;
 	}
 
-	/**
-	 * @return mixed
-	 */
 	public function get_id() {
 		return $this->id;
 	}
@@ -42,9 +39,6 @@ abstract class WPML_TM_MCS_Section_UI {
 		return $output;
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function render_content();
 }
 

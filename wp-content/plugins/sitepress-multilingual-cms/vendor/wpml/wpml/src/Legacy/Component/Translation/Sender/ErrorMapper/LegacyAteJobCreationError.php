@@ -5,11 +5,6 @@ namespace WPML\Legacy\Component\Translation\Sender\ErrorMapper;
 class LegacyAteJobCreationError implements StrategyInterface {
 
 
-  /**
-   * @param array{id?: string, type?: string, text?: string}[] $errors
-   *
-   * @return string|null
-   */
   public function map( array $errors ) {
     foreach ( $errors as $error ) {
       if (
@@ -19,7 +14,6 @@ class LegacyAteJobCreationError implements StrategyInterface {
         && $error['type'] === 'error'
         && $error['id'] === 'wpml_tm_ate_create_job'
       ) {
-        // Use legacy text.
         return $error['text'];
       }
     }

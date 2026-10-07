@@ -13,10 +13,8 @@ class PreloadThemeMoFile implements \IWPML_Action {
 	const SETTING_ENABLED = 1;
 	const SETTING_ENABLED_FOR_LOAD_TEXT_DOMAIN = 2;
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct( \SitePress $sitepress, \wpdb $wpdb ) {
@@ -34,7 +32,6 @@ class PreloadThemeMoFile implements \IWPML_Action {
 		$isEnabled = $loadTextDomainSetting === static::SETTING_ENABLED;
 
 		if ( $loadTextDomainSetting === static::SETTING_ENABLED_FOR_LOAD_TEXT_DOMAIN ) {
-			/** @var AutoRegisterSettings $autoStrings */
 			$autoStrings = make( AutoRegisterSettings::class );
 			$isEnabled = $autoStrings->isEnabled();
 		}
@@ -46,12 +43,6 @@ class PreloadThemeMoFile implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param Collection<string> $domains
-	 * @param string $locale
-	 *
-	 * @return Collection
-	 */
 	private function getMOFilesByDomainsAndLocale( $domains, $locale ) {
 		$domainsClause   = wpml_prepare_in( $domains->toArray(), '%s' );
 		$sql = "
@@ -60,7 +51,6 @@ class PreloadThemeMoFile implements \IWPML_Action {
 			WHERE domain IN ({$domainsClause}) AND file_path REGEXP %s
 		";
 
-		/** @var string $sql */
 		$sql = $this->wpdb->prepare(
 			$sql,
 			'((\\/|-)' . $locale . '(\\.|-))+'

@@ -1,8 +1,6 @@
 <?php
 global $icl_menus_sync, $sitepress;
 
-/** @var SitePress $sitepress */
-/** @var ICLMenusSync $icl_menus_sync */
 $active_languages    = $sitepress->get_active_languages();
 $def_lang_code       = $sitepress->get_default_language();
 $def_lang            = $sitepress->get_language_details( $def_lang_code );
@@ -68,7 +66,6 @@ foreach ( $active_languages as $code => $lang ) {
 			</tr>
 			<?php
 		} else {
-			// Menus
 			foreach ( $icl_menus_sync->menus as $menu_id => $menu ) {
 				$menu_sync_display = new WPML_Menu_Sync_Display( $menu_id, $icl_menus_sync );
 				?>
@@ -77,8 +74,6 @@ foreach ( $active_languages as $code => $lang ) {
 				</tr>
 
 				<?php
-				// Display actions per menu
-				// menu translations
 				if ( isset( $icl_menus_sync->sync_data['menu_translations'], $icl_menus_sync->sync_data['menu_translations'][ $menu_id ] ) ) {
 					foreach ( $icl_menus_sync->sync_data['menu_translations'][ $menu_id ] as $language => $name ) {
 						$lang_details = $sitepress->get_language_details( $language );
@@ -179,7 +174,7 @@ foreach ( $active_languages as $code => $lang ) {
 									<?php
 									if ( isset( $menu['translations'][ $l['code'] ]['name'] ) ) {
 										echo esc_html( $menu['translations'][ $l['code'] ]['name'] );
-									} else { // menu is translated in $l[code]
+									} else {
 										$need_sync++;
 										?>
 										<input type="text" class="icl_msync_add"
@@ -204,13 +199,13 @@ foreach ( $active_languages as $code => $lang ) {
 									?>
 								</td>
 								<?php
-							} //foreach($secondary_languages as $l):
+							}
 							?>
 						</tr>
 						<?php
 						$need_sync += $icl_menus_sync->render_items_tree_default( $menu_id );
 
-					} //foreach( $icl_menus_sync->menus as  $menu_id => $menu):
+					}
 				}
 				?>
 				</tbody>
@@ -230,9 +225,7 @@ foreach ( $active_languages as $code => $lang ) {
 						  data-max_input_vars="
 						  <?php
 
-						  //phpcs:disable PHPCompatibility.IniDirectives.NewIniDirectives.max_input_varsFound -- It never caused issues, but we should probably fix that
 							echo ini_get( 'max_input_vars' );
-						  //phpcs:enable PHPCompatibility.IniDirectives.NewIniDirectives.max_input_varsFound
 
 							?>
 						  ">

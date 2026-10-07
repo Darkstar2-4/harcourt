@@ -7,7 +7,6 @@ use WPML\StringTranslation\Str;
 
 class HtmlStringsFromScriptTagRepository implements HtmlStringsFromScriptTagRepositoryInterface {
 
-	// Used in many templates like Handlebars and Mustache js.
 	const DEFAULT_OPEN_TAG = '{{{';
 	const DEFAULT_CLOSE_TAG = '}}}';
 	const DEFAULT_SHORT_OPEN_TAG = '{{';
@@ -72,22 +71,6 @@ class HtmlStringsFromScriptTagRepository implements HtmlStringsFromScriptTagRepo
 		return preg_replace('/' . $openTag . '.*?' . $closeTag . '/s', $sep, $value );
 	}
 
-	/*
-	 * Takes as input text node from JS template engine:
-	 * <# if ( data.privacy_modal === 'profile' ) {  #>
-	 *				Who can see your post?			<# } else if ( data.privacy_modal === 'group' ) { #>
-	 *			Select a group			<# } else { #>
-	 *			<# if ( data.edit_activity === true ) {  #>
-	 *				Edit post				<# } else { #>
-	 *				Create a post				<# } #>
-	 *		<# } #>
-	 * And replaces all JS template engine texts with HTML comments <!-- -->.
-	 * It is required to read later all HTML text nodes correctly.
-	 * Placing comments will allow DOM reader to read all separate text nodes correctly
-	 * (in upper example there are 4 strings, if we replace with '' we will get 1 string instead of 4.
-	 *
-	 * @return string[]
-	 */
 	public function replaceCustomPlaceholdersFromAnyJsTemplateEngineWithHtmlComments( string $value ): string {
 		$sep = '<!-- -->';
 
@@ -115,22 +98,6 @@ class HtmlStringsFromScriptTagRepository implements HtmlStringsFromScriptTagRepo
 		return $value;
 	}
 
-	/*
-	 * Takes as input text node from JS template engine:
-	 *  <# if ( data.show_title ) { #>
-	 *  <# if ( data.show_selection_ui ) { #>
-	 *  <p class="component_section_title selected_option_label_wrapper">
-	 *      <label class="selected_option_label">Your selection:</label>
-	 *  </p>
-	 *  <# } #>
-	 *  <{{ data.tag }} class="composited_product_title component_section_title product_title" aria-label="{{ data.selection_title_aria }}" tabindex="-1">{{{ data.selection_title }}}</{{ data.tag }}>
-	 *  <# } #>
-	 * And replaces all JS template engine texts with empty values.
-	 * It is required to read later all HTML text nodes correctly.
-	 * If html is removed like in '<{{ data.tag }}' case we will need to restore such tags to correctly parse html string with DOMDocument.
-	 *
-	 * @return string[]
-	 */
 	public function removeCustomPlaceholdersFromAnyJsTemplateEngine( string $value ): string {
 		$openTag  = self::DEFAULT_OPEN_TAG;
 		$closeTag = self::DEFAULT_CLOSE_TAG;
@@ -215,7 +182,7 @@ class HtmlStringsFromScriptTagRepository implements HtmlStringsFromScriptTagRepo
 			$html = Str::removeTextAt( $html, $position, strlen( $tag ) );
 			$html = Str::insertTextAt( $html, $position, $fixedTag );
 			$positions = array_map( function( $position ) {
-				return $position + 3; // Length of inserted tag(div)
+				return $position + 3;
 			}, $positions );
 		}
 
@@ -240,7 +207,7 @@ class HtmlStringsFromScriptTagRepository implements HtmlStringsFromScriptTagRepo
 			$html = Str::removeTextAt( $html, $position, strlen( $tag ) );
 			$html = Str::insertTextAt( $html, $position, $fixedTag );
 			$positions = array_map( function( $position ) {
-				return $position + 3; // Length of inserted tag(div)
+				return $position + 3;
 			}, $positions );
 		}
 

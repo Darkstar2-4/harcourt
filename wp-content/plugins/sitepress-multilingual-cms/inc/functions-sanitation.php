@@ -1,10 +1,4 @@
 <?php
-/**
- * @param string $input
- * @param string $default_if_invalid
- *
- * @return string
- */
 function wpml_sanitize_hex_color( $input, $default_if_invalid = '' ) {
 	$input  = sanitize_text_field( $input );
 	$result = $input;
@@ -33,11 +27,6 @@ function wpml_sanitize_hex_color_array( $input, $default_if_invalid = '', $bypas
 	return $result;
 }
 
-/**
- * @param string|array $input
- *
- * @return bool
- */
 function wpml_is_valid_hex_color( $input ) {
 	if (
 		'transparent' === $input ||
@@ -56,13 +45,6 @@ function wpml_get_valid_hex_color_pattern() {
 	return '(^#[a-fA-F0-9]{6}$)|(^#[a-fA-F0-9]{3}$)';
 }
 
-/**
- * Convert RGB color code to HEX code.
- *
- * @param array $rgb
- *
- * @return string|false
- */
 function wpml_rgb_to_hex( $rgb ) {
 	if ( ! is_array( $rgb ) || count( $rgb ) < 3 ) {
 		return false;

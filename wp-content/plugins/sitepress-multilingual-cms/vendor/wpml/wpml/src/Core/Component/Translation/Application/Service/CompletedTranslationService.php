@@ -8,10 +8,8 @@ use WPML\Core\Component\Translation\Domain\CompletedTranslationDetector;
 
 class CompletedTranslationService {
 
-  /** @var CompletedTranslationDetector */
   private $completedTranslationDetector;
 
-  /** @var TranslationQueryInterface */
   private $translationsQuery;
 
 
@@ -39,16 +37,6 @@ class CompletedTranslationService {
   }
 
 
-  /**
-   * Determines if a translation is considered completed.
-   *
-   * @param int      $status The current translation status
-   * @param bool     $needsUpdate Whether the translation needs update
-   * @param int      $translationId The translation ID
-   * @param int|null $translatedElementId The translated element ID (optional)
-   *
-   * @return bool True if the translation is considered completed, false otherwise
-   */
   public function isTranslationCompleted( $status, $needsUpdate, $translationId, $translatedElementId = null ) {
     return $this->completedTranslationDetector->isTranslationCompleted(
       $status,

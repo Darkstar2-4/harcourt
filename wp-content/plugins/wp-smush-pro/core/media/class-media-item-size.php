@@ -77,10 +77,7 @@ class Media_Item_Size {
 		$this->wp_metadata   = $wp_size_metadata;
 		$this->fs            = new File_System();
 
-		$this->size_limit = WP_Smush::is_pro()
-			? WP_SMUSH_PREMIUM_MAX_BYTES
-			: WP_SMUSH_MAX_BYTES;
-		$this->settings   = Settings::get_instance();
+		$this->settings = Settings::get_instance();
 		$this->from_array( $wp_size_metadata );
 	}
 
@@ -200,7 +197,7 @@ class Media_Item_Size {
 	}
 
 	public function exceeds_size_limit() {
-		return $this->get_filesize() > $this->size_limit;
+		return $this->get_filesize() > $this->get_size_limit();
 	}
 
 	private function media_image_filter() {
@@ -228,6 +225,9 @@ class Media_Item_Size {
 	 * @return int
 	 */
 	public function get_size_limit() {
+		if ( is_null( $this->size_limit ) ) {
+			$this->size_limit = $this->settings->get_file_size_limit();
+		}
 		return $this->size_limit;
 	}
 

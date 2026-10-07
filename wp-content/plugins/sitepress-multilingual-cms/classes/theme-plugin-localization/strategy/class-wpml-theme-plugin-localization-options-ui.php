@@ -2,14 +2,12 @@
 
 class WPML_Theme_Plugin_Localization_Options_UI implements IWPML_Theme_Plugin_Localization_UI_Strategy {
 
-	/** @var SitePress */
 	private $sitepress;
 
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/** @return array */
 	public function get_model() {
 		$model = array(
 			'nonce_field'            => WPML_Theme_Plugin_Localization_Options_Ajax::NONCE_LOCALIZATION_OPTIONS,
@@ -39,7 +37,6 @@ class WPML_Theme_Plugin_Localization_Options_UI implements IWPML_Theme_Plugin_Lo
 		return apply_filters( 'wpml_localization_options_ui_model', $model );
 	}
 
-	/** @return string */
 	public function get_template() {
 		return 'options.twig';
 	}

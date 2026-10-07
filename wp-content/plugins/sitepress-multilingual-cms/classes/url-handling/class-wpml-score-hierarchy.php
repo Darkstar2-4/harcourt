@@ -5,22 +5,11 @@ class WPML_Score_Hierarchy {
 	private $data  = array();
 	private $slugs = array();
 
-	/**
-	 * WPML_Score_Hierarchy constructor.
-	 *
-	 * @param object[] $data_set
-	 * @param string[] $slugs
-	 */
 	public function __construct( $data_set, $slugs ) {
 		$this->data  = $data_set;
 		$this->slugs = $slugs;
 	}
 
-	/**
-	 * Array of best matched post_ids. Better matches have a lower index!
-	 *
-	 * @return int[]
-	 */
 	public function get_possible_ids_ordered() {
 		$pages_with_name = $this->data;
 		$slugs           = $this->slugs;
@@ -68,13 +57,6 @@ class WPML_Score_Hierarchy {
 		);
 	}
 
-	/**
-	 * Get page object by its id.
-	 *
-	 * @param int $id
-	 *
-	 * @return false|object
-	 */
 	private function get_page_by_id( $id ) {
 		foreach ( $this->data as $page ) {
 			if ( (int) $page->ID === (int) $id ) {
@@ -85,13 +67,6 @@ class WPML_Score_Hierarchy {
 		return false;
 	}
 
-	/**
-	 * @param string[] $parent_slugs
-	 * @param object[] $pages_with_name
-	 * @param object   $page
-	 *
-	 * @return int
-	 */
 	private function calculate_score( $parent_slugs, $pages_with_name, $page ) {
 		$parent_positions = array_keys( $parent_slugs, $page->parent_name, true );
 		$new_score        = (bool) $parent_positions === true ? max( $parent_positions ) + 1 : ( $page->post_parent ? - 1 : 0 );
@@ -107,20 +82,10 @@ class WPML_Score_Hierarchy {
 		return $new_score;
 	}
 
-	/**
-	 * @param object $page
-	 *
-	 * @return bool
-	 */
 	private function is_exactly_matching_all_slugs_in_order( $page ) {
 		return $this->slugs === $this->get_slugs_for_page( $page );
 	}
 
-	/**
-	 * @param object $current_page
-	 *
-	 * @return array
-	 */
 	private function get_slugs_for_page( $current_page ) {
 		$slugs = array();
 

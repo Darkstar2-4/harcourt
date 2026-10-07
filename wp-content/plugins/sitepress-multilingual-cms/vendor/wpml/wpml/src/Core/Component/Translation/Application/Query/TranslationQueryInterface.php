@@ -8,40 +8,22 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 interface TranslationQueryInterface {
 
 
-  /**
-   * @param int[] $jobIds
-   *
-   * @return Translation[]
-   */
   public function getManyByJobIds( array $jobIds ): array;
 
 
-  /**
-   * @param int $jobId
-   *
-   * @return Translation|null
-   */
   public function getOneByJobId( int $jobId );
 
 
-  /**
-   * @param int[] $translatedElementIds
-   *
-   * @return Translation[]
-   */
   public function getManyByTranslatedElementIds( array $translatedElementIds ): array;
 
 
-  /**
-   * @param TranslationType $translationType
-   * @param int[] $elementIds
-   *
-   * @return Translation[]
-   */
   public function getManyByElementIds(
     TranslationType $translationType,
     array $elementIds
   ): array;
+
+
+  public function getJobIdsByBatchId( int $batchId ): array;
 
 
 }

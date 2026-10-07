@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `ANALYZE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -21,11 +18,6 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class AnalyzeStatement extends Statement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'TABLE' => 1,
 
@@ -33,10 +25,5 @@ class AnalyzeStatement extends Statement
         'LOCAL' => 3
     );
 
-    /**
-     * Analyzed tables.
-     *
-     * @var Expression[]
-     */
     public $tables;
 }

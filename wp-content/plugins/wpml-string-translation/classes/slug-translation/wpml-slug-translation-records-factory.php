@@ -2,13 +2,7 @@
 
 class WPML_Slug_Translation_Records_Factory {
 
-	/**
-	 * @param string $type
-	 *
-	 * @return WPML_Post_Slug_Translation_Records|WPML_Tax_Slug_Translation_Records
-	 */
 	public function create( $type ) {
-		/** @var wpdb */
 		global $wpdb;
 
 		$cache_factory = new WPML_WP_Cache_Factory();
@@ -22,11 +16,7 @@ class WPML_Slug_Translation_Records_Factory {
 		return null;
 	}
 
-	/**
-	 * @return WPML_Tax_Slug_Translation_Records
-	 */
 	public function createTaxRecords() {
-		/** @var wpdb */
 		global $wpdb;
 		$cache_factory = new WPML_WP_Cache_Factory();
 

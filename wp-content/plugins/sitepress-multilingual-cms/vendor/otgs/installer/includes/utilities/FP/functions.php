@@ -2,15 +2,6 @@
 
 namespace OTGS\Installer\FP;
 
-/**
- * Returns new function which will behave like $function with
- * predefined left arguments passed to partial
- *
- * @param callable $function
- * @param mixed ...$args
- *
- * @return callable
- */
 function partial( callable $function, $args ) {
 	$args = array_slice( func_get_args(), 1 );
 
@@ -19,28 +10,10 @@ function partial( callable $function, $args ) {
 	};
 }
 
-/**
- * Returns new function which applies each given function to the result of another from left to right
- * pipe(f, g, h)(x) is the same as h(g(f(x)))
- *
- * @param callable $f
- * @param callable $g
- *
- * @return callable
- */
 function pipe( callable $f, callable $g ) {
 	return call_user_func_array( 'OTGS\Installer\FP\compose', array_reverse( func_get_args() ) );
 }
 
-/**
- * Returns new function which applies each given function to the result of another from right to left
- * compose(f, g, h)(x) is the same as f(g(h(x)))
- *
- * @param callable $f
- * @param callable $g
- *
- * @return callable
- */
 function compose( callable $f, callable $g ) {
 	$functions = func_get_args();
 
@@ -55,11 +28,6 @@ function compose( callable $f, callable $g ) {
 }
 
 
-/**
- * @param callable $fn
- *
- * @return \Closure
- */
 function flip( callable $fn ) {
 	return function () use ( $fn ) {
 		$args = func_get_args();
@@ -73,56 +41,16 @@ function flip( callable $fn ) {
 	};
 }
 
-/**
- * Wraps the given function and returns a function that can take individual arguments and invokes
- * the wrapped function with individual arguments gathered into an array
- *
- * @param callable $fn
- *
- * @return \Closure
- */
 function gatherArgs( callable $fn ) {
 	return function ( ...$args ) use ( $fn ) {
 		return $fn( $args );
 	};
 }
 
-/**
- * Returns an Invoker that runs the member function. Use `with` to set the arguments
- * of the member function and then invoke with `()`
- *
- * eg. give Test class:
- * class Test {
- *
- *    private $times;
- *
- *    public function __construct( $times ) {
- *       $this->times = $times;
- *    }
- *
- *    public function multiply( $x ) {
- *       return $x * $this->times;
- *    }
- * }
- *
- * $invoker = invoke( 'multiply' )->with( 10 );
- * $result = $invoker( new Test( 2 ) );  // 20
- *
- *
- * @param string $fnName
- *
- * @return _Invoker
- */
 function invoke( $fnName ) {
 	return new _Invoker( $fnName );
 }
 
-/**
- * @param int      $count
- * @param callable $fn
- *
- * @return \Closure
- */
 function curryN( $count, Callable $fn ) {
 	$accumulator = function ( array $arguments ) use ( $count, $fn, &$accumulator ) {
 		return function () use ( $count, $fn, $arguments, $accumulator ) {
@@ -152,11 +80,6 @@ function curryN( $count, Callable $fn ) {
 	return $accumulator( [] );
 }
 
-/**
- * @param callable $fn
- *
- * @return Either
- */
 function tryCatch( callable $fn ) {
 	try {
 		return Right::of( $fn() );

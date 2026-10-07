@@ -12,11 +12,9 @@ class DataPreSetup {
 	const KEY_POST_TYPES = 'post_types';
 	const KEY_TAXONOMIES = 'taxonomies';
 
-	/** @var wpdb $db */
 	private $db;
 
 	public function listTranslatableData() {
-		// Top items will be fetched first.
 		return [
 			self::KEY_TAXONOMIES => [
 				'category',
@@ -32,11 +30,6 @@ class DataPreSetup {
 		];
 	}
 
-	/**
-	 * @param wpdb $db
-	 *
-	 * @return void
-	 */
 	public function __construct( wpdb $db ) {
 		$this->db = $db;
 	}
@@ -54,18 +47,6 @@ class DataPreSetup {
 		);
 	}
 
-	/**
-	 * Calculates the words inside the posts of the given $type.
-	 * This fetches a maximum of self::CHUNK_SIZE posts. To
-	 * fetch all posts, multiple requests must be made by using the
-	 * $offset parameter.
-	 *
-	 * The found data is applied to the given $stack.
-	 *
-	 * @param Stack $stack The stack to apply the data to.
-	 *
-	 * @return Stack
-	 */
 	private function posts( Stack $stack ) {
 		$posts = $this->db->get_results(
 			$this->db->prepare(
@@ -98,15 +79,6 @@ class DataPreSetup {
 	}
 
 
-	/**
-	 * Calculates the words of all terms in the given $taxonomy.
-	 *
-	 * The found data is applied to the given stack.
-	 *
-	 * @param Stack $stack The stack to apply the data to.
-	 *
-	 * @return Stack
-	 */
 	private function terms( Stack $stack ) {
 		$terms = $this->db->get_results(
 			$this->db->prepare(
@@ -133,23 +105,13 @@ class DataPreSetup {
 		);
 	}
 
-	/**
-	 * @param Stack    $stack
-	 * @param mixed    $dataSet
-	 * @param callable $dataExtract
-	 * @param int      $chunkSize
-	 *
-	 * @return Stack
-	 */
 	private function fillStack( Stack $stack, $dataSet, $dataExtract, $chunkSize ) {
 		if ( ! is_array( $dataSet ) || count( $dataSet ) === 0 ) {
-			// No data to add. Mark stack as completed.
 			$stack->completed();
 			return $stack;
 		}
 
 		if ( count( $dataSet ) < $chunkSize ) {
-			// No more data to fetch.
 			$stack->completed();
 		}
 

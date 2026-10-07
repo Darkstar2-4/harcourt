@@ -10,16 +10,6 @@ class SilverStripeInstaller extends BaseInstaller
         'theme'  => 'themes/{$name}/',
     );
 
-    /**
-     * Return the install path based on package type.
-     *
-     * Relies on built-in BaseInstaller behaviour with one exception: silverstripe/framework
-     * must be installed to 'sapphire' and not 'framework' if the version is <3.0.0
-     *
-     * @param  PackageInterface $package
-     * @param  string           $frameworkType
-     * @return string
-     */
     public function getInstallPath(PackageInterface $package, $frameworkType = '')
     {
         if (

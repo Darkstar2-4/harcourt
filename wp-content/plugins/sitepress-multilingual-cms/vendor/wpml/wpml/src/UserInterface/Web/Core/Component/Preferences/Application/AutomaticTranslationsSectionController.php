@@ -11,10 +11,8 @@ class AutomaticTranslationsSectionController implements
   PageRequirementsInterface,
   ScriptDataProviderInterface {
 
-  /** @var AtePreferencesLoader */
   private $atePreferencesLoader;
 
-  /** @var LanguagePreferencesLoader */
   private $languagePreferencesLoader;
 
 
@@ -27,10 +25,6 @@ class AutomaticTranslationsSectionController implements
   }
 
 
-  /**
-   * After migrating whole Settings into react, controller should implement PageRenderInterface
-   * @return void
-   */
   public static function render() {
     echo '<div id="automatic-translations-section"></div>';
   }
@@ -65,8 +59,6 @@ class AutomaticTranslationsSectionController implements
 
 
   private function isOnMainSettingsTab(): bool {
-    // LEGACY: Legacy is using the GET parameter 'sm' to manage the tabs of the
-    // settings page. This controller only handles the main settings page.
     return ! array_key_exists( 'sm', $_GET ) || $_GET['sm'] === 'mcsetup';
   }
 

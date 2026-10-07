@@ -1,7 +1,6 @@
 <?php
 
 class WPML_Custom_Field_Editor_Settings {
-	/** @var WPML_Custom_Field_Setting_Factory */
 	private $settings_factory;
 
 	public function __construct( WPML_Custom_Field_Setting_Factory $settingsFactory ) {

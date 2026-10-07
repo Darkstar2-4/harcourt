@@ -10,19 +10,17 @@ class Cookies implements CookiesInterface {
   const SESSION_ID_COOKIE_NAME = 'wpml_ph_session_id';
 
 
-  /**
-   * @return string|false
-   */
   public function getDistinctId() {
-    return $_COOKIE[ self::DISTINCT_ID_COOKIE_NAME ] ?? false;
+    $distinctId = $_COOKIE[ self::DISTINCT_ID_COOKIE_NAME ] ?? false;
+
+    return $distinctId ? sanitize_text_field( $distinctId ) : false;
   }
 
 
-  /**
-   * @return string|false
-   */
   public function getSessionId() {
-    return $_COOKIE[ self::SESSION_ID_COOKIE_NAME ] ?? false;
+    $sessionId = $_COOKIE[ self::SESSION_ID_COOKIE_NAME ] ?? false;
+
+    return $sessionId ? sanitize_text_field( $sessionId ) : false;
   }
 
 

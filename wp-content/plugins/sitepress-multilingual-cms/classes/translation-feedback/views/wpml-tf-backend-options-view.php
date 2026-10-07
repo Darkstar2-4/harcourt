@@ -1,32 +1,17 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Options_View
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Options_View {
 
 	const TEMPLATE_FOLDER         = '/templates/translation-feedback/backend/';
 	const TEMPLATE                = 'options-ui.twig';
 	const MAX_EXPIRATION_QUANTITY = 10;
 
-	/** @var  IWPML_Template_Service $template_service */
 	private $template_service;
 
-	/** @var WPML_TF_Settings $settings */
 	private $settings;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/**
-	 * WPML_TF_Frontend_Hooks constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service
-	 * @param WPML_TF_Settings       $settings
-	 * @param SitePress              $sitepress
-	 */
 	public function __construct(
 		IWPML_Template_Service $template_service,
 		WPML_TF_Settings $settings,
@@ -37,9 +22,6 @@ class WPML_TF_Backend_Options_View {
 		$this->sitepress        = $sitepress;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render() {
 		$model = array(
 			'strings'               => self::get_strings(),
@@ -58,9 +40,6 @@ class WPML_TF_Backend_Options_View {
 		return $this->template_service->show( $model, self::TEMPLATE );
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function get_strings() {
 		return array(
 			'section_title'              => __( 'Translation Feedback', 'sitepress' ),
@@ -71,9 +50,6 @@ class WPML_TF_Backend_Options_View {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_module_toggle() {
 		return array(
 			'value'    => 1,
@@ -82,9 +58,6 @@ class WPML_TF_Backend_Options_View {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_button_modes() {
 		$modes = array(
 			WPML_TF_Settings::BUTTON_MODE_LEFT     => array(
@@ -160,9 +133,6 @@ class WPML_TF_Backend_Options_View {
 		return $styles;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_languages_to() {
 		$languages_to      = array();
 		$active_languages  = $this->sitepress->get_active_languages();
@@ -188,9 +158,6 @@ class WPML_TF_Backend_Options_View {
 		return $languages_to;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_display_modes() {
 		$modes = array(
 			WPML_TF_Settings::DISPLAY_CUSTOM => array(
@@ -212,9 +179,6 @@ class WPML_TF_Backend_Options_View {
 		return $modes;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_expiration_modes() {
 		$modes = array(
 			WPML_TF_Settings::EXPIRATION_ON_PUBLISH_OR_UPDATE => array(
@@ -241,9 +205,6 @@ class WPML_TF_Backend_Options_View {
 		return $modes;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_expiration_quantities() {
 		$quantities = array();
 
@@ -261,9 +222,6 @@ class WPML_TF_Backend_Options_View {
 		return $quantities;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_expiration_units() {
 		$units = array(
 			WPML_TF_Settings::DELAY_DAY   => array(

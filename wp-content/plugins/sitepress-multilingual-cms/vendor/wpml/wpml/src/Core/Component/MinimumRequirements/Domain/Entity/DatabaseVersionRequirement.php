@@ -7,9 +7,6 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 
 class DatabaseVersionRequirement extends RequirementBase {
 
-  /**
-   * @var ServerInfoInterface
-   * */
   private $serverInfo;
 
 
@@ -69,7 +66,6 @@ class DatabaseVersionRequirement extends RequirementBase {
     if ( $this->usesMariaDB( $dbVersion ) ) {
       return $this->isValidMariaDBVersion( $dbVersion );
     } else {
-      // MySQL
       return $this->isValidMySQLVersion( $dbVersion );
     }
   }

@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Get More Features with WPML's Advanced Translation Editor": [
             "Krijg meer functies met WPML's Geavanceerde Vertaaleditor"
@@ -14,13 +14,13 @@
             "Banner sluiten"
          ],
          "You're using the Classic Translation Editor, an old legacy tool, and missing out on the many features and efficiency of our Advanced Translation Editor:": [
-            "Je gebruikt de Klassieke Vertaaleditor, een oude verouderde tool, en mist de vele functies en efficiëntie van onze Geavanceerde Vertaaleditor:"
+            "U gebruikt de Klassieke Vertaaleditor, een verouderd hulpmiddel, en mist de vele functies en efficiëntie van onze Geavanceerde Vertaaleditor:"
          ],
          "Translation Memory": [
             "Vertaalgeheugen"
          ],
          "HTML Protection": [
-            "HTML-bescherming"
+            "HTML-beveiliging"
          ],
          "Glossary": [
             "Woordenlijst"
@@ -29,7 +29,7 @@
             "Spellingscontrole"
          ],
          "AI Assistant": [
-            "AI-assistent"
+            "KI-assistent"
          ],
          "Automatic Translation": [
             "Automatische vertaling"

@@ -3,34 +3,15 @@
 use PhpMyAdmin\SqlParser\Parser;
 
 class WPML_DB_Chunk {
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var int
-	 */
 	private $chunk_size;
 
-	/**
-	 * @param wpdb $wpdb
-	 * @param int  $chunk_size
-	 */
 	public function __construct( wpdb $wpdb, $chunk_size = 1000 ) {
 		$this->wpdb       = $wpdb;
 		$this->chunk_size = $chunk_size;
 	}
 
-	/**
-	 * @param string $query
-	 * @param array  $args
-	 * @param int    $elements_num
-	 *
-	 * @return array
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	public function retrieve( $query, $args, $elements_num ) {
 		$this->validate_query( $query );
 		$result = array();
@@ -51,9 +32,6 @@ class WPML_DB_Chunk {
 		return $result;
 	}
 
-	/**
-	 * @param string $query
-	 */
 	private function validate_query( $query ) {
 		$parser = new Parser( $query );
 

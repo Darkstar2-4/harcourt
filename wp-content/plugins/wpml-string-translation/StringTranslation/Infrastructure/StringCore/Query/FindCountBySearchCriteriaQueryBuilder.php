@@ -8,7 +8,6 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 
 class FindCountBySearchCriteriaQueryBuilder extends QueryBuilder {
 
-	/** @var SettingsRepository */
 	protected $settingsRepository;
 
 	public function __construct(
@@ -17,9 +16,6 @@ class FindCountBySearchCriteriaQueryBuilder extends QueryBuilder {
 		$this->settingsRepository = $settingsRepository;
 	}
 
-	/**
-	 * @param SearchCriteria|FetchFiltersCriteria $criteria
-	 */
 	protected function buildWhereSql( $criteria ): string {
 		$sqlParts = $this->getWhereSqlParts( $criteria );
 
@@ -35,13 +31,6 @@ class FindCountBySearchCriteriaQueryBuilder extends QueryBuilder {
 		return ' WHERE ' . implode( ' AND ', $sqlParts );
 	}
 
-	/**
-	 * @codingStandardsIgnoreStart
-	 *
-	 * @param SearchCriteria $criteria
-	 *
-	 * @return string
-	 */
 	public function build( SearchCriteria $criteria ) {
 		$sql = "
             SELECT COUNT(DISTINCT strings.id) AS count

@@ -9,7 +9,6 @@ use WPML\StringTranslation\Infrastructure\Factory;
 
 class DeletePendingStringsCommand implements DeletePendingStringsCommandInterface {
 
-	/** @var Factory */
 	private $factory;
 
 	public function __construct(

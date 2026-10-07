@@ -7,10 +7,8 @@ use WPML_ST_Translations_File_Dictionary;
 
 class Database {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var WPML_ST_Translations_File_Dictionary $dictionary */
 	private $dictionary;
 
 	public function __construct(
@@ -70,13 +68,7 @@ class Database {
 		}
 	}
 
-	/**
-	 * @param string $table
-	 *
-	 * @return bool
-	 */
 	private function tableExists( $table ) {
-		/** @var string $sql */
 		$sql = $this->wpdb->prepare( 'SHOW TABLES LIKE %s', $table );
 		return (bool) $this->wpdb->get_var( $sql );
 	}

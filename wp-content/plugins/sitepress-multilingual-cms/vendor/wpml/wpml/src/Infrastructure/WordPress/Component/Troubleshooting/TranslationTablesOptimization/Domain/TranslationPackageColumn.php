@@ -11,7 +11,6 @@ class TranslationPackageColumn implements TranslationPackageColumnInterface {
   const TABLE_NAME = 'icl_translation_status';
   const PACKAGE_COLUMN = 'translation_package';
 
-  /** @var DatabaseAlterInterface */
   private $databaseAlter;
 
 

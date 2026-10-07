@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Integrations {
 	const SCOPE_WP_CORE = 'wp-core';
 
@@ -85,11 +82,6 @@ class WPML_Integrations {
 	private $items      = array();
 	private $wpml_wp_api;
 
-	/**
-	 * WPML_Integrations constructor.
-	 *
-	 * @param WPML_WP_API $wpml_wp_api
-	 */
 	function __construct( WPML_WP_API $wpml_wp_api ) {
 		$this->wpml_wp_api = $wpml_wp_api;
 		$this->fetch_items();
@@ -111,45 +103,22 @@ class WPML_Integrations {
 		return $this->items;
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return bool
-	 */
 	private function component_has_constant( array $data ) {
 		return array_key_exists( 'constant', $data ) && $data['constant'] && $this->wpml_wp_api->defined( $data['constant'] );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return bool
-	 */
 	private function component_has_function( array $data ) {
 		return array_key_exists( 'function', $data ) && $data['function'] && function_exists( $data['function'] );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return bool
-	 */
 	private function component_has_class( array $data ) {
 		return array_key_exists( 'class', $data ) && $data['class'] && class_exists( $data['class'] );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return mixed
-	 */
 	private function get_component_name( array $data ) {
 		return $data['name'];
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_components() {
 		return apply_filters( 'wpml_integrations_components', $this->components );
 	}

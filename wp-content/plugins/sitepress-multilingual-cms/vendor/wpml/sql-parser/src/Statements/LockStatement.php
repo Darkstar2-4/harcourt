@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `LOCK` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -21,63 +18,28 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class LockStatement extends Statement
 {
-    /**
-     * Tables with their Lock expressions.
-     *
-     * @var LockExpression[]
-     */
     public $locked = array();
 
-    /**
-     * Whether it's a LOCK statement
-     * if false, it's an UNLOCK statement
-     */
     public $isLock = true;
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
         if ($list->tokens[$list->idx]->value === 'UNLOCK') {
-            // this is in fact an UNLOCK statement
             $this->isLock = false;
         }
-        ++$list->idx; // Skipping `LOCK`.
+        ++$list->idx;
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ---------------- [ TABLES ] -----------------> 1
-         *      1 -------------- [ lock_expr ] ----------------> 2
-         *      2 ------------------ [ , ] --------------------> 1
-         *
-         * @var int
-         */
         $state = 0;
 
-        /**
-         * Previous parsed token
-         */
         $prevToken = null;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -96,7 +58,6 @@ class LockStatement extends Statement
                 }
             } elseif ($state === 1) {
                 if (! $this->isLock) {
-                    // UNLOCK statement should not have any more tokens
                     $parser->error('Unexpected token.', $token);
                     break;
                 }
@@ -104,7 +65,6 @@ class LockStatement extends Statement
                 $state = 2;
             } elseif ($state === 2) {
                 if ($token->value === ',') {
-                    // move over to parsing next lock expression
                     $state = 1;
                 }
             }
@@ -117,9 +77,6 @@ class LockStatement extends Statement
         }
     }
 
-    /**
-     * @return string
-     */
     public function build()
     {
         return trim(($this->isLock ? 'LOCK' : 'UNLOCK')

@@ -11,13 +11,10 @@ class SearchPopulatedKindsQueryBuilder implements SearchPopulatedKindsQueryBuild
 	use QueryBuilderTrait;
 	use TranslationStatusQueryBuilderTrait;
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var SettingsRepository */
 	private $settingsRepository;
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct(

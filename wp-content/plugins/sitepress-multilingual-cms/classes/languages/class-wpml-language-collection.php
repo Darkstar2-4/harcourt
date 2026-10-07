@@ -2,18 +2,10 @@
 
 class WPML_Language_Collection {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var array $languages */
 	private $languages = array();
 
-	/**
-	 * WPML_Language_Collection constructor.
-	 *
-	 * @param SitePress $sitepress
-	 * @param array     $initial_languages Array of language codes
-	 */
 	public function __construct( SitePress $sitepress, $initial_languages = array() ) {
 		$this->sitepress = $sitepress;
 		foreach ( $initial_languages as $lang ) {

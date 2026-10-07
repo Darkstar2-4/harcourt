@@ -7,17 +7,8 @@ use function WPML\FP\pipe;
 
 class WPML_TM_Field_Content_Action extends WPML_TM_Job_Factory_User {
 
-	/** @var  int $job_id */
 	protected $job_id;
 
-	/**
-	 * WPML_TM_Field_Content_Action constructor.
-	 *
-	 * @param WPML_Translation_Job_Factory $job_factory
-	 * @param int                          $job_id
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	public function __construct( $job_factory, $job_id ) {
 		parent::__construct( $job_factory );
 		if ( ! ( is_int( $job_id ) && $job_id > 0 ) ) {
@@ -26,12 +17,6 @@ class WPML_TM_Field_Content_Action extends WPML_TM_Job_Factory_User {
 		$this->job_id = $job_id;
 	}
 
-	/**
-	 * Returns an array containing job fields
-	 *
-	 * @return array
-	 * @throws \RuntimeException
-	 */
 	public function run() {
 		try {
 			$job = $this->job_factory->get_translation_job( $this->job_id, false, 1 );
@@ -49,19 +34,7 @@ class WPML_TM_Field_Content_Action extends WPML_TM_Job_Factory_User {
 		}
 	}
 
-	/**
-	 * Extracts the to be retrieved content from given job elements
-	 *
-	 * @param stdClass $job
-	 *
-	 * @return array
-	 */
 	private function content_from_elements( $job ) {
-		/**
-		 * @var array    $elements
-		 * @var array    $previous_version_element
-		 * @var stdClass $element
-		 */
 
 		$elements                  = $job->elements;
 		$previous_version_elements = isset( $job->prev_version ) ? $job->prev_version->elements : array();
@@ -111,12 +84,6 @@ class WPML_TM_Field_Content_Action extends WPML_TM_Job_Factory_User {
 		return wp_text_diff( $previous_data, $current_data );
 	}
 
-	/**
-	 * @param string $content base64-encoded translation job field content
-	 *
-	 * @return string base64-decoded field content, with linebreaks turned into
-	 * paragraph html tags
-	 */
 	private function sanitize_field_content( $content ) {
 		$decoded = base64_decode( $content );
 

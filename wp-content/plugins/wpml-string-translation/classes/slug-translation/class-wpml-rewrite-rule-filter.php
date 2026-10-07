@@ -1,27 +1,16 @@
 <?php
 
 class WPML_Rewrite_Rule_Filter implements IWPML_ST_Rewrite_Rule_Filter {
-	/** @var WPML_ST_Slug_Translation_Custom_Types_Repository[] */
 	private $custom_types_repositories;
 
-	/** @var WPML_ST_Slug_New_Match_Finder */
 	private $new_match_finder;
 
-	/**
-	 * @param WPML_ST_Slug_Translation_Custom_Types_Repository[] $custom_types_repositories
-	 * @param WPML_ST_Slug_New_Match_Finder                      $new_match_finder
-	 */
 	public function __construct( array $custom_types_repositories, WPML_ST_Slug_New_Match_Finder $new_match_finder ) {
 		$this->custom_types_repositories = $custom_types_repositories;
 		$this->new_match_finder          = $new_match_finder;
 	}
 
 
-	/**
-	 * @param array|false|null $rules
-	 *
-	 * @return array
-	 */
 	function rewrite_rules_filter( $rules ) {
 		if ( ! is_array( $rules ) && empty( $rules ) ) {
 			return $rules;

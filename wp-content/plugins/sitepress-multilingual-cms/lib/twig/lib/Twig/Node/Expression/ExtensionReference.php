@@ -13,13 +13,6 @@ namespace WPML\Core;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 @\trigger_error('The Twig_Node_Expression_ExtensionReference class is deprecated since version 1.23 and will be removed in 2.0.', \E_USER_DEPRECATED);
-/**
- * Represents an extension call node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since 1.23 and will be removed in 2.0.
- */
 class Twig_Node_Expression_ExtensionReference extends \WPML\Core\Twig\Node\Expression\AbstractExpression
 {
     public function __construct($name, $lineno, $tag = null)

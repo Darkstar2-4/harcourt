@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Legacy\Component\Translation\Application\String\Repository;
 
 use WPML\Core\Component\Translation\Application\String\Repository\StringBatchRepositoryInterface;
@@ -9,14 +8,8 @@ use WPML\Core\Port\Persistence\DatabaseWriteInterface;
 
 class StringBatchRepository implements StringBatchRepositoryInterface {
 
-  /**
-   * @var DatabaseWriteInterface
-   */
   private $databaseWrite;
 
-  /**
-   * @var \SitePress
-   */
   private $sitepress;
 
 
@@ -29,14 +22,6 @@ class StringBatchRepository implements StringBatchRepositoryInterface {
   }
 
 
-  /**
-   * @param string $name
-   * @param int[]  $stringIds
-   *
-   * @return int
-   * @throws StringException
-   *
-   */
   public function create( string $name, array $stringIds, string $sourceLanguageCode ): int {
     try {
       $batchId = $this->databaseWrite->insert(

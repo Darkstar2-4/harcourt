@@ -64,9 +64,6 @@ class NextTranslationLink {
 		};
 	}
 
-	/**
-	 * @return \Closure :: \stdClass -> \WPML_TM_Post_Job_Entity
-	 */
 	private static function getNextJob( $filterTargetLanguages ) {
 		return function ( $currentJob ) use ( $filterTargetLanguages ) {
 			$getJob = function ( $sourceLanguage, $targetLanguages ) use ( $currentJob ) {
@@ -118,12 +115,6 @@ class NextTranslationLink {
 		};
 	}
 
-	/**
-	 * @param string   $sourceLang
-	 * @param string[] $targetLanguages
-	 *
-	 * @return \WPML_TM_Jobs_Search_Params
-	 */
 	private static function buildSearchParams( $sourceLang, array $targetLanguages ) {
 		return ( new \WPML_TM_Jobs_Search_Params() )
 			->set_custom_where_conditions( [ 'translations.element_type NOT LIKE "package_%"' ] )

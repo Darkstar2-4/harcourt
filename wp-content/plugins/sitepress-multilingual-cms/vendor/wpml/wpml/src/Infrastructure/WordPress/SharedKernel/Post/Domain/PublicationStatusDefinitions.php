@@ -4,7 +4,6 @@ namespace WPML\Infrastructure\WordPress\SharedKernel\Post\Domain;
 
 use WPML\Core\SharedKernel\Component\Post\Domain\PublicationStatusDefinitionsInterface;
 
-/** @package WPML\Infrastructure\WordPress\SharedKernel\Post\Domain */
 class PublicationStatusDefinitions implements PublicationStatusDefinitionsInterface {
   const PUBLISH = 'publish';
   const FUTURE = 'future';
@@ -26,9 +25,6 @@ class PublicationStatusDefinitions implements PublicationStatusDefinitionsInterf
   }
 
 
-  /**
-   * @param ?string $statusBefore
-   */
   public function gotPublished( string $status, $statusBefore ): bool {
     return $status === self::PUBLISH && $statusBefore !== self::PUBLISH;
   }

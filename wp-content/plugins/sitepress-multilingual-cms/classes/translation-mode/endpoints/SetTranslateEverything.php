@@ -11,10 +11,6 @@ use WPML\FP\Right;
 use WPML\Setup\Option;
 use function WPML\FP\partialRight;
 
-/**
- * @depecated
- * @todo Remove this class
- */
 class SetTranslateEverything implements IHandler {
 
 	public function run( Collection $data ) {

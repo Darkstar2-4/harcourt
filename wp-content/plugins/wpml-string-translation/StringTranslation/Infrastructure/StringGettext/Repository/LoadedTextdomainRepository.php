@@ -6,10 +6,8 @@ use WPML\StringTranslation\Application\StringGettext\Repository\LoadedTextdomain
 
 class LoadedTextdomainRepository implements LoadedTextdomainRepositoryInterface {
 
-	/** @var string[] */
 	private $pluginDomains = [];
 
-	/** @var string[] */
 	private $themeDomains = [];
 
 	public function __construct() {
@@ -29,7 +27,6 @@ class LoadedTextdomainRepository implements LoadedTextdomainRepositoryInterface 
 		$this->pluginDomains[] = $domain;
 	}
 
-	/* @return string[] */
 	public function getPluginDomains(): array {
 		return $this->pluginDomains;
 	}
@@ -38,7 +35,6 @@ class LoadedTextdomainRepository implements LoadedTextdomainRepositoryInterface 
 		$this->themeDomains[] = $domain;
 	}
 
-	/* @return string[] */
 	public function getThemeDomains(): array {
 		return $this->themeDomains;
 	}

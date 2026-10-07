@@ -5,6 +5,7 @@
         "phpmailer/phpmailer": "^7.0",
         "google/recaptcha": "^1.3",
         "greew/oauth2-azure-provider": "^2.0",
-        "league/oauth2-google": "^4.0"
+        "league/oauth2-google": "^4.0",
+        "authorizenet/authorizenet": "^2.0.4"
     }
 }

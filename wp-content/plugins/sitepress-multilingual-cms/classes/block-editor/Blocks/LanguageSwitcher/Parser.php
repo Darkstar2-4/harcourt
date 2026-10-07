@@ -33,27 +33,17 @@ class Parser {
 		BothLanguages::class,
 	];
 
-	/**
-	 * @param string $blockHTML
-	 *
-	 * @return null|LanguageSwitcherTemplate
-	 */
 	public function parse( $blockAttrs, $blockHTML, $sourceBlock, $context ) {
 		if ( empty( $blockHTML ) ) {
 			return null;
 		}
 
-		// converts double quotes around font family to its corresponding XML entity in order to make it render properly on frontend.
 		if ( isset( $blockAttrs[ 'fontFamilyValue' ] ) ) {
 			$blockHTML = $this->maybeFixFontFamilyInStyle( $blockHTML, $blockAttrs[ 'fontFamilyValue' ] );
 		}
 
-		// Replace some classNames according to values in context if the current block is Navigation Language Switcher
-		// We use values from context to inherit them from the parent Navigation Block
 		if ( $sourceBlock->name === LanguageSwitcher::BLOCK_NAVIGATION_LANGUAGE_SWITCHER ) {
-			// Replaces classNames to control openOnClick and showArrow settings according to values in context for the navigation LS
 			$blockHTML = $this->maybeReplaceSubmenuClassnamesForNavBlock( $blockHTML, $blockAttrs, $context );
-			// Replaces classNames to control orientation settings according to values in context for the navigation LS
 			$blockHTML = $this->maybeReplaceOrientationClassnamesForNavBlock( $blockHTML, $context );
 		}
 
@@ -62,7 +52,6 @@ class Parser {
 		$blockDOMDocument->loadHTML( $blockHTML );
 		$errors = libxml_get_errors();
 
-		// todo: catch real errors here, this is required because usage of html5 tags will work, but will throw a warning.
 
 		$domXPath = new \DOMXpath( $blockDOMDocument );
 
@@ -86,23 +75,10 @@ class Parser {
 		return new LanguageSwitcherTemplate( $languageItemTemplate, $currentLanguageItemTemplate, $blockDOMDocument );
 	}
 
-	/**
-	 * @param string $selector
-	 * @param \DOMXpath $domQuery
-	 *
-	 * @return \DOMNode
-	 */
 	private function getContainerNode( $selector, $domQuery ) {
 		return $domQuery->query( sprintf( self::PATH_CONTAINER_TEMPLATE, $selector ) )->item( 0 );
 	}
 
-	/**
-	 * @param string $selector
-	 * @param \DOMNode $container
-	 * @param \DOMXpath $domQuery
-	 *
-	 * @return \DOMNode
-	 */
 	private function getTemplateNode( $selector, $container, $domQuery ) {
 		$itemQuery = $domQuery->query( $selector );
 		$firstItem = $itemQuery->item( 0 );
@@ -122,14 +98,8 @@ class Parser {
 		return $template;
 	}
 
-	/**
-	 * @param \DOMXPath $DOMXpath
-	 *
-	 * @return ?LabelTemplateInterface
-	 */
 	private function getLanguageItemlabel( $DOMXpath, $XPathPrefix ) {
 		foreach ( static::LABEL_TYPES as $labelTypeClass ) {
-			/** @var LabelTemplateInterface $labelType */
 			$labelType = new $labelTypeClass();
 			if ( $labelType->matchesXPath( $DOMXpath, $XPathPrefix ) ) {
 				return $labelType;
@@ -149,13 +119,6 @@ class Parser {
 		return preg_replace_callback( $fontFamilyValuePattern, $convertDoubleQuoteToXMLEntity, $blockHTML );
 	}
 
-	/**
-	 * @param string $blockHTML
-	 * @param array $source_block
-	 * @param array $context
-	 *
-	 * @return string
-	 */
 	private function maybeReplaceSubmenuClassnamesForNavBlock( $blockHTML, $blockAttrs, $context ) {
 		$navigationLsHasSubMenuInSameBlock = Obj::propOr( null, 'navigationLsHasSubMenuInSameBlock', $blockAttrs );
 
@@ -163,11 +126,11 @@ class Parser {
 			$openOnClick = Obj::propOr( null, 'layoutOpenOnClick', $blockAttrs );
 			$showArrow   = Obj::propOr( null, 'layoutShowArrow', $blockAttrs );
 		} else {
-			// If the navigation LS has submenu block inside the same parent navigation block,
-			// we inherit the values of openOnClick and showArrow settings from the parent block,
-			// otherwise the values from navigation LS attributes will be used
-			$openOnClick = Obj::propOr( null, 'openSubmenusOnClick', $context );
-			$showArrow   = Obj::propOr( null, 'showSubmenuIcon', $context );
+			$submenuVisibility = Obj::propOr( null, 'submenuVisibility', $context );
+			$openOnClick       = null !== $submenuVisibility
+				? 'click' === $submenuVisibility
+				: Obj::propOr( null, 'openSubmenusOnClick', $context );
+			$showArrow         = Obj::propOr( null, 'showSubmenuIcon', $context );
 		}
 
 		if ( $openOnClick !== null ) {
@@ -189,12 +152,6 @@ class Parser {
 		return $blockHTML;
 	}
 
-	/**
-	 * @param string $blockHTML
-	 * @param array $context
-	 *
-	 * @return string
-	 */
 	private function maybeReplaceOrientationClassnamesForNavBlock( $blockHTML, $context ) {
 		$orientation = Obj::pathOr( null, [ 'layout', 'orientation' ], $context );
 

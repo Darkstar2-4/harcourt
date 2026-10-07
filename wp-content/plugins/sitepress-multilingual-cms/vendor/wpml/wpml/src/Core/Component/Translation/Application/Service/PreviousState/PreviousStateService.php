@@ -9,23 +9,10 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 use WPML\PHP\Exception\InvalidItemIdException;
 
 
-/**
- * @phpstan-type PreviousStateData array{
- *   status: int,
- *   translator_id: int,
- *   needs_update: bool,
- *   md5: string,
- *   translation_service: string,
- *   timestamp: string,
- *   links_fixed: bool
- * }
- */
 class PreviousStateService {
 
-  /** @var PreviousStateQueryInterface */
   private $previousStateQuery;
 
-  /** @var PreviousStateRepositoryInterface */
   private $previousStateRepository;
 
 
@@ -38,14 +25,6 @@ class PreviousStateService {
   }
 
 
-  /**
-   * Reverts translation status to its previous state
-   *
-   * @param int $translationId
-   *
-   * @return void
-   * @throws InvalidItemIdException
-   */
   public function revertToPreviousState( int $translationId ) {
     $previousState = $this->previousStateQuery->getByTranslationId( $translationId );
 
@@ -59,13 +38,6 @@ class PreviousStateService {
   }
 
 
-  /**
-   * Gets previous state data for a translation
-   *
-   * @param int $translationId
-   *
-   * @return PreviousStateData|null
-   */
   public function get( int $translationId ) {
     $previousState = $this->previousStateQuery->getByTranslationId( $translationId );
 
@@ -85,13 +57,6 @@ class PreviousStateService {
   }
 
 
-  /**
-   * Gets previous state data for a translation
-   *
-   * @param int $rid
-   *
-   * @return PreviousStateData|null
-   */
   public function getByRid( int $rid ) {
     $previousState = $this->previousStateQuery->getByRID( $rid );
 
@@ -111,22 +76,6 @@ class PreviousStateService {
   }
 
 
-  /**
-   * Updates previous state data for a translation
-   *
-   * @param int $translationId
-   * @param array{
-   *   status?: int|string,
-   *   translator_id?: int,
-   *   needs_update?: bool,
-   *   md5?: string,
-   *   translation_service?: string,
-   *   timestamp?: string,
-   *   links_fixed?: bool
-   * }          $data
-   *
-   * @return bool
-   */
   public function update( int $translationId, array $data ): bool {
     try {
       if (
@@ -158,29 +107,6 @@ class PreviousStateService {
   }
 
 
-  /**
-   * Merges provided data with default values
-   *
-   * @param array{
-   *   status: int|string,
-   *   translator_id?: int,
-   *   needs_update?: bool,
-   *   md5?: string,
-   *   translation_service?: string,
-   *   timestamp?: string,
-   *   links_fixed?: bool
-   * } $data
-   *
-   * @return array{
-   *   status: int,
-   *   translator_id: int,
-   *   needs_update: bool,
-   *   md5: string,
-   *   translation_service: string,
-   *   timestamp: string,
-   *   links_fixed: bool
-   * }
-   */
   private function mergeWithDefaultData( array $data ): array {
     $defaultData = [
       'translator_id'       => 0,

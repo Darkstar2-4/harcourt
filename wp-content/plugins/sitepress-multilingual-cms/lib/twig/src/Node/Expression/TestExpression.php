@@ -14,7 +14,7 @@ use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\TwigTest;
 class TestExpression extends \WPML\Core\Twig\Node\Expression\CallExpression
 {
-    public function __construct(\WPML\Core\Twig_NodeInterface $node, $name, \WPML\Core\Twig_NodeInterface $arguments = null, $lineno)
+    public function __construct(\WPML\Core\Twig_NodeInterface $node, $name, ?\WPML\Core\Twig_NodeInterface $arguments = null, $lineno = 0)
     {
         $nodes = ['node' => $node];
         if (null !== $arguments) {

@@ -21,6 +21,8 @@ class GFHelp {
 			return;
 		}
 
+		GFCommon::gf_root_wrapper_open();
+
 		$dev_min = defined( 'GF_SCRIPT_DEBUG' ) && GF_SCRIPT_DEBUG ? '' : '.min';
 
 		?>
@@ -37,9 +39,9 @@ class GFHelp {
 					<?php printf(
 						esc_html__( "Please review the %sdocumentation%s first. If you still can't find the answer %sopen a support ticket%s and we will be happy to answer your questions and assist you with any problems.", 'gravityforms' ),
 						'<a href="https://docs.gravityforms.com/" target="_blank">',
-						'<span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'gravityforms' ) . '</span>&nbsp;<span class="gform-icon gform-icon--external-link"></span></a>',
+						'<span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'gravityforms' ) . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>',
 						'<a href="' . esc_attr( GFCommon::get_support_url() ) . '" target="_blank">',
-						'<span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'gravityforms' ) . '</span>&nbsp;<span class="gform-icon gform-icon--external-link"></span></a>'
+						'<span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'gravityforms' ) . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>'
 					); ?>
 				</p>
             </div>
@@ -51,7 +53,7 @@ class GFHelp {
                     <button class="gform-button gform-button--size-r gform-button--white gform-button--width-auto gform-button--active-type-loader gform-button--loader-after gform-button--icon-trailing button_focus">
                         <span class="gform-button__text gform-button__text--inactive"><?php esc_html_e( 'Search', 'gravityforms' ) ?></span>
                         <span class="screen-reader-text"><?php esc_html_e( '(opens in a new tab)', 'gravityforms' ) ?></span>
-                        <span class="gform-icon gform-icon--external-link gform-button__icon"></span>
+                        <span class="gform-icon gform-icon--external-link gform-button__icon" aria-hidden="true"></span>
                     </button>
                 </div>
             </form>
@@ -66,35 +68,35 @@ class GFHelp {
                                 <a target="_blank" href="https://docs.gravityforms.com/create-a-new-form/">
 									<?php esc_html_e( 'Creating a Form', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/category/user-guides/getting-started/add-form-to-site/">
 									<?php esc_html_e( 'Embedding a Form', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/reviewing-form-submissions/">
 									<?php esc_html_e( 'Reviewing Form Submissions', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/configuring-confirmations/">
 									<?php esc_html_e( 'Configuring Confirmations', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/configuring-notifications-in-gravity-forms/">
 									<?php esc_html_e( 'Configuring Notifications', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                         </ul>
@@ -110,35 +112,35 @@ class GFHelp {
                                 <a target="_blank" href="https://docs.gravityforms.com/getting-started-gravity-forms-api-gfapi/">
 									<?php esc_html_e( 'Discover the Gravity Forms API', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/api-functions/">
 									<?php esc_html_e( 'API Functions', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/category/developers/rest-api/">
 									<?php esc_html_e( 'REST API', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/category/developers/php-api/add-on-framework/">
 									<?php esc_html_e( 'Add-On Framework', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/gfaddon/">
 									<?php esc_html_e( 'GFAddOn', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                         </ul>
@@ -154,35 +156,35 @@ class GFHelp {
                                 <a target="_blank" href="https://docs.gravityforms.com/category/user-guides/design-and-layout/css-selectors/">
 									<?php esc_html_e( 'CSS Selectors', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/css-targeting-examples/">
 									<?php esc_html_e( 'CSS Targeting Examples', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/css-ready-classes/">
 									<?php esc_html_e( 'CSS Ready Classes', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/gform_field_css_class/">
 									<?php esc_html_e( 'gform_field_css_class', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                             <li>
                                 <a target="_blank" href="https://docs.gravityforms.com/gform_noconflict_styles/">
 									<?php esc_html_e( 'gform_noconflict_styles', 'gravityforms' ); ?>
 									<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'gravityforms' ); ?></span>
-									<span class="gform-icon gform-icon--external-link"></span>
+									<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
                                 </a>
                             </li>
                         </ul>
@@ -194,5 +196,6 @@ class GFHelp {
 		<img id="hexagons-bg-dark-blue" src="<?php echo esc_url( GFCommon::get_base_url() ); ?>/images/hexagons-bg-dark-blue.svg" alt=""/>
 		<img id="hexagons-bg-light-blue" src="<?php echo esc_url( GFCommon::get_base_url() ); ?>/images/hexagons-bg-light-blue.svg" alt=""/>
 	<?php
+		GFCommon::gf_root_wrapper_close();
 	}
 }

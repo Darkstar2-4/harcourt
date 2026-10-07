@@ -6,21 +6,13 @@ use WPML\Core\Component\Translation\Domain\TranslationMethod\TranslationMethodIn
 
 final class TargetLanguage {
 
-  /** @var string */
   private $languageCode;
 
-  /** @var TranslationMethodInterface */
   private $method;
 
-  /** @var Element[] */
   private $elements;
 
 
-  /**
-   * @param string                     $languageCode
-   * @param TranslationMethodInterface $method
-   * @param Element[]                  $elements
-   */
   public function __construct( string $languageCode, TranslationMethodInterface $method, array $elements ) {
     $this->languageCode = $languageCode;
     $this->method       = $method;
@@ -38,9 +30,6 @@ final class TargetLanguage {
   }
 
 
-  /**
-   * @return Element[]
-   */
   public function getElements(): array {
     return $this->elements;
   }

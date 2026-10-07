@@ -247,8 +247,8 @@ class crawl_page_class {
 			$href = $hrefs->item($i);//select an a tag
 			$href_url=parse_url($href->getAttribute('href'));
             switch (TRUE) {
-              case ($href_url['path']{0} == "/"):
-              case ($href_url['path']{0} == "."):
+              case ($href_url['path'][0] == "/"):
+              case ($href_url['path'][0] == "."):
             	$path=$href_url['path'];
 				break;
               default:

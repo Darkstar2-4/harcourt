@@ -1,64 +1,49 @@
 <?php
 
-/**
- * Script to merge all generated markdown documentation files into a single README.md file.
- */
 
-// Define paths
 $generatedDir = __DIR__ . '/../docs/generated';
 $outputFile = __DIR__ . '/../docs/README.md';
 $coreDir = __DIR__ . '/../core';
 $phpdocMdFile = __DIR__ . '/../.phpdoc-md';
 
-// Check if generated directory exists
 if (!is_dir($generatedDir)) {
     echo "Error: Generated documentation directory not found at {$generatedDir}\n";
     exit(1);
 }
 
-// Get all markdown files
 $files = glob($generatedDir . '/*.md');
 if (empty($files)) {
     echo "Warning: No markdown files found in {$generatedDir}, will attempt to generate from PHP files\n";
     $files = [];
 }
 
-// Get the list of classes from .phpdoc-md
 $phpdocMdConfig = include($phpdocMdFile);
 $configuredClasses = [];
 foreach ($phpdocMdConfig->classes as $class) {
-    // Extract the class name without namespace
     $className = basename(str_replace('\\', '/', $class));
     $configuredClasses[] = $className;
 
-    // Check if a markdown file exists for this class
     $mdFile = $generatedDir . '/' . $className . '.md';
     if (!file_exists($mdFile) && !in_array($mdFile, $files)) {
         echo "Class {$className} is in .phpdoc-md but no markdown file was generated. Creating one...\n";
 
-        // Find the PHP file for this class
         $phpFile = $coreDir . '/' . $className . '.php';
 
-        // Special case for Str class, which is defined in Strings.php
         if ($className === 'Str' && !file_exists($phpFile)) {
             $phpFile = $coreDir . '/Strings.php';
         }
 
         if (file_exists($phpFile)) {
-            // Create a more detailed markdown file for this class
             $phpContent = file_get_contents($phpFile);
 
-            // Extract class description from PHPDoc
             $classDescription = "";
             if (preg_match('/\/\*\*\s*(.*?)\s*\*\//s', $phpContent, $matches)) {
                 $classDescription = $matches[1];
-                // Clean up the description
                 $classDescription = preg_replace('/\s*\*\s*@.*$/m', '', $classDescription);
                 $classDescription = preg_replace('/\s*\*\s*/m', ' ', $classDescription);
                 $classDescription = trim($classDescription);
             }
 
-            // Extract methods from PHPDoc annotations
             $methods = [];
             preg_match_all('/@method\s+static\s+(?:callable|mixed|string|array|bool|int|[^\s]+)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)(.*?)(?=\*\s+@method|\*\/)/s', $phpContent, $matches, PREG_SET_ORDER);
 
@@ -67,7 +52,6 @@ foreach ($phpdocMdConfig->classes as $class) {
                 $signature = trim($match[2]);
                 $description = trim($match[3]);
 
-                // Clean up the description
                 $description = preg_replace('/\s*-\s*Curried\s*::\s*/', "\n\nCurried :: ", $description);
                 $description = preg_replace('/\*\s+/', '', $description);
 
@@ -77,13 +61,11 @@ foreach ($phpdocMdConfig->classes as $class) {
                 ];
             }
 
-            // Create markdown content
             $content = "# {$className}\n\n";
             if ($classDescription) {
                 $content .= "{$classDescription}\n\n";
             }
 
-            // Add methods
             foreach ($methods as $methodName => $methodInfo) {
                 if ($methodName !== 'init' && $methodName !== 'macro' && $methodName !== 'hasMacro') {
                     $content .= "### {$className}::{$methodName}\n\n";
@@ -104,30 +86,24 @@ foreach ($phpdocMdConfig->classes as $class) {
     }
 }
 
-// Sort files to ensure consistent order
 sort($files);
 
-// Initialize content with title
 $content = "# WPML Functional Programming Library\n\n";
 $content .= "## Table of Contents\n\n";
 
-// Arrays to store TOC entries and file contents
 $tocEntries = [];
 $fileContents = [];
 $methodsByClass = [];
 
-// Function to extract PHPDoc annotations for methods from a file
 function extractPhpDocMethods($filePath) {
     $content = file_get_contents($filePath);
     $methods = [];
 
-    // Extract PHPDoc annotations for methods with a simpler pattern that should match all method names
     preg_match_all('/@method\s+static\s+(?:callable|mixed|string|array|bool|int|[^\s]+)\s+([a-zA-Z0-9_]+)\s*\(/s', $content, $matches);
 
     echo "Extracting methods from " . basename($filePath) . ":\n";
     if (!empty($matches[1])) {
         foreach ($matches[1] as $method) {
-            // Skip common methods that are already included
             if (!in_array($method, ['init', 'macro', 'hasMacro'])) {
                 $methods[] = $method;
                 echo "  - Found method: " . $method . "\n";
@@ -140,17 +116,14 @@ function extractPhpDocMethods($filePath) {
     return $methods;
 }
 
-// Process each file to extract TOC entries and content
 foreach ($files as $file) {
     $className = basename($file, '.md');
     $fileContent = file_get_contents($file);
 
     echo "Processing file: " . $file . " (class: " . $className . ")\n";
 
-    // Check if there's a corresponding PHP file in the core directory
     $phpFile = $coreDir . '/' . $className . '.php';
 
-    // Special case for Str class, which is defined in Strings.php
     if ($className === 'Str' && !file_exists($phpFile)) {
         $phpFile = $coreDir . '/Strings.php';
     }
@@ -159,13 +132,11 @@ foreach ($files as $file) {
 
     if (file_exists($phpFile)) {
         echo "Found corresponding PHP file: " . $phpFile . "\n";
-        // Extract methods from PHPDoc annotations
         $phpDocMethods = extractPhpDocMethods($phpFile);
     } else {
         echo "No corresponding PHP file found for " . $className . "\n";
     }
 
-    // Extract method names for TOC from the markdown file
     preg_match_all('/^### ' . $className . '::([a-zA-Z0-9_]+)\s*$/m', $fileContent, $matches);
     $methods = [];
 
@@ -176,7 +147,6 @@ foreach ($files as $file) {
         }
     }
 
-    // Add PHPDoc methods to the list if they're not already included
     if (!empty($phpDocMethods)) {
         foreach ($phpDocMethods as $method) {
             if (!in_array($method, $methods) && $method !== 'init' && $method !== 'macro' && $method !== 'hasMacro') {
@@ -185,17 +155,14 @@ foreach ($files as $file) {
         }
     }
 
-    // Store file content (excluding the first line which is the class title)
     $lines = explode("\n", $fileContent);
-    array_shift($lines); // Remove the first line (class title)
+    array_shift($lines);
 
-    // Clean up the content to match the original format
     $cleanedContent = '';
     $inMethod = false;
     $methodName = '';
 
     foreach ($lines as $line) {
-        // Check if this is a method header
         if (preg_match('/^### ' . $className . '::([a-zA-Z0-9_]+)\s*$/m', $line, $methodMatch)) {
             $methodName = $methodMatch[1];
             $inMethod = true;
@@ -203,21 +170,17 @@ foreach ($files as $file) {
             continue;
         }
 
-        // Skip tables and other formatting we don't want
         if (strpos($line, '| Name | Description |') !== false || 
             strpos($line, '|------|-------------|') !== false ||
             strpos($line, '<hr />') !== false) {
             continue;
         }
 
-        // Clean up method descriptions
         if ($inMethod) {
-            // Remove "Description" headers
             if (strpos($line, '**Description**') !== false) {
                 continue;
             }
 
-            // Remove code blocks for method signatures
             if (strpos($line, '```php') !== false) {
                 continue;
             }
@@ -228,24 +191,20 @@ foreach ($files as $file) {
                 continue;
             }
 
-            // Keep the actual description
             $cleanedContent .= $line . "\n";
         }
     }
 
-    // Add documentation for PHPDoc methods that are not in the markdown file
     if (!empty($phpDocMethods)) {
         foreach ($phpDocMethods as $method) {
             if (!in_array($method, $methods) && $method !== 'init' && $method !== 'macro' && $method !== 'hasMacro') {
                 $cleanedContent .= "### {$method}\n\n";
 
-                // Extract the PHPDoc annotation for this method
                 $phpContent = file_get_contents($phpFile);
                 if (preg_match('/@method\s+static\s+(?:callable|mixed|[^\s]+)\s+' . $method . '\s*\((.*?)\)(.*?)(?=\*\s+@method|\*\/)/s', $phpContent, $docMatch)) {
                     $signature = trim($docMatch[1]);
                     $description = trim($docMatch[2]);
 
-                    // Clean up the description
                     $description = preg_replace('/\s*-\s*Curried\s*::\s*/', "\n\nCurried :: ", $description);
                     $description = preg_replace('/\*\s+/', '', $description);
 
@@ -261,7 +220,6 @@ foreach ($files as $file) {
     $fileContents[$className] = $cleanedContent;
 }
 
-// Build TOC
 foreach ($methodsByClass as $className => $methods) {
     $tocEntries[] = "* [{$className}](#{$className})";
     foreach ($methods as $method) {
@@ -270,19 +228,15 @@ foreach ($methodsByClass as $className => $methods) {
     }
 }
 
-// Add TOC to content
 $content .= implode("\n", $tocEntries) . "\n\n";
 
-// Add file contents
 foreach ($fileContents as $className => $fileContent) {
     $content .= "* {$className}\n" . $fileContent . "\n";
 }
 
-// Write to output file
 if (file_put_contents($outputFile, $content)) {
     echo "Documentation successfully merged into {$outputFile}\n";
 
-    // Clean up: remove the generated directory
     $files = glob($generatedDir . '/*');
     foreach ($files as $file) {
         if (is_file($file)) {

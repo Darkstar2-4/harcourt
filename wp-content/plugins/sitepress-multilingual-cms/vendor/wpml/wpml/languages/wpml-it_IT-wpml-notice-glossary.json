@@ -5,28 +5,28 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "it"
+            "lang": "it_IT"
          },
          "Add glossary terms": [
             "Aggiungi termini al glossario"
          ],
          "Minimize": [
-            "Riduci"
+            "Riduci a icona"
          ],
          "Expand": [
             "Espandi"
          ],
          "There's nothing yet in the Glossary": [
-            "Non c'è ancora niente nel Glossario"
+            "Non c'è ancora nulla nel glossario"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Sembra che tu non stia ancora usando il glossario. Il Glossario può aiutarti a:"
+            "Sembra che tu non stia ancora usando il glossario. Il glossario può aiutarti a:"
          ],
          "Improve the quality of the translation": [
             "Migliorare la qualità della traduzione"
          ],
          "Ensure translation consistency": [
-            "Garantire coerenza nella traduzione"
+            "Garantire la coerenza della traduzione"
          ],
          "Reduce translation costs": [
             "Ridurre i costi di traduzione"
@@ -39,11 +39,10 @@
          ],
          "%d item in the <a>Glossary</a>": [
             "%d elemento nel <a>Glossario</a>",
-            "%d items in the <a>Glossary</a>",
             "%d elementi nel <a>Glossario</a>"
          ],
          "Dismiss": [
-            "Chiudi"
+            "Ignora"
          ]
       }
    }

@@ -9,16 +9,12 @@ use WPML\Core\Component\WordsToTranslate\Domain\Post\Query\TranslationQueryInter
 
 class PostTermsLoader {
 
-  /** @var WordsToTranslate */
   private $wordsToTranslate;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var JobQueryInterface */
   private $jobQuery;
 
-  /** @var LastTranslationFactory */
   private $lastTranslationFactory;
 
 
@@ -35,12 +31,6 @@ class PostTermsLoader {
   }
 
 
-  /**
-   * @param Post $post
-   * @param string[] $langs
-   *
-   * @return void
-   */
   public function loadWordsToTranslateForLangs( Post $post, $langs ) {
     $terms = $post->getTerms();
     if ( $terms === null ) {

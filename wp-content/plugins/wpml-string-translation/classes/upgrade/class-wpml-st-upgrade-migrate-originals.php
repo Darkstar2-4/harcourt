@@ -2,10 +2,8 @@
 
 class WPML_ST_Upgrade_Migrate_Originals implements IWPML_St_Upgrade_Command {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var SitePress sitepress */
 	private $sitepress;
 
 	private $translations   = array();

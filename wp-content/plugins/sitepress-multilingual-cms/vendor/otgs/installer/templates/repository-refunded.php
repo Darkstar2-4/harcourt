@@ -5,41 +5,121 @@ namespace OTGS\Installer\Templates\Repository;
 class Refunded {
 
 	public static function render( $model ) {
+		?>
+		<div class="otgs-installer-registered otgs-installer-expired clearfix">
+			<div class="notice inline otgs-installer-notice otgs-installer-notice-refund otgs-installer-notice-refund--cards">
+				<?php static::renderContent( $model ); ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	public static function renderContent( $model ) {
 		$withProduct = function ( $str ) use ( $model ) {
 			return sprintf( $str, $model->productName );
 		};
 
-		$title       = sprintf( __( 'Remember to remove %s from this website.', 'installer' ), $model->productName );
-		$into        = sprintf( __( 'This site is using %s plugin, which is not paid for. After receiving a refund, you should remove this plugin from your sites. Using unregistered plugins means that you are not receiving stability and security updates and will ultimately lead to problems running the site.', 'installer' ), $model->productName );
-		$buyQuestion = __( 'Bought again?', 'installer' );
-		$buyButton   = __( 'Check my order status', 'installer' );
+		$headerTitle = sprintf( __( '%s registration needs your attention', 'installer' ), $model->productName );
+		$headerIntro = sprintf(
+			__( 'Your %1$s order was refunded, so this site no longer has an active license. Your translations are safe — pick the option below that matches your situation to keep %1$s working.', 'installer' ),
+			$model->productName
+		);
+
+		$card1Title = __( 'I need to use a different wpml.org account', 'installer' );
+		$card1Desc  = __( 'Use this if you bought WPML on a different account, you\'re taking over a site from someone else, or ownership is being transferred. We\'ll remove the current site key so you can register a new one.', 'installer' );
+
+		$card2Title    = __( "I've already bought WPML again", 'installer' );
+		$card2Desc     = __( 'If you re-purchased WPML on the same wpml.org account, sync this site to refresh its license.', 'installer' );
+		$card2Button   = __( 'Check my order status', 'installer' );
+		$card2Footnote = __( 'Bought it on a different account? See option 1 above.', 'installer' );
+
+		$card3Title = __( 'I want to renew WPML now', 'installer' );
 		?>
-        <div class="otgs-installer-registered otgs-installer-expired clearfix">
-            <div class="notice inline otgs-installer-notice otgs-installer-notice-refund">
-                <div class="otgs-installer-notice-content">
-                    <h2><?php echo esc_html( $title ); ?></h2>
-                    <p><?php echo esc_html( $into ); ?></p>
-                    <div class="otgs-installer-notice-status">
-                        <p class="otgs-installer-notice-status-item"><?php echo esc_html( $buyQuestion ); ?></p>
-                        <a class="update_site_key_js otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
-                           href="#"
-                           data-repository="<?php echo $model->repoId ?>"
-                           data-nonce="<?php echo $model->updateSiteKeyNonce ?>"
-                        >
-							<?php echo esc_html( $buyButton ); ?>
-                        </a>
-                    </div>
-                    <div class="otgs-installer-notice-status">
-						<?php
-						EndUsers::render( $withProduct, $model );
-						if ( $model->shouldDisplayUnregisterLink ) {
-							RegisteredButtons::render( $model );
-						}
-						?>
-                    </div>
-                </div>
-            </div>
-        </div>
+		<div class="otgs-installer-refund-header">
+			<span class="dashicons dashicons-warning" aria-hidden="true"></span>
+			<div class="otgs-installer-refund-header-text">
+				<h2><?php echo esc_html( $headerTitle ); ?></h2>
+				<p><?php echo esc_html( $headerIntro ); ?></p>
+			</div>
+		</div>
+
+		<div class="otgs-installer-refund-cards">
+
+			<div class="otgs-installer-refund-card">
+				<div class="otgs-installer-refund-card-number" aria-hidden="true">1</div>
+				<div class="otgs-installer-refund-card-body">
+					<h3><?php echo esc_html( $card1Title ); ?></h3>
+					<p><?php echo esc_html( $card1Desc ); ?></p>
+					<?php if ( $model->shouldDisplayUnregisterLink ) :
+						$hardcoded       = \WP_Installer::get_repository_hardcoded_site_key( $model->repoId );
+						$unregisterLabel = sprintf( __( 'Unregister current %s site-key.', 'installer' ), $model->productName );
+						if ( $hardcoded ) :
+							$hardcodedTitle = sprintf(
+								esc_attr__( 'Site-key was set by %s, most likely in wp-config.php. Please remove the constant before attempting to unregister.', 'installer' ),
+								'OTGS_INSTALLER_SITE_KEY_' . strtoupper( $model->repoId )
+							);
+							?>
+							<a class="remove_site_key_js button"
+							   href="#"
+							   data-repository="<?php echo esc_attr( $model->repoId ); ?>"
+							   data-nonce="<?php echo esc_attr( $model->removeSiteKeyNonce ); ?>"
+							   disabled="disabled"
+							   title="<?php echo $hardcodedTitle; ?>"
+							>
+								<?php echo esc_html( $unregisterLabel ); ?>
+							</a>
+						<?php else : ?>
+							<button type="button" class="button js-otgs-unregister-toggle">
+								<?php echo esc_html( $unregisterLabel ); ?>
+							</button>
+
+							<div class="otgs-installer-refund-confirm" style="display:none;">
+								<p>
+									<strong><?php esc_html_e( 'Remove the current site key?', 'installer' ); ?></strong><br />
+									<?php esc_html_e( 'This unregisters this site from the refunded WPML account so you can enter a new key. Your translations are not affected.', 'installer' ); ?>
+								</p>
+								<button type="button" class="button js-otgs-unregister-cancel">
+									<?php esc_html_e( 'Cancel', 'installer' ); ?>
+								</button>
+								<a class="remove_site_key_js button button-primary"
+								   href="#"
+								   data-repository="<?php echo esc_attr( $model->repoId ); ?>"
+								   data-nonce="<?php echo esc_attr( $model->removeSiteKeyNonce ); ?>"
+								>
+									<?php esc_html_e( 'Yes, unregister', 'installer' ); ?>
+								</a>
+							</div>
+						<?php endif; ?>
+					<?php endif; ?>
+				</div>
+			</div>
+
+			<div class="otgs-installer-refund-card">
+				<div class="otgs-installer-refund-card-number" aria-hidden="true">2</div>
+				<div class="otgs-installer-refund-card-body">
+					<h3><?php echo esc_html( $card2Title ); ?></h3>
+					<p><?php echo esc_html( $card2Desc ); ?></p>
+					<a class="update_site_key_js button button-primary"
+					   href="#"
+					   data-repository="<?php echo esc_attr( $model->repoId ); ?>"
+					   data-nonce="<?php echo esc_attr( $model->updateSiteKeyNonce ); ?>"
+					>
+						<?php echo esc_html( $card2Button ); ?>
+					</a>
+					<div class="installer-error-box" style="display:none;"></div>
+					<p class="description"><?php echo esc_html( $card2Footnote ); ?></p>
+				</div>
+			</div>
+
+			<div class="otgs-installer-refund-card">
+				<div class="otgs-installer-refund-card-number" aria-hidden="true">3</div>
+				<div class="otgs-installer-refund-card-body">
+					<h3><?php echo esc_html( $card3Title ); ?></h3>
+					<?php EndUsers::render( $withProduct, $model ); ?>
+				</div>
+			</div>
+
+		</div>
 		<?php
 	}
 }

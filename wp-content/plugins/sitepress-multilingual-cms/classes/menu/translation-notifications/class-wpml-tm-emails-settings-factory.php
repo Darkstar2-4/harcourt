@@ -2,9 +2,6 @@
 
 class WPML_TM_Emails_Settings_Factory implements IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return WPML_TM_Emails_Settings
-	 */
 	public function create() {
 		global $iclTranslationManagement;
 

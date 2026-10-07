@@ -8,16 +8,10 @@ use WPML\FP\Obj;
 
 class ModuleWithItemsFromConfig extends \WPML_Beaver_Builder_Module_With_Items {
 
-	/** @var array $fieldDefinitions */
 	private $fieldDefinitions = [];
 
-	/** @var string $itemsField */
 	private $itemsField;
 
-	/**
-	 * @param string $itemsField
-	 * @param array  $config
-	 */
 	public function __construct( $itemsField, array $config ) {
 		$this->itemsField = $itemsField;
 		$this->init( $config );
@@ -28,30 +22,18 @@ class ModuleWithItemsFromConfig extends \WPML_Beaver_Builder_Module_With_Items {
 		$this->fieldDefinitions = $keyByField( $config );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_title( $field ) {
 		return Obj::path( [ $field, 'type' ], $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_fields() {
 		return array_keys( $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_editor_type( $field ) {
 		return Obj::path( [ $field, 'editor_type' ], $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function &get_items( $settings ) {
 		return $settings->{$this->itemsField};
 	}

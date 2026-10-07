@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "Dissmiss Notice": [
-            "Fermer la notification"
+            "Ignorer la notification"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "Rationalisez la traduction de votre site en utilisant le Tableau de bord de Gestion de traduction de WPML"
+            "Rationalisez la traduction de votre site à l’aide du tableau de bord de traduction de WPML"
          ],
          "Translate pages, posts, products and strings from one place": [
-            "Traduisez les pages, les articles, les produits et les chaînes depuis un seul endroit"
+            "Traduisez les pages, les articles, les produits et les chaînes à partir d’un seul endroit"
          ],
          "Bulk automatic translation": [
             "Traduction automatique en masse"
@@ -23,7 +23,7 @@
             "Tout traduire automatiquement"
          ],
          "Go to the Translation Dashboard": [
-            "Aller au tableau de bord de traduction"
+            "Accéder au tableau de bord de traduction"
          ],
          "Learn More": [
             "En savoir plus"

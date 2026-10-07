@@ -7,20 +7,10 @@ use WPML\LIB\WP\Attachment;
 class CopiedAndReferencedMediaExtractor {
 	const COPIED_MEDIA_SHORTCODES = array( 'et_pb_image' );
 
-	/**
-	 * @var MediaImgParse
-	 */
 	private $media_parser;
 
-	/**
-	 * @var \SitePress $sitepress
-	 */
 	private $sitepress;
 
-	/**
-	 * @param MediaImgParse $media_parser
-	 * @param \SitePress    $sitepress
-	 */
 	public function __construct(
 		MediaImgParse $media_parser,
 		\SitePress $sitepress
@@ -29,10 +19,6 @@ class CopiedAndReferencedMediaExtractor {
 		$this->sitepress    = $sitepress;
 	}
 
-	/**
-	 * @param array|\WP_Post $post
-	 * @param bool           $get_attachment_ids_from_urls
-	 */
 	public function extract( $post, $get_attachment_ids_from_urls = true ) {
 		if ( is_array( $post ) ) {
 			$post = $post[0];
@@ -53,7 +39,6 @@ class CopiedAndReferencedMediaExtractor {
 		$referenced_media = $pb_referenced_media;
 
 		$referenced_media = $this->maybe_extract_post_thumbnail( $post, $referenced_media );
-		// Note: check if we can utilize /woocommerce-multilingual/classes/media/Wrapper/Translatable.php for this.
 		$referenced_media = $this->maybe_extract_woocommerce_gallery( $post, $referenced_media );
 		$referenced_media = $this->maybe_extract_bricks_media( $post, $referenced_media );
 		$referenced_media = $this->maybe_extract_siteorigin_media( $post, $referenced_media );
@@ -99,11 +84,6 @@ class CopiedAndReferencedMediaExtractor {
 		);
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 *
-	 * @return array
-	 */
 	private function get_page_builder_media( $post ) {
 		do_action( 'wpml_pb_find_used_media_in_post', $post );
 		$pb_media = apply_filters( 'wpml_pb_get_used_media_in_post', $post );
@@ -129,11 +109,6 @@ class CopiedAndReferencedMediaExtractor {
 		return $pb_media;
 	}
 
-	/**
-	 * @param array $pb_media
-	 *
-	 * @return array
-	 */
 	private function part_page_builder_media( $pb_media ) {
 		$copied     = array();
 		$referenced = array();
@@ -154,12 +129,6 @@ class CopiedAndReferencedMediaExtractor {
 		return array( $copied, $referenced );
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 * @param array    $referenced_media
-	 *
-	 * @return array
-	 */
 	private function maybe_extract_post_thumbnail( $post, $referenced_media ) {
 		$featured_image = get_post_meta( $post->ID, '_thumbnail_id', true );
 		if ( ! $featured_image ) {
@@ -183,12 +152,6 @@ class CopiedAndReferencedMediaExtractor {
 		return $referenced_media;
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 * @param array    $referenced_media
-	 *
-	 * @return array
-	 */
 	private function maybe_extract_woocommerce_gallery( $post, $referenced_media ) {
 		$woocommerce_gallery_images = get_post_meta( $post->ID, '_product_image_gallery', true );
 		if ( ! $woocommerce_gallery_images ) {
@@ -215,12 +178,6 @@ class CopiedAndReferencedMediaExtractor {
 		return $referenced_media;
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 * @param array    $referenced_media
-	 *
-	 * @return array
-	 */
 	private function maybe_extract_bricks_media( $post, $referenced_media ) {
 		$all_meta = get_post_meta( $post->ID );
 		$data     = [];
@@ -297,12 +254,6 @@ class CopiedAndReferencedMediaExtractor {
 		return $referenced_media;
 	}
 
-	/**
-	 * @param \WP_Post $post
-	 * @param array    $referenced_media
-	 *
-	 * @return array
-	 */
 	private function maybe_extract_siteorigin_media( $post, $referenced_media ) {
 		$all_meta = get_post_meta( $post->ID );
 		$data     = [];

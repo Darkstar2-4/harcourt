@@ -1,7 +1,6 @@
 <?php
 
 class WPML_TP_XLIFF_API extends WPML_TP_API {
-	/** @var WPML_TP_Xliff_Parser */
 	private $xliff_parser;
 
 	public function __construct(
@@ -14,13 +13,6 @@ class WPML_TP_XLIFF_API extends WPML_TP_API {
 		$this->xliff_parser = $xliff_parser;
 	}
 
-	/**
-	 * @param int  $tp_job_id
-	 * @param bool $parse
-	 *
-	 * @return WPML_TP_Translation_Collection|string
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function get_remote_translations( $tp_job_id, $parse = true ) {
 		$request = new WPML_TP_API_Request( '/jobs/{job_id}/xliff.json' );
 		$request->set_params(

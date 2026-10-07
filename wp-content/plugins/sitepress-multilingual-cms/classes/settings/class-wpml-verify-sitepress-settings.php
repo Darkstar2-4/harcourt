@@ -1,25 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 5/10/17
- * Time: 10:23 PM
- */
 
 class WPML_Verify_SitePress_Settings {
 
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 
 	public function __construct( WPML_WP_API $wp_api ) {
 		$this->wp_api = $wp_api;
 	}
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	public function verify( $settings ) {
 		$default_settings = [
 			'interview_translators'              => 1,
@@ -59,7 +47,6 @@ class WPML_Verify_SitePress_Settings {
 				'head_langs_priority'         => 1,
 			],
 			'posts_slug_translation'             => [
-				/** @deprected key `on`, use option `wpml_base_slug_translation` instead */
 				'on' => 1,
 			],
 			'languages_order'                    => [],
@@ -82,7 +69,6 @@ class WPML_Verify_SitePress_Settings {
 			'tm_block_retranslating_terms'       => 1,
 		];
 
-		// configured for three levels
 		$update_settings = false;
 		foreach ( $default_settings as $key => $value ) {
 			if ( is_array( $value ) ) {

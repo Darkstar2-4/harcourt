@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig\Node;
 
-/**
- * Represents a displayable node in the AST.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 interface NodeOutputInterface
 {
 }

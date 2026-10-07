@@ -5,31 +5,31 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
-         "WPML Translation Editor": [
-            "WPML Translation Editor"
-         ],
-         "WordPress Editor": [
-            "WordPress Editor"
-         ],
          "Translation Dashboard": [
             "Vertaaldashboard"
          ],
+         "WPML Translation Editor": [
+            "WPML-vertaaleditor"
+         ],
+         "WordPress Editor": [
+            "WordPress-editor"
+         ],
          "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
-            "Let op: als je later terugschakelt naar de Vertaal-editor van WPML, moet je de inhoud die je met de WordPress-editor hebt vertaald opnieuw vertalen."
+            "Bovendien, als u later terugschakelt naar de WPML-vertaaleditor, moet u inhoud die u met de WordPress-editor hebt vertaald, opnieuw vertalen."
          ],
          "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
-            "Dit zal inhoud overschrijven die je met de WordPress Editor hebt vertaald. Als je nu overschakelt, moet je geselecteerde inhoud opnieuw vertalen."
+            "Dit overschrijft inhoud die u met de WordPress-editor hebt vertaald. Als u nu overschakelt, moet u de geselecteerde inhoud opnieuw vertalen."
          ],
          "You are about to translate with the %s": [
-            "Je staat op het punt te vertalen met de %s"
+            "U staat op het punt te vertalen met de %s"
          ],
          "Translate with the WordPress Editor if you need different designs per language or if the content isn't compatible with WPML's Translation Editor.": [
-            "Vertaal met de WordPress Editor als je verschillende ontwerpen per taal nodig hebt of als de inhoud niet compatibel is met de Vertaal-editor van WPML."
+            "Vertaal met de WordPress-editor als u verschillende ontwerpen per taal nodig hebt of als de inhoud niet compatibel is met de vertaaleditor van WPML."
          ],
          "What do you want to translate?": [
-            "Wat wil je vertalen?"
+            "Wat wilt u vertalen?"
          ],
          "I understand, switch to the WordPress Editor": [
             "Ik begrijp het, schakel over naar de WordPress-editor"
@@ -44,7 +44,7 @@
             "Ik begrijp het, schakel over naar %s"
          ],
          "Only this %s": [
-            "Alleen dit %s"
+            "Alleen deze %s"
          ],
          "Recommended": [
             "Aanbevolen"
@@ -53,16 +53,16 @@
             "Alle %s"
          ],
          "All the site's content": [
-            "Alle content van de site"
+            "Alle inhoud van de site"
          ],
          "I understand, switch to Translation Dashboard": [
-            "Ik begrijp het, schakel over naar het Vertaaldashboard"
+            "Ik begrijp het, schakel over naar het vertaaldashboard"
          ],
          "The WordPress Editor doesn't offer Automatic Translation, Translation Memory and other features that make translation easier.": [
-            "De WordPress-editor biedt geen Automatische Vertaling, Vertaalgeheugen en andere functies die het vertalen gemakkelijker maken."
+            "De WordPress-editor biedt geen automatische vertaling, vertaalgeheugen en andere functies die vertalen gemakkelijker maken."
          ],
          "Translate items in batch after reviewing the cost of AI translation": [
-            "Vertaal items in batch na het bekijken van de kosten van AI-vertaling"
+            "Vertaal items in batch na het controleren van de kosten van KI-vertaling"
          ]
       }
    }

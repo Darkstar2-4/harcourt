@@ -13,16 +13,12 @@ class LoadTextDomain implements \IWPML_Action {
 
 	const PRIORITY_OVERRIDE = 10;
 
-	/** @var Manager $file_manager */
 	private $file_manager;
 
-	/** @var WPML_ST_Translations_File_Locale $file_locale */
 	private $file_locale;
 
-	/** @var LoadedMODictionary $loaded_mo_dictionary */
 	private $loaded_mo_dictionary;
 
-	/** @var array $loaded_domains */
 	private $loaded_domains = [];
 
 	public function __construct(
@@ -43,23 +39,6 @@ class LoadTextDomain implements \IWPML_Action {
 		add_action( 'wpml_language_has_switched', [ $this, 'languageHasSwitched' ] );
 	}
 
-	/**
-	 * When a MO file is loaded, we override the process to load
-	 * the custom MO file before.
-	 *
-	 * That way, the custom MO file will be merged into the subsequent
-	 * native MO files and the custom MO translations will always
-	 * overwrite the native ones.
-	 *
-	 * This gives us the ability to build partial custom MO files
-	 * with only the modified translations.
-	 *
-	 * @param bool   $override Whether to override the .mo file loading. Default false.
-	 * @param string $domain   Text domain. Unique identifier for retrieving translated strings.
-	 * @param string $mofile   Path to the MO file.
-	 *
-	 * @return bool
-	 */
 	public function overrideLoadTextDomain( $override, $domain, $mofile ) {
 		if ( ! $mofile ) {
 			return $override;
@@ -79,12 +58,6 @@ class LoadTextDomain implements \IWPML_Action {
 		return $override;
 	}
 
-	/**
-	 * @param bool $override
-	 * @param string $domain
-	 *
-	 * @return bool
-	 */
 	public function overrideUnloadTextDomain( $override, $domain ) {
 		$key = array_search( $domain, $this->loaded_domains );
 
@@ -95,11 +68,6 @@ class LoadTextDomain implements \IWPML_Action {
 		return $override;
 	}
 
-	/**
-	 * @param string $domain
-	 *
-	 * @return bool
-	 */
 	private function isCustomMOLoaded( $domain ) {
 		return in_array( $domain, $this->loaded_domains, true );
 	}
@@ -120,11 +88,6 @@ class LoadTextDomain implements \IWPML_Action {
 		$this->setCustomMOLoaded( $domain );
 	}
 
-	/**
-	 * @param string|null $path
-	 * @param string $domain
-	 * @return void
-	 */
 	private function maybeLoadWordPressJITMoFile( $path, $domain ) {
 		if( file_exists( $path ) ) {
 			load_textdomain( $domain, $path );
@@ -137,7 +100,6 @@ class LoadTextDomain implements \IWPML_Action {
 			$locale = $this->file_locale->get( $entity->mofile, $entity->domain );
 			$this->loadCustomMOFile( $entity->domain, $entity->mofile, $locale );
 			if ( class_exists( '\WP_Translation_Controller' ) ) {
-				// WP 6.5 - passing locale
 				load_textdomain( $entity->domain, $entity->mofile, $locale );
 			} else {
 				load_textdomain($entity->domain, $entity->mofile);
@@ -145,9 +107,6 @@ class LoadTextDomain implements \IWPML_Action {
 		} );
 	}
 
-	/**
-	 * @param string $domain
-	 */
 	private function setCustomMOLoaded( $domain ) {
 		$this->loaded_domains[] = $domain;
 	}
@@ -156,17 +115,7 @@ class LoadTextDomain implements \IWPML_Action {
 		$this->loaded_domains = [];
 	}
 
-	/**
-	 * @param $mofile
-	 * @param $domain
-	 */
 	public function fallbackDefaultTranslations( $mofile, $domain, $locale) {
-		// Since version 6.7, WP will not attempt anymore to load translations
-		// from the default WordPress translation path if the MO file is not found.
-		// It will set $GLOBALS['l10n'][ $domain ] to a NOOP_Translations object and
-		// WP JIT mechanism won't be triggered anymore.
-		// Thus, WPML is not able to load custom translations anymore.
-		// If any of these translation sources is available, we will force it to load before this happens.
 		if (WordPress::versionCompare('>', '6.6.999') && is_string( $mofile )) {
 			$wpml_mofile = $this->file_manager->get($domain, $locale);
 

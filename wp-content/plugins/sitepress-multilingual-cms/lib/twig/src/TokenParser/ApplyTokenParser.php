@@ -15,13 +15,6 @@ use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Node\SetNode;
 use WPML\Core\Twig\Token;
-/**
- * Applies filters on a section of a template.
- *
- *   {% apply upper %}
- *      This text becomes uppercase
- *   {% endapplys %}
- */
 final class ApplyTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

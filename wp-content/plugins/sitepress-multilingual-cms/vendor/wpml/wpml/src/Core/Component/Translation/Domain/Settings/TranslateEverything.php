@@ -4,25 +4,14 @@ namespace WPML\Core\Component\Translation\Domain\Settings;
 
 class TranslateEverything {
 
-  /** @var bool */
   private $isEnabled;
 
-  /** @var bool */
   private $hasEverBeenEnabled;
 
-  /**
-   * @var array<string, string[]> $completedPosts e.g ['post' => ['fr', 'de'], 'page' => ['fr']]
-   */
   private $completedPosts = [];
 
-  /**
-   * @var array<string, string[]> $completedPackages e.g ['gravity form' => ['fr', 'de'], 'block' => ['fr']]
-   */
   private $completedPackages = [];
 
-  /**
-   * @var string[] $completedStrings e.g ['fr', 'de']
-   */
   private $completedStrings = [];
 
 
@@ -57,29 +46,16 @@ class TranslateEverything {
   }
 
 
-  /**
-   * @return array<string, string[]>
-   */
   public function getCompletedPackages(): array {
     return $this->completedPackages;
   }
 
 
-  /**
-   * @param array<string, string[]> $completedPackages
-   *
-   * @return void
-   */
   public function setCompletedPackages( array $completedPackages ) {
     $this->completedPackages = $completedPackages;
   }
 
 
-  /**
-   * @param string[] $packageTypes
-   *
-   * @return void
-   */
   public function removeCompletedPackages( array $packageTypes ) {
     foreach ( $packageTypes as $packageType ) {
       unset( $this->completedPackages[ $packageType ] );
@@ -88,29 +64,16 @@ class TranslateEverything {
   }
 
 
-  /**
-   * @return array<string, string[]>
-   */
   public function getCompletedPosts(): array {
     return $this->completedPosts;
   }
 
 
-  /**
-   * @param array<string, string[]> $completedPosts
-   *
-   * @return void
-   */
   public function setCompletedPosts( array $completedPosts ) {
     $this->completedPosts = $completedPosts;
   }
 
 
-  /**
-   * @param string[] $postTypes
-   *
-   * @return void
-   */
   public function removeCompletedPosts( array $postTypes ) {
     foreach ( $postTypes as $postType ) {
       unset( $this->completedPosts[ $postType ] );
@@ -118,19 +81,11 @@ class TranslateEverything {
   }
 
 
-  /**
-   * @return string[]
-   */
   public function getCompletedStrings(): array {
     return $this->completedStrings;
   }
 
 
-  /**
-   * @param string[] $completedStrings
-   *
-   * @return void
-   */
   public function setCompletedStrings( array $completedStrings ) {
     $this->completedStrings = $completedStrings;
   }

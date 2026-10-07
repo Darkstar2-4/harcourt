@@ -2,7 +2,6 @@
 
 class WPML_TM_Jobs_Deadline_Estimate_AJAX_Action_Factory extends WPML_AJAX_Base_Factory {
 
-	/** @return null|WPML_TM_Jobs_Deadline_Estimate_AJAX_Action */
 	public function create() {
 		$hooks = null;
 

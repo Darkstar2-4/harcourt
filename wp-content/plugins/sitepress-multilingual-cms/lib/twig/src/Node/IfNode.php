@@ -12,14 +12,9 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents an if node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class IfNode extends \WPML\Core\Twig\Node\Node
 {
-    public function __construct(\WPML\Core\Twig_NodeInterface $tests, \WPML\Core\Twig_NodeInterface $else = null, $lineno, $tag = null)
+    public function __construct(\WPML\Core\Twig_NodeInterface $tests, ?\WPML\Core\Twig_NodeInterface $else = null, $lineno = 0, $tag = null)
     {
         $nodes = ['tests' => $tests];
         if (null !== $else) {

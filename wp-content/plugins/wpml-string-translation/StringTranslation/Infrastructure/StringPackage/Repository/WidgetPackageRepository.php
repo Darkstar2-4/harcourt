@@ -12,9 +12,6 @@ class WidgetPackageRepository implements WidgetPackageRepositoryInterface {
 
 	const PACKAGE_NAME = 'widget';
 
-	/**
-	 * @var Options
-	 */
 	private $options;
 
 	public function __construct( Options $options ) {
@@ -26,14 +23,6 @@ class WidgetPackageRepository implements WidgetPackageRepositoryInterface {
 		       && $stringPackage->getName() === self::PACKAGE_NAME;
 	}
 
-	/**
-	 * Append Widget package title with sidebar names.
-	 *
-	 * @param string $title Original Block package title.
-	 *
-	 * @return string Title with sidebar names.
-	 * @throws \Exception
-	 */
 	public function getUpdatedTitle( string $title ): string {
 		$registeredSidebars = $this->getRegisteredSidebars();
 		$sidebarNames = [];

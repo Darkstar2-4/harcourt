@@ -59,7 +59,14 @@ class WPSEO_Premium_Upsell_Admin_Block {
 
 		$arguments = $this->get_arguments( $is_woocommerce_active );
 
+		$now_including = [ 'Local SEO', 'News SEO', 'Video SEO', __( 'Google Docs add-on (1 seat)', 'wordpress-seo' ) ];
+		if ( $is_woocommerce_active ) {
+			array_unshift( $now_including, 'Yoast SEO Premium' );
+		}
+
+		$header_class   = ( $is_woocommerce_active ) ? 'woo-header' : '';
 		$arguments_html = implode( '', array_map( [ $this, 'get_argument_html' ], $arguments ) );
+		$badge_class    = ( $is_woocommerce_active ) ? 'woo-badge' : '';
 
 		$class = $this->get_html_class();
 
@@ -73,12 +80,12 @@ class WPSEO_Premium_Upsell_Admin_Block {
 			'<a id="%1$s" class="yoast-button-upsell" data-action="load-nfd-ctb" data-ctb-id="f6a84663-465f-4cb5-8ba5-f7a6d72224b2" href="%2$s" target="_blank">%3$s</a>',
 			esc_attr( 'wpseo-' . $this->identifier . '-popup-button' ),
 			esc_url( $url ),
-			$button_text
+			$button_text,
 		);
 
 		echo '<div class="' . esc_attr( $class ) . '">';
 
-		if ( YoastSEO()->classes->get( Promotion_Manager::class )->is( 'black-friday-2024-promotion' ) ) {
+		if ( YoastSEO()->classes->get( Promotion_Manager::class )->is( 'black-friday-promotion' ) ) {
 			$bf_label   = esc_html__( 'BLACK FRIDAY', 'wordpress-seo' );
 			$sale_label = esc_html__( '30% OFF', 'wordpress-seo' );
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped above.
@@ -87,16 +94,21 @@ class WPSEO_Premium_Upsell_Admin_Block {
 
 		echo '<div class="' . esc_attr( $class . '--container' ) . '">';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Correctly escaped in get_header() method.
-		echo '<h2 class="' . esc_attr( $class . '--header' ) . '">' . $header_text . $header_icon . '</h2>';
+		echo '<h2 class="' . esc_attr( $class . '--header' ) . ' ' . esc_attr( $header_class ) . ' ">' . $header_text . $header_icon . '</h2>';
 
-		echo '<span class="' . esc_attr( $class . '--subheader' ) . '">'
-			. esc_html__( 'Now includes Local, News & Video SEO + 1 Google Docs seat!', 'wordpress-seo' )
-		. '</span>';
+		echo '<div class="' . esc_attr( $class . '--subheader' ) . '">';
+		echo '<span style="margin-right: 8px">' . esc_html__( 'Now includes:', 'wordpress-seo' ) . '</span>';
+		echo '<div style="display: inline-block;">';
+		foreach ( $now_including as $value ) {
+			echo '<span class="yoast-badge ' . esc_attr( $class . '--badge' ) . ' ' . esc_attr( $badge_class ) . '">' . esc_html( $value ) . '</span>';
+		}
+		echo '</div>';
+		echo '</div>';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Correctly escaped in $this->get_argument_html() method.
 		echo '<ul class="' . esc_attr( $class . '--motivation' ) . '">' . $arguments_html . '</ul>';
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Correctly escaped in $upgrade_button and $button_text above.
-		echo '<p style="max-width: inherit;">' . $upgrade_button . '</p>';
+		echo '<p style="max-width: inherit; margin-top: 24px; margin-bottom: 0;">' . $upgrade_button . '</p>';
 		echo '</div>';
 
 		echo '</div>';
@@ -110,12 +122,14 @@ class WPSEO_Premium_Upsell_Admin_Block {
 	 * @return string Formatted argument in HTML.
 	 */
 	protected function get_argument_html( $argument ) {
-		$class = $this->get_html_class();
+		$assets_uri = trailingslashit( plugin_dir_url( WPSEO_FILE ) );
+		$class      = $this->get_html_class();
 
 		return sprintf(
-			'<li style="margin-inline-start: 8px;"><span>•</span><div class="%1$s">%2$s</div></li>',
+			'<li style="line-height: 19.5px"><img src="%1$s" alt="" width="19.5" height="19.5"><div class="%2$s">%3$s</div></li>',
+			esc_url( $assets_uri . 'packages/js/images/icon-check-circle-green.svg' ),
 			esc_attr( $class . '--argument' ),
-			$argument
+			$argument,
 		);
 	}
 
@@ -165,25 +179,23 @@ class WPSEO_Premium_Upsell_Admin_Block {
 			$header_text = sprintf(
 			/* translators: %s expands to Yoast WooCommerce SEO */
 				esc_html__( 'Upgrade to %s', 'wordpress-seo' ),
-				'Yoast WooCommerce SEO'
+				'Yoast WooCommerce SEO',
 			);
 			$header_icon = sprintf(
-				'<img src="%s" alt="%s" width="14" height="14" style="margin-inline-start: 8px;">',
+				'<img src="%s" alt="" width="14" height="14" style="margin-inline-start: 8px;">',
 				esc_url( $assets_uri . 'packages/js/images/icon-trolley.svg' ),
-				esc_attr__( 'this is a trolley icon', 'wordpress-seo' )
 			);
 		}
 		else {
 			$header_text = sprintf(
 			/* translators: %s expands to Yoast SEO Premium*/
 				esc_html__( 'Upgrade to %s', 'wordpress-seo' ),
-				'Yoast SEO Premium'
+				'Yoast SEO Premium',
 			);
 
 			$header_icon = sprintf(
-				'<img src="%s" alt="%s" width="14" height="14" style="margin-inline-start: 8px;">',
+				'<img src="%s" alt="" width="14" height="14" style="margin-inline-start: 8px;">',
 				esc_url( $assets_uri . 'packages/js/images/icon-crown.svg' ),
-				esc_attr__( 'this is a crown icon', 'wordpress-seo' )
 			);
 		}
 		return [ $header_text, $header_icon ];
@@ -197,8 +209,8 @@ class WPSEO_Premium_Upsell_Admin_Block {
 	 * @return string The button text.
 	 */
 	private function get_button_text( bool $is_woocommerce_active ): string {
-		if ( YoastSEO()->classes->get( Promotion_Manager::class )->is( 'black-friday-2024-promotion' ) ) {
-			return esc_html__( 'Upgrade now', 'wordpress-seo' );
+		if ( YoastSEO()->classes->get( Promotion_Manager::class )->is( 'black-friday-promotion' ) ) {
+			return esc_html__( 'Get 30% off now!', 'wordpress-seo' );
 		}
 		else {
 			// phpcs:disable Squiz.ControlStructures.InlineIfDeclaration.NotSingleLine -- needed to add translators comments.

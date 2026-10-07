@@ -2,11 +2,6 @@
 
 class WPML_Rewrite_Rule_Filter_Factory {
 
-	/**
-	 * @param SitePress|null $sitepress
-	 *
-	 * @return WPML_Rewrite_Rule_Filter
-	 */
 	public function create( $sitepress = null ) {
 		if ( ! $sitepress ) {
 			global $sitepress;

@@ -1,78 +1,93 @@
-=== Complianz - GDPR/CCPA Cookie Consent ===
-Contributors: RogierLankhorst, aahulsebos, leonwimmenhoeve, paapst, markwolters, tomeijkelenkamp, hesseldejong, mujuonly, xantek, pierrotevrard, jarnovos
+=== Complianz GDPR/CCPA Cookie Consent Banner  ===
+Contributors: RogierLankhorst, aahulsebos, leonwimmenhoeve, paapst, markwolters, tomeijkelenkamp, hesseldejong, mujuonly, xantek, pierrotevrard, jarnovos, gdom3
 Donate link: https://paypal.me/complianz
-Tags: GDPR, Cookie, Cookie Notice, Consent, Privacy
+Tags: cookie consent, GDPR, cookie banner, ccpa, cookie notice
 Requires at least: 5.9
 License: GPL2
 Requires PHP: 7.4
-Tested up to: 6.8
-Stable tag: 7.4.2
+Tested up to: 7.1
+Stable tag: 7.5.4
 
-Configure your Cookie Banner, Cookie Consent and Cookie Policy with our Wizard and Cookies Scan.
+Publish your cookie banner or notice in minutes. Automatically scan cookies, and create policies to align with GDPR, CCPA, and Google Consent Mode. 
 
 == Description ==
-Complianz is a GDPR/CCPA Cookie Banner plugin that supports GDPR, ePrivacy, DSGVO, TTDSG, LGPD, POPIA, APA, RGPD, CCPA/CPRA and PIPEDA with a conditional Cookie Consent Banner and customized Cookie Policy based on the results of the built-in Cookie Scan.
+Complianz is a Google-certified CMP (Consent Management Platform) for automated cookie notice and consent management. Set up a fully customizable cookie banner, auto-scan your cookies, generate customized cookie policy, and align with GDPR, ePrivacy, DSGVO, TTDSG, LGPD (Brasil), POPIA, APA, RGPD, CCPA/CPRA, PIPEDA (Canada), and other privacy laws.
+ 
 
-https://www.youtube.com/watch?v=JJzOzNAd5Bw&ab_channel=ReallySimplePlugins
+Trusted by 1,000,000+ users across 15+ languages, 10+ years of WordPress experience.  Wizard-based easy setup; no coding required.
+
+https://vimeo.com/1138872149
+
+== Why millions of websites choose Complianz  ==
+
+* Fast setup: The guided setup walks you through each step from start to finish. You won’t need any legal or coding knowledge to get started.
+* Automatic cookie scan: Complianz scans your site and shows you exactly which cookies and scripts are active, so you’re not left guessing.
+* Work with the tools you already use: Connect with tools like Google Tag Manager and Google Analytics. No need to rethink your existing setup.
+* Transparent Plans: Complianz free or paid plans don’t have monthly page views or sessions limits, so you can focus on your traffic growth.  
 
 == Features ==
 
-= Cookie Consent Notice =
-
-* Configure a Cookie Notice for your specific region: European Union, United Kingdom, United States, Australia, South Africa, Brazil or Canada. Or use one Cookie Notice worldwide.
-* Configure specific cookie consent per subregion, for example: European Union + TTDSG/DSGVO/CNIL or USA + specific states for CCPA/CPRA/CTDPA etc
-* Cookie Consent and Conditional Cookie Notice with Custom CSS and Customizable Templates. WCAG Level AA and ADA Compliant.
-* Banner Templates include: GDPR-friendly Cookie Wall - Accept/Dismiss - Consent per Category - Consent per Service
-* Banner Templates also include; Dismiss on scroll, time on page or both based on legislation
-* We aim to follow WCAG 2.1 AA guidelines and ADA best practices in the design of our cookie banners and legal documents to support accessibility.
-* No jQuery Dependency
+Answer a few questions in the Wizard, scan your WordPress site, and in a few minutes, Complianz sets up your consent settings based on your setup and location. It automatically configures consent settings based on your plugins, services, and region.
 
 = Consent Management =
 
-* Automatically configures your website based on wizard questions, WordPress scans and dedicated service and plugin integrations.
-* Blocks 3rd party cookies like Google Maps, Facebook, Instagram, AdSense, Hubspot, Recaptcha, Twitter, ActiveCampaign, and many more.
-* Custom integrations for plugins, themes and services are automatically detected.
+* Auto-Configuration Wizard: Automatically sets up your site based on wizard questions, website scan (up to 50 posts), and dedicated plugin integrations. 
+* Third-Party Cookie Blocking: Blocks cookies from Google Maps, Facebook, Instagram, AdSense, HubSpot, reCAPTCHA, Twitter, ActiveCampaign, and more. 
+* Automatic Plugin & Service Detection: Custom integrations for plugins, themes, and services are detected automatically. 
 * Blocks iFrames, like YouTube, Vimeo, Dailymotion embedded videos and Social iFrames e.g. Instagram, Facebook et al.
-* Shows placeholders for blocked iFrames. Stills from videos and individual placeholders per (social) service.
-* Script Center to control scripts, iFrames and plugins per category or service. With dependency functionality and placeholders.
-* Proof of Consent: User consent registration that respects the GDPR data minimization guideline.
-* Periodical Cookie Scan for changes in Cookies, Plugins and 3rd Party services.
-* Automatically detects if you need a Cookie Notice (also called a Cookie Banner or Pop-Up).
-* Automatically anonymizes personal data for integrated statistics tools if needed.
+* Placeholder Support: Shows video stills and individual placeholders for each blocked iFrame or social service. 
+* Script Center: Control scripts, iFrames, and plugins per category or service,  — with dependency functionality and placeholder management.
+* Proof of Consent: Records user consent following GDPR data minimization guidelines for audit-ready compliance. 
+* Periodic Cookie Scan: Automatically scans for changes in cookies, plugins, and third-party services on your site. 
+* Auto-Detection: Detects whether your site requires a cookie banner based on your current setup. 
+* Analytics Anonymization: Automatically anonymizes personal data for integrated statistics tools when needed.
+
+= Cookie Consent Notice =
+
+* Region-Specific Cookie Banner: Display a cookie consent banner tailored to the EU, UK, US, Australia, South Africa, Brazil, Canada,  — or use one banner worldwide. 
+* Subregion Consent Rules: Configure consent per subregion, such as TTDSG/DSGVO for Germany, CNIL for France, or CCPA/CPRA/CTDPA for specific US states. 
+* Banner Templates: Choose from multiple layouts: Cookie Wall, Accept/Dismiss, Consent per Category, or Consent per Service.
+* Banner Templates include: GDPR-friendly Cookie Wall - Accept/Dismiss - Consent per Category - Consent per Service
+* Legislation-Based Dismiss Options: Enable dismiss on scroll, time on page, or both and automatically adapt based on your applicable privacy law. 
+* Custom CSS & Templates: Fully customizable cookie banner design with your own CSS and templates.
+* WCAG 2.1 AA & ADA Compliant: Cookie banners and legal documents designed following accessibility best practices. 
+* No jQuery Dependency: Fast and lightweight. No jQuery required. 
 
 = Privacy Laws & Guidelines =
 
-* Ready for GDPR, ePrivacy AVG, RGPD, LGPD, DSGVO, CNIL, PECR, UK DPA, UK GDPR, CCPA, COPPA, PIPEDA, CASL, POPIA, Privacy Act 1988, Australian Privacy Principles, The “Marco Civil” and the Brazilian General Data Protection Law.
-* Differentiate between GDPR, ePrivacy and DSGVO/CNIL or between CCPA/DNSMPI and NRS 603A, if needed.
-* We closely follow the latest developments in the ePrivacy regulation, the proposed Cookie Law for the European Union, and other legislation world-wide.
+* Global Privacy Law Support: Ready for GDPR, ePrivacy, LGPD, DSGVO, CNIL, PECR, UK GDPR, UK DPA, CCPA, CPRA, COPPA, PIPEDA, CASL, POPIA, Australian Privacy Act, and the Brazilian General Data Protection Law. 
+* Regulation Differentiation: Distinguish between overlapping laws — GDPR vs. DSGVO/CNIL, CCPA vs. DNSMPI, or NRS 603A — based on your visitors’ location. 
+* Continuously Updated: Closely follows the latest developments in ePrivacy regulation, cookie law proposals, and global privacy legislation. 
 
 = Legal Documents =
 
-* A Cookie Policy; Generated by you with an easy wizard, drafted by an IT Law Firm.
-* Do Not Sell My Personal Information: DNSMPI Page for CCPA/CPRA - if required. (Now called Opt-out Preferences.)
+* Cookie Policy Generator: Generate a Cookie Policy with an easy wizard, drafted by an IT law firm. 
+* Do Not Sell My Personal Information: DNSMPI Page for CCPA/CPRA – if required. (Now called Opt-out Preferences.) 
 * Terms and Conditions are available in a separate plugin: [Complianz – Terms and Conditions](https://wordpress.org/plugins/complianz-terms-conditions/)
 
-= Integrations =
+= 250+ Service & Plugin Integrations =
 
-* Detected Cookie Data is prefilled from cookiedatabase.org, with clear and transparent cookie descriptions, which are continuously updated.
-* Integrated with WordPress Privacy features. Export and erase personal data from our dashboard.
-* Implementation of Google Tag Manager, Google Analytics, Matomo, Matomo Tag Manager, Clicky, Yandex, Jetpack and Burst Statistics
-* Categorize your Cookies with Tag Manager or our Script Center, if needed.
+* Cookie Database Integration: Cookie Database Integration: Prefills cookie data from cookiedatabase.org, provides clear, transparent descriptions, and keeps everything continuously updated. 
+* WordPress Privacy Features: Export and erase personal data directly from your WordPress dashboard. 
+* Analytics & Tag Manager Support: Built-in support for Google Tag Manager, Google Analytics, Matomo, Matomo Tag Manager, Clicky, Yandex, Jetpack, and Burst Statistics. 
+* Cookie Categorization: Categorize cookies using Tag Manager or the built-in Script Center. 
 * Integration with the [WP Consent API](https://wpconsentapi.org/)
-
-* Integrates seamlessly with Gutenberg, Elementor, Divi, Forminator, WPBakery, Monsterinsights, GADWP, Beehive, WPForms, Gravity Forms, HappyForms, Contact Form 7 <5.4 (CF7), Woocommerce, Easy Digital Downloads, WP Google Maps, Google Maps Widget, Local Google Fonts, CAOS | Host Google Analytics Locally and other popular plugins.
-* Tested with popular themes en page builders.
-* Gutenberg Blocks enabled.
+* WP Consent API: Full integration with the WP Consent API for consent state sharing across plugins. 
+* Plugin Compatibility: Works with Gutenberg, Elementor, Divi, WPBakery, WooCommerce, Gravity Forms, WPForms, Contact Form 7, MonsterInsights, Forminator, HappyForms, Easy Digital Downloads, WP Google Maps, CAOS, and many more. 
+* Theme & Page Builder Tested: Tested with popular WordPress themes and page builders. 
+* Gutenberg Blocks: Includes native Gutenberg Blocks for easy content integration. 
 
 == Support ==
 
-Complianz offers full support on the WordPress.org [Forum](https://wordpress.org/support/plugin/complianz-gdpr/). Before starting a new thread, please check available documentation and other support threads. Leave a clear and concise description of your issue, and we will respond as soon as possible.
+Get help through the WordPress.org forum. You can check the documentation or browse existing threads or open a new one if you need more support.  
+
+Share a clear description of your issue and the team will get back to you as soon as possible.  
 
 == Useful Links ==
 
 * [Support Forum](https://wordpress.org/support/plugin/complianz-gdpr/)
-* [Github](https://github.com/Really-Simple-Plugins/complianz-gdpr/)
-* [MU Plugins](https://github.com/Really-Simple-Plugins/complianz-integrations)
+* [Github](https://github.com/complianz/complianz-gdpr/)
+* [MU Plugins](https://github.com/complianz/complianz-integrations)
 * [Documentation](https://complianz.io/docs/)
 * [Developer's Guide](https://complianz.io/developers-guide-for-third-party-integrations/)
 * [Legal Definitions](https://complianz.io/definitions/)
@@ -80,28 +95,27 @@ Complianz offers full support on the WordPress.org [Forum](https://wordpress.org
 
 == Premium Features ==
 
-Complianz offers a Full Privacy Suite for WordPress on [Complianz.io](https://complianz.io) with even more features:
+Go beyond the basics with the full website scan, advanced tools for legal documents, and premium support. 
 
 = Cookie Consent Notice =
 
-* Improve conversion with A/B Testing: which cookie banner has the best consent ratio? Run tests and measure what works best for your site.
+* Improve conversion with A/B testing: Test different cookie banners and measure which ones lead to higher consent rates.
 
 = Consent Management =
 
-* Records of Consent: Keep record of your consent management changes and user's consent registration. Integrates with Proof of Consent
-* Respects the Do Not Track settings and Global Privacy Controls in end-users browsers.
-* Geo IP Cookie Consent: Cookie Consent is different everywhere. Show the correct Cookie Notice based on IP location, but only if a banner is needed.
-* Google Consent Mode - Use Consent Mode by Google with Google Tag Manager or Google Analytics. No further set-up needed.
-* Integration with TCF v2.0. An IAB Europe Consent Framework for Publishers. Registered CMP ID: 332
-* Data Request Forms and Registration
+* Records of Consent: Keep records of your consent management changes and user’s consent registration. Integrates with Proof of Consent.
+* Respects the Do Not Track settings and Global Privacy Controls in end-users' browsers. 
+* Geo IP Cookie Consent: Display the correct Cookie notice based on IP location, but only if a banner is needed. 
+* Google Consent Mode: Use Consent Mode by Google with Google Tag Manager or Google Analytics to optimize ad performance with compliance. No further set-up needed. 
+* Integration with TCF v2.0: An IAB Europe Consent Framework for publishers. Registered CMP ID: 332 
+* Data Request Forms and Registration 
 
 
 = Privacy Laws & Guidelines =
 
-Simultaneously select USA, Canada, United Kingdom, Australia, South Africa, Brazil and the EU as targeted regions with conditional Consent and dedicated Cookie Banners.
-
+* Simultaneously select USA, Canada, United Kingdom, Australia, South Africa, Brazil and the EU as targeted regions with conditional Consent and dedicated Cookie Banners. 
 * Support for GDPR / ePrivacy - European Union with Extension for Switzerland.
-* Support for USA / CCPA/CPRA/CPA/CTDPA/NRS 603A/UCPA/CDPA
+* Support for USA / CCPA/CPRA/CPA/CTDPA/NRS 603A/UCPA/VCDPA
 * Support for UK-GDPR / PECR and ICO Guidelines - United Kingdom.
 * Support for PIPEDA and CASL - Canada.
 * Support for Privacy Act 1988 & Australian Privacy Principles
@@ -128,9 +142,9 @@ Simultaneously select USA, Canada, United Kingdom, Australia, South Africa, Braz
 
 == About Complianz ==
 
-Check out other plugins developed by Really Simple Plugins as well: [Really Simple SSL](https://wordpress.org/plugins/really-simple-ssl/)
+Check out other plugins developed by Really Simple Security as well: [Really Simple Security](https://wordpress.org/plugins/really-simple-ssl/)
 
-Complianz is on [GitHub](https://github.com/Really-Simple-Plugins/complianz-gdpr) as well!
+Complianz is on [GitHub](https://github.com/complianz/complianz-gdpr) as well!
 
 IMPORTANT! Complianz | GDPR/CCPA Cookie Consent can help you meet compliance requirements, but the user must ensure that all requirements are met.
 
@@ -196,8 +210,150 @@ POPIA is the acronym for the South African PROTECTION OF PERSONAL INFORMATION AC
 The Brazilian General Data Protection Law is similar to the GDPR, the UK-GDPR it promotes the protection of personal information processed by public and private bodies, regulates the cross-border flow of personal information, and outlines the rights of data subjects. The Marco Civil is the Brazilian name of the Brazilian Civil Rights Framework for the Internet a counterpart to European's "ePrivacy", although not similar.
 = Can I create a Cookie Wall with this plugin? =
 With some custom CSS this is possible, but we do not consider a cookie wall to be GDPR compliant, so it's not actively supported. We do, however, have the option to create a Soft Cookie Wall. Which blocks interaction with the website, but dismissing remains a possibility.
+= Is Complianz free =
+Yes. Complianz Free includes a fully functional cookie banner, automatic cookie scan, script blocking, privacy policy generator, and support for GDPR, CCPA, and ePrivacy. There are no consent record limits. Premium adds multi-site, A/B testing, TCF, and advanced features. 
+= Will Complianz slow down my site? = 
+No. Complianz is built for performance. The plugin is lightweight and self-hosted, so there are no external API calls that slow your page load. Your Core Web Vitals stay intact. 
+= Is Complianz really self-hosted? = 
+Yes. Unlike most consent management platforms, Complianz runs entirely on your WordPress server. No visitor data is sent to external servers. This means you don’t need an additional data processing agreement for the plugin itself.
+= Does Complianz support Google Consent Mode v2? = 
+Yes. Complianz has built-in support for Google Consent Mode v2. It automatically communicates consent status to Google services, including Google Analytics, Google Ads, and Google Tag Manager. Consent Mode v2 helps marketers recover lost conversion signals and improve campaign performance while respecting users’ consent choices. 
+= Does Complianz work with WooCommerce? = 
+Yes. Complianz integrates with WooCommerce, including support for tracking pixels, payment gateways, and marketing scripts commonly used in e-commerce stores. 
+= How does Complianz handle different countries? = 
+Complianz uses geo-based detection to show the correct consent banner for each visitor’s location. EU visitors see an opt-in banner (GDPR), US visitors from California see a CCPA notice, and visitors from other regions see the appropriate format.
+= Can I use Complianz on multiple sites? = 
+The free version works on a single site. Complianz Premium supports WordPress multisite networks and includes features for managing consent across multiple domains. 
 
 == Changelog ==
+= 7.5.4 =
+* August 31st, 2026
+* Enhancement: Tested and declared compatible with WordPress 7.1.
+* Enhancement: Updated mPDF to v.8.3.1.
+* Feature: New developer filters `cmplz_pdf_footer_text` and `cmplz_pdf_file_title` to customize the generated document PDF footer and filename, plus an explicit generation-date footer on generated PDF documents.
+* Fix: Corrected a rendering issue in the settings interface.
+
+= 7.5.3.1 =
+* August 18th, 2026
+* Fix: Fatal error ("Undefined constant") when generating the US Cookie Policy, caused by a stray character introduced in 7.5.3.
+
+= 7.5.3 =
+* August 17th, 2026
+* Feature: Optional opt-in consent for the US region. Sites targeting California can switch the entire US region to opt-in from the wizard, blocking statistics and marketing scripts until consent is given. US legal documents update automatically to match.
+* Enhancement: Added a global setting to show or hide the Website Scan column in the Posts and Pages overview.
+* Enhancement: Complianz metaboxes are now compatible with the Remote Table of Contents block editor experience.
+* Fix: Cookie banner stylesheet was served over http, causing a mixed-content block on https sites (regression since 7.5.1).
+* Fix: X (Twitter) widget loaded from platform.x.com was not blocked before consent.
+* Fix: Script Center scripts using legacy string enable/async values were not rendered correctly.
+* Fix: Corrected US English spelling in the US-region legal documents.
+* Fix: Corrected a typo in the Spanish Cookie Policy translation.
+
+= 7.5.2 =
+* August 3rd, 2026
+* Security: Fixed a PHP Object Injection vulnerability in the cookie banner settings.
+* Security: The consented-content REST endpoint no longer returns content of password-protected posts.
+* Security: Hardened the YouTube integration against SSRF — server-side fetches are restricted to YouTube hosts.
+
+= 7.5.1 =
+* July 27th, 2026
+* Feature: Google Tag Gateway support — Consent Mode is now applied correctly when Google Analytics or Google Tag Manager loads through a first-party Tag Gateway URL.
+* Feature: Amazon consent signal integration — marketing consent is now passed to the Amazon ads library on consent and revoke.
+* Enhancement: WordPress 7.0 Interactivity API router navigation for the cookie banner is now an opt-in setting under Settings → General. When disabled (default), a compatibility fallback is used on all WordPress versions.
+* Enhancement: Removed the discontinued Burst Statistics integration and cross-promotion code.
+* Security: The premium upgrade installer now requires the install_plugins capability and only downloads packages from the official vendor API.
+* Fix: Fatal error "Class cmplz_wsc not found" during background Website Scan on sites without an active admin session (regression since 7.5.0).
+* Fix: Corrected lawful basis options for Brazil region, ensuring the privacy statement renders the selected basis accurately.
+* Fix: Cookie banner stylesheet and consent state were not restored after WordPress Interactivity API client-side navigation (WP 6.9+).
+* Fix: Cookie banner buttons could wrap text unexpectedly on narrow banners.
+* Fix: Improved keyboard focus trap handling in the cookie banner for better accessibility.
+* Fix: The website scan could write scanned page HTML into the statistics settings.
+
+= 7.5.0 =
+* June 17th, 2026
+* Feature: New Website Scan column in the post overview showing the scan status of each post.
+* Enhancement: Notices when webshop pages, custom post types or a high post volume require the advanced Website Scan.
+* Enhancement: The cookie scan focuses on posts and pages for faster, more relevant results.
+* Enhancement: Website Scan errors are now visible in the plugin log.
+* Enhancement: Daily background website scan and cookie change check run via WP-Cron without requiring an admin session.
+* Enhancement: Added wpml-config.xml to improve WPML compatibility for plugin strings.
+* Enhancement: Daily cleanup of expired transients and obsolete placeholder images.
+* Accessibility: Improved screen reader support for cookie banner and manage consent button.
+* Accessibility: Fixed cookie banner reflow at high zoom levels (400%+).
+* Accessibility: Fixed interactive consent category controls in cookie banner and cookie policy.
+* Fix: Scan progress could keep polling indefinitely when the scan found no cookies.
+* Fix: Updated "Dismiss on Timeout" tooltip and GEO IP setup error message.
+* Fix: Support web components in cookie blocker placeholder regex.
+* Fix: Remove unnecessary jQuery dependency from DNSMPD script.
+* Fix: Consent area block content not served when block is nested.
+
+= 7.4.7 =
+* June 1st, 2026
+* Security: Fixed DOM-based Cross-Site Scripting (XSS) vulnerability.
+* Security: Cookie scanner and Cookiedatabase sync now require WSC authentication. Unauthenticated installs see a locked state with onboarding prompt.
+* Enhancement: Improved WSC onboarding modal — simplified dismiss logic, single-option state with automatic migration from legacy options.
+* Enhancement: Added integration notice for FunnelKit.
+* Enhancement: Updated default cookie banner color scheme to improve accessibility contrast.
+* Accessibility: Fixed heading hierarchy in cookie policy page.
+* Fix: Mixed languages on cookie policy page when syncing non-English cookies from Cookiedatabase.
+* Fix: WSC credentials not cleared from database after reset.
+* Fix: PHP 8.1 deprecation notices in cookie blocker and WSC authentication handler.
+
+= 7.4.6 =
+* April 13th, 2026
+* Fix: Prevent PHP warnings when cookiedatabase.org returns a malformed or unexpected response during sync.
+* Security: Fixed unauthorized access to post content via REST API endpoint.
+* Enhancement: Updated Gutenberg blocks to API version 3.
+* Fix: Resolved infinite page reload loop triggered by auto-dismiss on scroll or timeout.
+
+= 7.4.5 =
+* March 16th, 2026
+* Feature: Added WCAG color contrast calculator to color picker.
+* Feature: New plugin integration: Pinterest for WooCommerce.
+* Add: Add Tennessee (TIPA), Minnesota (MCDPA), Maryland (MODPA), Indiana (ICDPA), Kentucky (KCDPA), Rhode Island (DTPPA) to the US Privacy Policy.
+* Accessibility: Improved cookie banner keyboard navigation and focus trapping.
+* Security: Fixed Stored Cross-Site Scripting vulnerability.
+* Fix: Improved script detection for WP Google Maps Plugin.
+* Fix: Record of consent table display and cookie banner array comparison.
+* Fix: Conditionally hide script header option for integrations that handle tracking implementation.
+* Fix: Processing agreement file upload validation and DOCX mime type.
+* Fix: Website Scan onboarding modal not checking for new installations.
+* Fix: Remote scan issues in non-standard WordPress setups.
+* Fix: Added necessary classes to email and website labels in Cookie Policy.
+* Fix: Added missing Website Scan options to uninstall routine.
+* Fix: Website Scan email case sensitivity in authentication.
+* Fix: Custom cookies and services now display all fields (retention, purpose, function, service type, privacy URL) in non-English languages.
+* Fix: Support form description.
+* Fix: Hide link section in blocked content when no cookie-statement is found.
+* Fix: Old links and typos.
+
+= 7.4.4.2 =
+* December 16th, 2025
+* New: Complianz logo.
+
+= 7.4.4.1 =
+* December 3rd, 2025
+* Improvement: Tested up to WordPress 6.9.
+* Fix: Updated integration with the WP Google Maps Plugin.
+
+= 7.4.4 =
+* November 18th, 2025
+* Feature: Microsoft Clarity Consent Mode V2 integration.
+* Fix: Old documentation links update.
+* Fix: Website Scan cleanup causing fatal error when license class unavailable.
+* Security update: Shortcode stored Cross-Site scripting.
+
+= 7.4.3 =
+* October 30th, 2025
+* Enhancement: Added `cmplz_prevent_get_shortcode_page_id` filter to allow developers to prevent execution of `get_shortcode_page_id`.
+* Enhancement: Optimized DNSMPD export for large datasets.
+* Enhancement: Updated mPDF library for improved PHP compatibility (7.4 to 8.4)
+* Improvement: Updated services: Vimeo, X (Formerly Twitter), Linkedin. Added Snapchat.
+* Improvement: Added FunnelKit and updated Wp Google Maps integration.
+* Accessibility: Improved link semantics and aria-labels for “Read more” and cookie banner links
+* Fix: Correct typos and spelling errors.
+* Fix: Google Analytics, fixed "empty additional tag" issue.
+
+
 = 7.4.2 =
 * July 11th, 2025
 * Translations: Updated translations.

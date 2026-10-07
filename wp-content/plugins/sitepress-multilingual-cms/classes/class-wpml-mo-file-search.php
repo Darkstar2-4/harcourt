@@ -1,30 +1,15 @@
 <?php
 
 class WPML_MO_File_Search {
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var array
-	 */
 	private $settings;
 
-	/**
-	 * @var WP_Filesystem_Direct
-	 */
 	private $filesystem;
 
-	/**
-	 * @var array
-	 */
 	private $locales;
 
-	/**
-	 * @param SitePress $sitepress
-	 */
-	public function __construct( SitePress $sitepress, WP_Filesystem_Direct $filesystem = null ) {
+	public function __construct( SitePress $sitepress, ?WP_Filesystem_Direct $filesystem = null ) {
 		$this->sitepress = $sitepress;
 
 		if ( ! $filesystem ) {
@@ -36,11 +21,6 @@ class WPML_MO_File_Search {
 		$this->locales = $this->sitepress->get_locale_file_names();
 	}
 
-	/**
-	 * @param array $active_languages
-	 *
-	 * @return bool
-	 */
 	public function has_mo_file_for_any_language( $active_languages ) {
 		foreach ( $active_languages as $lang ) {
 			if ( $this->can_find_mo_file( $lang['code'] ) ) {
@@ -57,11 +37,6 @@ class WPML_MO_File_Search {
 		$this->settings['theme_language_folders'] = $dirs;
 	}
 
-	/**
-	 * @param string $lang_code
-	 *
-	 * @return bool
-	 */
 	public function can_find_mo_file( $lang_code ) {
 		if ( ! isset( $this->locales[ $lang_code ] ) ) {
 			return false;
@@ -87,16 +62,10 @@ class WPML_MO_File_Search {
 		return false;
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function get_template_path() {
 		return TEMPLATEPATH;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function find_theme_mo_dirs() {
 		$parent_theme = get_template_directory();
 		$child_theme = get_stylesheet_directory();
@@ -112,12 +81,6 @@ class WPML_MO_File_Search {
 		return $languages_folders;
 	}
 
-	/**
-	 * @param string $folder
-	 * @param int $rec
-	 *
-	 * @return bool
-	 */
 	public function determine_mo_folder( $folder, $rec = 0 ) {
 		$lfn = $this->sitepress->get_locale_file_names();
 		$files = $this->filesystem->dirlist( $folder, false, false );
@@ -140,9 +103,6 @@ class WPML_MO_File_Search {
 		return false;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_dir_names() {
 		$dirs = array();
 
@@ -162,9 +122,6 @@ class WPML_MO_File_Search {
 		return $dirs;
 	}
 
-	/**
-	 * @param array $dirs
-	 */
 	public function save_mo_dirs( $dirs ) {
 		$sitepress_settings = $this->sitepress->get_settings();
 		$sitepress_settings['theme_language_folders'] = $dirs;

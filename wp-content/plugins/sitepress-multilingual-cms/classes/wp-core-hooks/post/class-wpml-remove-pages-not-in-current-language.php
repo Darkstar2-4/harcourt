@@ -8,28 +8,15 @@ use function WPML\FP\pipe;
 use WPML\API\PostTypes;
 
 class WPML_Remove_Pages_Not_In_Current_Language {
-	/** @var \wpdb */
 	private $wpdb;
-	/** @var \SitePress */
 	private $sitepress;
 
-	/**
-	 * @param wpdb $wpdb
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( wpdb $wpdb, SitePress $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
 	}
 
 
-	/**
-	 * @param array $posts Array of posts to filter
-	 * @param array $get_page_arguments Arguments passed to the `get_pages` function
-	 * @param \WP_Post[]|array[]|int[] $posts Array of posts or post IDs to filter (post IDs are required in tests but it might not be a real case)
-	 *
-	 * @return array
-	 */
 	function filter_pages( $posts, $get_page_arguments ) {
 		$filtered_posts   = $posts;
 		$current_language = $this->sitepress->get_current_language();
@@ -52,12 +39,6 @@ class WPML_Remove_Pages_Not_In_Current_Language {
 		return $filtered_posts;
 	}
 
-	/**
-	 * @param string $post_type
-	 * @param string $current_language
-	 *
-	 * @return array
-	 */
 	private function get_posts_in_current_languages( $post_type, $current_language ) {
 		$query = "
 				SELECT p.ID FROM {$this->wpdb->posts} p
@@ -67,16 +48,9 @@ class WPML_Remove_Pages_Not_In_Current_Language {
 
 		$args = [ 'post_' . $post_type, $post_type, $current_language ];
 
-		/** @phpstan-ignore-next-line WP doc issue: When $query isset the return is not null. */
 		return $this->get_post_ids( $this->wpdb->prepare( $query, $args ));
 	}
 
-	/**
-	 * @param string $post_type
-	 * @param string $current_language
-	 *
-	 * @return array
-	 */
 	private function get_original_posts_in_other_languages( $post_type, $current_language ) {
 		$query = "
 				SELECT p.ID FROM {$this->wpdb->posts} p
@@ -93,25 +67,13 @@ class WPML_Remove_Pages_Not_In_Current_Language {
 
 		$args = [ 'post_' . $post_type, $post_type, $current_language, $current_language ];
 
-		/** @phpstan-ignore-next-line WP doc issue: When $query isset the return is not null. */
 		return $this->get_post_ids( $this->wpdb->prepare( $query, $args ) );
 	}
 
-	/**
-	 * @param string $query
-	 *
-	 * @return int[]
-	 */
 	private function get_post_ids( $query ) {
 		return Fns::map( Fns::unary( 'intval' ), $this->wpdb->get_col( $query ) );
 	}
 
-	/**
-	 * @param array<string,string>     $get_page_arguments
-	 * @param array<array|int|WP_Post> $new_arr
-	 *
-	 * @return false|string
-	 */
 	private function find_post_type( $get_page_arguments, $new_arr ) {
 		$post_type = 'page';
 		if ( array_key_exists( 'post_type', $get_page_arguments ) ) {

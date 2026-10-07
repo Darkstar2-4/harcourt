@@ -5,22 +5,12 @@ namespace OTGS\Installer\Api\Client;
 use OTGS\Installer\Api\Exception\ClientException;
 
 class Client {
-	/**
-	 * @var \WP_Http
-	 */
 	private $http;
 
-	/**
-	 * @var string
-	 */
 	private $url;
 
 	const TIMEOUT = 45;
 
-	/**
-	 * @param \WP_Http $http
-	 * @param string $url
-	 */
 	public function __construct(
 		\WP_Http $http,
 		$url
@@ -29,12 +19,6 @@ class Client {
 		$this->url = $url;
 	}
 
-	/**
-	 * @param array $body
-	 *
-	 * @return mixed
-	 * @throws ClientException
-	 */
 	public function post( $body ) {
 		$args = [
 			'timeout' => self::TIMEOUT,

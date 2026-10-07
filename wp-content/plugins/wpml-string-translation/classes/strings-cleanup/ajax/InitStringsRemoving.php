@@ -16,10 +16,8 @@ class InitStringsRemoving implements IHandler {
 
 		if ( $domains !== false ) {
 
-			/** @var UntranslatedStrings $untranslatedStrings */
 			$untranslatedStrings = make( UntranslatedStrings::class );
 
-			/** @var AutoRegisterSettings $autoRegsiterSettings */
 			$autoRegsiterSettings = make( AutoRegisterSettings::class );
 
 			if ( $autoRegsiterSettings->isEnabled() ) {

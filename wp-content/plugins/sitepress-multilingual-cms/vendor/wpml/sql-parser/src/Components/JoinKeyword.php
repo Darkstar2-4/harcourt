@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `JOIN` keyword parser.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,11 +17,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class JoinKeyword extends Component
 {
-    /**
-     * Types of join.
-     *
-     * @var array
-     */
     public static $JOINS = array(
         'CROSS JOIN' => 'CROSS',
         'FULL JOIN' => 'FULL',
@@ -43,46 +35,14 @@ class JoinKeyword extends Component
         'STRAIGHT_JOIN' => 'STRAIGHT'
     );
 
-    /**
-     * Type of this join.
-     *
-     * @see static::$JOINS
-     *
-     * @var string
-     */
     public $type;
 
-    /**
-     * Join expression.
-     *
-     * @var Expression
-     */
     public $expr;
 
-    /**
-     * Join conditions.
-     *
-     * @var Condition[]
-     */
     public $on;
 
-    /**
-     * Columns in Using clause.
-     *
-     * @var ArrayObj
-     */
     public $using;
 
-    /**
-     * Constructor.
-     *
-     * @param string      $type  Join type
-     * @param Expression  $expr  join expression
-     * @param Condition[] $on    join conditions
-     * @param ArrayObj    $using columns joined
-     *
-     * @see JoinKeyword::$JOINS
-     */
     public function __construct($type = null, $expr = null, $on = null, $using = null)
     {
         $this->type = $type;
@@ -91,60 +51,25 @@ class JoinKeyword extends Component
         $this->using = $using;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return JoinKeyword[]
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = array();
 
         $expr = new self();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 -----------------------[ JOIN ]----------------------> 1
-         *
-         *      1 -----------------------[ expr ]----------------------> 2
-         *
-         *      2 ------------------------[ ON ]-----------------------> 3
-         *      2 -----------------------[ USING ]---------------------> 4
-         *
-         *      3 --------------------[ conditions ]-------------------> 0
-         *
-         *      4 ----------------------[ columns ]--------------------> 0
-         *
-         * @var int
-         */
         $state = 0;
 
-        // By design, the parser will parse first token after the keyword.
-        // In this case, the keyword must be analyzed too, in order to determine
-        // the type of this join.
         if ($list->idx > 0) {
             --$list->idx;
         }
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -178,7 +103,6 @@ class JoinKeyword extends Component
                                 $expr->type = static::$JOINS[$token->keyword];
                                 $state = 1;
                             } else {
-                                /* Next clause is starting */
                                 break 2;
                             }
                             break;
@@ -206,12 +130,6 @@ class JoinKeyword extends Component
         return $ret;
     }
 
-    /**
-     * @param JoinKeyword[] $component the component to be built
-     * @param array         $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $ret = array();

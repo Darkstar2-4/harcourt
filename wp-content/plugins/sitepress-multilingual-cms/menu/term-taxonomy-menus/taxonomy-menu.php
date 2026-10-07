@@ -1,8 +1,4 @@
 <?php
-/**
- * @var SitePress $sitepress
- * @var wpdb $wpdb
- */
 
 global $sitepress, $wpdb;
 
@@ -22,7 +18,6 @@ if ( $element_id ) {
 				  FROM {$wpdb->prefix}icl_translations WHERE element_id=%d AND element_type=%s",
 		array( $element_id, $icl_element_type )
 	);
-	/** @var \stdClass $res */
 	$res          = $wpdb->get_row( $res_prepared );
 	$trid         = $res->trid;
 	if ( $trid ) {
@@ -31,7 +26,6 @@ if ( $element_id ) {
 		$element_lang_code = $current_language;
 
 		$translation_id = $sitepress->set_element_language_details( $element_id, $icl_element_type, null, $element_lang_code );
-		// get trid of $translation_id
 		$trid = $wpdb->get_var( $wpdb->prepare( "SELECT trid FROM {$wpdb->prefix}icl_translations WHERE translation_id=%d", array( $translation_id ) ) );
 	}
 } else {
@@ -80,23 +74,6 @@ if ( $setup_complete ) {
 	echo '</div></div></div></div></div>';
 
 	if ( $trid && $sitepress->get_wp_api()->is_term_edit_page() ) {
-		/**
-		 * Extends the translation options for terms
-		 *
-		 * Called after rendering the translation options for terms, after the closing the main container tag
-		 *
-		 * @since 3.8.2
-		 *
-		 * @param array $args              {
-		 *                                 Information about the current term and its translations
-		 *
-		 * @type int    $trid              The translation cluster ID.
-		 * @type array  $active_languages  All active languages data.
-		 * @type string $selected_language The language of the current term being edited.
-		 * @type array  $translations      All the available translations (including the current one).
-		 * @type string $type              The translation element type (e.g. `tax_category`, `tax_{taxonomy}`.
-		 * }
-		 */
 		do_action(
 			'wpml_translate_options_terms_after',
 			array(

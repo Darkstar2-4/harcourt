@@ -1,26 +1,13 @@
 <?php
 
-/**
- * Class WPML_Post_Translation
- *
- * @package    wpml-core
- * @subpackage post-translation
- */
 abstract class WPML_Post_Translation extends WPML_Element_Translation {
 
 	protected $settings;
 	protected $post_translation_sync;
 	public static $defer_term_counting = false;
 
-	/**
-	 * @var WPML_Debug_BackTrace
-	 */
 	private $debug_backtrace;
 
-	/**
-	 * @param array $settings
-	 * @param wpdb  $wpdb
-	 */
 	public function __construct( &$settings, &$wpdb ) {
 		parent::__construct( $wpdb );
 		$this->settings = $settings;
@@ -70,25 +57,9 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		return get_post_format ( $this->get_original_post_ID ( $trid, $source_lang_code ) );
 	}
 
-	/**
-	 * @param int     $pidd
-	 * @param WP_Post $post
-	 *
-	 * @return void
-	 */
 	public abstract function save_post_actions( $pidd, $post );
 
-	/** @param int $post_id */
 	public function attachment_actions( $post_id ) {
-		/**
-		 * This filter hooks determines whether we should apply the
-		 * "save_post" actions on an attachment.
-		 *
-		 * @since 4.4.0
-		 *
-		 * @param bool $apply_save_post_actions True if we should apply save post actions on the attachment, false otherwise (default false).
-		 * @param int  $post_id The attachment post ID.
-		 */
 		if ( apply_filters( 'wpml_apply_save_attachment_actions', false, $post_id ) ) {
 			$post = get_post( $post_id );
 
@@ -143,33 +114,13 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		$this->delete_post_actions( $post_id, true );
 	}
 
-	/**
-	 * This function holds all actions to be run after deleting a post.
-	 * 1. Delete the posts entry in icl_translations.
-	 * 2. Set one of the posts translations or delete all translations of the post, depending on sitepress settings.
-	 *
-	 * @param Integer $post_id
-	 * @param bool $keep_db_entries Sets whether icl_translations entries are to be deleted or kept, when hooking this to
-	 * post trashing we want them to be kept.
-	 */
 	public function delete_post_actions( $post_id, $keep_db_entries = false ) {
 		$translation_sync = $this->get_sync_helper ();
 		$translation_sync->delete_post_actions ( $post_id, $keep_db_entries );
 	}
 
-	/**
-	 * @param int    $post_id
-	 * @param string $post_status
-	 *
-	 * @return null|int
-	 */
 	abstract function get_save_post_trid( $post_id, $post_status );
 
-	/**
-	 * @param integer $post_id
-	 * @param SitePress $sitepress
-	 * @return bool|mixed|null|string|void
-	 */
 	public function get_save_post_lang( $post_id, $sitepress ) {
 		$language_code = $this->get_element_lang_code ( $post_id );
 		$language_code = $language_code ? $language_code : $sitepress->get_current_language ();
@@ -179,26 +130,8 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		return apply_filters ( 'wpml_save_post_lang', $language_code );
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $language_code
-	 * @param string $default_language
-	 *
-	 * @return string|null
-	 */
 	protected abstract function get_save_post_source_lang( $trid, $language_code, $default_language );
 
-	/**
-	 * Sets a posts language details, invalidates caches relating to the post and triggers
-	 * synchronisation actions across translations of the just saved post.
-	 *
-	 * @param int     $trid
-	 * @param array   $post_vars
-	 * @param string  $language_code
-	 * @param string  $source_language
-	 *
-	 * @used-by \WPML_Post_Translation::save_post_actions as final step of the WPML Core save_post actions
-	 */
 	protected function after_save_post( $trid, $post_vars, $language_code, $source_language ) {
 		$this->maybe_set_elid( $trid, $post_vars['post_type'], $language_code, $post_vars['ID'], $source_language );
 		$translation_sync = $this->get_sync_helper();
@@ -212,16 +145,13 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		if ( ! in_array( $post_vars['post_type'], array( 'nav_menu_item', 'attachment' ), true ) ) {
 			do_action( 'wpml_tm_save_post', $post_vars['ID'], get_post( $post_vars['ID'] ), false );
 		}
-		// Flush object cache.
 		$this->flush_object_cache_for_groups( array( 'ls_languages', WPML_ELEMENT_TRANSLATIONS_CACHE_GROUP ) );
+
+		WPML_Pre_Option_Page::maybe_clear_privacy_policy_cache( $original_id, $post_vars['post_type'] );
 
 		do_action( 'wpml_after_save_post', $post_vars['ID'], $trid, $language_code, $source_language );
 	}
 
-	/**
-	 * Create new instance of WPML_WP_Cache for each group and flush cache for group.
-	 * @param array $groups
-	 */
 	private function flush_object_cache_for_groups( $groups = array() ) {
 		if ( ! empty( $groups ) ) {
 			foreach ( $groups as $group ) {
@@ -288,11 +218,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		              || $is_untrashing );
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return bool
-	 */
 	protected function is_editing_different_post( $post_id ) {
 		return array_key_exists( 'post_ID', $_POST ) && (int) $_POST['post_ID'] && $post_id != $_POST['post_ID'];
 	}
@@ -317,11 +242,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		return $sitepress->is_translated_post_type ( $post_type );
 	}
 
-	/**
-	 * @param WP_Post $post
-	 *
-	 * @return string[] all language codes the post can be translated into
-	 */
 	public function get_allowed_target_langs( $post ) {
 		global $sitepress;
 
@@ -335,23 +255,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		return apply_filters ( 'wpml_allowed_target_langs', $can_translate, $post->ID, 'post' );
 	}
 
-	/**
-	 * Before setting the language of the post to be saved, check if a translation in this language already exists
-	 * This check is necessary, so that synchronization actions like thrashing or un-trashing of posts, do not lead to
-	 * database corruption, due to erroneously changing a posts language into a state,
-	 * where it collides with an existing translation. While the UI prevents this sort of action for the most part,
-	 * this is not necessarily the case for other plugins like TM.
-	 * The logic here first of all checks if an existing translation id is present in the desired language_code.
-	 * If so but this translation is actually not the currently to be saved post,
-	 * then this post will be saved to its current language. If the translation already exists,
-	 * the existing translation id will be used. In all other cases a new entry in icl_translations will be created.
-	 *
-	 * @param Integer $trid
-	 * @param String  $post_type
-	 * @param String  $language_code
-	 * @param Integer $post_id
-	 * @param String  $source_language
-	 */
 	private function maybe_set_elid( $trid, $post_type, $language_code, $post_id, $source_language ) {
 		global $sitepress;
 
@@ -365,9 +268,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		);
 	}
 
-	/**
-	 * @return WPML_Post_Synchronization
-	 */
 	private function get_sync_helper() {
 		global $sitepress;
 
@@ -377,9 +277,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		return $this->post_translation_sync;
 	}
 
-	/**
-	 * @return WPML_Debug_BackTrace
-	 */
 	private function get_debug_backtrace() {
 		if ( ! $this->debug_backtrace ) {
 			$this->debug_backtrace = new WPML\Utils\DebugBackTrace( 20 );
@@ -392,19 +289,11 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		$this->debug_backtrace = $debug_backtrace;
 	}
 
-	/**
-	 * @return bool
-	 */
 	protected function is_inner_post_insertion() {
 		$debug_backtrace = $this->get_debug_backtrace();
 		return 1 < $debug_backtrace->count_function_in_call_stack( 'wp_insert_post' );
 	}
 
-	/**
-	 * @param WP_Post $post
-	 *
-	 * @return array
-	 */
 	protected function get_post_vars( $post ) {
 		$post_vars = array();
 
@@ -428,9 +317,6 @@ abstract class WPML_Post_Translation extends WPML_Element_Translation {
 		}
 	}
 
-	/**
-	 * @return self|WPML_Frontend_Post_Actions|WPML_Admin_Post_Actions
-	 */
 	public static function getGlobalInstance() {
 		global $wpml_post_translations, $sitepress;
 

@@ -11,9 +11,6 @@
 namespace WPML\Core\Twig\Extension;
 
 use WPML\Core\Twig\TwigFunction;
-/**
- * @final
- */
 class StringLoaderExtension extends \WPML\Core\Twig\Extension\AbstractExtension
 {
     public function getFunctions()
@@ -30,16 +27,6 @@ namespace WPML\Core;
 
 use WPML\Core\Twig\Environment;
 use WPML\Core\Twig\TemplateWrapper;
-/**
- * Loads a template from a string.
- *
- *     {{ include(template_from_string("Hello {{ name }}")) }}
- *
- * @param string $template A template as a string or object implementing __toString()
- * @param string $name     An optional name of the template to be used in error messages
- *
- * @return TemplateWrapper
- */
 function twig_template_from_string(\WPML\Core\Twig\Environment $env, $template, $name = null)
 {
     return $env->createTemplate((string) $template, $name);

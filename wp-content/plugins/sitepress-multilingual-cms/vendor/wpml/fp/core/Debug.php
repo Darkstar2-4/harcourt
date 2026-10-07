@@ -4,13 +4,6 @@ namespace WPML\FP;
 
 use WPML\Collect\Support\Traits\Macroable;
 
-/**
- * @method static callable|mixed inspect( mixed ...$input )
- * @method static callable|mixed log( string ...$label )
- * @method static callable|mixed logDump( string ...$label, mixed ...$input )
- * @method static callable|mixed logPrintR( string ...$label, mixed ...$input )
- * @method static callable|mixed logBacktrace( string ...$label, mixed ...$input )
- */
 class Debug {
 
 	use Macroable;

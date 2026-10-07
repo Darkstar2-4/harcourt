@@ -8,9 +8,6 @@ class OTGS_Installer_Plugins_Page_Notice {
 
 	private $plugins = array();
 
-	/**
-	 * @var OTGS_Template_Service
-	 */
 	private $template_service;
 
 	private $plugin_finder;
@@ -29,9 +26,6 @@ class OTGS_Installer_Plugins_Page_Notice {
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_plugins() {
 		return $this->plugins;
 	}
@@ -40,9 +34,6 @@ class OTGS_Installer_Plugins_Page_Notice {
 		$this->plugins[ $plugin_id ] = $plugin_data;
 	}
 
-	/**
-	 * @param string $plugin_file
-	 */
 	public function show_purchase_notice_under_plugin( $plugin_file, $plugin_data ) {
 		$display_subscription_notice = isset( $this->plugins[ $plugin_file ][ self::DISPLAY_SUBSCRIPTION_NOTICE_KEY ] )
 			? $this->plugins[ $plugin_file ][ self::DISPLAY_SUBSCRIPTION_NOTICE_KEY ]
@@ -65,11 +56,7 @@ class OTGS_Installer_Plugins_Page_Notice {
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_model( $notice ) {
-		/** @var WP_Plugins_List_Table $wp_list_table */
 		$wp_list_table = _get_list_table( 'WP_Plugins_List_Table' );
 
 		list( $tr_classes, $notice_classes ) = $this->get_classes();
@@ -146,7 +133,6 @@ class OTGS_Installer_Plugins_Page_Notice {
 	}
 
 	private function get_toolset_lite_notice_model( $plugin_name ) {
-		/** @var WP_Plugins_List_Table $wp_list_table */
 		$wp_list_table = _get_list_table( 'WP_Plugins_List_Table' );
 
 		list( $tr_classes, $notice_classes ) = $this->get_classes();

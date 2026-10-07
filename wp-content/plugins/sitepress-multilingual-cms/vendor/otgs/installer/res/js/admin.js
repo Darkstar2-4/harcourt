@@ -14,8 +14,21 @@ var otgs_wp_installer = {
         jQuery('.otgs_wp_installer_table').on('click', '.enter_site_key_js', otgs_wp_installer.show_site_key_form);
         jQuery('.otgs_wp_installer_table').on('click', '.cancel_site_key_js', otgs_wp_installer.hide_site_key_form);
 
-        jQuery('.otgs_wp_installer_table').on('click', '.remove_site_key_js', otgs_wp_installer.remove_site_key);
-        jQuery('.otgs_wp_installer_table').on('click', '.update_site_key_js', otgs_wp_installer.update_site_key);
+        jQuery(document).on('click', '.remove_site_key_js', otgs_wp_installer.remove_site_key);
+        jQuery(document).on('click', '.update_site_key_js', otgs_wp_installer.update_site_key);
+
+        jQuery(document).on('click', '.js-otgs-unregister-toggle', function () {
+            var $card = jQuery(this).closest('.otgs-installer-refund-card-body');
+            jQuery(this).hide();
+            $card.find('.otgs-installer-refund-confirm').show();
+            return false;
+        });
+        jQuery(document).on('click', '.js-otgs-unregister-cancel', function () {
+            var $card = jQuery(this).closest('.otgs-installer-refund-card-body');
+            $card.find('.otgs-installer-refund-confirm').hide();
+            $card.find('.js-otgs-unregister-toggle').show();
+            return false;
+        });
 
         jQuery('.otgs_wp_installer_table').on('submit', '.otgsi_site_key_form', otgs_wp_installer.save_site_key);
         jQuery('.otgs_wp_installer_table').on('submit', '.otgsi_downloads_form', otgs_wp_installer.download_downloads);
@@ -144,7 +157,7 @@ var otgs_wp_installer = {
 
         } else {
 
-            if (confirm(jQuery(this).data('confirmation'))) {
+            if (!jQuery(this).data('confirmation') || confirm(jQuery(this).data('confirmation'))) {
 
                 jQuery('<span class="spinner"></span>').css({
                     visibility: 'visible',
@@ -168,7 +181,7 @@ var otgs_wp_installer = {
     },
 
     update_site_key: function () {
-        var error_wrap = jQuery(this).closest('.otgsi_register_product_wrap').find('.installer-error-box');
+        var error_wrap = jQuery(this).closest('.otgsi_register_product_wrap, .otgs-installer-refund-card-body').find('.installer-error-box');
         error_wrap.html('');
 
         var spinner = jQuery('<span class="spinner"></span>');

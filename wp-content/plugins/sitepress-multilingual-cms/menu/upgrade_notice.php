@@ -31,7 +31,6 @@ if ( ! isset( $upgrade_lines[ $short_v ] ) ) {
 		<?php
 		wp_nonce_field( 'dismiss_upgrade_notice_nonce', '_icl_nonce_dun' );
 	} else {
-		// set the hide settings so it's shown only one
 		icl_set_setting( 'hide_upgrade_notice', implode( '.', array_slice( explode( '.', ICL_SITEPRESS_VERSION ), 0, 3 ) ) );
 		icl_save_settings();
 	}

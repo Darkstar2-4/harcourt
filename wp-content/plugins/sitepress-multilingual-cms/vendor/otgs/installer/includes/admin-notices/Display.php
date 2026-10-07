@@ -4,25 +4,10 @@ namespace OTGS\Installer\AdminNotices;
 
 class Display {
 
-	/**
-	 * @var array
-	 */
 	private $currentNotices;
-	/**
-	 * @var PageConfig
-	 */
 	private $pageConfig;
-	/**
-	 * @var MessageTexts
-	 */
 	private $messageTexts;
-	/**
-	 * @var callable - string -> string -> bool
-	 */
 	private $isDismissed;
-	/**
-	 * @var ScreenConfig
-	 */
 	private $screenConfig;
 
 	public function __construct(
@@ -65,19 +50,11 @@ class Display {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function isRelevantOnPage() {
 		return $this->pageConfig->isAnyMessageOnPage( $this->currentNotices ) ||
 		       $this->screenConfig->isAnyMessageOnPage( $this->currentNotices );
 	}
 
-	/**
-	 * @param string $repo
-	 * @param string $id
-	 * @param array $notice_params
-	 */
 	private function displayNotice( $repo, $id, $notice_params = [] ) {
 		$noticeId = $id;
 		if ( isset( $notice_params['noticeId'] ) ) {
@@ -97,6 +74,18 @@ class Display {
 			'installer-admin-notices',
 			$installer->res_url() . '/res/css/admin-notices.css',
 			[],
+			$installer->version()
+		);
+		wp_enqueue_script(
+			'installer-admin',
+			$installer->res_url() . '/res/js/admin.js',
+			[ 'jquery' ],
+			$installer->version()
+		);
+		wp_enqueue_script(
+			'expired-notice',
+			$installer->res_url() . '/dist/js/expired-notice/app.js',
+			[ 'installer-admin' ],
 			$installer->version()
 		);
 	}

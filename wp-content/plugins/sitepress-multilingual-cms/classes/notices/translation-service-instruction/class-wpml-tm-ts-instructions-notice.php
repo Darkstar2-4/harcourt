@@ -5,10 +5,8 @@ class WPML_TM_TS_Instructions_Notice {
 	const NOTICE_GROUP_ID = 'translation-service-instructions';
 	const TEMPLATE        = 'translation-service-instructions.twig';
 
-	/** @var WPML_Notices */
 	private $admin_notices;
 
-	/** @var IWPML_Template_Service */
 	private $template_service;
 
 	public function __construct( WPML_Notices $admin_notices, IWPML_Template_Service $template_service ) {
@@ -16,9 +14,6 @@ class WPML_TM_TS_Instructions_Notice {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * @param stdClass $service
-	 */
 	public function add_notice( $service ) {
 		$notice = $this->admin_notices->create_notice(
 			self::NOTICE_ID,
@@ -34,30 +29,17 @@ class WPML_TM_TS_Instructions_Notice {
 		$this->admin_notices->remove_notice( self::NOTICE_GROUP_ID, self::NOTICE_ID );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function exists() {
 		return ( WPML_TM_Page::is_dashboard() || wpml_is_ajax() ) &&
 			   (bool) $this->admin_notices->get_notice( self::NOTICE_ID, self::NOTICE_GROUP_ID );
 	}
 
-	/**
-	 * @param stdClass $service
-	 *
-	 * @return string
-	 */
 	private function get_notice_content( $service ) {
 		$model = $this->get_model( $service );
 
 		return $this->template_service->show( $model, self::TEMPLATE );
 	}
 
-	/**
-	 * @param stdClass $service
-	 *
-	 * @return array
-	 */
 	private function get_model( $service ) {
 		return array(
 			'strings'    => array(

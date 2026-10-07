@@ -9,9 +9,6 @@ class WPML_TP_Job_States {
 	const CANCELLED            = 'cancelled';
 	const ANY                  = 'any';
 
-	/**
-	 * @return array
-	 */
 	public static function get_possible_states() {
 		return array(
 			self::RECEIVED,
@@ -23,16 +20,10 @@ class WPML_TP_Job_States {
 		);
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_default_state() {
 		return self::WAITING_TRANSLATIONS;
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function get_finished_states() {
 		return array(
 			self::TRANSLATION_READY,

@@ -37,7 +37,6 @@ class WPML_Admin_Language_Switcher {
 		$translations          = false;
 		$languages_links       = array();
 
-		// individual translations
 		$is_post = false;
 		$is_tax  = false;
 		$is_menu = false;
@@ -132,7 +131,6 @@ class WPML_Admin_Language_Switcher {
 			} else {
 				$query_vars = array();
 			}
-			// individual translations
 			if ( $is_post ) {
 				if ( isset( $translations[ $lang['code'] ] ) && isset( $translations[ $lang['code'] ]->element_id ) ) {
 					$query_vars['post'] = $translations[ $lang['code'] ]->element_id;
@@ -176,7 +174,7 @@ class WPML_Admin_Language_Switcher {
 			if ( ! empty( $query_string ) ) {
 				$query .= $query_string . '&';
 			}
-			$query .= 'lang=' . $lang['code']; // the default language need to specified explicitly yoo in order to set the lang cookie
+			$query .= 'lang=' . $lang['code'];
 
 			$link_url = admin_url( $current_page_lang . $query );
 
@@ -217,7 +215,6 @@ class WPML_Admin_Language_Switcher {
 				'flag'    => '<i class="otgs-ico-wpml"></i>',
 			);
 		} else {
-			// set the default language as current
 			if ( 'all' == $this->current_language ) {
 				$this->current_language                                = $sitepress->get_default_language();
 				$languages_links[ $this->current_language ]['current'] = true;
@@ -236,14 +233,12 @@ class WPML_Admin_Language_Switcher {
 
 	private function render_admin_bar_menu( $languages_links, $current_language ) {
 
-		/** @var WP_Admin_Bar $wp_admin_bar */
 		global $wp_admin_bar;
 
 		$parent        = 'WPML_ALS';
 		$lang          = $languages_links[ $this->current_language ];
 		$help_tip_text = __( 'This language selector determines which content to display. You can choose items in a specific language or in all languages. To change the language of the WordPress Admin interface, go to your profile.', 'sitepress' );
 
-		// Current language
 		$wp_admin_bar->add_menu(
 			array(
 				'parent' => false,

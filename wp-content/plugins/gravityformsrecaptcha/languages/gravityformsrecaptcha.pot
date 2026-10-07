@@ -1,15 +1,15 @@
-# Copyright (C) 2025 Gravity Forms
+# Copyright (C) 2026 Gravity Forms
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Gravity Forms reCAPTCHA Add-On 2.0.0\n"
+"Project-Id-Version: Gravity Forms reCAPTCHA Add-On 2.2.2\n"
 "Report-Msgid-Bugs-To: https://gravityforms.com/support\n"
 "Last-Translator: Gravity Forms <support@gravityforms.com>\n"
 "Language-Team: Gravity Forms <support@gravityforms.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-08-20T16:11:46+00:00\n"
+"POT-Creation-Date: 2026-05-07T17:29:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: gravityformsrecaptcha\n"
@@ -31,121 +31,187 @@ msgstr ""
 msgid "Gravity Forms"
 msgstr ""
 
-#: class-gf-recaptcha.php:504
+#: class-gf-recaptcha.php:541
 msgid "Disconnect from reCAPTCHA"
 msgstr ""
 
-#: class-gf-recaptcha.php:527
-#: class-gf-recaptcha.php:1197
+#: class-gf-recaptcha.php:564
+#: class-gf-recaptcha.php:1272
 #: includes/settings/class-plugin-settings.php:641
 msgid "Change Connection Type"
 msgstr ""
 
-#: class-gf-recaptcha.php:547
+#: class-gf-recaptcha.php:583
+msgid "Your Google Workspace session requires periodic reauthentication. Please reconnect the add-on, and contact your Google Workspace administrator if you need help with this policy."
+msgstr ""
+
+#: class-gf-recaptcha.php:588
 msgid "There is a problem communicating with Google right now. Please check back later. If this issue persists for more than a day, please %1$sopen a support ticket%2$s(opens in a new tab)%3$s."
 msgstr ""
 
-#: class-gf-recaptcha.php:596
+#: class-gf-recaptcha.php:638
 msgid "You have no available projects for reCAPTCHA or have insufficient permissions"
 msgstr ""
 
-#: class-gf-recaptcha.php:609
+#: class-gf-recaptcha.php:651
 msgid "Select a Project"
 msgstr ""
 
-#: class-gf-recaptcha.php:629
-#: class-gf-recaptcha.php:644
+#: class-gf-recaptcha.php:671
+#: class-gf-recaptcha.php:686
 msgid "Enterprise Site Key"
 msgstr ""
 
-#: class-gf-recaptcha.php:638
+#: class-gf-recaptcha.php:680
 msgid "There was an error retrieving the reCAPTCHA site keys."
 msgstr ""
 
-#: class-gf-recaptcha.php:646
+#: class-gf-recaptcha.php:688
 msgid "Select a site key"
 msgstr ""
 
-#: class-gf-recaptcha.php:812
+#: class-gf-recaptcha.php:866
 msgid "Disable reCAPTCHA v3 for this form."
 msgstr ""
 
-#: class-gf-recaptcha.php:1192
+#: class-gf-recaptcha.php:1267
 msgid "Disconnecting"
 msgstr ""
 
-#: class-gf-recaptcha.php:1193
+#: class-gf-recaptcha.php:1268
 msgid "Resetting"
 msgstr ""
 
-#: class-gf-recaptcha.php:1198
+#: class-gf-recaptcha.php:1273
 msgid "Changing the connection type will delete your current settings.  Do you want to proceed?"
 msgstr ""
 
-#: class-gf-recaptcha.php:1199
+#: class-gf-recaptcha.php:1274
 #: includes/settings/class-plugin-settings.php:620
 msgid "Disconnect"
 msgstr ""
 
-#: class-gf-recaptcha.php:1200
+#: class-gf-recaptcha.php:1275
 msgid "Disconnecting from reCAPTCHA will delete your current settings.  Do you want to proceed?"
 msgstr ""
 
-#: class-gf-recaptcha.php:1216
+#: class-gf-recaptcha.php:1291
 msgid "reCAPTCHA Score"
 msgstr ""
 
-#: class-gf-recaptcha.php:1310
+#: class-gf-recaptcha.php:1385
+#: includes/class-gf-field-recaptcha-checkbox.php:163
 msgid "reCAPTCHA"
 msgstr ""
 
-#: class-gf-recaptcha.php:1331
+#: class-gf-recaptcha.php:1406
+#: class-gf-recaptcha.php:2091
 msgid "Score"
 msgstr ""
 
-#: class-gf-recaptcha.php:1334
+#: class-gf-recaptcha.php:1409
 msgid "Click here to learn more about reCAPTCHA."
 msgstr ""
 
-#: class-gf-recaptcha.php:1445
+#. translators: %1$s: The reCAPTCHA score for the entry. %2$s: The threshold at the time the entry was marked as spam.
+#: class-gf-recaptcha.php:1458
+msgid "Score of %1$s is less than or equal to the threshold of %2$s."
+msgstr ""
+
+#: class-gf-recaptcha.php:1530
 msgid "Disabled"
 msgstr ""
 
-#: class-gf-recaptcha.php:1446
+#: class-gf-recaptcha.php:1531
 msgid "Disconnected"
 msgstr ""
 
-#: class-gf-recaptcha.php:1447
+#: class-gf-recaptcha.php:1532
 msgid "Disabled (quota limit)"
 msgstr ""
 
-#: class-gf-recaptcha.php:1448
+#: class-gf-recaptcha.php:1533
 msgid "Disabled (token refresh in progress)"
 msgstr ""
 
-#: class-gf-recaptcha.php:1449
+#: class-gf-recaptcha.php:1534
 msgid "Disabled (token refresh failed)"
 msgstr ""
 
+#: class-gf-recaptcha.php:1535
+msgid "Disconnected (reauthentication required)"
+msgstr ""
+
 #. translators: %s is the link markup.
-#: class-gf-recaptcha.php:1682
+#: class-gf-recaptcha.php:1815
 msgid "You have reached the quota limit for reCAPTCHA set by Google. Please check the quota on your %sreCAPTCHA Account%s."
 msgstr ""
 
-#: class-gf-recaptcha.php:1780
+#: class-gf-recaptcha.php:1913
+#: class-gf-recaptcha.php:2007
 msgid "User does not have required permissions to setup reCAPTCHA."
 msgstr ""
 
-#: class-gf-recaptcha.php:1837
+#: class-gf-recaptcha.php:1971
 msgid "There was an error retrieving reCAPTHCA site keys."
 msgstr ""
 
-#: class-gf-recaptcha.php:1920
+#: class-gf-recaptcha.php:2068
 msgid "Google notified that the entry was marked as spam."
 msgstr ""
 
-#: class-gf-recaptcha.php:1924
+#: class-gf-recaptcha.php:2072
 msgid "Google notified that the entry was marked as not spam."
+msgstr ""
+
+#: class-gf-recaptcha.php:2092
+#: includes/settings/class-plugin-settings.php:515
+msgid "Checkbox"
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:76
+msgid "reCAPTCHA Checkbox"
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:131
+msgid "Adds a reCAPTCHA Enterprise checkbox field to your form to help protect your website from spam and bot abuse."
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:161
+msgid "Only one reCAPTCHA checkbox field can be added to the form."
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:165
+msgid "This field has accessibility issues. We recommend using a score-based key instead of this field."
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:166
+#: includes/class-gf-field-recaptcha-checkbox.php:219
+#: includes/class-gf-field-recaptcha-checkbox.php:302
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:214
+#: includes/class-gf-field-recaptcha-checkbox.php:298
+msgid "Configuration Required"
+msgstr ""
+
+#. Translators: 1. Opening <a> tag with link to the Forms > Settings > reCAPTCHA page. 2. closing <a> tag.
+#: includes/class-gf-field-recaptcha-checkbox.php:217
+#: includes/class-gf-field-recaptcha-checkbox.php:300
+msgid "To use this field, configure the %1$sreCAPTCHA Add-On Settings%2$s using the Enterprise connection type, and select a checkbox type key."
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:222
+msgid "This field requires additional configuration"
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:287
+msgid "An example reCAPTCHA checkbox"
+msgstr ""
+
+#: includes/class-gf-field-recaptcha-checkbox.php:361
+msgid "The reCAPTCHA was invalid. Go back and try it again."
 msgstr ""
 
 #: includes/settings/class-plugin-settings.php:121
@@ -240,7 +306,6 @@ msgid "Disable Google reCAPTCHA Badge"
 msgstr ""
 
 #: includes/settings/class-plugin-settings.php:356
-#: includes/settings/class-plugin-settings.php:427
 msgid "By default reCAPTCHA v3 displays a badge on every page of your site with links to the Google terms of service and privacy policy. You are allowed to hide the badge as long as you include the reCAPTCHA branding and links visibly in the user flow."
 msgstr ""
 
@@ -253,6 +318,10 @@ msgstr ""
 msgid "reCAPTCHA Project ID"
 msgstr ""
 
+#: includes/settings/class-plugin-settings.php:427
+msgid "By default reCAPTCHA v3 (score type keys) displays a badge on every page of your site with links to the Google terms of service and privacy policy. You are allowed to hide the badge as long as you include the reCAPTCHA branding and links visibly in the user flow."
+msgstr ""
+
 #. translators: %s is the constant name.
 #: includes/settings/class-plugin-settings.php:476
 msgid "Value defined using the %s constant."
@@ -260,10 +329,6 @@ msgstr ""
 
 #: includes/settings/class-plugin-settings.php:508
 msgid "Type"
-msgstr ""
-
-#: includes/settings/class-plugin-settings.php:515
-msgid "Checkbox"
 msgstr ""
 
 #: includes/settings/class-plugin-settings.php:519
@@ -365,7 +430,7 @@ msgid "check out our documentation."
 msgstr ""
 
 #: includes/settings/class-plugin-settings.php:729
-msgid "reCAPTCHA v3 returns a score (1.0 is very likely a good interaction, 0.0 is very likely a bot)."
+msgid "reCAPTCHA v3 (score and checkbox type keys) returns a score (1.0 is very likely a good interaction, 0.0 is very likely a bot)."
 msgstr ""
 
 #: includes/settings/class-plugin-settings.php:730
@@ -384,6 +449,6 @@ msgstr ""
 msgid "Score threshold must be between 0.0 and 1.0"
 msgstr ""
 
-#: includes/settings/class-plugin-settings.php:1037
+#: includes/settings/class-plugin-settings.php:1044
 msgid "An error occured while connecting to the API."
 msgstr ""

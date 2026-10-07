@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Dissmiss Notice": [
-            "סגור הודעה"
+            "בטל הודעה"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "יעל את תרגום האתר שלך באמצעות לוח הבקרה של ניהול התרגום של WPML"
+            "ייעל את תרגום האתר שלך באמצעות לוח הבקרה של WPML לתרגום"
          ],
          "Translate pages, posts, products and strings from one place": [
-            "תרגם עמודים, פוסטים, מוצרים ומחרוזות ממקום אחד"
+            "תרגם דפים, פוסטים, מוצרים ומחרוזות ממקום אחד"
          ],
          "Bulk automatic translation": [
-            "תרגום אוטומטי בתפזורת"
+            "תרגום אוטומטי בכמות גדולה"
          ],
          "Translate everything automatically": [
             "תרגם הכל באופן אוטומטי"
          ],
          "Go to the Translation Dashboard": [
-            "עבור ללוח הבקרה של ניהול התרגום"
+            "עבור ללוח הבקרה של התרגום"
          ],
          "Learn More": [
             "למידע נוסף"

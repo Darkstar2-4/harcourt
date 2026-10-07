@@ -1,23 +1,14 @@
 <?php
 
 class WPML_Config_Update_Integrator {
-	/** @var WPML_Config_Update_Log */
 	private $log;
-	/** @var WPML_Config_Update */
 	private $worker;
 
-	/**
-	 * @param WPML_Log                $log
-	 * @param WPML_Config_Update|null $worker
-	 */
-	public function __construct( WPML_Log $log, WPML_Config_Update $worker = null ) {
+	public function __construct( WPML_Log $log, ?WPML_Config_Update $worker = null ) {
 		$this->log    = $log;
 		$this->worker = $worker;
 	}
 
-	/**
-	 * @return WPML_Config_Update
-	 */
 	public function get_worker() {
 		if ( null === $this->worker ) {
 			global $sitepress;
@@ -28,9 +19,6 @@ class WPML_Config_Update_Integrator {
 		return $this->worker;
 	}
 
-	/**
-	 * @param WPML_Config_Update $worker
-	 */
 	public function set_worker( WPML_Config_Update $worker ) {
 		$this->worker = $worker;
 	}

@@ -8,10 +8,6 @@ use WPML\FP\Lst;
 use WPML\FP\Obj;
 use function WPML\FP\curryN;
 
-/**
- * @method static callable|int fromJobId( ...$job_id )
- * @method static callable|int|null fromRid( ...$rid )
- */
 class Map {
 	use Macroable;
 

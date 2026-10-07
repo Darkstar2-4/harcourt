@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Parses an alter operation.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,11 +17,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class AlterOperation extends Component
 {
-    /**
-     * All database options.
-     *
-     * @var array
-     */
     public static $DB_OPTIONS = array(
         'CHARACTER SET' => array(
             1,
@@ -56,11 +48,6 @@ class AlterOperation extends Component
         )
     );
 
-    /**
-     * All table options.
-     *
-     * @var array
-     */
     public static $TABLE_OPTIONS = array(
         'ENGINE' => array(
             1,
@@ -129,11 +116,6 @@ class AlterOperation extends Component
         'CHARACTER SET' => 3,
     );
 
-    /**
-     * All user options.
-     *
-     * @var array
-     */
     public static $USER_OPTIONS = array(
         'ATTRIBUTE' => array(
             1,
@@ -169,43 +151,16 @@ class AlterOperation extends Component
         'IDENTIFIED' => 3,
     );
 
-    /**
-     * All view options.
-     *
-     * @var array
-     */
     public static $VIEW_OPTIONS = array(
         'AS' => 1,
     );
 
-    /**
-     * Options of this operation.
-     *
-     * @var OptionsArray
-     */
     public $options;
 
-    /**
-     * The altered field.
-     *
-     * @var Expression
-     */
     public $field;
 
-    /**
-     * Unparsed tokens.
-     *
-     * @var Token[]|string
-     */
     public $unknown = array();
 
-    /**
-     * Constructor.
-     *
-     * @param OptionsArray $options options of alter operation
-     * @param Expression   $field   altered field
-     * @param array        $unknown unparsed tokens found at the end of operation
-     */
     public function __construct(
         $options = null,
         $field = null,
@@ -216,62 +171,27 @@ class AlterOperation extends Component
         $this->unknown = $unknown;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return AlterOperation
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
 
-        /**
-         * Counts brackets.
-         *
-         * @var int
-         */
         $brackets = 0;
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ---------------------[ options ]---------------------> 1
-         *
-         *      1 ----------------------[ field ]----------------------> 2
-         *
-         *      2 -------------------------[ , ]-----------------------> 0
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping comments.
             if ($token->type === Token::TYPE_COMMENT) {
                 continue;
             }
 
-            // Skipping whitespaces.
             if ($token->type === Token::TYPE_WHITESPACE) {
                 if ($state === 2) {
-                    // When parsing the unknown part, the whitespaces are
-                    // included to not break anything.
                     $ret->unknown[] = $token;
                 }
                 continue;
@@ -301,8 +221,6 @@ class AlterOperation extends Component
                     )
                 );
                 if ($ret->field === null) {
-                    // No field was read. We go back one token so the next
-                    // iteration will parse the same token, but in state 2.
                     --$list->idx;
                 }
                 $state = 2;
@@ -323,23 +241,15 @@ class AlterOperation extends Component
                     }
                 } elseif (! self::checkIfTokenQuotedSymbol($token)) {
                     if (! empty(Parser::$STATEMENT_PARSERS[$token->value])) {
-                        // We want to get the next non-comment and non-space token after $token
-                        // therefore, the first getNext call will start with the current $idx which's $token,
-                        // will return it and increase $idx by 1, which's not guaranteed to be non-comment
-                        // and non-space, that's why we're calling getNext again.
 
                         $list->getNext();
                         $nextToken = $list->getNext();
 
                         if ($token->value === 'SET' && $nextToken !== null && $nextToken->value === '(') {
-                            // To avoid adding the tokens between the SET() parentheses to the unknown tokens
                             $list->getNextOfTypeAndValue(Token::TYPE_OPERATOR, ')');
                         } elseif ($token->value === 'SET' && $nextToken !== null && $nextToken->value === 'DEFAULT') {
-                            // to avoid adding the `DEFAULT` token to the unknown tokens.
                             ++$list->idx;
                         } else {
-                            // We have reached the end of ALTER operation and suddenly found
-                            // a start to new statement, but have not find a delimiter between them
                             $parser->error(
                                 'A new statement was found, but no delimiter between it and the previous one.',
                                 $token
@@ -350,7 +260,6 @@ class AlterOperation extends Component
                         || array_key_exists($array_key, self::$TABLE_OPTIONS))
                         && ! self::checkIfColumnDefinitionKeyword($array_key)
                     ) {
-                        // This alter operation has finished, which means a comma was missing before start of new alter operation
                         $parser->error(
                             'Missing comma before start of a new alter operation.',
                             $token
@@ -374,12 +283,6 @@ class AlterOperation extends Component
         return $ret;
     }
 
-    /**
-     * @param AlterOperation $component the component to be built
-     * @param array          $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $ret = $component->options . ' ';
@@ -391,13 +294,6 @@ class AlterOperation extends Component
         return $ret;
     }
 
-    /**
-     * Check if token's value is one of the common keywords
-     * between column and table alteration
-     *
-     * @param string $tokenValue Value of current token
-     * @return bool
-     */
     private static function checkIfColumnDefinitionKeyword($tokenValue)
     {
         $common_options = array(
@@ -411,17 +307,9 @@ class AlterOperation extends Component
             'PRIMARY KEY',
             'UNIQUE KEY'
         );
-        // Since these options can be used for
-        // both table as well as a specific column in the table
         return in_array($tokenValue, $common_options);
     }
 
-    /**
-     * Check if token is symbol and quoted with backtick
-     * 
-     * @param Token $token token to check
-     * @return bool
-     */
     private static function checkIfTokenQuotedSymbol($token) {
         return $token->type === Token::TYPE_SYMBOL && $token->flags === Token::FLAG_SYMBOL_BACKTICK;
     }

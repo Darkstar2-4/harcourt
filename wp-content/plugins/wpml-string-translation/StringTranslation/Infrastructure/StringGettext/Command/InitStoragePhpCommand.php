@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\Setting\Repository\FilesystemRepositoryIn
 
 class InitStoragePhpCommand implements InitStorageCommandInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
 	public function __construct(

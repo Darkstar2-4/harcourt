@@ -4,10 +4,8 @@ use \WPML\FP\Fns;
 
 class WPML_REST_Posts_Hooks implements IWPML_Action {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_Term_Translation $term_translations */
 	private $term_translations;
 
 	public function __construct(
@@ -28,12 +26,6 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 		add_filter( 'rest_request_before_callbacks', array( $this, 'reload_wpml_post_translation' ), 10, 3 );
 	}
 
-	/**
-	 * @param WP_REST_Response $response The response object.
-	 * @param WP_Post          $post     Post object.
-	 *
-	 * @return WP_REST_Response
-	 */
 	public function prepare_post( $response, $post ) {
 		if ( $this->sitepress->get_setting( 'sync_post_taxonomies' ) ) {
 			$response = $this->preset_terms_in_new_translation( $response, $post );
@@ -44,14 +36,12 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 		return $response;
 	}
 
-	/**
-	 * @param WP_REST_Response $response The response object.
-	 * @param WP_Post          $post     Post object.
-	 *
-	 * @return WP_REST_Response
-	 */
 	private function preset_terms_in_new_translation( $response, $post ) {
 		if ( ! isset( $_GET['trid'] ) ) {
+			return $response;
+		}
+
+		if ( ! current_user_can( 'edit_post', $post->ID ) ) {
 			return $response;
 		}
 
@@ -103,14 +93,6 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 		return $response;
 	}
 
-	/**
-	 * @param array    $terms
-	 * @param stdClass $tax
-	 * @param array    $translatable_taxs
-	 * @param string   $current_lang
-	 *
-	 * @return array
-	 */
 	private function get_translated_term_ids( array $terms, $tax, array $translatable_taxs, $current_lang ) {
 		$term_ids = array();
 
@@ -129,12 +111,6 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 			->toArray();
 	}
 
-	/**
-	 * @param WP_REST_Response $response The response object.
-	 * @param WP_Post          $post     Post object.
-	 *
-	 * @return WP_REST_Response
-	 */
 	private function adjust_sample_links( $response, $post ) {
 		$data = $response->get_data();
 
@@ -146,8 +122,8 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 
 		if ( empty( $lang_details->language_code ) ) {
 			$lang                       = $this->sitepress->get_current_language();
-			$data['link']               = $this->sitepress->convert_url( $data['link'], $lang );
-			$data['permalink_template'] = $this->sitepress->convert_url( $data['permalink_template'], $lang );
+			$data['link']               = $this->sitepress->convert_url_string( $data['link'], $lang );
+			$data['permalink_template'] = $this->sitepress->convert_url_string( $data['permalink_template'], $lang );
 
 			$response->set_data( $data );
 		}
@@ -155,13 +131,6 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 		return $response;
 	}
 
-	/**
-	 * @param WP_HTTP_Response|WP_Error $response Result to send to the client. Usually a WP_REST_Response or WP_Error.
-	 * @param array                     $handler  Route handler used for the request.
-	 * @param WP_REST_Request           $request  Request used to generate the response.
-	 *
-	 * @return WP_HTTP_Response|WP_Error
-	 */
 	public function reload_wpml_post_translation( $response, array $handler, WP_REST_Request $request ) {
 		if ( ! is_wp_error( $response ) && $this->isRestSavingBlockResources( $request ) ) {
 			wpml_load_post_translation( is_admin(), $this->sitepress->get_settings() );
@@ -173,10 +142,6 @@ class WPML_REST_Posts_Hooks implements IWPML_Action {
 	private function isRestSavingBlockResources( WP_REST_Request $request ) {
 		$methods = array( 'POST', 'PUT', 'PATCH' );
 		$route = $request->get_route();
-		// Create a regex that matches endpoints for:
-		// - reusable blocks,
-		// - block templates, and
-		// - template parts.
 		$pattern = '#\/wp\/v2\/(?:blocks|templates|template-parts)(?:\/\d+)*#';
 		return in_array( $request->get_method(), $methods ) && preg_match( $pattern, $route );
 	}

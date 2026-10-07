@@ -7,7 +7,6 @@ use WPML\StringTranslation\Infrastructure\WordPress\HookHandler\AbstractActionHo
 class ProcessQueueAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_process_queue';
 
-	/** @var StringsService */
 	private $stringsService;
 
 	public function __construct(

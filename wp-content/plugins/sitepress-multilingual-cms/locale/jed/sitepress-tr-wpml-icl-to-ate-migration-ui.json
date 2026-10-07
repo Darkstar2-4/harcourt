@@ -1,0 +1,258 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "From:": [
+            "Kimden:"
+         ],
+         "--Choose language--": [
+            "--Dil seçin--"
+         ],
+         "to:": [
+            "Kime:"
+         ],
+         "Select %s": [
+            "%s seçin"
+         ],
+         "Set language pair(s) for Translator %s:": [
+            "Çevirmen %s için dil çiftlerini ayarlayın:"
+         ],
+         "+ Add more language pairs for this translator": [
+            "Bu çevirmen için daha fazla dil çifti ekle"
+         ],
+         "Translation Memory was successfully copied to Advanced Translation Editor.": [
+            "Çeviri Belleği, Gelişmiş Çeviri Düzenleyici'ye başarıyla kopyalandı."
+         ],
+         "Deactivate ICanLocalize.com as Translation Service on this site": [
+            "ICanLocalize.com'u bu sitede Çeviri Hizmeti olarak devre dışı bırak"
+         ],
+         "Missing a translator? Or were new jobs since the last copy of the Translation Memory?": [
+            "Bir çevirmen mi eksik? Yoksa Çeviri Belleği'nin son kopyalanmasından bu yana yeni işler mi var?"
+         ],
+         "Enter here your ICanLocalize authentication details.": [
+            "ICanLocalize kimlik doğrulama bilgilerinizi buraya girin."
+         ],
+         "API Token:": [
+            "API anahtarı:"
+         ],
+         "Please enter valid value for ICL token.": [
+            "Lütfen ICL anahtarı için geçerli bir değer girin."
+         ],
+         "Enter ICL API token here": [
+            "ICL API anahtarını buraya girin"
+         ],
+         "Submit": [
+            "Gönder"
+         ],
+         "Sign up": [
+            "Kaydol"
+         ],
+         "to ICanLocalize to receive your API token.": [
+            "API anahtarınızı almak için ICanLocalize'a."
+         ],
+         "Already have an account? Login and": [
+            "Zaten bir hesabınız var mı? Giriş yapın ve"
+         ],
+         "get your token.": [
+            "anahtarınızı alın."
+         ],
+         "Copy new Translation Memory to Advanced Translation Memory": [
+            "Yeni Çeviri Belleğini Gelişmiş Çeviri Belleğine Kopyala"
+         ],
+         "Import translation memory": [
+            "Çeviri belleğini içe aktar"
+         ],
+         "ICanLocalize is already deactivated on this site": [
+            "ICanLocalize bu sitede zaten devre dışı bırakıldı"
+         ],
+         "You can still import Translators or Copy Translation Memory to Advanced Translator Editor": [
+            "Yine de Çevirmenleri içe aktarabilir veya Çeviri Belleğini Gelişmiş Çevirmen Düzenleyici'ye kopyalayabilirsiniz"
+         ],
+         "Move from ICanLocalize.com to Advanced Translation Editor": [
+            "ICanLocalize.com'dan gelişmiş çeviri düzenleyiciye geç"
+         ],
+         "Import translators": [
+            "Çevirmenleri içe aktar"
+         ],
+         "Come back": [
+            "Geri dön"
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Name": [
+            "Ad"
+         ],
+         "Language Pairs": [
+            "Dil çiftleri"
+         ],
+         "Not supported pairs:": [
+            "Desteklenmeyen çiftler:"
+         ],
+         "ICanLocalize.com deactivated": [
+            "ICanLocalize.com devre dışı bırakıldı"
+         ],
+         "Translate memory is imported": [
+            "Çeviri belleği içe aktarıldı"
+         ],
+         "There is no translators in ICL": [
+            "ICL'de çevirmen yok"
+         ],
+         "Translators saved": [
+            "Çevirmenler kaydedildi"
+         ],
+         "%s file upload failed.": [
+            "%s dosya yüklemesi başarısız oldu."
+         ],
+         "Flag": [
+            "Bayrak"
+         ],
+         "Flag file": [
+            "Bayrak dosyası"
+         ],
+         "You just added  language. Next, select it as the site's default language or a translation language.": [
+            "Az önce bir dil eklediniz. Ardından, bunu sitenin varsayılan dili veya bir çeviri dili olarak seçin."
+         ],
+         "Language added": [
+            "Dil eklendi"
+         ],
+         "The value \"%s\" already exists": [
+            "“%s” değeri zaten mevcut"
+         ],
+         "Add a new language": [
+            "Yeni bir dil ekle"
+         ],
+         "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
+            "Aşağıdaki listeden genel dili seçerek ülkeye özgü bir dil oluşturun. Ardından, yerelleştirileceği ülkeyi seçin."
+         ],
+         "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
+            "Veritabanında zaten var olan bir kombinasyonu seçerek, WPML gerekli alanları doldurmanıza yardımcı olabilir. <AddingACustomLanguageLink /> hakkında daha fazla bilgi edinin."
+         ],
+         "Cannot find?": [
+            "Bulunamadı mı?"
+         ],
+         "Click here": [
+            "Buraya tıklayın"
+         ],
+         "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
+            "Yanlış biçim. Yalnızca küçük harfler ve “-” içerebilir. Örn: “fr”, “pt-br”, “zh-hans”"
+         ],
+         "Language": [
+            "Dil"
+         ],
+         "Location": [
+            "Konum"
+         ],
+         "Code": [
+            "Kod"
+         ],
+         "The language will not be supported by automatic translations": [
+            "Dil, otomatik çeviriler tarafından desteklenmeyecektir"
+         ],
+         "Language mapping": [
+            "Dil eşlemesi"
+         ],
+         "Don't map this language": [
+            "Bu dili eşleme"
+         ],
+         "Default locale": [
+            "Varsayılan yerel ayar"
+         ],
+         "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
+            "Yanlış biçim. Yalnızca küçük harfler ve “_” içerebilir. Örn: “de”, “de_DE”, “zh_Hant_TW”"
+         ],
+         "hreflang": [
+            "hreflang"
+         ],
+         "Encode url?": [
+            "URL'yi kodla?"
+         ],
+         "Flags must be:": [
+            "Bayraklar şunlar olmalıdır:"
+         ],
+         "NO": [
+            "HAYIR"
+         ],
+         "YES": [
+            "EVET"
+         ],
+         " (required)": [
+            " (gerekli)"
+         ],
+         "Please fill in the field": [
+            "Lütfen alanı doldurun"
+         ],
+         "PNG, SVG, or JPG files": [
+            "PNG, SVG veya JPG dosyaları"
+         ],
+         "Save language": [
+            "Dili kaydet"
+         ],
+         "18 x 12 pixels": [
+            "18 x 12 piksel"
+         ],
+         "Read more about ": [
+            "Daha fazla bilgi edinin: "
+         ],
+         "The name of your language as it will appear on your site's language switcher.": [
+            "Sitenizin dil değiştiricisinde görünecek dilinizin adı."
+         ],
+         "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
+            "Dili veritabanında ve URL'de tanımlayan benzersiz bir değer. Kaydedildikten sonra dil kodu değiştirilemez."
+         ],
+         "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
+            "Özel diliniz mevcut bir dile benziyorsa, mevcut dilin yazım denetimi ve otomatik çevirisini kullanabilirsiniz. Örneğin, özel diliniz İsviçre Almancası ise, yazım denetimi ve otomatik çeviri için kullanılacak dil olarak Almanca'ya eşleyebilirsiniz. Özel dilinizi mevcut bir dile eşlemezseniz, yazım denetimi ve otomatik çeviri özellikleri o dilde kullanılamaz."
+         ],
+         "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
+            "WPML'nin MO ve PO dosyalarından çevirileri yüklerken kontrol ettiği değer. Varsayılan yerel ayar, WordPress kurulumunuzdaki /wp-content/languages/ klasörünüzdeki dosya adlarına dahildir."
+         ],
+         "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
+            "Google, kullanıcıları ilgili dil ve konumdaki sitelere yönlendirmek için hreflang özelliğini kullanır. Örnekler:"
+         ],
+         "All English-speaking users: en": [
+            "Tüm İngilizce konuşan kullanıcılar: en"
+         ],
+         "English for UK users: en-gb": [
+            "Birleşik Krallık kullanıcıları için İngilizce: en-gb"
+         ],
+         "English for US users: en-us": [
+            "ABD kullanıcıları için İngilizce: en-us"
+         ],
+         "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
+            "Bu dildeki URL'lerin kodlanıp kodlanmadığını veya ASCII karakterleri kullanıp kullanmadığını belirler (emin değilseniz, “Hayır” olarak bırakın)."
+         ],
+         "adding a custom language": [
+            "özel bir dil ekleme"
+         ],
+         "What are the languages of your site?": [
+            "Sitenizin dilleri nelerdir?"
+         ],
+         "Default language": [
+            "Varsayılan dil"
+         ],
+         "What is the current language of your website?": [
+            "Web sitenizin mevcut dili nedir?"
+         ],
+         "Translation languages": [
+            "Çeviri dilleri"
+         ],
+         "Which languages do you want to translate your site into?": [
+            "Sitenizi hangi dillere çevirmek istiyorsunuz?"
+         ],
+         "If you cannot find languages that you need in the list,": [
+            "Listede ihtiyacınız olan dilleri bulamıyorsanız,"
+         ],
+         "create a custom language": [
+            "özel bir dil oluşturun"
+         ]
+      }
+   }
+}

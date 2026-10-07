@@ -22,11 +22,12 @@ class WPML_Media_Menus {
 	/**
 	 * WPML_Media_Menus constructor.
 	 *
-	 * @param WPML_Twig_Template_Loader $template_service
-	 * @param SitePress                 $sitepress
-	 * @param wpdb                      $wpdb
+	 * @param WPML_Twig_Template_Loader  $template_service
+	 * @param SitePress                  $sitepress
+	 * @param wpdb                       $wpdb
+	 * @param WPML_Admin_Pagination|null $pagination
 	 */
-	public function __construct( WPML_Twig_Template_Loader $template_service, SitePress $sitepress, wpdb $wpdb, WPML_Admin_Pagination $pagination = null ) {
+	public function __construct( WPML_Twig_Template_Loader $template_service, SitePress $sitepress, wpdb $wpdb, ?WPML_Admin_Pagination $pagination = null ) {
 		$this->template_service = $template_service;
 		$this->sitepress        = $sitepress;
 		$this->wpdb             = $wpdb;
@@ -54,6 +55,7 @@ class WPML_Media_Menus {
 
 		wp_enqueue_style( OTGS_Assets_Handles::POPOVER_TOOLTIP );
 		wp_enqueue_script( OTGS_Assets_Handles::POPOVER_TOOLTIP );
+		wp_enqueue_style( 'otgs-notices' );
 		wp_enqueue_style( 'wpml-media', $wpml_media_url . '/res/css/media-translation.css', array(), $wpml_media_version );
 		wp_enqueue_script(
 			'wpml-media',

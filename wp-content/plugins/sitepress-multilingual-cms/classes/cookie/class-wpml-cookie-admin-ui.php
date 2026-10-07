@@ -1,29 +1,14 @@
 <?php
 
-/**
- * Class WPML_Cookie_Admin_UI
- */
 class WPML_Cookie_Admin_UI {
 
 	const BOX_TEMPLATE = 'admin-cookie-box.twig';
 	const BUTTON_ID    = 'js-wpml-store-frontend-cookie';
 
-	/**
-	 * @var WPML_Twig_Template
-	 */
 	private $template_service;
 
-	/**
-	 * @var WPML_Cookie_Setting
-	 */
 	private $cookie_setting;
 
-	/**
-	 * WPML_Cookie_Admin_UI constructor.
-	 *
-	 * @param WPML_Twig_Template  $template_service
-	 * @param WPML_Cookie_Setting $cookie_setting
-	 */
 	public function __construct( WPML_Twig_Template $template_service, WPML_Cookie_Setting $cookie_setting ) {
 		$this->template_service = $template_service;
 		$this->cookie_setting   = $cookie_setting;
@@ -37,9 +22,6 @@ class WPML_Cookie_Admin_UI {
 		echo $this->template_service->show( $this->get_model(), self::BOX_TEMPLATE );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_model() {
 		return array(
 			'strings'          => array(

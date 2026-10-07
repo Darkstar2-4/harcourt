@@ -35,6 +35,27 @@ function new_duplicated_terms_filter( $post_ids, $duplicates_only = true ) {
 		$notice->set_collapsable( true );
 		$wpml_admin_notices = wpml_get_admin_notices();
 		$wpml_admin_notices->add_notice( $notice );
+
+		$event_key = 'wpml_taxonomy_sync_event_captured_' . md5( serialize( $taxonomies ) );
+		if ( ! get_transient( $event_key ) ) {
+			$event_props = array(
+				'taxonomies_count' => count( $taxonomies ),
+				'taxonomies'       => $taxonomies,
+				'sync_scope'       => $duplicates_only ? 'duplicates_only' : 'all_terms',
+			);
+
+			\WPML\PostHog\Event\CaptureEvent::capture(
+				( new \WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService() )
+					->getTaxonomyHierarchySyncNoticeDisplayedEvent( $event_props )
+			);
+
+			set_transient( $event_key, true, HOUR_IN_SECONDS );
+
+			$registry = get_transient( 'wpml_taxonomy_sync_capture_event_transient_keys' );
+			$registry = is_array( $registry ) ? $registry : [];
+			$registry[ $event_key ] = true;
+			set_transient( 'wpml_taxonomy_sync_capture_event_transient_keys', $registry, HOUR_IN_SECONDS );
+		}
 	} else {
 		remove_taxonomy_hierarchy_message();
 	}
@@ -43,6 +64,9 @@ function new_duplicated_terms_filter( $post_ids, $duplicates_only = true ) {
 add_action( 'wpml_new_duplicated_terms', 'new_duplicated_terms_filter', 10, 2 );
 
 function display_tax_sync_message( $post_id ) {
+	if ( ! is_admin() ) {
+		return;
+	}
 	do_action( 'wpml_new_duplicated_terms', array( 0 => $post_id ), false );
 }
 
@@ -55,14 +79,23 @@ function remove_taxonomy_hierarchy_message() {
 
 add_action( 'wpml_sync_term_hierarchy_done', 'remove_taxonomy_hierarchy_message' );
 
-/**
- * @return WPML_Notices
- */
+function clear_taxonomy_sync_event_transients() {
+	$registry = get_transient( 'wpml_taxonomy_sync_capture_event_transient_keys' );
+	if ( is_array( $registry ) ) {
+		foreach ( array_keys( $registry ) as $key ) {
+			delete_transient( $key );
+		}
+	}
+	delete_transient( 'wpml_taxonomy_sync_capture_event_transient_keys' );
+}
+
+add_action( 'wpml_sync_term_hierarchy_done', 'clear_taxonomy_sync_event_transients' );
+
 function wpml_get_admin_notices() {
-	global $wpml_admin_notices;
+	global $wpml_admin_notices, $sitepress;
 
 	if ( ! $wpml_admin_notices ) {
-		$wpml_admin_notices = new WPML_Notices( new WPML_Notice_Render() );
+		$wpml_admin_notices = new WPML_Notices( new WPML_Notice_Render(), $sitepress );
 		$wpml_admin_notices->init_hooks();
 	}
 

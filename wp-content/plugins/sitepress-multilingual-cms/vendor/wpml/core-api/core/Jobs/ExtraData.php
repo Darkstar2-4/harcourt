@@ -4,13 +4,6 @@ namespace WPML\Jobs;
 
 use WPML\FP\Curryable;
 
-/**
- * Class ExtraData
- * @package WPML\Jobs
- *
- * @method static callable|string decode( ...$extradata ): Curried :: string->array
- * @method static callable|string encode( ...$extradata ): Curried :: array->string
- */
 class ExtraData {
 
 	use Curryable;

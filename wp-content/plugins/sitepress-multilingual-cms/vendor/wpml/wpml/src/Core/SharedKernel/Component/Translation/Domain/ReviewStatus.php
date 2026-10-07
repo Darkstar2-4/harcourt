@@ -8,7 +8,6 @@ class ReviewStatus {
   const EDITING = 'EDITING';
   const ACCEPTED = 'ACCEPTED';
 
-  /** @var self::* */
   private $value;
 
 
@@ -17,12 +16,10 @@ class ReviewStatus {
       $value = self::NEEDS_REVIEW;
     }
 
-    /** @var self::* $value */
     $this->value = $value;
   }
 
 
-  /** @return self::* */
   public function getValue() {
     return $this->value;
   }

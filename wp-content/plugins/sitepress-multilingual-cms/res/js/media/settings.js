@@ -1,6 +1,23 @@
 /*global jQuery, ajaxurl, addLoadEvent */
+
 (function () {
 	'use strict';
+
+	/**
+	 * Helper to safely call PostHog captureEvent
+	 */
+	function captureEvent(eventName, eventProperties) {
+		if (typeof window.wpmlPostHog?.captureEvent === 'function') {
+			window.wpmlPostHog.captureEvent(eventName, eventProperties);
+		}
+	}
+
+	/**
+	 * Detect WPML source parameter from URL
+	 */
+	function urlContainsMediaSettingsSection() {
+		return window.location.href.includes('#ml-content-setup-sec-media')
+	}
 
 	addLoadEvent(
 		function () {
@@ -13,6 +30,13 @@
       var shouldHandleMediaAutoCheckbox = jQuery('#shouldhandlemediaauto');
       var setupManuallyButton = jQuery('#show_hide-setup-manually');
       var setupManuallyContainer = jQuery('.setup-manually-container');
+
+
+      // Capture PostHogEvent
+      captureEvent('wpml_mt_settings_viewed', {
+        deepLink: urlContainsMediaSettingsSection(),
+      })
+
 
       var isFormVisible = false;
 
@@ -62,6 +86,12 @@
           setupManuallyButton.addClass('collapsed');
           isFormVisible = false;
         }
+
+        // Capture PostHog event
+        captureEvent('wpml_mt_autodetect_toggled',{
+          enabled: !!isShouldHandleMediaAutoChecked,
+          source: urlContainsMediaSettingsSection() ? 'existing_users_banner' : 'settings'
+        })
       });
 
       var translateMediaLibraryTextsSpinner = jQuery('#translate_media_library_texts_spinner');
@@ -132,6 +162,11 @@
 
       function show_all_media_controls() {
         jQuery('#wpml-media-translation-should-handle-media-auto-notice').css('display', 'block');
+
+        // Capture PostHogEvent
+        captureEvent('wpml_mt_warning_shown', {
+          type: 'autodetect_off',
+        })
       }
 
       function hide_all_media_controls() {

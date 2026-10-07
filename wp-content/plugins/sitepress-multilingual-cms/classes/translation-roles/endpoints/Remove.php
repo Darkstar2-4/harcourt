@@ -15,18 +15,12 @@ use function WPML\FP\pipe;
 
 abstract class Remove implements IHandler {
 
-	/**
-	 * @inheritDoc
-	 */
 	public function run( Collection $data ) {
 
-		// $removeRole :: WP_user -> WP_user
 		$removeRole = Fns::tap( invoke( 'remove_cap' )->with( static::getCap() ) );
 
-		// $removeOnlyI :: WP_user -> WP_user
 		$removeOnlyI = Fns::tap( pipe( Obj::prop( 'ID' ), User::deleteMeta( Fns::__, \WPML_TM_Wizard_Options::ONLY_I_USER_META ) ) );
 
-		// $doActions :: WP_user -> WP_user
 		$doActions = Fns::tap( function ( $user ) {
 			do_action( 'wpml_tm_remove_translation_role', $user, static::getCap() );
 		} );

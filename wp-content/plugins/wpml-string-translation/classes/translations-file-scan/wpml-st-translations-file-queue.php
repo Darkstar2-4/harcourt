@@ -5,35 +5,21 @@ use WPML\ST\TranslationFile\QueueFilter;
 
 class WPML_ST_Translations_File_Queue {
 	const DEFAULT_LIMIT = 20000;
-	const TIME_LIMIT    = 10; // seconds
+	const TIME_LIMIT    = 10;
 	const LOCK_FIELD    = '_wpml_st_file_scan_in_progress';
 
-	/** @var WPML_ST_Translations_File_Dictionary */
 	private $file_dictionary;
 
-	/** @var WPML_ST_Translations_File_Scan */
 	private $file_scan;
 
-	/** @var WPML_ST_Translations_File_Scan_Storage */
 	private $file_scan_storage;
 
-	/** @var WPML_Language_Records */
 	private $language_records;
 
-	/** @var int */
 	private $limit;
 
-	/** @var WPML_Transient  */
 	private $transient;
 
-	/**
-	 * @param WPML_ST_Translations_File_Dictionary   $file_dictionary
-	 * @param WPML_ST_Translations_File_Scan         $file_scan
-	 * @param WPML_ST_Translations_File_Scan_Storage $file_scan_storage
-	 * @param WPML_Language_Records                  $language_records
-	 * @param int                                    $limit
-	 * @param WPML_Transient                         $transient
-	 */
 	public function __construct(
 		WPML_ST_Translations_File_Dictionary $file_dictionary,
 		WPML_ST_Translations_File_Scan $file_scan,
@@ -50,10 +36,7 @@ class WPML_ST_Translations_File_Queue {
 		$this->transient         = $transient;
 	}
 
-	/**
-	 * @param QueueFilter|null $queueFilter
-	 */
-	public function import( QueueFilter $queueFilter = null ) {
+	public function import( $queueFilter = null ) {
 		$this->file_dictionary->clear_skipped();
 		$files = $this->file_dictionary->get_not_imported_files();
 
@@ -116,11 +99,6 @@ class WPML_ST_Translations_File_Queue {
 		}
 	}
 
-	/**
-	 * @param string $locale
-	 *
-	 * @return string
-	 */
 	private function map_language_code( $locale ) {
 		$language_code = $this->language_records->get_language_code( $locale );
 
@@ -131,40 +109,23 @@ class WPML_ST_Translations_File_Queue {
 		return $locale;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function is_completed() {
 		return 0 === count( $this->file_dictionary->get_not_imported_files() ) &&
 			   0 < count( $this->file_dictionary->get_imported_files() );
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public function get_processed() {
 		return wp_list_pluck( $this->file_dictionary->get_imported_files(), 'path' );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function is_processing() {
 		return 0 !== count( $this->file_dictionary->get_not_imported_files() );
 	}
 
-	/**
-	 * @return int
-	 */
 	public function get_pending() {
 		return count( $this->file_dictionary->get_not_imported_files() );
 	}
 
-	/**
-	 * @param QueueFilter $queueFilter
-	 * 
-	 * @return int
-	 */
 	public function getPendingByFilter( QueueFilter $queueFilter ) {
 		$this->file_dictionary->clear_skipped();
 		$files = $this->file_dictionary->get_not_imported_files();
@@ -191,13 +152,6 @@ class WPML_ST_Translations_File_Queue {
 		}
 	}
 
-	/**
-	 * @param array $translations
-	 * @param int   $offset
-	 * @param int   $limit
-	 *
-	 * @return array
-	 */
 	private function constrain_translations_number( array $translations, $offset, $limit ) {
 		if ( $limit > count( $translations ) ) {
 			return $translations;

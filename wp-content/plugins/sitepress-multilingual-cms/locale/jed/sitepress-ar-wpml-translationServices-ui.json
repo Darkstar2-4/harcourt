@@ -8,22 +8,22 @@
             "lang": "ar"
          },
          "Connect this site to your %s account": [
-            "ربط هذا الموقع بحساب %s الخاص بك"
+            "ربط هذا الموقع بحسابك %s"
          ],
          "Error": [
             "خطأ"
          ],
          "« Use a different Translation Service": [
-            "« استخدام خدمة ترجمة أخرى"
+            "« استخدام خدمة ترجمة مختلفة"
          ],
          "Authenticate": [
             "المصادقة"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "تفضل بزيارة <link_to_service /> لطلب رمز واجهة البرمجة. هذا الرمز يتيح لـ WPML الربط مع <service_name /> لإرسال مهام الترجمة واستلامها."
+            "تفضل بزيارة <link_to_service /> لطلب رمز API. يسمح هذا الرمز لـ WPML بالاتصال بـ <service_name /> لإرسال واستقبال المهام."
          ],
          "Search translation services": [
-            "ابحث عن خدمات الترجمة"
+            "البحث عن خدمات الترجمة"
          ],
          "Search": [
             "بحث"
@@ -32,7 +32,16 @@
             "الإعدادات"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "من غير الممكن حاليًا الربط مع خدمة ترجمة بينما قد تم ضبط WPML على ترجمة محتوى موقعك آليًا. لاستخدام إحدى خدمات الترجمة، يُرجى تغيير وضع الترجمة الخاص بك من صفحة <LinkToSettingsPage />."
+            "لا يمكن حاليًا ربط خدمة ترجمة عندما يكون WPML مُعدًا لترجمة محتوى موقعك تلقائيًا. لاستخدام خدمة ترجمة، يُرجى تغيير وضع الترجمة الخاص بك في صفحة <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "فرز تنازلي"
+         ],
+         "Sort ascending": [
+            "فرز تصاعدي"
+         ],
+         "Cancel sorting": [
+            "إلغاء الفرز"
          ],
          "Documentation": [
             "الوثائق"

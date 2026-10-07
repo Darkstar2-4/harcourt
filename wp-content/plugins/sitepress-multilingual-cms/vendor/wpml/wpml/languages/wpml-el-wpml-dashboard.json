@@ -8,13 +8,13 @@
             "lang": "el"
          },
          "Untranslated strings that I encounter on front-end while logged in": [
-            "Αμετάφραστες συμβολοσειρές που συναντώ στο frontend ενώ είμαι συνδεδεμένος"
+            "Μη μεταφρασμένες συμβολοσειρές που συναντώ στο frontend ενώ είμαι συνδεδεμένος"
          ],
          "Untranslated strings that all front-end users encounter": [
-            "Αμετάφραστες συμβολοσειρές που συναντούν όλοι οι χρήστες του frontend"
+            "Μη μεταφρασμένες συμβολοσειρές που συναντούν όλοι οι χρήστες του frontend"
          ],
          "Disable auto-registration of strings": [
-            "Απενεργοποίηση αυτόματης εγγραφής συμβολοσειρών"
+            "Απενεργοποίηση αυτόματης καταχώρισης συμβολοσειρών"
          ],
          "Plugins": [
             "Πρόσθετα"
@@ -28,20 +28,35 @@
          "Other": [
             "Άλλο"
          ],
+         "We cancelled %1$d of %2$d items, but %3$d failed. Please reload the page and try again.": [
+            "Ακυρώσαμε %1$d από %2$d στοιχεία, αλλά %3$d απέτυχαν. Παρακαλούμε ανανεώστε τη σελίδα και δοκιμάστε ξανά."
+         ],
+         "We resent %1$d of %2$d items, but %3$d failed. Please reload the page and try again.": [
+            "Στείλαμε ξανά %1$d από %2$d στοιχεία, αλλά %3$d απέτυχαν. Παρακαλούμε ανανεώστε τη σελίδα και δοκιμάστε ξανά."
+         ],
          "Error in fetching default translation batch name": [
-            "Σφάλμα κατά την ανάκτηση προεπιλεγμένου ονόματος παρτίδας μετάφρασης"
+            "Σφάλμα κατά την ανάκτηση του προεπιλεγμένου ονόματος παρτίδας μετάφρασης"
          ],
          "Error in fetching translation editor type.": [
-            "Σφάλμα κατά την ανάκτηση τύπου επεξεργαστή μετάφρασης."
+            "Σφάλμα κατά την ανάκτηση του τύπου επεξεργαστή μετάφρασης."
          ],
          "Error in fetching untranslated types count": [
-            "Σφάλμα κατά την ανάκτηση αριθμού αμετάφραστων τύπων"
+            "Σφάλμα κατά την ανάκτηση του αριθμού μη μεταφρασμένων τύπων"
          ],
          "Error in fetching remote translation service data.": [
             "Σφάλμα κατά την ανάκτηση δεδομένων απομακρυσμένης υπηρεσίας μετάφρασης."
          ],
          "Validation failed": [
             "Η επικύρωση απέτυχε"
+         ],
+         "Translation jobs couldn’t be canceled": [
+            "Οι εργασίες μετάφρασης δεν μπόρεσαν να ακυρωθούν"
+         ],
+         "Reload the page and try again.": [
+            "Ανανεώστε τη σελίδα και δοκιμάστε ξανά."
+         ],
+         "All unfinished translation jobs were canceled": [
+            "Όλες οι ημιτελείς εργασίες μετάφρασης ακυρώθηκαν"
          ],
          "Please wait until download finishes": [
             "Παρακαλώ περιμένετε μέχρι να ολοκληρωθεί η λήψη"
@@ -56,16 +71,16 @@
             "Κατάσταση: "
          ],
          "Downloaded jobs: ": [
-            "Ληφθέντα έργα: "
+            "Ληφθείσες εργασίες: "
          ],
          "Cancelled jobs: ": [
-            "Ακυρωμένα έργα: "
+            "Ακυρωμένες εργασίες: "
          ],
          "none of your translation jobs have been completed": [
-            "κανένα από τα μεταφραστικά σας έργα δεν έχει ολοκληρωθεί"
+            "καμία από τις εργασίες μετάφρασής σας δεν έχει ολοκληρωθεί"
          ],
          "Checking translation jobs status. Please don't close this page!": [
-            "Έλεγχος κατάστασης μεταφραστικών εργασιών. Παρακαλώ μην κλείσετε αυτή τη σελίδα!"
+            "Έλεγχος κατάστασης εργασιών μετάφρασης. Παρακαλώ μην κλείσετε αυτή τη σελίδα!"
          ],
          " have been sent to remote translators": [
             " έχουν σταλεί σε απομακρυσμένους μεταφραστές"
@@ -83,11 +98,11 @@
             "Εφαρμογή φίλτρων"
          ],
          "%d item selected": [
-            "%d στοιχείο επιλέχθηκε",
-            "%d στοιχεία επιλέχθηκαν"
+            "%d επιλεγμένο στοιχείο",
+            "%d επιλεγμένα στοιχεία"
          ],
          "(%d words to translate)": [
-            "(%d λέξεις για μετάφραση)"
+            "(%d λέξεις προς μετάφραση)"
          ],
          "%s item not showing.": [
             "%s στοιχείο δεν εμφανίζεται.",
@@ -103,10 +118,10 @@
             "Αποεπιλογή όλων"
          ],
          "Source Language:": [
-            "Γλώσσα Πηγής:"
+            "Γλώσσα πηγής:"
          ],
          "translated to:": [
-            "μεταφρασμένο σε:"
+            "μεταφράστηκε σε:"
          ],
          "Filter": [
             "Φίλτρο"
@@ -115,7 +130,7 @@
             "Πρόκειται να αλλάξετε το φίλτρο γλώσσας πηγής από %s σε %s"
          ],
          "Updating the source language filter will clear the items you've selected for translation. Are you sure you want to continue?": [
-            "Η ενημέρωση του φίλτρου γλώσσας πηγής θα διαγράψει τα στοιχεία που έχετε επιλέξει για μετάφραση. Είστε σίγουροι ότι θέλετε να συνεχίσετε;?"
+            "Η ενημέρωση του φίλτρου γλώσσας πηγής θα διαγράψει τα στοιχεία που έχετε επιλέξει για μετάφραση. Είστε σίγουροι ότι θέλετε να συνεχίσετε;"
          ],
          "Change source language": [
             "Αλλαγή γλώσσας πηγής"
@@ -127,7 +142,7 @@
             "Φιλτράρισμα κατά κατάσταση δημοσίευσης"
          ],
          "All Statuses": [
-            "Όλες οι Καταστάσεις"
+            "Όλες οι καταστάσεις"
          ],
          "All languages": [
             "Όλες οι γλώσσες"
@@ -136,7 +151,7 @@
             "Όλες οι καταστάσεις μετάφρασης"
          ],
          "Not completed": [
-            "Δεν ολοκληρώθηκε"
+            "Μη ολοκληρωμένο"
          ],
          "Needs updating": [
             "Χρειάζεται ενημέρωση"
@@ -145,22 +160,22 @@
             "Μετάφραση σε εξέλιξη"
          ],
          "Translation complete": [
-            "Ολοκληρωμένη μετάφραση"
+            "Μετάφραση ολοκληρώθηκε"
          ],
          "Filter by translation status": [
             "Φιλτράρισμα κατά κατάσταση μετάφρασης"
          ],
          "Global Filter": [
-            "Καθολικό Φίλτρο"
+            "Καθολικό φίλτρο"
          ],
          "Parent:": [
             "Γονέας:"
          ],
          "Search parent by title": [
-            "Αναζήτηση γονέα βάσει τίτλου"
+            "Αναζήτηση γονέα κατά τίτλο"
          ],
          "Search by term title in %s": [
-            "Αναζήτηση κατά τίτλο όρου στο %s"
+            "Αναζήτηση κατά τίτλο όρου σε %s"
          ],
          "All taxonomies": [
             "Όλες οι ταξινομίες"
@@ -169,7 +184,7 @@
             "Φόρτωση"
          ],
          "Taxonomy Term:": [
-            "Όρος Ταξινομίας:"
+            "Όρος ταξινομίας:"
          ],
          "Loading terms": [
             "Φόρτωση όρων"
@@ -183,11 +198,24 @@
          "Title": [
             "Τίτλος"
          ],
-         "There is an issue with automatic translation that needs your attention.": [
-            "Υπάρχει ένα πρόβλημα με την αυτόματη μετάφραση που χρειάζεται την προσοχή σας."
+         "Automatic translation paused — payment required to continue.": [
+            "Η αυτόματη μετάφραση τέθηκε σε παύση — απαιτείται πληρωμή για να συνεχιστεί."
          ],
-         "Fix to continue translating automatically": [
-            "Διόρθωση για συνέχιση της αυτόματης μετάφρασης"
+         "You have %1s%2s prepaid translation credit in your WPML account%3s. Assign these credits to this site to resume automatic translation": [
+            "Έχετε %1s%2s προπληρωμένη πίστωση μετάφρασης στον λογαριασμό σας στο WPML%3s. Αναθέστε αυτές τις πιστώσεις σε αυτόν τον ιστότοπο για να συνεχίσετε την αυτόματη μετάφραση",
+            "Έχετε %1s%2s προπληρωμένες πιστώσεις μετάφρασης στον λογαριασμό σας στο WPML%3s. Αναθέστε αυτές τις πιστώσεις σε αυτόν τον ιστότοπο για να συνεχίσετε την αυτόματη μετάφραση"
+         ],
+         "Not enough credits to continue automatic translation. Add more credits to resume.": [
+            "Δεν υπάρχουν αρκετές πιστώσεις για να συνεχιστεί η αυτόματη μετάφραση. Προσθέστε περισσότερες πιστώσεις για να συνεχίσετε."
+         ],
+         "Pay now": [
+            "Πληρώστε τώρα"
+         ],
+         "Get more credits": [
+            "Αποκτήστε περισσότερες πιστώσεις"
+         ],
+         "Assign credits": [
+            "Ανάθεση πιστώσεων"
          ],
          "View": [
             "Προβολή"
@@ -202,10 +230,10 @@
             "Προσθήκη σημείωσης για τους μεταφραστές"
          ],
          "This page is set to be %1$stranslated manually%2$s using the WordPress Editor": [
-            "Αυτή η σελίδα έχει οριστεί να %1$sμεταφραστεί χειροκίνητα%2$s χρησιμοποιώντας τον Επεξεργαστή του WordPress"
+            "Αυτή η σελίδα έχει οριστεί να μεταφράζεται %1$sχειροκίνητα%2$s χρησιμοποιώντας τον επεξεργαστή του WordPress"
          ],
          "Select %s": [
-            "Επίλεξε %s"
+            "Επιλέξτε %s"
          ],
          "(no title)": [
             "(χωρίς τίτλο)"
@@ -214,7 +242,7 @@
             "Εικόνα"
          ],
          "Date / Status": [
-            "Ημερομηνία / Κατάσταση"
+            "Ημερομηνία / κατάσταση"
          ],
          "Loading items...": [
             "Φόρτωση στοιχείων..."
@@ -247,52 +275,52 @@
             "Επόμενο"
          ],
          "Your site's content is too vast for a single translation batch. Use filters to reduce the selection, then \"select all\".": [
-            "Το περιεχόμενο του ιστότοπού σας είναι πολύ εκτενές για μία μόνο παρτίδα μετάφρασης. Χρησιμοποιήστε φίλτρα για να μειώσετε την επιλογή και στη συνέχεια “επιλέξτε όλα”."
+            "Το περιεχόμενο του ιστότοπού σας είναι πολύ μεγάλο για μία μόνο παρτίδα μετάφρασης. Χρησιμοποιήστε φίλτρα για να μειώσετε την επιλογή και, στη συνέχεια, “επιλέξτε όλα”."
          ],
          "The current filter captures too much content. Narrow it down to enable \"select all\" for translation.": [
-            "Το τρέχον φίλτρο περιλαμβάνει υπερβολικά πολύ περιεχόμενο. Περιορίστε το για να ενεργοποιήσετε την επιλογή “επιλογή όλων” για μετάφραση."
+            "Το τρέχον φίλτρο καταγράφει υπερβολικά πολύ περιεχόμενο. Περιορίστε το για να ενεργοποιήσετε την επιλογή “επιλογή όλων” για μετάφραση."
          ],
          "Select All": [
-            "Επιλογή Όλων"
+            "Επιλογή όλων"
          ],
          "All %d items matching criteria are selected": [
-            "Όλα τα %d στοιχεία που ταιριάζουν με τα κριτήρια έχουν επιλεγεί"
+            "Έχουν επιλεγεί όλα τα %d στοιχεία που ταιριάζουν με τα κριτήρια"
          ],
          "All %d items in this section are selected": [
-            "Όλα τα %d στοιχεία σε αυτή την ενότητα έχουν επιλεγεί"
+            "Έχουν επιλεγεί όλα τα %d στοιχεία σε αυτήν την ενότητα"
          ],
          "You have too many items to send for translation at once. Apply a filter to narrow down the items to enable this option.": [
-            "Έχετε υπερβολικά πολλά στοιχεία για αποστολή προς μετάφραση ταυτόχρονα. Εφαρμόστε φίλτρο για περιορισμό των στοιχείων ώστε να ενεργοποιηθεί αυτή η επιλογή."
+            "Έχετε επιλέξει πάρα πολλά στοιχεία για αποστολή προς μετάφραση ταυτόχρονα. Εφαρμόστε ένα φίλτρο για να περιορίσετε τα στοιχεία ώστε να ενεργοποιηθεί αυτή η επιλογή."
          ],
          "Clear selection": [
             "Εκκαθάριση επιλογής"
          ],
          "Select all items that match this search": [
-            "Επιλογή όλων των στοιχείων που ταιριάζουν με αυτή την αναζήτηση"
+            "Επιλέξτε όλα τα στοιχεία που ταιριάζουν με αυτήν την αναζήτηση"
          ],
          "Loading...": [
             "Φόρτωση..."
          ],
          "Select all %ss": [
-            "Επίλεξε όλα τα %s"
+            "Επιλέξτε όλα τα %s"
          ],
          "Save note": [
             "Αποθήκευση σημείωσης"
          ],
          "The following target languages do not support automatic translation: %s. <a>Map to known languages</a> to enable automatic translation.": [
-            "Οι ακόλουθες γλώσσες-στόχοι δεν υποστηρίζουν αυτόματη μετάφραση: %s. <a>Αντιστοιχίστε σε γνωστές γλώσσες</a> για να ενεργοποιήσετε την αυτόματη μετάφραση."
+            "Οι ακόλουθες γλώσσες-στόχοι δεν υποστηρίζουν αυτόματη μετάφραση: %s. <a>Αντιστοίχιση σε γνωστές γλώσσες</a> για να ενεργοποιηθεί η αυτόματη μετάφραση."
          ],
          "The site's default language %s doesn't support automatic translation.": [
             "Η προεπιλεγμένη γλώσσα του ιστότοπου %s δεν υποστηρίζει αυτόματη μετάφραση."
          ],
          "Some sections are hidden due to current filter settings or because they have no items. <show_all>Show all translation statuses</show_all>": [
-            "Ορισμένες ενότητες είναι κρυμμένες λόγω των τρεχουσών ρυθμίσεων φίλτρου ή επειδή δεν έχουν στοιχεία. <show_all>Εμφάνιση όλων των καταστάσεων μετάφρασης</show_all>"
+            "Ορισμένες ενότητες είναι κρυφές λόγω των τρεχουσών ρυθμίσεων φίλτρου ή επειδή δεν έχουν στοιχεία. <show_all>Εμφάνιση όλων των καταστάσεων μετάφρασης</show_all>"
          ],
          "Step 1": [
             "Βήμα 1"
          ],
          "Select items for translation": [
-            "Επιλογή στοιχείων για μετάφραση"
+            "Επιλέξτε στοιχεία για μετάφραση"
          ],
          "Clear filters": [
             "Εκκαθάριση φίλτρων"
@@ -304,7 +332,7 @@
             "Το WPML δεν βρήκε κανένα %s που να ταιριάζει με τα κριτήριά σας."
          ],
          "You have too many items selected to use this feature. Deselect some of the items to enable it.": [
-            "Έχετε επιλέξει πάρα πολλά στοιχεία για να χρησιμοποιήσετε αυτή τη λειτουργία. Αποεπιλέξτε μερικά από τα στοιχεία για να την ενεργοποιήσετε."
+            "Έχετε επιλέξει πάρα πολλά στοιχεία για να χρησιμοποιήσετε αυτή τη λειτουργία. Αποεπιλέξτε ορισμένα από τα στοιχεία για να την ενεργοποιήσετε."
          ],
          "Show strings in:": [
             "Εμφάνιση συμβολοσειρών σε:"
@@ -316,7 +344,7 @@
             "Κλείσιμο παραθύρου"
          ],
          "Select visible columns": [
-            "Επίλεξε ορατές στήλες"
+            "Επιλέξτε ορατές στήλες"
          ],
          "String": [
             "Συμβολοσειρά"
@@ -337,10 +365,10 @@
             "Εφαρμογή"
          ],
          "All domains": [
-            "Όλους τους τομείς"
+            "Όλοι οι τομείς"
          ],
          "All sources": [
-            "Όλες τις πηγές"
+            "Όλες οι πηγές"
          ],
          "Frontend (viewed)": [
             "Frontend (προβλήθηκε)"
@@ -355,43 +383,43 @@
             "Αναζήτηση συμβολοσειράς ή ονόματος"
          ],
          "All Translation Priorities": [
-            "Όλες οι Προτεραιότητες Μετάφρασης"
+            "Όλες οι προτεραιότητες μετάφρασης"
          ],
          "This filter is available only if source is set to \"Frontend\" or \"Backend\".": [
-            "Αυτό το φίλτρο είναι διαθέσιμο μόνο εάν η πηγή έχει οριστεί ως “Frontend” ή “Backend”."
+            "Αυτό το φίλτρο είναι διαθέσιμο μόνο εάν η πηγή έχει οριστεί σε “Frontend” ή “Backend”."
          ],
          "front-end": [
-            "front-end"
+            "frontend"
          ],
          "back-end": [
-            "back-end"
+            "backend"
          ],
          "viewed": [
             "προβλήθηκε"
          ],
          "Strings in the theme and plugins": [
-            "Συμβολοσειρές στο θέμα και τα πρόσθετα"
+            "Συμβολοσειρές στο θέμα και στα πρόσθετα"
          ],
          "Translate front-end texts you can customize from the WordPress admin like footer text, copyright notices, plugin options and settings, time format, widget texts, and more.": [
-            "Μεταφράστε κείμενα προσόψεως που μπορείτε να προσαρμόσετε από το διαχειριστικό περιβάλλον του WordPress όπως κείμενο υποσέλιδου, ειδοποιήσεις πνευματικών δικαιωμάτων, επιλογές και ρυθμίσεις προσθέτων, μορφή ώρας, κείμενα γραφικών στοιχείων, και άλλα."
+            "Μεταφράστε κείμενα frontend που μπορείτε να προσαρμόσετε από το διαχειριστικό του WordPress, όπως κείμενο υποσέλιδου, ειδοποιήσεις πνευματικών δικαιωμάτων, επιλογές και ρυθμίσεις πρόσθετων, μορφή ώρας, κείμενα widget και άλλα."
          ],
          "Translating Strings From Admin and Settings": [
-            "Μετάφραση Συμβολοσειρών από Διαχείριση και Ρυθμίσεις"
+            "Μετάφραση συμβολοσειρών από το διαχειριστικό και τις ρυθμίσεις"
          ],
          "Translate texts in admin screens": [
-            "Μετάφραση κειμένων στις οθόνες διαχείρισης"
+            "Μεταφράστε κείμενα στις οθόνες διαχείρισης"
          ],
          "Translate User Meta Information": [
-            "Μετάφραση Πληροφοριών Meta Χρήστη"
+            "Μεταφράστε πληροφορίες μεταδεδομένων χρήστη"
          ],
          "Making User Meta Information Translatable": [
-            "Καθιστώντας τις Πληροφορίες Meta Χρήστη Μεταφράσιμες"
+            "Κάνοντας τις πληροφορίες μεταδεδομένων χρήστη μεταφράσιμες"
          ],
          "Translate user profile strings": [
-            "Μετάφραση συμβολοσειρών προφίλ χρήστη"
+            "Μεταφράστε συμβολοσειρές προφίλ χρήστη"
          ],
          "You need to visit translations on your site's front-end (<a/>) and WPML will identify all untranslated strings and list them here. ": [
-            "Πρέπει να επισκεφθείτε τις μεταφράσεις στην πρόσοψη του ιστοτόπου σας (<a/>) και το WPML θα εντοπίσει όλες τις αμετάφραστες συμβολοσειρές και θα τις καταχωρήσει εδώ."
+            "Πρέπει να επισκεφθείτε τις μεταφράσεις στο frontend του ιστότοπού σας (<a/>) και το WPML θα εντοπίσει όλες τις μη μεταφρασμένες συμβολοσειρές και θα τις παραθέσει εδώ. "
          ],
          "hide details": [
             "απόκρυψη λεπτομερειών"
@@ -400,58 +428,58 @@
             "περισσότερες λεπτομέρειες"
          ],
          "Still can't find the strings you're looking to translate? Add more strings for translation.": [
-            "Εξακολουθείτε να μην βρίσκετε τις συμβολοσειρές που θέλετε να μεταφράσετε; Προσθέστε περισσότερες συμβολοσειρές προς μετάφραση."
+            "Ακόμα δεν μπορείτε να βρείτε τις συμβολοσειρές που θέλετε να μεταφράσετε; Προσθέστε περισσότερες συμβολοσειρές για μετάφραση."
          ],
          "Not seeing strings that you are looking for?": [
-            "Δεν βλέπεις τις συμβολοσειρές που ψάχνεις;?"
+            "Δεν βλέπετε τις συμβολοσειρές που ψάχνετε;"
          ],
          "Enable the autoregistration setting.": [
-            "Ενεργοποίησε τη ρύθμιση αυτόματης εγγραφής."
+            "Ενεργοποιήστε τη ρύθμιση αυτόματης καταχώρισης."
          ],
-         "Visit translations the site's front-end for WPML to see which strings are missing translations. Visiting one language is enough: %s.": [
-            "Επισκέψου τις μεταφράσεις στο front-end του ιστότοπου για το WPML για να δεις ποιες συμβολοσειρές λείπουν μεταφράσεις. Αρκεί να επισκεφθείς μία γλώσσα: %s."
+         "Visit translations on the site's frontend for WPML to see which strings are missing translations. Visiting one language is enough: %s.": [
+            "Επισκεφθείτε τις μεταφράσεις στο frontend του ιστότοπου για το WPML για να δείτε ποιες συμβολοσειρές λείπουν μεταφράσεις. Η επίσκεψη σε μία γλώσσα είναι αρκετή: %s."
          ],
          "Alternatively, you can register strings manually.": [
-            "Εναλλακτικά, μπορείς να καταχωρίσεις συμβολοσειρές χειροκίνητα."
+            "Εναλλακτικά, μπορείτε να καταχωρίσετε συμβολοσειρές χειροκίνητα."
          ],
          "Translate Everything translates only those strings which are registered in English language": [
-            "Η Μετάφραση Όλων μεταφράζει μόνο εκείνες τις συμβολοσειρές που είναι καταχωρημένες στην αγγλική γλώσσα"
+            "Το Translate Everything μεταφράζει μόνο τις συμβολοσειρές που είναι καταχωρισμένες στην αγγλική γλώσσα"
          ],
          "Most strings from your plugins and theme are in English, so we’re showing them alongside your default language. Use the <b>Source Language</b> filter to view strings in a specific language.": [
-            "Οι περισσότερες συμβολοσειρές από τα πρόσθετα και το θέμα σας είναι στα Αγγλικά, οπότε τις εμφανίζουμε παράλληλα με την προεπιλεγμένη γλώσσα σας. Χρησιμοποιήστε το φίλτρο <b>Γλώσσα Προέλευσης</b> για προβολή συμβολοσειρών σε συγκεκριμένη γλώσσα."
+            "Οι περισσότερες συμβολοσειρές από τα πρόσθετα και το θέμα σας είναι στα Αγγλικά, οπότε τις εμφανίζουμε μαζί με την προεπιλεγμένη γλώσσα σας. Χρησιμοποιήστε το φίλτρο <b>Γλώσσα Πηγής</b> για να δείτε συμβολοσειρές σε μια συγκεκριμένη γλώσσα."
          ],
          "You’re using <b>%s</b> to cache your site, which may prevent WPML from automatically registering new strings. To fix this, clear your page cache, then visit your translated pages again on the frontend to detect new strings.": [
-            "Χρησιμοποιείτε το <b>%s</b> για την προσωρινή αποθήκευση του ιστοτόπου σας, γεγονός που ενδέχεται να εμποδίζει το WPML να καταχωρίζει αυτομάτως νέες συμβολοσειρές. Για να διορθώσετε αυτό το ζήτημα, εκκαθαρίστε την προσωρινή μνήμη της σελίδας σας και, στη συνέχεια, επισκεφθείτε εκ νέου τις μεταφρασμένες σελίδες σας στο frontend προκειμένου να εντοπιστούν οι νέες συμβολοσειρές."
+            "Χρησιμοποιείτε το <b>%s</b> για την προσωρινή αποθήκευση του ιστότοπού σας, κάτι που μπορεί να εμποδίσει το WPML να καταχωρίσει αυτόματα νέες συμβολοσειρές. Για να το διορθώσετε, εκκαθαρίστε την προσωρινή μνήμη της σελίδας σας και, στη συνέχεια, επισκεφθείτε ξανά τις μεταφρασμένες σελίδες σας στο frontend για να εντοπίσετε νέες συμβολοσειρές."
          ],
          "WPML can detect strings that appear on the site and list them here. This feature helps you identify the strings that actually appear on the site and translate them. To see here only the strings that actually appear on the site, you need to enable this feature.": [
-            "Το WPML μπορεί να εντοπίσει συμβολοσειρές που εμφανίζονται στον ιστότοπο και να τις καταχωρίσει εδώ. Αυτή η λειτουργία σας βοηθά να εντοπίσετε τις συμβολοσειρές που πραγματικά εμφανίζονται στον ιστότοπο και να τις μεταφράσετε. Για να δείτε εδώ μόνο τις συμβολοσειρές που πραγματικά εμφανίζονται στον ιστότοπο, πρέπει να ενεργοποιήσετε αυτή τη λειτουργία."
+            "Το WPML μπορεί να εντοπίσει συμβολοσειρές που εμφανίζονται στον ιστότοπο και να τις παραθέσει εδώ. Αυτή η λειτουργία σας βοηθά να αναγνωρίσετε τις συμβολοσειρές που εμφανίζονται πραγματικά στον ιστότοπο και να τις μεταφράσετε. Για να δείτε εδώ μόνο τις συμβολοσειρές που εμφανίζονται πραγματικά στον ιστότοπο, πρέπει να ενεργοποιήσετε αυτή τη λειτουργία."
          ],
          "WPML detects strings that appear on the site and lists them here. This feature helps you identify the strings that actually appear on the site and translate them. To see here all the strings in the site, you need to disable this feature.": [
-            "Το WPML εντοπίζει συμβολοσειρές που εμφανίζονται στον ιστότοπο και τις καταχωρίζει εδώ. Αυτή η λειτουργία σας βοηθά να εντοπίσετε τις συμβολοσειρές που πραγματικά εμφανίζονται στον ιστότοπο και να τις μεταφράσετε. Για να δείτε εδώ όλες τις συμβολοσειρές του ιστότοπου, πρέπει να απενεργοποιήσετε αυτή τη λειτουργία."
+            "Το WPML εντοπίζει συμβολοσειρές που εμφανίζονται στον ιστότοπο και τις παραθέτει εδώ. Αυτή η λειτουργία σας βοηθά να αναγνωρίσετε τις συμβολοσειρές που εμφανίζονται πραγματικά στον ιστότοπο και να τις μεταφράσετε. Για να δείτε εδώ όλες τις συμβολοσειρές στον ιστότοπο, πρέπει να απενεργοποιήσετε αυτή τη λειτουργία."
          ],
          "Detect untranslated strings": [
-            "Εντοπισμός αμετάφραστων συμβολοσειρών"
+            "Εντοπισμός μη μεταφρασμένων συμβολοσειρών"
          ],
          "WPML can detect untranslated strings and automatically register them for translation. This happens in real time as you or your visitors browse your website.": [
-            "Το WPML μπορεί να εντοπίσει αμετάφραστες συμβολοσειρές και να τις καταχωρήσει αυτόματα προς μετάφραση. Αυτό συμβαίνει σε πραγματικό χρόνο καθώς εσείς ή οι επισκέπτες σας περιηγείστε στον ιστότοπό σας."
+            "Το WPML μπορεί να εντοπίσει μη μεταφρασμένες συμβολοσειρές και να τις καταχωρίσει αυτόματα για μετάφραση. Αυτό συμβαίνει σε πραγματικό χρόνο καθώς εσείς ή οι επισκέπτες σας περιηγείστε στον ιστότοπό σας."
          ],
          "Automatically register untranslated strings": [
-            "Αυτόματη καταχώριση αμετάφραστων συμβολοσειρών"
+            "Αυτόματη καταχώριση μη μεταφρασμένων συμβολοσειρών"
          ],
          "Learn how to use auto-registration": [
             "Μάθετε πώς να χρησιμοποιείτε την αυτόματη καταχώριση"
          ],
          "recommended": [
-            "προτεινόμενο"
+            "συνιστάται"
          ],
          "Also register strings from the website's back-end": [
-            "Καταχώριση συμβολοσειρών και από το backend του ιστότοπου"
+            "Καταχωρίστε επίσης συμβολοσειρές από το backend του ιστότοπου"
          ],
          "Save settings": [
             "Αποθήκευση ρυθμίσεων"
          ],
          "Request failed because of the network error": [
-            "Το αίτημα απέτυχε λόγω σφάλματος δικτύου"
+            "Η αίτηση απέτυχε λόγω σφάλματος δικτύου"
          ],
          "Try again": [
             "Προσπαθήστε ξανά"
@@ -468,6 +496,106 @@
          "You can only translate %1$s from the site's default language (%2$s).": [
             "Μπορείτε να μεταφράσετε μόνο %1$s από την προεπιλεγμένη γλώσσα του ιστότοπου (%2$s)."
          ],
+         "%1sCheck pricing%2s.": [
+            "%1sΕλέγξτε την τιμολόγηση%2s."
+         ],
+         "The current site content costs %1$sapproximately €%2$s%3$s to translate.": [
+            "Το τρέχον περιεχόμενο του ιστότοπου κοστίζει %1$sπερίπου %2$s€%3$s για μετάφραση."
+         ],
+         "The selected content costs %1$sapproximately €%2$s%3$s to translate.": [
+            "Το επιλεγμένο περιεχόμενο κοστίζει %1$sπερίπου %2$s€%3$s για μετάφραση."
+         ],
+         "Pay-As-You-Go": [
+            "Pay-As-You-Go"
+         ],
+         "Activate Pay-As-You-Go to translate automatically with monthly billing.": [
+            "Ενεργοποιήστε το Pay-As-You-Go για αυτόματη μετάφραση με μηνιαία χρέωση."
+         ],
+         "Activate Pay-As-You-Go": [
+            "Ενεργοποίηση Pay-As-You-Go"
+         ],
+         "Already using Pay-As-You-Go on another site?": [
+            "Χρησιμοποιείτε ήδη το Pay-As-You-Go σε άλλο ιστότοπο;"
+         ],
+         "Connect this site to it": [
+            "Συνδέστε αυτόν τον ιστότοπο σε αυτό"
+         ],
+         "Buy and assign credits": [
+            "Αγορά και ανάθεση πιστώσεων"
+         ],
+         "Buy a %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s and assign them to this site.": [
+            "Αγοράστε ένα %1$sπροπληρωμένο πακέτο%2$s με τουλάχιστον %3$s%4$s πιστώσεις%5$s και αναθέστε τις σε αυτόν τον ιστότοπο."
+         ],
+         "This amount will cover translation of all your current content.": [
+            "Αυτό το ποσό θα καλύψει τη μετάφραση όλου του τρέχοντος περιεχομένου σας."
+         ],
+         "Assign at least %1$s%2$s credits%3$s to this site to continue.": [
+            "Αναθέστε τουλάχιστον %1$s%2$s πιστώσεις%3$s σε αυτόν τον ιστότοπο για να συνεχίσετε."
+         ],
+         "Assign credits from your WPML account and buy an additional %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s credits to cover the remaining amount.": [
+            "Αναθέστε πιστώσεις από τον λογαριασμό σας στο WPML και αγοράστε ένα επιπλέον %1$sπροπληρωμένο πακέτο%2$s με τουλάχιστον %3$s%4$s πιστώσεις%5$s για να καλύψετε το υπόλοιπο ποσό."
+         ],
+         "Prepaid credits": [
+            "Προπληρωμένες πιστώσεις"
+         ],
+         "There are %1$s%2$s available on your WPML account.%3$s": [
+            "Υπάρχουν %1$s%2$s διαθέσιμες στον λογαριασμό σας στο WPML.%3$s"
+         ],
+         "(Only the WPML account owner can do this.)": [
+            "(Μόνο ο κάτοχος του λογαριασμού WPML μπορεί να το κάνει αυτό.)"
+         ],
+         "Checking for new credits...": [
+            "Έλεγχος για νέες πιστώσεις..."
+         ],
+         "Still not enough credits. Refresh again in %d seconds.": [
+            "Ακόμα δεν υπάρχουν αρκετές πιστώσεις. Ανανεώστε ξανά σε %d δευτερόλεπτα."
+         ],
+         "Already assigned?": [
+            "Έχει ήδη ανατεθεί;"
+         ],
+         "Refresh": [
+            "Ανανέωση"
+         ],
+         "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support.": [
+            "Σφάλμα σύνδεσης. Παρακαλώ περιμένετε ένα λεπτό και ανανεώστε αυτή τη σελίδα. Εάν το πρόβλημα συνεχιστεί, παρακαλώ επικοινωνήστε με την υποστήριξη του WPML."
+         ],
+         "Pay-As-You-Go activated": [
+            "Το Pay-As-You-Go ενεργοποιήθηκε"
+         ],
+         "You can now continue translating your content automatically.": [
+            "Μπορείτε τώρα να συνεχίσετε την αυτόματη μετάφραση του περιεχομένου σας."
+         ],
+         "%s credits assigned to this site.": [
+            "%s πιστώσεις ανατέθηκαν σε αυτόν τον ιστότοπο."
+         ],
+         "You don’t have enough credits to translate this content.": [
+            "Δεν έχετε αρκετές πιστώσεις για να μεταφράσετε αυτό το περιεχόμενο."
+         ],
+         "You have %s credits — %s more are needed to translate this content": [
+            "Έχετε %s πιστώσεις — χρειάζονται %s ακόμη για να μεταφραστεί αυτό το περιεχόμενο"
+         ],
+         "You’re missing %s credits for the translation jobs in progress — %s are needed in total": [
+            "Σας λείπουν %s πιστώσεις για τις εργασίες μετάφρασης σε εξέλιξη — χρειάζονται συνολικά %s"
+         ],
+         "Summary:": [
+            "Σύνοψη:"
+         ],
+         "Credit": [
+            "Πίστωση",
+            "Πιστώσεις"
+         ],
+         "€%1$s approximately": [
+            "περίπου %1$s€"
+         ],
+         "Pricing": [
+            "Τιμολόγηση"
+         ],
+         "Your Automatic Translation Credits": [
+            "Οι πιστώσεις αυτόματης μετάφρασης"
+         ],
+         "To proceed with translation, activate Pay-As-You-Go or assign prepaid credits.": [
+            "Για να προχωρήσετε με τη μετάφραση, ενεργοποιήστε το Pay-As-You-Go ή αναθέστε προπληρωμένες πιστώσεις."
+         ],
          "Leave existing translations as they are": [
             "Αφήστε τις υπάρχουσες μεταφράσεις ως έχουν"
          ],
@@ -478,16 +606,16 @@
             "Κάποιο από το περιεχόμενο που θέλετε να μεταφράσετε είναι ήδη μεταφρασμένο"
          ],
          "What do you want to do with the content that's already translated?": [
-            "Τι θέλετε να κάνετε με το περιεχόμενο που είναι ήδη μεταφρασμένο;?"
+            "Τι θέλετε να κάνετε με το περιεχόμενο που είναι ήδη μεταφρασμένο;"
          ],
          "Suggested deadline:": [
             "Προτεινόμενη προθεσμία:"
          ],
          "Set a batch name and deadline": [
-            "Ορισμός ονόματος παρτίδας και προθεσμίας"
+            "Ορίστε ένα όνομα παρτίδας και προθεσμία"
          ],
          "You can assign a custom name to this batch for easy tracking and suggest a deadline to clarify the priority for translators.": [
-            "Μπορείτε να αναθέσετε ένα προσαρμοσμένο όνομα σε αυτήν την παρτίδα για εύκολη παρακολούθηση και να προτείνετε μια προθεσμία για να διευκρινίσετε την προτεραιότητα για τους μεταφραστές."
+            "Μπορείτε να εκχωρήσετε ένα προσαρμοσμένο όνομα σε αυτήν την παρτίδα για εύκολη παρακολούθηση και να προτείνετε μια προθεσμία για να διευκρινίσετε την προτεραιότητα για τους μεταφραστές."
          ],
          "Batch name:": [
             "Όνομα παρτίδας:"
@@ -502,16 +630,13 @@
             "Αποτυχία φόρτωσης μηχανών"
          ],
          "No engines enabled": [
-            "Δεν υπάρχουν ενεργοποιημένες μηχανές"
-         ],
-         "Your Automatic Translation Credits": [
-            "Οι Πιστώσεις Αυτόματης Μετάφρασής σας"
+            "Δεν έχουν ενεργοποιηθεί μηχανές"
          ],
          "In order to assign yourself as translator, you first need to <add_yourself>add yourself as %s translator</add_yourself> to the site.<br/> Add yourself as %s translator and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Για να αναθέσετε τον εαυτό σας ως μεταφραστή, πρέπει πρώτα να <add_yourself>προσθέσετε τον εαυτό σας ως μεταφραστή %s</add_yourself> στον ιστότοπο.<br/> Προσθέστε τον εαυτό σας ως μεταφραστή %s και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
+            "Για να ορίσετε τον εαυτό σας ως μεταφραστή, πρέπει πρώτα να <add_yourself>προσθέσετε τον εαυτό σας ως μεταφραστή %s</add_yourself> στον ιστότοπο.<br/> Προσθέστε τον εαυτό σας ως μεταφραστή %s και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
          ],
          "In order to assign yourself as translator, you first need to <add_yourself>add yourself as %s to %s translator</add_yourself> to the site.<br/> Add yourself as %s to %s translator and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Για να αναθέσετε τον εαυτό σας ως μεταφραστή, πρέπει πρώτα να <add_yourself>προσθέσετε τον εαυτό σας ως %s σε %s μεταφραστή</add_yourself> στον ιστότοπο.<br/> Προσθέστε τον εαυτό σας ως %s σε %s μεταφραστή και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε διαφορετική επιλογή μετάφρασης."
+            "Για να ορίσετε τον εαυτό σας ως μεταφραστή, πρέπει πρώτα να <add_yourself>προσθέσετε τον εαυτό σας ως μεταφραστή %s σε %s</add_yourself> στον ιστότοπο.<br/> Προσθέστε τον εαυτό σας ως μεταφραστή %s σε %s και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
          ],
          "Checking": [
             "Έλεγχος"
@@ -526,76 +651,67 @@
             "Για να μεταφράσετε αυτόματα, πρέπει πρώτα να <enable_ate>ενεργοποιήσετε τον Προηγμένο Επεξεργαστή Μετάφρασης του WPML</enable_ate>.<br/>Ενεργοποιήστε τον Προηγμένο Επεξεργαστή Μετάφρασης και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
          ],
          "Selected content was translated using the Classic Translation Editor and can't be sent for automatic translation. To allow this, enable \"Use also for old translations\" in <wpmlSettingLink>WPML Settings</wpmlSettingLink> page.": [
-            "Το επιλεγμένο περιεχόμενο μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορεί να σταλεί για αυτόματη μετάφραση. Για να το επιτρέψετε, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στη σελίδα <wpmlSettingLink>Ρυθμίσεις WPML</wpmlSettingLink>."
+            "Το επιλεγμένο περιεχόμενο μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορεί να σταλεί για αυτόματη μετάφραση. Για να το επιτρέψετε αυτό, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στη σελίδα <wpmlSettingLink>Ρυθμίσεις WPML</wpmlSettingLink>."
          ],
          "Some of the selected content was translated using the Classic Translation Editor and can't be sent for automatic translation. To allow this, enable \"Use also for old translations\" in <wpmlSettingLink>WPML Settings</wpmlSettingLink> page.": [
-            "Μέρος του επιλεγμένου περιεχομένου μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορεί να σταλεί για αυτόματη μετάφραση. Για να το επιτρέψετε, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στη σελίδα <wpmlSettingLink>Ρυθμίσεις WPML</wpmlSettingLink>."
+            "Κάποιο από το επιλεγμένο περιεχόμενο μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορεί να σταλεί για αυτόματη μετάφραση. Για να το επιτρέψετε αυτό, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στη σελίδα <wpmlSettingLink>Ρυθμίσεις WPML</wpmlSettingLink>."
          ],
          "Any existing content (translations) will be overwritten when creating duplicates.\nWhen duplicating content, please first duplicate parent pages to maintain the site's hierarchy.": [
-            "Το υπάρχον περιεχόμενο (μεταφράσεις) θα αντικατασταθεί κατά τη δημιουργία αντιγράφων.\nΚατά την αντιγραφή περιεχομένου, παρακαλούμε πρώτα να αντιγράψετε τις γονικές σελίδες για να διατηρήσετε την ιεραρχία του ιστότοπου."
+            "Οποιοδήποτε υπάρχον περιεχόμενο (μεταφράσεις) θα αντικατασταθεί κατά τη δημιουργία αντιγράφων.\nΚατά την αναπαραγωγή περιεχομένου, παρακαλούμε πρώτα να αναπαράγετε τις γονικές σελίδες για να διατηρήσετε την ιεραρχία του ιστότοπου."
          ],
          "Some of the selected content is already being translated. This will cancel any in-progress translations.": [
-            "Ορισμένο από το επιλεγμένο περιεχόμενο μεταφράζεται ήδη. Αυτό θα ακυρώσει τυχόν μεταφράσεις που βρίσκονται σε εξέλιξη."
+            "Κάποια από τα επιλεγμένα περιεχόμενα μεταφράζονται ήδη. Αυτό θα ακυρώσει τυχόν μεταφράσεις σε εξέλιξη."
          ],
          "The selected items were translated using the WordPress Editor and will be overwritten with automatic translations.": [
-            "Τα επιλεγμένα στοιχεία μεταφράστηκαν χρησιμοποιώντας τον Επεξεργαστή WordPress και θα αντικατασταθούν με αυτόματες μεταφράσεις."
+            "Τα επιλεγμένα στοιχεία μεταφράστηκαν χρησιμοποιώντας τον Επεξεργαστή του WordPress και θα αντικατασταθούν με αυτόματες μεταφράσεις."
          ],
          "Some of the selected content was translated using the WordPress Editor and will be overwritten.": [
-            "Μέρος του επιλεγμένου περιεχομένου μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή WordPress και θα αντικατασταθεί."
-         ],
-         "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support.": [
-            "Σφάλμα Σύνδεσης. Παρακαλώ περιμένετε ένα λεπτό και ανανεώστε αυτή τη σελίδα. Εάν το πρόβλημα συνεχίζεται, παρακαλούμε επικοινωνήστε με την υποστήριξη του WPML."
-         ],
-         "Buy credits": [
-            "Αγορά πιστώσεων"
-         ],
-         "You don't have enough credits to translate your content automatically.": [
-            "Δεν έχετε αρκετές πιστώσεις για να μεταφράσετε αυτόματα το περιεχόμενό σας."
+            "Κάποιο από το επιλεγμένο περιεχόμενο μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή του WordPress και θα αντικατασταθεί."
          ],
          "In order to assign to a translator, you first need to <add_translators>add %s translators</add_translators> to the site.<br/> Add %s translators and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Για να αναθέσετε σε μεταφραστή, πρέπει πρώτα να <add_translators>προσθέσετε %s μεταφραστές</add_translators> στον ιστότοπο.<br/> Προσθέστε %s μεταφραστές και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
+            "Για να αναθέσετε σε μεταφραστή, πρέπει πρώτα να <add_translators>προσθέσετε μεταφραστές %s</add_translators> στον ιστότοπο.<br/> Προσθέστε μεταφραστές %s και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
          ],
          "In order to assign to a translator, you first need to <add_translators>add %s to %s translators</add_translators> to the site.<br/> Add %s to %s translators and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Για να αναθέσετε σε μεταφραστή, πρέπει πρώτα να <add_translators>προσθέσετε %s σε %s μεταφραστές</add_translators> στον ιστότοπο.<br/> Προσθέστε %s σε %s μεταφραστές και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε διαφορετική επιλογή μετάφρασης."
+            "Για να αναθέσετε σε μεταφραστή, πρέπει πρώτα να <add_translators>προσθέσετε μεταφραστές %s σε %s</add_translators> στον ιστότοπο.<br/> Προσθέστε μεταφραστές %s σε %s και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
          ],
          "Your site doesn't have any reviewers for %s. This means that you’re the only person who can review these translations.": [
-            "Ο ιστότοπός σας δεν έχει αξιολογητές για %s. Αυτό σημαίνει ότι είστε το μόνο άτομο που μπορεί να αξιολογήσει αυτές τις μεταφράσεις."
+            "Ο ιστότοπός σας δεν έχει αναθεωρητές για %s. Αυτό σημαίνει ότι είστε το μόνο άτομο που μπορεί να αναθεωρήσει αυτές τις μεταφράσεις."
          ],
          "Your site doesn't have any reviewers yet. This means that you’re the only person who can review translations.": [
-            "Ο ιστότοπός σας δεν έχει ακόμη αξιολογητές. Αυτό σημαίνει ότι είστε το μόνο άτομο που μπορεί να αξιολογήσει τις μεταφράσεις."
+            "Ο ιστότοπός σας δεν έχει ακόμη αναθεωρητές. Αυτό σημαίνει ότι είστε το μόνο άτομο που μπορεί να αναθεωρήσει τις μεταφράσεις."
          ],
          "If you want other people to review the translations, go to <a>WPML → Translation Dashboard → Translators</a> and add translators. They will be able to both review and translate content for you.": [
-            "Αν θέλετε άλλοι άνθρωποι να αναθεωρήσουν τις μεταφράσεις, πηγαίνετε στο <a>WPML → Πίνακας Ελέγχου Μετάφρασης → Μεταφραστές</a> και προσθέστε μεταφραστές. Θα μπορούν τόσο να αναθεωρούν όσο και να μεταφράζουν περιεχόμενο για εσάς."
+            "Εάν θέλετε άλλα άτομα να αναθεωρήσουν τις μεταφράσεις, μεταβείτε στο <a>WPML → Πίνακας Ελέγχου Μετάφρασης → Μεταφραστές</a> και προσθέστε μεταφραστές. Θα μπορούν τόσο να αναθεωρούν όσο και να μεταφράζουν περιεχόμενο για εσάς."
+         ],
+         "Automatic translation is blocked - payment required": [
+            "Η αυτόματη μετάφραση είναι μπλοκαρισμένη - απαιτείται πληρωμή"
+         ],
+         "We couldn’t process your payment. Click “Pay now” to retry and resume automatic translation.": [
+            "Δεν μπορέσαμε να επεξεργαστούμε την πληρωμή σας. Κάντε κλικ στο “Πληρώστε τώρα” για να δοκιμάσετε ξανά και να συνεχίσετε την αυτόματη μετάφραση."
          ],
          "WPML does not support duplicating strings. Your selection to duplicate strings to %1$s will be ignored if you proceed with the translation.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή συμβολοσειρών. Η επιλογή σας για αντιγραφή συμβολοσειρών στο %1$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή συμβολοσειρών. Η επιλογή σας να αναπαράγετε συμβολοσειρές σε %1$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
          ],
          "WPML does not support duplicating %1$s elements. Your selection to duplicate elements to %2$s will be ignored if you proceed with the translation.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή στοιχείων %1$s. Η επιλογή σας για αντιγραφή στοιχείων στο %2$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή στοιχείων %1$s. Η επιλογή σας να αναπαράγετε στοιχεία σε %2$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
          ],
          "WPML does not support duplicating %1$s elements and strings. Your selection to duplicate elements and strings to %2$s will be ignored if you proceed with the translation.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή στοιχείων και συμβολοσειρών %1$s. Η επιλογή σας για αντιγραφή στοιχείων και συμβολοσειρών στο %2$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή στοιχείων και συμβολοσειρών %1$s. Η επιλογή σας να αναπαράγετε στοιχεία και συμβολοσειρές σε %2$s θα αγνοηθεί εάν προχωρήσετε με τη μετάφραση."
          ],
          "WPML does not support duplicating strings.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή συμβολοσειρών."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή συμβολοσειρών."
          ],
          "WPML does not support duplicating %1$s elements.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή στοιχείων %1$s."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή στοιχείων %1$s."
          ],
          "WPML does not support duplicating %1$s elements and strings.": [
-            "Το WPML δεν υποστηρίζει την αντιγραφή στοιχείων και συμβολοσειρών %1$s."
+            "Το WPML δεν υποστηρίζει την αναπαραγωγή στοιχείων και συμβολοσειρών %1$s."
          ],
          "Finish setting up %s on your site": [
             "Ολοκληρώστε τη ρύθμιση του %s στον ιστότοπό σας"
          ],
          "You need to authenticate %s to send them content for translation.<br/>Visit the <a>Translators tab</a> to finish the setup and click <check_again>check again</check_again> or choose a different translation option.": [
             "Πρέπει να πιστοποιήσετε το %s για να τους στείλετε περιεχόμενο για μετάφραση.<br/>Επισκεφθείτε την <a>καρτέλα Μεταφραστές</a> για να ολοκληρώσετε τη ρύθμιση και κάντε κλικ στο <check_again>έλεγχος ξανά</check_again> ή επιλέξτε μια διαφορετική επιλογή μετάφρασης."
-         ],
-         "Set Up Translate Everything Automatically": [
-            "Ρύθμιση Αυτόματης Μετάφρασης Όλων"
-         ],
-         "WPML will translate your content into %d languages": [
-            "Το WPML θα μεταφράσει το περιεχόμενό σας σε %d γλώσσες"
          ],
          "You selected multiple translation methods for content across different languages:": [
             "Επιλέξατε πολλαπλές μεθόδους μετάφρασης για περιεχόμενο σε διαφορετικές γλώσσες:"
@@ -614,54 +730,54 @@
             "<s>%d στοιχεία</s> μεταφράζονται αυτόματα."
          ],
          "You can track their progress at the top of the page.": [
-            "Μπορείτε να παρακολουθήσετε την πρόοδό τους στο πάνω μέρος της σελίδας."
+            "Μπορείτε να παρακολουθήσετε την πρόοδό τους στην κορυφή της σελίδας."
          ],
          "From now on, WPML will automatically translate new content on your site.": [
-            "Από εδώ και στο εξής, το WPML θα μεταφράζει αυτόματα το νέο περιεχόμενο στον ιστότοπό σας."
+            "Από τώρα και στο εξής, το WPML θα μεταφράζει αυτόματα το νέο περιεχόμενο στον ιστότοπό σας."
          ],
          "This number might vary because you enabled the Translate Everything Automatically Mode.": [
-            "Αυτός ο αριθμός ενδέχεται να διαφέρει διότι έχετε ενεργοποιήσει τη Λειτουργία Αυτόματης Μετάφρασης Όλων."
+            "Αυτός ο αριθμός ενδέχεται να διαφέρει επειδή ενεργοποιήσατε τη λειτουργία Αυτόματης Μετάφρασης Όλων."
          ],
          "From now on, WPML will automatically translate your site's content.": [
-            "Από εδώ και στο εξής, το WPML θα μεταφράζει αυτόματα το περιεχόμενο του ιστότοπού σας."
+            "Από τώρα και στο εξής, το WPML θα μεταφράζει αυτόματα το περιεχόμενο του ιστοτόπου σας."
          ],
          "Automatic translations summary": [
             "Σύνοψη αυτόματων μεταφράσεων"
          ],
          "Some of the content that you selected for translation includes fields that are encoded. Translators will not be able to work on this kind of content, so we removed it from the job.": [
-            "Μέρος του περιεχομένου που επιλέξατε για μετάφραση περιλαμβάνει κωδικοποιημένα πεδία. Οι μεταφραστές δεν θα μπορούν να εργαστούν σε αυτό το είδος περιεχομένου, οπότε το αφαιρέσαμε από την εργασία."
+            "Κάποιο από το περιεχόμενο που επιλέξατε για μετάφραση περιλαμβάνει πεδία που είναι κωδικοποιημένα. Οι μεταφραστές δεν θα μπορούν να εργαστούν σε αυτό το είδος περιεχομένου, οπότε το αφαιρέσαμε από την εργασία."
          ],
          "To fix this problem, please contact our support team and describe this issue.": [
-            "Για να διορθώσετε αυτό το πρόβλημα, παρακαλούμε επικοινωνήστε με την ομάδα υποστήριξής μας και περιγράψτε αυτό το ζήτημα."
+            "Για να διορθώσετε αυτό το πρόβλημα, επικοινωνήστε με την ομάδα υποστήριξής μας και περιγράψτε το ζήτημα."
          ],
          "WPML cannot send some fo the content to translation": [
-            "Το WPML δεν μπορεί να στείλει κάποιο από το περιεχόμενο για μετάφραση"
+            "Το WPML δεν μπορεί να στείλει μέρος του περιεχομένου για μετάφραση"
          ],
          "Open support ticket": [
             "Άνοιγμα αιτήματος υποστήριξης"
          ],
          "<s>1 item</s> has been successfully assigned to you! To check its status, please go to <s>WPML → Translations</s>. <translations_queue/>": [
-            "<s>1 στοιχείο</s> έχει ανατεθεί επιτυχώς σε εσάς! Για να ελέγξετε την κατάστασή του, παρακαλούμε μεταβείτε στο <s>WPML → Μεταφράσεις</s>. <translations_queue/>",
-            "<s>%d στοιχεία</s> έχουν ανατεθεί επιτυχώς σε εσάς! Για ενημερώσεις σχετικά με την κατάσταση, παρακαλούμε μεταβείτε στο <s>WPML → Μεταφράσεις</s>. <translations_queue/>"
+            "<s>1 στοιχείο</s> έχει ανατεθεί επιτυχώς σε εσάς! Για να ελέγξετε την κατάστασή του, μεταβείτε στο <s>WPML → Μεταφράσεις</s>. <translations_queue/>",
+            "<s>%d στοιχεία</s> έχουν ανατεθεί επιτυχώς σε εσάς! Για ενημερώσεις κατάστασης, μεταβείτε στο <s>WPML → Μεταφράσεις</s>. <translations_queue/>"
          ],
          "Currently logged in translator summary": [
-            "Σύνοψη συνδεδεμένου μεταφραστή"
+            "Σύνοψη μεταφραστή που είναι συνδεδεμένος αυτήν τη στιγμή"
          ],
          "Go to Translations": [
-            "Μετάβαση στις Μεταφράσεις"
+            "Μετάβαση στις μεταφράσεις"
          ],
          "<s>1 item</s> has been duplicated.": [
-            "<s>1 στοιχείο</s> έχει αναπαραχθεί.",
-            "<s>%d στοιχεία</s> έχουν αναπαραχθεί."
+            "<s>1 στοιχείο</s> έχει αντιγραφεί.",
+            "<s>%d στοιχεία</s> έχουν αντιγραφεί."
          ],
          "Duplication summary": [
-            "Σύνοψη αντιγραφής"
+            "Σύνοψη διπλασιασμού"
          ],
          "There was a problem sending your content for translation.": [
-            "Υπήρξε ένα πρόβλημα κατά την αποστολή του περιεχομένου σας για μετάφραση."
+            "Προέκυψε πρόβλημα κατά την αποστολή του περιεχομένου σας για μετάφραση."
          ],
          "Please try again in a few minutes. If the issue persists, please contact our support.": [
-            "Παρακαλούμε δοκιμάστε ξανά σε λίγα λεπτά. Εάν το πρόβλημα επιμένει, επικοινωνήστε με την υποστήριξή μας."
+            "Παρακαλούμε δοκιμάστε ξανά σε λίγα λεπτά. Εάν το πρόβλημα παραμένει, επικοινωνήστε με την υποστήριξή μας."
          ],
          "See technical details": [
             "Δείτε τεχνικές λεπτομέρειες"
@@ -670,10 +786,10 @@
             "Απόκρυψη τεχνικών λεπτομερειών"
          ],
          "Some of the selected strings are already registered or translated into %s. Since their source language matches the target language, they cannot be retranslated.": [
-            "Ορισμένες από τις επιλεγμένες συμβολοσειρές είναι ήδη καταχωρημένες ή μεταφρασμένες στα %s. Καθώς η γλώσσα προέλευσής τους ταυτίζεται με τη γλώσσα-στόχο, δεν μπορούν να μεταφραστούν εκ νέου."
+            "Ορισμένες από τις επιλεγμένες συμβολοσειρές είναι ήδη καταχωρημένες ή μεταφρασμένες σε %s. Δεδομένου ότι η γλώσσα προέλευσής τους ταιριάζει με τη γλώσσα-στόχο, δεν μπορούν να μεταφραστούν ξανά."
          ],
          "Some of the selected content has already been translated from %s to %s and cannot be re-translated from %s to %s.": [
-            "Μέρος του επιλεγμένου περιεχομένου έχει ήδη μεταφραστεί από %s σε %s και δεν μπορεί να μεταφραστεί εκ νέου από %s σε %s."
+            "Κάποιο από το επιλεγμένο περιεχόμενο έχει ήδη μεταφραστεί από %s σε %s και δεν μπορεί να μεταφραστεί ξανά από %s σε %s."
          ],
          "Content already translated": [
             "Το περιεχόμενο έχει ήδη μεταφραστεί"
@@ -682,11 +798,11 @@
             "Κάποιο περιεχόμενο δεν μπόρεσε να σταλεί για μετάφραση."
          ],
          "WPML did not create translations for some languages because of the following reasons:": [
-            "Το WPML δεν δημιούργησε μεταφράσεις για ορισμένες γλώσσες λόγω των ακόλουθων αιτιών:"
+            "Το WPML δεν δημιούργησε μεταφράσεις για ορισμένες γλώσσες για τους ακόλουθους λόγους:"
          ],
          "<s>1 item</s> has been successfully sent to translators!": [
-            "<s>1 στοιχείο</s> έχει αποσταλεί επιτυχώς στους μεταφραστές!",
-            "<s>%d στοιχεία</s> έχουν αποσταλεί επιτυχώς στους μεταφραστές!"
+            "<s>1 στοιχείο</s> έχει σταλεί επιτυχώς στους μεταφραστές!",
+            "<s>%d στοιχεία</s> έχουν σταλεί επιτυχώς στους μεταφραστές!"
          ],
          "Local translations summary": [
             "Σύνοψη τοπικών μεταφράσεων"
@@ -695,7 +811,7 @@
             "Μπορείτε να ελέγξετε την κατάστασή τους στο WPML → Μετάφραση"
          ],
          "Continue to %s": [
-            "Συνέχεια στο %s"
+            "Συνέχεια σε %s"
          ],
          "We were unable to send the following batches for professional translation:": [
             "Δεν μπορέσαμε να στείλουμε τις ακόλουθες παρτίδες για επαγγελματική μετάφραση:"
@@ -704,47 +820,47 @@
             "<p><a><s>Επικοινωνήστε με την υποστήριξη του WPML για βοήθεια</s></a></p>"
          ],
          "Translation Service": [
-            "Υπηρεσία Μετάφρασης"
+            "Υπηρεσία μετάφρασης"
          ],
          "sending for professional translation..": [
             "αποστολή για επαγγελματική μετάφραση.."
          ],
          "<s>%d item</s> is being sent for translation to %s. Please continue to their site to start the translation.": [
-            "<s>%d στοιχείο</s> αποστέλλεται προς μετάφραση στα %s. Παρακαλώ συνεχίστε στον ιστότοπό τους για να ξεκινήσετε τη μετάφραση.",
-            "<s>%d στοιχεία</s> αποστέλλονται προς μετάφραση στα %s. Παρακαλώ συνεχίστε στον ιστότοπό τους για να ξεκινήσετε τη μετάφραση."
+            "<s>%d στοιχείο</s> αποστέλλεται για μετάφραση στο %s. Παρακαλούμε συνεχίστε στον ιστότοπό τους για να ξεκινήσετε τη μετάφραση.",
+            "<s>%d στοιχεία</s> αποστέλλονται για μετάφραση στο %s. Παρακαλούμε συνεχίστε στον ιστότοπό τους για να ξεκινήσετε τη μετάφραση."
          ],
          "Translation service translations summary": [
             "Σύνοψη μεταφράσεων υπηρεσίας μετάφρασης"
          ],
          "One or more assigned translators are invalid. The translator may have been removed or their language permissions changed.<br/> Review your settings on the <translators_page>Translators page</translators_page>.": [
-            "Ένας ή περισσότεροι ανατεθειμένοι μεταφραστές είναι άκυροι. Ο μεταφραστής ενδέχεται να έχει αφαιρεθεί ή να έχουν αλλάξει τα γλωσσικά του δικαιώματα.<br/> Ελέγξτε τις ρυθμίσεις σας στη <translators_page>σελίδα Μεταφραστών</translators_page>."
+            "Ένας ή περισσότεροι εκχωρημένοι μεταφραστές είναι μη έγκυροι. Ο μεταφραστής ενδέχεται να έχει αφαιρεθεί ή να έχουν αλλάξει οι γλωσσικές του άδειες.<br/> Ελέγξτε τις ρυθμίσεις σας στη <translators_page>σελίδα Μεταφραστών</translators_page>."
          ],
          "The selected translation service is no longer valid. It may have been changed, unauthenticated, or deactivated.<br/> Review your settings on the <translators_page>Translators page</translators_page>.": [
             "Η επιλεγμένη υπηρεσία μετάφρασης δεν είναι πλέον έγκυρη. Ενδέχεται να έχει αλλάξει, να μην έχει πιστοποιηθεί ή να έχει απενεργοποιηθεί.<br/> Ελέγξτε τις ρυθμίσεις σας στη <translators_page>σελίδα Μεταφραστών</translators_page>."
          ],
          "Currently selected translation editor doesn't support automatic translation. You must enable the Advanced Translation Editor to send content for automatic translation.<br/> Check your settings on the <wpml_settings>WPML settings page</wpml_settings>.": [
-            "Ο τρέχων επιλεγμένος επεξεργαστής μετάφρασης δεν υποστηρίζει αυτόματη μετάφραση. Πρέπει να ενεργοποιήσετε τον Προηγμένο Επεξεργαστή Μετάφρασης για να στείλετε περιεχόμενο προς αυτόματη μετάφραση.<br/> Ελέγξτε τις ρυθμίσεις σας στη <wpml_settings>σελίδα ρυθμίσεων WPML</wpml_settings>."
+            "Ο επιλεγμένος επεξεργαστής μετάφρασης δεν υποστηρίζει αυτόματη μετάφραση. Πρέπει να ενεργοποιήσετε τον Προηγμένο Επεξεργαστή Μετάφρασης για να στείλετε περιεχόμενο για αυτόματη μετάφραση.<br/> Ελέγξτε τις ρυθμίσεις σας στη <wpml_settings>σελίδα ρυθμίσεων του WPML</wpml_settings>."
          ],
          "Validation error happened during send to translation.": [
-            "Παρουσιάστηκε σφάλμα επικύρωσης κατά την αποστολή για μετάφραση."
-         ],
-         "Sending for translation": [
-            "Αποστολή για μετάφραση"
+            "Προέκυψε σφάλμα επικύρωσης κατά την αποστολή για μετάφραση."
          ],
          "Translate and Duplicate": [
-            "Μετάφραση και Αντιγραφή"
+            "Μετάφραση και διπλασιασμός"
          ],
          "Duplicate": [
-            "Αντιγραφή"
+            "Διπλασιασμός"
          ],
-         "Translate": [
-            "Μετάφραση"
+         "Translate content": [
+            "Μετάφραση περιεχομένου"
+         ],
+         "Please choose one of the available payment options.": [
+            "Παρακαλούμε επιλέξτε μία από τις διαθέσιμες επιλογές πληρωμής."
          ],
          "Selected content is already translated": [
             "Το επιλεγμένο περιεχόμενο έχει ήδη μεταφραστεί"
          ],
          "Please select a review mode": [
-            "Παρακαλώ επίλεξε μια λειτουργία αναθεώρησης"
+            "Παρακαλούμε επιλέξτε έναν τρόπο αναθεώρησης"
          ],
          "Assign local translator or choose another option": [
             "Αναθέστε τοπικό μεταφραστή ή επιλέξτε άλλη επιλογή"
@@ -762,13 +878,16 @@
             "Πιστοποιήστε την υπηρεσία μετάφρασης ή επιλέξτε άλλη επιλογή"
          ],
          "Please provide context to enable translation": [
-            "Παρακαλώ δώσε πλαίσιο για να ενεργοποιηθεί η μετάφραση"
+            "Παρακαλούμε δώστε πλαίσιο για να ενεργοποιήσετε τη μετάφραση"
          ],
-         "Please don't close this page or refresh it, as doing so will cancel the translation process.": [
-            "Παρακαλώ μην κλείσετε ή ανανεώσετε αυτήν τη σελίδα, καθώς κάτι τέτοιο θα ακυρώσει τη διαδικασία μετάφρασης."
+         "Please keep this page open while WPML sends your content for translation. If you leave now, the remaining items won't be sent.": [
+            "Παρακαλούμε κρατήστε αυτή τη σελίδα ανοιχτή όσο το WPML στέλνει το περιεχόμενό σας για μετάφραση. Αν φύγετε τώρα, τα υπόλοιπα στοιχεία δεν θα σταλούν."
+         ],
+         "Sending content to translation": [
+            "Αποστολή περιεχομένου για μετάφραση"
          ],
          "<s>%s</s> cannot process more than <s>%d</s> jobs in a single batch. WPML will automatically split your jobs into separate batches to ensure an error-free delivery to <s>%s</s>. <br/><br/> Do you want to proceed?": [
-            "Το <s>%s</s> δεν μπορεί να επεξεργαστεί περισσότερες από <s>%d</s> εργασίες σε μία παρτίδα. Το WPML θα χωρίσει αυτόματα τις εργασίες σας σε ξεχωριστές παρτίδες για να εξασφαλίσει την απρόσκοπτη παράδοση στο <s>%s</s>. <br/><br/> Θέλετε να προχωρήσετε;?"
+            "Το <s>%s</s> δεν μπορεί να επεξεργαστεί περισσότερες από <s>%d</s> εργασίες σε μία μόνο παρτίδα. Το WPML θα χωρίσει αυτόματα τις εργασίες σας σε ξεχωριστές παρτίδες για να εξασφαλίσει μια παράδοση χωρίς σφάλματα στο <s>%s</s>. <br/><br/> Θέλετε να προχωρήσετε;"
          ],
          "WPML will send jobs to %s in separate batches": [
             "Το WPML θα στείλει εργασίες στο %s σε ξεχωριστές παρτίδες"
@@ -786,31 +905,25 @@
             "Αυτό θα μεταφράσει ολόκληρο τον ιστότοπό σας"
          ],
          "Translate everything automatically from now on, without asking me.": [
-            "Μεταφράστε τα πάντα αυτόματα από εδώ και στο εξής, χωρίς να με ρωτήσετε."
+            "Μεταφράστε τα πάντα αυτόματα από τώρα και στο εξής, χωρίς να με ρωτήσετε."
          ],
          "Loading options to translate the content": [
             "Φόρτωση επιλογών για τη μετάφραση του περιεχομένου"
          ],
          "What content do you want to translate?": [
-            "Ποιο περιεχόμενο θέλετε να μεταφράσετε;?"
+            "Τι περιεχόμενο θέλετε να μεταφράσετε;"
          ],
          "Translate my entire site": [
-            "Μετάφραση ολόκληρου του ιστότοπού μου"
+            "Μετάφραση ολόκληρου του ιστοτόπου μου"
          ],
          "WPML will translate all of your site's content, including:": [
-            "Το WPML θα μεταφράσει όλο το περιεχόμενο του ιστότοπού σας, συμπεριλαμβανομένων:"
+            "Το WPML θα μεταφράσει όλο το περιεχόμενο του ιστοτόπου σας, συμπεριλαμβανομένων:"
          ],
-         "Any content that already exists but hasn't been translated yet": [
-            "Οποιοδήποτε περιεχόμενο που ήδη υπάρχει αλλά δεν έχει μεταφραστεί ακόμη"
+         "Any existing content that hasn’t been translated yet": [
+            "Οποιοδήποτε υπάρχον περιεχόμενο που δεν έχει μεταφραστεί ακόμα"
          ],
          "All new content you create in the future": [
-            "Όλο το νέο περιεχόμενο που θα δημιουργήσετε στο μέλλον"
-         ],
-         "Hide what WPML will translate now": [
-            "Απόκρυψη του τι θα μεταφράσει το WPML τώρα"
-         ],
-         "See what WPML will translate now": [
-            "Δείτε τι θα μεταφράσει το WPML τώρα"
+            "Όλο το νέο περιεχόμενο που δημιουργείτε στο μέλλον"
          ],
          "Translate only future content": [
             "Μετάφραση μόνο μελλοντικού περιεχομένου"
@@ -825,40 +938,37 @@
             "Ρυθμίσεις WPML"
          ],
          "Some of your content was translated using the Classic Translation Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Μέρος του περιεχομένου σας μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
+            "Κάποιο από το περιεχόμενό σας μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
          ],
          "To include them, enable \"Use also for old translations\" in <wpmlSettingLink/>.": [
-            "Για να τις συμπεριλάβετε, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στο <wpmlSettingLink/>."
+            "Για να τις συμπεριλάβετε, ενεργοποιήστε το “Χρήση και για παλιές μεταφράσεις” στο <wpmlSettingLink/>."
          ],
          "Some of your content was translated using the WordPress Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Μέρος του περιεχομένου σας μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή WordPress. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
+            "Κάποιο από το περιεχόμενό σας μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή του WordPress. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
          ],
          "Some of your content was translated using the Classic Translation Editor or WordPress Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Μέρος του περιεχομένου σας μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης ή τον Επεξεργαστή WordPress. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
+            "Κάποιο από το περιεχόμενό σας μεταφράστηκε χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης ή τον Επεξεργαστή του WordPress. Αυτές οι μεταφράσεις δεν θα συμπεριληφθούν στην Αυτόματη Μετάφραση Όλων."
          ],
          "To include Classic Editor translations, enable \"Use also for old translations\" in <wpmlSettingLink/>.": [
-            "Για να συμπεριλάβετε τις μεταφράσεις του Κλασικού Επεξεργαστή, ενεργοποιήστε την επιλογή “Χρήση και για παλιές μεταφράσεις” στο <wpmlSettingLink/>."
+            "Για να συμπεριλάβετε μεταφράσεις του Κλασικού Επεξεργαστή, ενεργοποιήστε το “Χρήση και για παλιές μεταφράσεις” στο <wpmlSettingLink/>."
          ],
          "Existing content": [
             "Υπάρχον περιεχόμενο"
          ],
          "You selected to translate strings that are in %s. Only these strings will be translated to %s.": [
-            "Επιλέξατε να μεταφράσετε κείμενα που βρίσκονται στο %s. Μόνο αυτά τα κείμενα θα μεταφραστούν στο %s."
+            "Επιλέξατε να μεταφράσετε συμβολοσειρές που είναι σε %s. Μόνο αυτές οι συμβολοσειρές θα μεταφραστούν σε %s."
          ],
          "You selected to translate strings that are in %s and %s. Only these strings will be translated to %s.": [
-            "Επιλέξατε να μεταφράσετε κείμενα που βρίσκονται στο %s και %s. Μόνο αυτά τα κείμενα θα μεταφραστούν στο %s."
+            "Επιλέξατε να μεταφράσετε συμβολοσειρές που είναι σε %s και %s. Μόνο αυτές οι συμβολοσειρές θα μεταφραστούν σε %s."
          ],
          "Source language": [
             "Γλώσσα προέλευσης"
          ],
          "Target language": [
-            "Γλώσσα στόχος"
+            "Γλώσσα-στόχος"
          ],
          "Words to translate": [
-            "Λέξεις για μετάφραση"
-         ],
-         "Apply to all languages": [
-            "Εφαρμογή σε όλες τις γλώσσες"
+            "Λέξεις προς μετάφραση"
          ],
          "Credits needed": [
             "Απαιτούμενες μονάδες"
@@ -869,18 +979,11 @@
          "The selected translation engines do not support %s.": [
             "Οι επιλεγμένες μηχανές μετάφρασης δεν υποστηρίζουν %s."
          ],
-         "Summary": [
-            "Σύνοψη"
-         ],
-         "credit": [
-            "μονάδα",
-            "μονάδες"
+         "%1sTotal Credits:%2s %3s": [
+            "%1sΣύνολο πιστώσεων:%2s %3s"
          ],
          "Translation service additional options": [
             "Πρόσθετες επιλογές υπηρεσίας μετάφρασης"
-         ],
-         "Refresh": [
-            "Ανανέωση"
          ],
          "Fetching translation service data...": [
             "Ανάκτηση δεδομένων υπηρεσίας μετάφρασης..."
@@ -895,16 +998,16 @@
             "Μετάφραση από εμένα"
          ],
          "Assign a translator": [
-            "Ανάθεση σε μεταφραστή"
+            "Ανάθεση μεταφραστή"
          ],
          "Assign translation service": [
-            "Ανάθεση σε υπηρεσία μετάφρασης"
+            "Ανάθεση υπηρεσίας μετάφρασης"
          ],
          "Do nothing": [
-            "Καμία ενέργεια"
+            "Μην κάνετε τίποτα"
          ],
          "Please choose": [
-            "Παρακαλώ επιλέξτε"
+            "Παρακαλούμε επιλέξτε"
          ],
          "Choose a translator": [
             "Επιλέξτε μεταφραστή"
@@ -913,102 +1016,60 @@
             "Πρώτος διαθέσιμος"
          ],
          "(Me)": [
-            "(Εγώ)"
+            "(εγώ)"
          ],
          "Step 2": [
             "Βήμα 2"
          ],
-         "<a><s>Read more about automatic translation credits</s></a>": [
-            "<a><s>Διαβάστε περισσότερα για τις μονάδες αυτόματης μετάφρασης</s></a>"
+         "Calculating...": [
+            "Υπολογισμός..."
          ],
-         "I understand that automatic translation uses credits": [
-            "Κατανοώ ότι η αυτόματη μετάφραση χρησιμοποιεί μονάδες"
+         "Refining estimation... about %1$d minute remaining": [
+            "Βελτίωση εκτίμησης... περίπου %1$d λεπτό απομένει",
+            "Βελτίωση εκτίμησης... περίπου %1$d λεπτά απομένουν"
          ],
-         "Translate Everything Automatically - credit wizard error": [
-            "Αυτόματη Μετάφραση Όλων - σφάλμα οδηγού πιστώσεων"
+         "Refining estimation... %d second remaining": [
+            "Βελτίωση εκτίμησης... %d δευτερόλεπτο απομένει",
+            "Βελτίωση εκτίμησης... %d δευτερόλεπτα απομένουν"
          ],
-         "There was an error when loading the credit wizard.": [
-            "Παρουσιάστηκε σφάλμα κατά τη φόρτωση του οδηγού πιστώσεων."
+         "Estimated cost:": [
+            "Εκτιμώμενο κόστος:"
          ],
-         "Translate Everything Automatically - no credits": [
-            "Αυτόματη Μετάφραση Όλων - χωρίς πιστώσεις"
+         "Current estimated cost:": [
+            "Τρέχον εκτιμώμενο κόστος:"
          ],
-         "Start Translate Everything Automatically": [
-            "Έναρξη Αυτόματης Μετάφρασης Όλων"
+         "Changing translation engine and recalculating estimate...": [
+            "Αλλαγή μηχανής μετάφρασης και επανυπολογισμός εκτίμησης..."
          ],
-         "Continue": [
-            "Συνέχεια"
+         "%s credits": [
+            "%s πιστώσεις"
          ],
-         "Go back": [
-            "Επιστροφή"
+         "€%1$s": [
+            "%1$s€"
          ],
-         "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content.": [
-            "Δύνασθε να αρχίσετε να χρησιμοποιείτε την Αυτόματη Μετάφραση Παντός μετά την αποστολή περιεχομένου προς μετάφραση. Συνιστούμε να επισκοπήσετε τις μεταφράσεις αυτές και να διασφαλίσετε την ποιότητά τους προτού μεταφράσετε το σύνολο του περιεχομένου του ιστοτόπου σας."
+         "All content is already translated. New and edited content will be translated automatically.": [
+            "Όλο το περιεχόμενο είναι ήδη μεταφρασμένο. Το νέο και επεξεργασμένο περιεχόμενο θα μεταφραστεί αυτόματα."
          ],
-         "Translate Everything Automatically - disabled": [
-            "Αυτόματη Μετάφραση Όλων - απενεργοποιημένη"
+         "%1$s and %2$s": [
+            "%1$s και %2$s"
          ],
-         "Translate Everything Automatically": [
-            "Αυτόματη Μετάφραση Όλων"
+         "in other types": [
+            "σε άλλους τύπους"
          ],
-         "Automatically translate your entire site, but only from %s to %s.": [
-            "Μεταφράστε αυτόματα ολόκληρο τον ιστότοπό σας, αλλά μόνο από %s σε %s."
+         "Hide what will be translated": [
+            "Απόκρυψη του τι θα μεταφραστεί"
          ],
-         "Translate Everything Automatically - pausing": [
-            "Αυτόματη Μετάφραση Όλων - γίνεται παύση"
+         "Show what will be translated": [
+            "Εμφάνιση του τι θα μεταφραστεί"
          ],
-         "Translate Everything Automatically is pausing": [
-            "Η Αυτόματη Μετάφραση Όλων βρίσκεται σε παύση"
+         "Calculation complete": [
+            "Ο υπολογισμός ολοκληρώθηκε"
          ],
-         "Translate Everything Automatically - paused": [
-            "Αυτόματη Μετάφραση Όλων - σε παύση"
-         ],
-         "%d translation left in the queue. Preparing more content for translation.": [
-            "%d μετάφραση απομένει στην ουρά. Προετοιμασία περισσότερου περιεχομένου για μετάφραση.",
-            "%d μεταφράσεις απομένουν στην ουρά. Προετοιμασία περισσότερου περιεχομένου για μετάφραση."
-         ],
-         "Preparing content for translation...": [
-            "Προετοιμασία περιεχομένου για μετάφραση..."
-         ],
-         "%d translation left in the queue...": [
-            "%d μετάφραση απομένει στην ουρά...",
-            "%d μεταφράσεις απομένουν στην ουρά..."
-         ],
-         "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue.": [
-            "Η Αυτόματη Μετάφραση Παντός ολοκλήρωσε τη μετάφραση του περιεχομένου σας. Δεν υπάρχουν εκκρεμείς μεταφράσεις στην ουρά αναμονής."
-         ],
-         "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself.": [
-            "Ορισμένα στοιχεία μεταφράστηκαν χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορούν να σταλούν για αυτόματη μετάφραση. Παρακαλώ επιλέξτε αυτά τα στοιχεία και επιλέξτε την επιλογή να τα μεταφράσετε μόνοι σας."
-         ],
-         "Translate Everything Automatically - enabled": [
-            "Αυτόματη Μετάφραση Όλων - ενεργοποιημένη"
-         ],
-         "Translate Everything Automatically is enabled": [
-            "Η Αυτόματη Μετάφραση Όλων είναι ενεργοποιημένη"
-         ],
-         "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s.": [
-            "Καθώς δημιουργείτε νέο περιεχόμενο ή επεξεργάζεστε υπάρχον περιεχόμενο, το WPML θα το μεταφράζει αυτόματα, αλλά μόνο από %s σε %s."
-         ],
-         "You have <s>%s</s> prepaid translation credits in your wpml.org account. Assign these credits to your site to start using automatic translation": [
-            "Διαθέτετε <s>%s</s> προπληρωμένες πιστώσεις μετάφρασης στον λογαριασμό σας στο wpml.org. Αποδώστε αυτές τις πιστώσεις στον ιστότοπό σας για να ξεκινήσετε τη χρήση της αυτόματης μετάφρασης"
-         ],
-         "Translation not running... there is an issue that needs your attention. Fix it to continue.": [
-            "Η μετάφραση δεν εκτελείται... υπάρχει ζήτημα που απαιτεί την προσοχή σας. Επιλύστε το για να συνεχίσετε."
-         ],
-         "Assign credits now": [
-            "Ανάθεση μονάδων τώρα"
-         ],
-         "Fix now": [
-            "Διόρθωση τώρα"
-         ],
-         "Translate Everything Automatically is stopped": [
-            "Η Αυτόματη Μετάφραση Όλων έχει σταματήσει"
-         ],
-         "Out of Credits for Automatic Translation": [
-            "Εξαντλήθηκαν οι Μονάδες για Αυτόματη Μετάφραση"
+         "%d of %d analyzed": [
+            "%d από %d αναλύθηκαν"
          ],
          "Automatic translations completed": [
-            "Οι αυτόματες μεταφράσεις ολοκληρώθηκαν"
+            "Ολοκληρώθηκαν οι αυτόματες μεταφράσεις"
          ],
          "<s>1 translation</s> has been successfully translated automatically": [
             "<s>1 μετάφραση</s> έχει μεταφραστεί επιτυχώς αυτόματα",
@@ -1018,11 +1079,18 @@
             "Αυτόματες εργασίες σε εξέλιξη"
          ],
          "<s>%d automatic translation</s> is in progress": [
-            "<s>%d Αυτόματη μετάφραση</s> βρίσκεται σε εξέλιξη",
-            "<s>%d Αυτόματες μεταφράσεις</s> βρίσκονται σε εξέλιξη"
+            "<s>%d αυτόματη μετάφραση</s> βρίσκεται σε εξέλιξη",
+            "<s>%d αυτόματες μεταφράσεις</s> βρίσκονται σε εξέλιξη"
+         ],
+         "Remaining time: <s>Less than 1 minute</s>": [
+            "Υπολειπόμενος χρόνος: <s>Λιγότερο από 1 λεπτό</s>"
+         ],
+         "Remaining time: <s>%d minute</s>": [
+            "Υπολειπόμενος χρόνος: <s>%d λεπτό</s>",
+            "Υπολειπόμενος χρόνος: <s>%d λεπτά</s>"
          ],
          "Your default language, %s, must be mapped to a supported language in order to use automatic translation": [
-            "Η προεπιλεγμένη γλώσσα σας, %s, πρέπει να αντιστοιχιστεί σε υποστηριζόμενη γλώσσα για χρήση αυτόματης μετάφρασης"
+            "Η προεπιλεγμένη γλώσσα σας, %s, πρέπει να αντιστοιχιστεί σε μια υποστηριζόμενη γλώσσα για να χρησιμοποιήσετε την αυτόματη μετάφραση"
          ],
          "Map the language": [
             "Αντιστοίχιση της γλώσσας"
@@ -1043,7 +1111,7 @@
             "περιμένει την αναθεώρησή σας"
          ],
          "Review Translations": [
-            "Αναθεώρηση Μεταφράσεων"
+            "Αναθεώρηση μεταφράσεων"
          ],
          "Translate existing content": [
             "Μετάφραση υπάρχοντος περιεχομένου"
@@ -1052,46 +1120,107 @@
             "Μετάφραση τώρα"
          ],
          "Starting with version 4.7, WPML will also automatically translate texts (strings) coming from %s.": [
-            "Ξεκινώντας από την έκδοση 4.7, το WPML θα μεταφράζει επίσης αυτόματα κείμενα (συμβολοσειρές) που προέρχονται από %s."
+            "Ξεκινώντας από την έκδοση 4.7, το WPML θα μεταφράζει αυτόματα και κείμενα (συμβολοσειρές) που προέρχονται από το %s."
          ],
          "WPML will not translate existing texts of this type but any new ones you create will be automatically translated. If you prefer, you can <button />.": [
-            "Το WPML δεν θα μεταφράσει υπάρχοντα κείμενα αυτού του τύπου, αλλά οποιαδήποτε νέα που δημιουργείτε θα μεταφράζονται αυτόματα. Αν προτιμάτε, μπορείτε <button />."
+            "Το WPML δεν θα μεταφράσει υπάρχοντα κείμενα αυτού του τύπου, αλλά οποιαδήποτε νέα δημιουργήσετε θα μεταφραστούν αυτόματα. Εάν προτιμάτε, μπορείτε να <button />."
          ],
          "Starting with version 4.7, WPML will also automatically translate:": [
-            "Ξεκινώντας από την έκδοση 4.7, το WPML θα μεταφράζει επίσης αυτόματα:"
+            "Ξεκινώντας από την έκδοση 4.7, το WPML θα μεταφράζει αυτόματα επίσης:"
          ],
          "Content set to \"use translation if available or fallback to default language\": %s.": [
-            "Περιεχόμενο ρυθμισμένο να “χρησιμοποιεί μετάφραση αν είναι διαθέσιμη ή να επιστρέφει στην προεπιλεγμένη γλώσσα”: %s."
+            "Περιεχόμενο που έχει οριστεί σε “χρήση μετάφρασης εάν είναι διαθέσιμη ή επιστροφή στην προεπιλεγμένη γλώσσα”: %s."
          ],
          "Texts (strings) coming from: %s.": [
             "Κείμενα (συμβολοσειρές) που προέρχονται από: %s."
          ],
          "WPML will not translate existing content for these post types and texts but any new content you create will be automatically translated. If you prefer, you can start <button />.": [
-            "Το WPML δεν θα μεταφράσει υπάρχον περιεχόμενο για αυτούς τους τύπους δημοσιεύσεων και κείμενα, αλλά οποιοδήποτε νέο περιεχόμενο δημιουργείτε θα μεταφράζεται αυτόματα. Αν προτιμάτε, μπορείτε να ξεκινήσετε <button />."
+            "Το WPML δεν θα μεταφράσει υπάρχον περιεχόμενο για αυτούς τους τύπους αναρτήσεων και κειμένων, αλλά οποιοδήποτε νέο περιεχόμενο δημιουργήσετε θα μεταφραστεί αυτόματα. Εάν προτιμάτε, μπορείτε να ξεκινήσετε <button />."
          ],
          "WPML will not translate existing content for these post types but any new content you create will be automatically translated. If you prefer, you can start <button />.": [
-            "Το WPML δεν θα μεταφράσει υπάρχον περιεχόμενο για αυτούς τους τύπους δημοσιεύσεων, αλλά οποιοδήποτε νέο περιεχόμενο δημιουργείτε θα μεταφράζεται αυτόματα. Αν προτιμάτε, μπορείτε να ξεκινήσετε <button />."
+            "Το WPML δεν θα μεταφράσει υπάρχον περιεχόμενο για αυτούς τους τύπους αναρτήσεων, αλλά οποιοδήποτε νέο περιεχόμενο δημιουργήσετε θα μεταφραστεί αυτόματα. Εάν προτιμάτε, μπορείτε να ξεκινήσετε <button />."
          ],
          "start translating existing content now": [
-            "να μεταφράζετε υπάρχον περιεχόμενο τώρα"
+            "ξεκινήστε τη μετάφραση του υπάρχοντος περιεχομένου τώρα"
          ],
          "The following target languages do not support automatic translations: %s": [
             "Οι ακόλουθες γλώσσες-στόχοι δεν υποστηρίζουν αυτόματες μεταφράσεις: %s"
          ],
          "To enable automatic translation map them to known languages.": [
-            "Για ενεργοποίηση αυτόματης μετάφρασης, αντιστοιχίστε τις σε γνωστές γλώσσες."
+            "Για να ενεργοποιήσετε την αυτόματη μετάφραση, αντιστοιχίστε τις σε γνωστές γλώσσες."
          ],
          "Map to known languages": [
             "Αντιστοίχιση σε γνωστές γλώσσες"
+         ],
+         "Copied!": [
+            "Αντιγράφηκε!"
+         ],
+         "Copy All": [
+            "Αντιγραφή όλων"
+         ],
+         "Error type": [
+            "Τύπος σφάλματος"
+         ],
+         "Error Message": [
+            "Μήνυμα σφάλματος"
+         ],
+         "Job ID": [
+            "Αναγνωριστικό εργασίας"
+         ],
+         "ATE Job ID": [
+            "Αναγνωριστικό εργασίας ATE"
+         ],
+         "Original ID": [
+            "Αρχικό αναγνωριστικό"
+         ],
+         "Element ID": [
+            "Αναγνωριστικό στοιχείου"
+         ],
+         "Copy to clipboard": [
+            "Αντιγραφή στο πρόχειρο"
+         ],
+         "Hide errors details": [
+            "Απόκρυψη λεπτομερειών σφαλμάτων"
+         ],
+         "Show errors details": [
+            "Εμφάνιση λεπτομερειών σφαλμάτων"
+         ],
+         "https://wpml.org/forums/forum/english-support/": [
+            "https://wpml.org/forums/forum/english-support/"
+         ],
+         "<strong>%d item</strong> couldn't be completed due to an unexpected error. Try resending it for translation. If the issue continues, <a>contact WPML support</a>.": [
+            "<strong>%d στοιχείο</strong> δεν μπόρεσε να ολοκληρωθεί λόγω απροσδόκητου σφάλματος. Δοκιμάστε να το στείλετε ξανά για μετάφραση. Εάν το πρόβλημα συνεχιστεί, <a>επικοινωνήστε με την υποστήριξη του WPML</a>.",
+            "<strong>%d στοιχεία</strong> δεν μπόρεσαν να ολοκληρωθούν λόγω απροσδόκητου σφάλματος. Δοκιμάστε να τα στείλετε ξανά για μετάφραση. Εάν το πρόβλημα συνεχιστεί, <a>επικοινωνήστε με την υποστήριξη του WPML</a>."
+         ],
+         "Cancelling %d/%d...": [
+            "Ακύρωση %d/%d..."
+         ],
+         "Cancelling...": [
+            "Ακύρωση..."
+         ],
+         "Discard jobs": [
+            "Απόρριψη εργασιών"
+         ],
+         "Resending %d/%d...": [
+            "Επανάληψη αποστολής %d/%d..."
+         ],
+         "Resending...": [
+            "Επανάληψη αποστολής..."
+         ],
+         "Resend": [
+            "Επανάληψη αποστολής"
+         ],
+         "We recommend staying on this page to monitor progress and respond to any issues if they occur. You can leave this page, but you should remain within your WordPress admin area.": [
+            "Συνιστούμε να παραμείνετε σε αυτή τη σελίδα για να παρακολουθείτε την πρόοδο και να αντιμετωπίζετε τυχόν προβλήματα. Μπορείτε να φύγετε από αυτή τη σελίδα, αλλά θα πρέπει να παραμείνετε στην περιοχή διαχείρισης του WordPress."
          ],
          "Translation status": [
             "Κατάσταση μετάφρασης"
          ],
          "Before translating with PTC, please provide context about your website and target audience (one-time thing).": [
-            "Πριν μεταφράσεις με το PTC, παρακαλώ δώσε πληροφορίες για τον ιστότοπό σου και το κοινό-στόχο (μία φορά μόνο)."
+            "Πριν μεταφράσετε με το PTC, παρακαλούμε δώστε πλαίσιο σχετικά με τον ιστότοπό σας και το κοινό-στόχο (μία φορά)."
          ],
          "Provide Context": [
-            "Δώσε πλαίσιο"
+            "Παροχή πλαισίου"
          ],
          "Default language does not support automatic translations.": [
             "Η προεπιλεγμένη γλώσσα δεν υποστηρίζει αυτόματες μεταφράσεις."
@@ -1099,11 +1228,121 @@
          "You must enable ATE to activate Translate Everything Automatically.": [
             "Πρέπει να ενεργοποιήσετε το ATE για να ενεργοποιήσετε την Αυτόματη Μετάφραση Όλων."
          ],
+         "Select payment method": [
+            "Επιλέξτε μέθοδο πληρωμής"
+         ],
+         "Credits assigned": [
+            "Πιστώσεις που ανατέθηκαν"
+         ],
+         "You’re all set.": [
+            "Είστε έτοιμοι."
+         ],
+         "Click Translate Everything Automatically to start translating your entire site.": [
+            "Κάντε κλικ στο Μετάφραση Όλων Αυτόματα για να ξεκινήσετε τη μετάφραση ολόκληρου του ιστότοπού σας."
+         ],
+         "Content to translate": [
+            "Περιεχόμενο προς μετάφραση"
+         ],
+         "Publishing method": [
+            "Μέθοδος δημοσίευσης"
+         ],
+         "Payment method": [
+            "Μέθοδος πληρωμής"
+         ],
+         "Enable Translate Everything Automatically": [
+            "Ενεργοποίηση αυτόματης μετάφρασης όλων"
+         ],
+         "Go back": [
+            "Πίσω"
+         ],
+         "Continue": [
+            "Συνέχεια"
+         ],
+         "Calculating credits for translating existing content. Please wait...": [
+            "Υπολογισμός πιστώσεων για τη μετάφραση υπάρχοντος περιεχομένου. Παρακαλούμε περιμένετε..."
+         ],
+         "Set Up Translate Everything Automatically": [
+            "Ρύθμιση αυτόματης μετάφρασης όλων"
+         ],
+         "WPML will translate your content into %d languages": [
+            "Το WPML θα μεταφράσει το περιεχόμενό σας σε %d γλώσσες"
+         ],
+         "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content.": [
+            "Μπορείτε να αρχίσετε να χρησιμοποιείτε την Αυτόματη Μετάφραση Όλων αφού στείλετε κάποιο περιεχόμενο για μετάφραση. Σας συνιστούμε να ελέγξετε αυτές τις μεταφράσεις και να βεβαιωθείτε ότι είναι καλές πριν μεταφράσετε ολόκληρο το περιεχόμενο του ιστοτόπου σας."
+         ],
+         "Translate Everything Automatically - disabled": [
+            "Αυτόματη Μετάφραση Όλων - απενεργοποιημένη"
+         ],
+         "Translate Everything Automatically": [
+            "Αυτόματη μετάφραση όλων"
+         ],
+         "Automatically translate all %s content to %s.": [
+            "Αυτόματη μετάφραση όλου του περιεχομένου %s σε %s."
+         ],
+         "Translate Everything Automatically - pausing": [
+            "Αυτόματη Μετάφραση Όλων - σε παύση"
+         ],
+         "Translate Everything Automatically is pausing": [
+            "Η Αυτόματη Μετάφραση Όλων είναι σε παύση"
+         ],
+         "Translate Everything Automatically - paused": [
+            "Αυτόματη Μετάφραση Όλων - σε παύση"
+         ],
+         "%d translation left in the queue. Preparing more content for translation.": [
+            "%d μετάφραση έχει απομείνει στην ουρά. Προετοιμάζεται περισσότερο περιεχόμενο για μετάφραση.",
+            "%d μεταφράσεις έχουν απομείνει στην ουρά. Προετοιμάζεται περισσότερο περιεχόμενο για μετάφραση."
+         ],
+         "Preparing content for translation...": [
+            "Προετοιμασία περιεχομένου για μετάφραση..."
+         ],
+         "%d translation left in the queue...": [
+            "%d μετάφραση έχει απομείνει στην ουρά...",
+            "%d μεταφράσεις έχουν απομείνει στην ουρά..."
+         ],
+         "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue.": [
+            "Η Αυτόματη Μετάφραση Όλων ολοκλήρωσε τη μετάφραση του περιεχομένου σας. Δεν υπάρχουν εκκρεμείς μεταφράσεις στην ουρά."
+         ],
+         "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself.": [
+            "Ορισμένα στοιχεία μεταφράστηκαν χρησιμοποιώντας τον Κλασικό Επεξεργαστή Μετάφρασης και δεν μπορούν να σταλούν για αυτόματη μετάφραση. Παρακαλούμε επιλέξτε αυτά τα στοιχεία και επιλέξτε την επιλογή να τα μεταφράσετε μόνοι σας."
+         ],
+         "Translate Everything Automatically - enabled": [
+            "Αυτόματη Μετάφραση Όλων - ενεργοποιημένη"
+         ],
+         "Translate Everything Automatically is enabled": [
+            "Η Αυτόματη Μετάφραση Όλων είναι ενεργοποιημένη"
+         ],
+         "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s.": [
+            "Καθώς δημιουργείτε νέο περιεχόμενο ή επεξεργάζεστε υπάρχον περιεχόμενο, το WPML θα το μεταφράζει αυτόματα, αλλά μόνο από %s σε %s."
+         ],
+         "Translate Everything Automatically is paused — payment required": [
+            "Η αυτόματη μετάφραση όλων τέθηκε σε παύση — απαιτείται πληρωμή"
+         ],
+         "Automatic translation is paused — payment required": [
+            "Η αυτόματη μετάφραση τέθηκε σε παύση — απαιτείται πληρωμή"
+         ],
+         "Automatic translation - payment required": [
+            "Αυτόματη μετάφραση - απαιτείται πληρωμή"
+         ],
+         "We couldn’t process payment for your completed translations. Click “Pay now” to retry and continue using automatic translation.": [
+            "Δεν μπορέσαμε να επεξεργαστούμε την πληρωμή για τις ολοκληρωμένες μεταφράσεις σας. Κάντε κλικ στο “Πληρώστε τώρα” για να δοκιμάσετε ξανά και να συνεχίσετε να χρησιμοποιείτε την αυτόματη μετάφραση."
+         ],
+         "Cancel translation": [
+            "Ακύρωση μετάφρασης"
+         ],
+         "Translate Everything Automatically is paused — not enough credits": [
+            "Η αυτόματη μετάφραση όλων τέθηκε σε παύση — δεν υπάρχουν αρκετές πιστώσεις"
+         ],
+         "Automatic translation is paused — not enough credits": [
+            "Η αυτόματη μετάφραση τέθηκε σε παύση — δεν υπάρχουν αρκετές πιστώσεις"
+         ],
+         "Translation will resume automatically after you assign more credits.": [
+            "Η μετάφραση θα συνεχιστεί αυτόματα αφού αναθέσετε περισσότερες πιστώσεις."
+         ],
          "This item needs a translation update but can't be translated automatically because it was translated with the Classic Translation Editor.": [
-            "Αυτό το στοιχείο χρειάζεται ενημέρωση μετάφρασης αλλά δεν μπορεί να μεταφραστεί αυτόματα επειδή μεταφράστηκε με τον Κλασικό Επεξεργαστή Μετάφρασης."
+            "Αυτό το στοιχείο χρειάζεται ενημέρωση μετάφρασης, αλλά δεν μπορεί να μεταφραστεί αυτόματα επειδή μεταφράστηκε με τον Κλασικό Επεξεργαστή Μετάφρασης."
          ],
          "This item needs update. Please, select the item and send for translation.": [
-            "Αυτό το στοιχείο χρειάζεται ενημέρωση. Παρακαλώ, επιλέξτε το στοιχείο και στείλτε το για μετάφραση."
+            "Αυτό το στοιχείο χρειάζεται ενημέρωση. Παρακαλούμε, επιλέξτε το στοιχείο και στείλτε το για μετάφραση."
          ],
          "Translations completed with the Classic Translation Editor cannot be sent for automatic translation": [
             "Οι μεταφράσεις που ολοκληρώθηκαν με τον Κλασικό Επεξεργαστή Μετάφρασης δεν μπορούν να σταλούν για αυτόματη μετάφραση"
@@ -1115,10 +1354,10 @@
             "μη ανατεθειμένο"
          ],
          "not translated": [
-            "μη μεταφρασμένο"
+            "αμετάφραστο"
          ],
          "waiting for translator": [
-            "αναμονή για μεταφραστή"
+            "αναμονή μεταφραστή"
          ],
          "in progress": [
             "σε εξέλιξη"
@@ -1141,23 +1380,26 @@
          "needs attention": [
             "χρειάζεται προσοχή"
          ],
+         "translation error": [
+            "σφάλμα μετάφρασης"
+         ],
          "This item was translated using the WordPress Editor. Switching to the WPML's Translation Editor will overwrite the existing translation.": [
-            "Αυτό το στοιχείο μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή WordPress. Η μετάβαση στον Επεξεργαστή Μετάφρασης του WPML θα αντικαταστήσει την υπάρχουσα μετάφραση."
+            "Αυτό το στοιχείο μεταφράστηκε χρησιμοποιώντας τον Επεξεργαστή του WordPress. Η μετάβαση στον Επεξεργαστή Μετάφρασης του WPML θα αντικαταστήσει την υπάρχουσα μετάφραση."
          ],
          "This item needs a translation update but was previously translated using the WordPress Editor. Using the WPML's Translation Editor will overwrite the existing translation.": [
-            "Αυτό το στοιχείο χρειάζεται ενημέρωση μετάφρασης αλλά είχε μεταφραστεί προηγουμένως χρησιμοποιώντας τον Επεξεργαστή WordPress. Η χρήση του Επεξεργαστή Μετάφρασης του WPML θα αντικαταστήσει την υπάρχουσα μετάφραση."
+            "Αυτό το στοιχείο χρειάζεται ενημέρωση μετάφρασης, αλλά είχε προηγουμένως μεταφραστεί χρησιμοποιώντας τον Επεξεργαστή του WordPress. Η χρήση του Επεξεργαστή Μετάφρασης του WPML θα αντικαταστήσει την υπάρχουσα μετάφραση."
          ],
          "This item hasn't been translated yet and is set to use the WordPress Editor.": [
-            "Αυτό το στοιχείο δεν έχει μεταφραστεί ακόμα και έχει οριστεί να χρησιμοποιεί τον Επεξεργαστή WordPress."
+            "Αυτό το στοιχείο δεν έχει μεταφραστεί ακόμα και έχει οριστεί να χρησιμοποιεί τον Επεξεργαστή του WordPress."
          ],
          "%1$s: %2$s%3$s": [
             "%1$s: %2$s%3$s"
          ],
          "Could not fetch engines data": [
-            "Αδυναμία ανάκτησης δεδομένων μηχανών"
+            "Δεν ήταν δυνατή η ανάκτηση δεδομένων μηχανών"
          ],
          "Error in fetching currently logged in translator": [
-            "Σφάλμα κατά την ανάκτηση του τρέχοντος συνδεδεμένου μεταφραστή"
+            "Σφάλμα κατά την ανάκτηση του μεταφραστή που είναι συνδεδεμένος αυτήν τη στιγμή"
          ],
          "Error in fetching local translators": [
             "Σφάλμα κατά την ανάκτηση τοπικών μεταφραστών"
@@ -1172,7 +1414,7 @@
             "Κάδος"
          ],
          "Pending": [
-            "Σε αναμονή"
+            "Εκκρεμεί"
          ],
          "Private": [
             "Ιδιωτικό"
@@ -1181,7 +1423,7 @@
             "Μελλοντικό"
          ],
          "Auto Draft": [
-            "Αυτόματο Πρόχειρο"
+            "Αυτόματο πρόχειρο"
          ],
          "External": [
             "Εξωτερικό"
@@ -1190,10 +1432,10 @@
             "Σύμπτυξη"
          ],
          "Expand": [
-            "Επέκταση"
+            "Ανάπτυξη"
          ],
          "Select an item": [
-            "Επιλογή στοιχείου"
+            "Επιλέξτε ένα στοιχείο"
          ],
          "Open dropdown": [
             "Άνοιγμα αναπτυσσόμενου μενού"
@@ -1208,34 +1450,34 @@
             "Δεν βρέθηκαν στοιχεία"
          ],
          "OFF": [
-            "ΑΠΕΝΕΡΓΟΠΟΙΗΜΕΝΟ"
+            "ΑΝΕΝΕΡΓΟ"
          ],
          "ON": [
-            "ΕΝΕΡΓΟΠΟΙΗΜΕΝΟ"
+            "ΕΝΕΡΓΟ"
          ],
          "%1$s Flag": [
-            "%1$s Σημαία"
+            "Σημαία %1$s"
          ],
          "- Select a review mode -": [
-            "- Επίλεξε λειτουργία αναθεώρησης -"
+            "- Επιλέξτε έναν τρόπο αναθεώρησης -"
          ],
          "What would you like to do when WPML finishes translating your content automatically?": [
-            "Τι θα θέλατε να κάνετε όταν το WPML ολοκληρώσει την αυτόματη μετάφραση του περιεχομένου σας;?"
+            "Τι θα θέλατε να κάνετε όταν το WPML ολοκληρώσει την αυτόματη μετάφραση του περιεχομένου σας;"
          ],
          "What would you like to do after WPML finishes translating your content automatically?": [
-            "Τι θα θέλατε να κάνετε αφού το WPML ολοκληρώσει την αυτόματη μετάφραση του περιεχομένου σας;?"
+            "Τι θα θέλατε να κάνετε αφού το WPML ολοκληρώσει την αυτόματη μετάφραση του περιεχομένου σας;"
          ],
          "Publish without review": [
             "Δημοσίευση χωρίς αναθεώρηση"
          ],
          "Recommended with PTC": [
-            "Προτείνεται με το PTC"
+            "Συνιστάται με PTC"
          ],
          "PTC provides Better Than Human Translations that rarely need improvements, so you can confidently skip the review process. For other translation engines, a human review is recommended to confirm accuracy.": [
-            "Το PTC παρέχει Μεταφράσεις Καλύτερες από Ανθρώπινες που σπάνια χρειάζονται βελτιώσεις, οπότε μπορείς με σιγουριά να παραλείψεις τη διαδικασία αναθεώρησης. Για άλλες μηχανές μετάφρασης, συνιστάται ανθρώπινη αναθεώρηση για επιβεβαίωση της ακρίβειας."
+            "Το PTC παρέχει μεταφράσεις Καλύτερες από Ανθρώπινες που σπάνια χρειάζονται βελτιώσεις, οπότε μπορείτε να παραλείψετε με σιγουριά τη διαδικασία αναθεώρησης. Για άλλες μηχανές μετάφρασης, συνιστάται ανθρώπινη αναθεώρηση για επιβεβαίωση της ακρίβειας."
          ],
          "WPML publishes translations immediately, skipping the review process.": [
-            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως, παραλείποντας τη διαδικασία ελέγχου."
+            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως, παραλείποντας τη διαδικασία αναθεώρησης."
          ],
          "Wait for review": [
             "Αναμονή για αναθεώρηση"
@@ -1244,22 +1486,22 @@
             "Συνιστάται με DeepL, Google και Microsoft"
          ],
          "DeepL, Google, and Microsoft deliver great translations, but we recommend a human review to confirm they are correct. PTC provides Better Than Human Translations that understand context, so you can confidently skip the review process.": [
-            "Οι DeepL, Google και Microsoft παρέχουν εξαιρετικές μεταφράσεις, αλλά προτείνουμε ανθρώπινη αναθεώρηση για να επιβεβαιώσεις ότι είναι σωστές. Το PTC παρέχει Μεταφράσεις Καλύτερες από Ανθρώπινες που κατανοούν το πλαίσιο, οπότε μπορείς με σιγουριά να παραλείψεις τη διαδικασία αναθεώρησης."
+            "Οι DeepL, Google και Microsoft παρέχουν εξαιρετικές μεταφράσεις, αλλά συνιστούμε ανθρώπινη αναθεώρηση για να επιβεβαιωθεί η ορθότητά τους. Το PTC παρέχει μεταφράσεις Καλύτερες από Ανθρώπινες που κατανοούν το πλαίσιο, οπότε μπορείτε να παραλείψετε με σιγουριά τη διαδικασία αναθεώρησης."
          ],
          "WPML keeps translations unpublished, so you can review them first.": [
-            "Το WPML διατηρεί τις μεταφράσεις αδημοσίευτες, ώστε να μπορείτε να τις ελέγξετε πρώτα."
+            "Το WPML διατηρεί τις μεταφράσεις αδημοσίευτες, ώστε να μπορείτε να τις αναθεωρήσετε πρώτα."
          ],
          "Your translators review and approve translations before publishing.": [
-            "Οι μεταφραστές σας ελέγχουν και εγκρίνουν τις μεταφράσεις πριν τη δημοσίευση."
+            "Οι μεταφραστές σας αναθεωρούν και εγκρίνουν τις μεταφράσεις πριν από τη δημοσίευση."
          ],
          "Publish and mark for review": [
-            "Δημοσίευση και επισήμανση για αναθεώρηση"
+            "Δημοσίευση και σήμανση για αναθεώρηση"
          ],
          "WPML publishes translations immediately but flags them for you to check at your convenience.": [
-            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως, αλλά τις επισημαίνει για να τις ελέγξετε όταν σας βολεύει."
+            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως, αλλά τις επισημαίνει για να τις ελέγξετε όποτε σας βολεύει."
          ],
          "WPML publishes translations immediately but flags them for translators to review later.": [
-            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως αλλά τις επισημαίνει για μεταγενέστερο έλεγχο από τους μεταφραστές."
+            "Το WPML δημοσιεύει τις μεταφράσεις αμέσως, αλλά τις επισημαίνει για να τις ελέγξουν αργότερα οι μεταφραστές."
          ]
       }
    }

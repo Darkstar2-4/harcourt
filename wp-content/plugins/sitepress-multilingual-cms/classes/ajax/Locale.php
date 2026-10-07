@@ -4,7 +4,6 @@ namespace WPML\Ajax;
 
 class Locale implements \IWPML_AJAX_Action, \IWPML_DIC_Action {
 
-	/** @var \SitePress */
 	private $sitePress;
 
 	public function __construct( \SitePress $sitePress ) {

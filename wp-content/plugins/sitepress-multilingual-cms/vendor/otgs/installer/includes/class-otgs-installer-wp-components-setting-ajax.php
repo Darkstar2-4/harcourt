@@ -5,14 +5,8 @@ class OTGS_Installer_WP_Components_Setting_Ajax {
 	const AJAX_ACTION           = 'otgs_save_setting_share_local_components';
 	const SAVE_SETTING_PRIORITY = 1;
 
-	/**
-	 * @var OTGS_Installer_WP_Share_Local_Components_Setting
-	 */
 	private $setting;
 
-	/**
-	 * @var WP_Installer
-	 */
 	private $installer;
 
 	public function __construct( OTGS_Installer_WP_Share_Local_Components_Setting $setting, WP_Installer $installer ) {
@@ -40,9 +34,6 @@ class OTGS_Installer_WP_Components_Setting_Ajax {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		return isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], self::AJAX_ACTION );
 	}

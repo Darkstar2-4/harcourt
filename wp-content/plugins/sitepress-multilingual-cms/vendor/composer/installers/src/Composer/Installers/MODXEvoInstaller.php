@@ -1,9 +1,6 @@
 <?php
 namespace Composer\Installers;
 
-/**
- * An installer to handle MODX Evolution specifics when installing packages.
- */
 class MODXEvoInstaller extends BaseInstaller
 {
     protected $locations = array(

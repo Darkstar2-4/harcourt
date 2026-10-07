@@ -8,28 +8,28 @@
             "lang": "ar"
          },
          "How Browser Language Redirect Affects Google Indexing": [
-            "كيفية تأثير إعادة التوجيه بحسب لغة المتصفح على Google Indexing (فهرسة جوجل)"
+            "كيف يؤثر إعادة توجيه لغة المتصفح على فهرسة جوجل"
          ],
          "Documentation": [
             "الوثائق"
          ],
          "Browser redirect affects Google indexing and search results": [
-            "كيفية تأثير إعادة توجيه المتصفح على Google Indexing (فهرسة جوجل) ونتائج البحث"
+            "إعادة توجيه المتصفح يؤثر على فهرسة جوجل ونتائج البحث"
          ],
          "Got it, activate anyway": [
-            "فهمت، قم بتفعيله على أي حال"
+            "فهمت، تفعيل على أي حال"
          ],
          "Cancel": [
             "إلغاء"
          ],
          "When you redirect visitors based on their language, you also redirect Google. Google wants to see your site exactly like visitors see it, including any redirects that you apply.": [
-            "عند إعادة توجيهك للزوار استنادًا إلى لغتهم، فإنك تقوم أيضًا بإعادة توجيه جوجل. لأن جوجل يرغب في رؤية موقعك كما يراه الزوار تمامًا، بما في ذلك أي إعادات توجيه تقوم بتطبيقها."
+            "عندما تعيد توجيه الزوار بناءً على لغتهم، فإنك تعيد توجيه جوجل أيضًا. تريد جوجل أن ترى موقعك تمامًا كما يراه الزوار، بما في ذلك أي عمليات إعادة توجيه تطبقها."
          ],
          "It is OK to redirect visitors based on their language, but you need to realize that this feature affects SEO.": [
-            "لا توجد مشكلة في إعادة توجيه الزوار استنادًا إلى لغتهم، ولكنك بحاجة إلى إدراك أن هذه الخاصية تؤثر على تحسين محركات البحث (SEO)."
+            "لا بأس في إعادة توجيه الزوار بناءً على لغتهم، ولكن يجب أن تدرك أن هذه الميزة تؤثر على تحسين محركات البحث (SEO)."
          ],
          "Before proceeding, we recommend that you read these two pages:": [
-            "قبل المتابعة، نوصيك أن تقرأ هاتين الصفحتين:"
+            "قبل المتابعة، نوصي بقراءة هاتين الصفحتين:"
          ]
       }
    }

@@ -7,28 +7,16 @@ use WPML\Utils\Pager;
 use WPML\ST\MO\Generate\MultiSite\Executor;
 
 class MultiSiteProcess implements Process {
-	/** @var Executor */
 	private $multiSiteExecutor;
 
-	/** @var SingleSiteProcess */
 	private $singleSiteProcess;
 
-	/** @var Status */
 	private $status;
 
-	/** @var Pager */
 	private $pager;
 
-	/** @var SubSiteValidator */
 	private $subSiteValidator;
 
-	/**
-	 * @param Executor          $multiSiteExecutor
-	 * @param SingleSiteProcess $singleSiteProcess
-	 * @param Status            $status
-	 * @param Pager             $pager
-	 * @param SubSiteValidator  $subSiteValidator
-	 */
 	public function __construct(
 		Executor $multiSiteExecutor,
 		SingleSiteProcess $singleSiteProcess,
@@ -49,15 +37,11 @@ class MultiSiteProcess implements Process {
 		$this->status->markComplete( true );
 	}
 
-	/**
-	 * @return int Is completed
-	 */
 	public function runPage() {
 		$remaining = $this->pager->iterate( $this->multiSiteExecutor->getSiteIds(), function ( $siteId ) {
 			return $this->multiSiteExecutor->executeWith(
 				$siteId,
 				$this->runIfSetupComplete( function () {
-					// no more remaining pages which means that process is done
 					return $this->singleSiteProcess->runPage() === 0;
 				} )
 			);
@@ -72,9 +56,6 @@ class MultiSiteProcess implements Process {
 		return $remaining;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getPagesCount() {
 		$isCompletedForAllSites = $this->multiSiteExecutor->executeWith(
 			Executor::MAIN_SITE_ID,
@@ -87,9 +68,6 @@ class MultiSiteProcess implements Process {
 		return $this->multiSiteExecutor->getSiteIds()->count();
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isCompleted() {
 		return $this->getPagesCount() === 0;
 	}

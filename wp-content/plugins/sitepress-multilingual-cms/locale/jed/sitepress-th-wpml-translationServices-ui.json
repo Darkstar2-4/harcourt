@@ -8,7 +8,7 @@
             "lang": "th"
          },
          "Connect this site to your %s account": [
-            "เชื่อมต่อเว็บไซต์นี้กับบัญชี %s ของคุณ"
+            "เชื่อมต่อไซต์นี้กับบัญชี %s ของคุณ"
          ],
          "Error": [
             "ข้อผิดพลาด"
@@ -20,7 +20,7 @@
             "ยืนยันตัวตน"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "เยี่ยมชม <link_to_service /> เพื่อขอโทเค็น API โทเค็นนี้อนุญาตให้ WPML เชื่อมต่อกับ <service_name /> เพื่อส่งและรับงาน."
+            "เยี่ยมชม <link_to_service /> เพื่อขอ API Token โทเค็นนี้อนุญาตให้ WPML เชื่อมต่อกับ <service_name /> เพื่อส่งและรับงาน"
          ],
          "Search translation services": [
             "ค้นหาบริการแปลภาษา"
@@ -32,7 +32,16 @@
             "การตั้งค่า"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "ขณะนี้ไม่สามารถเชื่อมต่อบริการแปลภาษาได้เมื่อ WPML ถูกตั้งค่าให้แปลเนื้อหาเว็บไซต์ของคุณโดยอัตโนมัติ หากต้องการใช้บริการแปลภาษา โปรดเปลี่ยนโหมดการแปลของคุณบนหน้า <LinkToSettingsPage />."
+            "ขณะนี้ไม่สามารถเชื่อมต่อบริการแปลภาษาได้เมื่อ WPML ถูกตั้งค่าให้แปลเนื้อหาของไซต์ของคุณโดยอัตโนมัติ หากต้องการใช้บริการแปลภาษา โปรดเปลี่ยนโหมดการแปลของคุณในหน้า <LinkToSettingsPage />"
+         ],
+         "Sort descending": [
+            "เรียงลำดับจากมากไปน้อย"
+         ],
+         "Sort ascending": [
+            "เรียงลำดับจากน้อยไปมาก"
+         ],
+         "Cancel sorting": [
+            "ยกเลิกการเรียงลำดับ"
          ],
          "Documentation": [
             "เอกสารประกอบ"

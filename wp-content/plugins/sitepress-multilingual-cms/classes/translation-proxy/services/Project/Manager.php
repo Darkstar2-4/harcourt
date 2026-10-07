@@ -4,20 +4,12 @@ namespace WPML\TM\TranslationProxy\Services\Project;
 
 class Manager {
 
-	/** @var \WPML_TP_Project_API */
 	private $projectApi;
 
-	/** @var Storage */
 	private $projectStorage;
 
-	/** @var SiteDetails */
 	private $siteDetails;
 
-	/**
-	 * @param \WPML_TP_Project_API $projectApi
-	 * @param Storage              $projectStorage
-	 * @param SiteDetails          $siteDetails
-	 */
 	public function __construct(
 		\WPML_TP_Project_API $projectApi,
 		Storage $projectStorage,
@@ -28,12 +20,6 @@ class Manager {
 		$this->siteDetails    = $siteDetails;
 	}
 
-	/**
-	 * @param \stdClass $service
-	 *
-	 * @return Project
-	 * @throws \WPML_TP_API_Exception
-	 */
 	public function create( \stdClass $service ) {
 		$project = $this->projectStorage->getByService( $service ) ?: $this->fromTranslationProxy( $service );
 
@@ -45,13 +31,6 @@ class Manager {
 		return $project;
 	}
 
-	/**
-	 * @param \stdClass $service
-	 * @param \stdClass $credentials
-	 *
-	 * @return Project|null
-	 * @throws \WPML_TP_API_Exception
-	 */
 	public function updateCredentials( \stdClass $service, \stdClass $credentials ) {
 		$project = $this->projectStorage->getByService( $service );
 		if ( ! $project ) {
@@ -65,24 +44,12 @@ class Manager {
 		return $project;
 	}
 
-	/**
-	 * @param \stdClass $service
-	 *
-	 * @return Project
-	 * @throws \WPML_TP_API_Exception
-	 */
 	private function fromTranslationProxy( \stdClass $service ) {
 		$response = $this->projectApi->create_project( $service, $this->siteDetails );
 
 		return Project::fromResponse( $response->project );
 	}
 
-	/**
-	 * @param \stdClass $service
-	 * @param \stdClass $credentials
-	 *
-	 * @return \stdClass
-	 */
 	private function createServiceWithNewCredentials( \stdClass $service, \stdClass $credentials ) {
 		$updatedService                     = clone $service;
 		$updatedService->custom_fields_data = $credentials;

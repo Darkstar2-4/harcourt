@@ -135,7 +135,26 @@ class GF_Save_Form_Endpoint_Admin {
 			}
 		}
 
+		if ( ! $this->current_user_can_save_form( rgpost( self::PARAM_FORM_ID ) ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'You do not have permission to save forms.', 'gravityforms' ) ), 403 );
+		}
+
 		return true;
+	}
+
+	/**
+	 * Determines if the current user can save the requested form.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @param int|string $form_id The posted form ID. Non-positive IDs create a new form.
+	 *
+	 * @return bool
+	 */
+	protected function current_user_can_save_form( $form_id ) {
+		$capability = (int) $form_id <= 0 ? 'gravityforms_create_form' : 'gravityforms_edit_forms';
+
+		return \GFCommon::current_user_can_any( $capability );
 	}
 
 	/**
@@ -193,7 +212,7 @@ class GF_Save_Form_Endpoint_Admin {
 				/* Translators: 1. Opening link tag, 2. Closing link tag. */
 				esc_html__( 'There was an error while saving your form. Please %1$scontact our support team%2$s.', 'gravityforms'),
 				'<a target="_blank" href="' . esc_attr( \GFCommon::get_support_url() ) . '">',
-				'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link"></span></a>'
+				'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>'
 			);
 		}
 

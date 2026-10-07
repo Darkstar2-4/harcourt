@@ -12,25 +12,22 @@ class Proxy implements \IWPML_Frontend_Action, \IWPML_DIC_Action
 
 	public function add_hooks()
 	{
-		// The widget is called using a script tag with src /?wpml-app=ate-widget, which invokes a frontend call.
-		// There were several issues with 3rd party plugins which block the previous solution using 'template_include'.
-		// Better using 'template_redirect'. This also prevents loading any further unnecessary frontend stuff.
 		add_action(
 			'template_redirect',
 			function () {
 				$script = $this->get_script();
 				if ($script) {
+					while ( ob_get_level() > 0 ) {
+						ob_end_clean();
+					}
 					include $script;
 					die();
 				}
 			},
-			-PHP_INT_MAX // Make sure to be the first. Some plugins using this hook also to prevent usual rendering.
+			-PHP_INT_MAX
 		);
 	}
 
-	/**
-	 * @return string|void
-	 */
 	public function get_script()
 	{
 		if (! User::canManageTranslations()) {

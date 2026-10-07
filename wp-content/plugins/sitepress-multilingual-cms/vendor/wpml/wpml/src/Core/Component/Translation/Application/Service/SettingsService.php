@@ -10,10 +10,8 @@ use WPML\Core\Port\Event\DispatcherInterface;
 
 class SettingsService {
 
-  /** @var SettingsRepository */
   private $translationSettingsRepository;
 
-  /** @var DispatcherInterface */
   private $eventDispatcher;
 
 
@@ -26,11 +24,6 @@ class SettingsService {
   }
 
 
-  /**
-   * @param ?string $reviewMode
-   *
-   * @return string
-   */
   public function saveReviewOption( $reviewMode ) {
     $reviewMode = $reviewMode ? new ReviewMode( $reviewMode ) : ReviewMode::createDefault();
 
@@ -40,23 +33,13 @@ class SettingsService {
   }
 
 
-  /**
-   * @return void
-   */
   public function enableATE() {
     $settings = $this->translationSettingsRepository->getSettings()->enableATE();
     $this->translationSettingsRepository->saveSettings( $settings );
   }
 
 
-  /**
-   * @param bool   $translateExisting
-   * @param string $reviewOption
-   *
-   * @return void
-   * @throws SettingsException
-   */
-  public function enableTranslateEverything( bool $translateExisting = false, string $reviewOption = null ) {
+  public function enableTranslateEverything( bool $translateExisting = false, ?string $reviewOption = null ) {
     $settings = $this->translationSettingsRepository->getSettings();
 
     if ( $settings->getTranslateEverything()->isEnabled() ) {
@@ -86,9 +69,6 @@ class SettingsService {
   }
 
 
-  /**
-   * @return void
-   */
   public function disableTranslateEverything() {
     $settings = $this->translationSettingsRepository->getSettings();
     if ( $settings->getTranslateEverything()->isEnabled() ) {

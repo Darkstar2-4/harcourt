@@ -13,6 +13,7 @@
 namespace Smush\Core\Integrations;
 
 use Smush\Core\CDN\CDN_Helper;
+use Smush\Core\Optimizer;
 use WP_Smush;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -54,25 +55,6 @@ class Composer extends Abstract_Integration {
 	 *
 	 * OVERWRITE PARENT CLASS FUNCTIONALITY
 	 */
-
-	/**
-	 * Filters the setting variable to add NextGen setting title and description
-	 *
-	 * @since 3.2.1
-	 *
-	 * @param array $settings Settings.
-	 *
-	 * @return mixed
-	 */
-	public function register( $settings ) {
-		$settings[ $this->module ] = array(
-			'label'       => esc_html__( 'Enable WPBakery Page Builder integration', 'wp-smushit' ),
-			'short_label' => esc_html__( 'WPBakery Page Builder', 'wp-smushit' ),
-			'desc'        => esc_html__( 'Allow smushing images resized in WPBakery Page Builder editor.', 'wp-smushit' ),
-		);
-
-		return $settings;
-	}
 
 	/**
 	 * Show additional notice if the required plugins are not installed.
@@ -157,7 +139,7 @@ class Composer extends Abstract_Integration {
 		}
 
 		// Smush image. TODO: should we update the stats?
-		WP_Smush::get_instance()->core()->mod->smush->do_smushit( $vc_image );
+		Optimizer::get_instance()->optimize_file( $vc_image );
 
 		return $vc_image;
 	}

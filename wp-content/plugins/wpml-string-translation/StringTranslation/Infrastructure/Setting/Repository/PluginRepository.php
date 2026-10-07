@@ -22,7 +22,6 @@ class PluginRepository implements PluginRepositoryInterface {
 		'hyper-cache/plugin.php',
 	];
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(

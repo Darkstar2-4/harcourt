@@ -14,6 +14,7 @@ namespace Smush\Core\Integrations;
 use GFFormsModel;
 use Smush\Core\Core;
 use Smush\Core\Helper;
+use Smush\Core\Optimizer;
 use WP_Smush;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -60,25 +61,6 @@ class Gravity_Forms extends Abstract_Integration {
 	 *
 	 * OVERWRITE PARENT CLASS FUNCTIONALITY
 	 */
-
-	/**
-	 * Filters the setting variable to add Gravity Form setting title and description
-	 *
-	 * @since 3.9.10
-	 *
-	 * @param array $settings Settings.
-	 *
-	 * @return array
-	 */
-	public function register( $settings ) {
-		$settings[ $this->module ] = array(
-			'label'       => esc_html__( 'Enable Gravity Forms integration', 'wp-smushit' ),
-			'short_label' => esc_html__( 'Gravity Forms', 'wp-smushit' ),
-			'desc'        => esc_html__( 'Allow compressing images uploaded with Gravity Forms.', 'wp-smushit' ),
-		);
-
-		return $settings;
-	}
 
 	/**
 	 * Show additional notice if the required plugins are not installed.
@@ -148,7 +130,7 @@ class Gravity_Forms extends Abstract_Integration {
 					continue;
 				}
 
-				WP_Smush::get_instance()->core()->mod->smush->do_smushit( $file );
+				Optimizer::get_instance()->optimize_file( $file );
 			}
 		}
 	}

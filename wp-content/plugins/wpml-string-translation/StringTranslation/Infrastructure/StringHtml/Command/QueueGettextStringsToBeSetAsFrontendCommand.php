@@ -9,10 +9,8 @@ use WPML\StringTranslation\Infrastructure\StringGettext\Repository\Dto\GettextSt
 
 class QueueGettextStringsToBeSetAsFrontendCommand implements QueueGettextStringsToBeSetAsFrontendCommandInterface {
 
-	/** @var FrontendQueueRepositoryInterface */
 	private $frontendQueueRepository;
 
-	/** @var UrlRepositoryInterface */
 	private $urlRepository;
 
 	public function __construct(
@@ -23,9 +21,6 @@ class QueueGettextStringsToBeSetAsFrontendCommand implements QueueGettextStrings
 		$this->urlRepository           = $urlRepository;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $gettextStrings
-	 */
 	public function run( array $gettextStrings ) {
 		if ( count( $gettextStrings ) === 0 ) {
 			return;

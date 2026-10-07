@@ -29,16 +29,13 @@ class App {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private static function shouldLoadTMHooks() {
 		return 	defined( 'WPML_TM_VERSION' )
 		          && (
 			          is_admin()
 			          || ( defined( 'XMLRPC_REQUEST' ) && constant( 'XMLRPC_REQUEST' ) )
 			          || wpml_is_rest_request()
-			          || ( defined( 'DOING_CRON' ) && DOING_CRON ) // @phpstan-ignore phpstanWP.wpConstant.fetch
+			          || ( defined( 'DOING_CRON' ) && DOING_CRON )
 		          );
 	}
 }

@@ -6,7 +6,7 @@
     padding: 0;
     margin: 0 !important;
     list-style-type: none; }
-  .wpml-ls-legacy-dropdown .wpml-ls-current-language:hover .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-current-language:focus .wpml-ls-sub-menu {
+  .wpml-ls-legacy-dropdown .wpml-ls-current-language:hover .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-current-language:focus .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-current-language:focus-within .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-keyboard-open:hover .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-keyboard-open:focus .wpml-ls-sub-menu, .wpml-ls-legacy-dropdown .wpml-ls-keyboard-open:focus-within .wpml-ls-sub-menu {
     visibility: visible; }
   .wpml-ls-legacy-dropdown .wpml-ls-item {
     padding: 0;

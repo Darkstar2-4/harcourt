@@ -79,9 +79,6 @@ class WPML_Package_Translation_HTML_Packages {
 		}
 	}
 
-	/**
-	 * @param array<\WPML_Package> $packages
-	 */
 	public function package_translation_menu_body( $packages ) {
 		if ( ! $packages ) {
 			$this->package_translation_menu_no_packages();
@@ -126,9 +123,6 @@ class WPML_Package_Translation_HTML_Packages {
 		<?php
 	}
 
-	/**
-	 * @param array<\WPML_Package> $packages
-	 */
 	private function package_translation_menu_items( $packages ) {
 		global $wpdb, $sitepress;
 

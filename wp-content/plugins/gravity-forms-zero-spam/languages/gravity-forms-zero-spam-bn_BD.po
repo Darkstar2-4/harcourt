@@ -1,0 +1,1148 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: gravity-forms-zero-spam\n"
+"PO-Revision-Date: 2026-08-11 15:46:11+0000\n"
+"Language: bn_BD\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: gravityforms-zero-spam.php
+msgid "Gravity Forms Zero Spam"
+msgstr "গ্র্যাভিটি ফর্মস জিরো স্প্যাম"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=pluginuri"
+msgstr ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=pluginuri"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"Enhance Gravity Forms to include effective anti-spam measures—without using "
+"a CAPTCHA."
+msgstr ""
+"গ্র্যাভিটি ফর্মসকে উন্নত করুন কার্যকর অ্যান্টি-স্প্যাম ব্যবস্থা অন্তর্ভুক্ত "
+"করতে—ক্যাপচা ব্যবহার না করেই।"
+
+#: gravityforms-zero-spam.php
+msgid "GravityKit"
+msgstr "গ্র্যাভিটি কিট"
+
+#: gravityforms-zero-spam.php
+msgid ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=authoruri"
+msgstr ""
+"https://www.gravitykit.com?utm_source=plugin&utm_campaign=zero-spam&utm_"
+"content=authoruri"
+
+#: includes/class-email-rejection-settings.php:203
+msgid ""
+"Block, flag, or log email submissions matching specific addresses, domains, "
+"or patterns. Rules apply to all email fields unless overridden per field."
+msgstr ""
+"নির্দিষ্ট ঠিকানা, ডোমেইন, বা প্যাটার্নের সাথে মেলে এমন ইমেইল সাবমিশন ব্লক, "
+"ফ্ল্যাগ, বা লগ করুন। নিয়মগুলি সমস্ত ইমেইল ক্ষেত্রের জন্য প্রযোজ্য যতক্ষণ "
+"না ক্ষেত্র অনুযায়ী ওভাররাইড করা হয়।"
+
+#: includes/class-email-rejection-settings.php:204
+msgid ""
+"Flag or log email submissions matching specific addresses, domains, or "
+"patterns. Rules apply to all email fields unless overridden per field."
+msgstr ""
+"নির্দিষ্ট ঠিকানা, ডোমেইন, বা প্যাটার্নের সাথে মেলে এমন ইমেইল সাবমিশন "
+"ফ্ল্যাগ বা লগ করুন। নিয়মগুলি সমস্ত ইমেইল ক্ষেত্রের জন্য প্রযোজ্য যতক্ষণ না "
+"ক্ষেত্র অনুযায়ী ওভাররাইড করা হয়।"
+
+#: includes/class-email-rejection-settings.php:207
+msgid "Email Rejection Rules"
+msgstr "ইমেইল প্রত্যাখ্যান নিয়ম"
+
+#: includes/class-email-rejection-settings.php:212
+msgid "Enable Email Rejection Rules"
+msgstr "ইমেইল প্রত্যাখ্যান নিয়ম সক্রিয় করুন"
+
+#: includes/class-email-rejection-settings.php:218
+msgid "Rules"
+msgstr "নিয়মাবলী"
+
+#: includes/class-email-rejection-settings.php:232
+msgid "Default Validation Message"
+msgstr "ডিফল্ট যাচাইকরণ বার্তা"
+
+#: includes/class-email-rejection-settings.php:236
+msgid "Shown when action is \"Block\". Can be overridden per email field."
+msgstr ""
+"\"ব্লক\" কর্মের সময় প্রদর্শিত হয়। প্রতিটি ইমেইল ক্ষেত্র অনুযায়ী এটি "
+"ওভাররাইড করা যেতে পারে।"
+
+#: includes/class-email-rejection-settings.php:346
+msgid "Add Rule"
+msgstr "নিয়ম যোগ করুন"
+
+#: includes/class-email-rejection-settings.php:347
+msgid "Remove"
+msgstr "অপসারণ"
+
+#: includes/class-email-rejection-settings.php:348
+msgid "Edit"
+msgstr "সম্পাদনা"
+
+#: includes/class-email-rejection-settings.php:349
+msgid "Enable"
+msgstr "সক্রিয় করুন"
+
+#: includes/class-email-rejection-settings.php:350
+msgid "Disable"
+msgstr "নিষ্ক্রিয় করুন"
+
+#: includes/class-email-rejection-settings.php:351
+msgid "Save"
+msgstr "সংরক্ষণ করুন"
+
+#: includes/class-email-rejection-settings.php:352
+msgid "Cancel"
+msgstr "বাতিল করুন"
+
+#: includes/class-email-rejection-settings.php:353
+msgid "Domain"
+msgstr "ডোমেইন"
+
+#: includes/class-email-rejection-settings.php:354
+msgid "Email"
+msgstr "ইমেইল"
+
+#: includes/class-email-rejection-settings.php:355
+msgid "Wildcard"
+msgstr "ওয়াইল্ডকার্ড"
+
+#: includes/class-email-rejection-settings.php:356
+msgid "Regex"
+msgstr "রেগেক্স"
+
+#: includes/class-email-rejection-settings.php:357
+msgid "Block"
+msgstr "ব্লক"
+
+#: includes/class-email-rejection-settings.php:358
+msgid "Flag as Spam"
+msgstr "স্প্যাম হিসেবে চিহ্নিত করুন"
+
+#: includes/class-email-rejection-settings.php:359
+msgid "Log Only"
+msgstr "শুধুমাত্র লগ"
+
+#: includes/class-email-rejection-settings.php:360
+msgid "Type"
+msgstr "ধরন"
+
+#: includes/class-email-rejection-settings.php:361
+msgid "Value"
+msgstr "মান"
+
+#: includes/class-email-rejection-settings.php:362
+msgid "Action"
+msgstr "কার্য"
+
+#: includes/class-email-rejection-settings.php:363
+msgid "No rules defined yet."
+msgstr "এখনও কোনও নিয়ম সংজ্ঞায়িত হয়নি।"
+
+#: includes/class-email-rejection-settings.php:364
+msgid "Import Rules"
+msgstr "নিয়ম আমদানি করুন"
+
+#: includes/class-email-rejection-settings.php:365
+msgid ""
+"Paste values, one per line or comma-separated. Auto-detected as Domain or "
+"Email type."
+msgstr ""
+"মানগুলি পেস্ট করুন, প্রতি লাইনে একটি বা কমা দ্বারা পৃথক। স্বয়ংক্রিয়ভাবে "
+"ডোমেন বা ইমেইল ধরন হিসেবে সনাক্ত করা হবে।"
+
+#: includes/class-email-rejection-settings.php:366
+msgid "Import"
+msgstr "আমদানি করুন"
+
+#: includes/class-email-rejection-settings.php:367
+msgid "Remove this rule?"
+msgstr "এই নিয়মটি মুছে ফেলবেন?"
+
+#: includes/class-email-rejection-settings.php:368
+msgid "Invalid regular expression."
+msgstr "অবৈধ নিয়মিত অভিব্যক্তি।"
+
+#: includes/class-email-rejection-settings.php:369
+msgid "Please enter a valid email address."
+msgstr "একটি বৈধ ইমেইল ঠিকানা প্রবেশ করুন।"
+
+#: includes/class-email-rejection-settings.php:370
+msgid "Please enter a valid domain."
+msgstr "একটি বৈধ ডোমেন নাম প্রবেশ করুন।"
+
+#: includes/class-email-rejection-settings.php:373
+msgid "No valid rules found to import."
+msgstr "আমদানি করার জন্য কোনও বৈধ নিয়ম পাওয়া যায়নি।"
+
+#: includes/class-email-rejection-settings.php:374
+msgid "1 rule imported."
+msgstr "১টি নিয়ম আমদানি করা হয়েছে।"
+
+#: includes/class-email-rejection-settings.php:377
+msgid "Skipped 1 invalid value."
+msgstr "১টি অবৈধ মান এড়ানো হয়েছে।"
+
+#: includes/class-email-rejection-settings.php:380
+msgid ""
+"Some rules use the Block action, which requires Gravity Forms 2.9.15+. "
+"These rules are inactive until you update."
+msgstr ""
+"কিছু নিয়ম ব্লক অ্যাকশন ব্যবহার করে, যা Gravity Forms 2.9.15+ প্রয়োজন। "
+"আপনি আপডেট না করা পর্যন্ত এই নিয়মগুলি নিষ্ক্রিয় থাকবে।"
+
+#: includes/class-email-rejection-settings.php:381
+msgid ""
+"Upgrading to Gravity Forms 2.9.15 or higher enables the ability to "
+"configure rules that block matching form submissions."
+msgstr ""
+"Gravity Forms 2.9.15 বা তার উচ্চতর সংস্করণে আপগ্রেড করলে মিলিত ফর্ম জমা "
+"ব্লক করার নিয়ম কনফিগার করার ক্ষমতা সক্রিয় হয়।"
+
+#: includes/class-email-rejection-settings.php:382
+msgid "Requires Gravity Forms 2.9.15+"
+msgstr "Gravity Forms 2.9.15+ প্রয়োজন"
+
+#: includes/class-email-rejection-settings.php:383
+msgid "e.g., spamdomain.com"
+msgstr "উদা., spamdomain.com"
+
+#: includes/class-email-rejection-settings.php:384
+msgid "Enable rejection rules"
+msgstr "প্রত্যাখ্যান নিয়ম সক্রিয় করুন"
+
+#: includes/class-email-rejection-settings.php:385
+msgid ""
+"Add rules to block, flag, or log submissions based on the email entered in "
+"this field. Rules can extend or replace the global rejection rules."
+msgstr ""
+"এই ফিল্ডে প্রবেশ করানো ইমেইলের ভিত্তিতে জমা ব্লক, ফ্ল্যাগ, বা লগ করার নিয়ম "
+"যোগ করুন। নিয়মগুলি গ্লোবাল প্রত্যাখ্যান নিয়ম বাড়াতে বা প্রতিস্থাপন করতে "
+"পারে।"
+
+#: includes/class-email-rejection-settings.php:386
+msgid ""
+"Add rules to block, flag, or log submissions based on the email entered in "
+"this field. Rules can extend or replace the "
+msgstr ""
+"এই ফিল্ডে প্রবেশ করানো ইমেইলের ভিত্তিতে জমা ব্লক, ফ্ল্যাগ, বা লগ করার নিয়ম "
+"যোগ করুন। নিয়মগুলি "
+
+#: includes/class-email-rejection-settings.php:387
+msgid "global rejection rules"
+msgstr "গ্লোবাল প্রত্যাখ্যান নিয়ম"
+
+#: includes/class-email-rejection-settings.php:388
+msgid "."
+msgstr "।"
+
+#: includes/class-email-rejection-settings.php:389
+msgid "Rule Mode"
+msgstr "নিয়ম মোড"
+
+#: includes/class-email-rejection-settings.php:390
+msgid "Inherit global rules + add field-specific rules"
+msgstr "গ্লোবাল নিয়ম উত্তরাধিকারসূত্রে গ্রহণ + ক্ষেত্র-নির্দিষ্ট নিয়ম যোগ করুন"
+
+#: includes/class-email-rejection-settings.php:391
+msgid "Use only field-specific rules (ignore global)"
+msgstr "শুধুমাত্র ক্ষেত্র-নির্দিষ্ট নিয়ম ব্যবহার করুন (গ্লোবাল উপেক্ষা করুন)"
+
+#: includes/class-email-rejection-settings.php:392
+msgid "Field-Specific Rules"
+msgstr "ক্ষেত্র-নির্দিষ্ট নিয়ম"
+
+#: includes/class-email-rejection-settings.php:393
+msgid "Validation Message (optional)"
+msgstr "বৈধকরণ বার্তা (ঐচ্ছিক)"
+
+#: includes/class-email-rejection-settings.php:394
+msgid "Leave blank to use the global default message."
+msgstr "গ্লোবাল ডিফল্ট বার্তা ব্যবহার করতে ফাঁকা রাখুন।"
+
+#: includes/class-email-rejection.php:639
+msgid ""
+"The email address you entered is not allowed. Please use a different email "
+"address."
+msgstr ""
+"আপনি যে ইমেইল ঠিকানা দিয়েছেন তা অনুমোদিত নয়। অনুগ্রহ করে অন্য একটি ইমেইল "
+"ঠিকানা ব্যবহার করুন।"
+
+#: includes/class-gf-zero-spam-addon.php:353
+#: includes/class-gf-zero-spam-addon.php:468
+msgid ""
+"Enable to fight spam using a simple, effective method that is more "
+"effective than the built-in anti-spam honeypot."
+msgstr ""
+"একটি সহজ, কার্যকর পদ্ধতি ব্যবহার করে স্প্যামের বিরুদ্ধে লড়াই করার জন্য "
+"সক্রিয় করুন, যা বিল্ট-ইন অ্যান্টি-স্প্যাম হানিপটের চেয়ে বেশি কার্যকর।"
+
+#: includes/class-gf-zero-spam-addon.php:406
+msgid "Prevent spam using Gravity Forms Zero Spam"
+msgstr "Gravity Forms Zero Spam ব্যবহার করে স্প্যাম প্রতিরোধ করুন"
+
+#: includes/class-gf-zero-spam-addon.php:435
+msgid "Know when entries are flagged as spam."
+msgstr "জেনে নিন কখন এন্ট্রি স্প্যাম হিসেবে পতাকা দেওয়া হয়েছে।"
+
+#: includes/class-gf-zero-spam-addon.php:436
+msgid ""
+"It can be hard to know when entries are being marked as spam. When enabled, "
+"this feature will send an automated spam report, giving you a summary of "
+"recent spam entries. If no spam entries have been submitted, no report will "
+"be sent."
+msgstr ""
+"এন্ট্রিগুলো কখন স্প্যাম হিসেবে চিহ্নিত হচ্ছে তা জানা কঠিন হতে পারে। সক্ষম "
+"হলে, এই ফিচারটি একটি স্বয়ংক্রিয় স্প্যাম রিপোর্ট পাঠাবে, যা আপনাকে "
+"সাম্প্রতিক স্প্যাম এন্ট্রিগুলোর সংক্ষিপ্তসার দেবে। যদি কোনও স্প্যাম এন্ট্রি "
+"জমা না থাকে, তবে কোন রিপোর্ট পাঠানো হবে না।"
+
+#: includes/class-gf-zero-spam-addon.php:437
+msgid ""
+"This feature works with any spam filter, including the Gravity Forms spam "
+"honeypot, Gravity Forms Zero Spam, reCAPTCHA, or others."
+msgstr ""
+"এই ফিচারটি যেকোনো স্প্যাম ফিল্টারের সঙ্গে কাজ করে, যার মধ্যে Gravity Forms "
+"স্প্যাম হানিপট, Gravity Forms Zero Spam, reCAPTCHA, অথবা অন্যান্য রয়েছে।"
+
+#: includes/class-gf-zero-spam-addon.php:439
+msgid ""
+"Note: Depending on site traffic, time-based reports may not always be sent "
+"at the scheduled frequency. {{link}}See how to set up a \"cron\" to make "
+"this more reliable{{/link}}."
+msgstr ""
+"দ্রষ্টব্য: সাইট ট্রাফিকের উপর নির্ভর করে, সময় ভিত্তিক রিপোর্ট সবসময় "
+"নির্ধারিত ফ্রিকোয়েন্সিতে পাঠানো নাও হতে পারে। {{link}}কিভাবে একটি \"ক্রন\" "
+"সেট আপ করবেন যা এটিকে আরও নির্ভরযোগ্য করবে তা দেখুন{{/link}}।"
+
+#: includes/class-gf-zero-spam-addon.php:442
+msgid "Link opens in a new tab"
+msgstr "লিঙ্কটি একটি নতুন ট্যাবে খুলবে"
+
+#: includes/class-gf-zero-spam-addon.php:451
+msgid ""
+"You have received {{total_spam_count}} spam entries from the following "
+"form(s):"
+msgstr ""
+"আপনি নিম্নলিখিত ফর্ম(গুলি) থেকে {{total_spam_count}}টি স্প্যাম এন্ট্রি "
+"পেয়েছেন:"
+
+#: includes/class-gf-zero-spam-addon.php:454
+msgid ""
+"To modify or disable this email, visit {{settings_link}}the Gravity Forms "
+"Zero Spam settings page{{/settings_link}}."
+msgstr ""
+"এই ইমেলটি পরিবর্তন বা অক্ষম করতে, {{settings_link}}Gravity Forms Zero Spam "
+"সেটিংস পেজে যান{{/settings_link}}।"
+
+#: includes/class-gf-zero-spam-addon.php:456
+msgid "The following variables may be used:"
+msgstr "নিম্নলিখিত ভেরিয়েবলগুলি ব্যবহার করা যেতে পারে:"
+
+#: includes/class-gf-zero-spam-addon.php:458
+msgid "The name of this website"
+msgstr "এই ওয়েবসাইটের নাম"
+
+#: includes/class-gf-zero-spam-addon.php:459
+msgid "The email of the site administrator"
+msgstr "সাইট প্রশাসকের ইমেইল"
+
+#: includes/class-gf-zero-spam-addon.php:460
+msgid "The total number of spam emails received since the last report."
+msgstr "সর্বশেষ রিপোর্ট থেকে প্রাপ্ত মোট স্প্যাম ইমেইল সংখ্যা।"
+
+#: includes/class-gf-zero-spam-addon.php:461
+msgid "A list of forms and the number of spam entries since the last report."
+msgstr "সর্বশেষ রিপোর্ট থেকে স্প্যাম এন্ট্রিগুলোর সংখ্যা সহ ফর্মগুলির তালিকা।"
+
+#: includes/class-gf-zero-spam-addon.php:462
+msgid ""
+"A link to the plugin settings page. Text inside the variables will be the "
+"link text. Make sure to include both the opening and closing variables."
+msgstr ""
+"প্লাগইন সেটিংস পেজের একটি লিঙ্ক। ভেরিয়েবলের মধ্যে থাকা টেক্সট হবে লিঙ্কের "
+"টেক্সট। নিশ্চিত করুন উভয় ওপেন এবং ক্লোজিং ভেরিয়েবল অন্তর্ভুক্ত আছে।"
+
+#: includes/class-gf-zero-spam-addon.php:467
+msgid "Spam Blocking"
+msgstr "স্প্যাম ব্লকিং"
+
+#: includes/class-gf-zero-spam-addon.php:468
+msgid ""
+"It is possible to enable or disable spam blocking on a per-form basis "
+"inside each form's settings."
+msgstr ""
+"প্রতিটি ফর্মের সেটিংসের ভিতরে ফর্মভিত্তিক স্প্যাম ব্লকিং সক্ষম বা অক্ষম করা "
+"সম্ভব।"
+
+#: includes/class-gf-zero-spam-addon.php:471
+msgid "Enable Zero Spam by Default"
+msgstr "ডিফল্টরূপে জিরো স্প্যাম সক্ষম করুন"
+
+#: includes/class-gf-zero-spam-addon.php:477
+msgid "Enabled: Add Zero Spam to Gravity Forms forms"
+msgstr "সক্রিয়: Gravity Forms ফর্মে জিরো স্প্যাম যুক্ত করুন"
+
+#: includes/class-gf-zero-spam-addon.php:481
+msgid "Disabled: Use Gravity Forms' built-in spam prevention"
+msgstr "অক্ষম: Gravity Forms-এর বিল্ট-ইন স্প্যাম প্রতিরোধ ব্যবহার করুন"
+
+#: includes/class-gf-zero-spam-addon.php:488
+msgid "Anti-Spam Expiration"
+msgstr "অ্যান্টি-স্প্যাম মেয়াদ শেষ হওয়া"
+
+#: includes/class-gf-zero-spam-addon.php:507
+msgid "Spam Report Email"
+msgstr "স্প্যাম রিপোর্ট ইমেইল"
+
+#: includes/class-gf-zero-spam-addon.php:511
+msgid "Spam Report Frequency"
+msgstr "স্প্যাম রিপোর্ট ফ্রিকোয়েন্সি"
+
+#: includes/class-gf-zero-spam-addon.php:513
+msgid "How frequently should spam report emails be sent?"
+msgstr "স্প্যাম রিপোর্ট ইমেইল কত ঘনঘন পাঠানো উচিত?"
+
+#: includes/class-gf-zero-spam-addon.php:519
+msgid "Disabled"
+msgstr "অক্ষম"
+
+#: includes/class-gf-zero-spam-addon.php:523
+msgid "Threshold-Based"
+msgstr "সীমার উপর ভিত্তি করে"
+
+#: includes/class-gf-zero-spam-addon.php:527
+msgid "Twice Daily"
+msgstr "দিনে দুবার"
+
+#: includes/class-gf-zero-spam-addon.php:531
+msgid "Daily"
+msgstr "দৈনিক"
+
+#: includes/class-gf-zero-spam-addon.php:535
+msgid "Weekly"
+msgstr "সাপ্তাহিক"
+
+#: includes/class-gf-zero-spam-addon.php:539
+msgid "Monthly"
+msgstr "মাসিক"
+
+#: includes/class-gf-zero-spam-addon.php:550
+msgid "Spam Entry Threshold"
+msgstr "স্প্যাম এন্ট্রি সীমা"
+
+#: includes/class-gf-zero-spam-addon.php:551
+msgid ""
+"A spam report email will be sent when the specified number of spam entries "
+"is reached."
+msgstr ""
+"নির্দিষ্ট সংখ্যক স্প্যাম এন্ট্রি পৌঁছালে একটি স্প্যাম রিপোর্ট ইমেইল পাঠানো "
+"হবে।"
+
+#: includes/class-gf-zero-spam-addon.php:569
+msgid "Entry limit has to be 1 or more."
+msgstr "এন্ট্রি সীমা অবশ্যই ১ বা তার বেশি হতে হবে।"
+
+#: includes/class-gf-zero-spam-addon.php:575
+msgid "Email Address"
+msgstr "ইমেইল ঠিকানা"
+
+#: includes/class-gf-zero-spam-addon.php:576
+msgid "Send spam report to this email address."
+msgstr "স্প্যাম রিপোর্ট এই ইমেইল ঠিকানায় পাঠান।"
+
+#: includes/class-gf-zero-spam-addon.php:586
+msgid "The email entered is invalid."
+msgstr "প্রবেশ করা ইমেইল অবৈধ।"
+
+#: includes/class-gf-zero-spam-addon.php:600
+msgid "Email Subject"
+msgstr "ইমেইল বিষয়"
+
+#: includes/class-gf-zero-spam-addon.php:602
+msgid "Your Gravity Forms spam report for {{site_name}}"
+msgstr "আপনার গ্র্যাভিটি ফর্মের স্প্যাম রিপোর্ট {{site_name}} এর জন্য"
+
+#: includes/class-gf-zero-spam-addon.php:615
+msgid "Email Message"
+msgstr "ইমেইল বার্তা"
+
+#: includes/class-gf-zero-spam-addon.php:645
+msgid "Send Test Email & Save Settings"
+msgstr "পরীক্ষামূলক ইমেইল পাঠান ও সেটিংস সংরক্ষণ করুন"
+
+#: includes/class-gf-zero-spam-addon.php:646
+msgid "Send Email & Save Settings"
+msgstr "ইমেইল পাঠান ও সেটিংস সংরক্ষণ করুন"
+
+#: includes/class-gf-zero-spam-addon.php:883
+msgid "Once Monthly"
+msgstr "মাসে একবার"
+
+#: includes/class-gf-zero-spam-addon.php:1075
+msgid "spam entry"
+msgid_plural "spam entries"
+msgstr[0] "স্প্যাম এন্ট্রি"
+msgstr[1] "স্প্যাম এন্ট্রিগুলি"
+
+#: includes/class-gf-zero-spam-addon.php:1162
+msgid ""
+"How long a spam prevention token remains valid after a visitor loads your "
+"form. If form submissions are being incorrectly flagged as spam, try "
+"increasing this value. (Default: 7 days)"
+msgstr ""
+"একজন ভিজিটর আপনার ফর্ম লোড করার পর স্প্যাম প্রতিরোধ টোকেন কতক্ষণ বৈধ থাকে। "
+"যদি ফর্ম সাবমিশন ভুলক্রমে স্প্যাম হিসেবে চিহ্নিত হয়, তাহলে এই মান বাড়ানোর "
+"চেষ্টা করুন। (ডিফল্ট: ৭ দিন)"
+
+#: includes/class-gf-zero-spam-addon.php:1166
+msgid "Expiration length"
+msgstr "মেয়াদ উত্তীর্ণের দৈর্ঘ্য"
+
+#: includes/class-gf-zero-spam-addon.php:1178
+msgid "Expiration unit"
+msgstr "মেয়াদ উত্তীর্ণের একক"
+
+#: includes/class-gf-zero-spam-addon.php:1186
+msgid "hours"
+msgstr "ঘন্টা"
+
+#: includes/class-gf-zero-spam-addon.php:1189
+msgid "days"
+msgstr "দিন"
+
+#: includes/class-gf-zero-spam-addon.php:1205
+msgid "Short expiration times may cause false positives on sites with page caching."
+msgstr ""
+"সংক্ষিপ্ত মেয়াদ উত্তীর্ণের সময় পেজ ক্যাশিং সহ সাইটগুলিতে ভুল ইতিবাচক "
+"ফলাফল ঘটাতে পারে।"
+
+#: includes/class-gf-zero-spam-addon.php:1284
+msgid "Please enter at least 1 day."
+msgstr "অনুগ্রহ করে অন্তত ১ দিন লিখুন।"
+
+#: includes/class-gf-zero-spam-addon.php:1285
+msgid "Please enter at least 1 hour."
+msgstr "অনুগ্রহ করে অন্তত ১ ঘন্টা লিখুন।"
+
+#: includes/class-gf-zero-spam-addon.php:1291
+msgid "Please select hours or days."
+msgstr "ঘন্টা অথবা দিন নির্বাচন করুন।"
+
+#: includes/class-gf-zero-spam-addon.php:1296
+msgid "The maximum expiration is 90 days."
+msgstr "সর্বাধিক মেয়াদ উত্তীর্ণ ৯০ দিন।"
+
+#: includes/class-gf-zero-spam-addon.php:1298
+msgid "The maximum expiration is 2160 hours (90 days)."
+msgstr "সর্বাধিক মেয়াদ উত্তীর্ণ ২১৬০ ঘন্টা (৯০ দিন)।"
+
+#: includes/class-gf-zero-spam-token-endpoint.php:68
+msgid "A valid form_id is required."
+msgstr "একটি বৈধ form_id প্রয়োজন।"
+
+#: includes/class-gf-zero-spam-token-endpoint.php:74
+msgid "Form not found."
+msgstr "ফর্ম পাওয়া যায়নি।"
+
+#: includes/class-gf-zero-spam-token-endpoint.php:81
+msgid "Zero Spam is not enabled for this form."
+msgstr "এই ফর্মের জন্য জিরো স্প্যাম সক্রিয় নয়।"
+
+#: includes/class-gf-zero-spam-token-endpoint.php:145
+msgid "Too many requests. Please try again later."
+msgstr "অনুরোধের সংখ্যা বেশি। দয়া করে পরে আবার চেষ্টা করুন।"
+
+#: includes/class-gf-zero-spam.php:546
+#: includes/class-gf-zero-spam.php:568
+msgid "The submission did not include a spam prevention token."
+msgstr "সাবমিশনে স্প্যাম প্রতিরোধ টোকেন ছিল না।"
+
+#: includes/class-gf-zero-spam.php:547
+msgid "The spam prevention token format is invalid."
+msgstr "স্প্যাম প্রতিরোধ টোকেনের ফরম্যাট অবৈধ।"
+
+#: includes/class-gf-zero-spam.php:548
+msgid "The spam prevention token has expired. This may be caused by page caching."
+msgstr ""
+"স্প্যাম প্রতিরোধ টোকেনের মেয়াদ উত্তীর্ণ হয়েছে। এটি পেজ ক্যাশিংয়ের কারণে "
+"হতে পারে।"
+
+#: includes/class-gf-zero-spam.php:549
+msgid "The spam prevention token was issued for a different form."
+msgstr "স্প্যাম প্রতিরোধ টোকেনটি অন্য একটি ফর্মের জন্য ইস্যু করা হয়েছে।"
+
+#: includes/class-gf-zero-spam.php:550
+msgid "The spam prevention token signature is invalid."
+msgstr "স্প্যাম প্রতিরোধ টোকেন স্বাক্ষর অবৈধ।"
+
+#: includes/class-gf-zero-spam.php:724
+msgid "Legacy spam prevention key no longer accepted. Please clear your page cache."
+msgstr ""
+"পুরাতন স্প্যাম প্রতিরোধ কী আর গ্রহণযোগ্য নয়। অনুগ্রহ করে আপনার পেজ ক্যাশে "
+"পরিষ্কার করুন।"
+
+#: includes/class-gf-zero-spam.php:730
+#: includes/class-gf-zero-spam.php:734
+msgid "The submitted key is invalid."
+msgstr "প্রদত্ত কী অবৈধ।"
+
+#: includes/class-gf-zero-spam.php:766
+msgid ""
+"Gravity Forms Zero Spam has been upgraded with improved spam protection. "
+"Please clear your page cache to ensure all forms use the new protection. "
+"Legacy support ends on %s."
+msgstr ""
+"Gravity Forms Zero Spam উন্নত স্প্যাম সুরক্ষার সাথে আপগ্রেড করা হয়েছে। "
+"অনুগ্রহ করে আপনার পেজ ক্যাশে পরিষ্কার করুন যাতে সব ফর্ম নতুন সুরক্ষা "
+"ব্যবহার করে। পুরাতন সমর্থন শেষ হবে %s তারিখে।"
+
+#: includes/class-gf-zero-spam.php:810
+msgid "This entry has been marked as spam."
+msgstr "এই এন্ট্রি স্প্যাম হিসাবে চিহ্নিত হয়েছে।"
+
+#: includes/class-email-rejection-settings.php:376
+msgid "[count] rules imported."
+msgstr "[count]টি নিয়ম আমদানি করা হয়েছে।"
+
+#: includes/class-email-rejection-settings.php:379
+msgid "Skipped [count] invalid values."
+msgstr "[count]টি অবৈধ মান বাদ দেওয়া হয়েছে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:97
+msgid "Copy global instructions"
+msgstr "গ্লোবাল নির্দেশাবলী কপি করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:98
+msgid ""
+"Copies the global AI instructions into this field so you can edit them for "
+"this form."
+msgstr ""
+"এই ফিল্ডে গ্লোবাল AI নির্দেশাবলী কপি করে আপনি এই ফর্মের জন্য এগুলি সম্পাদনা "
+"করতে পারবেন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:239
+msgid ""
+"Zero Spam blocks most spam with an invisible token check before AI is "
+"involved. Turn on the tools below to let AI handle the edge cases — "
+"catching spam that slips past, or rescuing real submissions blocked by "
+"mistake. Both use the same instructions and the same {{link}}AI "
+"service{{/link}}."
+msgstr ""
+"Zero Spam একটি অদৃশ্য টোকেন চেক ব্যবহার করে বেশিরভাগ স্প্যাম আটকায় AI’র "
+"ব্যবহারের আগেই। নিচের টুলগুলো চালু করুন যাতে AI প্রান্তিক কেসগুলো পরিচালনা "
+"করতে পারে — স্প্যাম ধরতে যা টোকেন চেক এড়িয়ে যায়, অথবা ভুলবশত আটকানো প্রকৃত "
+"জমা রক্ষা করতে। উভয়ই একই নির্দেশাবলী এবং একই {{link}}AI সার্ভিস{{/link}} "
+"ব্যবহার করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:288
+#: includes/class-gf-zero-spam-ai-review-settings.php:455
+msgid "Catch spam the token check misses"
+msgstr "যে স্প্যামগুলো টোকেন চেক মিস করে সেগুলো ধরুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:289
+msgid ""
+"Reviews submissions that were allowed through — a second opinion to catch "
+"bots that defeated the token check."
+msgstr ""
+"সেসব জমা পর্যালোচনা করে যা অনুমোদিত হয়েছে — টোকেন চেক ফাঁকি দেওয়া বট "
+"আটকানোর জন্য একটি দ্বিতীয় মতামত।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:290
+msgid ""
+"After a submission passes the normal spam checks, AI reads it and flags it "
+"as spam if it looks suspicious."
+msgstr ""
+"একটি জমা সাধারণ স্প্যাম চেক পেরোলের পর, AI এটি পড়ে এবং সন্দেহজনক মনে হলে "
+"স্প্যাম হিসেবে চিহ্নিত করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:297
+#: includes/class-gf-zero-spam-ai-review-settings.php:463
+msgid "Rescue good submissions blocked by mistake"
+msgstr "ভুলবশত আটকানো ভালো জমাগুলো রক্ষা করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:298
+msgid ""
+"Reviews submissions blocked by Zero Spam's own token check (not Akismet, "
+"the honeypot, or email rules). Always runs before notifications are sent."
+msgstr ""
+"Zero Spam-এর নিজস্ব টোকেন চেক দ্বারা আটকানো জমাগুলো পর্যালোচনা করে "
+"(Akismet, honeypot, বা ইমেইল নিয়ম দ্বারা নয়)। বিজ্ঞপ্তি পাঠানোর আগে সর্বদা "
+"চলে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:299
+msgid ""
+"If the token check blocks a submission but the content looks genuine, AI "
+"can let it through. Only submissions blocked by Zero Spam's token check are "
+"eligible; during a token-failure flood this can increase AI usage."
+msgstr ""
+"যদি টোকেন চেক একটি জমা আটকায় কিন্তু বিষয়বস্তু প্রকৃত মনে হয়, AI এটিকে "
+"অনুমতি দিতে পারে। শুধুমাত্র Zero Spam-এর টোকেন চেক দ্বারা আটকানো জমাগুলোই "
+"এই সুবিধার যোগ্য; টোকেন ব্যর্থতার সময় AI ব্যবহারে বৃদ্ধি হতে পারে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:306
+msgid "AI instructions"
+msgstr "AI নির্দেশাবলী"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:307
+msgid ""
+"Tell the AI how to evaluate submissions — what counts as spam for your site "
+"and what doesn't."
+msgstr ""
+"AI কে বলুন কিভাবে জমাগুলো মূল্যায়ন করতে হবে — আপনার সাইটে কি স্প্যাম হিসেবে "
+"গণ্য হবে এবং কি হবে না।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:308
+msgid ""
+"Tell the AI what counts as spam on your site. These instructions are used "
+"by both tools above; the default works well for most sites."
+msgstr ""
+"AI কে বলুন আপনার সাইটে কি স্প্যাম হিসেবে গণ্য হবে। এই নির্দেশাবলী উপরের উভয় "
+"টুলেই ব্যবহৃত হয়; ডিফল্ট বেশিরভাগ সাইটের জন্য ভালো কাজ করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:316
+msgid "AI spam protection"
+msgstr "AI স্প্যাম সুরক্ষা"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:326
+msgid "AI service"
+msgstr "AI সার্ভিস"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:327
+msgid "Chooses which configured AI service Zero Spam uses to review submissions."
+msgstr ""
+"Zero Spam কোন কনফিগারকৃত AI সার্ভিস ব্যবহার করে জমা পর্যালোচনা করবে তা "
+"নির্বাচন করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:328
+msgid "Automatic uses the site default AI service."
+msgstr "অটোমেটিক সাইটের ডিফল্ট AI সার্ভিস ব্যবহার করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:338
+msgid "How sure must AI be to flag spam?"
+msgstr "স্প্যাম হিসেবে চিহ্নিত করার জন্য AI কতটা নিশ্চিত হতে হবে?"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:339
+msgid "Sets how confident AI must be before Zero Spam marks a submission as spam."
+msgstr ""
+"Zero Spam একটি জমাকে স্প্যাম হিসেবে চিহ্নিত করার আগে AI কতটা আত্মবিশ্বাসী "
+"হতে হবে তা নির্ধারণ করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:340
+msgid "Stricter = fewer real submissions flagged, but more spam may slip through."
+msgstr "কঠোর মানে কম প্রকৃত জমা চিহ্নিত হবে, তবে বেশি স্প্যাম ফাঁকি পেতে পারে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:345
+msgid "Balanced — flag when fairly sure (recommended)"
+msgstr "সামঞ্জস্যপূর্ণ — যথেষ্ট নিশ্চিত হলে চিহ্নিত করুন (সুপারিশকৃত)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:349
+msgid "Strict — only flag when very sure"
+msgstr "কঠোর — শুধুমাত্র খুব নিশ্চিত হলে ফ্ল্যাগ করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:359
+msgid "How sure must AI be to rescue a blocked submission?"
+msgstr "একটি অবরুদ্ধ সাবমিশন উদ্ধার করতে AI কতটা নিশ্চিত হতে হবে?"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:360
+msgid ""
+"Sets how confident AI must be before Zero Spam restores a submission "
+"blocked by the token check."
+msgstr ""
+"নির্ধারণ করে AI কতটা আত্মবিশ্বাসী হতে হবে তার আগে জিরো স্প্যাম টোকেন চেক "
+"দ্বারা অবরুদ্ধ সাবমিশন পুনরুদ্ধার করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:361
+msgid ""
+"Balanced works well for most sites; a restore cannot be undone, so more "
+"cautious options are available."
+msgstr ""
+"সামঞ্জস্যপূর্ণ বেশিরভাগ সাইটের জন্য ভাল কাজ করে; একটি পুনরুদ্ধার ফেরানো "
+"যায় না, তাই আরও সতর্ক অপশনগুলি উপলব্ধ।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:366
+msgid "Balanced — rescue when fairly sure (recommended)"
+msgstr "সামঞ্জস্যপূর্ণ — যথেষ্ট নিশ্চিত হলে উদ্ধার করুন (প্রস্তাবিত)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:370
+msgid "Cautious — rescue only when very sure"
+msgstr "সতর্ক — শুধুমাত্র খুব নিশ্চিত হলে উদ্ধার করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:374
+msgid "Very cautious — rescue only when almost certain"
+msgstr "খুব সতর্ক — প্রায় নিশ্চিত হলে মাত্র উদ্ধার করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:383
+msgid "Advanced AI settings"
+msgstr "উন্নত AI সেটিংস"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:456
+msgid ""
+"When enabled, the AI reads each submission to this form and flags it as "
+"spam if the content looks suspicious."
+msgstr ""
+"সক্রিয় হলে, AI এই ফর্মের প্রতিটি সাবমিশন পড়ে এবং যদি বিষয়বস্তু সন্দেহজনক "
+"মনে হয় তবে এটি স্প্যাম হিসেবে চিহ্নিত করে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:464
+msgid ""
+"When enabled, AI can restore this form's submissions that the Zero Spam "
+"token check flagged but the content appears legitimate."
+msgstr ""
+"সক্রিয় হলে, AI এই ফর্মের সেইসব সাবমিশন পুনরুদ্ধার করতে পারে যেগুলো জিরো "
+"স্প্যাম টোকেন চেক দ্বারা চিহ্নিত হয়েছে কিন্তু বিষয়বস্তু বৈধ মনে হয়।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:465
+msgid "Rescue always runs during submission, before notifications are sent."
+msgstr "সাবমিশনের সময় সর্বদা উদ্ধার চালানো হয়, বিজ্ঞপ্তি পাঠানোর আগে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:472
+msgid "AI instructions for this form"
+msgstr "এই ফর্মের জন্য AI নির্দেশাবলী"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:473
+msgid "Tell the AI how to evaluate this form's submissions."
+msgstr "AI-কে বলুন কীভাবে এই ফর্মের সাবমিশন মূল্যায়ন করতে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:474
+msgid "Leave blank to use the global instructions."
+msgstr "গ্লোবাল নির্দেশাবলী ব্যবহারের জন্য ফাঁকা রেখে দিন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:482
+msgid "Skip these fields"
+msgstr "এই ক্ষেত্রগুলি বাদ দিন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:483
+msgid ""
+"Selected fields are left out of the content the AI reviews — use this for "
+"fields with sensitive data."
+msgstr ""
+"নির্বাচিত ক্ষেত্রগুলি AI যেটি পর্যালোচনা করে তার বাইরে রাখা হয় — সংবেদনশীল "
+"ডেটার জন্য এটি ব্যবহার করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:484
+msgid "Left out of what AI reads — use for sensitive data."
+msgstr "AI যা পড়ে তার বাইরে রাখা হয়েছে — সংবেদনশীল ডেটার জন্য ব্যবহার করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:496
+msgid "Limit AI checks per hour"
+msgstr "প্রতি ঘণ্টায় AI চেক সীমাবদ্ধ করুন"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:497
+msgid ""
+"Limits how many of this form's submissions are sent to the AI each hour, to "
+"control usage."
+msgstr ""
+"প্রতি ঘণ্টায় AI-কে এই ফর্মের কতগুলি সাবমিশন পাঠানো হবে তা নিয়ন্ত্রণ করে, "
+"ব্যবহারের নিয়ন্ত্রণের জন্য।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:498
+msgid "0 = no limit."
+msgstr "0 = সীমাবদ্ধতা নেই।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:530
+msgid "Minimum confidence must be a number between 0.5 and 1."
+msgstr "সর্বনিম্ন বিশ্বাসযোগ্যতা ০.৫ থেকে ১ এর মধ্যে একটি সংখ্যা হতে হবে।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:711
+msgid "Automatic (site default)"
+msgstr "স্বয়ংক্রিয় (সাইট ডিফল্ট)"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:765
+msgid ""
+"The selected AI service is no longer available; switch to Automatic, choose "
+"another service, or update connectors in [link]Settings > Connectors[/link]."
+msgstr ""
+"নির্বাচিত AI সেবা আর উপলব্ধ নেই; স্বয়ংক্রিয় এ পরিবর্তন করুন, অন্য কোনো "
+"সেবা বেছে নিন, অথবা [link]সেটিংস > সংযোগকারীগণ[/link] এ সংযোগকারীগণ আপডেট "
+"করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:771
+msgid ""
+"AI review or rescue is enabled, but no AI service is configured for text "
+"generation. Set one up in [link]Settings > Connectors[/link]."
+msgstr ""
+"AI পর্যালোচনা বা উদ্ধার সক্ষম করা হয়েছে, কিন্তু টেক্সট জেনারেশনের জন্য "
+"কোনো AI সেবা কনফিগার করা হয়নি। [link]সেটিংস > সংযোগকারীগণ[/link] এ একটি "
+"সেট আপ করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:848
+msgid "Review this Gravity Forms submission and decide whether it is spam."
+msgstr "এই Gravity Forms জমা পর্যালোচনা করুন এবং সিদ্ধান্ত নিন এটি স্প্যাম কিনা।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:849
+msgid ""
+"Classify it as spam only when it is clearly unsolicited, deceptive, "
+"malicious, automated, or sent in bulk."
+msgstr ""
+"শুধুমাত্র তখনই এটিকে স্প্যাম হিসেবে শ্রেণীবদ্ধ করুন যখন এটি স্পষ্টভাবে "
+"অনিচ্ছাকৃত, প্রতারণামূলক, ক্ষতিকারক, স্বয়ংক্রিয়, অথবা ভরসাম্যিকভাবে "
+"প্রেরিত হয়।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:850
+msgid ""
+"Treat ordinary customer messages — questions, support requests, quote "
+"requests, bookings, job applications, and other coherent human inquiries — "
+"as legitimate, even when they are brief or short on detail."
+msgstr ""
+"সাধারণ গ্রাহক বার্তা — প্রশ্ন, সহায়তা অনুরোধ, উদ্ধৃতি অনুরোধ, বুকিং, "
+"চাকরির আবেদন এবং অন্যান্য সঙ্গতিপূর্ণ মানব অনুরোধ — সংক্ষিপ্ত বা তথ্যহীন "
+"হলেও বৈধ হিসেবে বিবেচনা করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:851
+msgid ""
+"The confidence value reports how certain you are of the classification you "
+"return, whether spam or legitimate. It is not a measure of how spam-like "
+"the message is."
+msgstr ""
+"বিশ্বাসযোগ্যতার মানটি রিপোর্ট করে আপনি যে শ্রেণীবিভাগ প্রদান করেছেন তার "
+"প্রতি কতটা নিশ্চিত, স্প্যাম কিংবা বৈধ হোক না কেন। এটি বার্তাটি কতটা স্প্যাম "
+"সদৃশ তার মাপ নয়।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:852
+msgid ""
+"When the classification is clear, report high confidence: use 0.98 to 1.00 "
+"for obvious spam, and equally for an ordinary, coherent human submission "
+"that shows no spam signals."
+msgstr ""
+"যখন শ্রেণীবিভাগ স্পষ্ট হয়, তখন উচ্চ বিশ্বাসযোগ্যতা রিপোর্ট করুন: স্পষ্ট "
+"স্প্যামের জন্য ০.৯৮ থেকে ১.০০ ব্যবহার করুন, এবং একইভাবে একটি সাধারণ, "
+"সঙ্গতিপূর্ণ মানব জমার জন্য যা কোনো স্প্যাম সংকেত দেখায় না।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:853
+msgid ""
+"Use 0.85 to 0.97 when your classification is probable but some context is "
+"missing or mixed."
+msgstr ""
+"আপনার শ্রেণীবিভাগ সম্ভাব্য হলেও কিছু প্রসঙ্গ অনুপস্থিত বা মিশ্রিত থাকলে "
+"০.৮৫ থেকে ০.৯৭ ব্যবহার করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:854
+msgid ""
+"Use a value below 0.85 only when the submission is genuinely ambiguous or "
+"too sparse to judge."
+msgstr ""
+"শুধুমাত্র যখন জমাটি প্রকৃতপক্ষে অস্পষ্ট বা মূল্যায়নের জন্য খুবই কম "
+"তথ্যযুক্ত হয় তখন ০.৮৫ এর নিচের মান ব্যবহার করুন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:855
+msgid "It is better to miss a piece of spam than to block a legitimate submission."
+msgstr "একটি বৈধ জমাকে ব্লক করার চেয়ে একটি স্প্যাম মিস করা ভালো।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:856
+msgid ""
+"Use only the form title, source path, field labels, field types, and "
+"submitted values provided, and do not guess about missing context."
+msgstr ""
+"শুধুমাত্র ফর্ম শিরোনাম, উৎস পথ, ক্ষেত্রের লেবেল, ক্ষেত্রের ধরন এবং জমা "
+"দেওয়া মানগুলি ব্যবহার করুন, এবং অনুপস্থিত প্রসঙ্গ সম্পর্কে অনুমান করবেন না।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:857
+msgid "Return JSON matching the supplied schema."
+msgstr "প্রদত্ত স্কিমার সাথে মিল রেখে JSON ফেরত দিন।"
+
+#: includes/class-gf-zero-spam-ai-review-settings.php:858
+msgid ""
+"The reason must be concise and must not quote personal data such as names "
+"or email addresses."
+msgstr ""
+"কারণ সংক্ষিপ্ত হতে হবে এবং ব্যক্তিগত তথ্য যেমন নাম বা ইমেইল ঠিকানা উদ্ধৃত "
+"করা যাবে না।"
+
+#: includes/class-gf-zero-spam-ai-review.php:1615
+msgid "AI classified this submission as spam."
+msgstr "AI এই জমাটিকে স্প্যাম হিসেবে শ্রেণীবদ্ধ করেছে।"
+
+#: includes/class-gf-zero-spam-ai-review.php:1865
+msgid ""
+"Zero Spam: AI recovered this submission as legitimate (confidence "
+"[confidence])."
+msgstr ""
+"শূন্য স্প্যাম: AI এই জমাটি বৈধ হিসেবে পুনরুদ্ধার করেছে (বিশ্বাসযোগ্যতা "
+"[confidence])।"
+
+#: includes/class-gf-zero-spam-addon.php:353
+msgid ""
+"When Zero Spam is disabled in the global plugin settings, all spam checks "
+"are turned off for every form and this setting has no effect."
+msgstr ""
+"যখন গ্লোবাল প্লাগইন সেটিংসে Zero Spam নিষ্ক্রিয় থাকে, তখন প্রতিটি ফর্মের "
+"জন্য সমস্ত স্প্যাম পরীক্ষা বন্ধ থাকে এবং এই সেটিংটির কোনো প্রভাব থাকে না।"
+
+#: includes/class-gf-zero-spam-addon.php:681
+msgid "Zero Spam token"
+msgstr "Zero Spam টোকেন"
+
+#: includes/class-gf-zero-spam-addon.php:685
+msgid "Shield silentCAPTCHA"
+msgstr "Shield silentCAPTCHA"
+
+#: includes/class-gf-zero-spam-addon.php:689
+msgid "AI Spam Review"
+msgstr "AI স্প্যাম পর্যালোচনা"
+
+#: includes/class-gf-zero-spam-addon.php:697
+msgid "Shield Security is not active — this check is skipped."
+msgstr "Shield Security সক্রিয় নয় — এই পরীক্ষা বাদ দেওয়া হয়েছে।"
+
+#: includes/class-gf-zero-spam-addon.php:701
+msgid "AI Spam Review is not configured — this check is skipped."
+msgstr "AI স্প্যাম পর্যালোচনা কনফিগার করা হয়নি — এই পরীক্ষা বাদ দেওয়া হয়েছে।"
+
+#: includes/class-gf-zero-spam-addon.php:706
+msgid "First check"
+msgstr "প্রথম পরীক্ষা"
+
+#: includes/class-gf-zero-spam-addon.php:707
+msgid "Second check"
+msgstr "দ্বিতীয় পরীক্ষা"
+
+#: includes/class-gf-zero-spam-addon.php:708
+msgid "Third check"
+msgstr "তৃতীয় পরীক্ষা"
+
+#: includes/class-gf-zero-spam-addon.php:724
+msgid "Stop after first detection"
+msgstr "প্রথম সনাক্তকরণের পর বন্ধ করুন"
+
+#: includes/class-gf-zero-spam-addon.php:728
+msgid ""
+"When enabled, remaining checks are skipped once a check flags a submission "
+"as spam. When disabled, every check still runs and records its verdict as "
+"an entry note; a flagged submission is never restored by a later check."
+msgstr ""
+"সক্রিয় হলে, যখন একটি পরীক্ষা সাবমিশনকে স্প্যাম হিসেবে চিহ্নিত করে, তখন "
+"বাকি পরীক্ষা বাদ দেওয়া হয়। নিষ্ক্রিয় হলে, প্রতিটি পরীক্ষা এখনও চলে এবং "
+"তার রায় একটি এন্ট্রি নোট হিসেবে রেকর্ড করে; একটি চিহ্নিত সাবমিশন পরবর্তী "
+"পরীক্ষার মাধ্যমে কখনও পুনরুদ্ধার হয় না।"
+
+#: includes/class-gf-zero-spam-addon.php:732
+msgid "Spam Check Order"
+msgstr "স্প্যাম পরীক্ষা ক্রম"
+
+#: includes/class-gf-zero-spam-addon.php:733
+msgid ""
+"Controls the order in which the spam checks run during form submission. "
+"Unavailable checks keep their position and are skipped."
+msgstr ""
+"ফর্ম সাবমিশনের সময় স্প্যাম পরীক্ষাগুলি কোন ক্রমে চলবে তা নিয়ন্ত্রণ করে। "
+"উপলব্ধ নয় এমন পরীক্ষা তাদের অবস্থান বজায় রেখে বাদ দেওয়া হয়।"
+
+#: includes/class-gf-zero-spam-ai-review.php:348
+msgid "AI review also classified this submission as spam (confidence [confidence])."
+msgstr ""
+"AI পর্যালোচনাও এই সাবমিশনকে স্প্যাম হিসেবে শ্রেণীবদ্ধ করেছে (confidence "
+"[confidence])।"
+
+#: includes/class-gf-zero-spam-ai-review.php:354
+msgid ""
+"AI review classified this submission as legitimate (confidence "
+"[confidence])."
+msgstr ""
+"AI পর্যালোচনা এই সাবমিশনকে বৈধ হিসেবে শ্রেণীবদ্ধ করেছে (confidence "
+"[confidence])।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:307
+msgid "This submission was flagged as spam by [filter]."
+msgstr "এই সাবমিশনটি [filter] দ্বারা স্প্যাম হিসেবে চিহ্নিত করা হয়েছে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:362
+msgid "Shield silentCAPTCHA also identified this submission as spam."
+msgstr "Shield silentCAPTCHA এই সাবমিশনটিকে স্প্যাম হিসেবে শনাক্ত করেছে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:367
+msgid "Shield silentCAPTCHA did not identify this submission as spam."
+msgstr "Shield silentCAPTCHA এই সাবমিশনটিকে স্প্যাম হিসেবে শনাক্ত করেনি।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:429
+msgid "This entry has been marked as spam by [filter]."
+msgstr "এই এন্ট্রিটি [filter] দ্বারা স্প্যাম হিসেবে চিহ্নিত হয়েছে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:530
+msgid "Enable Shield silentCAPTCHA by Default"
+msgstr "ডিফল্ট হিসেবে Shield silentCAPTCHA সক্রিয় করুন"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:574
+msgid "Enable Shield silentCAPTCHA for this form"
+msgstr "এই ফর্মের জন্য Shield silentCAPTCHA সক্রিয় করুন"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:940
+msgid "This setting is currently overriding the global default setting."
+msgstr "এই সেটিং বর্তমানে গ্লোবাল ডিফল্ট সেটিংকে ওভাররাইড করছে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:941
+msgid "This setting is currently inheriting the global default setting."
+msgstr "এই সেটিং বর্তমানে গ্লোবাল ডিফল্ট সেটিং উত্তরাধিকারসূত্রে গ্রহণ করছে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:990
+msgid "Learn More"
+msgstr "আরও জানুন"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1102
+msgid ""
+"Runs Shield silentCAPTCHA server-side for this form. No field needs to be "
+"added to the form."
+msgstr ""
+"এই ফর্মের জন্য সার্ভার-সাইডে Shield silentCAPTCHA চালায়। ফর্মে কোনো ফিল্ড "
+"যোগ করার দরকার নেই।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1113
+msgid ""
+"Enable Shield silentCAPTCHA by default for forms. No field needs to be "
+"added to the form. Forms without their own Shield setting will use this "
+"default."
+msgstr ""
+"ফর্মগুলোর জন্য ডিফল্টভাবে Shield silentCAPTCHA সক্রিয় করুন। ফর্মে কোনো "
+"ফিল্ড যোগ করার দরকার নেই। নিজস্ব Shield সেটিং না থাকা ফর্মগুলো এই ডিফল্ট "
+"ব্যবহার করবে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1124
+msgid ""
+"Shield silentCAPTCHA is currently unavailable because Shield Security is "
+"not installed or active. This setting is disabled until Shield becomes "
+"available again."
+msgstr ""
+"Shield silentCAPTCHA বর্তমানে অনুপলব্ধ কারণ Shield Security ইনস্টল বা "
+"সক্রিয় নয়। Shield পুনরায় উপলব্ধ হওয়া পর্যন্ত এই সেটিং নিষ্ক্রিয় থাকবে।"
+
+#: includes/class-gf-zero-spam-shield-silent-captcha.php:1135
+msgid ""
+"Shield silentCAPTCHA is available, but Shield's bot threshold is 0, so it "
+"will not flag submissions until that threshold is increased."
+msgstr ""
+"Shield silentCAPTCHA উপলব্ধ, কিন্তু Shield-এর বট থ্রেশহোল্ড ০, তাই "
+"থ্রেশহোল্ড বাড়ানো না হওয়া পর্যন্ত এটি সাবমিশন ফ্ল্যাগ করবে না।"
+
+#: includes/class-gf-zero-spam.php:611
+msgid "The Zero Spam token check also flagged this submission: [reason]"
+msgstr "Zero Spam টোকেন চেক এই সাবমিশনটিও ফ্ল্যাগ করেছে: [reason]"
+
+#: includes/class-gf-zero-spam.php:618
+msgid "The Zero Spam token check found a valid token for this submission."
+msgstr "Zero Spam টোকেন চেক এই সাবমিশনের জন্য একটি বৈধ টোকেন খুঁজে পেয়েছে।"
+
+#: includes/class-email-rejection-settings.php:372
+msgid ""
+"Email Rejection Rules are turned off, so these rules will not run. "
+"[link]Turn on Email Rejection Rules[/link] in the Zero Spam settings."
+msgstr ""
+"ইমেইল প্রত্যাখ্যানের নিয়মগুলি বন্ধ আছে, তাই এই নিয়মগুলো চলবে না। Zero "
+"Spam সেটিংসে [link]ইমেইল প্রত্যাখ্যানের নিয়মগুলো চালু করুন[/link]।"
+
+#: includes/class-gf-zero-spam-addon.php:449
+msgctxt "The heading inside the email body."
+msgid "Gravity Forms Spam Report"
+msgstr "Gravity Forms স্প্যাম রিপোর্ট"

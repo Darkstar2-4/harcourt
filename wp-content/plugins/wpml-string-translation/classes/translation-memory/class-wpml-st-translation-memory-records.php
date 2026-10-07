@@ -2,20 +2,12 @@
 
 class WPML_ST_Translation_Memory_Records {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param array $strings
-	 * @param string $source_lang
-	 * @param string $target_lang
-	 *
-	 * @return array
-	 */
 	public function get( $strings, $source_lang, $target_lang, $context = null, $gettext_context = null ) {
 		if ( ! $strings ) {
 			return [];
@@ -52,12 +44,6 @@ class WPML_ST_Translation_Memory_Records {
 
 		$records = $this->wpdb->get_results( $this->wpdb->prepare( $base_sql . $context_where . $language_where, $prepare_args ) );
 
-		/**
-		 * Fallback request to fetch any available translation for the string regardless of context and gettext_context.
-		 *
-		 * This functionality is needed if a particular string doesn't have a translation, but the same string in a different
-		 * domain does have.
-		 */
 		if ( empty( $records ) && ( $context || $gettext_context ) ) {
 			$prepare_args  = [ $source_lang ];
 

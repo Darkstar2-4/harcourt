@@ -2,11 +2,6 @@
 
 class WPML_Translation_Jobs_Missing_TP_ID_Migration_Notice extends WPML_Translation_Jobs_Migration_Notice {
 
-	/**
-	 * It gets the definition of the notice's content.
-	 *
-	 * @return array
-	 */
 	protected function get_model() {
 		return array(
 			'strings' => array(
@@ -26,11 +21,6 @@ class WPML_Translation_Jobs_Missing_TP_ID_Migration_Notice extends WPML_Translat
 		);
 	}
 
-	/**
-	 * It gets the ID of the notice.
-	 *
-	 * @return string
-	 */
 	protected function get_notice_id() {
 		return 'translation-jobs-migration';
 	}

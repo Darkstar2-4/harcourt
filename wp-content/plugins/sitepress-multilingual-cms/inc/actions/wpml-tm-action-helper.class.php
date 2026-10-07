@@ -13,24 +13,15 @@ class WPML_TM_Action_Helper {
 		return $package_helper->create_translation_package( $post );
 	}
 
-	public function add_translation_job( $rid, $translator_id, $translation_package, $batch_options = array(), $sendFrom = null ) {
+	public function add_translation_job( $rid, $translator_id, $translation_package, $batch_options = array(), $sendFrom = null, $addJobLogs = false ) {
 
 		return $this->get_update_translation_action( $translation_package )
-					->add_translation_job( $rid, $translator_id, $translation_package, $batch_options, $sendFrom );
+					->add_translation_job( $rid, $translator_id, $translation_package, $batch_options, $sendFrom, $addJobLogs );
 	}
 
-	/**
-	 * calculate post md5
-	 *
-	 * @param WP_Post|int $post
-	 *
-	 * @return string
-	 * @todo full support for custom posts and custom taxonomies
-	 */
 	public function post_md5( $post ) {
 		$post_key = '';
 
-		// TODO: [WPML 3.2] Make it work with PackageTranslation: this is not the right way anymore
 		if ( isset( $post->external_type ) && $post->external_type ) {
 			foreach ( $post->string_data as $key => $value ) {
 				$post_key .= $key . $value;
@@ -48,15 +39,6 @@ class WPML_TM_Action_Helper {
 			$content = $post->post_content;
 			$content = apply_filters( 'wpml_pb_shortcode_content_for_translation', $content, $post->ID );
 
-			/**
-			 * Filters the post content used to build the post md5.
-			 *
-			 * @since 2.10.0
-			 * @internal
-			 *
-			 * @param string  $content
-			 * @param ?WP_Post $post
-			 */
 			$content = apply_filters( 'wpml_tm_post_md5_content', $content, $post );
 
 			$post_key = $post->post_title . ';' . $content . ';' . $post->post_excerpt . ';' . implode( ',', $post_tags ) . ';' . implode( ',', $post_categories ) . ';' . implode( ',', $custom_fields_values );
@@ -78,7 +60,6 @@ class WPML_TM_Action_Helper {
 		global $sitepress;
 
 		$terms = array();
-		// we shouldn't adjust term by current language need get terms by post_id
 		$hasFilter = remove_filter( 'get_term', array( $sitepress, 'get_term_adjust_id' ), 1 );
 
 		$post_taxonomy_terms = wp_get_object_terms( $post->ID, $taxonomy );
@@ -104,7 +85,6 @@ class WPML_TM_Action_Helper {
 
 		$post_taxonomies = array();
 
-		// get custom taxonomies
 		$taxonomies = $wpdb->get_col(
 			$wpdb->prepare(
 				"

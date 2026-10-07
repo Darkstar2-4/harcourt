@@ -1,28 +1,13 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Term_Element extends WPML_Translation_Element {
-	/** @var string Taxonomy name */
 	protected $taxonomy;
 
-	/**
-	 * WPML_Term_Element constructor.
-	 *
-	 * @param int           $id term_id of Term Element.
-	 * @param SitePress     $sitepress
-	 * @param string        $taxonomy
-	 * @param WPML_WP_Cache $wpml_cache
-	 */
-	public function __construct( $id, SitePress $sitepress, $taxonomy = '', WPML_WP_Cache $wpml_cache = null ) {
+	public function __construct( $id, SitePress $sitepress, $taxonomy = '', ?WPML_WP_Cache $wpml_cache = null ) {
 		$this->taxonomy = $taxonomy;
 		parent::__construct( $id, $sitepress, $wpml_cache );
 	}
 
-	/**
-	 * @return array|null|WP_Error|WP_Term
-	 */
 	public function get_wp_object() {
 		$has_filter = remove_filter( 'get_term', array( $this->sitepress, 'get_term_adjust_id' ), 1 );
 
@@ -39,11 +24,6 @@ class WPML_Term_Element extends WPML_Translation_Element {
 		return $term;
 	}
 
-	/**
-	 * @param WP_Term $term
-	 *
-	 * @return string
-	 */
 	public function get_type( $term = null ) {
 		if ( ! $this->taxonomy && $term instanceof WP_Term ) {
 			$this->taxonomy = $term->taxonomy;
@@ -76,12 +56,6 @@ class WPML_Term_Element extends WPML_Translation_Element {
 		return $element_id;
 	}
 
-	/**
-	 * @param null|stdClass $element_data null, or a standard object containing at least the `translation_id`, `language_code`, `element_id`, `source_language_code`, `element_type`, and `original` properties.
-	 *
-	 * @return WPML_Term_Element
-	 * @throws \InvalidArgumentException Exception.
-	 */
 	public function get_new_instance( $element_data ) {
 		return new WPML_Term_Element( $element_data->element_id, $this->sitepress, $this->taxonomy, $this->wpml_cache );
 	}

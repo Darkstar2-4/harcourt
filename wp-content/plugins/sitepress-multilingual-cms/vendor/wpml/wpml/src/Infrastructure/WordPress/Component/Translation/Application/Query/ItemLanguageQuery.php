@@ -10,26 +10,13 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\PHP\Exception\InvalidArgumentException;
 
 
-/**
- * @phpstan-type ItemLanguageRow array{
- *   itemId: int,
- *   type: 'post'|'package'|'st-batch',
- *   language: string
- * }
- */
 class ItemLanguageQuery implements ItemLanguageQueryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, ItemLanguageRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @phpstan-param  QueryHandlerInterface<int, ItemLanguageRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare

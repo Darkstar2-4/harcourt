@@ -3,7 +3,6 @@
 use WPML\LIB\WP\User;
 
 class WPML_TM_REST_Apply_TP_Translation extends WPML_REST_Base {
-	/** @var WPML_TP_Apply_Translations */
 	private $apply_translations;
 
 	public function __construct( WPML_TP_Apply_Translations $apply_translations ) {
@@ -26,9 +25,6 @@ class WPML_TM_REST_Apply_TP_Translation extends WPML_REST_Base {
 		);
 	}
 
-	/**
-	 * @return WP_Error|int|array
-	 */
 	public function apply_translations( WP_REST_Request $request ) {
 		try {
 			$params = $request->get_json_params();
@@ -60,11 +56,6 @@ class WPML_TM_REST_Apply_TP_Translation extends WPML_REST_Base {
 		];
 	}
 
-	/**
-	 * @param array $job
-	 *
-	 * @return bool
-	 */
 	private function validate_job( array $job ) {
 		return isset( $job['id'], $job['type'] ) && \WPML_TM_Job_Entity::is_type_valid( $job['type'] );
 	}

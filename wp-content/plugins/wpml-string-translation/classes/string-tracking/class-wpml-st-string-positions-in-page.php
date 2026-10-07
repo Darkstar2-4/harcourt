@@ -6,7 +6,6 @@ class WPML_ST_String_Positions_In_Page extends WPML_ST_String_Positions {
 	const KIND_FRONTEND = ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_FRONTEND;
 	const TEMPLATE = 'positions-in-page.twig';
 
-	/** @var WPML_ST_String_Factory $string_factory */
 	private $string_factory;
 
 	public function __construct(

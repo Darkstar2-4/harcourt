@@ -9,12 +9,6 @@ class StringPackageTranslatorNoteRepository implements TranslatorNoteRepositoryI
   const STRING_PACKAGES_TABLE = 'icl_string_packages';
 
 
-  /**
-   * @param int $id
-   * @param string $note
-   * @return bool
-   * @throws DatabaseErrorException
-   */
   public function save( int $id, string $note ) {
     $wpdb = $GLOBALS['wpdb'];
 

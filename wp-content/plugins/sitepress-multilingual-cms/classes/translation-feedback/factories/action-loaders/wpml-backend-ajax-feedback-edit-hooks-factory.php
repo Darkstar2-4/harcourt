@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_AJAX_Feedback_Edit_Hooks_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_AJAX_Feedback_Edit_Hooks_Factory extends WPML_AJAX_Base_Factory implements IWPML_Backend_Action_Loader {
 
 	const AJAX_ACTION = 'wpml-tf-backend-feedback-edit';

@@ -14,11 +14,6 @@ use WPML\Core\Twig\Node\EmbedNode;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Node\Expression\NameExpression;
 use WPML\Core\Twig\Token;
-/**
- * Embeds a template.
- *
- * @final
- */
 class EmbedTokenParser extends \WPML\Core\Twig\TokenParser\IncludeTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)
@@ -32,10 +27,8 @@ class EmbedTokenParser extends \WPML\Core\Twig\TokenParser\IncludeTokenParser
         } elseif ($parent instanceof \WPML\Core\Twig\Node\Expression\NameExpression) {
             $parentToken = new \WPML\Core\Twig\Token(\WPML\Core\Twig\Token::NAME_TYPE, $parent->getAttribute('name'), $token->getLine());
         }
-        // inject a fake parent to make the parent() function work
         $stream->injectTokens([new \WPML\Core\Twig\Token(\WPML\Core\Twig\Token::BLOCK_START_TYPE, '', $token->getLine()), new \WPML\Core\Twig\Token(\WPML\Core\Twig\Token::NAME_TYPE, 'extends', $token->getLine()), $parentToken, new \WPML\Core\Twig\Token(\WPML\Core\Twig\Token::BLOCK_END_TYPE, '', $token->getLine())]);
         $module = $this->parser->parse($stream, [$this, 'decideBlockEnd'], \true);
-        // override the parent with the correct one
         if ($fakeParentToken === $parentToken) {
             $module->setNode('parent', $parent);
         }

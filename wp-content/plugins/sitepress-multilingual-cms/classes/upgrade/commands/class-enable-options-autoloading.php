@@ -4,7 +4,6 @@ namespace WPML\Upgrade\Command;
 
 class EnableOptionsAutoloading implements \IWPML_Upgrade_Command {
 
-	/** @var bool */
 	private $results;
 
 	public function run() {
@@ -17,13 +16,7 @@ class EnableOptionsAutoloading implements \IWPML_Upgrade_Command {
 
 		$where = 'WHERE option_name IN (' . wpml_prepare_in( $autoload_options ) . ") AND autoload = 'no'";
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$query_result = $wpdb->query( "UPDATE {$wpdb->prefix}options SET autoload = 'yes' {$where}" );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		$this->results = false !== $query_result;
 

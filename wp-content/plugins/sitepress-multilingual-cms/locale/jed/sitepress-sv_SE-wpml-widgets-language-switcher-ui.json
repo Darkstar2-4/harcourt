@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
-         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
-            "För att visa detta anpassade HTML-block på ett specifikt språk, placera det först i ett gruppblock."
-         ],
-         "Place inside Group block": [
-            "Placera i gruppblock"
-         ],
          "All": [
             "Alla"
+         ],
+         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
+            "För att visa detta anpassade HTML-block på ett specifikt språk, placera det först inuti ett gruppblock."
+         ],
+         "Place inside Group block": [
+            "Placera inuti gruppblock"
          ],
          "Display on language": [
             "Visa på språk"

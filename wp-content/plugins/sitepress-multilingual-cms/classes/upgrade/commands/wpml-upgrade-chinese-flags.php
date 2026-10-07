@@ -4,13 +4,6 @@ class WPML_Upgrade_Chinese_Flags implements IWPML_Upgrade_Command {
 
 	private $wpdb;
 
-	/**
-	 * WPML_Upgrade_Chinese_Flags constructor.
-	 *
-	 * @param array $args {
-	 *                    'wpdb' => @type wpdb
-	 *                    }
-	 */
 	public function __construct( array $args ) {
 		$this->wpdb = $args['wpdb'];
 	}
@@ -40,11 +33,6 @@ class WPML_Upgrade_Chinese_Flags implements IWPML_Upgrade_Command {
 		return true;
 	}
 
-	/**
-	 * @param \stdClass $flag
-	 *
-	 * @return bool
-	 */
 	protected function must_update( $flag ) {
 		return $flag->flag === $flag->lang_code . '.png';
 	}

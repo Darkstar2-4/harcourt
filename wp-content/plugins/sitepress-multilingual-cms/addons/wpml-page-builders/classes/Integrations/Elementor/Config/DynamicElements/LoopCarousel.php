@@ -8,9 +8,6 @@ use WPML\FP\Relation;
 
 class LoopCarousel {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$loopCarouselIdPath = [ 'settings', 'template_id' ];
 

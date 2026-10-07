@@ -1,13 +1,7 @@
 <?php
 
-/**
- * Class WPML_TF_Translation_Queue_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Translation_Queue_Hooks implements IWPML_Action {
 
-	/** @var WPML_TF_Data_Object_Storage $feedback_storage */
 	private $feedback_storage;
 
 	public function __construct( WPML_TF_Data_Object_Storage $feedback_storage ) {
@@ -34,7 +28,6 @@ class WPML_TF_Translation_Queue_Hooks implements IWPML_Action {
 			$feedback_collection = $this->feedback_storage->get_collection( $collection_filter );
 
 			foreach ( $feedback_collection as $feedback ) {
-				/** @var WPML_TF_Feedback $feedback */
 				if ( $feedback->get_job_id() === (int) $translation_job->get_id()
 					 && 'fixed' !== $feedback->get_status()
 				) {

@@ -14,21 +14,13 @@ class HasPostsUsingNativeEditorQuery implements HasPostsUsingNativeEditorQueryIn
 
   const POST_META_KEY_USE_NATIVE_EDITOR = '_wpml_post_translation_editor_native';
 
-  /** @var QueryHandlerInterface<int, int|null> */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
-  /**
-   * @param QueryHandlerInterface<int, int|null> $queryHandler
-   * @param QueryPrepareInterface                $queryPrepare
-   * @param LanguagesQueryInterface              $languagesQuery
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -40,13 +32,6 @@ class HasPostsUsingNativeEditorQuery implements HasPostsUsingNativeEditorQueryIn
   }
 
 
-  /**
-   * @param string[] $postTypes
-   * @param string[] $postTypesUsingWpEditor
-   *
-   * @return bool
-   * @throws DatabaseErrorException
-   */
   public function get(
     array $postTypes,
     array $postTypesUsingWpEditor
@@ -82,11 +67,6 @@ class HasPostsUsingNativeEditorQuery implements HasPostsUsingNativeEditorQueryIn
   }
 
 
-  /**
-   * @param string[] $postTypesUsingWpEditor
-   *
-   * @return string
-   */
   private function getMetaValueCondition( array $postTypesUsingWpEditor ) : string {
     if ( $postTypesUsingWpEditor ) {
       return ' AND ( wpml_pm.meta_value = \'yes\' 
@@ -101,11 +81,6 @@ class HasPostsUsingNativeEditorQuery implements HasPostsUsingNativeEditorQueryIn
   }
 
 
-  /**
-   * @param string[] $postTypes
-   *
-   * @return string
-   */
   private function getPostTypesIn( array $postTypes ) : string {
     return ! empty( $postTypes )
       ? ' AND wpml_p.post_type IN (' . $this->queryPrepare->prepareIn( $postTypes ) .') '

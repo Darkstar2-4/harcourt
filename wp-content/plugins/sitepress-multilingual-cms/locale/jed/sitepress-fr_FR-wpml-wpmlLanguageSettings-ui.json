@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "Choose the image file type for flags": [
-            "Choisir le type de fichier image pour les indicateurs "
+            "Choisir le type de fichier image pour les drapeaux"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Cette option s’applique uniquement aux indicateurs WPML intégrés, pas aux indicateurs personnalisés transférés."
+            "Cette option n’affecte que les drapeaux WPML intégrés, pas ceux téléchargés sur mesure."
          ],
          "%s format": [
             "Format %s"
@@ -23,7 +23,7 @@
             "Le nouveau format a été enregistré."
          ],
          "Failed to save the new format": [
-            "Échec de l'enregistrement du nouveau format"
+            "Échec de l’enregistrement du nouveau format"
          ]
       }
    }

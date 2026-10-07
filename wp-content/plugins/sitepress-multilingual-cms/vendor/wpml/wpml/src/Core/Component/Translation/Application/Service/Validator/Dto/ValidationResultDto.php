@@ -4,10 +4,8 @@ namespace WPML\Core\Component\Translation\Application\Service\Validator\Dto;
 
 class ValidationResultDto {
 
-  /** @var string */
   private $type;
 
-  /** @var bool */
   private $valid;
 
 
@@ -17,12 +15,6 @@ class ValidationResultDto {
   }
 
 
-  /**
-   * @return array{
-   *   type: string,
-   *   valid: bool
-   * }
-   */
   public function toArray(): array {
     return [
       'type'  => $this->type,

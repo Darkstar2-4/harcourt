@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "From:": [
             "Van:"
@@ -20,40 +20,40 @@
             "Selecteer %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "Stel taalpaar(en) in voor Vertaler %s:"
+            "Stel taalpaar/paren in voor vertaler %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ Voeg meer taalparen toe voor deze vertaler"
+            "+ Meer taalparen toevoegen voor deze vertaler"
          ],
          "Translation Memory was successfully copied to Advanced Translation Editor.": [
-            "Vertaalgeheugen is succesvol gekopieerd naar Geavanceerde Vertaaleditor."
+            "Vertaalgeheugen is succesvol gekopieerd naar de Geavanceerde Vertaaleditor."
          ],
          "Deactivate ICanLocalize.com as Translation Service on this site": [
-            "Deactiveer ICanLocalize.com als Vertaalservice op deze site"
+            "Deactiveer ICanLocalize.com als vertaalservice op deze site"
          ],
          "Missing a translator? Or were new jobs since the last copy of the Translation Memory?": [
-            "Mist u een vertaler? Of waren er nieuwe opdrachten sinds de laatste kopie van het Vertaalgeheugen?"
+            "Mist u een vertaler? Of waren er nieuwe taken sinds de laatste kopie van het vertaalgeheugen?"
          ],
          "Enter here your ICanLocalize authentication details.": [
             "Voer hier uw ICanLocalize authenticatiegegevens in."
          ],
          "API Token:": [
-            "API Token:"
+            "API-token:"
          ],
          "Please enter valid value for ICL token.": [
-            "Voer een geldige waarde in voor ICL token."
+            "Voer een geldige waarde in voor het ICL-token."
          ],
          "Enter ICL API token here": [
-            "Voer hier ICL API token in"
+            "Voer hier het ICL API-token in"
          ],
          "Submit": [
-            "Indienen"
+            "Verzenden"
          ],
          "Sign up": [
-            "Registreren"
+            "Aanmelden"
          ],
          "to ICanLocalize to receive your API token.": [
-            "bij ICanLocalize om uw API token te ontvangen."
+            "bij ICanLocalize om uw API-token te ontvangen."
          ],
          "Already have an account? Login and": [
             "Heeft u al een account? Log in en"
@@ -62,25 +62,25 @@
             "haal uw token op."
          ],
          "Copy new Translation Memory to Advanced Translation Memory": [
-            "Kopieer nieuw Vertaalgeheugen naar Geavanceerd Vertaalgeheugen"
+            "Nieuw vertaalgeheugen kopiëren naar geavanceerd vertaalgeheugen"
          ],
          "Import translation memory": [
-            "Importeer vertaalgeheugen"
+            "Vertaalgeheugen importeren"
          ],
          "ICanLocalize is already deactivated on this site": [
             "ICanLocalize is al gedeactiveerd op deze site"
          ],
          "You can still import Translators or Copy Translation Memory to Advanced Translator Editor": [
-            "U kunt nog steeds Vertalers importeren of Vertaalgeheugen kopiëren naar Geavanceerde Vertaaleditor"
+            "U kunt nog steeds vertalers importeren of vertaalgeheugen kopiëren naar de geavanceerde vertaaleditor"
          ],
          "Move from ICanLocalize.com to Advanced Translation Editor": [
-            "Verplaats van ICanLocalize.com naar Geavanceerde Vertaaleditor"
+            "Verplaatsen van ICanLocalize.com naar geavanceerde vertaaleditor"
          ],
          "Import translators": [
-            "Importeer vertalers"
+            "Vertalers importeren"
          ],
          "Come back": [
-            "Ga terug"
+            "Terug"
          ],
          "Cancel": [
             "Annuleren"
@@ -119,7 +119,7 @@
             "Vlagbestand"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "U heeft zojuist een taal toegevoegd. Selecteer deze nu als de standaardtaal van de site of als een vertaaltaal."
+            "U heeft zojuist een taal toegevoegd. Selecteer deze vervolgens als de standaardtaal van de site of als een vertaaltaal."
          ],
          "Language added": [
             "Taal toegevoegd"
@@ -128,13 +128,13 @@
             "De waarde “%s” bestaat al"
          ],
          "Add a new language": [
-            "Voeg een nieuwe taal toe"
+            "Een nieuwe taal toevoegen"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "Maak een landspecifieke taal door de algemene taal uit onderstaande lijst te kiezen. Kies vervolgens het land waarvoor het gelokaliseerd moet worden."
+            "Maak een landspecifieke taal door de algemene taal uit de onderstaande lijst te kiezen. Kies vervolgens het land waarvoor deze gelokaliseerd moet worden."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "Door een combinatie te kiezen die al in de database bestaat, kan WPML helpen bij het invullen van de benodigde velden. Lees meer over <AddingACustomLanguageLink />."
+            "Door een combinatie te kiezen die al in de database bestaat, kan WPML helpen de benodigde velden in te vullen. Lees meer over <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
             "Kunt u het niet vinden?"
@@ -155,13 +155,13 @@
             "Code"
          ],
          "The language will not be supported by automatic translations": [
-            "De taal zal niet worden ondersteund door automatische vertalingen"
+            "De taal wordt niet ondersteund door automatische vertalingen"
          ],
          "Language mapping": [
             "Taaltoewijzing"
          ],
          "Don't map this language": [
-            "Wijs deze taal niet toe"
+            "Deze taal niet toewijzen"
          ],
          "Default locale": [
             "Standaard locale"
@@ -188,10 +188,10 @@
             " (verplicht)"
          ],
          "Please fill in the field": [
-            "Vul alstublieft het veld in"
+            "Vul het veld in"
          ],
          "PNG, SVG, or JPG files": [
-            "PNG, SVG, of JPG bestanden"
+            "PNG-, SVG- of JPG-bestanden"
          ],
          "Save language": [
             "Taal opslaan"
@@ -206,16 +206,16 @@
             "De naam van uw taal zoals deze zal verschijnen in de taalschakelaar van uw site."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "Een unieke waarde die de taal identificeert in de database en URL. Eenmaal opgeslagen kan de taalcode niet worden gewijzigd."
+            "Een unieke waarde die de taal in de database en URL identificeert. Eenmaal opgeslagen, kan de taalcode niet worden gewijzigd."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "Als uw aangepaste taal lijkt op een bestaande taal, kunt u de spellingscontrole en automatische vertaling van de bestaande taal gebruiken. Bijvoorbeeld, als uw aangepaste taal Zwitsers-Duits is, kunt u deze toewijzen aan Duits als de taal voor spellingscontrole en automatische vertaling. Als u uw aangepaste taal niet toewijst aan een bestaande taal, zullen spellingscontrole en automatische vertaalfuncties niet beschikbaar zijn in die taal."
+            "Als uw aangepaste taal vergelijkbaar is met een bestaande taal, kunt u de spellingcontrole en automatische vertaling van de bestaande taal gebruiken. Als uw aangepaste taal bijvoorbeeld Zwitserduits is, kunt u deze toewijzen aan het Duits als de taal die moet worden gebruikt voor spellingcontrole en automatische vertaling. Als u uw aangepaste taal niet toewijst aan een bestaande taal, zijn de functies voor spellingcontrole en automatische vertaling niet beschikbaar in die taal."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "De waarde die WPML controleert bij het laden van vertalingen uit MO- en PO-bestanden. De standaard locale is opgenomen in de bestandsnamen in uw /wp-content/languages/ map in uw WordPress-installatie."
+            "De waarde die WPML controleert bij het laden van vertalingen uit MO- en PO-bestanden. De standaard locale is opgenomen in de bestandsnamen in uw map /wp-content/languages/ in uw WordPress-installatie."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Google gebruikt het hreflang-attribuut om gebruikers te verwijzen naar sites in hun relevante taal en locatie. Voorbeelden:"
+            "Google gebruikt het hreflang-attribuut om gebruikers naar sites in hun relevante taal en locatie te leiden. Voorbeelden:"
          ],
          "All English-speaking users: en": [
             "Alle Engelstalige gebruikers: en"
@@ -227,7 +227,7 @@
             "Engels voor Amerikaanse gebruikers: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "Bepaalt of URL's in deze taal gecodeerd zijn of ASCII-tekens gebruiken (indien onzeker, laat het op “Nee” staan)."
+            "Bepaalt of URL's in deze taal gecodeerd zijn of ASCII-tekens gebruiken (laat het op “Nee” staan als u het niet zeker weet)."
          ],
          "adding a custom language": [
             "een aangepaste taal toevoegen"
@@ -247,8 +247,8 @@
          "Which languages do you want to translate your site into?": [
             "In welke talen wilt u uw site vertalen?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "Als u de talen die u nodig heeft niet kunt vinden in de lijst"
+         "If you cannot find languages that you need in the list,": [
+            "Als u de talen die u nodig heeft niet in de lijst kunt vinden,"
          ],
          "create a custom language": [
             "maak een aangepaste taal"

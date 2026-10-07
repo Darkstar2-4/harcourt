@@ -1,8 +1,4 @@
 <?php
-/*
-WPML Package Translation
-This is now part of String Translation.
-*/
 
 if ( defined( 'WPML_PACKAGE_TRANSLATION' ) ) {
 	return;

@@ -11,21 +11,21 @@ class Smush_Request_WP_Multiple extends Smush_Request {
 	 */
 	private $server_utils;
 
-	public function __construct( $streaming_enabled = true, $extra_headers = array() ) {
-		parent::__construct( $streaming_enabled, $extra_headers );
+	public function __construct( $options ) {
+		parent::__construct( $options );
 
 		$this->server_utils = new Server_Utils();
 	}
 
-	public function do_requests( array $files_data ) {
+	public function do_requests( $file_paths ) {
 		$responses = array();
-		$requests  = $this->prepare_requests( $files_data );
+		$requests  = $this->prepare_requests( $file_paths );
 
 		self::request_multiple( $requests, array(
 				'timeout'         => $this->get_timeout(),
 				'connect_timeout' => $this->get_connect_timeout(),
 				'user-agent'      => $this->get_user_agent(),
-				'complete'        => function ( $response, $size_key ) use ( $files_data, $requests, &$responses ) {
+				'complete'        => function ( $response, $size_key ) use ( $file_paths, $requests, &$responses ) {
 					// Convert to a response that looks like standard WP HTTP API responses
 					$response = $this->multi_to_singular_response( $response );
 
@@ -33,9 +33,9 @@ class Smush_Request_WP_Multiple extends Smush_Request {
 					do_action( 'smush_http_api_debug', $response, $request );
 
 					// Call the actual on complete callback
-					$file_data              = $files_data[ $size_key ];
+					$file_path              = $file_paths[ $size_key ];
 					$requests[ $size_key ]  = null;
-					$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_data );
+					$responses[ $size_key ] = call_user_func( $this->get_on_complete(), $response, $size_key, $file_path );
 				},
 			)
 		);
@@ -73,15 +73,13 @@ class Smush_Request_WP_Multiple extends Smush_Request {
 	}
 
 	/**
-	 * @param array $files_data
+	 * @param array $file_paths
 	 *
 	 * @return array
 	 */
-	private function prepare_requests( array $files_data ): array {
+	private function prepare_requests( $file_paths ) {
 		$requests = array();
-		foreach ( $files_data as $size_key => $file_data ) {
-			list( $file_path ) = $this->get_file_path_and_url( $file_data );
-
+		foreach ( $file_paths as $size_key => $file_path ) {
 			$requests[ $size_key ] = array(
 				'url'     => $this->get_url(),
 				'headers' => $this->get_api_request_headers( $file_path ),

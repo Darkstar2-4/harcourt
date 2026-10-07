@@ -12,29 +12,16 @@ class Command implements \IWPML_Upgrade_Command {
 
 	const CHUNK_SIZE = 1000;
 
-	/** @var Repository */
 	private $repository;
 
-	/** @var \WPML_TM_ATE_API */
 	private $api;
 
-	/** @var Pager */
 	private $pager;
 
-	/** @var CommandsStatus */
 	private $commandStatus;
 
-	/** @var bool $result */
 	private $result = false;
 
-	/**
-	 * Command constructor.
-	 *
-	 * @param Repository       $repository
-	 * @param \WPML_TM_ATE_API $api
-	 * @param Pager            $pager
-	 * @param CommandsStatus   $commandStatus
-	 */
 	public function __construct(
 		Repository $repository,
 		\WPML_TM_ATE_API $api,
@@ -72,16 +59,10 @@ class Command implements \IWPML_Upgrade_Command {
 		return null;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function get_results() {
 		return $this->result;
 	}
 
-	/**
-	 * @return mixed
-	 */
 	private function hasBeenMigrateATERepositoryUpgradeRun() {
 		return $this->commandStatus->hasBeenExecuted( MigrateAteRepository::class );
 	}

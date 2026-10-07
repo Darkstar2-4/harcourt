@@ -1,14 +1,6 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Media_Sizes {
-	/**
-	 * @param array $img
-	 *
-	 * @return null|string
-	 */
 	public function get_size_from_class( array $img ) {
 		if ( array_key_exists( 'attributes', $img ) && array_key_exists( 'class', $img['attributes'] ) ) {
 
@@ -28,11 +20,6 @@ class WPML_Media_Sizes {
 		return null;
 	}
 
-	/**
-	 * @param array $img
-	 *
-	 * @return null|string
-	 */
 	public function get_size_from_attributes( array $img ) {
 		if (
 			array_key_exists( 'attributes', $img )
@@ -53,11 +40,6 @@ class WPML_Media_Sizes {
 		return null;
 	}
 
-	/**
-	 * @param array $img
-	 *
-	 * @return null|string
-	 */
 	public function get_attachment_size( array $img ) {
 		$size = null;
 		if ( array_key_exists( 'size', $img ) ) {
@@ -76,12 +58,6 @@ class WPML_Media_Sizes {
 		return $size;
 	}
 
-	/**
-	 * @param string $width
-	 * @param string $height
-	 *
-	 * @return null|string
-	 */
 	private function get_image_size_name( $width, $height ) {
 		global $_wp_additional_image_sizes;
 
@@ -100,11 +76,6 @@ class WPML_Media_Sizes {
 		return null;
 	}
 
-	/**
-	 * @param array $img
-	 *
-	 * @return null|string
-	 */
 	private function get_size_from_url( array $img ) {
 		$size = null;
 
@@ -115,12 +86,6 @@ class WPML_Media_Sizes {
 		return $size;
 	}
 
-	/**
-	 * @param $url
-	 * @param $attachment_id
-	 *
-	 * @return null|string
-	 */
 	public function get_image_size_from_url( $url, $attachment_id ) {
 		$size = null;
 

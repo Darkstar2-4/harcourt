@@ -6,56 +6,30 @@ use WPML\StringTranslation\Application\Translation\Query\Dto\TranslationStatusDt
 
 class StringDto {
 
-	/** @var int */
 	protected $id;
 
-	/** @var string */
 	protected $language;
 
-	/** @var string */
 	protected $domain;
 
-	/** @var string */
 	protected $context;
 
-	/** @var string */
 	protected $name;
 
-	/** @var string */
 	protected $value;
 
-	/** @var int */
 	protected $status;
 
-	/** @var string */
 	protected $translationPriority;
 
-	/** @var int */
 	protected $wordCount;
 
-	/** @var int */
 	protected $kind;
 
-	/** @var int */
 	protected $type;
 
-	/** @var int[] */
 	protected $sources;
 
-	/**
-	 * @param int $id
-	 * @param string $language
-	 * @param string $domain
-	 * @param string $context
-	 * @param string $name
-	 * @param string $value
-	 * @param int $status
-	 * @param string $translationPriority
-	 * @param int $wordCount
-	 * @param int $kind
-	 * @param int $type
-	 * @param array $sources
-	 */
 	public function __construct(
 		int $id,
 		string $language,

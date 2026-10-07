@@ -1,18 +1,8 @@
 <?php
 
-/**
- * Class WPML_ST_Verify_Dependencies
- *
- * Checks that the WPML Core plugin is installed and satisfies certain version
- * requirements
- */
 class WPML_ST_Verify_Dependencies {
 
-	/**
-	 * @param string|false $wpml_core_version
-	 * @param string|null  $dependenciesFilepath
-	 */
-	function verify_wpml( $wpml_core_version, string $dependenciesFilepath = null ) {
+	function verify_wpml( $wpml_core_version, ?string $dependenciesFilepath = null ) {
 		if ( is_null( $dependenciesFilepath ) ) {
 			$dependenciesFilepath = WPML_ST_PATH . '/wpml-dependencies.json';
 		}

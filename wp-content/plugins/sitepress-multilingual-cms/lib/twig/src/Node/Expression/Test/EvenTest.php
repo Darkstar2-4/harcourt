@@ -12,13 +12,6 @@ namespace WPML\Core\Twig\Node\Expression\Test;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\TestExpression;
-/**
- * Checks if a number is even.
- *
- *  {{ var is even }}
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class EvenTest extends \WPML\Core\Twig\Node\Expression\TestExpression
 {
     public function compile(\WPML\Core\Twig\Compiler $compiler)

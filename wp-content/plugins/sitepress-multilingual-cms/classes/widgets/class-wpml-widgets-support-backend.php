@@ -5,12 +5,6 @@ use \WPML\FP\Obj;
 use WPML\LIB\WP\Option as Option;
 use WPML\LIB\WP\User;
 
-/**
- * This code is inspired by WPML Widgets (https://wordpress.org/plugins/wpml-widgets/),
- * created by Jeroen Sormani
- *
- * @author OnTheGo Systems
- */
 class WPML_Widgets_Support_Backend implements IWPML_Action {
 	const NONCE = 'wpml-language-nonce';
 	const NONCE_LEGACY_WIDGET = 'wpml_change_selected_language_for_legacy_widget';
@@ -18,12 +12,6 @@ class WPML_Widgets_Support_Backend implements IWPML_Action {
 	private $active_languages;
 	private $template_service;
 
-	/**
-	 * WPML_Widgets constructor.
-	 *
-	 * @param array                  $active_languages
-	 * @param IWPML_Template_Service $template_service
-	 */
 	public function __construct( array $active_languages, IWPML_Template_Service $template_service ) {
 		$this->active_languages = $active_languages;
 		$this->template_service = $template_service;
@@ -54,19 +42,7 @@ class WPML_Widgets_Support_Backend implements IWPML_Action {
 		wp_enqueue_script( 'widgets-language-switcher-script' );
 	}
 
-	/**
-	 * @param WP_Widget|null $widget
-	 * @param string|null    $form
-	 * @param array          $instance
-	 */
 	public function language_selector( $widget, $form, $instance ) {
-		/**
-		 * This allows to disable the display of the language selector on a widget form.
-		 *
-		 * @since 4.5.3
-		 *
-		 * @param bool $is_disabled If display should be disabled (default: false)
-		 */
 		if ( apply_filters( 'wpml_widget_language_selector_disable', false ) ) {
 			return;
 		}
@@ -89,14 +65,6 @@ class WPML_Widgets_Support_Backend implements IWPML_Action {
 		echo $this->template_service->show( $model, 'language-selector.twig' );
 	}
 
-	/**
-	 * @param array     $instance
-	 * @param array     $new_instance
-	 * @param array     $old_instance
-	 * @param WP_Widget $widget_instance
-	 *
-	 * @return array
-	 */
 	public function update( $instance, $new_instance, $old_instance, $widget_instance ) {
 		if (wp_verify_nonce( Obj::prop( 'wpml-language-nonce', $_POST ), self::NONCE ) ) {
 			$new_language = filter_var( Obj::prop('wpml_language', $_POST), FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_NULL_ON_FAILURE );

@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
-            "Het wpml-config.xml bestand in de hoofdmap van je thema en plugins vertelt WPML welke inhoud vertaalbaar is. Je kunt deze instellingen overschrijven met je eigen aangepaste instellingen door ze hieronder toe te voegen."
+            "Het wpml-config.xml-bestand in de hoofdmap van uw thema en plug-ins vertelt WPML welke inhoud vertaalbaar is. U kunt deze instellingen overschrijven met uw eigen aangepaste instellingen door ze hieronder toe te voegen."
          ],
          "Read more about language configuration files.": [
-            "Lees meer over taalconfiguratiebestanden."
+            "Lees meer over configuratiebestanden voor talen."
          ],
          "Save": [
             "Opslaan"
@@ -23,10 +23,10 @@
             "Snelkoppelingen"
          ],
          "Fold/Unfold code": [
-            "Code ontvouwen/vouwen"
+            "Code in-/uitvouwen"
          ],
          "Auto format": [
-            "AutoOpmaak"
+            "Automatisch formatteren"
          ]
       }
    }

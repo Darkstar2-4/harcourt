@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig\Node;
 
-/**
- * Represents a body node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class BodyNode extends \WPML\Core\Twig\Node\Node
 {
 }

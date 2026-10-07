@@ -8,7 +8,7 @@
             "lang": "vi"
          },
          "Add glossary terms": [
-            "Thêm các thuật ngữ vào bảng chú giải"
+            "Thêm thuật ngữ vào bảng thuật ngữ"
          ],
          "Minimize": [
             "Thu nhỏ"
@@ -17,16 +17,16 @@
             "Mở rộng"
          ],
          "There's nothing yet in the Glossary": [
-            "Chưa có gì trong Bảng chú giải"
+            "Chưa có gì trong Bảng thuật ngữ"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Có vẻ như bạn chưa sử dụng bảng chú giải. Bảng chú giải có thể giúp bạn:"
+            "Có vẻ như bạn chưa sử dụng bảng thuật ngữ. Bảng thuật ngữ có thể giúp bạn:"
          ],
          "Improve the quality of the translation": [
             "Cải thiện chất lượng bản dịch"
          ],
          "Ensure translation consistency": [
-            "Đảm bảo tính nhất quán trong bản dịch"
+            "Đảm bảo tính nhất quán của bản dịch"
          ],
          "Reduce translation costs": [
             "Giảm chi phí dịch thuật"
@@ -35,10 +35,10 @@
             "Cải thiện SEO trong các ngôn ngữ dịch"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "Cách sử dụng Bảng chú giải để dịch chính xác"
+            "Cách sử dụng bảng thuật ngữ để dịch chính xác"
          ],
          "%d item in the <a>Glossary</a>": [
-            "%d mục trong <a>Bảng chú giải</a>"
+            "Có %d mục trong <a>Bảng thuật ngữ</a>"
          ]
       }
    }

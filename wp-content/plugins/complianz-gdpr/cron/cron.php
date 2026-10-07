@@ -1,9 +1,9 @@
 <?php
-defined( 'ABSPATH' ) or die( "you do not have access to this page!" );
+defined( 'ABSPATH' ) or die( 'you do not have access to this page!' );
 
 /**
-  Schedule cron jobs if useCron is true
-  Else start the functions.
+	Schedule cron jobs if useCron is true
+	Else start the functions.
 */
 
 add_action( 'plugins_loaded', 'cmplz_schedule_cron' );
@@ -32,6 +32,7 @@ function cmplz_schedule_cron() {
 
 		add_action( 'cmplz_every_week_hook', array( COMPLIANZ::$document, 'cron_check_last_updated_status' ) );
 		add_action( 'cmplz_every_month_hook', 'cmplz_cron_clean_placeholders' );
+		add_action( 'cmplz_every_day_hook', 'cmplz_clean_expired_transients' );
 		add_action( 'cmplz_every_day_hook', array( COMPLIANZ::$proof_of_consent, 'generate_cookie_policy_snapshot' ) );
 
 	} else {
@@ -46,20 +47,20 @@ add_filter( 'cron_schedules', 'cmplz_filter_cron_schedules' );
 function cmplz_filter_cron_schedules( $schedules ) {
 	$schedules['cmplz_monthly'] = array(
 		'interval' => MONTH_IN_SECONDS,
-		'display'  => __( 'Once every month' )
+		'display'  => __( 'Once every month' ),
 	);
 	$schedules['cmplz_weekly']  = array(
 		'interval' => WEEK_IN_SECONDS,
-		'display'  => __( 'Once every week' )
+		'display'  => __( 'Once every week' ),
 	);
 	$schedules['cmplz_daily']   = array(
 		'interval' => DAY_IN_SECONDS,
-		'display'  => __( 'Once every day' )
+		'display'  => __( 'Once every day' ),
 	);
 
-	$schedules['cmplz_five_minutes']   = array(
-		'interval' => DAY_IN_SECONDS,
-		'display'  => __( 'Once every five minutes' )
+	$schedules['cmplz_five_minutes'] = array(
+		'interval' => 5 * MINUTE_IN_SECONDS,
+		'display'  => __( 'Once every five minutes' ),
 	);
 
 	return $schedules;
@@ -76,11 +77,38 @@ function cmplz_clear_scheduled_hooks() {
  * Clean placeholders directory periodically
  */
 function cmplz_cron_clean_placeholders() {
-	require_once( ABSPATH . 'wp-admin/includes/file.php' );
-	$dirname = cmplz_upload_dir("placeholders");
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	$dirname = cmplz_upload_dir( 'placeholders' );
 	array_map( 'unlink', glob( "$dirname/*.*" ) );
 }
 
+/**
+ * Actively remove expired entries from the cmplz_transients option.
+ * Runs daily to prevent the option from growing unboundedly.
+ * Also deletes any placeholder image files whose transient has expired.
+ */
+function cmplz_clean_expired_transients(): void {
+	$transients = get_option( 'cmplz_transients', array() );
+	if ( ! is_array( $transients ) || empty( $transients ) ) {
+		return;
+	}
 
+	$now     = time();
+	$changed = false;
 
+	foreach ( $transients as $name => $data ) {
+		$expires = isset( $data['expires'] ) ? (int) $data['expires'] : 0;
+		if ( $expires > 0 && $expires <= $now ) {
+			$value = $data['value'] ?? false;
+			if ( is_string( $value ) && cmplz_file_exists_on_url( $value ) ) {
+				wp_delete_file( str_replace( cmplz_upload_url(), cmplz_upload_dir(), $value ) );
+			}
+			unset( $transients[ $name ] );
+			$changed = true;
+		}
+	}
 
+	if ( $changed ) {
+		update_option( 'cmplz_transients', $transients, false );
+	}
+}

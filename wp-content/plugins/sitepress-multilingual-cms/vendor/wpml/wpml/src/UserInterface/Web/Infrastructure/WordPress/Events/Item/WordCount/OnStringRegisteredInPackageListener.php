@@ -8,10 +8,8 @@ use function WPML\PHP\Logger\notice;
 
 class OnStringRegisteredInPackageListener {
 
-  /** @var int[] */
   private $updatedPackages = [];
 
-  /** @var ItemWordCountService */
   private $itemWordCountService;
 
 
@@ -20,19 +18,11 @@ class OnStringRegisteredInPackageListener {
   }
 
 
-  /**
-   * @param int $packageId
-   *
-   * @return void
-   */
   public function registerPackage( int $packageId ) {
     $this->updatedPackages[] = $packageId;
   }
 
 
-  /**
-   * @return void
-   */
   public function recalculatePackages() {
     foreach ( array_unique( $this->updatedPackages ) as $packageId ) {
       try {

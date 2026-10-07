@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Translation_Priorities
- */
 class WPML_TM_Translation_Priorities {
 
 	const DEFAULT_TRANSLATION_PRIORITY_VALUE_SLUG = 'optional';
@@ -17,16 +14,10 @@ class WPML_TM_Translation_Priorities {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function get_default_value_id() {
 		return (int) self::get_default_term()->term_id;
 	}
 
-	/**
-	 * @return WP_Term
-	 */
 	public static function get_default_term() {
 		$term = get_term_by( 'slug', self::DEFAULT_TRANSLATION_PRIORITY_VALUE_SLUG, self::TAXONOMY );
 		if ( ! $term ) {
@@ -37,15 +28,7 @@ class WPML_TM_Translation_Priorities {
 	}
 
 
-	/**
-	 * @param int    $term_taxonomy_id
-	 * @param string $original_name
-	 * @param string $target_language
-	 *
-	 * @return int|bool
-	 */
 	public static function insert_missing_translation( $term_taxonomy_id, $original_name, $target_language ) {
-		/** @var SitePress */
 		global $sitepress;
 
 		$trid              = (int) $sitepress->get_element_trid( $term_taxonomy_id, 'tax_' . self::TAXONOMY );
@@ -58,9 +41,6 @@ class WPML_TM_Translation_Priorities {
 			$name            = __( $original_name, 'sitepress' );
 			$suffix          = '';
 			if ( $name === $original_name ) {
-				// Add language suffix if priority term translation is missing to avoid duplicate term error.
-				// Since 4.8 either we need to switch the language or provide unique slug as `term_unique_slug`
-				// will return same slug if does not exist in current language.
 				$suffix = ' ' . $target_language;
 			}
 

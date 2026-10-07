@@ -10,20 +10,11 @@
  */
 namespace WPML\Core\Twig\Cache;
 
-/**
- * Implements a cache on the filesystem.
- *
- * @author Andrew Tch <andrew@noop.lv>
- */
 class FilesystemCache implements \WPML\Core\Twig\Cache\CacheInterface
 {
     const FORCE_BYTECODE_INVALIDATION = 1;
     private $directory;
     private $options;
-    /**
-     * @param string $directory The root cache directory
-     * @param int    $options   A set of options
-     */
     public function __construct($directory, $options = 0)
     {
         $this->directory = \rtrim($directory, '\\/') . '/';
@@ -57,7 +48,6 @@ class FilesystemCache implements \WPML\Core\Twig\Cache\CacheInterface
         if (\false !== @\file_put_contents($tmpFile, $content) && @\rename($tmpFile, $key)) {
             @\chmod($key, 0666 & ~\umask());
             if (self::FORCE_BYTECODE_INVALIDATION == ($this->options & self::FORCE_BYTECODE_INVALIDATION)) {
-                // Compile cached file into bytecode cache
                 if (\function_exists('opcache_invalidate') && \filter_var(\ini_get('opcache.enable'), \FILTER_VALIDATE_BOOLEAN)) {
                     @\opcache_invalidate($key, \true);
                 } elseif (\function_exists('apc_compile_file')) {

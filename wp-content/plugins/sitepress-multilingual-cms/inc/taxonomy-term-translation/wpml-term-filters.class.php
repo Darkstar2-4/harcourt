@@ -1,19 +1,7 @@
 <?php
-/**
- * WPML_Term_Filters class file.
- *
- * @package    WPML\Core
- * @subpackage taxonomy-term-translation
- */
 
-/**
- * Class WPML_Term_Filters
- */
 class WPML_Term_Filters extends WPML_WPDB_And_SP_User {
 
-	/**
-	 * Init class.
-	 */
 	public function init() {
 		$taxonomies = get_taxonomies();
 
@@ -24,18 +12,10 @@ class WPML_Term_Filters extends WPML_WPDB_And_SP_User {
 		add_action( 'registered_taxonomy', [ $this, 'registered_taxonomy' ], 10, 3 );
 	}
 
-	/**
-	 * @param string       $taxonomy        Taxonomy slug.
-	 * @param array|string $object_type     Object type or array of object types.
-	 * @param array        $taxonomy_object Array of taxonomy registration arguments.
-	 */
 	public function registered_taxonomy( $taxonomy, $object_type, $taxonomy_object ) {
 		$this->add_hooks_to_translated_taxonomy( $taxonomy );
 	}
 
-	/**
-	 * @param string $taxonomy Taxonomy slug.
-	 */
 	private function add_hooks_to_translated_taxonomy( $taxonomy ) {
 		if ( is_taxonomy_translated( $taxonomy ) ) {
 			add_filter( "pre_option_{$taxonomy}_children", [ $this, 'pre_option_tax_children' ], 10, 0 );
@@ -71,12 +51,6 @@ class WPML_Term_Filters extends WPML_WPDB_And_SP_User {
 		return ! empty( $tax_children ) ? $tax_children : false;
 	}
 
-	/**
-	 * @param string $taxonomy
-	 * @param string $lang_code
-	 *
-	 * @return array
-	 */
 	public function get_tax_hier_array( $taxonomy, $lang_code ) {
 		$hierarchy = array();
 

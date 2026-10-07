@@ -11,16 +11,12 @@ use WPML\StringTranslation\Application\StringCore\Command\UpdateStringsCommandIn
 
 class LoadExistingStringTranslationsCommand implements LoadExistingStringTranslationsCommandInterface
 {
-	/** @var TranslationsRepositoryInterface */
 	private $translationsRepository;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var InsertStringTranslationsCommandInterface */
 	private $insertStringTranslations;
 
-	/** @var UpdateStringsCommandInterface */
 	private $updateStringsCommand;
 
 	public function __construct(
@@ -35,18 +31,12 @@ class LoadExistingStringTranslationsCommand implements LoadExistingStringTransla
 		$this->updateStringsCommand = $updateStringsCommand;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	public function run( array $strings ) {
 		$translations = $this->translationsRepository->createEntitiesForExistingTranslations( $strings );
 		$this->insertStringTranslations->run( $translations );
 		$this->updateStringTranslationStatuses( $strings );
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	private function updateStringTranslationStatuses( array $strings ) {
 		$allLanguageCodes = $this->settingsRepository->getActiveSecondaryLanguageCodes();
 		foreach ( $strings as $string ) {

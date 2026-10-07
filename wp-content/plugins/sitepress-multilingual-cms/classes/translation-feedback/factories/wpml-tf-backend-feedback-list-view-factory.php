@@ -1,14 +1,8 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Feedback_List_View_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Feedback_List_View_Factory {
 
 	public function create() {
-		/** @var SitePress $sitepress*/
 		global $sitepress;
 
 		$template_loader = new WPML_Twig_Template_Loader(

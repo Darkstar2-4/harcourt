@@ -8,10 +8,8 @@ use WP_Post;
 
 class ItemUpdateEvent {
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var ?ItemUpdateEventListenerAdapter */
   private $itemUpdateEventListenerAdapter;
 
 
@@ -21,9 +19,6 @@ class ItemUpdateEvent {
   }
 
 
-  /**
-  * Lazy Load the ItemUpdateEventListenerAdapter
-  */
   private function getItemsUpdateEventAdapter(): ItemUpdateEventListenerAdapter {
     if ( $this->itemUpdateEventListenerAdapter === null ) {
       $this->itemUpdateEventListenerAdapter =
@@ -34,13 +29,11 @@ class ItemUpdateEvent {
   }
 
 
-  /** @return void */
   public function register() {
     if ( defined( 'WPML_STICKY_LINKS_VERSION' ) ) {
         return;
     }
 
-    // 'post_updated' hook is used to detect if the posts url has changed.
     add_action(
       'post_updated',
       function( $_, $__, $postBeforeSave ) {

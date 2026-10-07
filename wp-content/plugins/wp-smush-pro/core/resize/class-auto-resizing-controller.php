@@ -8,7 +8,7 @@ use Smush\Core\Settings;
 use Smush\Core\Srcset\Srcset_Helper;
 
 class Auto_Resizing_Controller extends Controller {
-	const AUTO_RESIZE_TRANSFORM_PRIORITY = 25;
+	private static $auto_resize_transform_priority = 25;
 	/**
 	 * @var Settings
 	 */
@@ -25,7 +25,7 @@ class Auto_Resizing_Controller extends Controller {
 		$this->register_filter( 'wp_smush_content_transforms', array(
 			$this,
 			'register_auto_resize_transform',
-		), self::AUTO_RESIZE_TRANSFORM_PRIORITY );
+		), self::$auto_resize_transform_priority );
 		$this->register_filter( 'wp_calculate_image_sizes', array( $this, 'filter_image_sizes_for_content' ), 1, 2 );
 		$this->register_filter( 'wp_smush_cdn_force_generate_srcset', array( $this, 'should_generate_srcset' ), 10, 2 );
 

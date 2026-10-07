@@ -8,9 +8,6 @@ use function WPML\FP\spreadArgs;
 
 class SavePostActions implements \IWPML_REST_Action, \IWPML_DIC_Action {
 
-	/**
-	 * @var \SitePress
-	 */
 	private $sitepress;
 
 	public function __construct( \SitePress $sitepress ) {
@@ -24,13 +21,6 @@ class SavePostActions implements \IWPML_REST_Action, \IWPML_DIC_Action {
 		}
 	}
 
-	/**
-	 * Sets language information on new Elementor documents.
-	 *
-	 * For example, documents created within the builder lack language information.
-	 *
-	 * @param \Elementor\Core\Base\Document $document
-	 */
 	public function setLanguageInformation( $document ) {
 		$post = $document->get_post();
 		$type = 'post_' . get_post_type( $post );
@@ -42,9 +32,8 @@ class SavePostActions implements \IWPML_REST_Action, \IWPML_DIC_Action {
 		$this->sitepress->set_element_language_details(
 			$post->ID,
 			$type,
-			false,
+			null,
 			$this->sitepress->get_current_language()
 		);
 	}
-
 }

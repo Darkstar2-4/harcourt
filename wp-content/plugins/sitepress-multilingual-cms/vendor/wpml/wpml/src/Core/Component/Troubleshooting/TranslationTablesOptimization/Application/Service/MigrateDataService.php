@@ -4,12 +4,8 @@ namespace WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Appl
 
 use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\MigrationDataService\Factory;
 
-/**
- * @template T
- */
 final class MigrateDataService {
 
-  /** @var Factory */
   private $factory;
 
 
@@ -18,11 +14,6 @@ final class MigrateDataService {
   }
 
 
-  /**
-   * Initializes the compression process and returns the total number of elements to process
-   *
-   * @return int Total number of elements that need compression
-   */
   public function initProcessAndGetTotalElements(): int {
     $this->factory->createCompletedRecordsStorage()->create();
 
@@ -30,13 +21,6 @@ final class MigrateDataService {
   }
 
 
-  /**
-   * Processes a batch of elements for compression
-   *
-   * @param int $numberOfElementsToProcess Number of elements to process in this batch
-   *
-   * @return void
-   */
   public function run( int $numberOfElementsToProcess ) {
     $records      = $this->factory->createQuery()->getRemaining( $numberOfElementsToProcess );
     $processedIds = $this->factory->createProcessor()->process( $records );
@@ -49,11 +33,6 @@ final class MigrateDataService {
   }
 
 
-  /**
-   * Cleans up after the compression process
-   *
-   * @return void
-   */
   public function finalize() {
     $this->factory->createCompletedRecordsStorage()->delete();
     call_user_func( $this->factory->createMarkAsCompletedFunction() );

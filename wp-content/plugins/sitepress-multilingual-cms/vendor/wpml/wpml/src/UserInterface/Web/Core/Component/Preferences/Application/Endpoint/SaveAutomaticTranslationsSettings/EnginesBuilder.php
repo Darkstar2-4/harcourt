@@ -7,23 +7,9 @@ use WPML\Core\Component\ATE\Application\Service\Dto\UpdateEngine\FormalitySettin
 use WPML\Core\Component\ATE\Application\Service\Dto\UpdateEngineDto;
 use WPML\Core\Component\ATE\Application\Service\EngineServiceException;
 
-/**
- * @phpstan-type PartialEngineDtoArray array{
- *   engine?: string,
- *   enabled?: bool,
- *   formalityAvailable?: bool,
- *    formalitySettings?: array{languageCode?: string, currentLevel?: string}[]|mixed|null
- *  }
- */
 class EnginesBuilder {
 
 
-  /**
-   * @param PartialEngineDtoArray[] $rawEngines
-   *
-   * @return UpdateEngineDto[]
-   * @throws EngineServiceException
-   */
   public function build( array $rawEngines ): array {
     $engines = [];
 
@@ -47,12 +33,6 @@ class EnginesBuilder {
   }
 
 
-  /**
-   * @param PartialEngineDtoArray $rawEngine
-   *
-   * @return FormalitySettingDto[]|null
-   * @throws EngineServiceException
-   */
   private function buildFormalitySettings( array $rawEngine ) {
     $formalitySettings = null;
 

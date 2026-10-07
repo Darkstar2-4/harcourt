@@ -65,9 +65,6 @@ class WPML_TM_Word_Count_Hooks_Factory implements IWPML_Backend_Action_Loader, I
 		}
 	}
 
-	/**
-	 * @return WPML_TM_Word_Count_Single_Process_Factory
-	 */
 	private function get_words_count_single_process_factory() {
 		if ( ! $this->words_count_single_process_factory ) {
 			$this->words_count_single_process_factory = new WPML_TM_Word_Count_Single_Process_Factory();
@@ -84,9 +81,6 @@ class WPML_TM_Word_Count_Hooks_Factory implements IWPML_Backend_Action_Loader, I
 		return $this->translation_element_factory;
 	}
 
-	/**
-	 * @return WPML_TM_Word_Count_Background_Process_Factory
-	 */
 	private function get_words_count_background_process_factory() {
 		if ( ! $this->words_count_background_process_factory ) {
 			$this->words_count_background_process_factory = new WPML_TM_Word_Count_Background_Process_Factory();
@@ -95,9 +89,6 @@ class WPML_TM_Word_Count_Hooks_Factory implements IWPML_Backend_Action_Loader, I
 		return $this->words_count_background_process_factory;
 	}
 
-	/**
-	 * @return SitePress
-	 */
 	private function get_sitepress() {
 		global $sitepress;
 

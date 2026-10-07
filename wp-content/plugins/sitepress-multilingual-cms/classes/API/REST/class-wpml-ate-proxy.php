@@ -5,9 +5,6 @@ namespace WPML\TM\ATE;
 use WPML\LIB\WP\User;
 
 class Proxy extends \WPML_REST_Base {
-	/**
-	 * @var \WPML_TM_ATE_AMS_Endpoints
-	 */
 	private $endpoints;
 
 	public function __construct( \WPML_TM_ATE_AMS_Endpoints $endpoints ) {
@@ -30,11 +27,6 @@ class Proxy extends \WPML_REST_Base {
 		);
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	private function get_args( \WP_REST_Request $request ) {
 		$request_params = $this->get_request_params( $request );
 
@@ -63,11 +55,6 @@ class Proxy extends \WPML_REST_Base {
 		return [ $url, $query, $args, $content_type ];
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return true|\WP_Error
-	 */
 	private function validate_request( \WP_REST_Request $request ) {
 		if ( ! $this->get_request_params( $request ) ) {
 			return new \WP_Error( 'endpoint_without_parameters', 'Endpoint called with no parameters.', [ 'status' => 400 ] );
@@ -94,9 +81,6 @@ class Proxy extends \WPML_REST_Base {
 		return true;
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 */
 	public function proxy( \WP_REST_Request $request ) {
 		list( $url, $params, $args, $content_type ) = $this->get_args( $request );
 
@@ -129,27 +113,15 @@ class Proxy extends \WPML_REST_Base {
 		}
 		header( "Content-Type: {$content_type}" );
 
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo $response_body;
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
 		$this->break_the_default_response_flow();
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return string[]|string
-	 */
 	public function get_allowed_capabilities( \WP_REST_Request $request ) {
 		return [ User::CAP_MANAGE_TRANSLATIONS, User::CAP_ADMINISTRATOR ];
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	private function get_request_params( \WP_REST_Request $request ) {
 		$params = [
 			'url'          => null,

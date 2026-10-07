@@ -14,13 +14,13 @@
             "Σφάλμα"
          ],
          "« Use a different Translation Service": [
-            "« Χρησιμοποιήστε διαφορετική Υπηρεσία Μετάφρασης"
+            "« Χρησιμοποιήστε μια διαφορετική υπηρεσία μετάφρασης"
          ],
          "Authenticate": [
-            "Πιστοποίηση"
+            "Έλεγχος ταυτότητας"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "Επισκεφθείτε το <link_to_service /> για να ζητήσετε ένα API Token. Αυτό το token επιτρέπει στο WPML να συνδεθεί με το <service_name /> για την αποστολή και λήψη εργασιών."
+            "Επισκεφθείτε το <link_to_service /> για να ζητήσετε ένα διακριτικό API. Αυτό το διακριτικό επιτρέπει στο WPML να συνδεθεί με το <service_name /> για να στέλνει και να λαμβάνει εργασίες."
          ],
          "Search translation services": [
             "Αναζήτηση υπηρεσιών μετάφρασης"
@@ -32,7 +32,16 @@
             "Ρυθμίσεις"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "Προς το παρόν δεν είναι δυνατή η σύνδεση μιας υπηρεσίας μετάφρασης όταν το WPML έχει ρυθμιστεί να μεταφράζει αυτόματα το περιεχόμενο του ιστότοπού σας. Για να χρησιμοποιήσετε μια υπηρεσία μετάφρασης, παρακαλούμε αλλάξτε τη λειτουργία μετάφρασης στη σελίδα <LinkToSettingsPage />."
+            "Δεν είναι δυνατή η σύνδεση μιας υπηρεσίας μετάφρασης όταν το WPML έχει ρυθμιστεί να μεταφράζει αυτόματα το περιεχόμενο του ιστότοπού σας. Για να χρησιμοποιήσετε μια υπηρεσία μετάφρασης, αλλάξτε τη λειτουργία μετάφρασης στη σελίδα <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Ταξινόμηση φθίνουσα"
+         ],
+         "Sort ascending": [
+            "Ταξινόμηση αύξουσα"
+         ],
+         "Cancel sorting": [
+            "Ακύρωση ταξινόμησης"
          ],
          "Documentation": [
             "Τεκμηρίωση"

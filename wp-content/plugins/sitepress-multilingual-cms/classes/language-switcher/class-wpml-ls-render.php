@@ -4,36 +4,22 @@ class WPML_LS_Render extends WPML_SP_User {
 
 	const THE_CONTENT_FILTER_PRIORITY = 100;
 
-	/* @var WPML_LS_Template $current_template */
 	private $current_template;
 
-	/* @var WPML_LS_Templates $templates */
 	private $templates;
 
-	/* @var WPML_LS_Settings $settings */
 	private $settings;
 
-	/* @var WPML_LS_Model_Build $model_build */
 	private $model_build;
 
-	/* @var WPML_LS_Inline_Styles &$inline_styles */
 	private $inline_styles;
 
-	/* @var WPML_LS_Assets $assets */
 	private $assets;
 
-	/** @var bool */
 	private $wpml_ls_exclude_in_menu;
 
-	/**
-	 * WPML_Language_Switcher_Menu constructor.
-	 *
-	 * @param WPML_LS_Templates     $templates
-	 * @param WPML_LS_Settings      $settings
-	 * @param WPML_LS_Model_Build   $model_build
-	 * @param WPML_LS_Inline_Styles $inline_styles
-	 * @param SitePress             $sitepress
-	 */
+	private $has_hierarchical_menu = false;
+
 	public function __construct( $templates, $settings, $model_build, $inline_styles, $sitepress ) {
 		$this->templates     = $templates;
 		$this->settings      = $settings;
@@ -49,6 +35,7 @@ class WPML_LS_Render extends WPML_SP_User {
 			add_filter( 'wp_get_nav_menu_items', array( $this, 'wp_get_nav_menu_items_filter' ), 10, 2 );
 			add_filter( 'wp_setup_nav_menu_item', array( $this, 'maybe_repair_menu_item' ), PHP_INT_MAX );
 			add_filter( 'nav_menu_link_attributes', array( $this, 'add_menu_link_accessibility_attributes' ), 10, 2 );
+			add_action( 'wp_footer', array( $this, 'add_menu_accessibility_script' ), 999 );
 
 			add_filter( 'the_content', array( $this, 'the_content_filter' ), self::THE_CONTENT_FILTER_PRIORITY );
 			if ( ! $this->is_widgets_page() ) {
@@ -59,11 +46,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		}
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	public function render( $slot ) {
 		$html  = '';
 		$model = array();
@@ -90,27 +72,10 @@ class WPML_LS_Render extends WPML_SP_User {
 		return $this->filter_html( $html, $model, $slot );
 	}
 
-	/**
-	 * @param string       $html
-	 * @param array        $model
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	private function filter_html( $html, $model, $slot ) {
-		/**
-		 * @param string       $html   The HTML for the language switcher
-		 * @param array        $model  The model passed to the template
-		 * @param WPML_LS_Slot $slot   The language switcher settings for this slot
-		 */
 		return apply_filters( 'wpml_ls_html', $html, $model, $slot );
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return array
-	 */
 	public function get_preview( $slot ) {
 		$ret = [];
 
@@ -129,12 +94,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return $ret;
 	}
 
-	/**
-	 * @param array   $items
-	 * @param WP_Term $menu
-	 *
-	 * @return array
-	 */
 	public function wp_get_nav_menu_items_filter( $items, $menu ) {
 		if ( $this->should_not_alter_menu() ) {
 			return $items;
@@ -173,13 +132,6 @@ class WPML_LS_Render extends WPML_SP_User {
 	}
 
 
-	/**
-	 * @param WP_Post[]           $items
-	 * @param WPML_LS_Menu_Item[] $lang_items
-	 * @param bool                $is_before
-	 *
-	 * @return array
-	 */
 	private function merge_menu_items( $items, $lang_items, $is_before ) {
 		if ( $is_before ) {
 			$items_to_prepend = $lang_items;
@@ -199,16 +151,14 @@ class WPML_LS_Render extends WPML_SP_User {
 		return array_merge( $items_to_prepend, $items_to_append );
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return array
-	 */
 	private function get_menu_items( $slot ) {
 		$lang_items = array();
 		$model      = $this->model_build->get( $slot );
 
 		if ( isset( $model['languages'] ) ) {
+			if ( $slot->get( 'is_hierarchical' ) ) {
+				$this->has_hierarchical_menu = true;
+			}
 
 			$this->current_template = $this->templates->get_template( $slot->template() );
 			$menu_order             = 1;
@@ -227,13 +177,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return $lang_items;
 	}
 
-	/**
-	 * @link https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-4706#comment=102-231339
-	 *
-	 * @param WP_Post|WPML_LS_Menu_Item|object $item
-	 *
-	 * @return object $item
-	 */
 	public function maybe_repair_menu_item( $item ) {
 		if ( $this->should_not_alter_menu() ) {
 			return $item;
@@ -250,11 +193,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return $item;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	private function render_menu_preview( $slot ) {
 		$items    = $this->get_menu_items( $slot );
 		$class    = $slot->get( 'is_hierarchical' ) ? 'wpml-ls-menu-hierarchical-preview' : 'wpml-ls-menu-flat-preview';
@@ -279,11 +217,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return '<div><ul class="wpml-ls-menu-preview ' . $class . '">' . $output . '</ul></div>';
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return bool true if the switcher is to be hidden
-	 */
 	private function is_hidden( $slot ) {
 		if ( ! function_exists( 'wpml_home_url_ls_hide_check' ) ) {
 			require WPML_PLUGIN_PATH . '/inc/post-translation/wpml-root-page-actions.class.php';
@@ -298,11 +231,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return is_admin() && 'widgets.php' === $pagenow;
 	}
 
-	/**
-	 * @param string $content
-	 *
-	 * @return string
-	 */
 	public function the_content_filter( $content ) {
 		$post_translations = '';
 		$slot              = $this->settings->get_slot( 'statics', 'post_translations' );
@@ -324,11 +252,6 @@ class WPML_LS_Render extends WPML_SP_User {
 		return $content;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return mixed|string|void
-	 */
 	public function post_translations_label( $slot ) {
 		$css_classes = $this->model_build->get_slot_css_classes( $slot );
 		$html        = $this->render( $slot );
@@ -336,12 +259,8 @@ class WPML_LS_Render extends WPML_SP_User {
 			$html = sprintf( $slot->get( 'availability_text' ), $html );
 			$html = '<p class="' . $css_classes . '">' . $html . '</p>';
 
-			/* @deprecated use 'wpml_ls_post_alternative_languages' instead */
 			$html = apply_filters( 'icl_post_alternative_languages', $html );
 
-			/**
-			 * @param string $html
-			 */
 			$html = apply_filters( 'wpml_ls_post_alternative_languages', $html );
 		}
 
@@ -355,25 +274,103 @@ class WPML_LS_Render extends WPML_SP_User {
 		}
 	}
 
-	/**
-	 * Adds accessibility attributes to the menu link element
-	 *
-	 * @param array    $atts The HTML attributes applied to the menu item's link element
-	 * @param WP_Post|WPML_LS_Menu_Item $item The current menu item
-	 *
-	 * @return array Modified attributes
-	 */
 	public function add_menu_link_accessibility_attributes( $atts, $item ) {
 		if ( $item instanceof WPML_LS_Menu_Item ) {
 			if ( isset( $item->aria_label ) ) {
 				$atts['aria-label'] = $item->aria_label;
 			}
 
-			if (isset( $item->link_role ) ) {
+			if ( isset( $item->link_role ) && ! empty( $item->link_role ) ) {
 				$atts['role'] = $item->link_role;
+			}
+
+			if ( isset( $item->aria_expanded ) && ! empty( $item->aria_expanded ) ) {
+				$atts['aria-expanded'] = $item->aria_expanded;
+			}
+
+			if ( isset( $item->aria_controls ) && ! empty( $item->aria_controls ) ) {
+				$atts['aria-controls'] = $item->aria_controls;
+			}
+
+			if ( isset( $item->classes ) && is_array( $item->classes ) ) {
+				foreach ( $item->classes as $class ) {
+					if ( strpos( $class, 'wpml-ls-current-language' ) !== false ) {
+						$atts['aria-current'] = 'page';
+						break;
+					}
+				}
 			}
 		}
 
 		return $atts;
+	}
+
+	public function add_menu_accessibility_script() {
+ 		if ( ! $this->has_hierarchical_menu_items() ) {
+			return;
+		}
+ 		?>
+		<script>
+		(function() {
+			'use strict';
+			var parentSelector = '.menu-item.wpml-ls-current-language.menu-item-has-children';
+			
+			function toggleSubmenu(link, forceClose) {
+				var isExpanded = link.getAttribute('aria-expanded') === 'true';
+				if (forceClose || isExpanded) {
+					link.setAttribute('aria-expanded', 'false');
+				} else {
+					link.setAttribute('aria-expanded', 'true');
+				}
+			}
+			
+			function handleKeydown(e) {
+				var key = e.key || e.keyCode;
+				if (key === 'Enter' || key === ' ' || key === 13 || key === 32) {
+					e.preventDefault();
+					toggleSubmenu(this);
+				} else if (key === 'Escape' || key === 'Esc' || key === 27) {
+					if (this.getAttribute('aria-expanded') === 'true') {
+						e.preventDefault();
+						toggleSubmenu(this, true);
+					}
+				}
+			}
+			
+			function handleBlur(e) {
+				var link = this;
+				var parent = link.closest(parentSelector);
+				if (!parent) return;
+				
+				setTimeout(function() {
+					if (!parent.contains(document.activeElement)) {
+						toggleSubmenu(link, true);
+					}
+				}, 100);
+			}
+			
+			function init() {
+				var parents = document.querySelectorAll(parentSelector);
+				for (var i = 0; i < parents.length; i++) {
+					var link = parents[i].querySelector('a[aria-expanded]');
+					if (link) {
+						link.addEventListener('keydown', handleKeydown);
+						link.addEventListener('blur', handleBlur);
+					}
+				}
+			}
+			
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', init);
+			} else {
+				init();
+			}
+		})();
+		</script>
+		<?php
+	}
+
+	private function has_hierarchical_menu_items() {
+		return $this->has_hierarchical_menu;
 	}
 }

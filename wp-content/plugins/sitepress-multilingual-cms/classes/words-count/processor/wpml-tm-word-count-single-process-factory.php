@@ -3,7 +3,6 @@
 class WPML_TM_Word_Count_Single_Process_Factory {
 
 	public function create() {
-		/** @var wpdb $wpdb */
 		global $wpdb;
 
 		$setters_factory      = new WPML_TM_Word_Count_Setters_Factory();

@@ -8,7 +8,6 @@ class AddToQueueAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_add_to_queue';
 	const ACTION_ARGS = 4;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct(

@@ -9,11 +9,15 @@ use Smush\Core\File_System;
 use Smush\Core\Helper;
 use Smush\Core\Media\Media_Item;
 use Smush\Core\Media\Media_Item_Cache;
+use Smush\Core\Membership\Membership;
 use Smush\Core\Settings;
 use WDEV_Logger;
 
 class S3_Controller extends Controller {
-	const AS3CF_GET_ATTACHED_FILE_PRIORITY = - 10;
+	private static $as3cf_get_attached_file_priority = - 10;
+
+	private static $s3_setting_key = 's3';
+
 	private $media_item_cache;
 	/**
 	 * @var WP_Offload_Media_Api
@@ -31,6 +35,7 @@ class S3_Controller extends Controller {
 	 * @var File_System
 	 */
 	private $fs;
+	private $membership;
 
 	public function __construct() {
 		$this->media_item_cache = Media_Item_Cache::get_instance();
@@ -38,9 +43,14 @@ class S3_Controller extends Controller {
 		$this->logger           = Helper::logger()->integrations();
 		$this->settings         = Settings::get_instance();
 		$this->fs               = new File_System();
+		$this->membership       = Membership::get_instance();
 
 		$this->register_action( 'init', array( $this, 'maybe_initialize' ), - 10 );
+		// TODO: [WPMUDEV SMUSH UI] the following three methods no longer work because of the new UI
+		$this->register_action( 'smush_setting_column_right_inside', array( $this, 's3_setup_message' ), 15 );
+		$this->register_action( 'wp_smush_header_notices', array( $this, 'show_s3_support_required_notice' ) );
 		$this->register_filter( 'wp_smush_should_fetch_external_image_dimensions', array( $this, 'allow_fetch_image_dimensions_from_s3' ), 10, 2 );
+		$this->register_action( 'wp_ajax_dismiss_s3support_alert', array( $this, 'dismiss_s3support_alert' ) );
 	}
 
 	public function maybe_initialize() {
@@ -172,7 +182,7 @@ class S3_Controller extends Controller {
 		add_filter(
 			'as3cf_get_attached_file',
 			array( $this, 'return_local_file_path' ),
-			self::AS3CF_GET_ATTACHED_FILE_PRIORITY, // Our callback needs to run before the s3 callback get_stream_wrapper_file
+			self::$as3cf_get_attached_file_priority, // Our callback needs to run before the s3 callback get_stream_wrapper_file
 			2
 		);
 	}
@@ -181,7 +191,7 @@ class S3_Controller extends Controller {
 		remove_filter( 'as3cf_get_attached_file', array(
 			$this,
 			'return_local_file_path',
-		), self::AS3CF_GET_ATTACHED_FILE_PRIORITY );
+		), self::$as3cf_get_attached_file_priority );
 	}
 
 	public function return_local_file_path( $url, $file_path ) {
@@ -342,7 +352,7 @@ class S3_Controller extends Controller {
 		$this->logger->error( "Smush S3 Integration: $error" );
 	}
 
-	private function is_media_item_optimizable( Media_Item $media_item ) {
+	private function is_media_item_optimizable( $media_item ) {
 		return ! $this->is_media_item_not_optimizable( $media_item );
 	}
 
@@ -351,7 +361,7 @@ class S3_Controller extends Controller {
 	 *
 	 * @return bool
 	 */
-	private function is_media_item_not_optimizable( Media_Item $media_item ) {
+	private function is_media_item_not_optimizable( $media_item ) {
 		return ! $media_item->is_valid() || $media_item->has_errors() || $media_item->is_skipped();
 	}
 
@@ -392,6 +402,138 @@ class S3_Controller extends Controller {
 		}, 50 );
 	}
 
+	/**
+	 * Prints the message for S3 setup
+	 *
+	 * TODO: [WPMUDEV SMUSH UI] this no longer works in react
+	 *
+	 * @param string $setting_key Settings key.
+	 */
+	public function s3_setup_message( $setting_key ) {
+		// Return if not S3.
+		$s3_setting_key = self::$s3_setting_key;
+		if ( $s3_setting_key !== $setting_key ) {
+			return;
+		}
+
+		// If S3 integration is not enabled, return.
+		$is_s3_active            = $this->settings->is_s3_active();
+		$wp_offload_media_active = $this->wp_offload_media_active();
+
+		// If integration is disabled when S3 offload is active, do not continue.
+		if ( ! $is_s3_active && $wp_offload_media_active ) {
+			return;
+		}
+
+		// If S3 offload global variable is not available, plugin is not active.
+		if ( ! $wp_offload_media_active ) {
+			$class   = '';
+			$message = __( 'To use this feature you need to install WP Offload Media and have an Amazon S3 account setup.', 'wp-smushit' );
+		} elseif ( $this->wp_offload_media->is_plugin_setup() === null || $this->wp_offload_media->get_plugin_page_url() === null ) {
+			// Check if in case for some reason, we couldn't find the required function.
+			$class   = ' sui-notice-warning';
+			$message = sprintf( /* translators: %1$s: opening a tag, %2$s: closing a tag */
+				esc_html__(
+					'We are having trouble interacting with WP Offload Media, make sure the plugin is activated. Or you can %1$sreport a bug%2$s.',
+					'wp-smushit'
+				),
+				'<a href="' . esc_url( 'https://wpmudev.com/contact' ) . '" target="_blank">',
+				'</a>'
+			);
+		} elseif ( ! $this->wp_offload_media->is_plugin_setup() ) {
+			// Plugin is not setup, or some information is missing.
+			$class   = ' sui-notice-warning';
+			$message = sprintf( /* translators: %1$s: opening a tag, %2$s: closing a tag */
+				esc_html__(
+					'It seems you haven’t finished setting up WP Offload Media yet. %1$sConfigure it now%2$s to enable Amazon S3 support.',
+					'wp-smushit'
+				),
+				'<a href="' . $this->wp_offload_media->get_plugin_page_url() . '" target="_blank">',
+				'</a>'
+			);
+		} else {
+			// S3 support is active.
+			$class   = ' sui-notice-info';
+			$message = __( 'Amazon S3 support is active.', 'wp-smushit' );
+		}
+		?>
+		<div class="sui-toggle-content">
+			<div class="sui-notice<?php echo esc_attr( $class ); ?>">
+				<div class="sui-notice-content">
+					<div class="sui-notice-message">
+						<i class="sui-notice-icon sui-icon-info" aria-hidden="true"></i>
+						<p><?php echo wp_kses_post( $message ); ?></p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Error message to show when S3 support is required.
+	 *
+	 * Show a error message to admins, if they need to enable S3 support. If "remove files from
+	 * server" option is enabled in WP Offload Media plugin, we need WP Smush Pro to enable S3 support.
+	 *
+	 * @return void
+	 */
+	public function show_s3_support_required_notice() {
+		// Do not display it for other users. Do not display on network screens, if network-wide option is disabled.
+		if ( ! current_user_can( 'manage_options' ) || ! Settings::can_access( 'integrations' ) ) {
+			return;
+		}
+
+		// If already dismissed, do not show.
+		if ( '1' === get_site_option( 'wp-smush-hide_s3support_alert' ) ) {
+			return;
+		}
+
+		// Return early, if support is not required.
+		if ( ! $this->wp_offload_media_active() || $this->settings->is_s3_active() ) {
+			return;
+		}
+
+		// Settings link.
+		$settings_link = is_multisite() && is_network_admin()
+			? network_admin_url( 'admin.php?page=smush-integrations' )
+			: menu_page_url( 'smush-integrations', false );
+
+		if ( $this->membership->is_pro() ) {
+			/**
+			 * If premium user, but S3 support is not enabled.
+			 */
+			$message = sprintf(
+			/* Translators: %1$s: opening strong tag, %2$s: closing strong tag, %s: settings link, %3$s: opening a and strong tags, %4$s: closing a and strong tags */
+				__(
+					'We can see you have WP Offload Media installed. If you want to optimize your S3 images, you’ll need to enable the %3$sAmazon S3 Support%4$s feature in Smush’s Integrations.',
+					'wp-smushit'
+				),
+				'<strong>',
+				'</strong>',
+				"<a href='$settings_link'><strong>",
+				'</strong></a>'
+			);
+		} else {
+			/**
+			 * If not a premium user.
+			 */
+			$message = sprintf(
+			/* Translators: %1$s: opening strong tag, %2$s: closing strong tag, %s: settings link, %3$s: opening a and strong tags, %4$s: closing a and strong tags */
+				__(
+					"We can see you have WP Offload Media installed. If you want to optimize your S3 images you'll need to %3\$supgrade to Smush Pro%4\$s",
+					'wp-smushit'
+				),
+				'<strong>',
+				'</strong>',
+				'<a href=' . esc_url( 'https://wpmudev.com/project/wp-smush-pro' ) . '><strong>',
+				'</strong></a>'
+			);
+		}
+		$message = '<p>' . $message . '</p>';
+		echo '<div role="alert" id="wp-smush-s3support-alert" class="sui-notice" data-message="' . esc_attr( $message ) . '" aria-live="assertive"></div>';
+	}
+
 	public function allow_fetch_image_dimensions_from_s3( $allow_fetch, $image_url ) {
 		if ( $allow_fetch || ! $this->wp_offload_media->get_setting( 'serve-from-s3' ) ) {
 			return $allow_fetch;
@@ -403,5 +545,19 @@ class S3_Controller extends Controller {
 		}
 
 		return $allow_fetch;
+	}
+
+	/**
+	 * Hide S3 support alert by setting a flag.
+	 */
+	public function dismiss_s3support_alert() {
+		check_ajax_referer( 'wp-smush-ajax' );
+		// Check capability.
+		if ( ! Helper::is_user_allowed( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized', 'wp-smushit' ), 403 );
+		}
+		// Just set a flag.
+		update_site_option( 'wp-smush-hide_s3support_alert', 1 );
+		wp_send_json_success();
 	}
 }

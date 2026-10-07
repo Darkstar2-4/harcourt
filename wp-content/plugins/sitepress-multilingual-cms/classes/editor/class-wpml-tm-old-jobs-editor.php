@@ -4,10 +4,8 @@ class WPML_TM_Old_Jobs_Editor {
 
 	const OPTION_NAME = 'wpml-old-jobs-editor';
 
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var WPML_Translation_Job_Factory */
 	private $job_factory;
 
 	public function __construct( WPML_Translation_Job_Factory $job_factory ) {
@@ -18,11 +16,6 @@ class WPML_TM_Old_Jobs_Editor {
 	}
 
 
-	/**
-	 * @param int $job_id
-	 *
-	 * @return null|string
-	 */
 	public function get( $job_id ) {
 		$current_editor = $this->get_current_editor( $job_id );
 
@@ -33,12 +26,6 @@ class WPML_TM_Old_Jobs_Editor {
 		}
 	}
 
-	/**
-	 * @param int $job_id
-	 * @param object|false $previousJob
-	 *
-	 * @return bool
-	 */
 	public function shouldStickToWPMLEditor( $job_id, $previousJob = false ) {
 		$sql = "
 			SELECT job.editor
@@ -54,9 +41,6 @@ class WPML_TM_Old_Jobs_Editor {
 		return $previousJobEditor === WPML_TM_Editors::WPML && get_option( self::OPTION_NAME, null ) === WPML_TM_Editors::WPML;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function editorForTranslationsPreviouslyCreatedUsingCTE(  ) {
 		return get_option( self::OPTION_NAME, WPML_TM_Editors::WPML );
 	}
@@ -71,11 +55,6 @@ class WPML_TM_Old_Jobs_Editor {
 	}
 
 
-	/**
-	 * @param int $job_id
-	 *
-	 * @return null|string
-	 */
 	public function get_current_editor( $job_id ) {
 		$sql = "SELECT editor FROM {$this->wpdb->prefix}icl_translate_job WHERE job_id = %d";
 

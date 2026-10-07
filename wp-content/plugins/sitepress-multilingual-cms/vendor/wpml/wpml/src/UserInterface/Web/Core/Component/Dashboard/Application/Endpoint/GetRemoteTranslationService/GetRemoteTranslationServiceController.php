@@ -8,7 +8,6 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\Query\FetchRemoteTr
 
 class GetRemoteTranslationServiceController implements EndpointInterface {
 
-  /** @var RemoteTranslationService */
   private $remoteTranslationServiceService;
 
 
@@ -19,7 +18,6 @@ class GetRemoteTranslationServiceController implements EndpointInterface {
 
   public function handle( $requestData = null ): array {
     try {
-      /** @var bool $forceRefreshExtraFields */
       $forceRefreshExtraFields = isset( $requestData['forceRefreshExtraFields'] )
                                  && $requestData['forceRefreshExtraFields'] === 'true';
 

@@ -11,9 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * @internal
- */
 class SetTempNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($name, $lineno)

@@ -12,16 +12,8 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 		'tag'    => 1,
 	);
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * @param array                    $tax_sync_option
-	 * @param WPML_URL_Converter       $url_converter
-	 * @param WPML_Request             $request_handler
-	 * @param WPML_Language_Resolution $lang_resolution
-	 * @param SitePress                $sitepress
-	 */
 	public function __construct( $tax_sync_option, &$url_converter, &$request_handler, &$lang_resolution, &$sitepress ) {
 		parent::__construct( $url_converter, $request_handler, $lang_resolution );
 		global $wp_rewrite;
@@ -40,9 +32,6 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 		add_action( 'template_redirect', array( $this, 'template_redirect_action' ), 1 );
 	}
 
-	/**
-	 * @return bool|string
-	 */
 	public function get_redirect_target() {
 		$target = $this->redirect_hidden_home();
 		if ( (bool) $target === false ) {
@@ -58,14 +47,12 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 
 	private function find_potential_translation( $query_params, $lang_code ) {
 		if ( count( $translatable_params = array_intersect_key( $query_params, $this->post_like_params ) ) === 1 ) {
-			/** @var WPML_Post_Translation $wpml_post_translations */
 			global $wpml_post_translations;
 			$potential_translation = $wpml_post_translations->element_id_in(
 				$query_params[ ( $parameter = key( $translatable_params ) ) ],
 				$lang_code
 			);
 		} elseif ( count( $translatable_params = array_intersect_key( $query_params, $this->term_like_params ) ) === 1 ) {
-			/** @var WPML_Term_Translation $wpml_term_translations */
 			global $wpml_term_translations;
 
 			$termId = $query_params[ ( $parameter = key( $translatable_params ) ) ];
@@ -73,18 +60,14 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 				$termId = $termId[0];
 			}
 
+      if ( ! ctype_digit( $termId ) ) {
+        return false;
+      }
 			$potential_translation = $wpml_term_translations->term_id_in( (int) $termId, $lang_code );
 		}
-		/** @var String $parameter */
 		return isset( $potential_translation, $parameter ) ? array( $parameter, $potential_translation ) : false;
 	}
 
-	/**
-	 * @param string $query_params_string
-	 * @param string $lang_code
-	 *
-	 * @return array|false
-	 */
 	private function needs_redirect( $query_params_string, $lang_code ) {
 		global $sitepress;
 
@@ -127,11 +110,6 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 		return $query_params_new !== false ? rawurldecode( http_build_query( $query_params_new ) ) : false;
 	}
 
-	/**
-	 * @param string $query_params_string
-	 *
-	 * @return null|string
-	 */
 	private function get_element_language( $query_params_string ) {
 		$language                          = '';
 		list( $element_id, $element_type ) = $this->get_element_details( $query_params_string );
@@ -143,11 +121,6 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 		return $language;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return array
-	 */
 	private function get_element_details( $url ) {
 		$element_id   = '';
 		$element_type = '';
@@ -165,9 +138,6 @@ class WPML_Redirect_By_Param extends WPML_Redirection {
 		return array( $element_id, $element_type );
 	}
 
-	/**
-	 * @link https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-2822
-	 */
 	public function template_redirect_action() {
 		if ( $this->sitepress->get_wp_api()->is_front_page()
 			 && $this->sitepress->get_wp_api()->get_query_var( 'page' )

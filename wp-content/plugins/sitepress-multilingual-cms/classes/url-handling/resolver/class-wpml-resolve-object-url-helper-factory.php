@@ -5,9 +5,6 @@ class WPML_Resolve_Object_Url_Helper_Factory {
 	const CURRENT_URL_RESOLVER  = 'current';
 	const ABSOLUTE_URL_RESOLVER = 'absolute';
 
-	/**
-	 * @return IWPML_Resolve_Object_Url
-	 */
 	public function create( $type = self::CURRENT_URL_RESOLVER ) {
 		global $sitepress, $wp_query, $wpml_term_translations, $wpml_post_translations;
 

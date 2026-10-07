@@ -6,19 +6,14 @@ use WPML\Auryn\Injector as AurynInjector;
 
 class Container {
 
-	/** @var Container $instance */
 	private static $instance = null;
 
-	/** @var AurynInjector|null */
 	private $injector = null;
 
 	private function __construct() {
 		$this->injector = new AurynInjector();
 	}
 
-	/**
-	 * @return Container
-	 */
 	public static function get_instance() {
 		if ( ! self::$instance ) {
 			self::$instance = new Container();
@@ -27,14 +22,6 @@ class Container {
 		return self::$instance;
 	}
 
-	/**
-	 * class names or instances that should be shared.
-	 * Shared means that only one instance is ever created when calling the make function.
-	 *
-	 * @param array $names_or_instances
-	 *
-	 * @throws \WPML\Auryn\ConfigException
-	 */
 	public static function share( array $names_or_instances ) {
 		$injector = self::get_instance()->injector;
 
@@ -45,17 +32,6 @@ class Container {
 		);
 	}
 
-	/**
-	 * This allows to define aliases classes to be used in place of type hints.
-	 * e.g. [
-	 *          // generic => specific
-	 *          'wpdb' => 'QM_DB',
-	 *      ]
-	 *
-	 * @param array $aliases
-	 *
-	 * @throws \WPML\Auryn\ConfigException
-	 */
 	public static function alias( array $aliases ) {
 		$injector = self::get_instance()->injector;
 
@@ -66,14 +42,6 @@ class Container {
 		);
 	}
 
-	/**
-	 * This allows to delegate the object instantiation to a factory.
-	 * It can be any kind of callable (class or function).
-	 *
-	 * @param array $delegated [ $class_name => $instantiator ]
-	 *
-	 * @throws \WPML\Auryn\ConfigException
-	 */
 	public static function delegate( array $delegated ) {
 		$injector = self::get_instance()->injector;
 
@@ -84,28 +52,10 @@ class Container {
 		);
 	}
 
-	/**
-	 * Make returns a new instance otherwise returns a shared instance if the
-	 * class_name or an instance is set as shared using the share function
-	 *
-	 * @param string $class_name
-	 * @param array  $args
-	 *
-	 * @return mixed
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function make( $class_name, array $args = array() ) {
 		return self::get_instance()->injector->make( $class_name, $args );
 	}
 
-	/**
-	 * Invoke the specified callable or class::method string, provisioning dependencies along the way
-	 *
-	 * @param mixed $callableOrMethodStr A valid PHP callable or a provisionable ClassName::methodName string
-	 * @param array $args Optional array specifying params with which to invoke the provisioned callable
-	 * @throws \WPML\Auryn\InjectionException
-	 * @return mixed Returns the invocation result returned from calling the generated executable
-	 */
 	public static function execute( $callableOrMethodStr, array $args = [] ) {
 		return self::get_instance()->injector->execute( $callableOrMethodStr, $args );
 	}

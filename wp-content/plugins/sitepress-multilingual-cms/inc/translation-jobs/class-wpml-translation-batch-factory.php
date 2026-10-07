@@ -2,11 +2,6 @@
 
 class WPML_Translation_Batch_Factory {
 
-	/**
-	 * @param int $id
-	 *
-	 * @return WPML_Translation_Batch
-	 */
 	public function create( $id ) {
 		global $sitepress;
 

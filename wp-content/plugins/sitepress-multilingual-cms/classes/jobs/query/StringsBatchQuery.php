@@ -5,7 +5,6 @@ namespace WPML\TM\Jobs\Query;
 use WPML_TM_Job_Entity;
 
 class StringsBatchQuery extends AbstractQuery {
-	/** @var string */
 	protected $title_column = 'translation_batches.batch_name';
 
 	protected function add_resource_join( QueryBuilder $query_builder ) {

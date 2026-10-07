@@ -11,14 +11,8 @@ class View implements IHandler {
 	const ACTION_LIST_TRANSLATABLES = 'list-translatables';
 	const ACTION_FETCH_DATA         = 'fetch-data';
 
-	/** @var DataPreSetup $data_pre_setup */
 	private $data;
 
-	/**
-	 * @param DataPreSetup $data
-	 *
-	 * @return void
-	 */
 	public function __construct( DataPreSetup $data ) {
 		$this->data = $data;
 	}

@@ -12,9 +12,6 @@ namespace WPML\Core\Twig\Node\Expression;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Node;
-/**
- * @internal
- */
 final class InlinePrint extends \WPML\Core\Twig\Node\Expression\AbstractExpression
 {
     public function __construct(\WPML\Core\Twig\Node\Node $node, $lineno)

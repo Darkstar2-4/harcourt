@@ -7,7 +7,6 @@ class HasKeyInSettingsFilter extends AbstractFilterHookHandler {
 	const FILTER_NAME = 'wpml_st_has_key_in_settings';
 	const FILTER_ARGS = 1;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(

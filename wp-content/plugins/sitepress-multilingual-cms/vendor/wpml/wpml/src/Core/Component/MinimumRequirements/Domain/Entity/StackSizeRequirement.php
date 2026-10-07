@@ -8,20 +8,13 @@ use WPML\Core\SharedKernel\Component\Server\Domain\Service\ByteSizeConverter;
 
 class StackSizeRequirement extends RequirementBase {
 
-  /** @var ServerInfoInterface */
   private $serverInfo;
 
-  /** @var ByteSizeConverter */
   private $byteSizeConverter;
 
   const BYTES_PER_KB = 1024;
 
 
-  /**
-   * Constructor.
-   *
-   * @param ServerInfoInterface $serverInfo The server info service.
-   */
   public function __construct(
     ServerInfoInterface $serverInfo, ByteSizeConverter $byteSizeConverter
   ) {
@@ -84,7 +77,6 @@ class StackSizeRequirement extends RequirementBase {
       return true;
     }
 
-    // Calculate available stack size
     $availableStack = $this->calculateAvailableStackSize();
 
     return $availableStack >= RequirementsConfig::MINIMUM_AVAILABLE_STACK_SIZE
@@ -92,24 +84,16 @@ class StackSizeRequirement extends RequirementBase {
   }
 
 
-  /**
-   * @return int The available stack size in bytes
-   */
   private function calculateAvailableStackSize(): int {
     return $this->getMaxAllowedStackSize() - $this->getReservedStackSize();
   }
 
 
-  /**
-   * @return int The max allowed stack size in bytes
-   */
   private function getMaxAllowedStackSize(): int {
-    // According to PHP documentation, possible values are:
-    // 0 (auto-detect), -1 (unlimited), or a positive number of bytes
     $value = $this->serverInfo->getIniGet( 'zend.max_allowed_stack_size' );
 
     if ( ! $value ) {
-      $value = 0; //default value of PHP
+      $value = 0;
     }
 
     $valueInBytes = $this->byteSizeConverter->toBytes( $value );
@@ -121,18 +105,13 @@ class StackSizeRequirement extends RequirementBase {
   }
 
 
-  /**
-   * @return int The reserved stack size in bytes
-   */
   private function getReservedStackSize(): int {
     $value = $this->serverInfo->getIniGet( 'zend.reserved_stack_size' );
 
     if ( ! $value ) {
-      $value = 0; //default value of PHP
+      $value = 0;
     }
 
-    // Reserved stack size is always expressed in bytes
-    // The value -1 is not allowed, so we'll default to 0 if it's negative
     return max( 0, $this->byteSizeConverter->toBytes( $value ) );
   }
 

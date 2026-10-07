@@ -5,7 +5,7 @@ namespace Smush\Core\LCP;
 use Smush\Core\Array_Utils;
 
 class LCP_Data_Store_Post_Meta extends LCP_Data_Store {
-	const TYPE = 'post-meta';
+	private static $type = 'post-meta';
 
 	private $post_id;
 	/**
@@ -19,7 +19,7 @@ class LCP_Data_Store_Post_Meta extends LCP_Data_Store {
 		parent::__construct();
 	}
 
-	public function save( $url, $is_mobile, LCP_Data $lcp_data ) {
+	public function save( $url, $is_mobile, $lcp_data ) {
 		$post_meta = $lcp_data->to_array();
 		$post_meta = ! empty( $post_meta ) && is_array( $post_meta )
 			? $post_meta
@@ -36,7 +36,7 @@ class LCP_Data_Store_Post_Meta extends LCP_Data_Store {
 		);
 	}
 
-	public function get( $url, $is_mobile ): LCP_Data {
+	public function get( $url, $is_mobile ) {
 		$post_meta = get_post_meta(
 			$this->post_id,
 			$this->make_key( $url, $is_mobile ),
@@ -72,7 +72,7 @@ class LCP_Data_Store_Post_Meta extends LCP_Data_Store {
 	public function delete_all() {
 		global $wpdb;
 
-		$like      = $wpdb->esc_like( LCP_Helper::KEY_PREFIX ) . '%';
+		$like      = $wpdb->esc_like( LCP_Helper::get_key_prefix() ) . '%';
 		$query     = $wpdb->prepare(
 			"SELECT meta_key FROM $wpdb->postmeta WHERE post_id = %d AND meta_key LIKE %s",
 			$this->post_id,
@@ -91,7 +91,11 @@ class LCP_Data_Store_Post_Meta extends LCP_Data_Store {
 	}
 
 	public function get_type() {
-		return self::TYPE;
+		return self::$type;
+	}
+
+	public static function get_type_key() {
+		return self::$type;
 	}
 
 	public function get_object_id() {

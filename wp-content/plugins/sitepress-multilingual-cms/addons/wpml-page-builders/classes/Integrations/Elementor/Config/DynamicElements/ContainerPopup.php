@@ -9,9 +9,6 @@ use function WPML\FP\compose;
 
 class ContainerPopup {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$isContainerPopup = Relation::propEq( 'elType', 'container' );
 	

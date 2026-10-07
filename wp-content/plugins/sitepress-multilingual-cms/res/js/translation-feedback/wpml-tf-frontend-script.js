@@ -15,11 +15,14 @@ WPMLCore.TranslationFeedback = function() {
 	this.noCommentThreshold = 4;
 	this.dialogInitialized = false;
 	this.feedbackId = null;
+	this.ownershipToken = null;
 	this.assetUrl = {
 		'js': this.byQuery(this.form, 'input[name="asset_url_js"]').value.split(';'),
 	};
 	this.areAssetsLoaded = false;
 	this.ajaxUrl = this.byQuery(this.form, 'input[name="ajax_url"]').value;
+
+	this.restoreOwnership();
 
 	var self = this;
 
@@ -36,6 +39,7 @@ WPMLCore.TranslationFeedback = function() {
 
 			if ( self.feedbackId ) {
 				data.feedback_id = self.feedbackId;
+				data.ownership_token = self.ownershipToken;
 			}
 
 			self.sendFeedback(data);
@@ -59,6 +63,7 @@ WPMLCore.TranslationFeedback = function() {
 			content: self.byQuery(document, 'textarea[name="wpml-tf-comment"]').value,
 			feedback_id: self.feedbackId,
 		};
+		data.ownership_token = self.ownershipToken;
 
 		self.sendFeedback(data);
 		self.displayClosingComment();
@@ -156,6 +161,10 @@ WPMLCore.TranslationFeedback.prototype = {
 				const data = response.data;
 
 				self.feedbackId = data.feedback_id;
+				if ( data.ownership_token ) {
+					self.ownershipToken = data.ownership_token;
+				}
+				self.persistOwnership();
 				self.form.classList.add('wpml-tf-has-feedback-id');
 				self.form.classList.remove('wpml-tf-pending-request');
 				self.enableRating();
@@ -163,6 +172,42 @@ WPMLCore.TranslationFeedback.prototype = {
 			};
 
 			req.send(params);
+		}
+	},
+
+	ownershipStorageKey: function() {
+		return 'wpml_tf_feedback_' + this.documentType + '_' + this.documentId;
+	},
+
+	restoreOwnership: function() {
+		try {
+			var stored = window.localStorage.getItem(this.ownershipStorageKey());
+			if ( ! stored ) {
+				return;
+			}
+
+			var parsed = JSON.parse(stored);
+			if ( parsed && parsed.feedbackId && parsed.ownershipToken ) {
+				this.feedbackId     = parsed.feedbackId;
+				this.ownershipToken = parsed.ownershipToken;
+			}
+		} catch ( e ) {
+			// localStorage unavailable or corrupted; fall back to in-memory only.
+		}
+	},
+
+	persistOwnership: function() {
+		if ( ! this.feedbackId || ! this.ownershipToken ) {
+			return;
+		}
+
+		try {
+			window.localStorage.setItem(this.ownershipStorageKey(), JSON.stringify({
+				feedbackId: this.feedbackId,
+				ownershipToken: this.ownershipToken,
+			}));
+		} catch ( e ) {
+			// localStorage unavailable; token stays in memory for this session.
 		}
 	},
 

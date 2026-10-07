@@ -1,7 +1,5 @@
 <?php
 
-use WPML\TM\API\Basket;
-
 class WPML_Dashboard_Ajax {
 
 	public function enqueue_js() {
@@ -21,9 +19,7 @@ class WPML_Dashboard_Ajax {
 
 	private function get_wpml_tm_script_js_strings() {
 		$wpml_tm_strings = array(
-			'BB_default'                     => Basket::shouldUse()
-				? __( 'Add selected content to translation basket', 'wpml-translation-management' )
-				: __( 'Translate selected content', 'wpml-translation-management' ),
+			'BB_default'                     => __( 'Translate selected content', 'wpml-translation-management' ),
 			'BB_mixed_actions'               => __(
 				'Add selected content to translation basket / Duplicate',
 				'wpml-translation-management'

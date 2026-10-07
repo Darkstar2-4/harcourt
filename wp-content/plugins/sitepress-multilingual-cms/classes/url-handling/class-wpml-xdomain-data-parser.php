@@ -6,20 +6,11 @@ class WPML_XDomain_Data_Parser {
 
 	const SCRIPT_HANDLER = 'wpml-xdomain-data';
 
-	/**
-	 * @var array $settings
-	 */
 	private $settings;
 
 	private $encryptor;
 
 
-	/**
-	 * WPML_XDomain_Data_Parser constructor.
-	 *
-	 * @param array<string,mixed> $settings
-	 * @param \WPML_Data_Encryptor $encryptor
-	 */
 	public function __construct( &$settings, $encryptor ) {
 		$this->settings  = &$settings;
 		$this->encryptor = $encryptor;

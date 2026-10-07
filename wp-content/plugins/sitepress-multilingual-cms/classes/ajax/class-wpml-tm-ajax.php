@@ -1,14 +1,6 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_AJAX {
-	/**
-	 * @param string $action
-	 *
-	 * @return bool
-	 */
 	protected function is_valid_request( $action = '' ) {
 		if ( ! $action ) {
 			$action = array_key_exists( 'action', $_POST ) ? $_POST['action'] : '';

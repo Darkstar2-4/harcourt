@@ -12,15 +12,6 @@ namespace WPML\Core;
  */
 use WPML\Core\Twig\Node\Node;
 @\trigger_error('The Twig_Function class is deprecated since version 1.12 and will be removed in 2.0. Use \\Twig\\TwigFunction instead.', \E_USER_DEPRECATED);
-/**
- * Represents a template function.
- *
- * Use \Twig\TwigFunction instead.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since 1.12 (to be removed in 2.0)
- */
 abstract class Twig_Function implements \WPML\Core\Twig_FunctionInterface, \WPML\Core\Twig_FunctionCallableInterface
 {
     protected $options;

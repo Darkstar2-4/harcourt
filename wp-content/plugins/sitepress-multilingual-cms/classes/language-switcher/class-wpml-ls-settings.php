@@ -15,38 +15,22 @@ class WPML_LS_Settings {
 	const DEFAULT_FLAG_WIDTH  = 18;
 	const DEFAULT_FLAG_HEIGHT = 12;
 
-	/** @var  SitePress $sitepress */
 	protected $sitepress;
 
-	/* @var array $settings */
 	private $settings;
 
-	/* @var WPML_LS_Templates $templates */
 	private $templates;
 
-	/* @var WPML_LS_Slot_Factory $slot_factory */
 	private $slot_factory;
 
-	/* @var WPML_LS_Migration $migration */
 	private $migration;
 
-	/* @var WPML_LS_Settings_Sanitize $sanitizer */
 	private $sanitizer;
 
-	/* @var WPML_LS_Settings_Strings $strings */
 	private $strings;
 
-	/* @var WPML_LS_Settings_Color_Presets $color_presets */
 	private $color_presets;
 
-	/**
-	 * WPML_LS_Settings constructor.
-	 *
-	 * @param WPML_LS_Templates    $templates
-	 * @param SitePress            $sitepress
-	 * @param WPML_LS_Slot_Factory $slot_factory
-	 * @param WPML_LS_Migration    $migration
-	 */
 	public function __construct( $templates, $sitepress, $slot_factory, $migration = null ) {
 		$this->templates     = $templates;
 		$this->sitepress     = &$sitepress;
@@ -63,9 +47,6 @@ class WPML_LS_Settings {
 		add_action( 'wpml_reset_ls_settings', array( $this, 'reset_ls_settings_action' ) );
 	}
 
-	/**
-	 * @param array $ls_config
-	 */
 	public function reset_ls_settings_action( array $ls_config ) {
 		$restore_ls_settings = ( isset( $_GET['restore_ls_settings'] ) && 1 == $_GET['restore_ls_settings'] );
 		$has_valid_nonce     = isset( $_GET['nonce'] )
@@ -101,18 +82,10 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/**
-	 * @return string|void
-	 */
 	public function get_restore_redirect_url() {
 		return admin_url( 'admin.php?page=' . WPML_LS_Admin_UI::get_page_hook() . '&ls_reset=default' );
 	}
 
-	/**
-	 * @param array $arr
-	 *
-	 * @return array
-	 */
 	public function read_config_settings_recursive( $arr ) {
 		$ret = array();
 
@@ -130,16 +103,10 @@ class WPML_LS_Settings {
 		return $ret;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_settings_base_slug() {
 		return self::SETTINGS_SLUG;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_settings() {
 		$this->maybe_init_settings();
 
@@ -147,9 +114,6 @@ class WPML_LS_Settings {
 	}
 
 
-	/**
-	 * @return array
-	 */
 	public function get_settings_model() {
 		$settings = $this->get_settings();
 
@@ -166,9 +130,6 @@ class WPML_LS_Settings {
 		return $settings;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_default_settings() {
 		$core_templates = $this->get_core_templates();
 
@@ -219,12 +180,8 @@ class WPML_LS_Settings {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_shared_settings_keys() {
 		return array(
-			// SitePress::settings => WPML_LS_Settings::settings
 			'languages_order'              => 'languages_order',
 			'icl_lso_link_empty'           => 'link_empty',
 			'icl_lang_sel_copy_parameters' => 'copy_parameters',
@@ -237,9 +194,6 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/**
-	 * @param array<string,mixed> $new_settings
-	 */
 	private function persist_shared_settings( $new_settings ) {
 		foreach ( $this->get_shared_settings_keys() as $sp_key => $ls_key ) {
 			if ( array_key_exists( $ls_key, $new_settings ) ) {
@@ -298,9 +252,6 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/**
-	 * @param array $corrupted_settings
-	 */
 	private function add_corrupted_settings_notice( $corrupted_settings ) {
 
 		$message  = __( 'Some WPML Language Switcher settings were reinitialized because they were corrupted. Please re-configure them:', 'sitepress' );
@@ -316,18 +267,12 @@ class WPML_LS_Settings {
 		$admin_notices->add_notice( $notice );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_registered_sidebars() {
 		global $wp_registered_sidebars;
 
 		return is_array( $wp_registered_sidebars ) ? $wp_registered_sidebars : array();
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_available_menus() {
 		$has_term_filter = remove_filter( 'get_term', array( $this->sitepress, 'get_term_adjust_id' ), 1 );
 
@@ -350,9 +295,6 @@ class WPML_LS_Settings {
 		return $ret;
 	}
 
-	/**
-	 * @param array<string,mixed> $new_settings
-	 */
 	private function persist_settings( $new_settings ) {
 		$this->persist_shared_settings( $new_settings );
 
@@ -361,12 +303,6 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/**
-	 * @param string $slot_group
-	 * @param string|int $slot_slug
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	public function get_slot( $slot_group, $slot_slug ) {
 		$void_settings = array( 'show' => 0 );
 		$groups        = $this->get_settings();
@@ -376,11 +312,6 @@ class WPML_LS_Settings {
 		return $slot;
 	}
 
-	/**
-	 * @param int $term_id
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	public function get_menu_settings_from_id( $term_id ) {
 		$menu_slot = $this->get_slot( 'menus', $term_id );
 		if ( $menu_slot->is_enabled() ) {
@@ -415,16 +346,12 @@ class WPML_LS_Settings {
 		return $menu_slot;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_active_slots() {
 		$ret = array();
 
 		foreach ( array( 'menus', 'sidebars', 'statics' ) as $group ) {
 			$slots = $this->get_setting( $group );
 			foreach ( $slots as $slot_slug => $slot ) {
-				/* @var WPML_LS_Slot $slot */
 				if ( $slot->is_enabled() ) {
 					$ret[] = $slot;
 				}
@@ -434,15 +361,11 @@ class WPML_LS_Settings {
 		return $ret;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_active_templates() {
 		$ret          = array();
 		$active_slots = $this->get_active_slots();
 
 		foreach ( $active_slots as $slot ) {
-			/* @var WPML_LS_Slot $slot */
 			if ( $slot->is_enabled() ) {
 				$ret[] = $slot->template();
 			}
@@ -451,20 +374,12 @@ class WPML_LS_Settings {
 		return array_unique( $ret );
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return mixed string|array|null
-	 */
 	public function get_setting( $key ) {
 		$this->maybe_init_settings();
 
 		return Obj::propOr( null, $key, $this->settings );
 	}
 
-	/**
-	 * @param array $new_settings
-	 */
 	public function save_settings( $new_settings ) {
 		$this->maybe_init_settings();
 		$new_settings             = $this->sanitizer->sanitize_all_settings( $new_settings );
@@ -481,11 +396,6 @@ class WPML_LS_Settings {
 		$this->settings = $new_settings;
 	}
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	public function convert_slot_settings_to_objects( array $settings ) {
 		foreach ( array( 'menus', 'sidebars', 'statics' ) as $group ) {
 
@@ -506,9 +416,6 @@ class WPML_LS_Settings {
 		return $settings;
 	}
 
-	/**
-	 * @param array<string,\WPML_LS_Slot> $sidebar_slots
-	 */
 	private function synchronize_widget_instances( $sidebar_slots ) {
 		require_once ABSPATH . '/wp-admin/includes/widgets.php';
 		$wpml_ls_widget   = new WPML_LS_Widget();
@@ -526,7 +433,7 @@ class WPML_LS_Settings {
 					foreach ( $widgets as $key => $widget_id ) {
 						if ( strpos( $widget_id, WPML_LS_Widget::SLUG ) === 0 ) {
 
-							if ( $found ) { // Only synchronize the first LS widget instance per sidebar
+							if ( $found ) {
 								unset( $sidebars_widgets[ $sidebar ][ $key ] );
 								continue;
 							}
@@ -567,20 +474,14 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/** @return array */
 	private function get_refreshed_sidebars_widgets() {
 		global $_wp_sidebars_widgets;
 
-		// Clear cached value used in wp_get_sidebars_widgets().
 		$_wp_sidebars_widgets = null;
 
 		return wp_get_sidebars_widgets();
 	}
 
-	/**
-	 * @param array $old_sidebars
-	 * @param array $sidebars
-	 */
 	public function update_option_sidebars_widgets_action( $old_sidebars, $sidebars ) {
 		unset( $sidebars['wp_inactive_widgets'], $sidebars['array_version'] );
 		$this->maybe_init_settings();
@@ -594,10 +495,6 @@ class WPML_LS_Settings {
 		$this->save_settings( $this->settings );
 	}
 
-	/**
-	 * @param string $sidebar_slug
-	 * @param array  $widgets
-	 */
 	private function synchronize_sidebar_settings( $sidebar_slug, $widgets ) {
 		$this->settings['sidebars'][ $sidebar_slug ] = isset( $this->settings['sidebars'][ $sidebar_slug ] )
 			? $this->settings['sidebars'][ $sidebar_slug ] : array();
@@ -616,14 +513,6 @@ class WPML_LS_Settings {
 		}
 	}
 
-	/**
-	 * @param array      $instance
-	 * @param array      $new_instance
-	 * @param array|null $old_instance
-	 * @param WP_Widget  $widget
-	 *
-	 * @return array
-	 */
 	public function widget_update_callback_filter( array $instance, array $new_instance, $old_instance, WP_Widget $widget ) {
 
 		if ( strpos( $widget->id_base, WPML_LS_Widget::SLUG ) === 0 ) {
@@ -642,11 +531,6 @@ class WPML_LS_Settings {
 		return $instance;
 	}
 
-	/**
-	 * @param array $widget_instance
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	private function get_slot_from_widget_instance( $widget_instance ) {
 		$slot = isset( $widget_instance['slot'] ) ? $widget_instance['slot'] : array();
 
@@ -658,13 +542,6 @@ class WPML_LS_Settings {
 		return $slot;
 	}
 
-	/**
-	 * Find in which sidebar a language switcher instance is set
-	 *
-	 * @param mixed $widget_to_find
-	 *
-	 * @return bool|string
-	 */
 	private function find_parent_sidebar( $widget_to_find ) {
 		$sidebars_widgets = wp_get_sidebars_widgets();
 
@@ -682,13 +559,6 @@ class WPML_LS_Settings {
 		return false;
 	}
 
-	/**
-	 * Find the first language switcher in an array of widgets
-	 *
-	 * @param array $widgets
-	 *
-	 * @return string
-	 */
 	private function find_first_ls_widget( $widgets ) {
 		$ret     = false;
 		$widgets = is_array( $widgets ) ? $widgets : array();
@@ -701,9 +571,6 @@ class WPML_LS_Settings {
 		return $ret;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_ordered_languages() {
 		$active_languages = $this->sitepress->get_active_languages();
 
@@ -714,18 +581,10 @@ class WPML_LS_Settings {
 		return $this->sitepress->order_languages( $active_languages );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_default_color_schemes() {
 		return $this->color_presets->get_defaults();
 	}
 
-	/**
-	 * @param mixed|null|string $slug
-	 *
-	 * @return mixed|array|string
-	 */
 	public function get_core_templates( $slug = null ) {
 		$parameters     = WPML_Language_Switcher::parameters();
 		$core_templates = isset( $parameters['core_templates'] ) ? $parameters['core_templates'] : array();
@@ -738,11 +597,6 @@ class WPML_LS_Settings {
 		return $return;
 	}
 
-	/**
-	 * @param string|null $template_slug
-	 *
-	 * @return bool
-	 */
 	public function can_load_styles( $template_slug = null ) {
 		if ( $template_slug ) {
 			$template = $this->templates->get_template( $template_slug );
@@ -754,11 +608,6 @@ class WPML_LS_Settings {
 		return $can_load;
 	}
 
-	/**
-	 * @param string|null $template_slug
-	 *
-	 * @return bool
-	 */
 	public function can_load_script( $template_slug = null ) {
 		if ( $template_slug ) {
 			$template = $this->templates->get_template( $template_slug );
@@ -770,9 +619,6 @@ class WPML_LS_Settings {
 		return $can_load;
 	}
 
-	/**
-	 * @return WPML_LS_Migration
-	 */
 	private function migration() {
 		if ( ! $this->migration ) {
 			$this->migration = new WPML_LS_Migration( $this, $this->sitepress, $this->slot_factory );

@@ -1,23 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 24/10/17
- * Time: 11:02 AM
- */
 
 use WPML\FP\Obj;
 
 class WPML_Config_Display_As_Translated {
 
-	/**
-	 * @link https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-4859
-	 * @link https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-4941
-	 *
-	 * @param array $config
-	 *
-	 * @return array
-	 */
 	public static function merge_to_translate_mode( $config ) {
 		$config = self::merge_to_translate_mode_for_key( $config, 'custom-types', 'custom-type' );
 		$config = self::merge_to_translate_mode_for_key( $config, 'taxonomies', 'taxonomy' );

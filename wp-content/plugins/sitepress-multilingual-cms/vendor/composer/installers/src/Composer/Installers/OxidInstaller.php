@@ -13,13 +13,6 @@ class OxidInstaller extends BaseInstaller
         'out'    => 'out/{$name}/',
     );
 
-	/**
-	 * getInstallPath
-	 *
-	 * @param PackageInterface $package
-	 * @param string $frameworkType
-	 * @return string
-	 */
 	public function getInstallPath(PackageInterface $package, $frameworkType = '')
 	{
 		$installPath = parent::getInstallPath($package, $frameworkType);
@@ -30,15 +23,6 @@ class OxidInstaller extends BaseInstaller
 		return $installPath;
 	}
 
-	/**
-	 * prepareVendorDirectory
-	 *
-	 * Makes sure there is a vendormetadata.php file inside
-	 * the vendor folder if there is a vendor folder.
-	 *
-	 * @param string $installPath
-	 * @return void
-	 */
 	protected function prepareVendorDirectory($installPath)
 	{
 		$matches = '';

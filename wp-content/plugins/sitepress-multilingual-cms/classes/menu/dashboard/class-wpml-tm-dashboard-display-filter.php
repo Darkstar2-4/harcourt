@@ -20,7 +20,6 @@ class WPML_TM_Dashboard_Display_Filter {
 	private $source_language_code;
 	private $priorities;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct(
@@ -325,7 +324,6 @@ class WPML_TM_Dashboard_Display_Filter {
             </h2>
             <p class="wpml-tm-dashboard-paragraph-extra-space-bottom">
 			<?php
-			/** @phpstan-ignore-next-line */
 			echo sprintf( __( 'WPML is automatically translating published %s.', 'wpml-translation-management' ), $postTypes );
 			?>
                 <br />

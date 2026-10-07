@@ -4,40 +4,32 @@ namespace WPML\UserInterface\Web\Core\SharedKernel\Config;
 
 use WPML\PHP\Exception\InvalidArgumentException;
 
-class Script {
+class Script implements AssetInterface {
   const USED_ON_ADMIN = 'admin';
   const USED_ON_FRONT = 'front';
   const USED_ON_BOTH = 'both';
 
-  /** @var string $id */
   private $id;
 
-  /** @var ?string $src */
   private $src;
 
-  /** @var array<string> $dependencies **/
   private $dependencies = [];
 
-  /** @var ?class-string $dataProvider */
   private $dataProvider;
 
-  /** @var ?class-string $prerequisites */
   private $prerequisites;
 
-  /** @var bool $onlyRegister */
   private $onlyRegister = false;
 
-  /** @var string $usedOn */
   private $usedOn = self::USED_ON_ADMIN;
 
-  /** @var ?string $scriptVarName */
   private $scriptVarName;
 
-  /** @var array<string> $scriptData */
   private $scriptData = [];
 
-  /** @var bool */
   private $inFooter = true;
+
+  private $supportsHMR = false;
 
 
   public function __construct( string $id ) {
@@ -50,65 +42,44 @@ class Script {
   }
 
 
-  /** @return ?string */
   public function src() {
     return $this->src;
   }
 
 
-  /** @return static */
   public function setSrc( string $src ) {
     $this->src = $src;
     return $this;
   }
 
 
-  /** @return array<string> */
   public function dependencies(): array {
     return $this->dependencies;
   }
 
 
-  /**
-   * @param array<string> $dependencies
-   * @return static
-   */
   public function setDependencies( $dependencies ) {
     $this->dependencies = $dependencies;
     return $this;
   }
 
 
-  /**
-   * @return ?class-string
-   */
   public function dataProvider() {
     return $this->dataProvider ?? null;
   }
 
 
-  /**
-   * @param class-string $dataProvider
-   * @return static
-   */
   public function setDataProvider( $dataProvider ) {
     $this->dataProvider = $dataProvider;
     return $this;
   }
 
 
-  /**
-   * @return ?class-string
-   */
   public function prerequisites() {
     return $this->prerequisites ?? null;
   }
 
 
-  /**
-   * @param class-string $prerequisites
-   * @return static
-   */
   public function setPrerequisites( $prerequisites ) {
     $this->prerequisites = $prerequisites;
     return $this;
@@ -120,7 +91,6 @@ class Script {
   }
 
 
-  /** @return static */
   public function setOnlyRegister( bool $onlyRegister ) {
     $this->onlyRegister = $onlyRegister;
     return $this;
@@ -139,10 +109,6 @@ class Script {
   }
 
 
-  /**
-   * @throws InvalidArgumentException
-   * @return static
-   */
   public function setUsedOn( string $usedOn ) {
     $valid = [ self::USED_ON_ADMIN, self::USED_ON_FRONT, self::USED_ON_BOTH ];
     if ( ! in_array( $usedOn, $valid ) ) {
@@ -156,34 +122,22 @@ class Script {
   }
 
 
-  /** @return ?string */
   public function scriptVarName() {
     return $this->scriptVarName ?? $this->id;
   }
 
 
-  /**
-   * @param string $scriptVarName
-   * @return static
-   */
   public function setScriptVarName( string $scriptVarName ): self {
     $this->scriptVarName = $scriptVarName;
     return $this;
   }
 
 
-  /**
-   * @return array<string>
-   */
   public function scriptData(): array {
     return $this->scriptData;
   }
 
 
-  /**
-   * @param array<string>  $scriptData
-   * @return static
-   */
   public function setScriptData( array $scriptData ): self {
     $this->scriptData = $scriptData;
     return $this;
@@ -197,6 +151,18 @@ class Script {
 
   public function setInFooter( bool $inFooter ): self {
     $this->inFooter = $inFooter;
+
+    return $this;
+  }
+
+
+  public function supportsHMR(): bool {
+    return $this->supportsHMR;
+  }
+
+
+  public function setSupportsHMR( bool $supportsHMR ): self {
+    $this->supportsHMR = $supportsHMR;
 
     return $this;
   }

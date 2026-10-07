@@ -26,13 +26,10 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class BatchBuilder implements BatchBuilderInterface {
 
-  /** @var ValidatorInterface */
   private $translationValidator;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var ItemLanguageQueryInterface */
   private $itemLanguageQuery;
 
 
@@ -47,12 +44,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return array{0: TranslationBatch|null, 1: DuplicationBatch|null, 2: IgnoredElement[]}
-   * @throws InvalidArgumentException
-   */
   public function build( SendToTranslationDto $sendToTranslationDto ): array {
     $elements = $this->buildElements( $sendToTranslationDto );
 
@@ -63,11 +54,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return Element[]
-   */
   private function buildElements( SendToTranslationDto $sendToTranslationDto ): array {
     $groupedElementLanguages = $this->getGroupedElementLanguages( $sendToTranslationDto );
 
@@ -91,13 +77,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param array<string, array<int, string>> $groupedElementLanguages
-   * @param TranslationType                   $type
-   * @param int[]                             $elementIds
-   *
-   * @return Element[]
-   */
   private function mapElementsOfGivenType(
     array $groupedElementLanguages,
     TranslationType $type,
@@ -129,11 +108,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param Translation[] $translations
-   *
-   * @return array<int, Translation[]>
-   */
   private function groupTranslationByOriginalElementId( array $translations ): array {
     $groupedTranslations = [];
 
@@ -146,11 +120,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return array<string, array<int, string>>
-   */
   private function getGroupedElementLanguages( SendToTranslationDto $sendToTranslationDto ): array {
     $items = [];
 
@@ -187,12 +156,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param TargetLanguageMethodDto $targetLanguagesMethod
-   *
-   * @return TranslationMethodInterface
-   * @throws InvalidArgumentException
-   */
   private function mapTargetLanguageMethod(
     TargetLanguageMethodDto $targetLanguagesMethod
   ): TranslationMethodInterface {
@@ -222,12 +185,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   * @param Element[]            $elements
-   *
-   * @return DuplicationBatch|null
-   */
   private function buildDuplicationBatch( SendToTranslationDto $sendToTranslationDto, array $elements ) {
     $targetLanguages = $this->getTargetLanguagesForDuplication( $sendToTranslationDto );
     if ( ! count( $targetLanguages ) ) {
@@ -261,11 +218,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return string[]
-   */
   private function getTargetLanguagesForDuplication( SendToTranslationDto $sendToTranslationDto ): array {
     $filtered = array_filter(
       $sendToTranslationDto->getTargetLanguageMethods(),
@@ -283,13 +235,6 @@ class BatchBuilder implements BatchBuilderInterface {
   }
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   * @param Element[]            $elements
-   *
-   * @return array{0: TranslationBatch|null, 1: IgnoredElement[]}
-   * @throws InvalidArgumentException
-   */
   private function buildTranslationBatch( SendToTranslationDto $sendToTranslationDto, array $elements ): array {
     $translationMethods = [];
     foreach ( $sendToTranslationDto->getTargetLanguageMethods() as $targetLanguageMethodDto ) {

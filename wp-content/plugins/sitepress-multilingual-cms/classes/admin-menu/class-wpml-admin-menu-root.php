@@ -12,14 +12,7 @@ class WPML_Admin_Menu_Root {
 	private $page_title;
 	private $position;
 
-	/**
-	 * WPML_Menu_Root constructor.
-	 *
-	 * @param array|null $args
-	 *
-	 * @throws \InvalidArgumentException
-	 */
-	public function __construct( array $args = null ) {
+	public function __construct( ?array $args = null ) {
 		if ( $args ) {
 			$required_fields = array(
 				'capability',
@@ -60,9 +53,6 @@ class WPML_Admin_Menu_Root {
 		add_menu_page(
 			$this->get_page_title(),
 			$this->get_menu_title(),
-			// The root menu item must match with the first menu item capability.
-			// The only case for adjusting this is when having the manage_translations
-			// capability for showing the dashboard.
 			current_user_can( User::CAP_MANAGE_TRANSLATIONS )
 				? User::CAP_MANAGE_TRANSLATIONS
 				: $this->get_capability(),
@@ -74,7 +64,6 @@ class WPML_Admin_Menu_Root {
 
 		do_action( 'wpml_admin_menu_root_configured', $this->get_menu_id(), $root_slug );
 
-		/** @var WPML_Admin_Menu_Item $menu_item */
 		foreach ( $this->items as $menu_item ) {
 			$menu_item = apply_filters( 'wpml_menu_item_before_build', $menu_item, $root_slug );
 			$menu_item->build( $root_slug );
@@ -86,19 +75,11 @@ class WPML_Admin_Menu_Root {
 			$menu_items = $this->items;
 			$menu_items = array_unique( $menu_items );
 			$menu_items = array_map( array( $this, 'menu_order_fixer' ), $menu_items );
-			/**
-			 * Error suppression is required because of https://bugs.php.net/bug.php?id=50688
-			 * which makes PHPUnit (or every case where xDebug is involved) to cause a
-			 * `PHP Warning: usort(): Array was modified by the user comparison function`
-			 */
 			@usort( $menu_items, array( $this, 'menu_order_sorter' ) );
 			$this->items = $menu_items;
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_menu_slug() {
 		$top_menu = null;
 
@@ -110,100 +91,58 @@ class WPML_Admin_Menu_Root {
 		return $top_menu;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_page_title() {
 		return $this->page_title;
 	}
 
-	/**
-	 * @param string $page_title
-	 */
 	public function set_page_title( $page_title ) {
 		$this->page_title = $page_title;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_menu_id() {
 		return $this->menu_id;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_menu_title() {
 		return $this->menu_title;
 	}
 
-	/**
-	 * @param string $menu_title
-	 */
 	public function set_menu_title( $menu_title ) {
 		$this->menu_title = $menu_title;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_capability() {
 		return $this->capability;
 	}
 
-	/**
-	 * @param string $capability
-	 */
 	public function set_capability( $capability ) {
 		$this->capability = $capability;
 	}
 
-	/**
-	 * @return null|callable
-	 */
 	public function get_function() {
 		return $this->function;
 	}
 
-	/**
-	 * @param null|callable $function
-	 */
 	public function set_function( $function ) {
 		$this->function = $function;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_icon_url() {
 		return $this->icon_url;
 	}
 
-	/**
-	 * @param string $icon_url
-	 */
 	public function set_icon_url( $icon_url ) {
 		$this->icon_url = $icon_url;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_items() {
 		return $this->items;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function get_position() {
 		return $this->position;
 	}
 
-	/**
-	 * @param int $position
-	 */
 	public function set_position( $position ) {
 		$this->position = $position;
 	}
@@ -213,11 +152,6 @@ class WPML_Admin_Menu_Root {
 		add_action( 'admin_menu', array( $this, 'build' ) );
 	}
 
-	/**
-	 * @param WPML_Admin_Menu_Item $item
-	 *
-	 * @return WPML_Admin_Menu_Item
-	 */
 	public function menu_order_fixer( WPML_Admin_Menu_Item $item ) {
 		static $last_order = WPML_Main_Admin_Menu::MENU_ORDER_MAX;
 		if ( $item->get_order() === null ) {
@@ -230,12 +164,6 @@ class WPML_Admin_Menu_Root {
 		return $item;
 	}
 
-	/**
-	 * @param WPML_Admin_Menu_Item $a
-	 * @param WPML_Admin_Menu_Item $b
-	 *
-	 * @return int
-	 */
 	public function menu_order_sorter( WPML_Admin_Menu_Item $a, WPML_Admin_Menu_Item $b ) {
 		$order_a = $a->get_order() === null ? 0 : $a->get_order();
 		$order_b = $b->get_order() === null ? 0 : $b->get_order();
@@ -250,11 +178,6 @@ class WPML_Admin_Menu_Root {
 		return 1;
 	}
 
-	/**
-	 * @param WPML_Admin_Menu_Item|array $item
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	public function register_menu_item( $item ) {
 		if ( is_array( $item ) ) {
 			$item = new WPML_Admin_Menu_Item( $item );

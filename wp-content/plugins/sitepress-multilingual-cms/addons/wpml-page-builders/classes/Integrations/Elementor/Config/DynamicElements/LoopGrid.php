@@ -8,9 +8,6 @@ use WPML\FP\Relation;
 
 class LoopGrid {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$loopIdPath = [ 'settings', 'template_id' ];
 

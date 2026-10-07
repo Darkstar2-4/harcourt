@@ -45,6 +45,18 @@ msgid ""
 "page."
 msgstr ""
 
+#: src/js/translationServices/components/ServicesList.js:105
+msgid "Sort descending"
+msgstr ""
+
+#: src/js/translationServices/components/ServicesList.js:106
+msgid "Sort ascending"
+msgstr ""
+
+#: src/js/translationServices/components/ServicesList.js:107
+msgid "Cancel sorting"
+msgstr ""
+
 #: src/js/translationServices/components/ServicesList.js:41
 msgid "Documentation"
 msgstr ""

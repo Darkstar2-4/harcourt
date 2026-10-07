@@ -19,9 +19,6 @@ class OTGS_Installer_Factory {
 	private $local_components_ajax_setting;
 	private $settings;
 
-	/**
-	 * @var OTGS_Template_Service
-	 */
 	private $template_service;
 	private $wp_components_hooks;
 	private $wp_components_sender;
@@ -35,9 +32,6 @@ class OTGS_Installer_Factory {
 		$this->installer = $installer;
 	}
 
-	/**
-	 * @return OTGS_Installer_Filename_Hooks
-	 */
 	public function create_filename_hooks() {
 		if ( ! $this->filename_hooks ) {
 			$this->filename_hooks = new OTGS_Installer_Filename_Hooks( $this->create_installer_php_functions() );
@@ -53,9 +47,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_Icons
-	 */
 	public function create_icons() {
 		if ( ! $this->icons ) {
 			$this->icons = new OTGS_Installer_Icons( $this->get_installer() );
@@ -71,9 +62,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Components_Setting_Ajax
-	 */
 	public function create_local_components_ajax_setting() {
 		if ( ! $this->local_components_ajax_setting ) {
 			$this->local_components_ajax_setting = new OTGS_Installer_WP_Components_Setting_Ajax( $this->create_settings(),
@@ -90,9 +78,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Components_Setting_Resources
-	 */
 	public function create_resources() {
 		return new OTGS_Installer_WP_Components_Setting_Resources( $this->get_installer() );
 	}
@@ -104,9 +89,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Share_Local_Components_Setting_Hooks
-	 */
 	public function create_settings_hooks() {
 		return new OTGS_Installer_WP_Share_Local_Components_Setting_Hooks(
 			$this->create_template_service(),
@@ -120,9 +102,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Template_Service
-	 */
 	private function create_template_service() {
 		if ( ! $this->template_service ) {
 			$this->template_service = OTGS_Template_Service_Factory::create(
@@ -135,9 +114,6 @@ class OTGS_Installer_Factory {
 		return $this->template_service;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Share_Local_Components_Setting
-	 */
 	private function create_settings() {
 		if ( ! $this->settings ) {
 			$this->settings = new OTGS_Installer_WP_Share_Local_Components_Setting();
@@ -146,9 +122,6 @@ class OTGS_Installer_Factory {
 		return $this->settings;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Components_Hooks
-	 */
 	public function create_wp_components_hooks() {
 		if ( ! $this->wp_components_hooks ) {
 			$this->wp_components_hooks = new OTGS_Installer_WP_Components_Hooks( $this->create_wp_components_storage(),
@@ -167,9 +140,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Components_Storage
-	 */
 	public function create_wp_components_storage() {
 		if ( ! $this->wp_components_storage ) {
 			$this->wp_components_storage = new OTGS_Installer_WP_Components_Storage();
@@ -178,9 +148,6 @@ class OTGS_Installer_Factory {
 		return $this->wp_components_storage;
 	}
 
-	/**
-	 * @return OTGS_Installer_WP_Components_Sender
-	 */
 	public function create_wp_components_sender() {
 		if ( ! $this->wp_components_sender ) {
 			$this->wp_components_sender = new OTGS_Installer_WP_Components_Sender( $this->get_installer(),
@@ -190,9 +157,6 @@ class OTGS_Installer_Factory {
 		return $this->wp_components_sender;
 	}
 
-	/**
-	 * @return OTGS_Installer_PHP_Functions
-	 */
 	public function create_installer_php_functions() {
 		if ( ! $this->installer_php_functions ) {
 			$this->installer_php_functions = new OTGS_Installer_PHP_Functions();
@@ -201,9 +165,6 @@ class OTGS_Installer_Factory {
 		return $this->installer_php_functions;
 	}
 
-	/**
-	 * @return OTGS_Installer_Debug_Info
-	 */
 	public function create_debug_info_hook() {
 		return new OTGS_Installer_Debug_Info( $this->get_installer(), new OTGS_Products_Config_Db_Storage() );
 	}
@@ -215,9 +176,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_Plugin_Factory
-	 */
 	public function get_plugin_factory() {
 		if ( ! $this->plugin_factory ) {
 			$this->plugin_factory = new OTGS_Installer_Plugin_Factory();
@@ -226,25 +184,18 @@ class OTGS_Installer_Factory {
 		return $this->plugin_factory;
 	}
 
-	/**
-	 * @return OTGS_Installer_Plugin_Finder
-	 */
 	public function get_plugin_finder() {
 		if ( ! $this->plugin_finder ) {
-			$settings            = $this->get_installer()->get_settings();
-			$this->plugin_finder = new OTGS_Installer_Plugin_Finder( $this->get_plugin_factory(), $settings['repositories'] );
+			$this->plugin_finder = new OTGS_Installer_Plugin_Finder( $this->get_plugin_factory() );
 		}
 
 		return $this->plugin_finder;
 	}
 
-	/**
-	 * @return OTGS_Installer_Upgrade_Response
-	 */
 	public function create_upgrade_response() {
 		if ( ! $this->upgrade_response ) {
 			$this->upgrade_response = new OTGS_Installer_Upgrade_Response(
-				$this->get_plugin_finder()->get_all(),
+				$this->get_plugin_finder(),
 				$this->get_repositories(),
 				new OTGS_Installer_Source_Factory(),
 				new OTGS_Installer_Package_Product_Finder()
@@ -261,9 +212,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_Site_Key_Ajax
-	 */
 	public function create_site_key_ajax_handler() {
 		$logger = new OTGS_Installer_Logger(
 			$this->installer,
@@ -276,7 +224,7 @@ class OTGS_Installer_Factory {
 			$logger,
 			$this->get_repositories(),
 			new OTGS_Installer_Subscription_Factory(),
-			new SubscriptionManagerFactory($this->installer->get_settings()),
+			new SubscriptionManagerFactory(),
 			$removeService
 		);
 	}
@@ -288,9 +236,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_Site_Key_Remove_Service
-	 */
 	private function create_site_key_remove_service() {
 		return new OTGS_Installer_Site_Key_Remove_Service(
 			$this->get_repositories(),
@@ -324,9 +269,6 @@ class OTGS_Installer_Factory {
 
 		return $this;
 	}
-	/**
-	 * @return OTGS_Installer_Repositories
-	 */
 	private function get_repositories() {
 		if ( ! $this->repositories ) {
 			$repositories_factory = new OTGS_Installer_Repositories_Factory();
@@ -337,9 +279,6 @@ class OTGS_Installer_Factory {
 	}
 
 
-	/**
-	 * @return $this
-	 */
 	public function load_plugins_update_cache_cleaner() {
 		$plugins_update_cache_cleaner = new OTGS_Installer_Plugins_Update_Cache_Cleaner();
 		$plugins_update_cache_cleaner->add_hooks();
@@ -376,25 +315,6 @@ class OTGS_Installer_Factory {
 		return $this;
 	}
 
-	/**
-	 * @return OTGS_Installer_Cloned_Sites_Handler
-	 */
-	private function create_cloned_sites_handler() {
-		return new OTGS_Installer_Cloned_Sites_Handler(
-			$this->create_site_key_remove_service()
-		);
-	}
-
-	public function load_cloned_sites_handler() {
-		$cloned_sites_handler = $this->create_cloned_sites_handler();
-		$cloned_sites_handler->add_hooks();
-
-		return $this;
-	}
-
-	/**
-	 * @return WP_Installer
-	 */
 	private function get_installer() {
 		return $this->installer;
 	}

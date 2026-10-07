@@ -8,13 +8,6 @@ class GravInstaller extends BaseInstaller
         'theme'  => 'user/themes/{$name}/',
     );
 
-    /**
-     * Format package name
-     *
-     * @param array $vars
-     *
-     * @return array
-     */
     public function inflectPackageVars($vars)
     {
         $restrictedWords = implode('|', array_keys($this->locations));

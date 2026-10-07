@@ -8,7 +8,6 @@ class Calculator {
 
   const AVERAGE_CHARS_PER_WORD = 5;
 
-  /** @var StripCodeInterface */
   private $stripCode;
 
 

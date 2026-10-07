@@ -10,7 +10,6 @@ use WPML\TM\API\Jobs;
 use function WPML\FP\spreadArgs;
 
 class StatusIcons implements \IWPML_Backend_Action {
-	/** @var bool */
 	private $alreadyFound = false;
 
 	public function add_hooks() {

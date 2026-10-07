@@ -1,34 +1,14 @@
 <?php
 
-/**
- * Class WPML_TM_Unsent_Jobs_Notifications_Hooks
- */
 class WPML_TM_Unsent_Jobs_Notice_Hooks {
-	/** @var string */
 	protected $dismissed_option_key;
 
-	/**
-	 * @var WPML_TM_Unsent_Jobs_Notice
-	 */
 	private $wpml_tm_notice_email_notice;
 
-	/**
-	 * @var WPML_Notices
-	 */
 	private $wpml_admin_notices;
 
-	/**
-	 * @var WPML_WP_API
-	 */
 	private $wp_api;
 
-	/**
-	 * WPML_TM_Unsent_Jobs_Notice_Hooks constructor.
-	 *
-	 * @param WPML_TM_Unsent_Jobs_Notice $wpml_tm_notice_email_notice
-	 * @param WPML_WP_API                $wp_api
-	 * @param string                     $dismissed_option_key
-	 */
 	public function __construct( WPML_TM_Unsent_Jobs_Notice $wpml_tm_notice_email_notice, WPML_WP_API $wp_api, $dismissed_option_key ) {
 		$this->wpml_tm_notice_email_notice = $wpml_tm_notice_email_notice;
 		$this->wpml_admin_notices          = wpml_get_admin_notices();
@@ -42,9 +22,6 @@ class WPML_TM_Unsent_Jobs_Notice_Hooks {
 		add_action( 'shutdown', array( $this, 'remove_notice' ) );
 	}
 
-	/**
-	 * @param array $args
-	 */
 	public function email_for_job( $args ) {
 		$job_set   = array_key_exists( 'job', $args ) && $args['job'];
 		$event_set = array_key_exists( 'event', $args ) && $args['event'];
@@ -67,9 +44,6 @@ class WPML_TM_Unsent_Jobs_Notice_Hooks {
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_dismissed_option_key() {
 		return $this->dismissed_option_key;
 	}

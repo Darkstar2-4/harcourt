@@ -6,13 +6,6 @@ class WPML_ST_Theme_Localization_UI_Factory {
 
 	const TEMPLATE_PATH = '/templates/theme-plugin-localization/';
 
-	/**
-	 * @param $localization \WPML_Localization|null
-	 * @poram $utils        \WPML_ST_Plugin_Localization_Utils|null
-	 * @param $repo         \WPML\ST\TranslationFile\FilesToScanRepository|null
-	 *
-	 * @return WPML_ST_Theme_Localization_UI
-	 */
 	public function create(
 		$localization = null,
 		$utils = null,

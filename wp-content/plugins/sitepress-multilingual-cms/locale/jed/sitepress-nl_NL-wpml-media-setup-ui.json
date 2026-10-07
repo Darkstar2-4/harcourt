@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "But...": [
             "Maar..."
          ],
          "Wait to translate any content that contains media until we're finished configuring it. It will be just a moment.": [
-            "Wacht met het vertalen van inhoud die media bevat tot we klaar zijn met het configureren ervan. Het zal slechts een ogenblik duren."
+            "Wacht met het vertalen van inhoud die media bevat totdat we klaar zijn met de configuratie. Het duurt slechts een moment."
          ]
       }
    }

@@ -7,10 +7,8 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 
 class RegularItemsAndStringsTranslationQuery implements TranslationQueryInterface {
 
-  /** @var TranslationQuery */
   private $regularTranslationQuery;
 
-  /** @var StringTranslationQuery */
   private $stringTranslationQuery;
 
 
@@ -47,6 +45,11 @@ class RegularItemsAndStringsTranslationQuery implements TranslationQueryInterfac
     }
 
     return $this->regularTranslationQuery->getManyByElementIds( $translationType, $elementIds );
+  }
+
+
+  public function getJobIdsByBatchId( int $batchId ): array {
+    return $this->regularTranslationQuery->getJobIdsByBatchId( $batchId );
   }
 
 

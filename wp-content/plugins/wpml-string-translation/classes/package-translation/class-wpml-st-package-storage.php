@@ -1,35 +1,16 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 16/06/17
- * Time: 10:57 AM
- */
 class WPML_ST_Package_Storage {
 
 	private $package_id;
+
 	private $wpdb;
 
-	/**
-	 * WPML_ST_Package_Storage constructor.
-	 *
-	 * @param int   $package_id
-	 * @param \wpdb $wpdb
-	 */
 	public function __construct( $package_id, wpdb $wpdb ) {
 		$this->package_id = $package_id;
 		$this->wpdb       = $wpdb;
 	}
 
-	/**
-	 * @param string $string_title
-	 * @param string $string_type
-	 * @param string $string_value
-	 * @param int    $string_id
-	 *
-	 * @return bool
-	 */
 	public function update( $string_title, $string_type, $string_value, $string_id ) {
 
 		$update_where = array( 'id' => $string_id );
@@ -102,10 +83,9 @@ class WPML_ST_Package_Storage {
 		}
 	}
 
+
 	private function truncate_long_string( $string ) {
-		return strlen( $string ) > WPML_STRING_TABLE_NAME_CONTEXT_LENGTH
-			? mb_substr( $string, 0, WPML_STRING_TABLE_NAME_CONTEXT_LENGTH )
-			: $string;
+		return WPML_Displayed_String_Filter::truncate_long_string( $string );
 	}
 
 

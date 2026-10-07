@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 namespace WPML\ST\MO\Scan\UI;
 
@@ -10,22 +7,12 @@ use WPML_ST_Translations_File_Entry;
 
 class InstalledComponents {
 
-	/**
-	 * @param Collection $components Collection of WPML_ST_Translations_File_Entry objects.
-	 *
-	 * @return Collection
-	 */
 	public static function filter( Collection $components ) {
 		return $components
 			->reject( self::isPluginMissing() )
 			->reject( self::isThemeMissing() );
 	}
 
-	/**
-	 * WPML_ST_Translations_File_Entry -> bool
-	 *
-	 * @return \Closure
-	 */
 	public static function isPluginMissing() {
 		return function( WPML_ST_Translations_File_Entry $entry ) {
 			return 'plugin' === $entry->get_component_type()
@@ -33,11 +20,6 @@ class InstalledComponents {
 		};
 	}
 
-	/**
-	 * WPML_ST_Translations_File_Entry -> bool
-	 *
-	 * @return \Closure
-	 */
 	public static function isThemeMissing() {
 		return function( WPML_ST_Translations_File_Entry $entry ) {
 			return 'theme' === $entry->get_component_type()

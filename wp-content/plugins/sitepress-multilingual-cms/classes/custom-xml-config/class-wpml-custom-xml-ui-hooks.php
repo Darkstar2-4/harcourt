@@ -1,10 +1,6 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Custom_XML_UI_Hooks {
-	/** @var WPML_Custom_XML_UI_Resources  */
 	private $resources;
 
 	public function __construct( WPML_Custom_XML_UI_Resources $resources ) {

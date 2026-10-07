@@ -1,29 +1,15 @@
 <?php
 
-/**
- * WPML_Element_Translation Class
- *
- * @package wpml-core
- * @abstract
- */
 abstract class WPML_Element_Translation extends WPML_WPDB_User {
-	/** @var array[] $element_data */
 	protected $element_data = [];
 
-	/** @var array[] $translations */
 	protected $translations = [];
 
-	/** @var array[] $trid_groups */
 	protected $trid_groups = [];
 
-	/** @var array[] $trid_groups */
 	protected $translation_ids_element = [];
 
-	/** @var int $type_prefix_length */
 	private $type_prefix_length;
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( &$wpdb ) {
 		parent::__construct( $wpdb );
 		$this->type_prefix_length = strlen( $this->get_type_prefix() );
@@ -32,9 +18,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 	abstract protected function get_element_join();
 	abstract protected function get_type_prefix();
 
-	/**
-	 * Clears the cached translations.
-	 */
 	public function reload() {
 		$this->element_data            = [];
 		$this->translations            = [];
@@ -48,13 +31,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 			? $this->element_data[ $element_id ]['trid'] : null;
 	}
 
-	/**
-	 * @param int        $element_id
-	 * @param string     $lang
-	 * @param bool|false $original_fallback if true will return input $element_id if no translation is found
-	 *
-	 * @return null|int
-	 */
 	public function element_id_in( $element_id, $lang, $original_fallback = false ) {
 		$result = ( $original_fallback ? (int) $element_id : null );
 		if ( $this->maybe_populate_cache( $element_id ) && isset( $this->translations[ $element_id ][ $lang ] ) ) {
@@ -64,14 +40,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 		return $result;
 	}
 
-	/**
-	 * @param int  $element_id
-	 * @param bool $root if true gets the root element of the trid which itself
-	 * has no original. Otherwise returns the direct original of the given
-	 * element_id.
-	 *
-	 * @return int|null null if the element has no original
-	 */
 	public function get_original_element( $element_id, $root = false ) {
 		$element_id  = (int) $element_id;
 		$source_lang = $this->maybe_populate_cache( $element_id )
@@ -102,11 +70,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 		return isset( $this->trid_groups [ $trid ][ $lang ] ) ? $this->trid_groups [ $trid ][ $lang ] : null;
 	}
 
-	/**
-	 * @param int $element_id
-	 *
-	 * @return null|string
-	 */
 	public function get_element_lang_code( $element_id ) {
 		$result = null;
 
@@ -117,12 +80,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 		return $result;
 	}
 
-	/**
-	 * @param int    $element_id
-	 * @param string $output
-	 *
-	 * @return array|null|stdClass
-	 */
 	public function get_element_language_details( $element_id, $output = OBJECT ) {
 		$result = null;
 		if ( $element_id && $this->maybe_populate_cache( $element_id ) ) {
@@ -181,13 +138,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 		return $translation_ids;
 	}
 
-	/**
-	 * @param int       $element_id
-	 * @param int|false $trid
-	 * @param bool      $actual_translations_only
-	 *
-	 * @return array<int,int>
-	 */
 	public function get_element_translations( $element_id, $trid = false, $actual_translations_only = false ) {
 		$valid_element = $this->maybe_populate_cache( $element_id, $trid );
 
@@ -227,14 +177,11 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 			return;
 		}
 
-		$elements = $this->wpdb->get_results( $this->get_sql_by_element_ids( $element_ids ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$elements = $this->wpdb->get_results( $this->get_sql_by_element_ids( $element_ids ), ARRAY_A );
 
 		$this->group_and_populate_cache( $elements );
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_base_sql() {
 		return "
 			SELECT
@@ -248,25 +195,15 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 			" . $this->get_element_join();
 	}
 
-	/**
-	 * @param array $element_ids
-	 *
-	 * @return string
-	 */
 	private function get_sql_by_element_ids( $element_ids ) {
 		return $this->get_base_sql()
 		. "
 		JOIN {$this->wpdb->prefix}icl_translations tridt
 			ON tridt.element_type = wpml_translations.element_type
 				AND tridt.trid = wpml_translations.trid
-		WHERE tridt.element_id IN(" . wpml_prepare_in( $element_ids, '%d' ) . ")"; // phpcs:ignore Squiz.Strings.DoubleQuoteUsage.NotRequired
+		WHERE tridt.element_id IN(" . wpml_prepare_in( $element_ids, '%d' ) . ")";
 	}
 
-	/**
-	 * @param int $trid
-	 *
-	 * @return string
-	 */
 	private function get_sql_by_trid( $trid ) {
 		return $this->get_base_sql()
 			. $this->wpdb->prepare( ' WHERE wpml_translations.trid = %d', $trid );
@@ -286,7 +223,7 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 				$sql = $this->get_sql_by_element_ids( [ $element_id ] );
 			}
 
-			$elements = $this->wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$elements = $this->wpdb->get_results( $sql, ARRAY_A );
 			$this->populate_cache( $elements );
 			if ( $element_id && ! isset( $this->translations[ $element_id ] ) ) {
 				$this->translations[ $element_id ] = array();
@@ -348,11 +285,6 @@ abstract class WPML_Element_Translation extends WPML_WPDB_User {
 		return $res;
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return bool
-	 */
 	public function is_a_duplicate( $post_id ) {
 		return (bool) get_post_meta( $post_id, '_icl_lang_duplicate_of', true );
 	}

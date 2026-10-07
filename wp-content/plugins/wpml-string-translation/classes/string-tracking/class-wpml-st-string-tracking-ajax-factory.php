@@ -34,7 +34,6 @@ class WPML_ST_String_Tracking_AJAX_Factory implements IWPML_AJAX_Action_Loader {
 			&& wp_verify_nonce( $_GET['nonce'], $_GET['action'] );
 	}
 
-	/** @return WPML_ST_String_Positions_In_Page|WPML_ST_String_Positions_In_Source */
 	private function get_st_string_positions() {
 		global $sitepress, $wpdb;
 

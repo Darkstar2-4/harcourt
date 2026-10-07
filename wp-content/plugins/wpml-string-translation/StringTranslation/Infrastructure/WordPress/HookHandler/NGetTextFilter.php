@@ -9,7 +9,6 @@ class NGetTextFilter extends AbstractFilterHookHandler implements AutoregisterHo
 	const FILTER_ARGS = 5;
 	const FILTER_PRIORITY = 9;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct( GettextStringsService $gettextStringsService ) {

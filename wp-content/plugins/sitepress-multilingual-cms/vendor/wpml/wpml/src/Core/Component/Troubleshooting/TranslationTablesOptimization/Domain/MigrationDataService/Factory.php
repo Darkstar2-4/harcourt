@@ -11,11 +11,6 @@ interface Factory {
   public function createCompletedRecordsStorage(): CompletedRecordsStorageInterface;
 
 
-  /**
-   * @template T
-   * @return ProcessorInterface<T>
-   * @phpstan-ignore-next-line Template type T is not referenced in a parameter
-   */
   public function createProcessor(): ProcessorInterface;
 
 

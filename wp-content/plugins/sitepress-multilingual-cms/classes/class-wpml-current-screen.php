@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: andreasciamanna
- * Date: 22/05/2018
- * Time: 08:44
- */
 class WPML_Current_Screen {
 	private $translatable_types                     = array();
 	private $allowed_screen_ids_for_edit_posts_list = array();
@@ -88,9 +82,6 @@ class WPML_Current_Screen {
 		return $this->get() && ( substr( $this->get()->id, - strlen( $suffix ) ) === $suffix );
 	}
 
-	/**
-	 * @return WP_Screen|null
-	 */
 	private function get() {
 		return array_key_exists( 'current_screen', $GLOBALS ) ? $GLOBALS['current_screen'] : null;
 	}

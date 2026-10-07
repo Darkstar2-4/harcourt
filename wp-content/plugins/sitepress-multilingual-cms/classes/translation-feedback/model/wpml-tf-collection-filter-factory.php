@@ -2,12 +2,6 @@
 
 class WPML_TF_Collection_Filter_Factory {
 
-	/**
-	 * @param string $type
-	 * @param array  $args
-	 *
-	 * @return null|IWPML_TF_Collection_Filter
-	 */
 	public function create( $type, array $args = array() ) {
 		$collection_filter = null;
 

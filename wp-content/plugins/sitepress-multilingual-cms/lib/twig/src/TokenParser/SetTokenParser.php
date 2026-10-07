@@ -13,18 +13,6 @@ namespace WPML\Core\Twig\TokenParser;
 use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\SetNode;
 use WPML\Core\Twig\Token;
-/**
- * Defines a variable.
- *
- *  {% set foo = 'foo' %}
- *  {% set foo = [1, 2] %}
- *  {% set foo = {'foo': 'bar'} %}
- *  {% set foo = 'foo' ~ 'bar' %}
- *  {% set foo, bar = 'foo', 'bar' %}
- *  {% set foo %}Some content{% endset %}
- *
- * @final
- */
 class SetTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

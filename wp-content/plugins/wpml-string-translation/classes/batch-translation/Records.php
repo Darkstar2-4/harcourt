@@ -8,18 +8,10 @@ use WPML\FP\Lst;
 use function WPML\Container\make;
 use function WPML\FP\curryN;
 
-/**
- * @phpstan-type curried '__CURRIED_PLACEHOLDER__'
- *
- * @method static callable|void installSchema( ...$wpdb ) :: wpdb → void
- * @method static callable|void set( ...$wpdb, ...$batchId, ...$stringId ) :: wpdb → int → int → void
- * @method static callable|int[] findBatches( ...$wpdb, ...$stringId ) :: wpdb → int → int[]
- */
 class Records {
 
 	use Curryable;
 
-	/** @var string */
 	public static $string_batch_sql_prototype = '
 	CREATE TABLE IF NOT EXISTS `%sicl_string_batches` (
 	  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -29,19 +21,11 @@ class Records {
 		)
 	';
 
-	/**
-	 * @param \wpdb|null $wpdb
-	 * @param int|curried $batchId
-	 * @return int|callable
-	 *
-	 * @phpstan-return ($batchId is not null ? int : callable)
-	 */
-	public static function get( \wpdb $wpdb = null, $batchId = null ) {
+	public static function get( ?\wpdb $wpdb = null, $batchId = null ) {
 		return call_user_func_array(
 			curryN(
 				2,
 				function ( \wpdb $wpdb, $batchId ) {
-					/** @var string $sql */
 					$sql = $wpdb->prepare( "SELECT string_id FROM {$wpdb->prefix}icl_string_batches WHERE batch_id = %d", $batchId );
 					return $wpdb->get_col( $sql );
 				}
@@ -68,7 +52,6 @@ Records::curryN(
 	'set',
 	3,
 	function ( \wpdb $wpdb, $batchId, $stringId ) {
-		// TODO: ignore duplicates
 		$wpdb->insert(
 			"{$wpdb->prefix}icl_string_batches",
 			[
@@ -84,7 +67,6 @@ Records::curryN(
 	'findBatch',
 	2,
 	function ( \wpdb $wpdb, $stringId ) {
-		/** @var string $sql */
 		$sql = $wpdb->prepare( "SELECT batch_id FROM {$wpdb->prefix}icl_string_batches WHERE string_id = %d", $stringId );
 		return $wpdb->get_var( $sql );
 	}

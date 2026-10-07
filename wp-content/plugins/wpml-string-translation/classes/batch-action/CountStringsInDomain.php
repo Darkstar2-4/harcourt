@@ -16,7 +16,6 @@ class CountStringsInDomain implements IHandler {
 			return Either::left( __( 'Error: please try again', 'wpml-string-translation' ) );
 		}
 
-		/** @var StringsRepository $stringsRepository */
 		$stringsRepository = make( StringsRepository::class );
 
 		return Either::of( [

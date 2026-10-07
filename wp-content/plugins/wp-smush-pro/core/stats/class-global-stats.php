@@ -10,15 +10,17 @@ use Smush\Core\Media\Media_Item_Optimization_Global_Stats;
 use Smush\Core\Media\Media_Item_Optimizer;
 use Smush\Core\Media\Media_Item_Query;
 use Smush\Core\Media\Media_Item_Stats;
-use Smush\Core\Modules\Background\Mutex;
+use Smush\Core\Settings;
+use Smush\Core\Threads\JSON_Record;
 
 class Global_Stats {
-	const GLOBAL_STATS_OPTION_ID = 'wp_smush_global_stats';
-	const OPTIMIZE_LIST_OPTION_ID = 'wp-smush-optimize-list';
-	const REOPTIMIZE_LIST_OPTION_ID = 'wp-smush-reoptimize-list';
-	const ERROR_LIST_OPTION_ID = 'wp-smush-error-items-list';
-	const IGNORE_LIST_OPTION_ID = 'wp-smush-ignored-items-list';
-	const ANIMATED_LIST_OPTION_ID = 'wp-smush-animated-items-list';
+	private static $global_stats_option_id = 'wp_smush_global_stats_json';
+	private static $optimize_list_option_id = 'wp-smush-optimize-list-json';
+	private static $reoptimize_list_option_id = 'wp-smush-reoptimize-list-json';
+	private static $error_list_option_id = 'wp-smush-error-items-list-json';
+	private static $ignore_list_option_id = 'wp-smush-ignored-items-list-json';
+	private static $animated_list_option_id = 'wp-smush-animated-items-list-json';
+
 	/**
 	 * @var Global_Stats
 	 */
@@ -33,42 +35,59 @@ class Global_Stats {
 	 * @var Attachment_Id_List
 	 */
 	private $optimize_list;
+
 	/**
 	 * @var Attachment_Id_List
 	 */
 	private $reoptimize_list;
+
 	/**
 	 * @var Attachment_Id_List
 	 */
 	private $error_list;
+
 	/**
 	 * @var Attachment_Id_List
 	 */
 	private $ignore_list;
+
 	/**
 	 * @var Attachment_Id_List
 	 */
 	private $animated_list;
+
 	/**
 	 * @var Media_Item_Cache
 	 */
 	private $media_item_cache;
+
 	/**
 	 * @var Array_Utils
 	 */
 	private $array_utils;
+
 	private $media_item_query;
 
-	public function __construct() {
-		$this->optimize_list   = new Attachment_Id_List( self::OPTIMIZE_LIST_OPTION_ID );
-		$this->reoptimize_list = new Attachment_Id_List( self::REOPTIMIZE_LIST_OPTION_ID );
-		$this->error_list      = new Attachment_Id_List( self::ERROR_LIST_OPTION_ID );
-		$this->ignore_list     = new Attachment_Id_List( self::IGNORE_LIST_OPTION_ID );
-		$this->animated_list   = new Attachment_Id_List( self::ANIMATED_LIST_OPTION_ID );
+	/**
+	 * @var JSON_Record
+	 */
+	private $global_stats_record;
 
-		$this->media_item_cache = Media_Item_Cache::get_instance();
-		$this->array_utils      = new Array_Utils();
-		$this->media_item_query = new Media_Item_Query();
+	public function __construct() {
+		$this->optimize_list   = new Attachment_Id_List( self::$optimize_list_option_id );
+		$this->reoptimize_list = new Attachment_Id_List( self::$reoptimize_list_option_id );
+		$this->error_list      = new Attachment_Id_List( self::$error_list_option_id );
+		$this->ignore_list     = new Attachment_Id_List( self::$ignore_list_option_id );
+		$this->animated_list   = new Attachment_Id_List( self::$animated_list_option_id );
+
+		$this->media_item_cache    = Media_Item_Cache::get_instance();
+		$this->array_utils         = new Array_Utils();
+		$this->media_item_query    = new Media_Item_Query();
+		$this->global_stats_record = new JSON_Record( self::$global_stats_option_id );
+	}
+
+	public static function get_global_stats_option_id() {
+		return self::$global_stats_option_id;
 	}
 
 	public static function get() {
@@ -113,10 +132,15 @@ class Global_Stats {
 	 * @return Media_Item_Optimization_Global_Stats_Persistable
 	 */
 	public function get_persistable_stats_for_optimization( $optimization_key ) {
-		return $this->get_array_value(
+		$stats = $this->get_array_value(
 			$this->get_persistable_stats_for_optimizations(),
 			$optimization_key
 		);
+		if ( $stats ) {
+			return $stats;
+		} else {
+			return new Media_Item_Optimization_Global_Stats_Persistable();
+		}
 	}
 
 	private function get_array_value( $array, $key ) {
@@ -126,21 +150,15 @@ class Global_Stats {
 	}
 
 	public function delete_global_stats_option() {
-		delete_option( self::GLOBAL_STATS_OPTION_ID );
+		$this->global_stats_record->delete();
 	}
 
 	private function get_global_stats_option_value( $key ) {
-		$option = $this->get_global_stats_option();
-
-		return $this->get_array_value( $option, $key );
+		return $this->global_stats_record->get_value( $key );
 	}
 
 	private function update_global_stats_option_value( $key, $value ) {
-		$option = $this->get_global_stats_option();
-
-		update_option( self::GLOBAL_STATS_OPTION_ID, array_merge( $option, array(
-			$key => $value,
-		) ), false );
+		$this->global_stats_record->set_values( array( $key => $value ) );
 	}
 
 	public function is_outdated() {
@@ -155,8 +173,12 @@ class Global_Stats {
 		}
 
 		$rescan_required_timestamp = $this->get_rescan_required_timestamp();
+		if ( $rescan_required_timestamp > $stats_updated_timestamp ) {
+			return true;
+		}
 
-		return $rescan_required_timestamp > $stats_updated_timestamp;
+		$stored_settings_digest = $this->get_stored_settings_digest();
+		return $stored_settings_digest !== $this->calculate_settings_digest();
 	}
 
 	private function is_media_library_empty() {
@@ -171,6 +193,48 @@ class Global_Stats {
 
 	public function mark_as_outdated() {
 		$this->update_rescan_required_timestamp( time() );
+	}
+
+	private function calculate_settings_digest() {
+		$digest_parts = array();
+		$keys         = array(
+			'original',
+			'lossy',
+			'strip_exif',
+		);
+
+		$keys = apply_filters( 'wp_smush_global_stats_digest_keys', $keys, $this );
+
+		$settings = Settings::get_instance();
+		foreach ( $keys as $key ) {
+			$digest_parts[] = "$key-" . (int) $settings->get( $key );
+		}
+
+		$options = array(
+			'wp-smush-image_sizes',
+		);
+
+		$options = apply_filters( 'wp_smush_global_stats_digest_options', $options, $this );
+
+		foreach ( $options as $option ) {
+			$option_value      = $settings->get_setting( $option );
+			$option_value      = empty( $option_value ) || ! is_array( $option_value ) ? array() : $option_value;
+			$option_value_hash = ( new Array_Utils() )->array_hash( $option_value );
+
+			if ( is_array( $option_value ) ) {
+				$digest_parts[] = "$option-" . $option_value_hash;
+			}
+		}
+
+		return implode( '-', $digest_parts );
+	}
+
+	private function get_stored_settings_digest() {
+		return $this->get_global_stats_option_value( 'settings_digest' );
+	}
+
+	public function update_settings_digest() {
+		$this->update_global_stats_option_value( 'settings_digest', $this->calculate_settings_digest() );
 	}
 
 	public function get_stats_update_started_timestamp() {
@@ -198,39 +262,53 @@ class Global_Stats {
 	}
 
 	public function get_image_attachment_count() {
-		return (int) $this->get_global_stats_option_value( 'image_attachment_count' );
+		$count = (int) $this->get_global_stats_option_value( 'image_attachment_count' );
+		return max( $count, 0 );
+	}
+
+	/**
+	 * Get the percentage of media items that failed optimization.
+	 *
+	 * @return float
+	 */
+	public function get_optimization_failed_percent() {
+		$error_count     = $this->media_item_query->get_optimization_errors_count();
+		$optimized_count = $this->get_total_optimizable_items_count() - $this->get_remaining_count();
+
+		if ( $optimized_count <= 0 || $error_count <= 0 ) {
+			return 0;
+		}
+
+		return ( $error_count / $optimized_count ) * 100;
 	}
 
 	public function add_image_attachment_count( $image_attachment_count ) {
-		$this->mutex( function () use ( $image_attachment_count ) {
-			$old_image_attachment_count = $this->get_image_attachment_count();
-			$this->update_global_stats_option_value( 'image_attachment_count', $old_image_attachment_count + $image_attachment_count );
-		} );
+		$this->global_stats_record->add_to_values(
+			array( 'image_attachment_count' => $image_attachment_count )
+		);
 	}
 
 	public function subtract_image_attachment_count( $image_attachment_count ) {
-		$this->mutex( function () use ( $image_attachment_count ) {
-			$old_image_attachment_count = $this->get_image_attachment_count();
-			$this->update_global_stats_option_value( 'image_attachment_count', max( $old_image_attachment_count - $image_attachment_count, 0 ) );
-		} );
+		$this->global_stats_record->subtract_from_values(
+			array( 'image_attachment_count' => $image_attachment_count )
+		);
 	}
 
 	public function get_optimized_images_count() {
-		return (int) $this->get_global_stats_option_value( 'optimized_images_count' );
+		$count = (int) $this->get_global_stats_option_value( 'optimized_images_count' );
+		return max( $count, 0 );
 	}
 
 	public function add_optimized_images_count( $optimized_images_count ) {
-		$this->mutex( function () use ( $optimized_images_count ) {
-			$old_count = $this->get_optimized_images_count();
-			$this->update_global_stats_option_value( 'optimized_images_count', $old_count + $optimized_images_count );
-		} );
+		$this->global_stats_record->add_to_values(
+			array( 'optimized_images_count' => $optimized_images_count )
+		);
 	}
 
 	public function subtract_optimized_images_count( $optimized_images_count ) {
-		$this->mutex( function () use ( $optimized_images_count ) {
-			$old_count = $this->get_optimized_images_count();
-			$this->update_global_stats_option_value( 'optimized_images_count', max( $old_count - $optimized_images_count, 0 ) );
-		} );
+		$this->global_stats_record->subtract_from_values(
+			array( 'optimized_images_count' => $optimized_images_count )
+		);
 	}
 
 	public function get_sum_of_optimization_global_stats() {
@@ -241,11 +319,6 @@ class Global_Stats {
 		}
 
 		return $stats;
-	}
-
-	private function mutex( $operation ) {
-		$option_id = self::GLOBAL_STATS_OPTION_ID;
-		( new Mutex( "{$option_id}_mutex" ) )->execute( $operation );
 	}
 
 	/**
@@ -341,18 +414,6 @@ class Global_Stats {
 		       + $this->error_list->get_count();
 	}
 
-	/**
-	 * @return array
-	 */
-	private function get_global_stats_option() {
-		// Cached values are problematic in parallel
-		wp_cache_delete( self::GLOBAL_STATS_OPTION_ID, 'options' );
-		$option = get_option( self::GLOBAL_STATS_OPTION_ID, array() );
-
-		return empty( $option ) || ! is_array( $option )
-			? array()
-			: $option;
-	}
 
 	public function reset() {
 		$this->get_reoptimize_list()->delete_ids();

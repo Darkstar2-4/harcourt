@@ -6,12 +6,8 @@ use WPML\TM\TranslationDashboard\EncodedFieldsValidation\ErrorEntry;
 use WPML\UIPage;
 
 class SentContentMessages {
-	/**
-	 * @var null|array{message: string, description: string, type: string}
-	 */
 	private static $confirmation = null;
 
-	/** @var ErrorEntry[]|null */
 	private static $encodedFieldErrorEntries = null;
 
 	public function duplicate() {
@@ -84,16 +80,10 @@ class SentContentMessages {
 		];
 	}
 
-	/**
-	 * @param ErrorEntry[] $invalidElements
-	 */
 	public function postsWithEncodedFieldsHasBeenSkipped( array $invalidElements ) {
 		self::$encodedFieldErrorEntries = $invalidElements;
 	}
 
-	/**
-	 * @return array{confirmMessage: null|array{message: string, description: string, type: string}, encodedFieldErrorEntries: null|ErrorEntry[]}
-	 */
 	public function get() {
 		return [
 			'confirmation'             => self::$confirmation,

@@ -5,19 +5,10 @@ namespace OTGS\Installer\Upgrade;
 
 
 class AutoUpgrade {
-	/**
-	 * @var \WP_Installer $installer
-	 */
 	private $installer;
 
-	/**
-	 * @var \OTGS_Installer_Plugin_Finder
-	 */
 	private $installerPluginsFinder;
 
-	/**
-	 * @var InstallerPlugins
-	 */
 	private $installerPlugins;
 
 	public function __construct( \WP_Installer $installer, \OTGS_Installer_Plugin_Finder $installerPluginsFinder, InstallerPlugins $installerPlugins ) {
@@ -35,12 +26,6 @@ class AutoUpgrade {
 		add_filter( 'plugin_auto_update_setting_html', [ $this, 'modifyAutoUpdateSettingHtml' ], 10, 2 );
 	}
 
-	/**
-	 * @param array $value
-	 * @param array $oldValue
-	 *
-	 * @return array
-	 */
 	public function modifyAutoUpdatePluginsOption( $value, $oldValue ) {
 		$sanitizedOldValue = is_array( $oldValue ) ? $oldValue : [];
 		$sanitizedValue    = is_array( $value ) ? $value : [];
@@ -97,18 +82,14 @@ class AutoUpgrade {
 	}
 
 	private function updateInstallerAutoUpdateSetting( $repositoryId, $value ) {
-		if ( ! isset( $this->installer->settings['repositories'][ $repositoryId ]['auto_update'] )
-		     || $this->installer->settings['repositories'][ $repositoryId ]['auto_update'] !== $value ) {
-			$this->installer->settings['repositories'][ $repositoryId ]['auto_update'] = $value;
-			$this->installer->save_settings();
+		$settings = $this->installer->get_settings();
+		if ( ! isset( $settings['repositories'][ $repositoryId ]['auto_update'] )
+		     || $settings['repositories'][ $repositoryId ]['auto_update'] !== $value ) {
+			$settings['repositories'][ $repositoryId ]['auto_update'] = $value;
+			$this->installer->save_settings( $settings );
 		}
 	}
 
-	/**
-	 * @param string $repositoryId
-	 *
-	 * @return string
-	 */
 	private function getRegisterMessage( $repositoryId ) {
 		$url      = $this->installer->menu_url() . '&repository=' . $repositoryId . '&action=register';
 		$linkText = __( 'Register', 'installer' );

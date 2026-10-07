@@ -17,10 +17,6 @@ class FormPopup implements \IWPML_Frontend_Action, \IWPML_AJAX_Action {
 		}
 	}
 
-	/**
-	 * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record      An instance of the form record.
-	 * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajaxHandler An instance of the ajax handler.
-	 */
 	public function convertFormPopupIdAjax ( $record, $ajaxHandler ) {
 		if ( Obj::path( [ 'data', 'popup', 'id' ], $ajaxHandler ) ) {
 			$popup = Obj::path( [ 'data', 'popup'], $ajaxHandler );

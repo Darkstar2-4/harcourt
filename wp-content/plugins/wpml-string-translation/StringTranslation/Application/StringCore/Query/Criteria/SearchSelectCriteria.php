@@ -4,7 +4,6 @@ namespace WPML\StringTranslation\Application\StringCore\Query\Criteria;
 
 class SearchSelectCriteria {
 
-	/** @var array<int, string> */
 	private $selectColumns;
 
 	public function __construct(

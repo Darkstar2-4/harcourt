@@ -8,7 +8,6 @@ use WPML\PHP\Exception\Exception;
 
 class AddTablesForLinksTranslation implements UpdateInterface {
 
-  /** @var RepositoryInterface */
   private $repository;
 
 

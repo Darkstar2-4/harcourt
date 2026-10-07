@@ -8,24 +8,14 @@ use WPML_String_Translation;
 
 class Provider {
 
-	/** @var WPML_String_Translation */
 	private $string_translation;
 
-	/** @var WPML_Displayed_String_Filter[]|WPML_Register_String_Filter[] */
 	private $filters = [];
 
 	public function __construct( WPML_String_Translation $string_translation ) {
 		$this->string_translation = $string_translation;
 	}
 
-	/**
-	 * Get filter.
-	 *
-	 * @param string|null      $lang Language.
-	 * @param string|null|bool $name Language name.
-	 *
-	 * @return WPML_Displayed_String_Filter|WPML_Register_String_Filter|null
-	 */
 	public function getFilter( $lang = null, $name = null ) {
 		if ( ! $lang ) {
 			$lang = $this->string_translation->get_current_string_language( $name );

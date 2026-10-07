@@ -18,20 +18,12 @@ class LanguageSwitcher {
 	const BLOCK_LANGUAGE_SWITCHER = 'wpml/language-switcher';
 	const BLOCK_NAVIGATION_LANGUAGE_SWITCHER = 'wpml/navigation-language-switcher';
 
-	/** @var Render */
 	private $render;
 
-	/**
-	 * @param Render $render
-	 */
 	public function __construct( Render $render ) {
 		$this->render = $render;
 	}
 
-	/**
-	 * Returns the data that needs to be localized in the JS script.
-	 * @return array
-	 */
 	public function register() {
 
 		$this->registerLanguageSwitcherBlock();
@@ -42,6 +34,7 @@ class LanguageSwitcher {
 
 	private function registerLanguageSwitcherBlock() {
 		$blockSettings = [
+			'api_version'     => '3',
 			'render_callback' => [ $this->render, 'render_block' ],
 		];
 
@@ -50,6 +43,7 @@ class LanguageSwitcher {
 	}
 	private function registerNavigationLanguageSwitcherBlock() {
 		$blockSettings = [
+			'api_version'     => '3',
 			'render_callback' => [ $this->render, 'render_block' ],
 			'attributes'      => [
 				'navigationLsHasSubMenuInSameBlock' => [
@@ -69,6 +63,7 @@ class LanguageSwitcher {
 				'layout',
 				'showSubmenuIcon',
 				'openSubmenusOnClick',
+				'submenuVisibility',
 				'style',
 				'textColor',
 				'customTextColor',
@@ -87,7 +82,6 @@ class LanguageSwitcher {
 	}
 
 	public function render() {
-		/** @var \WPML_LS_Dependencies_Factory $lsFactory */
 		$lsFactory    = make( \WPML_LS_Dependencies_Factory::class );
 		$shortcodeAPI = $lsFactory->shortcodes();
 

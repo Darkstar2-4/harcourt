@@ -9,13 +9,10 @@ use WPML\PHP\Exception\InvalidItemIdException;
 
 class ItemWordCountService {
 
-  /** @var PostCalculator */
   private $postCalculator;
 
-  /** @var PackageCalculator */
   private $packageCalculator;
 
-  /** @var StringCalculator */
   private $stringCalculator;
 
 
@@ -30,14 +27,6 @@ class ItemWordCountService {
   }
 
 
-  /**
-   * @param int  $postId
-   * @param bool $forceRecalculate
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   *
-   */
   public function calculatePost( int $postId, bool $forceRecalculate = false ): int {
     return $forceRecalculate ?
       $this->postCalculator->calculate( $postId ) :
@@ -45,25 +34,11 @@ class ItemWordCountService {
   }
 
 
-  /**
-   * @param int $packageId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   *
-   */
   public function calculatePackage( int $packageId ): int {
     return $this->packageCalculator->calculate( $packageId );
   }
 
 
-  /**
-   * @param int $stringId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   *
-   */
   public function calculateString( int $stringId ): int {
     return $this->stringCalculator->calculate( $stringId );
   }

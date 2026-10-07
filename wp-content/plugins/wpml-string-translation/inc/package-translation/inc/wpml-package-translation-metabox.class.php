@@ -7,15 +7,11 @@ class WPML_Package_Translation_Metabox {
 	private $dashboard_link;
 	private $strings_link;
 	private $default_language;
-	/** @var array<string, mixed> */
 	private $main_container_attributes;
 	private $show_description;
 	private $show_link;
 	private $show_status;
 	private $show_title;
-	/**
-	 * @var array<string, mixed>
-	 */
 	private $status_container_attributes;
 	private $status_container_attributes_html;
 	private $status_container_tag;
@@ -24,32 +20,12 @@ class WPML_Package_Translation_Metabox {
 
 	public $metabox_data;
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 	private $translation_statuses;
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
-	/**
-	 * @var \WPML_Package
-	 */
 	private $package;
-	/**
-	 * @var string
-	 */
 	private $package_language;
 
-	/**
-	 * WPML_Package_Translation_Metabox constructor.
-	 *
-	 * @param stdClass|WPML_Package|array|int $package
-	 * @param \wpdb                           $wpdb
-	 * @param \SitePress                      $sitepress
-	 * @param array<string,mixed>             $args
-	 */
 	public function __construct( $package, $wpdb, $sitepress, $args = array() ) {
 
 		$this->wpdb      = $wpdb;
@@ -296,11 +272,6 @@ class WPML_Package_Translation_Metabox {
 		return $ok;
 	}
 
-	/**
-	 * @param array<string,mixed> $attributes
-	 *
-	 * @return string
-	 */
 	private function attributes_to_string( $attributes ) {
 		$result = '';
 		foreach ( $attributes as $key => $value ) {
@@ -331,9 +302,6 @@ class WPML_Package_Translation_Metabox {
 		return $result;
 	}
 
-	/**
-	 * @param array<string,string|array<string,mixed> > $args
-	 */
 	private function parse_arguments( $args ) {
 		$default_args = array(
 			'show_title'                  => true,
@@ -356,10 +324,8 @@ class WPML_Package_Translation_Metabox {
 		$this->title_tag                   = $args['title_tag'];
 		$this->status_container_tag        = $args['status_container_tag'];
 		$this->status_element_tag          = $args['status_element_tag'];
-		/** @var array<string, mixed> $main_container_attributes */
 		$main_container_attributes = $args['main_container_attributes'];
 		$this->main_container_attributes   = $main_container_attributes;
-		/** @var array<string, mixed> $status_container_attributes */
 		$status_container_attributes = $args['status_container_attributes'];
 		$this->status_container_attributes = $status_container_attributes;
 
@@ -367,9 +333,6 @@ class WPML_Package_Translation_Metabox {
 		$this->status_container_attributes_html = $this->attributes_to_string( $this->status_container_attributes );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function got_package() {
 		return $this->package && $this->package->ID;
 	}
@@ -380,9 +343,7 @@ class WPML_Package_Translation_Metabox {
 		foreach ( $post_translations as $language => $translation ) {
 			$res_query   = "SELECT status as status_code, needs_update FROM {$this->wpdb->prefix}icl_translation_status WHERE translation_id=%d";
 			$res_args    = array( $translation->translation_id );
-			/** @var string $res_prepare */
 			$res_prepare = $this->wpdb->prepare( $res_query, $res_args );
-			/** @var \stdClass $res */
 			$res = $this->wpdb->get_row( $res_prepare );
 			if ( $res ) {
 				$res->status = $res->status_code;

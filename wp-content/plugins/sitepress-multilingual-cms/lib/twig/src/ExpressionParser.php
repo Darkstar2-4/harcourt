@@ -27,18 +27,6 @@ use WPML\Core\Twig\Node\Expression\Unary\NegUnary;
 use WPML\Core\Twig\Node\Expression\Unary\NotUnary;
 use WPML\Core\Twig\Node\Expression\Unary\PosUnary;
 use WPML\Core\Twig\Node\Node;
-/**
- * Parses expressions.
- *
- * This parser implements a "Precedence climbing" algorithm.
- *
- * @see https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
- * @see https://en.wikipedia.org/wiki/Operator-precedence_parser
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @internal
- */
 class ExpressionParser
 {
     const OPERATOR_LEFT = 1;
@@ -57,8 +45,6 @@ class ExpressionParser
         } else {
             @\trigger_error('Passing the operators as constructor arguments to ' . __METHOD__ . ' is deprecated since version 1.27. Pass the environment instead.', \E_USER_DEPRECATED);
             $this->env = $parser->getEnvironment();
-			// Inspection: having the current value for the $env variable is fine.
-			/* @phpcs:ignore */
             $this->unaryOperators = \func_get_arg(1);
             $this->binaryOperators = \func_get_arg(2);
         }
@@ -91,13 +77,9 @@ class ExpressionParser
         }
         return $expr;
     }
-    /**
-     * @return ArrowFunctionExpression|null
-     */
     private function parseArrow()
     {
         $stream = $this->parser->getStream();
-        // short array syntax (one argument, no parentheses)?
         if ($stream->look(1)->test(\WPML\Core\Twig\Token::ARROW_TYPE)) {
             $line = $stream->getCurrent()->getLine();
             $token = $stream->expect(\WPML\Core\Twig\Token::NAME_TYPE);
@@ -105,14 +87,12 @@ class ExpressionParser
             $stream->expect(\WPML\Core\Twig\Token::ARROW_TYPE);
             return new \WPML\Core\Twig\Node\Expression\ArrowFunctionExpression($this->parseExpression(0), new \WPML\Core\Twig\Node\Node($names), $line);
         }
-        // first, determine if we are parsing an arrow function by finding => (long form)
         $i = 0;
         if (!$stream->look($i)->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '(')) {
             return null;
         }
         ++$i;
         while (\true) {
-            // variable name
             ++$i;
             if (!$stream->look($i)->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ',')) {
                 break;
@@ -126,7 +106,6 @@ class ExpressionParser
         if (!$stream->look($i)->test(\WPML\Core\Twig\Token::ARROW_TYPE)) {
             return null;
         }
-        // yes, let's parse it properly
         $token = $stream->expect(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '(');
         $line = $token->getLine();
         $names = [];
@@ -223,7 +202,6 @@ class ExpressionParser
                 break;
             case \WPML\Core\Twig\Token::OPERATOR_TYPE:
                 if (\preg_match(\WPML\Core\Twig\Lexer::REGEX_NAME, $token->getValue(), $matches) && $matches[0] == $token->getValue()) {
-                    // in this context, string operators are variable names
                     $this->parser->getStream()->next();
                     $node = new \WPML\Core\Twig\Node\Expression\NameExpression($token->getValue(), $token->getLine());
                     break;
@@ -240,7 +218,6 @@ class ExpressionParser
                     $node = new $class($expr, $token->getLine());
                     break;
                 }
-            // no break
             default:
                 if ($token->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '[')) {
                     $node = $this->parseArrayExpression();
@@ -258,7 +235,6 @@ class ExpressionParser
     {
         $stream = $this->parser->getStream();
         $nodes = [];
-        // a string cannot be followed by another string in a single expression
         $nextCanBeString = \true;
         while (\true) {
             if ($nextCanBeString && ($token = $stream->nextIf(\WPML\Core\Twig\Token::STRING_TYPE))) {
@@ -287,7 +263,6 @@ class ExpressionParser
         while (!$stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ']')) {
             if (!$first) {
                 $stream->expect(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ',', 'An array element must be followed by a comma');
-                // trailing ,?
                 if ($stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ']')) {
                     break;
                 }
@@ -307,18 +282,11 @@ class ExpressionParser
         while (!$stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '}')) {
             if (!$first) {
                 $stream->expect(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ',', 'A hash value must be followed by a comma');
-                // trailing ,?
                 if ($stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '}')) {
                     break;
                 }
             }
             $first = \false;
-            // a hash key can be:
-            //
-            //  * a number -- 12
-            //  * a string -- 'a'
-            //  * a name, which is equivalent to a string -- a
-            //  * an expression, which must be enclosed in parentheses -- (1 + 2)
             if (($token = $stream->nextIf(\WPML\Core\Twig\Token::STRING_TYPE)) || ($token = $stream->nextIf(\WPML\Core\Twig\Token::NAME_TYPE)) || ($token = $stream->nextIf(\WPML\Core\Twig\Token::NUMBER_TYPE))) {
                 $key = new \WPML\Core\Twig\Node\Expression\ConstantExpression($token->getValue(), $token->getLine());
             } elseif ($stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, '(')) {
@@ -425,7 +393,6 @@ class ExpressionParser
             }
         } else {
             $type = \WPML\Core\Twig\Template::ARRAY_CALL;
-            // slice?
             $slice = \false;
             if ($stream->test(\WPML\Core\Twig\Token::PUNCTUATION_TYPE, ':')) {
                 $slice = \true;
@@ -476,16 +443,6 @@ class ExpressionParser
         }
         return $node;
     }
-    /**
-     * Parses arguments.
-     *
-     * @param bool $namedArguments Whether to allow named arguments or not
-     * @param bool $definition     Whether we are parsing arguments for a function definition
-     *
-     * @return Node
-     *
-     * @throws SyntaxError
-     */
     public function parseArguments($namedArguments = \false, $definition = \false, $allowArrow = \false)
     {
         $args = [];
@@ -540,7 +497,6 @@ class ExpressionParser
         while (\true) {
             $token = $this->parser->getCurrentToken();
             if ($stream->test(\WPML\Core\Twig\Token::OPERATOR_TYPE) && \preg_match(\WPML\Core\Twig\Lexer::REGEX_NAME, $token->getValue())) {
-                // in this context, string operators are variable names
                 $this->parser->getStream()->next();
             } else {
                 $stream->expect(\WPML\Core\Twig\Token::NAME_TYPE, null, 'Only variables can be assigned to');
@@ -590,7 +546,6 @@ class ExpressionParser
             return [$name, $test];
         }
         if ($stream->test(\WPML\Core\Twig\Token::NAME_TYPE)) {
-            // try 2-words tests
             $name = $name . ' ' . $this->parser->getCurrentToken()->getValue();
             if ($test = $this->env->getTest($name)) {
                 $stream->next();
@@ -669,7 +624,6 @@ class ExpressionParser
         }
         return $filter instanceof \WPML\Core\Twig_Filter_Node ? $filter->getClass() : 'Twig\\Node\\Expression\\FilterExpression';
     }
-    // checks that the node only contains "constant" elements
     protected function checkConstantExpression(\WPML\Core\Twig_NodeInterface $node)
     {
         if (!($node instanceof \WPML\Core\Twig\Node\Expression\ConstantExpression || $node instanceof \WPML\Core\Twig\Node\Expression\ArrayExpression || $node instanceof \WPML\Core\Twig\Node\Expression\Unary\NegUnary || $node instanceof \WPML\Core\Twig\Node\Expression\Unary\PosUnary)) {

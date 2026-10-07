@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetDismissedNoticesController implements EndpointInterface {
 
-  /** @var DismissedNoticesQuery */
   private $query;
 
 
@@ -16,11 +15,6 @@ class GetDismissedNoticesController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string, mixed>
-   */
   public function handle( $requestData = null ): array {
     $notices = isset( $requestData['notices'] ) && is_array( $requestData['notices'] ) ? $requestData['notices'] : [];
 

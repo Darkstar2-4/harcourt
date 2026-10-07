@@ -12,11 +12,6 @@ class TinyMCE implements \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @param array $config
-	 *
-	 * @return array
-	 */
 	public function filterEditorAutoTags( $config ) {
 		if ( did_action( 'admin_init' ) ) {
 			$screen = get_current_screen();

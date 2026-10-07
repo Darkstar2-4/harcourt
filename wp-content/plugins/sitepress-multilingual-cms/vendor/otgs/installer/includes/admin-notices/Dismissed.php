@@ -7,22 +7,10 @@ use OTGS\Installer\FP\Obj;
 class Dismissed {
 	const STORE_KEY = 'dismissed';
 
-	/**
-	 * @param array $dismissedNotices
-	 * @param string $repo
-	 * @param string $id
-	 *
-	 * @return bool
-	 */
 	public static function isDismissed( array $dismissedNotices, $repo, $id ) {
 		return isset( $dismissedNotices['repo'][ $repo ][ $id ] );
 	}
 
-	/**
-	 * @param string $plugin_slug
-	 * @param bool $network
-	 * @return void
-	 */
 	public static function dismissNoticeOnPluginActivation( $plugin_slug, $network ) {
 		$repositoryRecommendations = Obj::propOr([], 'repo', apply_filters( 'otgs_installer_admin_notices', [] ) );
 
@@ -41,12 +29,6 @@ class Dismissed {
 		}
 	}
 
-	/**
-	 * @param array $dismissedNotices
-	 * @param callable $timeOut - int -> string -> string -> bool
-	 *
-	 * @return mixed
-	 */
 	public static function clearExpired( array $dismissedNotices, callable $timeOut ) {
 		if ( isset( $dismissedNotices['repo'] ) ) {
 
@@ -83,12 +65,6 @@ class Dismissed {
 		return $dismissed;
 	}
 
-	/**
-	 * @param string $dismissRepository
-	 * @param string $dismissNoticeType
-	 * @param string $dismissNoticePluginSlug
-	 * @return void
-	 */
 	private static function dismissNoticeByTypeAndRepository($dismissRepository, $dismissNoticeType, $dismissNoticePluginSlug) {
 		$dismissions = apply_filters('otgs_installer_admin_notices_dismissions', []);
 

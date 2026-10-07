@@ -7,9 +7,6 @@ class AglInstaller extends BaseInstaller
         'module' => 'More/{$name}/',
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         $vars['name'] = preg_replace_callback('/(?:^|_|-)(.?)/', function ($matches) {

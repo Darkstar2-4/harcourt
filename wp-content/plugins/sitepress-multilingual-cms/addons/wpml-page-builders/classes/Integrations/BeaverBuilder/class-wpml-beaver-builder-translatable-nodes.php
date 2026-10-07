@@ -1,32 +1,11 @@
 <?php
-/**
- * WPML_Beaver_Builder_Translatable_Nodes class file.
- *
- * @package wpml-page-builders-beaver-builder
- */
 
 use WPML\PB\BeaverBuilder\Modules\ModuleWithItemsFromConfig;
 
-/**
- * Class WPML_Beaver_Builder_Translatable_Nodes
- */
 class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Translatable_Nodes {
 
-	/**
-	 * Nodes to translate.
-	 *
-	 * @var array
-	 */
 	private $nodes_to_translate;
 
-	/**
-	 * Get translatable node.
-	 *
-	 * @param string|int $node_id  Node id.
-	 * @param stdClass   $settings Node settings.
-	 *
-	 * @return WPML_PB_String[]
-	 */
 	public function get( $node_id, $settings ) {
 		if ( ! $this->nodes_to_translate ) {
 			$this->initialize_nodes_to_translate();
@@ -55,7 +34,8 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 				foreach ( $this->get_integration_instances( $node_data ) as $node ) {
 					try {
 						$strings = $node->get( $node_id, $settings, $strings );
-					} catch ( Exception $e ) {}
+					} catch ( Exception $e ) {
+					}
 				}
 			}
 		}
@@ -63,16 +43,7 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 		return $strings;
 	}
 
-	/**
-	 * Update translatable node.
-	 *
-	 * @param string         $node_id  Node id.
-	 * @param stdClass       $settings Node settings.
-	 * @param WPML_PB_String $string   String object.
-	 *
-	 * @return stdClass
-	 */
-	public function update( $node_id, $settings, WPML_PB_String $string ) {
+	public function update( $node_id, $settings, WPML_PB_String $pbString ) {
 		if ( ! $this->nodes_to_translate ) {
 			$this->initialize_nodes_to_translate();
 		}
@@ -81,15 +52,16 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 			if ( $this->conditions_ok( $node_data, $settings ) ) {
 				foreach ( $node_data['fields'] as $field ) {
 					$field_key = $field['field'];
-					if ( $this->get_string_name( $node_id, $field, $settings ) === $string->get_name() ) {
-						$settings->$field_key = $string->get_value();
+					if ( $this->get_string_name( $node_id, $field, $settings ) === $pbString->get_name() ) {
+						$settings->$field_key = $pbString->get_value();
 					}
 				}
 
 				foreach ( $this->get_integration_instances( $node_data ) as $node ) {
 					try {
-						$node->update( $node_id, $settings, $string );
-					} catch ( Exception $e ) {}
+						$node->update( $node_id, $settings, $pbString );
+					} catch ( Exception $e ) {
+					}
 				}
 			}
 		}
@@ -97,18 +69,14 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 		return $settings;
 	}
 
-	/**
-	 * @param array $node_data
-	 *
-	 * @return WPML_Beaver_Builder_Module_With_Items[]
-	 */
 	private function get_integration_instances( array $node_data ) {
 		$instances = [];
 
 		if ( isset( $node_data['integration-class'] ) ) {
 			try {
 				$instances[] = new $node_data['integration-class']();
-			} catch ( Exception $e ) {}
+			} catch ( Exception $e ) {
+			}
 		}
 
 		if ( isset( $node_data['fields_in_item'] ) ) {
@@ -117,30 +85,13 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 			}
 		}
 
-		return array_filter( $instances );
+		return $instances;
 	}
 
-	/**
-	 * Get string name.
-	 *
-	 * @param string   $node_id  Node id.
-	 * @param array    $field    Page builder field.
-	 * @param stdClass $settings Node settings.
-	 *
-	 * @return string
-	 */
 	public function get_string_name( $node_id, $field, $settings ) {
 		return $field['field'] . '-' . $settings->type . '-' . $node_id;
 	}
 
-	/**
-	 * Get wrap tag for string.
-	 * Used for SEO, can contain (h1...h6, etc.)
-	 *
-	 * @param stdClass $settings Field settings.
-	 *
-	 * @return string
-	 */
 	private function get_wrap_tag( $settings ) {
 		if ( isset( $settings->type ) && 'heading' === $settings->type && isset( $settings->tag ) ) {
 				return $settings->tag;
@@ -149,14 +100,6 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 		return '';
 	}
 
-	/**
-	 * Check if node condition is ok.
-	 *
-	 * @param array    $node_data Node data.
-	 * @param stdClass $settings  Node settings.
-	 *
-	 * @return bool
-	 */
 	private function conditions_ok( $node_data, $settings ) {
 		$conditions_meet = true;
 		foreach ( $node_data['conditions'] as $field_key => $field_value ) {
@@ -169,9 +112,6 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 		return $conditions_meet;
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function get_nodes_to_translate() {
 		return array(
 			'button'         => array(
@@ -501,9 +441,6 @@ class WPML_Beaver_Builder_Translatable_Nodes implements IWPML_Page_Builders_Tran
 		);
 	}
 
-	/**
-	 * Initialize translatable nodes.
-	 */
 	public function initialize_nodes_to_translate() {
 		$this->nodes_to_translate = apply_filters( 'wpml_beaver_builder_modules_to_translate', self::get_nodes_to_translate() );
 	}

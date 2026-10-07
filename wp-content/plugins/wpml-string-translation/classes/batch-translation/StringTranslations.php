@@ -16,19 +16,6 @@ use function WPML\FP\invoke;
 use function WPML\FP\pipe;
 use function WPML\FP\spreadArgs;
 
-/**
- * Class StringTranslations
- *
- * @package WPML\ST\Batch\Translation
- *
- * @phpstan-type curried '__CURRIED_PLACEHOLDER__'
- *
- * @method static callable|void save( ...$element_type_prefix, ...$job, ...$decoder ) :: string → object → ( string → string → string ) → void
- * @method static callable|void addExisting( ...$prevTranslations, ...$package, ...$lang ) :: [WPML_TM_Translated_Field] → object → string → [WPML_TM_Translated_Field]
- * @method static callable|bool isTranslated( ...$field ) :: object → bool
- * @method static callable|void markTranslationsAsInProgress( ...$getJobStatus, ...$post, ...$element) :: callable -> callable -> callable -> WPML_TM_Translation_Batch_Element -> \stdClass -> void
- * @method static callable|void cancelTranslations(...$job) :: \WPML_TM_Job_Entity -> void
- */
 class StringTranslations {
 
 	use Macroable;
@@ -54,22 +41,18 @@ class StringTranslations {
 				function ( $element_type_prefix, $job, callable $decoder ) {
 					if ( 'st-batch' === $element_type_prefix ) {
 
-						// $decodeField :: field → string
 						$decodeField = pipe(
 							Obj::props( [ 'field_data_translated', 'field_format' ] ),
 							spreadArgs( $decoder )
 						);
 
-						// $getStringId :: field → int
 						$getStringId = pipe( Obj::prop( 'field_type' ), self::decodeStringId() );
 
-						// $saveTranslation :: field → void
 						$saveTranslation = Fns::converge(
 							ST_API::saveTranslation( Fns::__, $job->language_code, Fns::__, ICL_TM_COMPLETE ),
 							[ $getStringId, $decodeField ]
 						);
 
-						/** @var callable $filterTranslatedAndBatchField */
 						$filterTranslatedAndBatchField = Logic::allPass( [ self::isTranslated(), self::isBatchField() ] );
 
 						Wrapper::of( $job->elements )
@@ -88,7 +71,6 @@ class StringTranslations {
 					if ( $job instanceof \WPML_TM_Post_Job_Entity && $job->get_type() === 'st-batch_strings' ) {
 						$language = $job->get_target_language();
 
-						// $getTranslations :: $stringId -> [stringId, translation]
 						$getTranslations = function ( $stringId ) use ( $language ) {
 							return [
 								'string_id'   => $stringId,
@@ -96,10 +78,8 @@ class StringTranslations {
 							];
 						};
 
-						// $cancelStatus :: [stringId, translation] -> int
 						$cancelStatus = Logic::ifElse( Obj::prop( 'translation' ), Fns::always( ICL_TM_COMPLETE ), Fns::always( ICL_TM_NOT_TRANSLATED ) );
 
-						// $cancel :: [stringId, translation] -> void
 						$cancel = Fns::converge(
 							ST_API::updateStatus( Fns::__, $language, Fns::__ ),
 							[ Obj::prop( 'string_id' ), $cancelStatus ]
@@ -122,12 +102,10 @@ class StringTranslations {
 				3,
 				function ( $prevTranslations, $package, $lang ) {
 
-					// $getTranslation :: lang → { translate, ... } → int → { id, translation } | null
 					$getTranslation = curryN(
 						3,
 						function ( $lang, $data, $stringId ) {
 							if ( 1 === $data['translate'] && self::isBatchId( $stringId ) ) {
-								/** @var string $translation */
 								$translation = ST_API::getTranslation( self::decodeStringId( $stringId ), $lang );
 								return (object) [
 									'id'          => $stringId,
@@ -139,19 +117,16 @@ class StringTranslations {
 						}
 					);
 
-					// $createField :: string → WPML_TM_Translated_Field
 					$createField = function ( $translation ) {
 						return make( 'WPML_TM_Translated_Field', [ '', '', $translation, false ] );
 					};
 
-					// $updatePrevious :: [a] → { id, translate } → [a]
 					$updatePrevious = function ( $prev, $string ) {
 						$prev[ $string->id ] = $string->translation;
 
 						return $prev;
 					};
 
-					// $hasTranslation :: { id, translation } | null → bool
 					$hasTranslation = Obj::prop( 'translation' );
 
 					return Wrapper::of( $package['contents'] )
@@ -189,22 +164,14 @@ class StringTranslations {
 		);
 	}
 
-	/**
-	 * @param string    $element_type_prefix
-	 * @param \stdClass $job
-	 * @return callable|void
-	 * @phpstan-return ( $job is not null ? void : callable )
-	 */
 	public static function updateStatus( $element_type_prefix = null, $job = null ) {
 		return call_user_func_array(
 			curryN(
 				2,
 				function ( $element_type_prefix, $job ) {
 					if ( 'st-batch' === $element_type_prefix ) {
-						// $getStringId :: field → int
 						$getStringId = pipe( Obj::prop( 'field_type' ), self::decodeStringId() );
 
-						/** @var callable $updateStatus */
 						$updateStatus = ST_API::updateStatus( Fns::__, $job->language_code, ICL_TM_IN_PROGRESS );
 
 						\wpml_collect( $job->elements )
@@ -218,15 +185,6 @@ class StringTranslations {
 		);
 	}
 
-	/**
-	 * @param string $str
-	 *
-	 * @return callable|string
-	 *
-	 * @phpstan-template A1 of string|curried
-	 * @phpstan-param ?A1 $str
-	 * @phpstan-return ($str is not null ? string : callable(string=):string)
-	 */
 	public static function decodeStringId( $str = null ) {
 		return call_user_func_array(
 			curryN(
@@ -239,15 +197,6 @@ class StringTranslations {
 		);
 	}
 
-	/**
-	 * @param string $str
-	 *
-	 * @return callable|bool
-	 *
-	 * @phpstan-template A1 of string|curried
-	 * @phpstan-param ?A1 $str
-	 * @phpstan-return ($str is not null ? bool : callable(string=):bool)
-	 */
 	public static function isBatchId( $str = null ) {
 		return call_user_func_array(
 			curryN(
@@ -260,15 +209,6 @@ class StringTranslations {
 		);
 	}
 
-	/**
-	 * @param array $field
-	 *
-	 * @return callable|bool
-	 *
-	 * @phpstan-template A1 of array|curried
-	 * @phpstan-param ?A1 $field
-	 * @phpstan-return ($field is not null ? bool : callable(array):bool)
-	 */
 	public static function isBatchField( $field = null ) {
 		return call_user_func_array(
 			curryN(

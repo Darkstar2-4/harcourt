@@ -6,7 +6,7 @@ use Smush\Core\Controller;
 use Smush\Core\Settings;
 
 class Image_Dimensions_Controller extends Controller {
-	const IMAGE_DIMENSIONS_TRANSFORM_PRIORITY = 0;
+	private static $image_dimensions_transform_priority = 0;
 
 	/**
 	 * @var Settings
@@ -22,7 +22,7 @@ class Image_Dimensions_Controller extends Controller {
 				$this,
 				'register_image_dimensions_transform',
 			),
-			self::IMAGE_DIMENSIONS_TRANSFORM_PRIORITY
+			self::$image_dimensions_transform_priority
 		);
 	}
 

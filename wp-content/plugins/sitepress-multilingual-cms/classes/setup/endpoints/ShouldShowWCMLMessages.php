@@ -12,9 +12,6 @@ class ShouldShowWCMLMessages implements IHandler {
 		return Either::of( self::getOption() );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function getOption() {
 		return (bool) apply_filters( 'wpml_wizard_display_wcml_messages', false );
 	}

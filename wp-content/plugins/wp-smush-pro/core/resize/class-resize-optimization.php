@@ -2,21 +2,18 @@
 
 namespace Smush\Core\Resize;
 
-use Smush\Core\File_System;
 use Smush\Core\Helper;
 use Smush\Core\Media\Media_Item;
 use Smush\Core\Media\Media_Item_Optimization;
 use Smush\Core\Media\Media_Item_Size;
-use Smush\Core\Media\Media_Item_Stats;
 use Smush\Core\Settings;
-use Smush\Core\Upload_Dir;
 use WDEV_Logger;
 use WP_Error;
 use WP_Image_Editor;
 
 class Resize_Optimization extends Media_Item_Optimization {
-	const KEY = 'resize_optimization';
-	const META_KEY = 'wp-smush-resize_savings';
+	private static $key = 'resize_optimization';
+	private static $meta_key = 'wp-smush-resize_savings';
 	/**
 	 * @var Media_Item
 	 */
@@ -34,11 +31,7 @@ class Resize_Optimization extends Media_Item_Optimization {
 	 */
 	private $logger;
 	/**
-	 * @var WP_Image_Editor[]
-	 */
-	private $implementations;
-	/**
-	 * @var Media_Item_Stats
+	 * @var Resize_Media_Item_Stats
 	 */
 	private $stats;
 	private $savings_meta;
@@ -53,31 +46,31 @@ class Resize_Optimization extends Media_Item_Optimization {
 		'size_stats',
 	);
 	/**
-	 * @var File_System
+	 * @var Resize_Helper
 	 */
-	private $fs;
-	/**
-	 * @var Upload_Dir
-	 */
-	private $upload_dir;
+	private $resize_helper;
 
 	public function __construct( $media_item ) {
-		$this->media_item = $media_item;
-		$this->settings   = Settings::get_instance();
-		$this->logger     = Helper::logger()->resize();
-		$this->errors     = new WP_Error();
-		$this->fs         = new File_System();
-		$this->upload_dir = new Upload_Dir();
+		$this->media_item    = $media_item;
+		$this->settings      = Settings::get_instance();
+		$this->logger        = Helper::logger()->resize();
+		$this->errors        = new WP_Error();
+		$this->resize_helper = new Resize_Helper();
 	}
 
-	public function get_key() {
-		return self::KEY;
+	public static function get_key() {
+		return self::$key;
 	}
 
 	public function get_name() {
 		return __( 'Resize', 'wp-smushit' );
 	}
 
+	/**
+	 * Get optimization statistics.
+	 *
+	 * @return Resize_Media_Item_Stats
+	 */
 	public function get_stats() {
 		if ( is_null( $this->stats ) ) {
 			$this->stats = $this->prepare_stats();
@@ -88,7 +81,7 @@ class Resize_Optimization extends Media_Item_Optimization {
 
 	public function get_size_stats( $size_key ) {
 		if ( is_null( $this->size_stats ) ) {
-			$this->size_stats = new Media_Item_Stats();
+			$this->size_stats = new Resize_Media_Item_Stats();
 		}
 
 		return $this->size_stats;
@@ -97,7 +90,7 @@ class Resize_Optimization extends Media_Item_Optimization {
 	public function save() {
 		$meta = $this->make_meta();
 		if ( ! empty( $meta ) ) {
-			update_post_meta( $this->media_item->get_id(), self::META_KEY, $meta );
+			update_post_meta( $this->media_item->get_id(), self::$meta_key, $meta );
 			$this->reset();
 		}
 	}
@@ -153,7 +146,18 @@ class Resize_Optimization extends Media_Item_Optimization {
 	}
 
 	public function should_reoptimize() {
-		return $this->should_optimize();
+		if ( ! $this->should_optimize() ) {
+			return false;
+		}
+
+		$stats                 = $this->get_stats();
+		$dimensions            = $this->get_resize_dimensions();
+		$target_width          = (int) $dimensions->width;
+		$target_height         = (int) $dimensions->height;
+		$resizing_size_changed = $target_width !== $stats->get_resize_width()
+							|| $target_height !== $stats->get_resize_height();
+
+		return $resizing_size_changed;
 	}
 
 	public function optimize() {
@@ -187,111 +191,61 @@ class Resize_Optimization extends Media_Item_Optimization {
 			return false;
 		}
 
-		$this->include_implementations();
-		foreach ( $this->get_implementations() as $implementation ) {
-			$data = $this->try_with_implementation( $implementation );
-			if ( ! empty( $data['file'] ) ) {
-				break;
-			}
-		}
-
-		$original_path = $size_to_resize->get_file_path();
-		if ( empty( $data['file'] ) ) {
-			/* translators: 1: Original path, 2: Image id. */
-			$this->add_error( 'resize_failed', sprintf( __( 'Cannot resize image [%1$s(%2$d)].', 'wp-smushit' ), $this->upload_dir->get_human_readable_path( $original_path ), $id ) );
-
-			return false;
-		}
-
-		$new_path = path_join( dirname( $original_path ), $data['file'] );
-		if ( ! $this->fs->file_exists( $new_path ) ) {
-			/* translators: %s: Resized path */
-			$this->add_error( 'resized_image_not_found', sprintf( __( 'The resized image [%s] does not exist.', 'wp-smushit' ), $this->upload_dir->get_human_readable_path( $new_path ) ) );
-
-			return false;
-		}
-
 		$original_filesize = $size_to_resize->get_filesize();
-		$new_filesize      = ! empty( $data['filesize'] )
-			? $data['filesize']
-			: $this->fs->filesize( $new_path );
-		if ( $new_filesize > $original_filesize ) {
-			$this->maybe_delete_file( $new_path );
-			$this->add_error(
-				'no_savings',
-				__( 'Skipped: Smushed file is larger than the original file.', 'wp-smushit' )
-			);
+		$dimensions        = $this->get_resize_dimensions();
+		$file_resizer      = new File_Resizer(
+			$size_to_resize->get_file_path(),
+			$original_filesize,
+			$dimensions->width,
+			$dimensions->height
+		);
 
-			$this->logger->error(
-				sprintf(
-					/* translators: 1: Resized path, 2: Resized file size, 3: Original path, 4: Image id, 5: Original file size */
-					__( 'The resized image [%1$s](%2$s) is larger than the original image [%3$s(%4$d)](%5$s).', 'wp-smushit' ),
-					$this->upload_dir->get_human_readable_path( $new_path ),
-					size_format( $new_filesize ),
-					$this->upload_dir->get_human_readable_path( $original_path ),
-					$id,
-					size_format( $original_filesize )
-				)
-			);
+		$resized = $file_resizer->resize();
+		if ( ! $resized ) {
+			$this->errors->merge_from( $file_resizer->get_errors() );
+
+			// Update no savings stats.
+			$this->update_stats( $original_filesize, $original_filesize );
+			// Save resize meta.
+			$this->save();
 
 			return false;
 		}
-
-		$copied = $this->fs->copy( $new_path, $original_path );
-		if ( ! $copied ) {
-			$this->add_error(
-				'copy_failed',
-				sprintf(
-				/* translators: 1: Resized path, 2: Original path. */
-					__( 'Failed to copy from [%1$s] to [%2$s]', 'wp-smushit' ),
-					$this->upload_dir->get_human_readable_path( $new_path ),
-					$this->upload_dir->get_human_readable_path( $original_path )
-				)
-			);
-
-			return false;
-		}
-
-		// Delete intermediate file.
-		$this->maybe_delete_file( $new_path );
 
 		// Update media item.
-		$size_to_resize->set_filesize( $new_filesize );
-		$size_to_resize->set_width( $data['width'] );
-		$size_to_resize->set_height( $data['height'] );
+		$size_to_resize->set_filesize( $file_resizer->get_new_filesize() );
+		$size_to_resize->set_width( $file_resizer->get_new_width() );
+		$size_to_resize->set_height( $file_resizer->get_new_height() );
 		$this->media_item->save();
 
 		// Update the stats.
-		$stats = $this->get_stats();
-		$stats->set_size_before( $original_filesize );
-		$stats->set_size_after( $new_filesize );
-
+		$this->update_stats( $file_resizer->get_new_filesize(), $original_filesize );
 		// Save resize meta.
 		$this->save();
 
-		do_action( 'wp_smush_image_resized', $id, $stats->to_array() );
+		do_action( 'wp_smush_image_resized', $id, $this->get_stats()->to_array() );
 
 		return true;
 	}
 
-	private function maybe_delete_file( $file_path ) {
-		$should_delete_file = true;
-		foreach ( $this->media_item->get_sizes() as $size ) {
-			if ( $size->get_file_path() === $file_path ) {
-				$should_delete_file = false;
-				break;
-			}
-		}
+	/**
+	 * Update resizing statistics.
+	 *
+	 * @param mixed $size_after New resized image filesize.
+	 * @param mixed $size_before Original image filesize.
+	 * @return void
+	 */
+	private function update_stats( $size_after, $size_before ) {
+		$stats      = $this->get_stats();
+		$dimensions = $this->get_resize_dimensions();
+		// The image can be resized before, so make sure we don't lose the oldest stats.
+		$size_before = max( $size_before, $stats->get_size_before() );
+		$size_after  = $stats->get_size_after() > 0 ? min( $size_after, $stats->get_size_after() ) : $size_after;
 
-		if ( $should_delete_file ) {
-			$this->delete_file( $file_path );
-		}
-	}
-
-	private function delete_file( $file_path ) {
-		if ( $this->fs->file_exists( $file_path ) ) {
-			$this->fs->unlink( $file_path );
-		}
+		$stats->set_size_before( $size_before );
+		$stats->set_size_after( $size_after );
+		$stats->set_resize_width( $dimensions->width );
+		$stats->set_resize_height( $dimensions->height );
 	}
 
 	public function get_errors() {
@@ -308,29 +262,6 @@ class Resize_Optimization extends Media_Item_Optimization {
 		$this->errors->add( $code, "[$size_key] $message" );
 	}
 
-	private function get_implementations() {
-		if ( is_null( $this->implementations ) ) {
-			$this->implementations = $this->prepare_implementations();
-		}
-
-		return $this->implementations;
-	}
-
-	private function prepare_implementations() {
-		$implementations = array(
-			'WP_Image_Editor_Imagick',
-			'WP_Image_Editor_GD',
-		);
-		$supported       = array();
-		foreach ( $implementations as $implementation ) {
-			if ( class_exists( $implementation ) && call_user_func( array( $implementation, 'test' ) ) ) {
-				$supported[] = $implementation;
-			}
-		}
-
-		return $supported;
-	}
-
 	/**
 	 * @return \stdClass
 	 */
@@ -343,35 +274,14 @@ class Resize_Optimization extends Media_Item_Optimization {
 	}
 
 	private function prepare_resize_dimensions() {
-		$dimensions = $this->settings->get_setting( 'wp-smush-resize_sizes', array() );
-		$dimensions = apply_filters(
-			'wp_smush_resize_sizes',
-			array(
-				'width'  => empty( $dimensions['width'] ) ? 0 : (int) $dimensions['width'],
-				'height' => empty( $dimensions['height'] ) ? 0 : (int) $dimensions['height'],
-			),
+		return $this->resize_helper->get_resize_dimensions(
 			$this->get_size_to_resize()->get_file_path(),
 			$this->media_item->get_id()
 		);
-
-		return (object) $dimensions;
-	}
-
-	private function try_with_implementation( $implementation ) {
-		$editors_callback = function () use ( $implementation ) {
-			return array( $implementation );
-		};
-		add_filter( 'wp_image_editors', $editors_callback );
-		$file_path  = $this->get_size_to_resize()->get_file_path();
-		$dimensions = $this->get_resize_dimensions();
-		$return     = image_make_intermediate_size( $file_path, $dimensions->width, $dimensions->height );
-		remove_filter( 'wp_image_editors', $editors_callback );
-
-		return $return;
 	}
 
 	private function prepare_stats() {
-		$stats = new Media_Item_Stats();
+		$stats = new Resize_Media_Item_Stats();
 		$stats->from_array( $this->get_savings_meta() );
 
 		return $stats;
@@ -386,7 +296,7 @@ class Resize_Optimization extends Media_Item_Optimization {
 	}
 
 	private function prepare_savings_meta() {
-		$meta = get_post_meta( $this->media_item->get_id(), self::META_KEY, true );
+		$meta = get_post_meta( $this->media_item->get_id(), self::$meta_key, true );
 
 		return empty( $meta )
 			? array()
@@ -401,7 +311,7 @@ class Resize_Optimization extends Media_Item_Optimization {
 	}
 
 	public function delete_data() {
-		delete_post_meta( $this->media_item->get_id(), self::META_KEY );
+		delete_post_meta( $this->media_item->get_id(), self::$meta_key );
 
 		$this->reset();
 	}
@@ -418,14 +328,6 @@ class Resize_Optimization extends Media_Item_Optimization {
 		foreach ( $this->reset_properties as $property ) {
 			$this->$property = null;
 		}
-	}
-
-	/**
-	 * @return void
-	 */
-	private function include_implementations() {
-		// Calling this method includes the necessary files
-		_wp_image_editor_choose();
 	}
 
 	public function get_optimized_sizes_count() {

@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_Requirements {
 	private $active_plugins       = array();
 	private $disabled_plugins     = array();
@@ -83,9 +80,6 @@ class WPML_Requirements {
 		),
 	);
 
-	/**
-	 * WPML_Requirements constructor.
-	 */
 	public function __construct() {
 		if ( function_exists( 'get_plugins' ) ) {
 			$installed_plugins = get_plugins();
@@ -104,11 +98,6 @@ class WPML_Requirements {
 		return array_key_exists( $plugin_slug, $this->active_plugins );
 	}
 
-	/**
-	 * @param array $plugin_data
-	 *
-	 * @return string|null
-	 */
 	public function get_plugin_slug( array $plugin_data ) {
 		$plugin_slug = null;
 		if ( array_key_exists( 'Plugin Slug', $plugin_data ) && $plugin_data['Plugin Slug'] ) {
@@ -122,19 +111,10 @@ class WPML_Requirements {
 		return $plugin_slug;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_missing_requirements() {
 		return $this->missing_requirements;
 	}
 
-	/**
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	public function get_requirements( $type, $slug ) {
 		$missing_plugins = $this->get_missing_plugins_for_type( $type, $slug );
 
@@ -162,11 +142,6 @@ class WPML_Requirements {
 		return $requirements;
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	function get_plugin_data( $slug ) {
 		if ( array_key_exists( $slug, $this->plugins ) ) {
 			return $this->plugins[ $slug ];
@@ -175,12 +150,6 @@ class WPML_Requirements {
 		return array();
 	}
 
-	/**
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	private function get_missing_plugins_for_type( $type, $slug ) {
 		$requirements_keys   = $this->get_components_requirements_by_type( $type, $slug );
 		$active_plugins_keys = array_keys( $this->active_plugins );
@@ -188,19 +157,10 @@ class WPML_Requirements {
 		return array_diff( $requirements_keys, $active_plugins_keys );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_components() {
 		return apply_filters( 'wpml_requirements_components', $this->modules );
 	}
 
-	/**
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	private function get_components_by_type( $type, $slug ) {
 		$components = $this->get_components();
 		if ( array_key_exists( $type, $components ) ) {
@@ -213,12 +173,6 @@ class WPML_Requirements {
 		return array();
 	}
 
-	/**
-	 * @param string $type
-	 * @param string $slug
-	 *
-	 * @return array
-	 */
 	private function get_components_requirements_by_type( $type, $slug ) {
 		$components_requirements = $this->get_components_by_type( $type, $slug );
 		$requirements            = array();
@@ -228,7 +182,6 @@ class WPML_Requirements {
 		} elseif ( array_key_exists( 'requirements_class', $components_requirements ) ) {
 			try {
 				$class = $components_requirements['requirements_class'];
-				/** @var IWPML_Integration_Requirements_Module $requirement_module */
 				$requirement_module = new $class( $this );
 				$requirements       = $requirement_module->get_requirements();
 			} catch ( Exception $e ) {

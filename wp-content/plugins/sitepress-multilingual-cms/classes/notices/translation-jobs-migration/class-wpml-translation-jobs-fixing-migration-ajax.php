@@ -6,13 +6,10 @@ class WPML_Translation_Jobs_Fixing_Migration_Ajax {
 	const JOBS_MIGRATED_PER_REQUEST = 100;
 	const PAGINATION_OPTION         = 'wpml_translation_jobs_migration_processed';
 
-	/** @var WPML_Translation_Jobs_Migration  */
 	private $jobs_migration;
 
-	/** @var WPML_Translation_Jobs_Migration_Repository  */
 	private $jobs_repository;
 
-	/** @var WPML_TM_Jobs_Migration_State */
 	private $migration_state;
 
 
@@ -70,16 +67,10 @@ class WPML_Translation_Jobs_Fixing_Migration_Ajax {
 		wp_send_json_success( $result );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		return wp_verify_nonce( $_POST['nonce'], self::ACTION );
 	}
 
-	/**
-	 * @return int
-	 */
 	private function get_already_processed() {
 		return (int) get_option( self::PAGINATION_OPTION, 0 );
 	}

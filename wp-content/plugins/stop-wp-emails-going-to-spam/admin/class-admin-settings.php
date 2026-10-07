@@ -36,15 +36,14 @@ class Admin_Settings extends Admin_Pages {
 		$this->options     = $options;
 
 
-		$this->settings_title = esc_html__( 'Stop WP Emails Going to Spam', 'stop-wp-emails-going-to-spam' );
-		new \Fullworks_Free_Plugin_Lib\Main('stop-wp-emails-going-to-spam/stop-wp-emails-going-to-spam.php',
-			admin_url( 'options-general.php?page=stop-wp-emails-going-to-spam-settings' ),
-			'SWEGTS-Free',
-			'html_files_page_load-html-files-settings',
-			$this->settings_title);
 
 
 		parent::__construct();
+	}
+
+	public function settings_setup() {
+		$this->settings_title = esc_html__( 'Stop WP Emails Going to Spam', 'stop-wp-emails-going-to-spam' );
+		parent::settings_setup();
 	}
 
 	public function register_settings() {
@@ -130,7 +129,9 @@ class Admin_Settings extends Admin_Pages {
 		?>
         <table class="form-table">
             <tbody>
-			<?php do_action('ffpl_ad_display'); ?>
+			<?php
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- this is a hook name of third party lib
+            do_action('ffpl_ad_display'); ?>
             <tr valign="top">
                 <th scope="row"><?php esc_html_e( 'About this Plugin', 'stop-wp-emails-going-to-spam' ); ?></th>
                 <td>

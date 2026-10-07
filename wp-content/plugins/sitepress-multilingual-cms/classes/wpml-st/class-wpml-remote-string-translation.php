@@ -1,7 +1,6 @@
 <?php
 
 use WPML\TM\StringTranslation\Strings;
-use \WPML\TM\API\Basket;
 
 class WPML_Remote_String_Translation {
 
@@ -66,12 +65,8 @@ class WPML_Remote_String_Translation {
 				}
 			}
 		}
-		$useBasket  = Basket::shouldUse();
-		$buttonText = $useBasket
-			? __( 'Add selected strings to translation basket', 'wpml-translation-management' )
-			: __( 'Translate', 'wpml-translation-management' );
-
-		$buttonIcon = $useBasket ? '<span class="otgs-ico-basket"></span>' : '';
+		$buttonText = __( 'Translate', 'wpml-translation-management' );
+		$buttonIcon = '';
 
 		?>
 		<form method="post" id="icl_st_send_strings" name="icl_st_send_strings"

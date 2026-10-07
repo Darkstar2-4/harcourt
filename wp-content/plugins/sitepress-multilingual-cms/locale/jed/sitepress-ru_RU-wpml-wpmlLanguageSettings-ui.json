@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "ru"
+            "lang": "ru_RU"
          },
          "Choose the image file type for flags": [
             "Выберите тип файла изображения для флагов"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Этот параметр влияет только на встроенные флаги WPML, а не на загруженные пользователем."
+            "Эта опция влияет только на встроенные флаги WPML, а не на загруженные пользовательские."
          ],
          "%s format": [
-            "формат %s"
+            "Формат %s"
          ],
          "Save": [
             "Сохранить"

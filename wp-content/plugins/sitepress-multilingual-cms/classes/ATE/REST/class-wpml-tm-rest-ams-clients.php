@@ -1,22 +1,14 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 use WPML\FP\Fns;
 
 class WPML_TM_REST_AMS_Clients extends WPML_REST_Base {
 
-	/** @var WPML_TM_AMS_API */
 	private $api;
 	private $ams_user_records;
 
-	/** @var WPML_TM_AMS_Translator_Activation_Records $translator_activation_records */
 	private $translator_activation_records;
 
-	/**
-	 * @var WPML_TM_MCS_ATE_Strings
-	 */
 	private $strings;
 
 	public function __construct(
@@ -94,10 +86,6 @@ class WPML_TM_REST_AMS_Clients extends WPML_REST_Base {
 		);
 	}
 
-	/**
-	 * @return array|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function register_manager() {
 		$current_user = wp_get_current_user();
 		$translators  = $this->ams_user_records->get_translators();
@@ -115,10 +103,6 @@ class WPML_TM_REST_AMS_Clients extends WPML_REST_Base {
 		                 ->get();
 	}
 
-	/**
-	 * @return array|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function synchronize_translators() {
 		$translators = $this->ams_user_records->get_translators();
 
@@ -133,10 +117,6 @@ class WPML_TM_REST_AMS_Clients extends WPML_REST_Base {
 		return array( 'result' => $result );
 	}
 
-	/**
-	 * @return array|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function synchronize_managers() {
 		$managers = $this->ams_user_records->get_managers();
 
@@ -149,10 +129,6 @@ class WPML_TM_REST_AMS_Clients extends WPML_REST_Base {
 		return array( 'result' => $result );
 	}
 
-	/**
-	 * @return array|mixed|null|object|WP_Error
-	 * @throws \InvalidArgumentException
-	 */
 	public function get_status() {
 		return $this->api->get_status();
 	}

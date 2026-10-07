@@ -13,22 +13,13 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 
 	const KEY_SKIP_FILTERS = 'wpml_skip_filters';
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var array */
 	private $post_term_taxonomy_ids_before_sync = [];
 
 
-	/**
-	 * WHooks constructor.
-	 *
-	 * @param \SitePress $sitepress
-	 * @param \wpdb      $wpdb
-	 */
 	public function __construct( \SitePress $sitepress, \wpdb $wpdb ) {
 		$this->sitepress = $sitepress;
 		$this->wpdb      = $wpdb;
@@ -40,7 +31,7 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 				return array_merge(
 					$args,
 					[
-						'cache_domain'         => microtime(), // Prevent caching of the query
+						'cache_domain'         => microtime(),
 						self::KEY_SKIP_FILTERS => true,
 					]
 				);
@@ -55,25 +46,14 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		remove_action( 'wpml_pro_translation_completed', array( $this, 'syncCustomTermFieldsTranslations' ), 10 );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return bool
-	 */
 	public static function shouldSkip( $args ) {
 		return (bool) Relation::propEq( self::KEY_SKIP_FILTERS, true, (array) $args );
 	}
 
-	/**
-	 * @param int|false $postId
-	 */
 	public function beforeSyncCustomTermFieldsTranslations( $postId ) {
 		$this->post_term_taxonomy_ids_before_sync = $postId ? $this->getAllPostTermTaxonomyIds( $postId ) : [];
 	}
 
-	/**
-	 * @param int|false $postId
-	 */
 	public function syncCustomTermFieldsTranslations( $postId ) {
 
 		if ( ! $postId ) {
@@ -90,11 +70,6 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		}
 	}
 
-	/**
-	 * @param int $postId
-	 *
-	 * @return array
-	 */
 	private function getAllPostTermTaxonomyIds( $postId ) {
 		$wpdb     = $this->wpdb;
 		$termRels = $wpdb->get_results(

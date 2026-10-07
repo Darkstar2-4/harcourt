@@ -11,13 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a spaceless node.
- *
- * It removes spaces between HTML tags.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SpacelessNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct(\WPML\Core\Twig_NodeInterface $body, $lineno, $tag = 'spaceless')

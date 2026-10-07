@@ -4,7 +4,6 @@ namespace WPML\TM\AdminBar;
 
 class Hooks implements \IWPML_Frontend_Action, \IWPML_DIC_Action {
 
-	/** @var \WPML_Post_Translation */
 	private $postTranslations;
 
 	public function __construct( \WPML_Post_Translation $postTranslations ) {

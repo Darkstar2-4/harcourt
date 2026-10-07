@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -98,18 +107,19 @@ if ( ! class_exists( 'ACF_Location_Post_Template' ) ) :
 		 * @return  string|array
 		 */
 		public function get_object_subtype( $rule ) {
-			if ( $rule['operator'] === '==' ) {
+			if ( ( $rule['operator'] ?? '' ) === '==' ) {
 				$post_templates = acf_get_post_templates();
+				$value          = $rule['value'] ?? '';
 
 				// If "default", return array of all post types which have templates.
-				if ( $rule['value'] === 'default' ) {
+				if ( $value === 'default' ) {
 					return array_keys( $post_templates );
 
 					// Otherwise, generate list of post types that have the selected template.
 				} else {
 					$post_types = array();
 					foreach ( $post_templates as $post_type => $templates ) {
-						if ( isset( $templates[ $rule['value'] ] ) ) {
+						if ( isset( $templates[ $value ] ) ) {
 							$post_types[] = $post_type;
 						}
 					}

@@ -50,11 +50,6 @@ class TranslationServices implements IHandler {
 		] );
 	}
 
-	/**
-	 * @param array $services
-	 * @param string $preferredServiceSUID
-	 * @return array
-	 */
 	private static function filterByPreferred( $services, $preferredServiceSUID ) {
 		$preferredService =  \TranslationProxy_Service::get_service_by_suid( $preferredServiceSUID );
 		if ( $preferredService ) {
@@ -68,11 +63,6 @@ class TranslationServices implements IHandler {
 		return array_values( $services );
 	}
 
-	/**
-	 * @param array $serviceGroup
-	 * @param int $serviceId
-	 * @return array
-	 */
 	public static function filterServices( $serviceGroup, $serviceId ) {
 		$serviceGroup['services'] = Fns::filter( Relation::propEq( 'id', $serviceId ), $serviceGroup['services'] );
 

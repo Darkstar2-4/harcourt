@@ -1,6 +1,7 @@
 <?php
 
 use WPML\API\Sanitize;
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
 
 class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 
@@ -11,34 +12,18 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 	const SLOT_SLUG_PLACEHOLDER = '%id%';
 	const RESET_NONCE_NAME      = 'wpml-language-switcher-reset';
 
-	/* @var WPML_LS_Templates $templates */
 	private $templates;
 
-	/* @var WPML_LS_Settings $settings */
 	private $settings;
 
-	/* @var WPML_LS_Render $render */
 	private $render;
 
-	/* @var WPML_LS_Inline_Styles $inline_styles */
 	private $inline_styles;
 
-	/* @var WPML_LS_Assets $assets */
 	private $assets;
 
-	/* @var SitePress $sitepress */
 	private $sitepress;
 
-	/**
-	 * WPML_Language_Switcher_Menu constructor.
-	 *
-	 * @param WPML_LS_Templates     $templates
-	 * @param WPML_LS_Settings      $settings
-	 * @param WPML_LS_Render        $render
-	 * @param WPML_LS_Inline_Styles $inline_styles
-	 * @param SitePress             $sitepress
-	 * @param WPML_LS_Assets        $assets
-	 */
 	public function __construct( $templates, $settings, $render, $inline_styles, $sitepress, $assets = null ) {
 		$this->templates     = $templates;
 		$this->settings      = $settings;
@@ -59,16 +44,10 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		add_action( 'wp_ajax_wpml-ls-update-preview', array( $this, 'update_preview_action' ) );
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_page_hook() {
 		return WPML_PLUGIN_FOLDER . '/menu/languages.php';
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function admin_enqueue_scripts_action( $hook ) {
 		if ( self::get_page_hook() === $hook ) {
 			$suffix = $this->sitepress->get_wp_api()->constant( 'SCRIPT_DEBUG' ) ? '' : '.min';
@@ -112,7 +91,13 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 	public function save_settings_action() {
 		if ( $this->has_valid_nonce() && isset( $_POST['settings'] ) ) {
 			$new_settings = $this->parse_request_settings( 'settings' );
+
+			$old_settings = $this->settings->get_settings();
+
 			$this->settings->save_settings( $new_settings );
+
+			$this->capturePostHogEventForFooterLSChange( $old_settings, $new_settings );
+
 			$this->maybe_complete_setup_wizard_step( $new_settings );
 			$this->sitepress->get_wp_api()->wp_send_json_success( esc_html__( 'Settings saved', 'sitepress' ) );
 		} else {
@@ -120,9 +105,25 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		}
 	}
 
-	/**
-	 * @param array $new_settings
-	 */
+	private function capturePostHogEventForFooterLSChange( $oldSettings, $newSettings ) {
+		$oldFooterLSEnabled = isset( $oldSettings['statics']['footer'] )
+		                      && $oldSettings['statics']['footer']->get( 'show' );
+
+		$newFooterLSEnabled = isset( $newSettings['statics']['footer']['show'] )
+		                      && ! empty( $newSettings['statics']['footer']['show'] );
+
+		if ( $oldFooterLSEnabled !== $newFooterLSEnabled ) {
+			$eventProps = array(
+				'enabled' => $newFooterLSEnabled,
+				'source'  => 'languages_page',
+			);
+
+			\WPML\PostHog\Event\CaptureEvent::capture(
+				( new EventInstanceService() )->getFooterLanguageSwitcherToggledEvent( $eventProps )
+			);
+		}
+	}
+
 	private function maybe_complete_setup_wizard_step( $new_settings ) {
 		if ( isset( $new_settings['submit_setup_wizard'] ) && $new_settings['submit_setup_wizard'] == 1 ) {
 			$setup_instance = wpml_get_setup_instance();
@@ -162,11 +163,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		}
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return array
-	 */
 	private function parse_request_settings( $key ) {
 		$settings = array_key_exists( $key, $_POST ) ? $_POST[ $key ] : null;
 		$settings = Sanitize::string($settings, ENT_NOQUOTES);
@@ -179,9 +175,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		return [];
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function has_valid_nonce() {
 		$nonce = Sanitize::stringProp( 'nonce', $_POST );
 
@@ -190,11 +183,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 			: false;
 	}
 
-	/**
-	 * @param array $items
-	 *
-	 * @return array
-	 */
 	public function languages_navigation_items_filter( $items ) {
 		$item_to_insert  = array( '#wpml-ls-settings-form' => esc_html__( 'Language switcher options', 'sitepress' ) );
 		$insert_position = array_search( '#lang-sec-2', array_keys( $items ), true ) + 1;
@@ -216,9 +204,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		}
 	}
 
-	/**
-	 * @param string|bool $theme_wpml_config_file
-	 */
 	public function after_wpml_love_action( $theme_wpml_config_file ) {
 		$setup_complete   = $this->sitepress->get_setting( 'setup_complete' );
 		$active_languages = $this->sitepress->get_active_languages();
@@ -228,12 +213,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		}
 	}
 
-	/**
-	 * @param string     $type 'sidebars', 'menus', 'statics'
-	 * @param string|int $slug_or_id
-	 *
-	 * @return string
-	 */
 	public function get_button_to_edit_slot( $type, $slug_or_id ) {
 		$slug = $slug_or_id;
 
@@ -268,16 +247,10 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_template() {
 		return self::MAIN_UI_TEMPLATE;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_all_previews() {
 		$previews = array();
 
@@ -297,19 +270,10 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		return $previews;
 	}
 
-	/**
-	 * This method is compulsory but should not be used
-	 * Use "get_main_ui_model" and "get_reset_ui_model" instead
-	 *
-	 * @return array
-	 */
 	public function get_model() {
 		return array();
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_main_ui_model() {
 		$slot_factory = new WPML_LS_Slot_Factory();
 
@@ -345,9 +309,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		return $model;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_misc_strings() {
 		return array(
 			'no_templates'                               => __( 'There are no templates available.', 'sitepress' ),
@@ -378,9 +339,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_tooltip_strings() {
 		return array(
 			'languages_order'               => array(
@@ -460,9 +418,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_options_section_strings() {
 		return array(
 			'section_title'                        => __( 'Language switcher options', 'sitepress' ),
@@ -479,9 +434,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_menus_section_strings() {
 		return array(
 			'section_title'         => __( 'Menu language switcher', 'sitepress' ),
@@ -501,9 +453,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_sidebars_section_strings() {
 		return array(
 			'section_title'        => __( 'Widget language switcher', 'sitepress' ),
@@ -516,9 +465,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_footer_section_strings() {
 		return array(
 			'section_title' => __( 'Footer language switcher', 'sitepress' ),
@@ -527,9 +473,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_post_translations_strings() {
 		return array(
 			'section_title'                      => __( 'Links to translation of posts', 'sitepress' ),
@@ -543,9 +486,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_shortcode_actions_strings() {
 
 		$description_link_text = _x( "insert WPML's switchers in custom locations", 'Custom languuage switcher description: external link text', 'sitepress' );
@@ -562,9 +502,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_color_picker_strings() {
 		return array(
 			'panel_title'          => __( 'Language switcher colors', 'sitepress' ),
@@ -581,9 +518,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_javascript_strings() {
 		return array(
 			'confirmation_item_remove' => esc_html__( 'Do you really want to remove this item?', 'sitepress' ),
@@ -593,11 +527,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		);
 	}
 
-	/**
-	 * @param string|bool $theme_wpml_config_file
-	 *
-	 * @return array
-	 */
 	public function get_reset_ui_model( $theme_wpml_config_file ) {
 		$reset_locations = esc_html__( 'in options, menus, widgets, footer and shortcode', 'sitepress' );
 
@@ -614,9 +543,6 @@ class WPML_LS_Admin_UI extends WPML_Templates_Factory {
 		return $model;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_notifications() {
 		$notifications = array();
 

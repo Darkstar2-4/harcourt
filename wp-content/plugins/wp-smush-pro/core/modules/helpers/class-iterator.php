@@ -21,6 +21,7 @@ class Iterator extends RecursiveFilterIterator {
 	/**
 	 * Accept method.
 	 *
+	 * @smush-keep-signature
 	 * @return bool
 	 */
 	public function accept(): bool {

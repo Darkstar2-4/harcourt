@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Accepted": [
-            "Goedgekeurd"
+            "Geaccepteerd"
          ],
          "Approved!": [
             "Goedgekeurd!"
          ],
          "Loading the next translation for review...": [
-            "Laadt de volgende vertaling voor controle..."
+            "De volgende vertaling wordt geladen voor beoordeling..."
          ],
          "Back": [
             "Terug"
          ],
          "Turn off to not automatically load the next translation after finishing this review.": [
-            "Uitzetten om niet automatisch de volgende vertaling te laden na het beëindigen van deze controle."
+            "Uitschakelen om de volgende vertaling niet automatisch te laden na het voltooien van deze beoordeling."
          ],
          "Turn on to automatically load the next translation after finishing this  .": [
-            "Zet automatisch de volgende vertaling te laden aan, na het beëindigen van deze."
+            "Inschakelen om de volgende vertaling automatisch te laden na het voltooien van deze beoordeling."
          ],
          "Edit": [
             "Bewerken"
@@ -32,25 +32,25 @@
             "Vertaling bewerken"
          ],
          "Next review": [
-            "Volgende controle."
+            "Volgende beoordeling"
          ],
          "Publish this translation": [
-            "Publiceer deze vertaling"
+            "Deze vertaling publiceren"
          ],
          "Accept this translation": [
-            "Accepteer deze vertaling"
+            "Deze vertaling accepteren"
          ],
          "Published!": [
             "Gepubliceerd!"
          ],
          "Please wait, applying translation..": [
-            "Even geduld, vertaling aanvragen..."
+            "Even geduld, vertaling wordt toegepast.."
          ],
          "There was an error in applying translation.": [
-            "Er was een fout bij het aanvragen van de vertaling."
+            "Er is een fout opgetreden bij het toepassen van de vertaling."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "Iemand beoordeelt deze vertaling al. Probeer het later nog eens."
+            "Iemand beoordeelt deze vertaling al. Probeer het later opnieuw."
          ]
       }
    }

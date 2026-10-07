@@ -7,16 +7,15 @@ use WPML\Core\Component\WordsToTranslate\Domain\Post\Post;
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Query\JobQueryInterface;
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Term\Term;
 use WPML\Core\Component\WordsToTranslate\Domain\Post\Term\TermContent;
+use WPML\FP\Type;
 use WPML\Legacy\Component\WordsToTranslate\Domain\JobPackageTrait;
 
 class JobQuery implements JobQueryInterface {
   use JobPackageTrait;
 
-  /** @var array<int, array<mixed>> $jobPackages */
   private $jobPackages = [];
 
 
-  /** @return JobDto */
   public function getContentToTranslateForLang( Post $post, string $lang ) {
     $jobPackage = $this->getJobPackage( $post, $lang );
     $translatableFields = $this->getTranslatableFields( $jobPackage );
@@ -24,13 +23,15 @@ class JobQuery implements JobQueryInterface {
     $content = '';
 
     foreach ( $translatableFields as $type => $data ) {
-      // Skip terms.
       $isTerm = $this->getTermIdAndType( $type );
       if ( $isTerm ) {
         continue;
       }
 
-      // All other content.
+      if ( Type::isJson( $data ) ) {
+        continue;
+      }
+
       $content .= $content ? ' ' . $data : $data;
     }
 
@@ -46,7 +47,7 @@ class JobQuery implements JobQueryInterface {
     foreach ( $translatableFields as $type => $data ) {
       $termIdAndType = $this->getTermIdAndType( $type );
       if ( ! $termIdAndType ) {
-        continue; // Skip other content than terms.
+        continue;
       }
 
       $termId = $termIdAndType[0];
@@ -70,11 +71,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * @param string $type
-   *
-   * @return ?array{int,string}
-   */
   private function getTermIdAndType( $type ) {
     if ( strpos( $type, 't_' ) === 0 ) {
       return [(int) substr( $type, 2 ), 'name'];
@@ -88,12 +84,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * @param Post $post
-   * @param ?string $lang
-   *
-   * @return array<string, string>
-   */
   private function getJobPackage( Post $post, $lang = null ) {
     $package = isset( $this->jobPackages[ $post->getId() ] )
       ? $this->jobPackages[ $post->getId() ]
@@ -105,7 +95,6 @@ class JobQuery implements JobQueryInterface {
             \get_post( $post->getId() )
           );
 
-      /** @var array<string, mixed> $package */
       $package = $this->wpmlElementTranslationPackage()
           ->create_translation_package( $post->getId(), true ) ?: false;
 
@@ -114,7 +103,6 @@ class JobQuery implements JobQueryInterface {
       $this->jobPackages[ $post->getId() ] = $package;
     }
 
-    /** @var array<string, string> $package */
     $package = $lang
       ? $this->wpmlElementTranslationPackage()
         ->filter_translation_package_for_lang(
@@ -143,14 +131,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * Filters custom fields from the package contents.
-   *
-   * @param array<string, mixed> $package
-   * @param Post $post
-   *
-   * @return array<string, mixed>
-   */
   private function filterCustomFields( $package, Post $post ) {
     $package['contents'] = isset( $package['contents'] ) && is_array( $package['contents'] )
       ? $package['contents']
@@ -179,7 +159,7 @@ class JobQuery implements JobQueryInterface {
         $package['contents'],
         function ( $type ) use ( $allowedCustomFields ) {
           if ( strpos( $type, 'field-' ) !== 0 ) {
-            return true; // Keep non-custom fields.
+            return true;
           }
 
           foreach ( $allowedCustomFields as $allowedCustomField ) {
@@ -188,7 +168,7 @@ class JobQuery implements JobQueryInterface {
             }
           }
 
-          return false; // Filter out custom fields not in the list.
+          return false;
         },
         ARRAY_FILTER_USE_KEY
       );

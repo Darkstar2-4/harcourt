@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\StringGettext\Command\DeletePendingString
 
 class DeletePendingStringsPhpCommand implements DeletePendingStringsCommandInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
 	public function __construct(

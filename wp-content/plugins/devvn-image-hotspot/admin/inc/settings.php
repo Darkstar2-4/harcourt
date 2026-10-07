@@ -3,7 +3,26 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 add_action( 'admin_init', 'devvn_ihp_register_mysettings' );
 function devvn_ihp_register_mysettings() {
-    register_setting( 'ihp-options-group','ihp_options' );
+    register_setting( 'ihp-options-group','ihp_options', array(
+        'sanitize_callback' => 'devvn_ihp_sanitize_options'
+    ) );
+}
+
+function devvn_ihp_sanitize_options( $input ) {
+    $sanitized = array();
+    
+    if ( isset( $input['popup_type'] ) ) {
+        $popup_type = absint( $input['popup_type'] );
+        if ( in_array( $popup_type, array( 1, 2 ), true ) ) {
+            $sanitized['popup_type'] = $popup_type;
+        } else {
+            $sanitized['popup_type'] = 1;
+        }
+    } else {
+        $sanitized['popup_type'] = 1;
+    }
+    
+    return $sanitized;
 }
 
 add_action( 'admin_menu', 'devvn_ihp_admin_menu' );
@@ -32,10 +51,10 @@ function devvn_ihp_callback(){
                     <td>
                         <div class="tet_style_radio tet_style_radio_banner">
                             <label style="margin-right: 10px;">
-                                <input type="radio" name="ihp_options[popup_type]" value="2" <?php checked('2', $popup_type);?>> Full Screen
+                                <input type="radio" name="ihp_options[popup_type]" value="2" <?php checked('2', $popup_type);?>> <?php esc_html_e('Full Screen', 'devvn-image-hotspot');?>
                             </label>
                             <label>
-                                <input type="radio" name="ihp_options[popup_type]" value="1" <?php checked('1', $popup_type);?>> Normal - Tooltip
+                                <input type="radio" name="ihp_options[popup_type]" value="1" <?php checked('1', $popup_type);?>> <?php esc_html_e('Normal - Tooltip', 'devvn-image-hotspot');?>
                             </label>
                         </div>
                     </td>
@@ -54,7 +73,7 @@ function devvn_ihp_callback(){
 
 function devvn_ihp_action_links( $links, $file ) {
     if ( strpos( $file, 'devvn-image-hotspot.php' ) !== false ) {
-        $settings_link = '<a href="' . admin_url( 'edit.php?post_type=points_image&page=devvn-image-hotspot' ) . '" title="'.__('Settings').'">' . __( 'Settings' ) . '</a>';
+        $settings_link = '<a href="' . admin_url( 'edit.php?post_type=points_image&page=devvn-image-hotspot' ) . '" title="'.__('Settings', 'devvn-image-hotspot').'">' . __( 'Settings', 'devvn-image-hotspot' ) . '</a>';
         array_unshift( $links, $settings_link );
     }
     return $links;
@@ -71,8 +90,8 @@ function devvn_get_ihp_options($name = ''){
     return $options;
 }
 
-add_filter( 'body_class', 'custom_class' );
-function custom_class( $classes ) {
+add_filter( 'body_class', 'devvn_ihotspot_body_class' );
+function devvn_ihotspot_body_class( $classes ) {
     $popup_type = devvn_get_ihp_options('popup_type');
     if ( $popup_type == 2 ) {
         $classes[] = 'ihp_popup_full';

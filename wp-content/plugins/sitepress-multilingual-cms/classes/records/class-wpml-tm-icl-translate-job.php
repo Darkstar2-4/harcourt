@@ -4,7 +4,6 @@ class WPML_TM_ICL_Translate_Job {
 
 	private $table  = 'icl_translate_job';
 	private $job_id = 0;
-	/** @var WPML_TM_Records $tm_records */
 	private $tm_records;
 
 	private $rid;
@@ -12,12 +11,6 @@ class WPML_TM_ICL_Translate_Job {
 	private $completed_date;
 	private $translated;
 
-	/**
-	 * WPML_TM_ICL_Translation_Status constructor.
-	 *
-	 * @param WPML_TM_Records $tm_records
-	 * @param int             $job_id
-	 */
 	public function __construct( WPML_TM_Records $tm_records, $job_id ) {
 		$this->tm_records = $tm_records;
 
@@ -29,29 +22,18 @@ class WPML_TM_ICL_Translate_Job {
 		}
 	}
 
-	/**
-	 * @return int
-	 */
 	public function translator_id() {
 
 		return $this->tm_records->icl_translation_status_by_rid( $this->rid() )
 								->translator_id();
 	}
 
-	/**
-	 * @return string|int
-	 */
 	public function service() {
 
 		return $this->tm_records->icl_translation_status_by_rid( $this->rid() )
 								->service();
 	}
 
-	/**
-	 * @param array $args in the same format used by \wpdb::update()
-	 *
-	 * @return $this
-	 */
 	public function update( $args ) {
 		$wpdb = $this->tm_records->wpdb();
 
@@ -70,8 +52,6 @@ class WPML_TM_ICL_Translate_Job {
 			return;
 		}
 
-		// Make sure the complete date is not updated for retranslations of
-		// the same job (glossary updates).
 		$completed_date = $completed_date
 			? $completed_date
 			: date( 'Y-m-d H:i:s' );
@@ -93,10 +73,6 @@ class WPML_TM_ICL_Translate_Job {
 		$this->translated     = 1;
 	}
 
-	/**
-	 * @return bool true if this job is the most recent job for the element it
-	 * belongs to and hence may be updated.
-	 */
 	public function is_open() {
 		$wpdb = $this->tm_records->wpdb();
 

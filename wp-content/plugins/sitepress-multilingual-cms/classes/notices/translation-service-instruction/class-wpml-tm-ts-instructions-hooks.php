@@ -3,35 +3,20 @@
 use WPML\Core\WP\App\Resources;
 
 class WPML_TM_TS_Instructions_Hooks implements IWPML_Action {
-	/** @var WPML_TM_TS_Instructions_Notice */
 	private $notice;
 
-	/**
-	 * WPML_TM_TS_Instructions_Hooks constructor.
-	 *
-	 * @param WPML_TM_TS_Instructions_Notice $notice
-	 */
 	public function __construct( WPML_TM_TS_Instructions_Notice $notice ) {
 		$this->notice = $notice;
 	}
 
 
 	public function add_hooks() {
-		// We remove this notice based on the discussion from wpmldev-3595
-		// We don't remove the whole code because we might want to enable it back in the future
-		// Remember to add back the tests removed on the same commit
-		// add_action( 'wpml_tp_project_created', array( $this, 'display_message' ), 10, 3 ).
 		add_action( 'init', array( $this, 'add_hooks_on_init' ), 10, 0 );
 
 		add_action( 'wpml_tp_service_de_authorized', array( $this, 'dismiss' ), 10, 0 );
 		add_action( 'wpml_tp_service_dectivated', array( $this, 'dismiss' ), 10, 0 );
 	}
 
-	/**
-	 * @param stdClass $service
-	 * @param stdClass $project
-	 * @param array    $icl_translation_projects
-	 */
 	public function display_message( $service, $project, array $icl_translation_projects ) {
 		$is_first_project_ever = empty( $icl_translation_projects );
 
@@ -74,9 +59,6 @@ class WPML_TM_TS_Instructions_Hooks implements IWPML_Action {
 		$this->notice->remove_notice();
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function has_completed_remote_jobs() {
 		$search_params = new WPML_TM_Jobs_Search_Params();
 		$search_params->set_status( array( ICL_TM_COMPLETE ) );

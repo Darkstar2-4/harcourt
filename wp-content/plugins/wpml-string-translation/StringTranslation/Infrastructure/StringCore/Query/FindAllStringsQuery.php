@@ -9,21 +9,14 @@ use WPML\StringTranslation\Application\StringCore\Query\Dto\StringDto;
 
 class FindAllStringsQuery implements FindAllStringsQueryInterface {
 
-	/** @var FindAllStringsQueryBuilder */
 	private $queryBuilder;
 
-	/**
-	 * @param FindAllStringsQueryBuilder $queryBuilder
-	 */
 	public function __construct(
 		FindAllStringsQueryBuilder $queryBuilder
 	) {
 		$this->queryBuilder = $queryBuilder;
 	}
 
-	/**
-	 * @return StringDto[]
-	 */
 	public function execute( SearchCriteria $criteria, SearchSelectCriteria $selectCriteria ): array {
 		global $wpdb;
 

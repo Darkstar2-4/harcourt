@@ -8,7 +8,6 @@ use WPML\Core\SharedKernel\Component\Translator\Application\Service\TranslatorsS
 
 class GetLocalTranslatorsController implements EndpointInterface {
 
-  /** @var TranslatorsService */
   private $translatorsService;
 
 

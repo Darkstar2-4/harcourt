@@ -11,19 +11,19 @@
             "คำเตือน:"
          ],
          "Edits you're about to make will be lost": [
-            "การแก้ไขที่คุณกำลังจะทำจะสูญหาย"
+            "การแก้ไขที่คุณกำลังจะทำจะหายไป"
          ],
          "You are about to edit this translation using %s.": [
-            "คุณกำลังจะแก้ไขคำแปลนี้โดยใช้ %s."
+            "คุณกำลังจะแก้ไขคำแปลนี้โดยใช้ %s"
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "การเปลี่ยนแปลงใดๆ ที่คุณทำจะสูญหายในครั้งต่อไปที่คุณส่งหน้านี้เพื่อแปล."
+            "การเปลี่ยนแปลงใด ๆ ที่คุณทำจะหายไปในครั้งถัดไปที่คุณส่งหน้านี้เพื่อแปล"
          ],
          "Go back": [
-            "กลับไป"
+            "ย้อนกลับ"
          ],
          "Edit in Advanced Translation Editor": [
-            "แก้ไขในเครื่องมือแก้ไขคำแปลขั้นสูง"
+            "แก้ไขในตัวแก้ไขการแปลขั้นสูง"
          ],
          "Edit anyway (Not recommended)": [
             "แก้ไขต่อไป (ไม่แนะนำ)"

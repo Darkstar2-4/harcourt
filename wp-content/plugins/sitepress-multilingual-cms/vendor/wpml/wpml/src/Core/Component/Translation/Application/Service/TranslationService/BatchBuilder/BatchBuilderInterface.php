@@ -11,12 +11,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 interface BatchBuilderInterface {
 
 
-  /**
-   * @param SendToTranslationDto $sendToTranslationDto
-   *
-   * @return array{0: TranslationBatch|null, 1: DuplicationBatch|null, 2: IgnoredElement[]}
-   * @throws InvalidArgumentException
-   */
   public function build( SendToTranslationDto $sendToTranslationDto ): array;
 
 

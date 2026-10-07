@@ -2,13 +2,6 @@
 
 class WPML_Elementor_Media_Node_WP_Widget_Media_Image extends WPML_Elementor_Media_Node {
 
-	/**
-	 * @param array  $settings
-	 * @param string $target_lang
-	 * @param string $source_lang
-	 *
-	 * @return mixed
-	 */
 	public function translate( $settings, $target_lang, $source_lang ) {
 		if ( isset( $settings['wp']['attachment_id'] ) ) {
 			$translated_id = $this->media_translate->translate_id( $settings['wp']['attachment_id'], $target_lang );

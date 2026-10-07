@@ -2,7 +2,6 @@
 
 class WPML_ST_Plugin_Localization_Utils {
 
-	/** @return array */
 	public function get_plugins() {
 		$plugins    = get_plugins();
 		$mu_plugins = wp_get_mu_plugins();
@@ -17,11 +16,6 @@ class WPML_ST_Plugin_Localization_Utils {
 		return $plugins;
 	}
 
-	/**
-	 * @param string $plugin_file
-	 *
-	 * @return bool
-	 */
 	public function is_plugin_active( $plugin_file ) {
 		$active_plugins = get_option( 'active_plugins', array() );
 

@@ -5,17 +5,9 @@ namespace WPML\PHP\Logger;
 
 class DebugFileLogger implements LoggerInterface {
 
-  /**
-   * @var LoggerInterface | null
-   */
   private static $instance;
 
 
-  /**
-   * @param LoggerInterface $logger
-   *
-   * @return void
-   */
   public static function load( LoggerInterface $logger ) {
     self::$instance = $logger;
   }
@@ -30,12 +22,6 @@ class DebugFileLogger implements LoggerInterface {
   }
 
 
-  /**
-   * @param string $level
-   * @param string $message
-   *
-   * @return void
-   */
 
 
   private function log( $level, $message ) {
@@ -47,21 +33,11 @@ class DebugFileLogger implements LoggerInterface {
   }
 
 
-  /**
-   * @param string $message
-   *
-   * @return void
-   */
   public function error( $message ) {
     $this->log( 'error', $message );
   }
 
 
-  /**
-   * @param string $message
-   *
-   * @return void
-   */
   public function notice( $message ) {
     $this->log( 'notice', $message );
   }

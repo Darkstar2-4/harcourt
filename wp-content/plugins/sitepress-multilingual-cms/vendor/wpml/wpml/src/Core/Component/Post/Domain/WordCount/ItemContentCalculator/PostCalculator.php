@@ -11,16 +11,12 @@ class PostCalculator {
 
   const WORD_COUNT_META_KEY = '_wpml_word_count';
 
-  /** @var RepositoryInterface */
   private $simplePostQuery;
 
-  /** @var Calculator */
   private $calculator;
 
-  /** @var MetadataRepositoryInterface */
   private $metadata;
 
-  /** @var PostContentFilterInterface */
   private $contentFilter;
 
 
@@ -37,12 +33,6 @@ class PostCalculator {
   }
 
 
-  /**
-   * @param int $itemId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   */
   public function calculate( int $itemId ): int {
     $post = $this->simplePostQuery->getById( $itemId );
 
@@ -59,12 +49,6 @@ class PostCalculator {
   }
 
 
-  /**
-   * @param int $postId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   */
   public function getWordCount( int $postId ): int {
     $wordCount = $this->metadata->get( $postId, self::WORD_COUNT_META_KEY );
 

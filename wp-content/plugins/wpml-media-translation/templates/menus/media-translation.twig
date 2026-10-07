@@ -12,6 +12,9 @@
         <thead>
         <tr>
             <th class="wpml-col-media-title">{{ strings.original_language }}</th>
+			{% if should_handle_media_auto %}
+			<th class="wpml-col-media-title">{{ strings.media_type }}</th>
+			{% endif %}
             <th class="wpml-col-media-translations">
                 {% for code, language in languages %}
                     {% if target_language is empty or target_language == code %}
@@ -26,7 +29,7 @@
         <tbody>
         {% if attachments %}
             {% for attachment in attachments %}
-                {% include 'media-translation-table-row.twig' with {'attachment' : attachment, 'languages': languages, 'strings': strings, 'target_language': target_language } only %}
+                {% include 'media-translation-table-row.twig' with {'attachment' : attachment, 'languages': languages, 'strings': strings, 'target_language': target_language, 'should_handle_media_auto': should_handle_media_auto } only %}
             {% endfor %}
         {% else %}
             <tr>
@@ -39,9 +42,7 @@
 
     <div class="tablenav bottom">
         {% include 'pagination.twig' with {'pagination_model' : pagination} only %}
-
-        {% include 'media-translation-popup.twig' %}
-
+		{% include 'media-translation-popup.twig' %}
     </div>
 
 </div>

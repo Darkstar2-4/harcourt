@@ -13,18 +13,11 @@ class AdjustLinks implements AdjustLinksInterface {
   const TYPE_TERM = 'term';
 
 
-  /**
-   * @psalm-suppress PossiblyNullArgument Psalm don't get that language isn't
-   * null.
-   *
-   * @return void
-   */
-  public function adjust( Item $item, Item $triggerItem = null ) {
+  public function adjust( Item $item, ?Item $triggerItem = null ) {
     if ( ! $item->getLanguageCode() ) {
       return;
     }
 
-    /** @var \WPML_Pro_Translation|null $ICL_Pro_Translation */
     $ICL_Pro_Translation = $GLOBALS['ICL_Pro_Translation'];
 
     if ( ! $ICL_Pro_Translation ) {
@@ -57,26 +50,17 @@ class AdjustLinks implements AdjustLinksInterface {
       $preloaded
     );
 
-    $this->adjustLinksInStringTranslations( $item, $triggerItem, $ICL_Pro_Translation );
+    $this->adjustLinksInStringTranslations( $item, $ICL_Pro_Translation, $triggerItem );
 
-    // Trigger update for 3rd party page-builders (not required for wp block editor).
     $postElement = make( \WPML_Translation_Element_Factory::class )->create_post( $item->getId() );
     do_action( 'wpml_pb_resave_post_translation', $postElement, false );
   }
 
 
-  /**
-    * This method is used to adjust the links in string translations.
-    *
-    * Questionable to move this to String Translation or keep it here to have
-    * all the link adjustment logic in one place.
-    *
-    * @return void
-    */
   private function adjustLinksInStringTranslations(
     Item $item,
-    Item $triggerItem = null,
-    \WPML_Pro_Translation $ICL_Pro_Translation
+    \WPML_Pro_Translation $ICL_Pro_Translation,
+    ?Item $triggerItem = null
   ) {
     if ( ! defined( 'WPML_ST_VERSION' ) || ! $item->getIdOriginal() ) {
       return;
@@ -116,15 +100,7 @@ class AdjustLinks implements AdjustLinksInterface {
   }
 
 
-  /**
-   * This method is used to revert the name of the translated links to the
-   * original name. This is needed when the name of the translated item has
-   * changed otherwise the link adjustment will not work as it cannot resolve
-   * the previous name of translated link.
-   *
-   * @return ?string
-   */
-  private function revertNameInTranslatedLinks( string $content, Item $triggerItem = null ) {
+  private function revertNameInTranslatedLinks( string $content, ?Item $triggerItem = null ) {
     if ( ! $triggerItem ) {
       return null;
     }

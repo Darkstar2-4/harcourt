@@ -5,10 +5,8 @@ class WPML_TM_Word_Count_Report_View {
 	const TEMPLATE_PATH = '/templates/words-count';
 	const TEMPLATE_FILE = 'report.twig';
 
-	/** @var WPML_Twig_Template_Loader $loader */
 	private $loader;
 
-	/** @var WPML_WP_Cron_Check $cron_check */
 	private $cron_check;
 
 	public function __construct( WPML_Twig_Template_Loader $loader, WPML_WP_Cron_Check $cron_check ) {

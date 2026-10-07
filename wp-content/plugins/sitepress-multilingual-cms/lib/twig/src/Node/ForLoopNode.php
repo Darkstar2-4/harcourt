@@ -11,11 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Internal node used by the for node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ForLoopNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($lineno, $tag = null)

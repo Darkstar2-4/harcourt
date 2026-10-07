@@ -27,9 +27,6 @@ class Editor implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 			 ->then( [ $this, 'displayModalPageBuilderWarning' ] );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function displayModalPageBuilderWarning() {
 		if ( is_user_logged_in() && isset( $_GET['fb-edit'] ) && get_the_ID() ) {
 			do_action( 'wpml_maybe_display_modal_page_builder_warning', get_the_ID(), 'Fusion Builder' );

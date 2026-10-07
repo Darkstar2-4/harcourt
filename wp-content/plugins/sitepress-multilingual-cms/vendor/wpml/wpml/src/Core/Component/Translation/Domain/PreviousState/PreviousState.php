@@ -4,38 +4,20 @@ namespace WPML\Core\Component\Translation\Domain\PreviousState;
 
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 
-/**
- * @phpstan-type PreviousStateData array{
- *     status?: string,
- *     translator_id?: int|string,
- *     needs_update?: bool|int,
- *     md5?: string,
- *     translation_service?: string,
- *     timestamp?: string,
- *     links_fixed?: bool|int
- *  }
- */
 class PreviousState {
 
-  /** @var TranslationStatus */
   private $status;
 
-  /** @var int */
   private $translatorId;
 
-  /** @var bool */
   private $needsUpdate;
 
-  /** @var string */
   private $md5;
 
-  /** @var string */
   private $translationService;
 
-  /** @var string */
   private $timestamp;
 
-  /** @var bool */
   private $linksFixed;
 
 
@@ -93,17 +75,6 @@ class PreviousState {
   }
 
 
-  /**
-   * @return array{
-   *   status: int,
-   *   translator_id: int,
-   *   needs_update: bool,
-   *   md5: string,
-   *   translation_service: string,
-   *   timestamp: int|string,
-   *   links_fixed: bool
-   * }
-   */
   public function toArray(): array {
     return [
       'status'              => $this->status->get(),
@@ -118,11 +89,6 @@ class PreviousState {
   }
 
 
-  /**
-   * @param PreviousStateData $data
-   *
-   * @return self
-   */
   public static function fromArray( array $data ): self {
     $data = self::getDataWithDefaults( $data );
 
@@ -138,21 +104,6 @@ class PreviousState {
   }
 
 
-  /**
-   * Ensures all required fields are present with default values
-   *
-   * @phpstan-param PreviousStateData $data
-   *
-   * @return array{
-   *    status: int,
-   *    translator_id: int,
-   *    needs_update: bool,
-   *    md5: string,
-   *    translation_service: string,
-   *    timestamp: string,
-   *    links_fixed: bool
-   * }
-   */
   private static function getDataWithDefaults( array $data ): array {
     return [
       'status'              => (int) ( $data['status'] ?? TranslationStatus::COMPLETE ),

@@ -8,13 +8,9 @@ use function WPML\FP\compose;
 
 class Hotspot{
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$isHotspot = Relation::propEq( 'widgetType', 'hotspot' );
 		
-		// $hotspotLinksLens :: callable -> callable -> mixed
 		$hotspotLinksLens = compose(
 			Obj::lensProp( 'settings' ),
 			Obj::lensMappedProp( 'hotspot' ),

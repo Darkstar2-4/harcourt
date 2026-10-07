@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "it"
+            "lang": "it_IT"
          },
+         "All": [
+            "Tutti"
+         ],
          "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
-            "Per visualizzare questo blocco HTML personalizzato in una lingua specifica, inseriscilo prima in un blocco Gruppo."
+            "Per visualizzare questo blocco HTML personalizzato in una lingua specifica, inseriscilo prima all’interno di un blocco Gruppo."
          ],
          "Place inside Group block": [
-            "Inserisci in un blocco Gruppo"
-         ],
-         "All": [
-            "Tutto"
+            "Inserisci all’interno del blocco Gruppo"
          ],
          "Display on language": [
-            "Visualizza in lingua"
+            "Visualizza per lingua"
          ]
       }
    }

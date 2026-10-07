@@ -1,29 +1,6 @@
 <?php
 defined( 'ABSPATH' ) or die( "you do not have access to this page!" );
 
-/**
- * Conditional notices for fields
- *
- * @param array           $notices
- *
- * @return array
- */
-function cmplz_burst_statistics_integration_show_compile_statistics_notice(array $notices): array {
-	if ( ! cmplz_user_can_manage() ) {
-		return [];
-	}
-
-	$notices[] = [
-			'field_id' => 'install-burst',
-			'label' => 'default',
-			'title' => "Burst Statistics",
-			'text'  => __( "Burst Statistics will be configured automatically.", "complianz-gdpr" ),
-	];
-
-	return $notices;
-}
-add_filter( 'cmplz_field_notices', 'cmplz_burst_statistics_integration_show_compile_statistics_notice', 10, 1 );
-
 function cmplz_burst_statistics_activate_burst() {
 	ob_start(); ?>
 		<script>

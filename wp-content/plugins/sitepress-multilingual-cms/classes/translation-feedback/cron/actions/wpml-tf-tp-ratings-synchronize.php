@@ -1,37 +1,22 @@
 <?php
 
-/**
- * Class WPML_TF_TP_Ratings_Synchronize
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_TP_Ratings_Synchronize {
 
 	const MAX_RATINGS_TO_SYNCHRONIZE     = 5;
 	const PENDING_SYNC_RATING_IDS_OPTION = 'wpml_tf_pending_sync_rating_ids';
 	const MAX_ATTEMPTS_TO_SYNC           = 3;
 
-	/** @var WPML_TF_Data_Object_Storage $feedback_storage */
 	private $feedback_storage;
 
-	/** @var WPML_TP_API_TF_Ratings $tp_ratings */
 	private $tp_ratings;
 
-	/** @var array $pending_ids */
 	private $pending_ids;
 
-	/**
-	 * WPML_TF_TP_Ratings_Synchronize constructor.
-	 *
-	 * @param WPML_TF_Data_Object_Storage $feedback_storage
-	 * @param WPML_TP_API_TF_Ratings      $tp_ratings
-	 */
 	public function __construct( WPML_TF_Data_Object_Storage $feedback_storage, WPML_TP_API_TF_Ratings $tp_ratings ) {
 		$this->feedback_storage = $feedback_storage;
 		$this->tp_ratings       = $tp_ratings;
 	}
 
-	/** @param bool $clear_all_pending_ratings */
 	public function run( $clear_all_pending_ratings = false ) {
 		$this->pending_ids = get_option( self::PENDING_SYNC_RATING_IDS_OPTION, array() );
 
@@ -40,12 +25,10 @@ class WPML_TF_TP_Ratings_Synchronize {
 		);
 
 		$feedback_filter = new WPML_TF_Feedback_Collection_Filter( $filter_args );
-		/** @var WPML_TF_Feedback_Collection $feedback_collection */
 		$feedback_collection = $this->feedback_storage->get_collection( $feedback_filter );
 		$time_threshold      = 5 * MINUTE_IN_SECONDS;
 
 		foreach ( $feedback_collection as $feedback ) {
-			/** @var WPML_TF_Feedback $feedback */
 			$time_since_creation = time() - strtotime( $feedback->get_date_created() );
 
 			if ( ! $clear_all_pending_ratings && $time_since_creation < $time_threshold ) {
@@ -82,16 +65,10 @@ class WPML_TF_TP_Ratings_Synchronize {
 		}
 	}
 
-	/**
-	 * @param int $id
-	 *
-	 * @return bool
-	 */
 	private function exceeds_max_attempts( $id ) {
 		return isset( $this->pending_ids[ $id ] ) && $this->pending_ids[ $id ] >= self::MAX_ATTEMPTS_TO_SYNC;
 	}
 
-	/** @param int $id */
 	private function increment_attempts( $id ) {
 		if ( ! isset( $this->pending_ids[ $id ] ) ) {
 			$this->pending_ids[ $id ] = 1;

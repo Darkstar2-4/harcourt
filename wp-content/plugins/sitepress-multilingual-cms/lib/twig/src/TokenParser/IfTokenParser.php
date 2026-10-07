@@ -15,19 +15,6 @@ use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\IfNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Token;
-/**
- * Tests a condition.
- *
- *   {% if users %}
- *    <ul>
- *      {% for user in users %}
- *        <li>{{ user.username|e }}</li>
- *      {% endfor %}
- *    </ul>
- *   {% endif %}
- *
- * @final
- */
 class IfTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

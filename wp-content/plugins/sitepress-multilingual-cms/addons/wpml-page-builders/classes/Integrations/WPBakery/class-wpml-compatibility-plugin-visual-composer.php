@@ -1,23 +1,11 @@
 <?php
 
-/**
- * Class WPML_Compatibility_Plugin_Visual_Composer
- *
- * @author OnTheGoSystems
- */
 class WPML_Compatibility_Plugin_Visual_Composer {
 
-	/** @var WPML_Debug_BackTrace $debug_backtrace */
 	private $debug_backtrace;
 
-	/** @var array $filters_to_restore */
 	private $filters_to_restore = array();
 
-	/**
-	 * WPML_Compatibility_Plugin_Visual_Composer constructor.
-	 *
-	 * @param WPML_Debug_BackTrace $debug_backtrace
-	 */
 	public function __construct( WPML_Debug_BackTrace $debug_backtrace ) {
 		$this->debug_backtrace = $debug_backtrace;
 	}
@@ -35,11 +23,6 @@ class WPML_Compatibility_Plugin_Visual_Composer {
 		add_filter( 'wpml_pb_shortcode_decode', array( $this, 'vc_safe_decode' ), 10, 3 );
 	}
 
-	/**
-	 * @param string $text
-	 *
-	 * @return string
-	 */
 	public function suspend_vc_widget_translation( $text ) {
 		if ( $this->debug_backtrace->is_function_in_call_stack( 'vc_do_shortcode' )
 			&& ! $this->debug_backtrace->is_function_in_call_stack( 'dynamic_sidebar', false )
@@ -58,11 +41,6 @@ class WPML_Compatibility_Plugin_Visual_Composer {
 		return $text;
 	}
 
-	/**
-	 * @param string $text
-	 *
-	 * @return mixed
-	 */
 	public function restore_widget_translation( $text ) {
 		foreach ( $this->filters_to_restore as $filter ) {
 			add_filter( $filter->hook, $filter->name, $filter->priority );

@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig\Error;
 
-/**
- * Exception thrown when an error occurs during template loading.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class LoaderError extends \WPML\Core\Twig\Error\Error
 {
 }

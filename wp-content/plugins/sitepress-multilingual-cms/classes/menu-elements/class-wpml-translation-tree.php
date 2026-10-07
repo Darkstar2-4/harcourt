@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Class WPML_Translation_Tree
- *
- * @package    wpml-core
- * @subpackage taxonomy-term-translation
- */
 
 class WPML_Translation_Tree extends WPML_SP_User {
 
@@ -15,11 +9,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 	private $language_order;
 	private $term_ids;
 
-	/**
-	 * @param SitePress $sitepress
-	 * @param string    $element_type
-	 * @param object[]  $terms
-	 */
 	public function __construct( &$sitepress, $element_type, $terms ) {
 		if ( ! $terms ) {
 			throw new InvalidArgumentException( 'No terms to order given given' );
@@ -30,11 +19,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		$this->tree           = $this->get_tree_from_terms_array( $terms );
 	}
 
-	/**
-	 * Returns all terms in the translation tree, ordered by hierarchy and as well as alphabetically within a level and/or parent term relationship.
-	 *
-	 * @return array
-	 */
 	public function get_alphabetically_ordered_list() {
 		$root_list              = $this->sort_trids_alphabetically( $this->tree );
 		$ordered_list_flattened = array();
@@ -45,13 +29,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $ordered_list_flattened;
 	}
 
-	/**
-	 * @param array $terms
-	 *
-	 * Generates a tree representation of an array of terms objects
-	 *
-	 * @return array|bool
-	 */
 	private function get_tree_from_terms_array( $terms ) {
 		$trids     = $this->generate_trid_groups( $terms );
 		$trid_tree = $this->parse_tree( $trids, false, 0 );
@@ -59,13 +36,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $trid_tree;
 	}
 
-	/**
-	 * Groups an array of terms objects by their trid and language_code
-	 *
-	 * @param array<\stdClass> $terms
-	 *
-	 * @return array<int,array>
-	 */
 	private function generate_trid_groups( $terms ) {
 		$trids = array();
 		foreach ( $terms as $term ) {
@@ -84,23 +54,10 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $trids;
 	}
 
-	/**
-	 * @param string $name
-	 *
-	 * @return string
-	 */
 	private function get_unique_term_name( $name ) {
 		return uniqid( $name . '-' );
 	}
 
-	/**
-	 * @param array<int, array> $trids
-	 * @param array|bool|false  $root_trid_group
-	 * @param int               $level current depth in the tree
-	 *                                Recursively turns an array of unordered trid objects into a tree.
-	 *
-	 * @return array|bool
-	 */
 	private function parse_tree( $trids, $root_trid_group, $level ) {
 		$return = array();
 
@@ -122,14 +79,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return empty( $return ) ? false : $return;
 	}
 
-	/**
-	 * @param array|bool $parent
-	 * @param array      $children
-	 *                   Checks if one trid is the root of another. This is the case if at least one parent child
-	 *                   relationship between both trids exists.
-	 *
-	 * @return bool
-	 */
 	private function is_root( $children, $parent ) {
 		$root = ! (bool) $parent;
 		foreach ( $this->language_order as $c_lang ) {
@@ -193,15 +142,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $ordered_trids;
 	}
 
-	/**
-	 * @param array $trid_group
-	 * @param array $existing_list
-	 *
-	 * Reads in a trid array and appends it and its children to the input array.
-	 * This is done in the order parent->alphabetically ordered children -> ( alphabetically ordered children's children) ...
-	 *
-	 * @return array
-	 */
 	private function get_children_recursively(
 		$trid_group,
 		$existing_list = array()
@@ -222,14 +162,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $existing_list;
 	}
 
-	/**
-	 * Adds the hierarchical depth as a variable to all terms.
-	 * 0 means, that the term has no parent.
-	 *
-	 * @param array $tridgroup
-	 *
-	 * @return array
-	 */
 	private function add_level_information_to_terms( $tridgroup ) {
 		foreach ( $tridgroup['elements'] as $lang => &$term ) {
 			$level   = 0;
@@ -243,14 +175,6 @@ class WPML_Translation_Tree extends WPML_SP_User {
 		return $tridgroup;
 	}
 
-	/**
-	 * Counts the number of terms per language and returns an array of language codes,
-	 * that is ordered by the number of terms in every language.
-	 *
-	 * @param array $terms
-	 *
-	 * @return array
-	 */
 	private function get_language_order( $terms ) {
 		$langs        = array();
 		$default_lang = $this->sitepress->get_default_language();

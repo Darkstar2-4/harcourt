@@ -4,13 +4,10 @@ namespace WPML\Core\SharedKernel\Component\User\Application\Query\Dto;
 
 class UserDto {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $displayName;
 
-  /** @var string */
   private $email;
 
 
@@ -36,13 +33,6 @@ class UserDto {
   }
 
 
-  /**
-   * @return array{
-   *   id: int,
-   *   displayName: string,
-   *   email: string
-   * }
-   */
   public function toArray(): array {
     return [
       'id'          => $this->getId(),

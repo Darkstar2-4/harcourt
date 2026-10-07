@@ -48,10 +48,8 @@ class WPML_Editor_UI_Job {
 
 	public function get_all_fields() {
 		$fields = array();
-		/** @var WPML_Editor_UI_Field $field */
 		foreach ( $this->fields as $field ) {
 			$child_fields = $field->get_fields();
-			/** @var WPML_Editor_UI_Field $child_field */
 			foreach ( $child_fields as $child_field ) {
 				$fields[] = $child_field;
 			}
@@ -62,7 +60,6 @@ class WPML_Editor_UI_Job {
 
 	public function get_layout_of_fields() {
 		$layout = array();
-		/** @var WPML_Editor_UI_Field $field */
 		foreach ( $this->fields as $field ) {
 			$layout[] = $field->get_layout();
 		}
@@ -95,7 +92,6 @@ class WPML_Editor_UI_Job {
 	}
 
 	private function convert_id_to_translation_key( $id ) {
-		// This is to support the old api for saving translations.
 		return md5( $id );
 	}
 

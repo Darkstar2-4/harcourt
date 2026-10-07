@@ -4,20 +4,12 @@ namespace WPML\FP;
 
 class Promise {
 
-	/** @var callable */
 	private $onResolved;
 
-	/** @var callable */
 	private $onReject;
 
-	/** @var Promise */
 	private $next;
 
-	/**
-	 * @param mixed $data
-	 *
-	 * @return mixed
-	 */
 	public function resolve( $data ) {
 		if ( $this->onResolved ) {
 			if ( $data instanceof Either ) {
@@ -39,11 +31,6 @@ class Promise {
 		}
 	}
 
-	/**
-	 * @param mixed $data
-	 *
-	 * @return mixed
-	 */
 	public function reject( $data ) {
 		$result = $data;
 		if ( $this->onReject ) {
@@ -60,11 +47,6 @@ class Promise {
 		}
 	}
 
-	/**
-	 * @param callable $fn
-	 *
-	 * @return Promise
-	 */
 	public function then( callable $fn ) {
 		$this->onResolved = $fn;
 		$this->next       = new Promise();
@@ -72,11 +54,6 @@ class Promise {
 		return $this->next;
 	}
 
-	/**
-	 * @param callable $fn
-	 *
-	 * @return Promise
-	 */
 	public function onError( callable $fn ) {
 		$this->onReject = $fn;
 		$this->next     = new Promise();

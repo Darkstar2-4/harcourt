@@ -10,13 +10,10 @@ class QueryBuilderResolver {
 
   const TARGET_LANGUAGES_THRESHOLD = 29;
 
-  /** @var LanguagesQueryInterface */
   private $languageQuery;
 
-  /** @var ManyLanguagesFactory */
   private $manyLanguagesFactory;
 
-  /** @var MultiJoinFactory */
   private $multiJoinFactory;
 
 

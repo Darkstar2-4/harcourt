@@ -4,19 +4,14 @@ namespace WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Doma
 
 final class MigrationStatus {
 
-  /** @var bool */
   private $prevStateCompleted;
 
-  /** @var bool */
   private $translationPackageCompleted;
 
-  /** @var bool */
   private $obsoleteTranslationElementsRemovalCompleted;
 
-  /** @var bool */
   private $translationElementsCompressionCompleted;
 
-  /** @var bool */
   private $translationElementsCompressionFixedCompleted;
 
 
@@ -69,41 +64,21 @@ final class MigrationStatus {
   }
 
 
-  /**
-   * @param bool $completed
-   *
-   * @return void
-   */
   public function setPrevStateCompleted( bool $completed ) {
     $this->prevStateCompleted = $completed;
   }
 
 
-  /**
-   * @param bool $completed
-   *
-   * @return void
-   */
   public function setTranslationPackageCompleted( bool $completed ) {
     $this->translationPackageCompleted = $completed;
   }
 
 
-  /**
-   * @param bool $completed
-   *
-   * @return void
-   */
   public function setObsoleteTranslationElementsRemovalCompleted( bool $completed ) {
     $this->obsoleteTranslationElementsRemovalCompleted = $completed;
   }
 
 
-  /**
-   * @param bool $completed
-   *
-   * @return void
-   */
   public function setTranslationElementsCompressionCompleted( bool $completed ) {
     $this->translationElementsCompressionCompleted = $completed;
 
@@ -113,11 +88,6 @@ final class MigrationStatus {
   }
 
 
-  /**
-   * @param bool $completed
-   *
-   * @return void
-   */
   public function setTranslationElementsCompressionFixedCompleted( bool $completed ) {
     $this->translationElementsCompressionFixedCompleted = $completed;
   }

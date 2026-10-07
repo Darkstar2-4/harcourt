@@ -8,15 +8,10 @@ use WPML\Core\Component\Translation\Domain\PreviousState\PreviousStateRepository
 use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\MigrationDataService\ProcessorInterface;
 use WPML\PHP\Exception\InvalidItemIdException;
 
-/**
- * @implements ProcessorInterface<array{translationId: int, previousState: string}>
- */
 class Processor implements ProcessorInterface {
 
-  /** @var PreviousStateRepositoryInterface */
   private $repository;
 
-  /** @var DataCompressInterface */
   private $dataCompress;
 
 
@@ -29,18 +24,12 @@ class Processor implements ProcessorInterface {
   }
 
 
-  /**
-   * @param array<array{translationId: int, previousState: string}> $records
-   *
-   * @return int[]
-   */
   public function process( array $records ): array {
     $processed = [];
 
     foreach ( $records as $record ) {
       $data = $this->dataCompress->decompress( $record['previousState'] );
       if ( empty( $data ) ) {
-        // The data are corrupted, but we mark it as processed, so we will not ask for it again.
         $processed[] = $record['translationId'];
         continue;
       }
@@ -48,10 +37,8 @@ class Processor implements ProcessorInterface {
       $previousState = PreviousState::fromArray( $data );
       try {
         $this->repository->update( $record['translationId'], $previousState );
-      // @phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
       } catch ( InvalidItemIdException $e ) {
       } finally {
-        // Even if it fails, we mark it as processed, so we will not ask for it again.
         $processed[] = $record['translationId'];
       }
     }

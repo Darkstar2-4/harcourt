@@ -1,19 +1,11 @@
 <?php
 
-/**
- * Class WPML_TF_Translation_Service_Change_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Translation_Service_Change_Hooks implements IWPML_Action {
 
-	/** @var WPML_TF_Settings_Read $settings_read */
 	private $settings_read;
 
-	/** @var WPML_TF_Settings_Write $settings_write */
 	private $settings_write;
 
-	/** @var WPML_TF_TP_Ratings_Synchronize_Factory $tp_ratings_synchronize_factory */
 	private $tp_ratings_synchronize_factory;
 
 	public function __construct(
@@ -45,7 +37,6 @@ class WPML_TF_Translation_Service_Change_Hooks implements IWPML_Action {
 
 	private function disable_tf_if_not_allowed_by_ts( stdClass $service ) {
 		if ( isset( $service->translation_feedback ) && ! $service->translation_feedback ) {
-			/** @var WPML_TF_Settings $settings */
 			$settings = $this->settings_read->get( 'WPML_TF_Settings' );
 			$settings->set_enabled( false );
 			$this->settings_write->save( $settings );

@@ -2,9 +2,6 @@
 
 class WPML_LS_Footer_Slot extends WPML_LS_Slot {
 
-	/**
-	 * @return array
-	 */
 	protected function get_allowed_properties() {
 		$allowed_properties = array(
 			'template'   => array(

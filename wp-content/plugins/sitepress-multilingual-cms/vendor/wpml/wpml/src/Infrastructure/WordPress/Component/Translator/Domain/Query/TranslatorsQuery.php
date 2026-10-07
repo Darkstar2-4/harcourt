@@ -10,40 +10,17 @@ use WPML\Core\SharedKernel\Component\Translator\Domain\Query\TranslatorsQueryInt
 use WPML\Core\SharedKernel\Component\Translator\Domain\Translator;
 
 
-/**
- * THIS IS CURRENTLY NOT USED.
- * BECAUSE IT ONLY PORTS A PART OF THE LEGACY FUNCTIONALITY AND IS MISSING THE
- * CACHING - WHICH MAKES IT INCREDIBLY SLOW ON SITES WITH THOUSANDS OF USERS.
- *
- * BEFORE USING THIS CLASS, WE NEED TO:
- *  - Cache mechanism - create some generic cache mechanism that can be re-used in other places.
- *  - Legacy must use this new query - we don't want to have two different ways of getting translators.
- *
- * @phpstan-type TranslatorRow array{
- *   ID: int,
- *   display_name: string,
- *   user_nicename: string,
- * }
- */
 class TranslatorsQuery implements TranslatorsQueryInterface {
 
   const CAPABILITY_TRANSLATE = 'translate';
 
-  /** @phpstan-var  QueryHandlerInterface<int, TranslatorRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var TranslatorLanguagePairsQueryInterface */
   private $translatorLanguagePairsQuery;
 
 
-  /**
-   * @phpstan-param  QueryHandlerInterface<int, TranslatorRow> $queryHandler
-   *
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -55,19 +32,11 @@ class TranslatorsQuery implements TranslatorsQueryInterface {
   }
 
 
-  /**
-   * @return Translator[]
-   */
   public function get() {
     return $this->getTranslators();
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @return Translator|null
-   */
   public function getById( int $id ) {
     $translators = $this->getTranslators( ' AND user.ID=%d', [ $id ] );
 
@@ -75,9 +44,6 @@ class TranslatorsQuery implements TranslatorsQueryInterface {
   }
 
 
-  /**
-   * @return Translator|null
-   */
   public function getCurrentlyLoggedId() {
     $currentUser = \wp_get_current_user();
 
@@ -89,12 +55,6 @@ class TranslatorsQuery implements TranslatorsQueryInterface {
   }
 
 
-  /**
-   * @param string $whereClause
-   * @param int[]|string[] $whereParams
-   *
-   * @return Translator[]
-   */
   private function getTranslators( string $whereClause = '', array $whereParams = [] ) {
     $sql = "SELECT user.ID, user.display_name, user.user_nicename
       FROM {$this->queryPrepare->prefix()}users user

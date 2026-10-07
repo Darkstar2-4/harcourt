@@ -7,32 +7,32 @@
             "plural_forms": "nplurals=1; plural=0;",
             "lang": "vi"
          },
+         "Translation Dashboard": [
+            "Bảng điều khiển dịch"
+         ],
          "WPML Translation Editor": [
-            "Trình biên dịch Wpml"
+            "Trình chỉnh sửa bản dịch WPML"
          ],
          "WordPress Editor": [
-            "Trình biên tập Wordpress"
-         ],
-         "Translation Dashboard": [
-            "Bảng điều khiển dịch thuật"
+            "Trình chỉnh sửa WordPress"
          ],
          "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
-            "Ngoài ra, việc chuyển lại sang Trình soạn thảo dịch của WPML sau này sẽ yêu cầu dịch lại nội dung mà bạn đã dịch bằng trình soạn thảo WordPress."
+            "Ngoài ra, việc chuyển lại sang Trình chỉnh sửa bản dịch của WPML sau này sẽ yêu cầu dịch lại nội dung mà bạn đã dịch bằng trình chỉnh sửa WordPress."
          ],
          "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
-            "Điều này sẽ ghi đè lên nội dung bạn đã dịch bằng Trình soạn thảo WordPress. Nếu bạn chuyển ngay bây giờ, bạn sẽ phải dịch lại nội dung đã chọn."
+            "Thao tác này sẽ ghi đè nội dung bạn đã dịch bằng Trình chỉnh sửa WordPress. Nếu bạn chuyển đổi ngay bây giờ, bạn sẽ phải dịch lại nội dung đã chọn."
          ],
          "You are about to translate with the %s": [
-            "Bạn sắp dịch với %s"
+            "Bạn sắp dịch bằng %s"
          ],
          "Translate with the WordPress Editor if you need different designs per language or if the content isn't compatible with WPML's Translation Editor.": [
-            "Dịch bằng Trình soạn thảo WordPress nếu bạn cần các thiết kế khác nhau cho từng ngôn ngữ hoặc nếu nội dung không tương thích với Trình soạn thảo dịch của WPML."
+            "Dịch bằng Trình chỉnh sửa WordPress nếu bạn cần các thiết kế khác nhau cho mỗi ngôn ngữ hoặc nếu nội dung không tương thích với Trình chỉnh sửa bản dịch của WPML."
          ],
          "What do you want to translate?": [
             "Bạn muốn dịch gì?"
          ],
          "I understand, switch to the WordPress Editor": [
-            "Tôi hiểu, chuyển sang Trình soạn thảo WordPress"
+            "Tôi hiểu, chuyển sang Trình chỉnh sửa WordPress"
          ],
          "Apply": [
             "Áp dụng"
@@ -50,19 +50,19 @@
             "Được đề xuất"
          ],
          "All %s": [
-            "Tất cả%s"
+            "Tất cả %s"
          ],
          "All the site's content": [
             "Tất cả nội dung của trang web"
          ],
          "I understand, switch to Translation Dashboard": [
-            "Tôi hiểu rồi, chuyển sang Bảng điều khiển dịch thuật nhé"
+            "Tôi hiểu, chuyển sang Bảng điều khiển dịch"
          ],
          "The WordPress Editor doesn't offer Automatic Translation, Translation Memory and other features that make translation easier.": [
-            "Trình soạn thảo WordPress không cung cấp tính năng Dịch tự động, Bộ nhớ Dịch thuật và các tính năng khác giúp việc dịch thuật dễ dàng hơn."
+            "Trình chỉnh sửa WordPress không cung cấp Dịch tự động, Bộ nhớ dịch và các tính năng khác giúp dịch dễ dàng hơn."
          ],
          "Translate items in batch after reviewing the cost of AI translation": [
-            "Dịch các mục theo lô sau khi xem xét chi phí dịch thuật bằng AI"
+            "Dịch các mục theo lô sau khi xem xét chi phí dịch AI"
          ]
       }
    }

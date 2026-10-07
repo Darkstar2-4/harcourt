@@ -9,7 +9,6 @@ use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery\Q
 class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuilderInterface {
   use SearchQueryBuilderTrait;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
@@ -19,7 +18,7 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
 
 
   public function build( SearchPopulatedTypesCriteria $criteria, string $postTypeId ): string {
-    $sourceLanguage = $criteria->getSourceLanguageCode();
+    $preparedSourceLanguage = $this->queryPrepare->prepare( '%s', $criteria->getSourceLanguageCode() );
 
     $targetLanguageCodes       = $this->escapeTargetLanguages( $criteria->getTargetLanguageCodes() );
     $gluedEscapedLanguageCodes = implode( ',', $targetLanguageCodes );
@@ -32,7 +31,7 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
       INNER JOIN {$this->queryPrepare->prefix()}icl_translations source_t
         ON source_t.element_id = p.ID
           AND source_t.element_type = CONCAT('post_', p.post_type)
-          AND source_t.language_code = '{$sourceLanguage}'
+          AND source_t.language_code = {$preparedSourceLanguage}
       
       LEFT JOIN {$this->queryPrepare->prefix()}icl_translations target_t
          ON target_t.trid = source_t.trid
@@ -51,11 +50,6 @@ class SearchPopulatedTypesQueryBuilder implements SearchPopulatedTypesQueryBuild
   }
 
 
-  /**
-   * @param string[] $targetLanguageCodes
-   *
-   * @return string[]
-   */
   private function escapeTargetLanguages( array $targetLanguageCodes ): array {
     $escapedLanguageCodes = array_map(
       function ( $languageCode ) {

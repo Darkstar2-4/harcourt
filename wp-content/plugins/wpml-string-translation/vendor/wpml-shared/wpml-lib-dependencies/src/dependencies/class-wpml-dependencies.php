@@ -1,13 +1,5 @@
 <?php
-/*
-Module Name: WPML Dependency Check Module
-Description: This is not a plugin! This module must be included in other plugins (WPML and add-ons) to handle compatibility checks
-Author: OnTheGoSystems
-Author URI: http://www.onthegosystems.com/
-Version: 2.1
-*/
 
-/** @noinspection PhpUndefinedClassInspection */
 class WPML_Dependencies {
 	protected static $instance;
 	private $admin_notice;
@@ -117,9 +109,6 @@ class WPML_Dependencies {
 		return array_merge( $new_extra_header, (array) $extra_headers );
 	}
 
-	/**
-	 * @return WPML_Dependencies
-	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new WPML_Dependencies();
@@ -143,7 +132,6 @@ class WPML_Dependencies {
 	private function init_plugins() {
 		if ( ! $this->installed_plugins ) {
 			if ( ! function_exists( 'get_plugin_data' ) ) {
-				/** @noinspection PhpIncludeInspection */
 				include_once ABSPATH . '/wp-admin/includes/plugin.php';
 			}
 			if ( function_exists( 'get_plugin_data' ) ) {

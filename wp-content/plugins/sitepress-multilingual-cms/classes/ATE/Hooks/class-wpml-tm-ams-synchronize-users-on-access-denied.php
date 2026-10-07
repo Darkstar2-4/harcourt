@@ -4,10 +4,8 @@ class WPML_TM_AMS_Synchronize_Users_On_Access_Denied {
 
 	const ERROR_MESSAGE = 'Authentication error, please contact your translation manager to check your subscription';
 
-	/** @var WPML_TM_AMS_Synchronize_Actions */
 	private $ams_synchronize_actions;
 
-	/** @var WPML_TM_ATE_Jobs */
 	private $ate_jobs;
 
 	public function add_hooks() {
@@ -42,16 +40,10 @@ class WPML_TM_AMS_Synchronize_Users_On_Access_Denied {
 		wp_safe_redirect( $url, 302, 'WPML' );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function ate_redirected_due_to_lack_of_access() {
 		return isset( $_GET['message'] ) && false !== strpos( $_GET['message'], self::ERROR_MESSAGE );
 	}
 
-	/**
-	 * @return IWPML_Action|IWPML_Action[]|WPML_TM_AMS_Synchronize_Actions
-	 */
 	private function get_ams_synchronize_actions() {
 		if ( ! $this->ams_synchronize_actions ) {
 			$factory                       = new WPML_TM_AMS_Synchronize_Actions_Factory();
@@ -61,9 +53,6 @@ class WPML_TM_AMS_Synchronize_Users_On_Access_Denied {
 		return $this->ams_synchronize_actions;
 	}
 
-	/**
-	 * @return WPML_TM_ATE_Jobs
-	 */
 	private function get_ate_jobs() {
 		if ( ! $this->ate_jobs ) {
 			$ate_jobs_records = wpml_tm_get_ate_job_records();
@@ -73,16 +62,10 @@ class WPML_TM_AMS_Synchronize_Users_On_Access_Denied {
 		return $this->ate_jobs;
 	}
 
-	/**
-	 * @param WPML_TM_AMS_Synchronize_Actions $ams_synchronize_actions
-	 */
 	public function set_ams_synchronize_actions( WPML_TM_AMS_Synchronize_Actions $ams_synchronize_actions ) {
 		$this->ams_synchronize_actions = $ams_synchronize_actions;
 	}
 
-	/**
-	 * @param WPML_TM_ATE_Jobs $ate_jobs
-	 */
 	public function set_ate_jobs( WPML_TM_ATE_Jobs $ate_jobs ) {
 		$this->ate_jobs = $ate_jobs;
 	}

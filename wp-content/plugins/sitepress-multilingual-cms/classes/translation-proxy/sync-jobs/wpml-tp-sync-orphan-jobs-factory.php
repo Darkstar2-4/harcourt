@@ -1,9 +1,6 @@
 <?php
 
 class WPML_TP_Sync_Orphan_Jobs_Factory {
-	/**
-	 * @return WPML_TP_Sync_Orphan_Jobs
-	 */
 	public function create() {
 		global $wpdb, $sitepress;
 

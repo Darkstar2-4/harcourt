@@ -4,24 +4,15 @@ namespace WPML\Core\Component\ReportContentStats\Domain;
 
 class PostTypeStats {
 
-  /** @var string */
   private $postTypeId;
 
-  /** @var int */
   private $postsCount;
 
-  /** @var int */
   private $charactersCount;
 
-  /** @var array<string, float> */
   private $translationCoverage;
 
 
-  /**
-   * @param int $postsCount
-   * @param int $charactersCount
-   * @param array<string, float> $translationCoverage
-   */
   public function __construct(
     string $postTypeId,
     int $postsCount,
@@ -50,9 +41,6 @@ class PostTypeStats {
   }
 
 
-  /**
-   * @return array<string, float>
-   */
   public function getTranslationCoverage(): array {
     return $this->translationCoverage;
   }

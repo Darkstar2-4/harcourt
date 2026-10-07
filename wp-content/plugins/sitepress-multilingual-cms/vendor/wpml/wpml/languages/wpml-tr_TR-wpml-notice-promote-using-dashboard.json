@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "tr"
+            "lang": "tr_TR"
          },
          "Dissmiss Notice": [
             "Bildirimi kapat"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "WPML'nin Çeviri Panosu'nu kullanarak sitenizin çevirisini kolaylaştırın"
+            "WPML Çeviri Panosu'nu kullanarak sitenizin çevirisini kolaylaştırın"
          ],
          "Translate pages, posts, products and strings from one place": [
             "Sayfaları, gönderileri, ürünleri ve dizeleri tek bir yerden çevirin"

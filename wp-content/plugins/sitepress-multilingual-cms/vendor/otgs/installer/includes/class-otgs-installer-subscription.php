@@ -29,11 +29,6 @@ class OTGS_Installer_Subscription {
 	private $data;
 	private $notes;
 
-	/**
-	 * WPML_Installer_Subscription constructor.
-	 *
-	 * @param array|null $subscription
-	 */
 	public function __construct( $subscription = array() ) {
 		if ( $subscription ) {
 
@@ -90,29 +85,21 @@ class OTGS_Installer_Subscription {
 		return self::SUBSCRIPTION_STATUS_TEXT_MISSING;
 	}
 
-	/**
-	 * @param int $expiredForPeriod
-	 * @return bool
-	 */
 	private function is_expired( $expiredForPeriod = 0 ) {
-		return ! $this->is_lifetime()
-		       && (
-			       self::SUBSCRIPTION_STATUS_EXPIRED === $this->get_status()
-			       || ( $this->get_expiration() && strtotime( $this->get_expiration() ) <= time() - $expiredForPeriod )
-		       );
+		if ( $this->is_lifetime() ) {
+			return false;
+		}
+
+		$expiration = $this->get_expiration();
+		$date_has_expired = $expiration && strtotime($expiration) < strtotime('today') - $expiredForPeriod;
+
+		return self::SUBSCRIPTION_STATUS_EXPIRED === $this->get_status() || $date_has_expired;
 	}
 
-	/**
-	 * Check if the subscription is a WPML blog subscription.
-	 * @return bool
-	 */
 	public function is_wpml_blog_subscription() {
 		return $this->type === self::WPML_SUBSCRIPTION_TYPE_BLOG;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_lifetime() {
 		return $this->get_status() === self::SUBSCRIPTION_STATUS_ACTIVE_NO_EXPIRATION;
 	}
@@ -149,19 +136,11 @@ class OTGS_Installer_Subscription {
 		return $this->data;
 	}
 
-	/**
-	 * @param int $expiredForPeriod
-	 * @return bool
-	 */
 	public function is_valid( $expiredForPeriod = 0 ) {
 		return ( $this->is_lifetime()
 		         || ( $this->get_status() === self::SUBSCRIPTION_STATUS_ACTIVE && ! $this->is_expired( $expiredForPeriod ) ) );
 	}
 
-	/**
-	 * @param int $expiredForPeriod
-	 * @return bool
-	 */
 	public function is_in_grace( $expiredForPeriod = 0 ) {
 		return ! $this->is_lifetime()
 			&& (

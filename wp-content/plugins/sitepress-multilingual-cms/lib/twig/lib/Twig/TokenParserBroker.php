@@ -12,23 +12,11 @@ namespace WPML\Core;
  * file that was distributed with this source code.
  */
 use WPML\Core\Twig\TokenParser\TokenParserInterface;
-/**
- * Default implementation of a token parser broker.
- *
- * @author Arnaud Le Blanc <arnaud.lb@gmail.com>
- *
- * @deprecated since 1.12 (to be removed in 2.0)
- */
 class Twig_TokenParserBroker implements \WPML\Core\Twig_TokenParserBrokerInterface
 {
     protected $parser;
     protected $parsers = [];
     protected $brokers = [];
-    /**
-     * @param array|\Traversable $parsers                 A \Traversable of Twig_TokenParserInterface instances
-     * @param array|\Traversable $brokers                 A \Traversable of Twig_TokenParserBrokerInterface instances
-     * @param bool               $triggerDeprecationError
-     */
     public function __construct($parsers = [], $brokers = [], $triggerDeprecationError = \true)
     {
         if ($triggerDeprecationError) {
@@ -68,15 +56,6 @@ class Twig_TokenParserBroker implements \WPML\Core\Twig_TokenParserBrokerInterfa
             unset($this->brokers[$pos]);
         }
     }
-    /**
-     * Gets a suitable TokenParser for a tag.
-     *
-     * First looks in parsers, then in brokers.
-     *
-     * @param string $tag A tag name
-     *
-     * @return TokenParserInterface|null A Twig_TokenParserInterface or null if no suitable TokenParser was found
-     */
     public function getTokenParser($tag)
     {
         if (isset($this->parsers[$tag])) {

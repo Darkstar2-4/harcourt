@@ -12,13 +12,13 @@ use Smush\Core\Media\Media_Item_Optimizer;
 use Smush\Core\Settings;
 
 class Global_Stats_Controller extends Controller {
-	const IMAGE_ATTACHMENT_COUNT_KEY = 'image_attachment_count';
-	const OPTIMIZED_IMAGES_COUNT_KEY = 'optimized_images_count';
-	const OPTIMIZE_IDS_KEY = 'optimize_attachment_ids';
-	const REOPTIMIZE_IDS_KEY = 'reoptimize_attachment_ids';
-	const ERROR_IDS_KEY = 'error_attachment_ids';
-	const IGNORE_IDS_KEY = 'ignore_attachment_ids';
-	const ANIMATED_IDS_KEY = 'animated_attachment_ids';
+	private static $image_attachment_count_key = 'image_attachment_count';
+	private static $optimized_images_count_key = 'optimized_images_count';
+	private static $optimize_ids_key = 'optimize_attachment_ids';
+	private static $reoptimize_ids_key = 'reoptimize_attachment_ids';
+	private static $error_ids_key = 'error_attachment_ids';
+	private static $ignore_ids_key = 'ignore_attachment_ids';
+	private static $animated_ids_key = 'animated_attachment_ids';
 	/**
 	 * @var Global_Stats
 	 */
@@ -31,6 +31,16 @@ class Global_Stats_Controller extends Controller {
 	 * @var Settings
 	 */
 	private $settings;
+
+	private static $instance;
+
+	public static function get_instance() {
+		if ( ! self::$instance ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
 
 	public function __construct() {
 		$this->global_stats     = Global_Stats::get();
@@ -56,7 +66,8 @@ class Global_Stats_Controller extends Controller {
 			$this->global_stats,
 			'mark_as_outdated',
 		), 10, 2 );
-		$this->register_action( 'wp_ajax_wp_smush_get_global_stats', array( $this, 'ajax_get_global_stats' ) );
+		$this->register_filter( 'wp_smush_frontend_poll_data', array( $this, 'add_global_stats_to_poll' ) );
+		$this->register_filter( 'wp_smush_localize_ui_script_data', array( $this, 'localize_global_stats' ), 10, 2 );
 	}
 
 	public function register_scan_process( $before_scan, $handle_attachment, $after_slice ) {
@@ -135,15 +146,15 @@ class Global_Stats_Controller extends Controller {
 
 		// Attachment count
 		$optimizer  = new Media_Item_Optimizer( $media_item );
-		$slice_data = $this->accumulate_count( $slice_data, self::IMAGE_ATTACHMENT_COUNT_KEY, 1 );
-		$slice_data = $this->accumulate_count( $slice_data, self::OPTIMIZED_IMAGES_COUNT_KEY, $optimizer->get_optimized_sizes_count() );
+		$slice_data = $this->accumulate_count( $slice_data, self::$image_attachment_count_key, 1 );
+		$slice_data = $this->accumulate_count( $slice_data, self::$optimized_images_count_key, $optimizer->get_optimized_sizes_count() );
 
 		return $slice_data;
 	}
 
 	public function save_counts( $slice_data ) {
-		$this->global_stats->add_image_attachment_count( (int) $this->get_array_value( $slice_data, self::IMAGE_ATTACHMENT_COUNT_KEY ) );
-		$this->global_stats->add_optimized_images_count( (int) $this->get_array_value( $slice_data, self::OPTIMIZED_IMAGES_COUNT_KEY ) );
+		$this->global_stats->add_image_attachment_count( (int) $this->get_array_value( $slice_data, self::$image_attachment_count_key ) );
+		$this->global_stats->add_optimized_images_count( (int) $this->get_array_value( $slice_data, self::$optimized_images_count_key ) );
 
 		return $slice_data;
 	}
@@ -182,20 +193,20 @@ class Global_Stats_Controller extends Controller {
 		}
 
 		if ( $media_item->is_ignored() ) {
-			$this->add_to_list( $slice_data, self::IGNORE_IDS_KEY, $attachment_id );
+			$this->add_to_list( $slice_data, self::$ignore_ids_key, $attachment_id );
 		} elseif ( $media_item->is_animated() ) {
-			$this->add_to_list( $slice_data, self::ANIMATED_IDS_KEY, $attachment_id );
+			$this->add_to_list( $slice_data, self::$animated_ids_key, $attachment_id );
 		} elseif ( $media_item->has_errors() ) {
-			$this->add_to_list( $slice_data, self::ERROR_IDS_KEY, $attachment_id );
+			$this->add_to_list( $slice_data, self::$error_ids_key, $attachment_id );
 		} else {
 			$optimizer = new Media_Item_Optimizer( $media_item );
 			if ( $optimizer->is_optimized() ) {
 				if ( $optimizer->should_reoptimize() ) {
-					$this->add_to_list( $slice_data, self::REOPTIMIZE_IDS_KEY, $attachment_id );
+					$this->add_to_list( $slice_data, self::$reoptimize_ids_key, $attachment_id );
 				}
 			} else {
 				if ( $optimizer->should_optimize() ) {
-					$this->add_to_list( $slice_data, self::OPTIMIZE_IDS_KEY, $attachment_id );
+					$this->add_to_list( $slice_data, self::$optimize_ids_key, $attachment_id );
 				}
 			}
 		}
@@ -212,27 +223,27 @@ class Global_Stats_Controller extends Controller {
 	}
 
 	public function save_optimization_lists( $slice_data ) {
-		$slice_error_ids = empty( $slice_data[ self::ERROR_IDS_KEY ] ) ? array() : $slice_data[ self::ERROR_IDS_KEY ];
+		$slice_error_ids = empty( $slice_data[ self::$error_ids_key ] ) ? array() : $slice_data[ self::$error_ids_key ];
 		if ( $slice_error_ids ) {
 			$this->global_stats->get_error_list()->add_ids( $slice_error_ids );
 		}
 
-		$slice_ignore_ids = empty( $slice_data[ self::IGNORE_IDS_KEY ] ) ? array() : $slice_data[ self::IGNORE_IDS_KEY ];
+		$slice_ignore_ids = empty( $slice_data[ self::$ignore_ids_key ] ) ? array() : $slice_data[ self::$ignore_ids_key ];
 		if ( $slice_ignore_ids ) {
 			$this->global_stats->get_ignore_list()->add_ids( $slice_ignore_ids );
 		}
 
-		$slice_animated_ids = empty( $slice_data[ self::ANIMATED_IDS_KEY ] ) ? array() : $slice_data[ self::ANIMATED_IDS_KEY ];
+		$slice_animated_ids = empty( $slice_data[ self::$animated_ids_key ] ) ? array() : $slice_data[ self::$animated_ids_key ];
 		if ( $slice_animated_ids ) {
 			$this->global_stats->get_animated_list()->add_ids( $slice_animated_ids );
 		}
 
-		$slice_reoptimize_ids = empty( $slice_data[ self::REOPTIMIZE_IDS_KEY ] ) ? array() : $slice_data[ self::REOPTIMIZE_IDS_KEY ];
+		$slice_reoptimize_ids = empty( $slice_data[ self::$reoptimize_ids_key ] ) ? array() : $slice_data[ self::$reoptimize_ids_key ];
 		if ( $slice_reoptimize_ids ) {
 			$this->global_stats->get_reoptimize_list()->add_ids( $slice_reoptimize_ids );
 		}
 
-		$slice_optimize_ids = empty( $slice_data[ self::OPTIMIZE_IDS_KEY ] ) ? array() : $slice_data[ self::OPTIMIZE_IDS_KEY ];
+		$slice_optimize_ids = empty( $slice_data[ self::$optimize_ids_key ] ) ? array() : $slice_data[ self::$optimize_ids_key ];
 		if ( $slice_optimize_ids ) {
 			$this->global_stats->get_optimize_list()->add_ids( $slice_optimize_ids );
 		}
@@ -311,8 +322,9 @@ class Global_Stats_Controller extends Controller {
 		$this->global_stats->update_stats_update_started_timestamp( time() );
 	}
 
-	public function update_scan_finished_timestamp() {
+	public function mark_as_up_to_date() {
 		$this->global_stats->update_stats_updated_timestamp( time() );
+		$this->global_stats->update_settings_digest();
 	}
 
 	/**
@@ -322,7 +334,7 @@ class Global_Stats_Controller extends Controller {
 		$this->register_action( 'wp_smush_before_scan_library', array( $this, 'update_scan_started_timestamp' ),
 			20 // The priority needs to be managed here because reset_counts resets the scan started timestamp as well
 		);
-		$this->register_action( 'wp_smush_after_scan_library', array( $this, 'update_scan_finished_timestamp' ) );
+		$this->register_action( 'wp_smush_after_scan_library', array( $this, 'mark_as_up_to_date' ) );
 
 		// Savings etc.
 		$this->register_scan_process(
@@ -344,16 +356,6 @@ class Global_Stats_Controller extends Controller {
 			array( $this, 'accumulate_attachment_ids' ),
 			array( $this, 'save_optimization_lists' )
 		);
-	}
-
-	public function ajax_get_global_stats() {
-		// TODO: check ajax referrer
-
-		if ( ! Helper::is_user_allowed() ) {
-			wp_send_json_error();
-		}
-
-		wp_send_json( $this->global_stats->to_array() );
 	}
 
 	/**
@@ -403,5 +405,26 @@ class Global_Stats_Controller extends Controller {
 		}
 
 		$this->global_stats->mark_as_outdated();
+	}
+
+	/**
+	 * Add global stats data to frontend poll response
+	 *
+	 * @param array $data Polling data array.
+	 * @return array Modified polling data with global stats.
+	 */
+	public function add_global_stats_to_poll( $data ) {
+		$data['global-stats'] = $this->get_global_stats_for_ui();
+		return $data;
+	}
+
+	private function get_global_stats_for_ui() {
+		return Global_Stats_DTO::to_react_props( $this->global_stats );
+	}
+
+	public function localize_global_stats( $script_data, $page_slug ) {
+		$script_data['globalStats'] = $this->get_global_stats_for_ui();
+
+		return $script_data;
 	}
 }

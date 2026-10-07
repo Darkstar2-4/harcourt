@@ -1,5 +1,8 @@
 import Fetcher from './fetcher';
 
+/**
+ * TODO: consolidate the two tracker classes into one
+ */
 class Tracker {
 	/* @private */
 	#doingEvents = new Set();

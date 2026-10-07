@@ -9,41 +9,10 @@ use WPML\FP\Obj;
 use WPML\FP\Relation;
 use function WPML\FP\curryN;
 
-/**
- * Class Translations
- * @package WPML\Element\API
- * @method static callable|int setLanguage( ...$el_id, ...$el_type, ...$trid, ...$language_code, ...$src_language_code, ...$check_duplicates )
- *
- * - Curried :: int → string → int|null → string → string → string|null → bool → bool|int|null|string
- *
- *          Wrapper function for SitePress::set_element_language_details
- *
- * - int         $el_id the element's ID (for terms we use the `term_taxonomy_id`)
- * - string      $el_type
- * - int         $trid
- * - string      $language_code
- * - null|string $src_language_code
- * - bool        $check_duplicates
- *
- * returns bool|int|null|string
- *
- * @method static callable|int setAsSource( ...$el_id, ...$el_type, ...$language_code )
- * @method static callable|int setAsTranslationOf( ...$el_id, ...$el_type, ...$translated_id, ...$language_code )
- * @method static callable|array get( ...$el_id, ...$el_type )
- * @method static callable|array|null getInLanguage( ...$el_id, ...$el_type, ...$language_code )
- * @method static callable|array|null getInCurrentLanguage( ...$el_id, ...$el_type )
- * @method static callable|array getIfOriginal( ...$el_id, ...$el_type )
- * @method static callable|array getOriginal( ...$element_id, ...$element_type )
- * @method static callable|array getOriginalId( ...$element_id, ...$element_type )
- * @method static callable|bool isOriginal( ...$el_id, ...$translations )
- */
 class Translations {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 		self::macro( 'setLanguage', curryN( 6, function (
 			$el_id,

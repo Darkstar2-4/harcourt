@@ -21,16 +21,12 @@ use function WPML\FP\System\getValidatorFor as validate;
 class Factory implements \IWPML_AJAX_Action {
 
 	public function add_hooks() {
-		// :: Collection -> Collection
 		$filterEndPoint = filter( 'endpoint' )->using( 'wp_unslash' );
 
-		// :: Collection -> Collection
 		$decodeData = filter( 'data' )->using( Json::toCollection() )->defaultTo( 'wpml_collect' );
 
-		// :: Collection -> Either::Left( string ) | Either::Right( Collection )
 		$validateData = validate( 'data' )->using( Logic::isNotNull() )->error( 'Invalid json data' );
 
-		// $handleRequest :: Collection -> Either::Left(string) | Either::Right(mixed)
 		$handleRequest = function ( Collection $postData ) {
 			try {
 				return Maybe::of( $postData->get( 'endpoint' ) )
@@ -43,7 +39,7 @@ class Factory implements \IWPML_AJAX_Action {
 		};
 
 		Hooks::onAction( 'wp_ajax_wpml_action' )
-		     ->then( System::getPostData() ) // Either::right(Collection)
+		     ->then( System::getPostData() )
 		     ->then( $filterEndPoint )
 		     ->then( Nonce::verifyEndPoint() )
 		     ->then( $decodeData )

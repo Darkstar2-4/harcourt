@@ -16,9 +16,6 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 	const POST_TYPE_FAQ             = 'avada_faq';
 	const POST_TYPE_LAYOUT_SECTION  = 'fusion_tb_section';
 
-	/**
-	 * @return string[]
-	 */
 	protected function getPostTypes() {
 		return [
 			self::POST_TYPE_TEMPLATE,
@@ -30,21 +27,12 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 		];
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function getFormat() {
 		// Translators: %s: Post type label. For example, Avada Templates.
 		return __( 'Avada %s', 'sitepress' );
 	}
 
-	/**
-	 * @param \WP_Post_Type $postTypeObject
-	 *
-	 * @return \WP_Post_Type
-	 */
 	public function adjustObjectLabels( $postTypeObject ) {
-		// The plural label is Avada Layout Sections, while the singular label is Section.
 		if ( $postTypeObject->name === self::POST_TYPE_LAYOUT_SECTION ) {
 			$postTypeObject->labels->singular_name = $this->formatLabel( $postTypeObject->labels->singular_name, $postTypeObject->name, false );
 			return $postTypeObject;

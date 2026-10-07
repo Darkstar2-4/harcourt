@@ -1,7 +1,7 @@
 <?php
 require_once "classes/mailform.php";
 /* https://github.com/PHPMailer/PHPMailer/wiki/Troubleshooting */
-require_once "vendor/autoload.php";
+require_once $_SERVER['DOCUMENT_ROOT'] . (version_compare(PHP_VERSION, '8', '<') ? '/composer' : '/composer8') . '/vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;

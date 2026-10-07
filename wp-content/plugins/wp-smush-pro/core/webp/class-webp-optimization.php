@@ -9,14 +9,15 @@ use Smush\Core\Media\Media_Item_Optimization;
 use Smush\Core\Media\Media_Item_Size;
 use Smush\Core\Media\Media_Item_Stats;
 use Smush\Core\Settings;
+use Smush\Core\Smush\Smusher_Options_Provider;
 
 /**
  * TODO: the response from the API has webp: false and mime_content_type of the written file is not webp, investigate
  */
 class Webp_Optimization extends Media_Item_Optimization {
-	const OPTIMIZATION_KEY = 'webp_optimization';
+	private static $optimization_key = 'webp_optimization';
 
-	const WEBP_META_KEY = 'wp-smush-webp-data';
+	private static $webp_meta_key = 'wp-smush-webp-data';
 	private $webp_dir;
 	/**
 	 * @var Media_Item
@@ -66,13 +67,14 @@ class Webp_Optimization extends Media_Item_Optimization {
 		$this->webp_helper = new Webp_Helper();
 		$this->media_item  = $media_item;
 		$this->settings    = Settings::get_instance();
-		$this->converter   = new Webp_Converter();
+		$smusher_options   = ( new Smusher_Options_Provider() )->get_options();
+		$this->converter   = new Webp_Converter( $smusher_options );
 		$this->fs          = new File_System();
 		$this->array_utils = new Array_Utils();
 	}
 
-	public function get_key() {
-		return self::OPTIMIZATION_KEY;
+	public static function get_key() {
+		return self::$optimization_key;
 	}
 
 	public function get_name() {
@@ -146,7 +148,7 @@ class Webp_Optimization extends Media_Item_Optimization {
 		$attachment_id = $this->media_item->get_id();
 		$meta          = $this->make_meta();
 		if ( ! empty( $meta ) ) {
-			update_post_meta( $attachment_id, self::WEBP_META_KEY, $meta );
+			update_post_meta( $attachment_id, self::$webp_meta_key, $meta );
 			$this->reset();
 
 			// TODO: this is a legacy flag
@@ -201,7 +203,7 @@ class Webp_Optimization extends Media_Item_Optimization {
 	}
 
 	private function fetch_meta() {
-		$post_meta = get_post_meta( $this->media_item->get_id(), self::WEBP_META_KEY, true );
+		$post_meta = get_post_meta( $this->media_item->get_id(), self::$webp_meta_key, true );
 		return $this->array_utils->ensure_array( $post_meta );
 	}
 
@@ -252,19 +254,16 @@ class Webp_Optimization extends Media_Item_Optimization {
 		// TODO: this is a legacy flag
 		$this->webp_helper->unset_legacy_webp_flag( $this->media_item->get_id() );
 
-		delete_post_meta( $this->media_item->get_id(), self::WEBP_META_KEY );
+		delete_post_meta( $this->media_item->get_id(), self::$webp_meta_key );
 
 		$this->reset();
 	}
 
 	public function optimize() {
-		$files_data        = array_map( function ( $size ) {
-			return array(
-				'url'  => $size->get_file_url(),
-				'path' => $size->get_file_path(),
-			);
+		$file_paths        = array_map( function ( $size ) {
+			return $size->get_file_path();
 		}, $this->get_sizes_to_convert() );
-		$responses         = $this->converter->smush( $files_data );
+		$responses         = $this->converter->smush( $file_paths );
 		$success_responses = array_filter( $responses );
 		if ( count( $success_responses ) !== count( $responses ) ) {
 			return false;
@@ -346,4 +345,14 @@ class Webp_Optimization extends Media_Item_Optimization {
 	public function get_sizes_to_convert() {
 		return $this->media_item->get_smushable_sizes();
 	}
+
+	/**
+	 * Get webp_meta_key.
+	 *
+	 * @return string
+	 */
+	public static function get_webp_meta_key() {
+		return self::$webp_meta_key;
+	}
+
 }

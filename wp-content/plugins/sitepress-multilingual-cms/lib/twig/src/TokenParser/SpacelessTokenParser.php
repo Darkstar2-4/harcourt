@@ -12,18 +12,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\SpacelessNode;
 use WPML\Core\Twig\Token;
-/**
- * Remove whitespaces between HTML tags.
- *
- *   {% spaceless %}
- *      <div>
- *          <strong>foo</strong>
- *      </div>
- *   {% endspaceless %}
- *   {# output will be <div><strong>foo</strong></div> #}
- *
- * @final
- */
 class SpacelessTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

@@ -12,13 +12,12 @@ use function WPML\FP\pipe;
 use WPML\FP\Relation;
 use WPML\Setup\Option;
 use WPML\TM\ATE\TranslateEverything;
+use WPML\TM\Jobs\JobLog;
 
 class JobActions implements \IWPML_Action {
 
-	/** @var \WPML_TM_ATE_API $apiClient */
 	private $apiClient;
 
-	/** @var TranslateEverything */
 	private $translateEverything;
 
 	public function __construct( \WPML_TM_ATE_API $apiClient, TranslateEverything $translateEverything ) {
@@ -31,6 +30,7 @@ class JobActions implements \IWPML_Action {
 		add_action( 'wpml_tm_jobs_cancelled', [ $this, 'cancelJobsInATE' ] );
 		add_action( 'wpml_set_translate_everything', [ $this, 'onTranslateEverythingModeChanged' ], 10, 2 );
 		add_action( 'wpml_update_active_languages', [ $this, 'hideJobsAfterRemoveLanguage' ] );
+		add_action( 'wpml_cancel_all_automatic_jobs', [ $this, 'cancelAllAutomaticJobs' ], 10 );
 	}
 
 	public function cancelJobInATE( \WPML_TM_Post_Job_Entity $job ) {
@@ -39,39 +39,45 @@ class JobActions implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param \WPML_TM_Post_Job_Entity[]|\WPML_TM_Post_Job_Entity  $jobs
-	 *
-	 * @return void
-	 */
 	public function cancelJobsInATE( $jobs ) {
-		/**
-		 * We need this check because if we pass only one job to the hook:
-		 *  do_action( 'wpml_tm_jobs_cancelled', [ $job ] )
-		 * then WordPress converts it to $job.
-		 */
 		if ( is_object( $jobs ) ) {
 			$jobs = [ $jobs ];
 		}
 
-		$getIds = pipe(
-			Fns::filter( invoke( 'is_ate_editor' ) ),
-			Fns::map( invoke( 'get_editor_job_id' ) )
-		);
-		$this->apiClient->cancelJobs( $getIds( $jobs ) );
+		$normalizedJobs = array_map( function( $job ) {
+			if ( $job instanceof \WPML_TM_Post_Job_Entity ) {
+				return (object) [
+					'editor'        => $job->get_editor(),
+					'editor_job_id' => $job->get_editor_job_id(),
+				];
+			}
+
+			return $job;
+		}, $jobs );
+
+		$ateJobIds = array_values( array_filter( array_map( function( $job ) {
+			return ( isset( $job->editor ) && $job->editor === 'ate' && isset( $job->editor_job_id ) )
+				? $job->editor_job_id
+				: null;
+		}, $normalizedJobs ) ) );
+
+		if ( ! empty( $ateJobIds ) ) {
+			JobLog::add( 'cancel_jobs_in_ate', [
+				'ate_job_ids' => array_map(
+					function ( $id ) { return [ 'ate_job_id' => $id ]; },
+					$ateJobIds
+				),
+			] );
+			$this->apiClient->cancelJobs( $ateJobIds );
+		}
 	}
 
-	/**
-	 * @param array $oldLanguages
-	 * @return void
-	 */
 	public function hideJobsAfterRemoveLanguage( $oldLanguages = [] ) {
 		$oldLanguagesArray = is_array( $oldLanguages ) ? array_keys( $oldLanguages ) : [];
 		$removedLanguages = Lst::diff( $oldLanguagesArray, array_keys( Languages::getActive() ) );
 
 		if ( $removedLanguages ) {
 			$inProgressJobsSearchParams = self::getInProgressSearch()
-											  /** @phpstan-ignore-next-line */
 			                                  ->set_target_language( array_values( $removedLanguages ) );
 
 			$this->hideJobs( $inProgressJobsSearchParams );
@@ -80,22 +86,69 @@ class JobActions implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param $translateEverythingActive
-	 * @param array{translateExisting: boolean, 'reviewMode': string} $options
-	 *
-	 * @return void
-	 */
 	public function onTranslateEverythingModeChanged( $translateEverythingActive, $options = [] ) {
-		if ( $translateEverythingActive ) {
-			$translateExistingContent = $options['translateExisting'] ?? false;
-			if ( $translateExistingContent ) {
-				$this->translateEverything->markEverythingAsUncompleted();
+		JobLog::maybeInitRequest();
+		JobLog::createNewGroup(
+			JobLog::GROUP_ID_TRANSLATE_EVERYTHING,
+			'Translate Everything mode change',
+			[
+				'newState'          => $translateEverythingActive ? 'on' : 'off',
+				'translateExisting' => $options['translateExisting'] ?? null,
+				'reviewMode'        => $options['reviewMode'] ?? null,
+			]
+		);
+
+		try {
+			JobLog::add( 'tea_mode_changed', [
+				'active'             => (bool) $translateEverythingActive,
+				'translate_existing' => $options['translateExisting'] ?? false,
+				'review_mode'        => $options['reviewMode'] ?? null,
+			] );
+
+			if ( $translateEverythingActive ) {
+				$translateExistingContent = $options['translateExisting'] ?? false;
+				if ( $translateExistingContent ) {
+					JobLog::add( 'tea_kickoff_marking_uncompleted', [] );
+					$this->translateEverything->markEverythingAsUncompleted();
+				} else {
+					JobLog::add( 'tea_kickoff_no_existing', [] );
+					$this->translateEverything->markEverythingAsCompleted();
+				}
 			} else {
-				$this->translateEverything->markEverythingAsCompleted();
+				JobLog::add( 'tea_disabled_cancelling_jobs', [] );
+				$this->cancelAllAutomaticJobs();
 			}
-		} else {
+		} finally {
+			JobLog::finishCurrentGroup();
+		}
+	}
+
+	public function cancelAllAutomaticJobs() {
+		JobLog::maybeInitRequest();
+		$ownsGroup = ! JobLog::isGroupOpen();
+		if ( $ownsGroup ) {
+			JobLog::createNewGroup(
+				JobLog::GROUP_ID_TRANSLATE_EVERYTHING,
+				'TEA cancel all automatic jobs',
+				[]
+			);
+		}
+
+		try {
+			JobLog::add( 'tea_cancel_all_started', [] );
 			$this->hideJobs( self::getInProgressSearch() );
+			JobLog::add( 'tea_cancel_all_finished', [] );
+		} catch ( \Throwable $e ) {
+			JobLog::addError( 'tea_cancel_all_failed', [
+				'error' => $e->getMessage(),
+				'file'  => $e->getFile(),
+				'line'  => $e->getLine(),
+			] );
+			throw $e;
+		} finally {
+			if ( $ownsGroup ) {
+				JobLog::finishCurrentGroup();
+			}
 		}
 	}
 

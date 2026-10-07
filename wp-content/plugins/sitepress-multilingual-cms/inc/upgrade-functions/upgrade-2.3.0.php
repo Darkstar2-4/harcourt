@@ -21,13 +21,10 @@ $wpdb->query( "ALTER TABLE {$wpdb->prefix}icl_string_translations MODIFY COLUMN 
 
 $wpdb->query( "ALTER TABLE  {$wpdb->prefix}icl_string_translations ADD translator_id bigint(20) NULL DEFAULT NULL, ADD translation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" );
 
-// Disable the auto registration of strings if we are upgrading to 2.3.0
 $iclsettings                          = get_option( 'icl_sitepress_settings' );
 $iclsettings['st']['icl_st_auto_reg'] = 'disable';
 update_option( 'icl_sitepress_settings', $iclsettings );
 
-// The icl_translators_cached format has change at some point.
-// Let's clear the cache so it gets rebuilt.
 delete_option( $wpdb->prefix . 'icl_translators_cached' );
 delete_option( $wpdb->prefix . 'icl_non_translators_cached' );
 

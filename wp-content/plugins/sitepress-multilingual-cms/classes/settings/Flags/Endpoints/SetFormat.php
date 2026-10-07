@@ -16,7 +16,6 @@ class SetFormat {
 		return Either::of( $data->get( 'format' ) )
 		             ->filter( Lst::includes( Fns::__, Options::getAllowedFormats() ) )
 		             ->chain( function ( $format ) {
-			             /** @var ConvertFlags $convertFlag */
 			             $convertFlag = make( ConvertFlags::class );
 
 			             return $convertFlag->run( $format );

@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Get a key for this site": [
-            "Erhalten Sie einen Schlüssel für diese Website"
+            "Schlüssel für diese Website erhalten"
          ],
          "Site key:": [
             "Website-Schlüssel:"
@@ -26,7 +26,7 @@
             "Ein neuer Website-Schlüssel ist erforderlich"
          ],
          "To continue using WPML features like automatic translation and plugin updates, please register your site again. Don’t worry, your existing content and translations are safe.": [
-            "Um WPML-Funktionen wie automatische Übersetzung und Plugin-Updates weiterhin nutzen zu können, registrieren Sie bitte Ihre Website erneut. Keine Sorge, Ihre bestehenden Inhalte und Übersetzungen bleiben erhalten."
+            "Um WPML-Funktionen wie die automatische Übersetzung und Plugin-Updates weiterhin nutzen zu können, registrieren Sie Ihre Website bitte erneut. Keine Sorge, Ihre bestehenden Inhalte und Übersetzungen sind sicher."
          ],
          "Site key registered successfully!": [
             "Website-Schlüssel erfolgreich registriert!"

@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 
 class StringItemFactory {
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(
@@ -18,8 +17,8 @@ class StringItemFactory {
 
 	public function create(
 		string $domain,
-		string $context = null,
 		string $value,
+		?string $context = null,
 		array $extraParams = []
 	) {
 		$name          = $extraParams['name'] ?? null;
@@ -40,3 +39,4 @@ class StringItemFactory {
 		);
 	}
 }
+

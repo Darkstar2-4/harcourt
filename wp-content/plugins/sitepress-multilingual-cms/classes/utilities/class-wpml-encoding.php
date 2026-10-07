@@ -2,16 +2,9 @@
 
 class WPML_Encoding {
 
-	/**
-	 * @param string $string The string to decode.
-	 * @param string $encodings A comma separated list of encodings in the order that the data was encoded
-	 *
-	 * @return mixed
-	 */
 	public static function decode( $string, $encodings ) {
 		$decoded_data = $string;
 
-		// NOTE: We decode in the reverse order of the encodings given
 		foreach ( array_reverse( explode( ',', $encodings ) ) as $encoding ) {
 			switch ( $encoding ) {
 				case 'json':
@@ -28,18 +21,9 @@ class WPML_Encoding {
 			}
 		}
 
-		/**
-		 * @since 4.1.0
-		 */
 		return apply_filters( 'wpml_decode_string', $decoded_data, $string, $encodings );
 	}
 
-	/**
-	 * @param mixed  $data The data to encode.
-	 * @param string $encodings A comma separated list of encodings in the order that the data was encoded
-	 *
-	 * @return string
-	 */
 	public static function encode( $data, $encodings ) {
 		$encoded_data = $data;
 
@@ -59,9 +43,6 @@ class WPML_Encoding {
 			}
 		}
 
-		/**
-		 * @since 4.1.0
-		 */
 		return apply_filters( 'wpml_encode_string', $encoded_data, $data, $encodings );
 	}
 }

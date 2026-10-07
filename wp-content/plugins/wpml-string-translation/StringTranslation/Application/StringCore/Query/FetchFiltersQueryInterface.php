@@ -7,8 +7,5 @@ use WPML\StringTranslation\Application\StringCore\Query\Dto\FiltersDto;
 
 interface FetchFiltersQueryInterface {
 
-	/**
-	 * @return FiltersDto
-	 */
 	public function execute( FetchFiltersCriteria $criteria );
 }

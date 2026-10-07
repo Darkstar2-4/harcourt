@@ -1,0 +1,585 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "From:": [
+            "Kimden:"
+         ],
+         "--Choose language--": [
+            "--Dil seçin--"
+         ],
+         "to:": [
+            "Kime:"
+         ],
+         "Select %s": [
+            "%s seçin"
+         ],
+         "Set language pair(s) for Translator %s:": [
+            "Çevirmen %s için dil çifti(leri) ayarlayın:"
+         ],
+         "+ Add more language pairs for this translator": [
+            "Bu çevirmen için daha fazla dil çifti ekle"
+         ],
+         "First Name": [
+            "Ad"
+         ],
+         "Last Name": [
+            "Soyadı"
+         ],
+         "Role": [
+            "Rol"
+         ],
+         "(required)": [
+            "(gerekli)"
+         ],
+         "Select a role for the user": [
+            "Kullanıcı için bir rol seçin"
+         ],
+         "Make sure that you have provided a correct email address e.g. name@domain.com": [
+            "Lütfen doğru bir e-posta adresi girdiğinizden emin olun, örn: name@domain.com"
+         ],
+         "This field is required": [
+            "Bu alan zorunludur"
+         ],
+         "A translator can be any WordPress role.": [
+            "Bir çevirmen herhangi bir WordPress rolü olabilir."
+         ],
+         "Username": [
+            "Kullanıcı adı"
+         ],
+         "Email": [
+            "E-posta"
+         ],
+         "Search": [
+            "Ara"
+         ],
+         "Your site has a large number of users, please enter the exact username.": [
+            "Sitenizde çok sayıda kullanıcı var, lütfen tam kullanıcı adını girin."
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "Add Translation Manager": [
+            "Çeviri yöneticisi ekle"
+         ],
+         "user": [
+            "kullanıcı"
+         ],
+         "Editor": [
+            "Editör"
+         ],
+         "Select an existing %s and set as Translation Manager": [
+            "Mevcut bir %s seçin ve Çeviri Yöneticisi olarak ayarlayın"
+         ],
+         "Create a new %s and set as Translation Manager": [
+            "Yeni bir %s oluşturun ve Çeviri Yöneticisi olarak ayarlayın"
+         ],
+         "Add a Translation Manager": [
+            "Bir çeviri yöneticisi ekle"
+         ],
+         "Select an existing user and set as Translator": [
+            "Mevcut bir kullanıcıyı seçin ve Çevirmen olarak ayarlayın"
+         ],
+         "Create a new user and set as Translator": [
+            "Yeni bir kullanıcı oluşturun ve Çevirmen olarak ayarlayın"
+         ],
+         "Set language pair(s)": [
+            "Dil çifti(leri) ayarla"
+         ],
+         "Previous": [
+            "Önceki"
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Add a Translator": [
+            "Bir çevirmen ekle"
+         ],
+         "Edit language pair(s) for translator": [
+            "Çevirmen için dil çifti(leri) düzenle"
+         ],
+         "Name": [
+            "Ad"
+         ],
+         "Language Pairs": [
+            "Dil çiftleri"
+         ],
+         "You can translate to and from all languages": [
+            "Tüm dillerden ve tüm dillere çeviri yapabilirsiniz"
+         ],
+         "Edit language pair(s)": [
+            "Dil çifti(leri) düzenle"
+         ],
+         "Delete language pair(s)": [
+            "Dil çifti(leri) sil"
+         ],
+         "An error occurred. Please try again.": [
+            "Bir hata oluştu. Lütfen tekrar deneyin."
+         ],
+         "WPML setup isn't working properly": [
+            "WPML kurulumu düzgün çalışmıyor"
+         ],
+         "Something interrupted the setup process.": [
+            "Kurulum süreci kesintiye uğradı."
+         ],
+         "You can safely reset the wizard and try again.": [
+            "Sihirbazı güvenle sıfırlayabilir ve tekrar deneyebilirsiniz."
+         ],
+         "Resetting…": [
+            "Sıfırlanıyor…"
+         ],
+         "Reset setup": [
+            "Kurulumu sıfırla"
+         ],
+         "Need help?": [
+            "Yardıma mı ihtiyacınız var?"
+         ],
+         "Contact support": [
+            "Desteğe başvurun"
+         ],
+         "Failed to enable AI Translation Step": [
+            "Yapay Zeka Çeviri Adımı etkinleştirilemedi"
+         ],
+         "AI Translation Activation Failed": [
+            "Yapay zeka çevirisi etkinleştirilemedi"
+         ],
+         "Please contact ": [
+            "Lütfen iletişime geçin "
+         ],
+         "WPML Support": [
+            "WPML desteği"
+         ],
+         " and provide the technical details below (use the Copy button to copy them).": [
+            " ve aşağıdaki teknik detayları sağlayın (kopyalamak için Kopyala düğmesini kullanın)."
+         ],
+         "Technical Details (for WPML Support)": [
+            "Teknik detaylar (WPML desteği için)"
+         ],
+         "Copied!": [
+            "Kopyalandı!"
+         ],
+         "Copy": [
+            "Kopyala"
+         ],
+         "Loading AI Translation...": [
+            "Yapay zeka çevirisi yükleniyor..."
+         ],
+         "%s file upload failed.": [
+            "%s dosya yüklemesi başarısız oldu."
+         ],
+         "Flag": [
+            "Bayrak"
+         ],
+         "Flag file": [
+            "Dosyayı işaretle"
+         ],
+         "You just added  language. Next, select it as the site's default language or a translation language.": [
+            "Az önce bir dil eklediniz. Şimdi, onu sitenin varsayılan dili veya bir çeviri dili olarak seçin."
+         ],
+         "Language added": [
+            "Dil eklendi"
+         ],
+         "The value \"%s\" already exists": [
+            "“%s” değeri zaten mevcut"
+         ],
+         "Add a new language": [
+            "Yeni bir dil ekle"
+         ],
+         "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
+            "Aşağıdaki listeden genel dili seçerek ülkeye özgü bir dil oluşturun. Ardından, yerelleştirileceği ülkeyi seçin."
+         ],
+         "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
+            "Veritabanında zaten var olan bir kombinasyonu seçerek, WPML gerekli alanları doldurmanıza yardımcı olabilir. <AddingACustomLanguageLink /> hakkında daha fazla bilgi edinin."
+         ],
+         "Cannot find?": [
+            "Bulunamadı mı?"
+         ],
+         "Click here": [
+            "Buraya tıklayın"
+         ],
+         "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
+            "Yanlış biçim. Yalnızca küçük harfler ve “-” içerebilir. Örn: “fr”, “pt-br”, “zh-hans”"
+         ],
+         "Language": [
+            "Dil"
+         ],
+         "Location": [
+            "Konum"
+         ],
+         "Code": [
+            "Kod"
+         ],
+         "The language will not be supported by automatic translations": [
+            "Dil, otomatik çeviriler tarafından desteklenmeyecektir"
+         ],
+         "Language mapping": [
+            "Dil eşleme"
+         ],
+         "Don't map this language": [
+            "Bu dili eşleme"
+         ],
+         "Default locale": [
+            "Varsayılan yerel ayar"
+         ],
+         "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
+            "Yanlış biçim. Yalnızca küçük harfler ve “_” içerebilir. Örn: “de”, “de_DE”, “zh_Hant_TW”"
+         ],
+         "hreflang": [
+            "hreflang"
+         ],
+         "Encode url?": [
+            "URL'yi kodla?"
+         ],
+         "Flags must be:": [
+            "Bayraklar şunlar olmalıdır:"
+         ],
+         "NO": [
+            "HAYIR"
+         ],
+         "YES": [
+            "EVET"
+         ],
+         " (required)": [
+            " (gerekli)"
+         ],
+         "Please fill in the field": [
+            "Lütfen alanı doldurun"
+         ],
+         "PNG, SVG, or JPG files": [
+            "PNG, SVG veya JPG dosyaları"
+         ],
+         "Save language": [
+            "Dili kaydet"
+         ],
+         "18 x 12 pixels": [
+            "18 x 12 piksel"
+         ],
+         "Read more about ": [
+            "Daha fazla bilgi edinin "
+         ],
+         "The name of your language as it will appear on your site's language switcher.": [
+            "Sitenizin dil değiştiricisinde görünecek dilinizin adı."
+         ],
+         "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
+            "Dili veritabanında ve URL'de tanımlayan benzersiz bir değer. Kaydedildikten sonra dil kodu değiştirilemez."
+         ],
+         "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
+            "Özel diliniz mevcut bir dile benziyorsa, mevcut dilin yazım denetimini ve otomatik çevirisini kullanabilirsiniz. Örneğin, özel diliniz İsviçre Almancası ise, yazım denetimi ve otomatik çeviri için kullanılacak dil olarak Almancaya eşleyebilirsiniz. Özel dilinizi mevcut bir dile eşlemezseniz, yazım denetimi ve otomatik çeviri özellikleri o dilde kullanılamaz."
+         ],
+         "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
+            "WPML'nin MO ve PO dosyalarından çevirileri yüklerken kontrol ettiği değer. Varsayılan yerel ayar, WordPress kurulumunuzdaki /wp-content/languages/ klasörünüzdeki dosya adlarına dahildir."
+         ],
+         "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
+            "Google, kullanıcıları ilgili dil ve konumdaki sitelere yönlendirmek için hreflang özelliğini kullanır. Örnekler:"
+         ],
+         "All English-speaking users: en": [
+            "Tüm İngilizce konuşan kullanıcılar: en"
+         ],
+         "English for UK users: en-gb": [
+            "Birleşik Krallık kullanıcıları için İngilizce: en-gb"
+         ],
+         "English for US users: en-us": [
+            "ABD kullanıcıları için İngilizce: en-us"
+         ],
+         "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
+            "Bu dildeki URL'lerin kodlanıp kodlanmayacağını veya ASCII karakterleri kullanıp kullanmayacağını belirler (emin değilseniz, “Hayır” olarak bırakın)."
+         ],
+         "adding a custom language": [
+            "özel dil ekleme"
+         ],
+         "A different domain per language": [
+            "Dil başına farklı bir alan adı"
+         ],
+         "Learn more about required server settings to use a different domain per language": [
+            "Dil başına farklı bir alan adı kullanmak için gerekli sunucu ayarları hakkında daha fazla bilgi edinin"
+         ],
+         "Language name added as a parameter": [
+            "Dil adı parametre olarak eklendi"
+         ],
+         "I will set up the domains for my secondary languages later.": [
+            "İkincil dillerim için alan adlarını daha sonra ayarlayacağım."
+         ],
+         "The domain you have entered is invalid.": [
+            "Girdiğiniz alan adı geçersiz."
+         ],
+         "The domain you have entered must be unique.": [
+            "Girdiğiniz alan adı benzersiz olmalıdır."
+         ],
+         "Please Note: Your site won't work in your secondary languages until this is successfully set up or you switch to a different URL option.": [
+            "Lütfen Dikkat: Bu başarıyla ayarlanana veya farklı bir URL seçeneğine geçene kadar siteniz ikincil dillerinizde çalışmayacaktır."
+         ],
+         "Learn more about Language URL Options": [
+            "Dil URL seçenekleri hakkında daha fazla bilgi edinin"
+         ],
+         "How would you like to format your site's URL?": [
+            "Sitenizin URL'sini nasıl biçimlendirmek istersiniz?"
+         ],
+         "Different languages in directories": [
+            "Dizinlerde farklı diller"
+         ],
+         "The URL rewrite is not configured in your server.": [
+            "URL yeniden yazma sunucunuzda yapılandırılmamış."
+         ],
+         "Learn more about required server settings to display languages in directories": [
+            "Dizinlerdeki dilleri görüntülemek için gerekli sunucu ayarları hakkında daha fazla bilgi edinin"
+         ],
+         "I will fix my server settings to display languages in directories later.": [
+            "Dizinlerdeki dilleri görüntülemek için sunucu ayarlarımı daha sonra düzelteceğim."
+         ],
+         "Your server settings do not allow for languages in directories. ": [
+            "Sunucu ayarlarınız dizinlerdeki dillere izin vermiyor. "
+         ],
+         "Learn more about the required server settings.": [
+            "Gerekli sunucu ayarları hakkında daha fazla bilgi edinin."
+         ],
+         "Translate your pages": [
+            "Sayfalarınızı çevirin"
+         ],
+         "Translate your posts": [
+            "Yazılarınızı çevirin"
+         ],
+         "Next, you need to set-up your multilingual store.": [
+            "Ardından, çok dilli mağazanızı kurmanız gerekiyor."
+         ],
+         "Continue to WooCommerce Multilingual Setup": [
+            "WooCommerce çok dilli kurulumuna devam et"
+         ],
+         "Start translating your site by visiting the <s>Translation Dashboard</s>.": [
+            "<s>Çeviri Paneli</s>'ni ziyaret ederek sitenizi çevirmeye başlayın."
+         ],
+         "Go to Translation Dashboard": [
+            "Çeviri paneline git"
+         ],
+         "Need help? <a>Using WPML's Plus Icons to Translate Content</a>": [
+            "Yardıma mı ihtiyacınız var? <a>WPML'nin Artı Simgelerini İçeriği Çevirmek İçin Kullanma</a>"
+         ],
+         "To start translating, look for the \"plus\" icons that WPML introduces next to content lists and editors. Click the \"plus\" icon under each language to translate.": [
+            "Çevirmeye başlamak için, içerik listelerinin ve düzenleyicilerin yanında WPML'nin tanıttığı “artı” simgelerini arayın. Çevirmek için her dilin altındaki “artı” simgesine tıklayın."
+         ],
+         "support forum": [
+            "destek forumu"
+         ],
+         "There was a critical error setting up WPML. Please contact our <LinkToSupportForum /> to resolve it.": [
+            "WPML kurulurken kritik bir hata oluştu. Lütfen çözmek için <LinkToSupportForum /> ile iletişime geçin."
+         ],
+         "Hide error message": [
+            "Hata mesajını gizle"
+         ],
+         "Show error message": [
+            "Hata mesajını göster"
+         ],
+         "Congratulations, your website is now multilingual with WPML!": [
+            "Tebrikler, web siteniz artık WPML ile çok dilli!"
+         ],
+         "For language switcher customization and more language options, navigate to <a>WPML → Languages</a>.": [
+            "Dil değiştirici özelleştirmesi ve daha fazla dil seçeneği için <a>WPML → Diller</a>'e gidin."
+         ],
+         "What are the languages of your site?": [
+            "Sitenizin dilleri nelerdir?"
+         ],
+         "Default language": [
+            "Varsayılan dil"
+         ],
+         "What is the current language of your website?": [
+            "Web sitenizin mevcut dili nedir?"
+         ],
+         "Translation languages": [
+            "Çeviri dilleri"
+         ],
+         "Which languages do you want to translate your site into?": [
+            "Sitenizi hangi dillere çevirmek istiyorsunuz?"
+         ],
+         "If you cannot find languages that you need in the list,": [
+            "Listede ihtiyacınız olan dilleri bulamıyorsanız,"
+         ],
+         "create a custom language": [
+            "özel bir dil oluşturun"
+         ],
+         "If you don't have a WPML.org account or a valid subscription, %1$spurchase one%2$s to get automatic updates, full support, and a 30-day money-back guarantee.": [
+            "WPML.org hesabınız veya geçerli bir aboneliğiniz yoksa, otomatik güncellemeler, tam destek ve 30 günlük para iade garantisi almak için %1$sbir tane satın alın%2$s."
+         ],
+         "Already purchased WPML?": [
+            "WPML'yi zaten satın aldınız mı?"
+         ],
+         "Enter your site key from your WPML account to receive automatic updates.": [
+            "Otomatik güncellemeleri almak için WPML hesabınızdan site anahtarınızı girin."
+         ],
+         "Site key": [
+            "Site anahtarı"
+         ],
+         "Get a key for this site": [
+            "Bu site için bir anahtar alın"
+         ],
+         "Error in activating plugin.": [
+            "Eklenti etkinleştirilirken hata oluştu."
+         ],
+         "Error in installing plugin.": [
+            "Eklenti yüklenirken hata oluştu."
+         ],
+         "Improve your site’s translations using helpful plugins": [
+            "Yardımcı eklentiler kullanarak sitenizin çevirilerini iyileştirin"
+         ],
+         "Based on the themes and other plugins running on your site, we recommend that you enable the following WPML components. These are included with your WPML purchase and allow you to translate strings, media, admin texts, and more.": [
+            "Sitenizde çalışan temalara ve diğer eklentilere dayanarak, aşağıdaki WPML bileşenlerini etkinleştirmenizi öneririz. Bunlar WPML satın alımınıza dahildir ve dizeleri, medyayı, yönetici metinlerini ve daha fazlasını çevirmenize olanak tanır."
+         ],
+         "Yes, send this information to wpml.org to improve my site’s maintenance and support": [
+            "Evet, sitenin bakımını ve desteğini iyileştirmek için bu bilgiyi wpml.org'a gönder"
+         ],
+         "No, don't send this information and skip maintenance alerts": [
+            "Hayır, bu bilgiyi gönderme ve bakım uyarılarını atla"
+         ],
+         "Do you want to get better and faster support?": [
+            "Daha iyi ve daha hızlı destek almak ister misiniz?"
+         ],
+         "WPML can send information about your site’s plugins, theme and content stats to wpml.org.": [
+            "WPML, sitenizin eklentileri, teması ve içerik istatistikleri hakkında bilgileri wpml.org'a gönderebilir."
+         ],
+         "This allows our support team to help you much faster and to contact you about potential problems and their solutions.": [
+            "Bu, destek ekibimizin size çok daha hızlı yardımcı olmasını ve potansiyel sorunlar ve çözümleri hakkında sizinle iletişime geçmesini sağlar."
+         ],
+         "Privacy and data usage policy": [
+            "Gizlilik ve veri kullanım politikası"
+         ],
+         "Full details of the info we’re proposing to share": [
+            "Paylaşmayı önerdiğimiz bilgilerin tam detayları"
+         ],
+         "Translation Contributors": [
+            "Çeviri katkıda bulunanlar"
+         ],
+         "Users of this site": [
+            "Bu sitenin kullanıcıları"
+         ],
+         "You will choose or create new users of this WordPress site as the translators. You can also choose yourself. This allows you to set up a team of translators working in different language pairs.": [
+            "Bu WordPress sitesinin yeni kullanıcılarını çevirmen olarak seçecek veya oluşturacaksınız. Kendinizi de seçebilirsiniz. Bu, farklı dil çiftlerinde çalışan bir çevirmen ekibi kurmanıza olanak tanır."
+         ],
+         "A professional translation service": [
+            "Profesyonel bir çeviri hizmeti"
+         ],
+         "You have preselected %s to translate your content. Finish setting it up by entering the API token they provided to you.": [
+            "İçeriğinizi çevirmek için %s'yı önceden seçtiniz. Size sağladıkları API belirtecini girerek kurulumu tamamlayın."
+         ],
+         "WPML offers tight integration with over 70 translation services. You will choose the translation service that you prefer and enjoy a streamlined process for sending jobs and receiving completed translations.": [
+            "WPML, 70'ten fazla çeviri hizmetiyle sıkı entegrasyon sunar. Tercih ettiğiniz çeviri hizmetini seçecek ve işleri gönderme ve tamamlanmış çevirileri alma için kolaylaştırılmış bir sürecin keyfini çıkaracaksınız."
+         ],
+         "Human Translation": [
+            "İnsan çevirisi"
+         ],
+         "Besides the AI translation, you can translate yourself, add your own team of translators and use professional translation services.": [
+            "Yapay zeka çevirisinin yanı sıra, kendiniz çeviri yapabilir, kendi çevirmen ekibinizi ekleyebilir ve profesyonel çeviri hizmetlerini kullanabilirsiniz."
+         ],
+         "I'd like to set up human translation by:": [
+            "İnsan çevirisini şu şekilde kurmak istiyorum:"
+         ],
+         "Only myself": [
+            "Sadece ben"
+         ],
+         "You will be the sole translator for this site.": [
+            "Bu site için tek çevirmen siz olacaksınız."
+         ],
+         "A Translation Manager who will setup the translators for my site": [
+            "Sitem için çevirmenleri ayarlayacak bir Çeviri Yöneticisi"
+         ],
+         "You will choose a user of this site and delegate the setup of translators to him/her. Choose this option when you are building a website for a client, who will set up translator users or choose a translation service.": [
+            "Bu sitenin bir kullanıcısını seçecek ve çevirmenlerin kurulumunu ona devredeceksiniz. Bir müşteri için web sitesi oluştururken, çevirmen kullanıcıları ayarlayacak veya bir çeviri hizmeti seçecek bu seçeneği tercih edin."
+         ],
+         "Error: %s": [
+            "Hata: %s"
+         ],
+         "Authenticate": [
+            "Doğrula"
+         ],
+         "To send content and receive translations from <service_name />, enter the credentials you received from them.": [
+            "<service_name />'den içerik göndermek ve çeviriler almak için, onlardan aldığınız kimlik bilgilerini girin."
+         ],
+         "Need credentials? Contact <link_to_service />": [
+            "Kimlik bilgilerine mi ihtiyacınız var? <link_to_service /> ile iletişime geçin"
+         ],
+         "Success! You can start sending content to %s for translation after you finish the setup wizard.": [
+            "Başarılı! Kurulum sihirbazını tamamladıktan sonra %s'ya çeviri için içerik göndermeye başlayabilirsiniz."
+         ],
+         "The credentials are invalid. Please, try again.": [
+            "Kimlik bilgileri geçersiz. Lütfen tekrar deneyin."
+         ],
+         "Choose a Translation Service": [
+            "Bir çeviri hizmeti seçin"
+         ],
+         "Loading": [
+            "Yükleniyor"
+         ],
+         "A new language could not be added correctly": [
+            "Yeni bir dil doğru şekilde eklenemedi"
+         ],
+         "Back": [
+            "Geri"
+         ],
+         "Continue": [
+            "Devam"
+         ],
+         "Skip": [
+            "Atla"
+         ],
+         "Install and activate": [
+            "Yükle ve etkinleştir"
+         ],
+         "Finish": [
+            "Bitir"
+         ],
+         "Languages": [
+            "Diller"
+         ],
+         "URL Format": [
+            "URL biçimi"
+         ],
+         "Register WPML": [
+            "WPML'yi kaydet"
+         ],
+         "AI Translation": [
+            "Yapay zeka çevirisi"
+         ],
+         "Support": [
+            "Destek"
+         ],
+         "Plugins": [
+            "Eklentiler"
+         ],
+         "Finished": [
+            "Bitti"
+         ],
+         "Search translation services": [
+            "Çeviri hizmetlerini ara"
+         ],
+         "Settings": [
+            "Ayarlar"
+         ],
+         "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
+            "WPML sitenizin içeriğini otomatik olarak çevirecek şekilde ayarlandığında bir çeviri hizmeti bağlamak şu anda mümkün değildir. Bir çeviri hizmeti kullanmak için lütfen <LinkToSettingsPage /> sayfasındaki çeviri modunuzu değiştirin."
+         ],
+         "Sort descending": [
+            "Azalan sırala"
+         ],
+         "Sort ascending": [
+            "Artan sırala"
+         ],
+         "Cancel sorting": [
+            "Sıralamayı iptal et"
+         ],
+         "Documentation": [
+            "Belgeler"
+         ],
+         "Activate": [
+            "Etkinleştir"
+         ],
+         "Description": [
+            "Açıklama"
+         ],
+         "Ranking": [
+            "Sıralama"
+         ]
+      }
+   }
+}

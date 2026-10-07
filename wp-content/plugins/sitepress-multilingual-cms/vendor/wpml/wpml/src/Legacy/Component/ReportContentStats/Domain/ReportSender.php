@@ -7,7 +7,6 @@ use WPML\Core\Component\ReportContentStats\Domain\ReportSenderInterface;
 
 class ReportSender implements ReportSenderInterface {
 
-  /** @var \WPML_Content_Stats_Sender */
   private $installerContentStatsSender;
 
 

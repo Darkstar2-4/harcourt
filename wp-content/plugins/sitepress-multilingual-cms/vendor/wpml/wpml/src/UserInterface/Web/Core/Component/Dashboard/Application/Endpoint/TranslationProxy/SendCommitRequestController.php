@@ -8,7 +8,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class SendCommitRequestController implements EndpointInterface {
 
-  /** @var TranslationProxyServiceInterface */
   private $translationProxyService;
 
 
@@ -17,13 +16,6 @@ class SendCommitRequestController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<mixed> $requestData
-   *
-   * @return array{
-   *   batchJobId: int|bool,
-   * }
-   */
   public function handle( $requestData = null ): array {
     try {
       return [

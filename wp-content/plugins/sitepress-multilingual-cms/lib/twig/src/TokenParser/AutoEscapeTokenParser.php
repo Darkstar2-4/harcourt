@@ -14,24 +14,6 @@ use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\AutoEscapeNode;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Token;
-/**
- * Marks a section of a template to be escaped or not.
- *
- *   {% autoescape true %}
- *     Everything will be automatically escaped in this block
- *   {% endautoescape %}
- *
- *   {% autoescape false %}
- *     Everything will be outputed as is in this block
- *   {% endautoescape %}
- *
- *   {% autoescape true js %}
- *     Everything will be automatically escaped in this block
- *     using the js escaping strategy
- *   {% endautoescape %}
- *
- * @final
- */
 class AutoEscapeTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

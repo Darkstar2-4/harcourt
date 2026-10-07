@@ -6,9 +6,6 @@ use WPML\Core\Component\ReportContentStats\Application\Query\ContentStatsTransla
 use WPML\Legacy\Component\Post\Application\Query\TranslatableTypesQuery;
 use WPML\Legacy\Component\ReportContentStats\Application\Hook\ContentStatsTranslatableTypesFilter;
 
-/**
- * @phpcs:disable Generic.CodeAnalysis.UselessOverridingMethod.Found
- */
 class ContentStatsTranslatableTypesQuery
   extends TranslatableTypesQuery
   implements ContentStatsTranslatableTypesQueryInterface {

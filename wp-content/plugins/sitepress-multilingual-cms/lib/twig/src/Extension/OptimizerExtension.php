@@ -11,9 +11,6 @@
 namespace WPML\Core\Twig\Extension;
 
 use WPML\Core\Twig\NodeVisitor\OptimizerNodeVisitor;
-/**
- * @final
- */
 class OptimizerExtension extends \WPML\Core\Twig\Extension\AbstractExtension
 {
     protected $optimizers;

@@ -8,11 +8,6 @@ use WPML\Core\Component\Post\Application\Query\Dto\HierarchicalPostDto;
 interface HierarchicalPostQueryInterface {
 
 
-  /**
-   * @param HierarchicalPostCriteria $criteria
-   *
-   * @return HierarchicalPostDto[]
-   */
   public function getMany( HierarchicalPostCriteria $criteria );
 
 

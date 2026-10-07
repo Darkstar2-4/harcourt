@@ -1,0 +1,52 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
+            "lang": "pt_PT"
+         },
+         "You must use the Advanced Translation Editor if you want to translate your content automatically.": [
+            "Deve usar o Editor de Tradução Avançado se quiser traduzir o seu conteúdo automaticamente."
+         ],
+         "Synchronize translators and translation managers with ATE": [
+            "Sincronizar tradutores e gestores de tradução com o ATE"
+         ],
+         "Please try again in a few minutes. If the problem persists, please contact %sWPML support%s.": [
+            "Por favor, tente novamente dentro de alguns minutos. Se o problema persistir, por favor, contacte o %ssuporte do WPML%s."
+         ],
+         "Save": [
+            "Guardar"
+         ],
+         "Please confirm this translation setting": [
+            "Por favor, confirme esta definição de tradução"
+         ],
+         "Your site is set to translate all content automatically. When you make <PostTypesNames /> translatable, WPML will automatically translate the %1$d existing item.": [
+            "O seu site está configurado para traduzir todo o conteúdo automaticamente. Ao tornar <PostTypesNames /> traduzíveis, o WPML traduzirá automaticamente o %1$d item existente.",
+            "O seu site está configurado para traduzir todo o conteúdo automaticamente. Ao tornar <PostTypesNames /> traduzíveis, o WPML traduzirá automaticamente os %1$d itens existentes."
+         ],
+         "Your site is set to translate all content automatically. When you make <PostTypesNames /> translatable, WPML will automatically translate all future content.": [
+            "O seu site está configurado para traduzir todo o conteúdo automaticamente. Ao tornar <PostTypesNames /> traduzíveis, o WPML traduzirá automaticamente todo o conteúdo futuro."
+         ],
+         "Are you OK with paying for this?": [
+            "Concorda em pagar por isto?"
+         ],
+         "Cancel": [
+            "Cancelar"
+         ],
+         "Make translatable": [
+            "Tornar traduzível"
+         ],
+         "Yes, translate <b>existing</b> and <b>future</b> content automatically": [
+            "Sim, traduzir conteúdo <b>existente</b> e <b>futuro</b> automaticamente"
+         ],
+         "Yes, but only translate <b>future</b> content automatically": [
+            "Sim, mas apenas traduzir conteúdo <b>futuro</b> automaticamente"
+         ],
+         "Yes, translate <b>future</b> content automatically": [
+            "Sim, traduzir conteúdo <b>futuro</b> automaticamente"
+         ]
+      }
+   }
+}

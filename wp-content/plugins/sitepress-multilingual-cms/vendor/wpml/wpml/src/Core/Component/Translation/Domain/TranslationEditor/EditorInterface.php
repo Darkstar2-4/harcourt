@@ -7,7 +7,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationEditorType;
 interface EditorInterface {
 
 
-  /** @return TranslationEditorType::* */
   public function get();
 
 

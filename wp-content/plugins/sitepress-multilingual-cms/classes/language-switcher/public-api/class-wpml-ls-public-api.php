@@ -1,34 +1,19 @@
 <?php
-/**
- * Class WPML_LS_Public_API
- */
 class WPML_LS_Public_API {
 
-	/** @var WPML_LS_Settings $settings */
 	private $settings;
 
-	/** @var WPML_LS_Render $render */
 	private $render;
 
-	/** @var SitePress $sitepress */
 	protected $sitepress;
 
-	/** @var WPML_LS_Slot_Factory */
 	private $slot_factory;
 
-	/**
-	 * WPML_LS_Public_API constructor.
-	 *
-	 * @param WPML_LS_Settings     $settings
-	 * @param WPML_LS_Render       $render
-	 * @param SitePress            $sitepress
-	 * @param WPML_LS_Slot_Factory $slot_factory
-	 */
 	public function __construct(
 		WPML_LS_Settings $settings,
 		WPML_LS_Render $render,
 		SitePress $sitepress,
-		WPML_LS_Slot_Factory $slot_factory = null
+		?WPML_LS_Slot_Factory $slot_factory = null
 	) {
 		$this->settings     = $settings;
 		$this->render       = $render;
@@ -36,11 +21,6 @@ class WPML_LS_Public_API {
 		$this->slot_factory = $slot_factory;
 	}
 
-	/**
-	 * @param array       $args
-	 *
-	 * @return string
-	 */
 	protected function render( $args ) {
 		$defaults_slot_args = $this->get_default_slot_args( $args );
 		$slot_args          = array_merge( $defaults_slot_args, $args );
@@ -58,11 +38,6 @@ class WPML_LS_Public_API {
 		return $output;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function get_default_slot_args( $args ) {
 		$type = 'custom';
 
@@ -92,11 +67,6 @@ class WPML_LS_Public_API {
 		return $default_slot->get_model();
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	protected function convert_shortcode_args_aliases( $args ) {
 		$aliases_map = self::get_argument_aliases();
 
@@ -110,9 +80,6 @@ class WPML_LS_Public_API {
 		return $args;
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function get_argument_aliases() {
 		return array(
 			'flags'        => 'display_flags',
@@ -122,9 +89,6 @@ class WPML_LS_Public_API {
 		);
 	}
 
-	/**
-	 * @return WPML_LS_Slot_Factory
-	 */
 	private function get_slot_factory() {
 		if ( ! $this->slot_factory ) {
 			$this->slot_factory = new WPML_LS_Slot_Factory();

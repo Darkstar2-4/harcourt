@@ -1,9 +1,6 @@
 <?php
 
 class WPML_TM_Rest_Jobs_Columns {
-	/**
-	 * @return array
-	 */
 	public static function get_columns() {
 		return array(
 			'id'         => __( 'ID', 'wpml-translation-management' ),
@@ -17,9 +14,6 @@ class WPML_TM_Rest_Jobs_Columns {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public static function get_sortable() {
 		return array(
 			'id'            => __( 'ID', 'wpml-translation-management' ),
@@ -30,5 +24,9 @@ class WPML_TM_Rest_Jobs_Columns {
 			'deadline_date' => __( 'Deadline', 'wpml-translation-management' ),
 			'status'        => __( 'Status', 'wpml-translation-management' ),
 		);
+	}
+
+	public static function is_sortable( $column ) {
+		return is_string( $column ) && array_key_exists( $column, self::get_sortable() );
 	}
 }

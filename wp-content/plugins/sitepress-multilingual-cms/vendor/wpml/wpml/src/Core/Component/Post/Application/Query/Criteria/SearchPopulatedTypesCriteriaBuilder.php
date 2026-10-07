@@ -7,7 +7,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 final class SearchPopulatedTypesCriteriaBuilder {
 
-  /** @var SourceAndTargetLanguagesBuilder */
   private $languagesBuilder;
 
 
@@ -16,21 +15,7 @@ final class SearchPopulatedTypesCriteriaBuilder {
   }
 
 
-  /**
-   * @param array{
-   *   sourceLanguageCode?: string|null,
-   *   targetLanguageCode?: string|null,
-   *   itemSectionIds?: array<string>,
-   *   publicationStatus?: string|null,
-   *   translationStatuses?: array<int>
-   * } $array
-   *
-   * @return SearchPopulatedTypesCriteria
-   * @throws InvalidArgumentException If a required argument is missing.
-   *
-   */
   public function build( array $array ): SearchPopulatedTypesCriteria {
-    // Handle languages separately
     $languages = $this->languagesBuilder->build(
       $array['sourceLanguageCode'] ?? null,
       isset( $array['targetLanguageCode'] ) ? [ $array['targetLanguageCode'] ] : null

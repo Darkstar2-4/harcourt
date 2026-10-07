@@ -8,7 +8,6 @@ use function WPML\Container\make;
 use WPML\Element\API\TranslationsRepository;
 
 class WPML_TM_ICL_Translation_Status {
-	/** @var wpdb $wpdb */
 	public $wpdb;
 
 	private $tm_records;
@@ -19,14 +18,6 @@ class WPML_TM_ICL_Translation_Status {
 
 	private $status_result;
 
-	/**
-	 * WPML_TM_ICL_Translation_Status constructor.
-	 *
-	 * @param wpdb            $wpdb
-	 * @param WPML_TM_Records $tm_records
-	 * @param int             $id
-	 * @param string          $type
-	 */
 	public function __construct( wpdb $wpdb, WPML_TM_Records $tm_records, $id, $type = 'translation_id' ) {
 		$this->wpdb       = $wpdb;
 		$this->tm_records = $tm_records;
@@ -37,11 +28,6 @@ class WPML_TM_ICL_Translation_Status {
 		}
 	}
 
-	/**
-	 * @param array $args in the same format used by \wpdb::update()
-	 *
-	 * @return $this
-	 */
 	public function update( $args ) {
 		$this->wpdb->update(
 			$this->wpdb->prefix . $this->table,
@@ -53,9 +39,6 @@ class WPML_TM_ICL_Translation_Status {
 		return $this;
 	}
 
-	/**
-	 * Wrapper for \wpdb::delete()
-	 */
 	public function delete() {
 		$this->wpdb->delete(
 			$this->wpdb->prefix . $this->table,
@@ -63,9 +46,6 @@ class WPML_TM_ICL_Translation_Status {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function rid() {
 
 		return (int) $this->wpdb->get_var(
@@ -75,9 +55,6 @@ class WPML_TM_ICL_Translation_Status {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function status() {
 
 		if ( $this->status_result === null ) {
@@ -105,9 +82,6 @@ class WPML_TM_ICL_Translation_Status {
 	}
 
 
-	/**
-	 * @return string
-	 */
 	public function md5() {
 
 		return $this->wpdb->get_var(
@@ -117,9 +91,6 @@ class WPML_TM_ICL_Translation_Status {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function translation_id() {
 
 		return (int) $this->wpdb->get_var(
@@ -139,9 +110,6 @@ class WPML_TM_ICL_Translation_Status {
 		return $this->tm_records->icl_translations_by_translation_id( $this->translation_id() )->element_id();
 	}
 
-	/**
-	 * @return int
-	 */
 	public function translator_id() {
 
 		return (int) $this->wpdb->get_var(
@@ -151,9 +119,6 @@ class WPML_TM_ICL_Translation_Status {
 		);
 	}
 
-	/**
-	 * @return string|int
-	 */
 	public function service() {
 
 		return (int) $this->wpdb->get_var(
@@ -177,12 +142,6 @@ class WPML_TM_ICL_Translation_Status {
 			: array( 'rid' => $this->rid );
 	}
 
-	/**
-	 * @param $id
-	 *
-	 * @return \WPML_TM_ICL_Translation_Status
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function makeByRid( $id ) {
 		return make( self::class, [ ':id' => $id, ':type' => 'rid' ] );
 	}

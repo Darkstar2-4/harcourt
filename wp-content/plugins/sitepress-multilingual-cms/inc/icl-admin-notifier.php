@@ -1,13 +1,5 @@
 <?php
-/**
- * @package wpml-core
- */
 
-/**
- * Admin Notifier Class
- *
- * Manages Admin Notices
- */
 
 add_action( 'init', array( 'ICL_AdminNotifier', 'init' ) );
 
@@ -50,10 +42,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			wp_enqueue_script( $handle );
 		}
 
-		/**
-		 * @param string $message
-		 * @param string $type
-		 */
 		public static function add_instant_message( $message, $type = '' ) {
 			$messages                       = self::get_messages();
 			$messages['instant_messages'][] = array(
@@ -63,11 +51,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			self::save_messages( $messages );
 		}
 
-		/**
-		 * @param int|string $message_id
-		 *
-		 * @return bool|array
-		 */
 		public static function get_message( $message_id ) {
 			$messages = self::get_messages();
 
@@ -105,24 +88,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			self::get_messages();
 		}
 
-		/**
-		 * @param array<mixed> $args
-		 *    Args attributes:
-		 *    string        id - An unique identifier for the message
-		 *    string        msg - The actual message
-		 *    string        type (optional) - Any string: it will be used as css class fro the message container. A typical value is 'error', but the following strings can be also used: icl-admin-message-information, icl-admin-message-warning
-		 *    array         classes (optional) - Display the notice only on specific url(s)
-		 *    bool          hide (optional) - Enable the toggle link to permanently hide the notice
-		 *    bool          hide_per_user (optional) - Enable the toggle link per user basis (overrides hide option)
-		 *    bool          dismiss (optional) - Enable the dismiss option
-		 *    bool          dismiss_per_user (optional) - Enable the dismiss option per user basis (overrides dismiss option)
-		 *    bool|string   fallback_text (optional) - A message to show when the notice gets hidden
-		 *    bool|string   fallback_type (optional) - The message type to use in the fallback message (@see $type)
-		 *    array         fallback_classes (optional) - The message type to use in the fallback message (@see $type)
-		 *    bool|string   group (optional) - A way to group messages: when displaying messages stored with this method, it's possible to filter them by group (@see ICL_AdminNotifier::displayMessages)
-		 *    bool          admin_notice (optional) - Hook the rendering to the 'admin_notice' action
-		 *    string|array  limit_to_page (optional) - Display the notice only on specific page(s)
-		 */
 		public static function add_message( $args ) {
 			$defaults = array(
 				'type'             => '',
@@ -149,7 +114,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 
 			$id = $args['id'];
 
-			// Check if existing message has been set as dismissed or hidden
 			if ( self::message_id_exists( $id ) ) {
 				$temp_msg = self::get_message( $id );
 
@@ -241,7 +205,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 		public static function hide_message() {
 
 			$message_id = self::get_message_id();
-			// phpcs:ignore WordPress.Security.NonceVerification
 			$dismiss    = isset( $_POST['dismiss'] ) ? $_POST['dismiss'] : false;
 			if ( ! self::message_id_exists( $message_id ) ) {
 				return '';
@@ -405,17 +368,11 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 				foreach ( $messages['instant_messages'] as $msg ) {
 					self::display_instant_message( $msg['text'], $msg['type'] );
 				}
-				// delete instant messages
 				$messages['instant_messages'] = array();
 				self::save_messages( $messages );
 			}
 		}
 
-		/**
-		 * @deprecated deprecated @since version 3.2. Use ICL_AdminNotifier::display_message()
-		 *
-		 * @param bool|string $group
-		 */
 		public static function displayMessages( $group = false ) {
 			self::display_messages( $group );
 		}
@@ -475,18 +432,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			}
 		}
 
-		/**
-		 * @param string       $id
-		 * @param string       $message
-		 * @param string       $type
-		 * @param string|array $classes
-		 * @param bool         $hide
-		 * @param bool         $dismiss
-		 * @param bool         $admin_notice
-		 * @param bool         $echo
-		 *
-		 * @return string
-		 */
 		private static function display_message( $id, $message, $type = '', $classes = array(), $hide = true, $dismiss = false, $admin_notice = false, $echo = false ) {
 			$result       = '';
 			$temp_classes = array();
@@ -586,11 +531,6 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			return $result;
 		}
 
-		/**
-		 * @param array<mixed> $args
-		 *
-		 * @return mixed
-		 */
 		private static function sanitize_message_args( $args ) {
 			if ( isset( $args['msg'] ) ) {
 				$args['text'] = $args['msg'];
@@ -795,55 +735,23 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			$cb();
 		}
 
-		/** Deprecated methods */
 
-		/**
-		 * @param int|string $message_id
-		 *
-		 * @return bool
-		 * @deprecated deprecated @since version 3.2. Use ICL_AdminNotifier::remove_message()
-		 *
-		 */
 		public static function removeMessage( $message_id ) {
 			return self::remove_message( $message_id );
 		}
 
-		/**
-		 * @deprecated deprecated @since version 3.2
-		 */
 		public static function hideMessage() {
 			self::hide_message();
 		}
 
-		/**
-		 * @deprecated deprecated @since version 3.2
-		 *
-		 * @param string $message
-		 * @param string $type
-		 */
 		public static function addInstantMessage( $message, $type = '' ) {
 			self::add_instant_message( $message, $type );
 		}
 
-		/**
-		 * @deprecated deprecated @since version 3.2
-		 */
 		public static function addScript() {
 			self::add_script();
 		}
 
-		/**
-		 * @deprecated deprecated @since version 3.2
-		 *
-		 * @param string      $id               An unique identifier for the message
-		 * @param string      $msg              The actual message
-		 * @param string      $type             (optional) Any string: it will be used as css class fro the message container. A typical value is 'error', but the following strings can be also used: icl-admin-message-information, icl-admin-message-warning
-		 * @param bool        $hide             (optional) Enable the toggle link to permanently hide the notice
-		 * @param bool        $fallback_message (optional) A message to show when the notice gets hidden
-		 * @param bool        $fallback_type    (optional) The message type to use in the fallback message (@see $type)
-		 * @param bool|string $group            (optional) A way to group messages: when displaying messages stored with this method, it's possible to filter them by group (@see ICL_AdminNotifier::displayMessages)
-		 * @param bool        $admin_notice     (optional) Hook the rendering to the 'admin_notice' action
-		 */
 		public static function addMessage( $id, $msg, $type = '', $hide = true, $fallback_message = false, $fallback_type = false, $group = false, $admin_notice = false ) {
 			$args = array(
 				'id'               => $id,
@@ -859,27 +767,11 @@ if ( ! class_exists( 'ICL_AdminNotifier' ) ) {
 			self::add_message( $args );
 		}
 
-		/**
-		 * @param string $message
-		 * @param string $type
-		 * @param bool   $class
-		 * @param bool   $return
-		 *
-		 * @return string
-		 * @deprecated deprecated @since version 3.2. Use ICL_AdminNotifier::display_instant_message()
-		 *
-		 */
 		public static function displayInstantMessage( $message, $type = 'information', $class = false, $return = false ) {
 			return self::display_instant_message( $message, $type, $class, $return );
 		}
 
-		/**
-		 * @param string $message
-		 *
-		 * @return string
-		 */
 		public static function sanitize_and_format_message( $message ) {
-			// return preg_replace( '/`(.*?)`/s', '<pre>$1</pre>', stripslashes( $message ) );
 			$backticks_pattern = '|`(.*)`|U';
 			preg_match_all( $backticks_pattern, $message, $matches );
 

@@ -11,21 +11,15 @@ class CachedAMSAPI {
 
 	const CACHE_OPTION = 'wpml-tm-ams-api-cache';
 
-	/** @var  \WPML_TM_AMS_API */
 	private $amsApi;
 
-	/** @var Storage */
 	private $storage;
 
 	private $cachedFns = [ 'getGlossaryCount', 'get_translation_engines' ];
 	private $clearCacheFns = [ 'update_translation_engine' ];
 
-	/** Functions which don't return a collection. */
 	private $noCollectionAsReturnType = [ 'get_translation_engines' ];
 
-	/**
-	 * @param \WPML_TM_AMS_API $amsApi
-	 */
 	public function __construct( \WPML_TM_AMS_API $amsApi, Storage $storage ) {
 		$this->amsApi  = $amsApi;
 		$this->storage = $storage;
@@ -67,13 +61,7 @@ class CachedAMSAPI {
 		return call_user_func_array( $function, func_get_args() );
 	}
 
-	/**
-	 * @param mixed $parameters
-	 *
-	 * @return string
-	 */
 	private function getKey( $parameters ) {
-		// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 		return \serialize( $parameters );
 	}
 

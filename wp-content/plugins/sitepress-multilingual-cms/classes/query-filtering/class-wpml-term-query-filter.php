@@ -6,35 +6,20 @@ use WPML\TaxonomyTermTranslation\Hooks as TermTranslationHooks;
 
 class WPML_Term_Query_Filter {
 
-	/** @var WPML_Term_Translation $term_translation */
 	private $term_translation;
 
-	/** @var WPML_Debug_BackTrace $debug_backtrace */
 	private $debug_backtrace;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var IWPML_Taxonomy_State $taxonomy_state */
 	private $taxonomy_state;
 
-	/** @var string $current_language */
 	private $current_language;
 
-	/** @var string $default_language */
 	private $default_language;
 
-	/** @var bool $lock */
 	private $lock;
 
-	/**
-	 * WPML_Term_query_Filter constructor.
-	 *
-	 * @param WPML_Term_Translation $term_translation
-	 * @param WPML_Debug_BackTrace  $debug_backtrace
-	 * @param wpdb                  $wpdb
-	 * @param IWPML_Taxonomy_State  $taxonomy_state
-	 */
 	public function __construct(
 		WPML_Term_Translation $term_translation,
 		WPML_Debug_BackTrace $debug_backtrace,
@@ -47,19 +32,11 @@ class WPML_Term_Query_Filter {
 		$this->taxonomy_state   = $taxonomy_state;
 	}
 
-	/** @param string $current_language */
-	/** @param string $default_language */
 	public function set_lang( $current_language, $default_language ) {
 		$this->current_language = $current_language;
 		$this->default_language = $default_language;
 	}
 
-	/**
-	 * @param array $args
-	 * @param array $taxonomies
-	 *
-	 * @return array
-	 */
 	public function get_terms_args_filter( $args, $taxonomies ) {
 		if ( $this->lock ) {
 			return $args;
@@ -107,7 +84,6 @@ class WPML_Term_Query_Filter {
 			$args = $this->adjust_taxonomies_terms_slugs( $args, $taxonomies );
 		}
 
-		// special case for when term hierarchy is cached in wp_options
 		if ( $this->debug_backtrace->is_function_in_call_stack( '_get_term_hierarchy' ) ) {
 			$args['_icl_show_all_langs'] = true;
 		}
@@ -116,12 +92,6 @@ class WPML_Term_Query_Filter {
 		return $args;
 	}
 
-	/**
-	 * @param string|array $terms_ids
-	 * @param bool         $orderByTermId
-	 *
-	 * @return array
-	 */
 	private function adjust_taxonomies_terms_ids( $terms_ids, $orderByTermId ) {
 		$terms_ids = array_filter( array_unique( $this->explode_and_trim( $terms_ids ) ) );
 
@@ -148,12 +118,6 @@ class WPML_Term_Query_Filter {
 		return array_filter( $translated_ids );
 	}
 
-	/**
-	 * @param array $args
-	 * @param array $taxonomies
-	 *
-	 * @return array
-	 */
 	private function adjust_taxonomies_terms_slugs( $args, array $taxonomies ) {
 		$terms_slugs = $args['slug'];
 		if ( is_string( $terms_slugs ) ) {
@@ -188,12 +152,6 @@ class WPML_Term_Query_Filter {
 		return $args;
 	}
 
-	/**
-	 * @param array $ids
-	 * @param bool  $orderByTermId
-	 *
-	 * @return stdClass[]
-	 */
 	private function get_terms( $ids, $orderByTermId ) {
 		$safeIds = wpml_prepare_in( $ids, '%d' );
 		$sql     = "SELECT taxonomy, term_id FROM {$this->wpdb->term_taxonomy}
@@ -203,12 +161,6 @@ class WPML_Term_Query_Filter {
 		return $this->wpdb->get_results( $sql );
 	}
 
-	/**
-	 * @param string $slug
-	 * @param array  $taxonomies
-	 *
-	 * @return null|WP_Term
-	 */
 	private function guess_term( $slug, array $taxonomies ) {
 		foreach ( $taxonomies as $taxonomy ) {
 			$term = get_term_by( 'slug', $slug, $taxonomy );
@@ -221,11 +173,6 @@ class WPML_Term_Query_Filter {
 		return null;
 	}
 
-	/**
-	 * @param string|array $source
-	 *
-	 * @return array
-	 */
 	private function explode_and_trim( $source ) {
 		if ( ! is_array( $source ) ) {
 			$source = array_map( 'trim', explode( ',', $source ) );

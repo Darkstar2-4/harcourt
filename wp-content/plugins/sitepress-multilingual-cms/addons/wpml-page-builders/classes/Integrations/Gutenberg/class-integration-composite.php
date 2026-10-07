@@ -4,9 +4,6 @@ namespace WPML\PB\Gutenberg;
 
 class Integration_Composite implements Integration {
 
-	/**
-	 * @var Integration[] $integrations
-	 */
 	private $integrations;
 
 	public function add( Integration $integration ) {

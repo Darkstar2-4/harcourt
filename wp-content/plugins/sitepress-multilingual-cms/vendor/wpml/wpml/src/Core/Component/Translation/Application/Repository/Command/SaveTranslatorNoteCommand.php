@@ -4,15 +4,10 @@ namespace WPML\Core\Component\Translation\Application\Repository\Command;
 
 class SaveTranslatorNoteCommand {
 
-  /** @var string  */
   private $itemKind;
 
-  /** @var int  */
   private $itemId;
 
-  /**
-   * @var string 'post'|'package'
-   */
   private $note;
 
 

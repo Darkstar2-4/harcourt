@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class SetReviewTranslationOptionController implements EndpointInterface {
 
-  /** @var SettingsService */
   private $settingsService;
 
 
@@ -16,13 +15,6 @@ class SetReviewTranslationOptionController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,string> $requestData
-   *
-   * @psalm-suppress MoreSpecificImplementedParamType
-   *
-   * @return array<string, string|null>
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 

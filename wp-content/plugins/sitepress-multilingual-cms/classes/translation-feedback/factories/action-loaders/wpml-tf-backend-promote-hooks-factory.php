@@ -1,25 +1,17 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Promote_Hooks_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Promote_Hooks_Factory implements IWPML_Backend_Action_Loader, IWPML_Deferred_Action_Loader {
 
-	/** @return string */
 	public function get_load_action() {
 		return 'wpml_after_tm_loaded';
 	}
 
 	public function create() {
-		/** @var SitePress $sitepress */
 		global $sitepress;
 
 		$hooks = null;
 
 		$settings_read = new WPML_TF_Settings_Read();
-		/** @var WPML_TF_Settings $tf_settings */
 		$tf_settings = $settings_read->get( 'WPML_TF_Settings' );
 
 		if ( ! $tf_settings->is_enabled() ) {

@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "ru"
+            "lang": "ru_RU"
          },
          "From:": [
-            "С:"
+            "От:"
          ],
          "--Choose language--": [
-            "--Выбрать язык--"
+            "--Выберите язык--"
          ],
          "to:": [
-            "на:"
+            "Кому:"
          ],
          "Select %s": [
-            "Выбрать %s"
+            "Выберите %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "Задать языковую(ые) пару(ы) для переводчика %s:"
+            "Установите языковую пару (пары) для переводчика %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ Добавить этому переводчику другие языковые пары"
+            "+ Добавить больше языковых пар для этого переводчика"
          ],
          "First Name": [
             "Имя"
@@ -38,58 +38,61 @@
             "(обязательно)"
          ],
          "Select a role for the user": [
-            "Выбрать роль для пользователя"
+            "Выберите роль для пользователя"
          ],
          "Make sure that you have provided a correct email address e.g. name@domain.com": [
-            "Убедитесь, что адрес электронной почты введен правильно, например name@domain.com"
+            "Убедитесь, что вы указали правильный адрес электронной почты, например name@domain.com"
          ],
          "This field is required": [
-            "Это обязательное поле"
+            "Это поле обязательно для заполнения"
          ],
          "A translator can be any WordPress role.": [
-            "У переводчика может быть любая роль WordPress."
+            "Переводчиком может быть любая роль WordPress."
          ],
          "Username": [
             "Имя пользователя"
          ],
          "Email": [
-            "Эл. почта"
+            "Электронная почта"
          ],
          "Search": [
             "Поиск"
+         ],
+         "Your site has a large number of users, please enter the exact username.": [
+            "Ваш сайт содержит большое количество пользователей. Пожалуйста, введите точное имя пользователя."
          ],
          "Cancel": [
             "Отмена"
          ],
          "Add Translation Manager": [
-            "Добавить менеджера переводческих проектов"
+            "Добавить менеджера по переводу"
          ],
          "user": [
-            "пользователя"
+            "пользователь"
          ],
          "Editor": [
             "Редактор"
          ],
          "Select an existing %s and set as Translation Manager": [
-            "Выбрать существующего %s и задать менеджером переводческих проектов"
+            "Выберите существующего %s и назначьте его менеджером по переводу"
          ],
          "Create a new %s and set as Translation Manager": [
-            "Создать нового %s и задать менеджером переводческих проектов"
+            "Создайте нового %s и назначьте его менеджером по переводу"
          ],
          "Add a Translation Manager": [
-            "Добавить Менеджера переводческих проектов"
+            "Добавить менеджера по переводу"
          ],
          "Select an existing user and set as Translator": [
-            "Выбрать существующего пользователя и задать переводчиком"
+            "Выберите существующего пользователя и назначьте его переводчиком"
          ],
          "Create a new user and set as Translator": [
-            "Создать нового пользователя и задать переводчиком"
+            "Создайте нового пользователя и назначьте его переводчиком"
          ],
          "Set language pair(s)": [
-            "Задать языковую(ые) пару(ы)"
+            "Установить языковую пару (пары)"
          ],
          "Previous": [
-            "Предыдущая"
+            "Предыдущий"
          ],
          "Save": [
             "Сохранить"
@@ -98,7 +101,7 @@
             "Добавить переводчика"
          ],
          "Edit language pair(s) for translator": [
-            "Изменить языковую пару(ы) для переводчика"
+            "Изменить языковую пару (пары) для переводчика"
          ],
          "Name": [
             "Имя"
@@ -107,10 +110,10 @@
             "Языковые пары"
          ],
          "You can translate to and from all languages": [
-            "Вы можете переводить на все языки"
+            "Вы можете переводить на все языки и со всех языков"
          ],
          "Edit language pair(s)": [
-            "Редактировать языковую пару (пары)"
+            "Изменить языковую пару (пары)"
          ],
          "Delete language pair(s)": [
             "Удалить языковую пару (пары)"
@@ -125,43 +128,43 @@
             "Файл флага"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "Вы только что добавили язык. Затем выберите его в качестве языка сайта по умолчанию или языка перевода."
+            "Вы только что добавили язык. Далее выберите его в качестве языка сайта по умолчанию или языка перевода."
          ],
          "Language added": [
             "Язык добавлен"
          ],
          "The value \"%s\" already exists": [
-            "Значение “%s” уже существует"
+            "Значение «%s» уже существует"
          ],
          "Add a new language": [
             "Добавить новый язык"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "Создайте язык для определенной страны, выбрав общий язык из списка ниже. Затем выберите страну, для которой его следует локализовать."
+            "Создайте язык для конкретной страны, выбрав общий язык из списка ниже. Затем выберите страну, для которой он должен быть локализован."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "Если выбрать сочетание, уже существующее в базе данных, WPML поможет заполнить необходимые поля. Подробнее о <AddingACustomLanguageLink />."
+            "Выбрав комбинацию, которая уже существует в базе данных, WPML может помочь заполнить необходимые поля. Подробнее о <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
-            "Не удается найти?"
+            "Не можете найти?"
          ],
          "Click here": [
-            "Щелкните здесь"
+            "Нажмите здесь"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "Неверный формат. Может содержать только строчные буквы и “-”. Например: “fr”, “pt-br”, “zh-hans”"
+            "Неверный формат. Он может содержать только строчные буквы и «-». Например: «fr», «pt-br», «zh-hans»"
          ],
          "Language": [
             "Язык"
          ],
          "Location": [
-            "Расположение"
+            "Местоположение"
          ],
          "Code": [
             "Код"
          ],
          "The language will not be supported by automatic translations": [
-            "Этот язык не будет поддерживаться автоматическим переводом."
+            "Язык не будет поддерживаться автоматическими переводами"
          ],
          "Language mapping": [
             "Сопоставление языков"
@@ -170,16 +173,16 @@
             "Не сопоставлять этот язык"
          ],
          "Default locale": [
-            "Регион по умолчанию"
+            "Локаль по умолчанию"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "Неверный формат. Может содержать только строчные буквы и “_”. Например: “de”, “de_DE”, “zh_Hant_TW”"
+            "Неверный формат. Он может содержать только строчные буквы и «_». Например: «de», «de_DE», «zh_Hant_TW»"
          ],
          "hreflang": [
             "hreflang"
          ],
          "Encode url?": [
-            "Кодировать URL-адрес?"
+            "Кодировать URL?"
          ],
          "Flags must be:": [
             "Флаги должны быть:"
@@ -191,13 +194,13 @@
             "ДА"
          ],
          " (required)": [
-            "(обязательно)"
+            " (обязательно)"
          ],
          "Please fill in the field": [
-            "Заполните поле"
+            "Пожалуйста, заполните поле"
          ],
          "PNG, SVG, or JPG files": [
-            "Файлы PNG, SVG, или JPG"
+            "Файлы PNG, SVG или JPG"
          ],
          "Save language": [
             "Сохранить язык"
@@ -206,25 +209,25 @@
             "18 x 12 пикселей"
          ],
          "Read more about ": [
-            "Подробнее о"
+            "Подробнее о "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "Отображаемое название языка в переключателе языка на вашем сайте."
+            "Название вашего языка, как оно будет отображаться в переключателе языков вашего сайта."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "Уникальное значение, определяющее язык в базе данных и URL-адресе. После сохранения код языка нельзя изменить."
+            "Уникальное значение, которое идентифицирует язык в базе данных и URL. После сохранения код языка нельзя изменить."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "Если пользовательский язык такой же, как и существующий, можно использовать проверку орфографии и автоматический перевод существующего языка. Например, если выбранный вами язык – швейцарский немецкий, его можно сопоставить с немецким языком, который будет использоваться для проверки орфографии и автоматического перевода. Если пользовательский язык не сопоставить с существующим, функции проверки орфографии и автоматического перевода для этого языка будут недоступны."
+            "Если ваш пользовательский язык похож на существующий язык, вы можете использовать проверку орфографии и автоматический перевод существующего языка. Например, если ваш пользовательский язык — швейцарско-немецкий, вы можете сопоставить его с немецким языком для проверки орфографии и автоматического перевода. Если вы не сопоставите свой пользовательский язык с существующим языком, функции проверки орфографии и автоматического перевода будут недоступны на этом языке."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "Значение, которое WPML проверяет при загрузке переводов из файлов формата MO и PO. Регион по умолчанию включен в имена файлов в папке /wp-content/languages/ в настройках WordPress."
+            "Значение, которое WPML проверяет при загрузке переводов из файлов MO и PO. Локаль по умолчанию включена в имена файлов в папке /wp-content/languages/ в вашей установке WordPress."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Для направления пользователей на сайты в соответствии с их языком и местоположением Google использует атрибут hreflang. Примеры:"
+            "Google использует атрибут hreflang для направления пользователей на сайты на соответствующем языке и в соответствующем местоположении. Примеры:"
          ],
          "All English-speaking users: en": [
-            "Все пользователи с английским языком: en"
+            "Все англоговорящие пользователи: en"
          ],
          "English for UK users: en-gb": [
             "Английский для пользователей из Великобритании: en-gb"
@@ -233,46 +236,46 @@
             "Английский для пользователей из США: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "Определяет, кодируются ли URL-адреса на этом языке или используют ASCII-символы (если не уверены, оставьте “Нет”)."
+            "Определяет, кодируются ли URL-адреса на этом языке или используют символы ASCII (если не уверены, оставьте «Нет»)."
          ],
          "adding a custom language": [
             "добавление пользовательского языка"
          ],
          "What are the languages of your site?": [
-            "Какой язык вашего сайта?"
+            "Какие языки используются на вашем сайте?"
          ],
          "Default language": [
             "Язык по умолчанию"
          ],
          "What is the current language of your website?": [
-            "Какой текущий язык вашего сайта?"
+            "Какой язык используется на вашем сайте в настоящее время?"
          ],
          "Translation languages": [
             "Языки перевода"
          ],
          "Which languages do you want to translate your site into?": [
-            "На какие языки нужно перевести ваш сайт?"
+            "На какие языки вы хотите перевести свой сайт?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "Если в списке нет необходимых языков,"
+         "If you cannot find languages that you need in the list,": [
+            "Если вы не можете найти нужные языки в списке,"
          ],
          "create a custom language": [
-            "создайте пользовательский язык"
+            "создать пользовательский язык"
          ],
          "You can add a dedicated person to oversee everything translation-related on your site. %sTranslation Managers%s can add new local translators or professional translation services, create and assign translation jobs, review completed translations, and change translation-related settings.": [
-            "Вы можете добавить отдельное лицо, которое будет контролировать все связанное с переводом на вашем сайте. %sМенеджеры переводческих проектов%s могут добавлять новых собственных переводчиков или службы профессионального перевода, создавать и назначать заказы на перевод, проверять выполненные переводы и изменять настройки, связанные с переводом."
+            "Вы можете назначить ответственного за все, что связано с переводом на вашем сайте. %sМенеджеры по переводу%s могут добавлять новых локальных переводчиков или профессиональные службы перевода, создавать и назначать задания на перевод, проверять выполненные переводы и изменять настройки, связанные с переводом."
          ],
          "Translation Managers": [
-            "Менеджеры переводческих проектов"
+            "Менеджеры по переводу"
          ],
          "Note: All Administrators are automatically given Translation Manager privileges.": [
-            "Примечание. Все администраторы автоматически получают роль менеджера переводческих проектов."
+            "Примечание: Все администраторы автоматически получают права менеджера по переводу."
          ],
          "%sLocal translators%s are users of your site that can log in and add, edit, and review your site's translations. Add a translator and their associated translation pairs to assign them translation jobs.": [
-            "%sСобственные переводчики%s – пользователи, которые могут входить на ваш сайт и добавлять, изменять и проверять его переводы. Добавьте переводчика и связанные с ним пары перевода, чтобы назначать ему заказы на перевод."
+            "%sЛокальные переводчики%s — это пользователи вашего сайта, которые могут входить в систему и добавлять, редактировать и проверять переводы вашего сайта. Добавьте переводчика и связанные с ним пары языков, чтобы назначать ему задания на перевод."
          ],
          "You can %shire an experienced translator%s to review your automatic translations for perfect quality.": [
-            "Вы можете %sнанять опытного переводчика%s, чтобы он проверил ваши автоматические переводы на предмет идеального качества."
+            "Вы можете %sнанять опытного переводчика%s для проверки качества ваших автоматических переводов."
          ],
          "Translators": [
             "Переводчики"

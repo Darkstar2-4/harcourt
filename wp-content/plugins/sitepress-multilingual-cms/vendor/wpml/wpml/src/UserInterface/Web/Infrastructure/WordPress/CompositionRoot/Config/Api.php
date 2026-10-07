@@ -8,12 +8,6 @@ use WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\ApiInterface;
 class Api implements ApiInterface {
 
 
-  /**
-   * @param callable $handle
-   * @param callable $authorisation
-   *
-   * @return void
-   */
   public function registerRoute(
     Endpoint $endpoint,
     $handle,
@@ -35,12 +29,6 @@ class Api implements ApiInterface {
   }
 
 
-  /**
-   * @param callable $handle
-   * @param callable $authorisation
-   *
-   * @return void
-   */
   private function registerAjaxEndpoint(
     Endpoint $endpoint,
     $handle,
@@ -50,19 +38,29 @@ class Api implements ApiInterface {
 
     add_action(
       'wp_ajax_wpml_api_' . $routeWithoutSlashes,
-      function() use ( $handle ) {
+      function() use ( $handle, $authorisation ) {
+        $authorisationResult = $authorisation();
 
-        // We'll get the JSON data from the request body
+        if ( $authorisationResult === false || $authorisationResult === null ) {
+          $authorisationResult = new \WP_Error(
+            'rest_forbidden',
+            __( 'Sorry, you are not allowed to do that.' ),
+            [ 'status' => rest_authorization_required_code() ]
+          );
+        }
+
+        if ( is_wp_error( $authorisationResult ) ) {
+          $errorResponse = rest_convert_error_to_response( $authorisationResult );
+          return wp_send_json_error( $authorisationResult, $errorResponse->get_status() );
+        }
+
         $json = file_get_contents( 'php://input' );
 
-        // Parse the JSON data so we can use it
         $params = $json ? json_decode( $json, true ) : [];
         $params = is_array( $params ) ? $params : [];
 
-        // Add the $_GET params
         $params = array_merge( $params, $_GET );
 
-        /** @var \WP_REST_Response $jsonResponse */
         $jsonResponse = $handle( $params );
 
         http_response_code( $jsonResponse->status );
@@ -75,9 +73,6 @@ class Api implements ApiInterface {
   }
 
 
-  /**
-   * @return void
-   */
   private function registerRestEndpoint(
     string $name,
     string $path,
@@ -91,7 +86,6 @@ class Api implements ApiInterface {
       [
         'methods' => $method,
         'callback' =>
-        /** @return mixed */
         function( \WP_REST_Request $request ) use ( $handle ) {
           return $handle( $request->get_params() );
         },
@@ -123,16 +117,16 @@ class Api implements ApiInterface {
 
 
   public function validateRequest( string $capability ): bool {
+    if ( $capability === '__return_true' ) {
+      return true;
+    }
+
     return \current_user_can( $this->capabilityPlusAdmin( $capability ) );
   }
 
 
   public function capabilityPlusAdmin( string $capability ): string {
     if ( current_user_can( WPML_CAP_MANAGE_OPTIONS ) ) {
-      // There is nothing on WPML which isn't allowed by Administrators.
-      // This prevents people from being locked out of WPML functions when
-      // they accidentally lose their WPML_CAP_MANAGE_TRANSLATIONS capability.
-      // See wpmldev-4629.
       return WPML_CAP_MANAGE_OPTIONS;
     }
 
@@ -140,19 +134,18 @@ class Api implements ApiInterface {
   }
 
 
-  /**
-   * @param array<mixed> $data
-   */
   public function responseJsonSuccess( $data ) {
       return \rest_ensure_response( new \WP_REST_Response( $data, 200 ) );
   }
 
 
-  /**
-   * @param string $data
-   */
   public function responseJsonError( $data ) {
       return \rest_ensure_response( new \WP_REST_Response( $data, 500 ) );
+  }
+
+
+  public function responseJsonWithStatusCode( $data, $status_code ) {
+      return \rest_ensure_response( new \WP_REST_Response( $data, $status_code ) );
   }
 
 

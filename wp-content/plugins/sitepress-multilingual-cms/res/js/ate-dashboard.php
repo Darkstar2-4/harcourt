@@ -4,7 +4,6 @@ $isJs        = false;
 
 $factory = new WPML_TM_AMS_ATE_Console_Section_Factory();
 
-/** @var \WPML_TM_AMS_ATE_Console_Section|null $ateConsoleSection */
 $ateConsoleSection = $factory->create();
 
 if ( ! $ateConsoleSection ) {

@@ -4,7 +4,6 @@ namespace WPML\Core\Component\PostHog\Domain\Config;
 
 class Config {
 
-  // Default API KEY for the "WPML Plugins" project on PostHog dashboard.
   const DEFAULT_API_KEY = 'phc_UUIWtbxYIro1TjT0zROVCJA2heo5jGOlYsn2NV2Fm6A';
   const DEFAULT_HOST = 'https://us.i.posthog.com';
   const DEFAULT_DISABLE_SURVEYS = true;
@@ -13,31 +12,22 @@ class Config {
   const DEFAULT_CAPTURE_PAGE_LEAVE = false;
   const DEFAULT_DISABLE_SESSION_RECORDING = false;
 
-  // or 'always' to create profiles for anonymous users as well
   const DEFAULT_PERSON_PROFILES = 'identified_only';
 
-  /** @var string */
   private $apiKey;
 
-  /** @var string */
   private $host;
 
-  /** @var string */
   private $personProfiles;
 
-  /** @var bool */
   private $disableSurveys;
 
-  /** @var bool */
   private $autoCapture;
 
-  /** @var bool */
   private $capturePageView;
 
-  /** @var bool */
   private $capturePageLeave;
 
-  /** @var bool */
   private $disableSessionRecording;
 
 
@@ -62,56 +52,50 @@ class Config {
   }
 
 
-  /** @return void */
   public function setApiKey( string $apiKey ) {
     $this->apiKey = $apiKey;
   }
 
 
-  /** @return void */
   public function setHost( string $host ) {
     $this->host = $host;
   }
 
 
-  /** @return void */
   public function setDisableSurveys( bool $disableSurveys ) {
     $this->disableSurveys = $disableSurveys;
   }
 
 
-  /** @return void */
   public function setAutoCapture( bool $autoCapture ) {
     $this->autoCapture = $autoCapture;
   }
 
 
-  /** @return void */
   public function setCapturePageView( bool $capturePageView ) {
     $this->capturePageView = $capturePageView;
   }
 
 
-  /** @return void */
   public function setCapturePageLeave( bool $capturePageLeave ) {
     $this->capturePageLeave = $capturePageLeave;
   }
 
 
-  /** @return void */
   public function setDisableSessionRecording( bool $disableSessionRecording ) {
     $this->disableSessionRecording = $disableSessionRecording;
   }
 
 
-  /** @return void */
   public function setPersonProfiles( string $personProfiles ) {
     $this->personProfiles = $personProfiles;
   }
 
 
   public function getApiKey(): string {
-    return $this->apiKey;
+    return defined( 'WPML_POSTHOG_API_KEY' ) ?
+      constant( 'WPML_POSTHOG_API_KEY' ) :
+      $this->apiKey;
   }
 
 

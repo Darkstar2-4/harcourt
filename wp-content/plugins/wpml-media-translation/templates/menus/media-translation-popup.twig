@@ -1,24 +1,58 @@
-<div id="wpml-media-dialog">
-    <span class="ajax-loader"></span>
+<div id="wpml-media-dialog" hidden>
+	<div class="wpml-settings-list" id="wpml-media-is-copy-notice" style="display: none">
+		<div role="presentation">
+			<div class="warning notice-warning otgs-notice wpml-settings-list-notice" style="display: block;">
+				<h4 class="small-margin-top small-margin-bottom">{{ strings.media_text_is_copy }}</h4>
+				<p>{{ strings.media_text_is_copy_notice }}</p>
+				<h4 id="wpml-media-is-copy-cannot-edit-notice" class="small-margin-bottom" style="display: none"><i>{{ strings.media_text_cannot_edit_notice }}</i></h4>
+			</div>
+		</div>
+	</div>
+	<div class="wpml-settings-list" id="wpml-media-is-reference-notice" style="display: none">
+		<div role="presentation">
+			<div class="warning notice-warning otgs-notice wpml-settings-list-notice" style="display: block;">
+				<h4 class="small-margin-top small-margin-bottom">{{ strings.media_text_is_reference }}</h4>
+				<p>{{ strings.media_text_is_reference_notice }}</p>
+				<h4 class="small-margin-bottom" style="display: none"><i>{{ strings.media_text_cannot_edit_notice }}</i></h4>
+			</div>
+		</div>
+	</div>
+	<div class="wpml-settings-list" id="wpml-media-is-copyandreference-notice" style="display: none">
+		<div role="presentation">
+			<div class="warning notice-warning otgs-notice wpml-settings-list-notice" style="display: block;">
+				<h4 class="small-margin-top small-margin-bottom">{{ strings.media_text_is_copy_ref }}</h4>
+				<p>{{ strings.media_text_is_copy_ref_notice }}</p>
+				<h4 class="small-margin-bottom" style="display: none"><i>{{ strings.media_text_cannot_edit_notice }}</i></h4>
+			</div>
+		</div>
+	</div>
+	<span class="ajax-loader"></span>
     <form id="wpml-media-dialog-form" method="post" enctype="multipart/form-data">
         {{ nonce|raw }}
+		<input type="hidden" name="copied_media_label" value=""/>
+		<input type="hidden" name="referenced_media_label" value=""/>
+		<input type="hidden" name="has_usages_in_posts_by_copy" value=""/>
+		<input type="hidden" name="has_usages_in_posts_by_reference" value=""/>
         <input type="hidden" name="original-attachment-id" value=""/>
         <input type="hidden" name="translated-attachment-id" value=""/>
         <input type="hidden" name="translated-language" value=""/>
         <input type="hidden" name="restore-media" value="0"/>
         <input type="hidden" name="update-media-file" value="0"/>
         <input type="hidden" name="action" value="wpml_media_save_translation"/>
-        <header class="wpml-media-translation-header">
-            <h3 class="wpml-header-original">{{ strings.original }}<span class="wpml-title-flag"><img
-                            src="#"></span><strong>%from_language%</strong>
-            </h3>
-            <h3 class="wpml-header-translation">{{ strings.translation }}<span class="wpml-title-flag"><img
-                            src="#"></span><strong>%to_language%</strong>
-            </h3>
-        </header>
 
+		<div class="wpml-form-row wpml-form-row--columns">
+			<label></label>
+			<h3 class="wpml-header-original">
+				{{ strings.original }}
+				<div class="wpml-flag-wrapper"><span class="wpml-title-flag"><img src="#"></span><strong>%from_language%</strong></div>
+			</h3>
+			<h3 class="wpml-header-translation">
+				{{ strings.translation }}
+				<div class="wpml-flag-wrapper"><span class="wpml-title-flag"><img src="#"></span><strong>%to_language%</strong></div>
+			</h3>
+		</div>
 
-        <div class="wpml-form-row">
+        <div class="wpml-form-row wpml-form-row--columns">
 
             <label>{{ strings.file }}</label>
 
@@ -43,36 +77,49 @@
 
         </div>
 
-        <div class="wpml-form-row wpml-form-row-title hidden">
+		<div style="width: 100%; height: 20px"></div>
+
+        <div class="wpml-form-row wpml-form-row-title wpml-form-row-translation-field hidden">
             <label for="media-title">{{ strings.name }}</label>
             <input readonly value="" id="media-title-original" type="text">
-            <button class="button-copy button-secondary js-button-copy otgs-ico-copy"
-                    title="{{ strings.copy_from_original }}"></button>
+			<div class="wpml-row-button-row">
+				<button class="button-copy button-secondary js-button-copy otgs-ico-copy"
+						title="{{ strings.copy_from_original }}"
+						data-defaultitle="{{ strings.copy_from_original }}"
+						data-disabledtitle="{{ strings.media_text_cannot_edit_notice }}"></button>
+			</div>
             <input name="translation[title]" id="media-title-translation" value="" type="text">
         </div>
-        <div class="wpml-form-row wpml-form-row-caption hidden">
+        <div class="wpml-form-row wpml-form-row-caption wpml-form-row-translation-field hidden">
             <label for="media-caption">{{ strings.caption }}</label>
             <textarea readonly id="media-caption-original" cols="22" rows="4"></textarea>
-            <button class="button-copy button-secondary js-button-copy otgs-ico-copy"
-                    title="{{ strings.copy_from_original }}"></button>
+			<div class="wpml-row-button-row">
+				<button class="button-copy button-secondary js-button-copy otgs-ico-copy"
+						title="{{ strings.copy_from_original }}"></button>
+			</div>
             <textarea name="translation[caption]" id="media-caption-translation" cols="22" rows="4"></textarea>
         </div>
-        <div class="wpml-form-row wpml-form-row-alt-text hidden">
+        <div class="wpml-form-row wpml-form-row-alt-text wpml-form-row-translation-field hidden">
             <label for="media-alt-text">{{ strings.alt_text }}</label>
             <input readonly value="" id="media-alt-text-original" type="text">
-            <button class="button-copy button-secondary js-button-copy otgs-ico-copy"
-                    title="{{ strings.copy_from_original }}"></button>
+			<div class="wpml-row-button-row">
+				<button class="button-copy button-secondary js-button-copy otgs-ico-copy"
+						title="{{ strings.copy_from_original }}"></button>
+			</div>
             <input name="translation[alt-text]" id="media-alt-text-translation" value="" type="text">
         </div>
-        <div class="wpml-form-row wpml-form-row-description hidden">
+        <div class="wpml-form-row wpml-form-row-description wpml-form-row-translation-field hidden">
             <label for="media-description">{{ strings.description }}</label>
             <textarea readonly id="media-description-original" cols="22" rows="4"></textarea>
-            <button class="button-copy button-secondary js-button-copy otgs-ico-copy"
-                    title="{{ strings.copy_from_original }}"></button>
+			<div class="wpml-row-button-row">
+				<button class="button-copy button-secondary js-button-copy otgs-ico-copy"
+						title="{{ strings.copy_from_original }}"></button>
+			</div>
             <textarea name="translation[description]" id="media-description-translation" cols="22" rows="4"></textarea>
         </div>
+		<div id="wpml-custom-fields-container"></div>
     </form>
-    {% if( show_text_change_notice) %}
+    {% if( false and show_text_change_notice) %}
     <div class="text-change-notice notice notice-info inline is-dismissible hidden">
         <p>{{ strings.texts_change_notice }}</p>
     </div>

@@ -4,22 +4,16 @@ namespace WPML\Core\SharedKernel\Component\Post\Domain;
 
 class Post {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $status;
 
-  /** @var string */
   private $type;
 
-  /** @var string */
   private $title;
 
-  /** @var string */
   private $content;
 
-  /** @var string */
   private $excerpt;
 
 

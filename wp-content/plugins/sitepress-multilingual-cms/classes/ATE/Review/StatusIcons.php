@@ -38,7 +38,6 @@ class StatusIcons implements \IWPML_Backend_Action {
 
 	public static function ifNeedsReview( $fn ) {
 		$doesNeedReview = function( $job ) {
-			// Treat null as ACCEPTED.
 			$review_status = isset( $job['review_status'] ) && $job['review_status']
 				? $job['review_status']
 				: ReviewStatus::ACCEPTED;
@@ -79,10 +78,8 @@ class StatusIcons implements \IWPML_Backend_Action {
 	private function setLink() {
 		return function ( $data ) {
 			if ( array_key_exists( 'review_status', $data ) ) {
-				// Review status already provided by the filter.
 				$review_status = $data['review_status'] ?: ReviewStatus::ACCEPTED;
 				if ( ! ReviewStatus::needsReview( $review_status ) ) {
-					// Does not need review.
 					return $data['default'];
 				}
 			}
@@ -115,7 +112,7 @@ class StatusIcons implements \IWPML_Backend_Action {
 
 			$disableInProgressIconOfAutomaticJob = Logic::ifElse(
 				Logic::both( $isInProgress, Obj::path( [ 'job', 'automatic' ] ) ),
-				Fns::always( 0 ), // no link at all
+				Fns::always( 0 ),
 				Obj::prop( 'default' )
 			);
 

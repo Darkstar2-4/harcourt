@@ -14,13 +14,13 @@
             "تم إلغاء جميع المهام"
          ],
          "There is no more jobs to cancel": [
-            "لا يوجد المزيد من المهام لإلغائها"
+            "لا توجد مهام أخرى لإلغائها"
          ],
          "The jobs cancellation has failed": [
-            "فشلت عملية إلغاء المهام"
+            "فشل إلغاء المهام"
          ],
          "Cancel in-progress automatic jobs": [
-            "إلغاء مهام الترجمة الآلية قيد التنفيذ"
+            "إلغاء المهام التلقائية قيد التقدم"
          ],
          "Domain name has been updated": [
             "تم تحديث اسم النطاق"
@@ -29,13 +29,13 @@
             "فشل تحديث اسم النطاق"
          ],
          "Update domain name in language switcher settings": [
-            "تحديث اسم النطاق في إعدادات محوّل اللغة"
+            "تحديث اسم النطاق في إعدادات مبدل اللغة"
          ],
          "Disclaimer: MySQL Disk Space": [
-            "إخلاء مسؤولية: مساحة القرص لـ MySQL"
+            "إخلاء مسؤولية: مساحة قرص MySQL"
          ],
          "Cleaning and compressing the wp_icl_translate and wp_icl_translation_status tables reduces its data size, but does not automatically free up disk space in MySQL. To reclaim disk space, a table rebuild is required—a risky operation not performed automatically by this tool.": [
-            "يؤدي تنظيف وضغط جداول wp_icl_translate وwp_icl_translation_status إلى تقليل حجم البيانات، ولكنه لا يحرر مساحة القرص تلقائيًا في MySQL. لاسترداد مساحة القرص، يلزم إعادة بناء الجدول - وهي عملية محفوفة بالمخاطر لا تقوم بها هذه الأداة تلقائيًا."
+            "يؤدي تنظيف وضغط جدولي wp_icl_translate و wp_icl_translation_status إلى تقليل حجم بياناتهما، ولكنه لا يحرر مساحة القرص تلقائيًا في MySQL. لاستعادة مساحة القرص، يلزم إعادة بناء الجدول — وهي عملية محفوفة بالمخاطر لا يتم إجراؤها تلقائيًا بواسطة هذه الأداة."
          ],
          "Optimize translation tables": [
             "تحسين جداول الترجمة"
@@ -62,50 +62,50 @@
             "تحذير"
          ],
          "This process is resource-intensive and may take a significant amount of time. It is recommended to run this optimization during periods of low traffic.": [
-            "هذه العملية كثيفة الموارد وقد تستغرق وقتًا طويلاً. يُنصح بتشغيل هذا التحسين خلال فترات انخفاض حركة المرور."
+            "هذه العملية تستهلك الكثير من الموارد وقد تستغرق وقتًا طويلاً. يوصى بتشغيل هذا التحسين خلال فترات انخفاض حركة المرور."
          ],
          "Database Tables Optimization": [
             "تحسين جداول قاعدة البيانات"
          ],
          "Refresh license data to recognise license update": [
-            "أعد تحديث بيانات الترخيص لإعادة التعرف على تحديث الترخيص"
+            "تحديث بيانات الترخيص للتعرف على تحديث الترخيص"
          ],
          "WPML License has been refreshed": [
             "تم تحديث ترخيص WPML"
          ],
          "Translate Everything Automatically is not active.": [
-            "خاصية الترجمة التلقائية للكل غير مفعلة."
+            "ميزة ”ترجمة كل شيء تلقائيًا“ غير نشطة."
          ],
          "Retry stuck automatic translations": [
             "إعادة محاولة الترجمات التلقائية العالقة"
          ],
          "Resends translation jobs that couldn't be processed due to a temporary issue while Translate Everything Automatically was active.": [
-            "يعيد إرسال مهام الترجمة التي لم يتم معالجتها بسبب مشكلة مؤقتة أثناء تفعيل خاصية الترجمة التلقائية للكل."
+            "إعادة إرسال مهام الترجمة التي تعذر معالجتها بسبب مشكلة مؤقتة أثناء تنشيط ميزة ”ترجمة كل شيء تلقائيًا“."
          ],
          "Checking for stuck translation jobs...": [
-            "جاري التحقق من مهام الترجمة العالقة..."
+            "جارٍ التحقق من مهام الترجمة العالقة..."
          ],
          "Processing... %s stuck translation found so far": [
-            "Processing... %s stuck translations found so far",
-            "جاري المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
-            "Processing... %s stuck translations found so far",
-            "Processing... %s stuck translations found so far",
-            "Processing... %s stuck translations found so far",
-            "جاري المعالجة... تم العثور على %s ترجمة عالقة حتى الآن"
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن",
+            "جارٍ المعالجة... تم العثور على %s ترجمة عالقة حتى الآن"
          ],
          "Something went wrong while checking for stuck translation jobs. Please <a>contact WPML support</a>.": [
-            "حدث خطأ أثناء التحقق من مهام الترجمة العالقة. من فضلك <a>اتصل بدعم WPML</a>."
+            "حدث خطأ أثناء التحقق من مهام الترجمة العالقة. يرجى <a>الاتصال بدعم WPML</a>."
          ],
          "No stuck translation jobs found.": [
             "لم يتم العثور على مهام ترجمة عالقة."
          ],
          "%s stuck translation job found. WPML will translate it automatically in the background.\nYou can check the progress in the Translation Dashboard.": [
-            "%s stuck translation jobs found. WPML will translate them automatically in the background.\nYou can check their progress in the Translation Dashboard.",
-            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك متابعة التقدم في لوحة التحكم بالترجمة.",
-            "%s stuck translation jobs found. WPML will translate them automatically in the background.\nYou can check their progress in the Translation Dashboard.",
-            "%s stuck translation jobs found. WPML will translate them automatically in the background.\nYou can check their progress in the Translation Dashboard.",
-            "%s stuck translation jobs found. WPML will translate them automatically in the background.\nYou can check their progress in the Translation Dashboard.",
-            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك متابعة تقدمها في لوحة التحكم بالترجمة."
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من تقدمها في لوحة تحكم الترجمة.",
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من التقدم في لوحة تحكم الترجمة.",
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من تقدمها في لوحة تحكم الترجمة.",
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من تقدمها في لوحة تحكم الترجمة.",
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من تقدمها في لوحة تحكم الترجمة.",
+            "تم العثور على %s مهمة ترجمة عالقة. سيقوم WPML بترجمتها تلقائيًا في الخلفية.\nيمكنك التحقق من تقدمها في لوحة تحكم الترجمة."
          ]
       }
    }

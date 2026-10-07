@@ -2,10 +2,8 @@
 
 class WPML_Change_String_Domain_Language_Dialog extends WPML_WPDB_And_SP_User {
 
-	/** @var  WPML_Language_Of_Domain $language_of_domain */
 	private $language_of_domain;
 
-	/** @var  WPML_ST_String_Factory $string_factory */
 	private $string_factory;
 
 	public function __construct(
@@ -116,29 +114,16 @@ class WPML_Change_String_Domain_Language_Dialog extends WPML_WPDB_And_SP_User {
 		<?php
 	}
 
-	/**
-	 * @param string $domain
-	 * @param array  $langs
-	 * @param string $to_lang
-	 */
 	public function changeLanguageOfStringsInPackages( $domain, $langs, $to_lang ) {
 		$package_translation = new WPML_Package_Helper();
 		$package_translation->change_language_of_strings_in_domain( $domain, $langs, $to_lang );
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $to_lang
-	 */
 	public function setLanguageOfDomain( $domain, $to_lang ) {
 		$lang_of_domain = new WPML_Language_Of_Domain( $this->sitepress );
 		$lang_of_domain->set_language( $domain, $to_lang );
 	}
 
-	/**
-	 * @param string[] $stringIds
-	 * @param string   $to_lang
-	 */
 	public function changeLanguageOfStrings( $stringIds, $to_lang ) {
 		foreach ( $stringIds as $id ) {
 			$string = $this->string_factory->find_by_id( (int) $id );

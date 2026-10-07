@@ -4,18 +4,12 @@ namespace WPML\ST\StringsCleanup;
 
 class UntranslatedStrings {
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param string[] $domains
-	 *
-	 * @return int
-	 */
 	public function getCountInDomains( $domains ) {
 		if ( ! $domains ) {
 			return 0;
@@ -30,12 +24,6 @@ class UntranslatedStrings {
 		);
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param int      $batchSize
-	 *
-	 * @return array
-	 */
 	public function getFromDomains( $domains, $batchSize ) {
 		if ( ! $domains ) {
 			return [];
@@ -51,11 +39,6 @@ class UntranslatedStrings {
 		);
 	}
 
-	/**
-	 * @param int[] $stringIds
-	 *
-	 * @return int
-	 */
 	public function remove( $stringIds ) {
 		if ( $stringIds ) {
 			wpml_unregister_string_multi( $stringIds );

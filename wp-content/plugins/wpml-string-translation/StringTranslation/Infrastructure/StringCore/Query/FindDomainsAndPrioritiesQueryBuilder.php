@@ -8,7 +8,6 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 
 class FindDomainsAndPrioritiesQueryBuilder extends QueryBuilder {
 
-	/** @var SettingsRepository */
 	protected $settingsRepository;
 
 	public function __construct(

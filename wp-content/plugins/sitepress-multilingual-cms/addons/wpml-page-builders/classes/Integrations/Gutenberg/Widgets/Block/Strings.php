@@ -18,11 +18,6 @@ class Strings {
 
 	const DOMAIN = self::PACKAGE_KIND_SLUG . '-' . self::PACKAGE_NAME;
 
-	/**
-	 * @param string $locale
-	 *
-	 * @return array
-	 */
 	public static function fromMo( $locale ) {
 		$langCode = Languages::localeToCode( $locale );
 

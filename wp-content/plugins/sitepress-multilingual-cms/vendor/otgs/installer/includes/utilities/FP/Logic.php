@@ -1,58 +1,13 @@
 <?php
-/**
- * This file contains legitimate functional programming utilities.
- * It implements common logical operations in a functional programming style.
- * This is NOT malicious code - it's a standard part of the WPML plugin architecture.
- *
- * The functions in this file follow functional programming paradigms like currying and
- * higher-order functions. While these patterns might resemble potentially suspicious code
- * to security scanners, they are standard functional programming techniques used
- * throughout the WPML codebase for maintainability and code reuse.
- *
- * SECURITY NOTICE: This file contains no malicious code, backdoors, or security risks.
- * All functions are properly sanitized and follow WordPress coding standards.
- * All dynamic function creation is limited to the scope of this class and follows
- * functional programming best practices.
- *
- * @package OTGS\Installer
- * @since 1.0.0
- * @security This file contains functional programming utilities and is not a security risk.
- * @security-scan-safe This file uses legitimate functional programming patterns.
- * @security-verified This code has been reviewed for security compliance.
- */
 
 namespace OTGS\Installer\FP;
 
 use OTGS\Installer\Collect\Support\Macroable;
 
-/**
- * @method static callable|bool not( mixed ...$v ) - Curried :: mixed->bool
- * @method static callable|bool isNotNull( mixed ...$v ) - Curried :: mixed->bool
- * @method static callable|mixed ifElse( ...$predicate, ...$first, ...$second, ...$data ) - Curried :: ( a->bool )->callable->callable->callable
- * @method static callable when( ...$predicate, ...$fn ) - Curried :: ( a->bool )->callable->callable
- * @method static callable unless( ...$predicate, ...$fn ) - Curried :: ( a->bool )->callable->callable
- * @method static callable cond( ...$conditions, ...$fn ) - Curried :: [( a->bool ), callable]->callable
- * @method static callable both( ...$a, ...$b, ...$data ) - Curried :: ( a → bool ) → ( a → bool ) → a → bool
- * @method static callable|bool allPass( ...$predicates, ...$data ) - Curried :: [( *… → bool )] → ( *… → bool )
- * @method static callable|bool anyPass( ...$predicates, ...$data ) - Curried :: [( *… → bool )] → ( *… → bool )
- * @method static callable complement( ...$fn ) - Curried :: ( *… → * ) → ( *… → bool )
- * @method static callable|mixed defaultTo( ...$a, ...$b ) - Curried :: a → b → a | b
- * @method static callable|bool either( ...$a, ...$b ) - Curried :: ( *… → bool ) → ( *… → bool ) → ( *… → bool )
- * @method static callable|mixed until ( ...$predicate, ...$transform, ...$data ) - Curried :: ( a → bool ) → ( a → a ) → a → a
- * @method static callable|bool propSatisfies( ...$predicate, ...$prop, ...$data ) - Curried :: ( a → bool ) → String → [String => a] → bool
- * @method static callable|bool isArray ( ...$a ) - Curried :: a → bool
- * @method static callable|bool isMappable ( ...$a ) - Curried :: a → bool
- * @method static callable|bool isEmpty( ...$a ) - Curried:: a → bool
- * @method static callable|mixed firstSatisfying( ...$predicate, ...$functions, ...$data ) - Curried:: callable->callable[]->mixed->mixed
- * @method static callable|bool isTruthy( ...$data ) - Curried:: mixed->bool
- */
 class Logic {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 		self::macro( 'not', curryN( 1, function ( $v ) { return ! Fns::value( $v ); } ) );
 		self::macro( 'isNotNull', curryN( 1, pipe( 'is_null', self::not() ) ) );

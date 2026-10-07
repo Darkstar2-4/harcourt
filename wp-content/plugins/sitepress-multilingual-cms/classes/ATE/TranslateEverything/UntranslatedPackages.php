@@ -18,21 +18,17 @@ use function WPML\FP\pipe;
 
 class UntranslatedPackages extends AbstractUntranslatedElements {
 
-	/** @var PackageDefinitionQuery */
 	private $translatablePackages;
 
 	public function __construct(
 		\wpdb $wpdb,
-		\WPML_TM_Old_Jobs_Editor $oldJobsEditor = null,
-		PackageDefinitionQuery $translatablePackages = null
+		?\WPML_TM_Old_Jobs_Editor $oldJobsEditor = null,
+		?PackageDefinitionQuery $translatablePackages = null
 	) {
 		parent::__construct( $wpdb, $oldJobsEditor );
 		$this->translatablePackages = $translatablePackages ?: new PackageDefinitionQuery();
 	}
 
-	/**
-	 * @return array|null
-	 */
 	public function getTypeWithLanguagesToProcess() {
 		$packageKinds = $this->getPackageKindToTranslate(
 			$this->getTypes(),
@@ -86,23 +82,10 @@ class UntranslatedPackages extends AbstractUntranslatedElements {
 		return Fns::map( Obj::evolve( [ 0 => Cast::toInt() ] ), $result );
 	}
 
-	/**
-	 * @param Actions $actions
-	 * @param array $elements
-	 * @param string $type
-	 *
-	 * @return array
-	 */
 	public function createTranslationJobs( Actions $actions, array $elements, $type ) {
 		return $actions->createNewTranslationJobs( Languages::getDefaultCode(), $elements, 'package_' . $type );
 	}
 
-	/**
-	 * @param array $packageKinds
-	 * @param array $languages
-	 *
-	 * @return array
-	 */
 	private function getPackageKindToTranslate( array $packageKinds, array $languages ) {
 		$completed                           = $this->getCompleted();
 		$getLanguageCodesNotCompletedForKind = pipe( Obj::propOr( [], Fns::__, $completed ), Lst::diff( $languages ) );
@@ -119,23 +102,14 @@ class UntranslatedPackages extends AbstractUntranslatedElements {
 		return $getPackageKindToTranslate( $packageKinds );
 	}
 
-	/**
-	 * @return array<stirng: string[]>
-	 */
 	protected function getCompleted(): array {
 		return Option::getTranslateEverythingCompletedPackages();
 	}
 
-	/**
-	 * @param array<string: string[]> $completed
-	 */
 	protected function setCompleted( array $completed ) {
 		Option::setTranslateEverythingCompletedPackages( $completed );
 	}
 
-	/**
-	 * @return string[]
-	 */
 	protected function getTypes(): array {
 		return $this->translatablePackages->getNamesList();
 	}

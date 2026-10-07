@@ -4,11 +4,9 @@ namespace WPML\Core\Component\WordsToTranslate\Domain;
 
 class LastTranslationFactory {
 
-  /** @var array<string, LastTranslation> */
   private $lastTranslations = [];
 
 
-  /** @return LastTranslation */
   public function createForItem( Item $item, string $lang ) {
     $key = $item->getId() . $item->getType() . $lang;
 

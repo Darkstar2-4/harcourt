@@ -9,7 +9,6 @@ class GetTextWithContextFilter extends AbstractFilterHookHandler implements Auto
 	const FILTER_ARGS = 4;
 	const FILTER_PRIORITY = 10;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct(
@@ -33,9 +32,7 @@ class GetTextWithContextFilter extends AbstractFilterHookHandler implements Auto
 		return $translation;
 	}
 
-	// Used to simulate gettext call from plugin from tests.
 	public static function callTranslateFromPlugin( $text, $domain, $context ) {
-		//do_action( 'gettext', $translation, $text, $domain );
 		_x( $text, $context, $domain );
 	}
 }

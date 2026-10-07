@@ -13,11 +13,6 @@ class Labels implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 			->then( spreadArgs( [ $this, 'labelize' ] ) );
 	}
 
-	/**
-	 * @param string|mixed $string
-	 *
-	 * @return string|mixed
-	 */
 	public static function labelize( $string ) {
 		if ( ! is_string( $string ) ) {
 			return $string;

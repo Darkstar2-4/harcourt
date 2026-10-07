@@ -21,7 +21,6 @@ class Option {
 
 	const WHO_MODE = 'who-mode';
 	const TRANSLATE_EVERYTHING = 'translate-everything';
-	/** @since 4.7 */
 	const TRANSLATE_EVERYTHING_DRAFTS = 'translate-everything-drafts';
 	const HAS_TRANSLATE_EVERYTHING_BEEN_EVER_USED = 'has-translate-everything-been-ever-used';
 	const TRANSLATE_EVERYTHING_COMPLETED = 'translate-everything-completed';
@@ -60,11 +59,6 @@ class Option {
 		self::set( self::TRANSLATED_LANGS, $langs );
 	}
 
-	/**
-	 * Sets service as default translation mode if there's a default Translation Service linked to this instance.
-	 *
-	 * @param bool $hasPreferredTranslationService
-	 */
 	public static function setDefaultTranslationMode( $hasPreferredTranslationService = false ) {
 		if ( self::get( self::WHO_MODE, null ) === null ) {
 
@@ -81,6 +75,7 @@ class Option {
 
 	public static function setTranslationMode( array $mode ) {
 		self::set( self::WHO_MODE, $mode );
+		self::notifyJobLog( 'translation_mode_changed', [ 'new' => $mode ] );
 	}
 
 	public static function getTranslationMode() {
@@ -89,52 +84,36 @@ class Option {
 
 	public static function setTranslateEverythingDefault() {
 		if ( self::get( self::TRANSLATE_EVERYTHING, null ) === null ) {
-			// Since 4.7 the Translate Everything option is 'false' by default until user sends some content to automatic translation
 			self::setTranslateEverything( false );
 		}
 	}
 
-	/**
-	 * @param bool $default
-	 *
-	 * @return bool
-	 */
 	public static function shouldTranslateEverything( $default = false ) {
 		return self::get( self::TRANSLATE_EVERYTHING, $default );
 	}
 
-	/** @param bool $state */
 	public static function setTranslateEverything( $state ) {
-		if ( self::isTMAllowed() ) {
-			self::set( self::TRANSLATE_EVERYTHING, $state );
-		} else {
-			self::set( self::TRANSLATE_EVERYTHING, false );
-		}
+		$tmAllowed  = self::isTMAllowed();
+		$finalValue = $tmAllowed ? $state : false;
+
+		self::set( self::TRANSLATE_EVERYTHING, $finalValue );
+
+		self::notifyJobLog( 'translate_everything_changed', [
+			'new'              => $finalValue,
+			'requested_value'  => $state,
+			'tm_allowed'       => $tmAllowed,
+			'silently_clamped' => $state !== $finalValue,
+		] );
 	}
 
-	/**
-	 * @param bool $state
-	 *
-	 * @return void
-	 *
-	 * @since 4.7
-	 */
 	public static function setHasTranslateEverythingBeenEverUsed( $state = false ) {
 		self::set( self::HAS_TRANSLATE_EVERYTHING_BEEN_EVER_USED, $state );
 	}
 
-	/**
-	 * @return bool
-	 *
-	 * @since 4.7
-	 */
 	public static function getHasTranslateEverythingBeenEverUsed() {
 		return self::get( self::HAS_TRANSLATE_EVERYTHING_BEEN_EVER_USED, false );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function getTranslateEverything() {
 		return self::get( self::TRANSLATE_EVERYTHING, false );
 	}
@@ -146,14 +125,18 @@ class Option {
 
 	public static function setTMAllowed( $isTMAllowed ) {
 		self::set( self::TM_ALLOWED, $isTMAllowed );
+		self::notifyJobLog( 'tm_allowed_changed', [ 'new' => $isTMAllowed ] );
 	}
 
 	public static function setReviewMode( $mode ) {
-		// Starting from WPML 4.7, review mode won't have a default value selected after user finishes the setup wizard
-		// so, it can be set to NULL and then value can change when user sends content to automatic translation
 		$allowedOptions = [ null, self::PUBLISH_AND_REVIEW, self::NO_REVIEW, self::HOLD_FOR_REVIEW ];
 		if ( Lst::includes( $mode, $allowedOptions ) ) {
 			self::set( self::REVIEW_MODE, $mode );
+			self::notifyJobLog( 'review_mode_changed', [ 'new' => $mode ] );
+		} else {
+			self::notifyJobLog( 'review_mode_invalid_value', [
+				'rejected_value' => is_scalar( $mode ) ? (string) $mode : gettype( $mode ),
+			], true );
 		}
 	}
 
@@ -165,16 +148,10 @@ class Option {
 		return self::getReviewMode() !== self::NO_REVIEW;
 	}
 
-	/**
-	 * @return LanguageMapping[]
-	 */
 	public static function getLanguageMappings() {
 		return self::get( self::LANGUAGES_MAPPING, [] );
 	}
 
-	/**
-	 * @param LanguageMapping $languageMapping
-	 */
 	public static function addLanguageMapping( LanguageMapping $languageMapping ) {
 		self::set( self::LANGUAGES_MAPPING, Lst::append( $languageMapping, self::getLanguageMappings() ) );
 	}
@@ -187,11 +164,6 @@ class Option {
 		return ( new OptionManager() )->set( self::OPTION_GROUP, $key, $value );
 	}
 
-	/**
-	 * @param bool $hasPreferredTranslationService
-	 *
-	 * @return bool
-	 */
 	public static function getTranslateEverythingDefaultInSetup( $hasPreferredTranslationService = false ) {
 		if ( $hasPreferredTranslationService ) {
 			return false;
@@ -203,66 +175,48 @@ class Option {
 	}
 
 
-	/**
-	 * @param array<string: string[]> $completed For example: { 'post': ['fr', 'de'], 'page': ['fr', 'de'] }
-	 *
-	 * @return void
-	 */
 	public static function setTranslateEverythingCompletedPosts( array $completed ) {
 		self::set( self::TRANSLATE_EVERYTHING_POSTS, $completed );
 	}
 
-	/**
-	 * @return array<string: string[]> For example: { 'post': ['fr', 'de'], 'page': ['fr', 'de'] }
-	 */
 	public static function getTranslateEverythingCompletedPosts(): array {
 		return self::get( self::TRANSLATE_EVERYTHING_POSTS, [] );
 	}
 
-	/**
-	 * @param array<string: string[]> $completed For example: { 'gravity_form': ['fr', 'de'], 'ninja_form': ['fr', 'de'] }
-	 *
-	 * @return void
-	 */
 	public static function setTranslateEverythingCompletedPackages( array $completed ) {
 		self::set( self::TRANSLATE_EVERYTHING_PACKAGES_COMPLETED, $completed );
 	}
 
-	/**
-	 * @return array<string: string[]> For example: { 'gravity_form': ['fr', 'de'], 'ninja_form': ['fr', 'de'] }
-	 */
 	public static function getTranslateEverythingCompletedPackages(): array {
 		return self::get( self::TRANSLATE_EVERYTHING_PACKAGES_COMPLETED, [] );
 	}
 
-	/**
-	 * @param array $completed For example ['fr', 'de']
-	 *
-	 * @return void
-	 */
 	public static function setTranslateEverythingCompletedStrings( array $completed ) {
 		self::set( self::TRANSLATE_EVERYTHING_SRTINGS_COMPLETED, $completed );
 	}
 
-	/**
-	 * @return array For example ['fr', 'de']
-	 */
 	public static function getTranslateEverythingCompletedStrings(): array {
 		return self::get( self::TRANSLATE_EVERYTHING_SRTINGS_COMPLETED, [] );
 	}
 
-	/**
-	 * @return int
-  	 */
 	public static function getTranslateEverythingDrafts() {
 		return self::get( self::TRANSLATE_EVERYTHING_DRAFTS, 0 );
 	}
 
-	/**
-	 * @param int $isActive
-	 * @return void
-	 */
 	public static function setTranslateEverythingDrafts( $isActive ) {
-		return self::set( self::TRANSLATE_EVERYTHING_DRAFTS, $isActive );
+		$result = self::set( self::TRANSLATE_EVERYTHING_DRAFTS, $isActive );
+		self::notifyJobLog( 'translate_everything_drafts_changed', [ 'new' => $isActive ] );
+		return $result;
+	}
+
+	private static function notifyJobLog( $eventId, array $data, $isError = false ) {
+		if ( ! class_exists( \WPML\TM\Jobs\JobLog::class ) ) {
+			return;
+		}
+		if ( $isError ) {
+			\WPML\TM\Jobs\JobLog::addError( $eventId, $data );
+		} else {
+			\WPML\TM\Jobs\JobLog::add( $eventId, $data );
+		}
 	}
 }

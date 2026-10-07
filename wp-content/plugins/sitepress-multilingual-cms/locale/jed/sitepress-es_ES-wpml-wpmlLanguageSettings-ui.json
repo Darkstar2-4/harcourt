@@ -5,22 +5,22 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "Choose the image file type for flags": [
-            "Seleccione el tipo de archivo de imagen para los marcadores"
+            "Elija el tipo de archivo de imagen para las banderas"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Esta opción solo afecta a los marcadores integrados de WPML, no a los marcadores personalizados cargados."
+            "Esta opción solo afecta a las banderas de WPML integradas, no a las personalizadas subidas."
          ],
          "%s format": [
-            "Formato de %s"
+            "Formato %s"
          ],
          "Save": [
             "Guardar"
          ],
          "The new format has been saved.": [
-            "Se ha guardado el nuevo formato."
+            "El nuevo formato se ha guardado."
          ],
          "Failed to save the new format": [
             "No se pudo guardar el nuevo formato"

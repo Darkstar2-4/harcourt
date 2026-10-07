@@ -7,9 +7,6 @@ use WPML\PHPUnit\TestCase;
 class IsTest extends TestCase {
 
 
-  /**
-   * @dataProvider dataValidString
-   */
   public function testValidString( $input ) {
     $this->assertTrue( Is::string( $input ) );
   }
@@ -23,9 +20,6 @@ class IsTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataInvalidString
-   */
   public function testInvalidString( $input ) {
     $this->assertFalse( Is::string( $input ) );
   }
@@ -44,18 +38,13 @@ class IsTest extends TestCase {
 
 
   public function testStringInArray() {
-    // Available key.
     $array = [ 'title' => 'test string' ];
     $this->assertTrue( Is::string( [ $array, 'title' ] ) );
 
-    // Not available key.
     $this->assertFalse( Is::string( [ $array, 'key-does-not-exist' ] ) );
   }
 
 
-  /**
-   * @dataProvider dataIsArrayOfSameTypeValidData
-   */
   public function testIsArrayOfSameTypeValidData( $input, $callback ) {
     $this->assertTrue( Is::arrayOfSameType( $input, $callback ) );
   }
@@ -71,9 +60,6 @@ class IsTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataIsArrayOfSameTypeInvalidData
-   */
   public function testIsArrayOfSameTypeInvalidData( $input, $callback ) {
     $this->assertFalse( Is::arrayOfSameType( $input, $callback ) );
   }
@@ -82,7 +68,7 @@ class IsTest extends TestCase {
   public function dataIsArrayOfSameTypeInvalidData() {
     return [
       'integer' => [ [ 1, 'a', 2 ], 'is_int' ],
-      'float' => [ 1, 'is_int' ], // no array at all.
+      'float' => [ 1, 'is_int' ],
       'boolean' => [ [ true ], 'is_int' ],
       'array' => [ [ [] ], 'is_int' ],
       'object' => [ [ new \stdClass() ], 'is_int'],
@@ -102,17 +88,14 @@ class IsTest extends TestCase {
         [
           'a' => 'is_int',
           2 => 'is_string',
-          '?c' => 'is_array', // Optional key which exists.
-          '?d' => 'is_string' // Optional key which does not exist.
+          '?c' => 'is_array',
+          '?d' => 'is_string'
         ]
       )
     );
   }
 
 
-  /**
-   * @dataProvider dataIsInt
-   */
   public function testIsInt( $input ) {
     $this->assertTrue( Is::int( $input ) );
   }
@@ -126,9 +109,6 @@ class IsTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataInvalidInt
-   */
   public function testInvalidInt( $input ) {
     $this->assertFalse( Is::int( $input ) );
   }
@@ -146,11 +126,9 @@ class IsTest extends TestCase {
 
 
   public function testIntInArray() {
-    // Available key.
     $array = [ 'no' => 123 ];
     $this->assertTrue( Is::int( [ $array, 'no' ] ) );
 
-    // Not available key.
     $this->assertFalse( Is::int( [ $array, 'key-does-not-exist' ] ) );
   }
 

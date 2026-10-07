@@ -1,20 +1,9 @@
 <?php
 
-/**
- * Class WPML_Page_Builders_App
- */
 class WPML_Page_Builders_App {
 
-	/**
-	 * @var WPML_Page_Builders_Defined
-	 */
 	private $page_builder_plugins;
 
-	/**
-	 * WPML_Page_Builders_App constructor.
-	 *
-	 * @param WPML_Page_Builders_Defined $page_builder_plugins
-	 */
 	public function __construct( WPML_Page_Builders_Defined $page_builder_plugins ) {
 		$this->page_builder_plugins = $page_builder_plugins;
 	}

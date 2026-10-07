@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bruce
- * Date: 17/10/17
- * Time: 5:18 PM
- */
 
 class WPML_LS_Languages_Cache {
 
@@ -23,6 +17,7 @@ class WPML_LS_Languages_Cache {
 		$cache_group     = 'ls_languages';
 		$this->cache     = new WPML_WP_Cache( $cache_group );
 		wp_cache_add_non_persistent_groups( $cache_group );
+		$this->clear_comment_cache();
 	}
 
 	public function get() {
@@ -37,5 +32,11 @@ class WPML_LS_Languages_Cache {
 
 	public function set( $ls_languages ) {
 		$this->cache->set( $this->cache_key, $ls_languages );
+	}
+
+	private function clear_comment_cache() {
+		if ( function_exists( 'wp_cache_delete' ) ) {
+			wp_cache_delete( 'last_changed', 'comment' );
+		}
 	}
 }

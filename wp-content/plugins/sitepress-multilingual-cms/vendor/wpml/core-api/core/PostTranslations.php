@@ -7,25 +7,10 @@ use WPML\FP\Lst;
 use WPML\LIB\WP\Post;
 use function WPML\FP\curryN;
 
-/**
- * Class PostTranslations
- * @package WPML\Element\API
- * @method static callable|int setAsSource( ...$el_id, ...$language_code ) - Curried :: int → string → void
- * @method static callable|int setAsTranslationOf( ...$el_id, ...$translated_id, ...$language_code )
- * @method static callable|array get( ...$el_id ) - Curried :: int → [object]
- * @method static callable|array|null getInLanguage( ...$el_id, ...$language_code ) - Curried :: int → string → array|null
- * @method static callable|array|null getInCurrentLanguage( ...$el_id ) - Curried :: int → array|null
- * @method static callable|array getIfOriginal( ...$el_id ) - Curried :: int → [object]
- * @method static callable|array getOriginal( ...$element_id ) - Curried :: int → object|null
- * @method static callable|array getOriginalId( ...$element_id ) - Curried :: int → int
- */
 class PostTranslations {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 
 		self::macro( 'setAsSource', curryN( 2, self::withPostType( Translations::setAsSource() ) ) );
@@ -45,11 +30,6 @@ class PostTranslations {
 		self::macro( 'getOriginalId', curryN( 1, self::withPostType( Translations::getOriginalId() ) ) );
 	}
 
-	/**
-	 * @param callable $fn
-	 *
-	 * @return \Closure
-	 */
 	public static function withPostType( $fn ) {
 		return function () use ( $fn ) {
 			$args = func_get_args();

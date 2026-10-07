@@ -12,34 +12,17 @@ use WPML\Core\SharedKernel\Component\Language\Application\Query\Dto\LanguageDto;
 use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryInterface;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 
-/**
- * @phpstan-type UntranslatedCountRow array{
- *   kind: string,
- *   kind_slug: string,
- *   count: int,
- * }
- */
 class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, UntranslatedCountRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
-  /** @var PackageDefinitionQueryInterface */
   private $packageDefinitionRepository;
 
 
-  /**
-   * @param QueryHandlerInterface<int, UntranslatedCountRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   * @param LanguagesQueryInterface $languagesQuery
-   * @param PackageDefinitionQueryInterface $packageDefinitionRepository
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -53,7 +36,11 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /** @return UntranslatedTypeCountDto[] */
+  public function forKind() {
+    return UntranslatedTypesCountQueryInterface::KIND_PACKAGE;
+  }
+
+
   public function get( array $queryData = [] ): array {
     $languageCrossJoin = $this->buildLanguageCrossJoin();
 
@@ -64,17 +51,20 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
     );
 
     $sql = "
-      SELECT package.kind, package.kind_slug, COUNT( DISTINCT package.ID ) as count
+      SELECT
+        package.kind,
+        package.kind_slug,
+        COUNT( DISTINCT package.ID ) as count
       FROM {$this->queryPrepare->prefix()}icl_string_packages package
-      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations original_translation 
+      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations original_translation
         ON original_translation.element_id = package.ID AND original_translation.element_type LIKE 'package_%'
       {$languageCrossJoin}
-      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations translations 
+      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations translations
         ON translations.trid = original_translation.trid AND translations.language_code = langs.code
       LEFT JOIN {$this->queryPrepare->prefix()}icl_translation_status translation_status
         ON translation_status.translation_id = translations.translation_id
-      WHERE package.kind_slug IN ({$translatablePackages}) 
-            AND ( translation_status.status IS NULL OR translation_status.status = %d )  
+      WHERE package.kind_slug IN ({$translatablePackages})
+            AND ( translation_status.status IS NULL OR translation_status.status = %d )
             AND original_translation.language_code = %s
       GROUP BY package.kind
     ";
@@ -98,11 +88,55 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
           return new UntranslatedTypeCountDto(
             $pluralName,
             $singularName,
-            $row['count']
+            $row['count'],
+            UntranslatedTypesCountQueryInterface::KIND_PACKAGE,
+            $row['kind_slug']
           );
         },
         $rowResult
       );
+    } catch ( DatabaseErrorException $e ) {
+      return [];
+    }
+  }
+
+
+  public function getSomeIds( $numberOfIdsToFetch, $offset, $type ) {
+    $languageCrossJoin = $this->buildLanguageCrossJoin();
+
+    $sql = "
+      SELECT DISTINCT
+        package.ID
+      FROM {$this->queryPrepare->prefix()}icl_string_packages package
+      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations original_translation
+        ON original_translation.element_id = package.ID
+        AND original_translation.element_type = CONCAT('package_', %s)
+      {$languageCrossJoin}
+      LEFT JOIN {$this->queryPrepare->prefix()}icl_translations translations
+        ON translations.trid = original_translation.trid
+        AND translations.language_code = langs.code
+      LEFT JOIN {$this->queryPrepare->prefix()}icl_translation_status translation_status
+        ON translation_status.translation_id = translations.translation_id
+      WHERE package.kind_slug = %s
+        AND ( translation_status.status IS NULL OR translation_status.status = %d )
+        AND original_translation.language_code = %s
+      ORDER BY package.ID ASC
+      LIMIT %d OFFSET %d
+    ";
+
+    try {
+      $ids = $this->queryHandler->queryColumn(
+        $this->queryPrepare->prepare(
+          $sql,
+          $type,
+          $type,
+          TranslationStatus::NOT_TRANSLATED,
+          $this->languagesQuery->getDefaultCode(),
+          $numberOfIdsToFetch,
+          $offset
+        )
+      );
+      return $ids;
     } catch ( DatabaseErrorException $e ) {
       return [];
     }
@@ -120,7 +154,7 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
     $languageSelect    = implode( ' UNION ALL ', $languageSelect );
     $languageCrossJoin = "
 			CROSS JOIN (
-				$languageSelect	
+				$languageSelect
 			) as langs
 		";
 
@@ -128,11 +162,6 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /**
-   * @param string[] $slugs
-   *
-   * @return string
-   */
   private function buildTranslatablePackagesCondition( array $slugs ): string {
     $translatablePackages = array_map(
       function ( string $packageName ): string {

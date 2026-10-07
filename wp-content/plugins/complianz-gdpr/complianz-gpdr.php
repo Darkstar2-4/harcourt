@@ -3,7 +3,7 @@
  * Plugin Name: Complianz | GDPR/CCPA Cookie Consent
  * Plugin URI: https://www.wordpress.org/plugins/complianz-gdpr
  * Description: Complianz Privacy Suite for GDPR, CaCPA, DSVGO, AVG with a conditional cookie warning and customized cookie policy
- * Version: 7.4.2
+ * Version: 7.5.4
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Text Domain: complianz-gdpr
@@ -302,7 +302,7 @@ if ( ! class_exists( 'COMPLIANZ' ) ) {
 			// for auto upgrade functionality.
 			define( 'CMPLZ_PLUGIN_FREE', plugin_basename( __FILE__ ) );
 			$debug = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '#' . time() : '';
-			define( 'CMPLZ_VERSION', '7.4.2' . $debug );
+			define( 'CMPLZ_VERSION', '7.5.4' . $debug );
 			define( 'CMPLZ_PLUGIN_FILE', __FILE__ );
 		}
 
@@ -344,8 +344,6 @@ if ( ! class_exists( 'COMPLIANZ' ) ) {
 				require_once CMPLZ_PATH . 'upgrade.php';
 				require_once CMPLZ_PATH . 'DNSMPD/class-admin-DNSMPD.php';
 				require_once CMPLZ_PATH . 'cookie/class-sync.php';
-				/* Website Scan */
-				require_once CMPLZ_PATH . 'websitescan/class-wsc.php';
 			}
 
 			if ( cmplz_admin_logged_in() || cmplz_scan_in_progress() ) {
@@ -360,6 +358,10 @@ if ( ! class_exists( 'COMPLIANZ' ) ) {
 			require_once CMPLZ_PATH . 'DNSMPD/class-DNSMPD.php';
 			require_once CMPLZ_PATH . 'config/class-config.php';
 			require_once CMPLZ_PATH . 'class-cookie-blocker.php';
+			// Class holds the WSC option-key constants referenced by the always-loaded
+			// scanner/api/auth statics (incl. the public REST webhooks). Must load on every
+			// request — the new cmplz_wsc() instance below stays admin-gated.
+			require_once CMPLZ_PATH . 'websitescan/class-wsc.php';
 			require_once CMPLZ_PATH . 'websitescan/class-wsc-api.php';
 			require_once CMPLZ_PATH . 'websitescan/class-wsc-scanner.php';
 			require_once CMPLZ_PATH . 'mailer/class-mail.php';

@@ -8,9 +8,6 @@ use WPML\PHPUnit\TestCase;
 class ValidateTest extends TestCase {
 
 
-  /**
-   * @dataProvider dataValidString
-   */
   public function testValidString( $input ) {
     $this->assertEquals( $input, Validate::string( $input ) );
   }
@@ -24,9 +21,6 @@ class ValidateTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataInvalidString
-   */
   public function testInvalidString( $input ) {
     $this->expectException( InvalidArgumentException::class );
     Validate::string( $input );
@@ -46,11 +40,9 @@ class ValidateTest extends TestCase {
 
 
   public function testStringInArray() {
-    // Available key.
     $array = [ 'title' => 'test string' ];
     $this->assertEquals( 'test string', Validate::string( [ $array, 'title' ] ) );
 
-    // Not available key.
     $this->expectException( InvalidArgumentException::class );
     Validate::string( [ $array, 'key-does-not-exist' ] );
   }
@@ -62,9 +54,6 @@ class ValidateTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataValidateArrayOfSameTypeValidData
-   */
   public function testValidateArrayOfSameTypeValidData( $input, $callback, $expected = null ) {
     $expected = $expected ?? $input;
     $this->assertSame( $expected, Validate::arrayOfSameType( $input, $callback ) );
@@ -81,7 +70,7 @@ class ValidateTest extends TestCase {
         function( $v ) {
           return Validate::int( $v );
         },
-        [ 0, 1, 2, 3 ] // Make sure the array is normalized.
+        [ 0, 1, 2, 3 ]
       ],
       'array of strings' => [ [ 'a', 'b', 'c' ], 'is_string' ],
       'array of arrays' => [ [ [], [], [] ], 'is_array' ],
@@ -89,9 +78,6 @@ class ValidateTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataValidateArrayOfSameTypeInvalidData
-   */
   public function testValidateArrayOfSameTypeInvalidData( $input, $callback ) {
     $this->expectException( InvalidArgumentException::class );
     Validate::arrayOfSameType( $input, $callback );
@@ -101,7 +87,7 @@ class ValidateTest extends TestCase {
   public function dataValidateArrayOfSameTypeInvalidData() {
     return [
       'integer' => [ [ 1, 'a', 2 ], 'is_int' ],
-      'float' => [ 1, 'is_int' ], // no array at all.
+      'float' => [ 1, 'is_int' ],
       'boolean' => [ [ true ], 'is_int' ],
       'array' => [ [ [] ], 'is_int' ],
       'object' => [ [ new \stdClass() ], 'is_int']
@@ -118,8 +104,8 @@ class ValidateTest extends TestCase {
         [
           'a' => 'is_int',
           2 => 'is_string',
-          '?c' => 'is_array', // Optional key which exists.
-          '?d' => 'is_string' // Optional key which does not exist.
+          '?c' => 'is_array',
+          '?d' => 'is_string'
         ]
       )
     );
@@ -140,9 +126,6 @@ class ValidateTest extends TestCase {
     );
   }
 
-  /**
-   * @dataProvider dataValidInt
-   */
   public function testIsInt( $input ) {
     $this->assertSame( $input, Validate::int( $input ) );
   }
@@ -156,9 +139,6 @@ class ValidateTest extends TestCase {
   }
 
 
-  /**
-   * @dataProvider dataInvalidInt
-   */
   public function testInvalidInt( $input ) {
     $this->expectException( InvalidArgumentException::class );
     Validate::int( $input );
@@ -180,17 +160,14 @@ class ValidateTest extends TestCase {
     $validated = Validate::int( '123' );
     $this->assertEquals( 123, $validated );
 
-    // Make sure it's an integer.
     $this->assertIsInt( $validated );
   }
 
 
   public function testIntInArray() {
-    // Available key.
     $array = [ 'no' => 123 ];
     $this->assertEquals( 123, Validate::int( [ $array, 'no' ] ) );
 
-    // Not available key.
     $this->expectException( InvalidArgumentException::class );
     Validate::int( [ $array, 'key-does-not-exist' ] );
   }

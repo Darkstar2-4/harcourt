@@ -10,10 +10,8 @@ use WPML_TM_ATE_Jobs;
 use function WPML\FP\pipe;
 
 class ATE {
-	/** @var WPML_TM_ATE_API $ateApi */
 	private $ateApi;
 
-	/** @var WPML_TM_ATE_Jobs $ateJobs */
 	private $ateJobs;
 
 	public function __construct( WPML_TM_ATE_API $ateApi, WPML_TM_ATE_Jobs $ateJobs ) {

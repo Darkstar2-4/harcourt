@@ -12,11 +12,6 @@ namespace WPML\Core\Twig\Profiler\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents a profile leave node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class LeaveProfileNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct($varName)

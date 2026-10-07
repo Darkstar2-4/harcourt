@@ -12,36 +12,13 @@ namespace WPML\Core\Twig\Loader;
 
 use WPML\Core\Twig\Error\LoaderError;
 use WPML\Core\Twig\Source;
-/**
- * Loads a template from an array.
- *
- * When using this loader with a cache mechanism, you should know that a new cache
- * key is generated each time a template content "changes" (the cache key being the
- * source code of the template). If you don't want to see your cache grows out of
- * control, you need to take care of clearing the old cache file by yourself.
- *
- * This loader should only be used for unit testing.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ArrayLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\Core\Twig\Loader\ExistsLoaderInterface, \WPML\Core\Twig\Loader\SourceContextLoaderInterface
 {
     protected $templates = [];
-    /**
-     * @param array $templates An array of templates (keys are the names, and values are the source code)
-     */
     public function __construct(array $templates = [])
     {
         $this->templates = $templates;
     }
-    /**
-     * Adds or overrides a template.
-     *
-     * @param string $name     The template name
-     * @param string $template The template source
-     */
     public function setTemplate($name, $template)
     {
         $this->templates[(string) $name] = $template;

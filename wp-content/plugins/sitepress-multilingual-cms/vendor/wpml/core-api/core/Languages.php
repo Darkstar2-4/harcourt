@@ -18,153 +18,11 @@ use function WPML\FP\pipe;
 use WPML\API\Settings;
 use WPML\FP\Invoker\BeforeAfter;
 
-/**
- * @method static callable|string getCodeByName( ...$name ) - Curried :: string->string
- *
- * It returns language code according to the given name in the current display language.
- *
- * eg. 'Französisch' in German will return 'fr'
- *
- * @method static array getActive()
- *
- * It returns an array of the active languages.
- *
- * The returned array is indexed by language code and every element has the following structure:
- * ```
- *  'fr' => [
- *      'code'           => 'fr',
- *      'id'             => 3,
- *      'english_name'   => 'French',
- *      'native_name'    => 'Français',
- *      'major'          => 1,
- *      'default_locale' => 'fr_FR',
- *      'encode_url'     => 0,
- *      'tag'            => 'fr ,
- *      'display_name'   => 'French
- *  ]
- * ```
- * @method static array getSecondaries()
- *
- * It returns an array of the secondary languages.
- *
- * The returned array is indexed by language code and every element has the following structure:
- * ```
- *  'fr' => [
- *      'code'           => 'fr',
- *      'id'             => 3,
- *      'english_name'   => 'French',
- *      'native_name'    => 'Français',
- *      'major'          => 1,
- *      'default_locale' => 'fr_FR',
- *      'encode_url'     => 0,
- *      'tag'            => 'fr ,
- *      'display_name'   => 'French
- *  ]
- * ```
- * @method static array getSecondaryCodes()
- *
- * It returns an array of the secondary language codes.
- *
- * @method static array|callback getLanguageDetails( ...$code ) - Curried :: string->array
- *
- * It returns details of a language.
- *
- * An example output:
- * ```
- * [
- *      'code'           => 'fr',
- *      'id'             => 3,
- *      'english_name'   => 'French',
- *      'native_name'    => 'Français',
- *      'major'          => 1,
- *      'default_locale' => 'fr_FR',
- *      'encode_url'     => 0,
- *      'tag'            => 'fr ,
- *      'display_name'   => 'French
- *  ]
- * ```
- *
- *
- * @method static array getDefault()
- *
- * It returns a default language details.
- *
- * An example output:
- *```
- *[
- *      'code'           => 'fr',
- *      'id'             => 3,
- *      'english_name'   => 'French',
- *      'native_name'    => 'Français',
- *      'major'          => 1,
- *      'default_locale' => 'fr_FR',
- *      'encode_url'     => 0,
- *      'tag'            => 'fr ,
- *      'display_name'   => 'French
- * ]
- *```
- *
- * @method static string getDefaultCode()
- *
- * It returns a default language code.
- *
- * @method static string getCurrentCode()
- *
- * It returns a current language code.
- *
- * @method static callable|string getFlagUrl( ...$code ) - Curried :: string → string
- *
- * Gets the flag url for the given language code.
- *
- * @method static callable|string getFlag( ...$code ) - Curried :: string → [string, bool]
- *
- * Returns flag url and from_template
- *
- * @method static callable|array withFlags( ...$langs ) - Curried :: [code => lang] → [code => lang]
- *
- * Adds the language flag url to the array of languages.
- *
- * @method static array getAll( $lang = false ) string|false → [lang]
- *
- * It returns an array of the all the languages.
- *
- * The returned array is indexed by language code and every element has the following structure:
- * ```
- *  'fr' => [
- *      'code'           => 'fr',
- *      'id'             => 3,
- *      'english_name'   => 'French',
- *      'native_name'    => 'Français',
- *      'major'          => 1,
- *      'default_locale' => 'fr_FR',
- *      'encode_url'     => 0,
- *      'tag'            => 'fr ,
- *      'display_name'   => 'French
- *  ]
- * ```
- *
- * @method static callable|int|false setLanguageTranslation( ...$langCode, ...$displayLangCode, ...$name ) - Curried :: string->string->string->int|false
- *
- * It sets a language translation.
- *
- * @method static callable|int|false setFlag( ...$langCode, ...$flag, ...$fromTemplate ) - Curried :: string->string->bool->int|false
- *
- * It sets a language flag.
- *
- * @method static callable|string getWPLocale( ...$langDetails ) - Curried :: array->string
- *
- * @method static callable|string downloadWPLocale( $locale ) - Curried :: string->string
- *
- * It attempts to download a WP language pack for a specific locale, stores the result in settings.
- */
 class Languages {
 	use Macroable;
 
 	const LANGUAGES_MAPPING_OPTION = 'wpml_languages_mapping';
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 
 		self::macro( 'getCodeByName', curryN( 1, function ( $name ) {
@@ -308,14 +166,6 @@ class Languages {
 		} ) );
 	}
 
-	/**
-	 * Curried :: string → bool
-	 * Determine if the language is Right to Left
-	 *
-	 * @param string|null $code
-	 *
-	 * @return callable|bool
-	 */
 	public static function isRtl( $code = null ) {
 		$isRtl = function ( $code ) {
 			global $sitepress;
@@ -326,15 +176,6 @@ class Languages {
 		return call_user_func_array( curryN( 1, $isRtl ), func_get_args() );
 	}
 
-	/**
-	 * Curried :: [code => lang] → [code => lang]
-	 *
-	 * Adds language direction, right to left, to the languages data
-	 *
-	 * @param string[] $langs
-	 *
-	 * @return callable|mixed[]
-	 */
 	public static function withRtl( $langs = null ) {
 		$withRtl = function ( $langs ) {
 			$addRtl = function ( $lang, $code ) {
@@ -349,15 +190,6 @@ class Languages {
 		return call_user_func_array( curryN( 1, $withRtl ), func_get_args() );
 	}
 
-	/**
-	 * Curried :: string -> string|false
-	 *
-	 * Returns the language code given a locale
-	 *
-	 * @param string|null $locale
-	 *
-	 * @return callable|string|false
-	 */
 	public static function localeToCode( $locale = null ) {
 		$localeToCode = function ( $locale ) {
 			$allLangs = Obj::values( self::getAll() );
@@ -380,18 +212,6 @@ class Languages {
 		return call_user_func_array( curryN( 1, $localeToCode ), func_get_args() );
 	}
 
-	/**
-	 * @param string $code
-	 * @param string $english_name
-	 * @param string $default_locale
-	 * @param int    $major
-	 * @param int    $active
-	 * @param int    $encode_url
-	 * @param string $tag
-	 * @param string $country
-	 *
-	 * @return bool|int
-	 */
 	public static function add( $code, $english_name, $default_locale, $major = 0, $active = 0, $encode_url = 0, $tag = '', $country = null ) {
 		global $wpdb;
 
@@ -428,9 +248,6 @@ class Languages {
 		return $languageId;
 	}
 
-	/**
-	 * @return Just|Nothing
-	 */
 	public static function getUserLanguageCode() {
 		return Maybe::fromNullable( User::getCurrent() )
 		            ->map( function ( $user ) {
@@ -454,19 +271,6 @@ class Languages {
 		}
 	}
 
-	/**
-	 * It lets you run a function in a specific language.
-	 *
-	 * ```php
-	 *  $result = Languages::whileInLanguage( 'de' )
-	 *		->invoke( 'my_function' )
-	 *		->runWith( 1, 2, 'some' );
-	 * ```
-	 *
-	 * @param string $lang
-	 *
-	 * @return BeforeAfter
-	 */
 	public static function whileInLanguage( $lang ) {
 		global $sitepress;
 		$old_lang = null;

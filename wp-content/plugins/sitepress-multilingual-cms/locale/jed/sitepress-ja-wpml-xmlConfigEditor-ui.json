@@ -8,10 +8,10 @@
             "lang": "ja"
          },
          "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
-            "テーマとプラグインのルードフォルダのwpml-config.xmlファイルは、WPMLにどのコンテンツが翻訳可能であるかを知らせます。下に設定を追加することで自分のカスタム設定でこれらを無効にすることができます。\r\n"
+            "テーマとプラグインのルートフォルダーにあるwpml-config.xmlファイルは、WPMLにどのコンテンツが翻訳可能であるかを伝えます。これらの設定は、以下に追加することで独自のカスタム設定で上書きできます。"
          ],
          "Read more about language configuration files.": [
-            "言語設定ファイルについて詳細をお読みください。"
+            "言語設定ファイルの詳細を読む。"
          ],
          "Save": [
             "保存"
@@ -23,7 +23,7 @@
             "ショートカット"
          ],
          "Fold/Unfold code": [
-            "コードを折り畳む／折り畳みを解除"
+            "コードを折りたたむ/展開する"
          ],
          "Auto format": [
             "自動フォーマット"

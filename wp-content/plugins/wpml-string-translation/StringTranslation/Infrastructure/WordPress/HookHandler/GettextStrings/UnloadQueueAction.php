@@ -7,7 +7,6 @@ use WPML\StringTranslation\Infrastructure\WordPress\HookHandler\AbstractActionHo
 class UnloadQueueAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_unload_queue';
 
-	/** @var QueueRepositoryInterface */
 	private $queueRepository;
 
 	public function __construct(

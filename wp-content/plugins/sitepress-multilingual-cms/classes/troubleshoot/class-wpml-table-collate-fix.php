@@ -4,12 +4,8 @@ class WPML_Table_Collate_Fix implements IWPML_AJAX_Action, IWPML_Backend_Action,
 
 	const AJAX_ACTION = 'fix_tables_collation';
 
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/** @var WPML_Upgrade_Schema $schema */
 	private $schema;
 
 	public function __construct( wpdb $wpdb, WPML_Upgrade_Schema $schema ) {
@@ -88,9 +84,6 @@ class WPML_Table_Collate_Fix implements IWPML_AJAX_Action, IWPML_Backend_Action,
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_all_wpml_tables() {
 		return $this->wpdb->get_results(
 			$this->wpdb->prepare(

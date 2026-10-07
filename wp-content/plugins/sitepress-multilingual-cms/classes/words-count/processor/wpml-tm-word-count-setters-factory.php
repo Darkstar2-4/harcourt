@@ -2,9 +2,6 @@
 
 class WPML_TM_Word_Count_Setters_Factory {
 
-	/**
-	 * @return IWPML_TM_Word_Count_Set[]
-	 */
 	public function create() {
 		global $sitepress;
 

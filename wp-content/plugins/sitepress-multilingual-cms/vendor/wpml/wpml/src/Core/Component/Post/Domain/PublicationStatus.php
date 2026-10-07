@@ -4,10 +4,8 @@ namespace WPML\Core\Component\Post\Domain;
 
 class PublicationStatus {
 
-  /** @var string */
   private $value;
 
-  /** @var string */
   private $label;
 
 

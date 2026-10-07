@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Notice_Action {
 	private $dismiss;
 	private $display_as_button;
@@ -14,16 +11,6 @@ class WPML_Notice_Action {
 	private $dismiss_different_text;
 	private $link_target;
 
-	/**
-	 * WPML_Admin_Notice_Action constructor.
-	 *
-	 * @param string      $text
-	 * @param string      $url
-	 * @param bool        $dismiss
-	 * @param bool        $hide
-	 * @param bool|string $display_as_button
-	 * @param bool        $dismiss_different_text
-	 */
 	public function __construct( $text, $url = '#', $dismiss = false, $hide = false, $display_as_button = false, $dismiss_different_text = true ) {
 		$this->text                   = $text;
 		$this->url                    = $url;
@@ -73,16 +60,10 @@ class WPML_Notice_Action {
 		return $this->js_callback;
 	}
 
-	/**
-	 * @return mixed
-	 */
 	public function get_link_target() {
 		return $this->link_target;
 	}
 
-	/**
-	 * @param mixed $link_target
-	 */
 	public function set_link_target( $link_target ) {
 		$this->link_target = $link_target;
 	}

@@ -3,35 +3,46 @@
 namespace WPML\Core\Component\Post\Application\Query\Criteria;
 
 use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryInterface;
+use WPML\Core\SharedKernel\Component\Post\Application\Query\TranslatableTypesQueryInterface;
 use WPML\PHP\Exception\Exception;
 use WPML\PHP\Exception\InvalidArgumentException;
 use WPML\PHP\Value\Validate;
 
 final class SearchCriteriaBuilder {
 
-  /** @var SourceAndTargetLanguagesBuilder */
   private $languagesBuilder;
 
+  private $translatableTypesQuery;
 
-  public function __construct( LanguagesQueryInterface $languagesQuery ) {
-    $this->languagesBuilder = new SourceAndTargetLanguagesBuilder( $languagesQuery );
+
+  public function __construct(
+    LanguagesQueryInterface $languagesQuery,
+    TranslatableTypesQueryInterface $translatableTypesQuery
+  ) {
+    $this->languagesBuilder       = new SourceAndTargetLanguagesBuilder( $languagesQuery );
+    $this->translatableTypesQuery = $translatableTypesQuery;
   }
 
 
-  /**
-   * @param array<string,mixed> $array
-   *
-   * @return SearchCriteria
-   * @throws InvalidArgumentException If a required argument is missing.
-   *
-   * @throws Exception If the constructor is not accessible.
-   */
   public function build( array $array ): SearchCriteria {
+    $type = Validate::nonEmptyString( [ $array, 'type' ] );
+
+    $translatableTypeIds = array_map(
+      function ( $postTypeDto ) {
+        return $postTypeDto->getId();
+      },
+      $this->translatableTypesQuery->getTranslatable()
+    );
+
+    if ( ! in_array( $type, $translatableTypeIds, true ) ) {
+      throw new InvalidArgumentException( 'Invalid post type.' );
+    }
+
     return new SearchCriteria(
-      Validate::nonEmptyString( [ $array, 'type' ] ),
+      $type,
+      $this->buildLanguages( $array ),
       Validate::nonEmptyString( [ $array, 'title' ], null ),
       Validate::nonEmptyString( [ $array, 'publicationStatus' ], null ),
-      $this->buildLanguages( $array ),
       Validate::arrayOfSameType(
         [ $array, 'translationStatuses' ],
         [ Validate::class, 'int' ],
@@ -54,13 +65,6 @@ final class SearchCriteriaBuilder {
   }
 
 
-  /**
-   * @param array<string, mixed> $array
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return SourceAndTargetLanguages
-   */
   private function buildLanguages( array $array ): SourceAndTargetLanguages {
     $targetLang = Validate::nonEmptyString( [ $array, 'targetLanguageCode' ], null );
     $languages = $this->languagesBuilder->build(

@@ -17,9 +17,6 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 	const POST_TYPE_LAYOUT_SINGLE_WC  = 'cs_layout_single_wc';
 	const POST_TYPE_LAYOUT_ARCHIVE_WC = 'cs_layout_archive_wc';
 
-	/**
-	 * @return string[]
-	 */
 	protected function getPostTypes() {
 		return [
 			self::POST_TYPE_TEMPLATE,
@@ -35,9 +32,6 @@ class TranslationGuiLabels extends BaseTranslationGuiLabels {
 		];
 	}
 
-	/**
-	 * @return string
-	 */
 	protected function getFormat() {
 		// Translators: %s: Post type label. For example, Cornerstone Templates.
 		return __( 'Cornerstone %s', 'sitepress' );

@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "tr"
+            "lang": "tr_TR"
          },
          "Your site now meets WPML's minimum requirements": [
             "Siteniz artık WPML'nin minimum gereksinimlerini karşılıyor"
@@ -26,10 +26,10 @@
             "Siteniz WPML'nin minimum gereksinimlerini karşılamıyor"
          ],
          "Ensure your site runs smoothly with WPML by meeting these simple minimum requirements.": [
-            "WPML ile siteni sorunsuz çalıştırmak için bu basit minimum gereksinimleri karşıladığından emin ol."
+            "Bu basit minimum gereksinimleri karşılayarak sitenizin WPML ile sorunsuz çalıştığından emin olun."
          ],
          "Re-check Now": [
-            "Şimdi yeniden kontrol et"
+            "Şimdi tekrar kontrol et"
          ],
          "Skip for now": [
             "Şimdilik atla"

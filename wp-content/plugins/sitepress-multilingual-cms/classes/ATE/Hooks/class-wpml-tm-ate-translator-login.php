@@ -1,17 +1,11 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE_Translator_Login implements IWPML_Action {
 
-	/** @var WPML_TM_AMS_Translator_Activation_Records */
 	private $translator_activation_records;
 
-	/** @var WPML_Translator_Records */
 	private $translator_records;
 
-	/** @var WPML_TM_AMS_API */
 	private $ams_api;
 
 	public function __construct(

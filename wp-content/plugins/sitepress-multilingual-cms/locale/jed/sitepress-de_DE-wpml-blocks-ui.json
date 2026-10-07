@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Advanced": [
             "Erweitert"
@@ -14,7 +14,7 @@
             "HTML-Anker"
          ],
          "Add a shortcut to this block when loading the page using the “#anchor” URL.": [
-            "Fügen Sie eine Verknüpfung zu diesem Block hinzu, wenn Sie die Seite mit der „#anchor“-URL laden."
+            "Fügen Sie diesem Block beim Laden der Seite über die URL „#anchor“ eine Verknüpfung hinzu."
          ],
          "Additional CSS class(es)": [
             "Zusätzliche CSS-Klasse(n)"
@@ -32,28 +32,28 @@
             "%"
          ],
          "Dimensions": [
-            "Maße"
+            "Abmessungen"
          ],
          "BLOCK": [
-            "Block"
+            "BLOCK"
          ],
          "Block margin": [
             "Blockrand"
          ],
          "Block padding": [
-            "Block-Abstand"
+            "Block-Padding"
          ],
          "LANGUAGE": [
-            "Sprache"
+            "SPRACHE"
          ],
          "Language spacing": [
-            "Leerzeichen"
-         ],
-         "Language padding": [
             "Sprachabstand"
          ],
+         "Language padding": [
+            "Sprach-Padding"
+         ],
          "Display": [
-            "Anzeigen"
+            "Anzeige"
          ],
          "Show flag": [
             "Flagge anzeigen"
@@ -68,7 +68,7 @@
             "Stil"
          ],
          "Flag settings": [
-            "Flaggen-Einstellungen"
+            "Flaggeneinstellungen"
          ],
          "Width": [
             "Breite"
@@ -79,11 +79,17 @@
          "Spacing": [
             "Abstand"
          ],
+         "Switch to %s": [
+            "Wechseln zu %s"
+         ],
+         "Available languages": [
+            "Verfügbare Sprachen"
+         ],
          "Allow wrapping to multiple lines": [
             "Umbruch auf mehrere Zeilen zulassen"
          ],
          "Open on click": [
-            "Beim Anklicken öffnen"
+            "Beim Klicken öffnen"
          ],
          "Show arrow": [
             "Pfeil anzeigen"
@@ -92,13 +98,19 @@
             "Layout"
          ],
          "Justification": [
-            "Rechtfertigung"
-         ],
-         "Orientation": [
             "Ausrichtung"
          ],
+         "Orientation": [
+            "Orientierung"
+         ],
+         "Language Switcher": [
+            "Sprachumschalter"
+         ],
+         "Language switcher, press tab to navigate to other languages": [
+            "Sprachumschalter, drücken Sie Tab, um zu anderen Sprachen zu navigieren"
+         ],
          "Typography": [
-            "Typographie"
+            "Typografie"
          ],
          "Background": [
             "Hintergrund"
@@ -125,13 +137,13 @@
             "Elemente links ausrichten"
          ],
          "Justify items center": [
-            "Elemente in der Mitte ausrichten"
+            "Elemente zentrieren"
          ],
          "Justify items right": [
             "Elemente rechts ausrichten"
          ],
          "Justify items space between": [
-            "Elemente mit Leerzeichen ausrichten"
+            "Elemente mit Abstand ausrichten"
          ],
          "Horizontal": [
             "Horizontal"
@@ -149,7 +161,7 @@
             "Groß"
          ],
          "X-Large": [
-            "Sehr groß"
+            "X-groß"
          ],
          "Ab": [
             "Ab"
@@ -166,20 +178,17 @@
          "Displays the WPML Language Switcher.": [
             "Zeigt den WPML-Sprachumschalter an."
          ],
-         "Language Switcher": [
-            "Sprachumschalter"
-         ],
          "displays the WPML Language Switcher": [
-            "Zeigt den WPML-Sprachumschalter an."
+            "zeigt den WPML-Sprachumschalter an"
          ],
          "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this block</a>.": [
             "Zeigt den WPML-Sprachumschalter an. <br/> Erfahren Sie, <a>wie Sie diesen Block übersetzen</a>."
          ],
          "Navigation Language Switcher": [
-            "Umschalter für Navigationssprache"
+            "Navigations-Sprachumschalter"
          ],
          "Reset all": [
-            "Alles zurücksetzen"
+            "Alle zurücksetzen"
          ]
       }
    }

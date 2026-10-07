@@ -20,9 +20,6 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 	protected $elements_table;
 	protected $lang_info_table;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( &$wpdb ) {
 		parent::__construct( $wpdb );
 		$this->lang_info_table = $wpdb->prefix . 'icl_translations';
@@ -35,11 +32,11 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 		WPML_Non_Persistent_Cache::flush_group( self::CACHE_GROUP );
 	}
 
-	public function get_unsynced_elements( $element_types, $ref_lang_code = false ) {
+	public function get_unsynced_elements( $element_types, $ref_lang_code = false, $element_id = null ) {
 		$element_types = (array) $element_types;
 		$results       = array();
 		if ( $element_types ) {
-			$key     = md5( (string) wp_json_encode( array( $element_types, $ref_lang_code ) ) );
+			$key     = md5( (string) wp_json_encode( array( $element_types, $ref_lang_code, $element_id ) ) );
 			$found   = false;
 			$results = WPML_Non_Persistent_Cache::get( $key, self::CACHE_GROUP, $found );
 			if ( ! $found ) {
@@ -55,7 +52,8 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 				$results_sql_parts['correct_parent_element_join']    = $this->get_correct_parent_element_join();
 				$results_sql_parts['where_statement']                = $this->get_where_statement(
 					$element_types,
-					$ref_lang_code
+					$ref_lang_code,
+					$element_id
 				);
 
 				$results_sql = $this->get_select_statement();
@@ -72,29 +70,20 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 		return $results;
 	}
 
-	/**
-	 * @param string|array $element_types
-	 * @param bool         $ref_lang_code
-	 */
-	public function sync_element_hierarchy( $element_types, $ref_lang_code = false ) {
+	public function sync_element_hierarchy( $element_types, $ref_lang_code = false, $element_id = null ) {
 		$hierarchical_element_types = wpml_collect( $element_types )->filter( [ $this, 'is_hierarchical' ] );
 
 		if ( $hierarchical_element_types->isEmpty() ) {
 			return;
 		}
 
-		$unsynced = $this->get_unsynced_elements( $hierarchical_element_types->toArray(), $ref_lang_code );
+		$unsynced = $this->get_unsynced_elements( $hierarchical_element_types->toArray(), $ref_lang_code, $element_id );
 
 		foreach ( $unsynced as $row ) {
 			$this->update_hierarchy_for_element( $row );
 		}
 	}
 
-	/**
-	 * @param string $element_type
-	 *
-	 * @return mixed
-	 */
 	abstract public function is_hierarchical( $element_type );
 
 	private function update_hierarchy_for_element( $row ) {
@@ -104,6 +93,7 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 			$target_element_id = $row->translated_id;
 			$new_parent        = (int) $row->correct_parent;
 			$this->wpdb->update( $this->elements_table, array( $this->parent_id_column => $new_parent ), array( $this->element_id_column => $target_element_id ) );
+			wp_cache_delete( $row->translated_id, 'terms' );
 		}
 	}
 
@@ -142,9 +132,6 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 					} else {
 						$parent_must_empty = true;
 					}
-					/**
-					 * Check if the parent of the original post has a translation in the language of the target post or if the parent must be set to 0
-					 */
 					$is_valid = $parent_has_translation_in_target_language || $parent_must_empty;
 				}
 			}
@@ -228,15 +215,21 @@ abstract class WPML_Hierarchy_Sync extends WPML_WPDB_User {
 	                = {$this->correct_parent_language_table_alias}.element_id ";
 	}
 
-	private function get_where_statement( $element_types, $ref_lang_code ) {
+	private function get_where_statement( $element_types, $ref_lang_code, $element_id ) {
 
 		$filter_originals_snippet = $ref_lang_code
 			? $this->wpdb->prepare( " AND {$this->original_elements_language_table_alias}.language_code = %s ", $ref_lang_code )
 			: " AND {$this->translated_elements_language_table_alias}.source_language_code IS NOT NULL ";
 
-		return " WHERE {$this->original_elements_table_alias}.{$this->element_type_column}
+		$where_clause = " WHERE {$this->original_elements_table_alias}.{$this->element_type_column}
 					IN (" . wpml_prepare_in( $element_types ) . ")
                     AND IFNULL({$this->correct_parent_table_alias}.{$this->parent_element_id_column}, 0)
                         != {$this->translated_elements_table_alias}.{$this->parent_id_column} " . $filter_originals_snippet;
+
+		if ( $element_id && term_exists( $element_id ) ) {
+			$where_clause .= " AND {$this->translated_elements_table_alias}.term_id = {$element_id}";
+		}
+
+		return $where_clause;
 	}
 }

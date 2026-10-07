@@ -1,27 +1,12 @@
 <?php
 
-/**
- * Class WPML_Multilingual_Options_Utils
- */
 class WPML_Multilingual_Options_Utils {
-	/** @var  wpdb */
 	private $wpdb;
 
-	/**
-	 * WPML_Multilingual_Options_Utils constructor.
-	 *
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param string $option_name
-	 * @param mixed  $default
-	 *
-	 * @return mixed|null
-	 */
 	public function get_option_without_filtering( $option_name, $default = null ) {
 
 		$value_query = "SELECT option_value

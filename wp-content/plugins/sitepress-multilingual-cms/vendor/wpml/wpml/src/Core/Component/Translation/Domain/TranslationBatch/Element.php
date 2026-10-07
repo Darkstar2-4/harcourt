@@ -7,25 +7,15 @@ use WPML\Core\Component\Translation\Domain\TranslationType;
 
 class Element {
 
-  /** @var int */
   private $elementId;
 
-  /** @var TranslationType */
   private $type;
 
-  /** @var string */
   private $originalLanguageCode;
 
-  /** @var Translation[] */
   private $existingTranslations;
 
 
-  /**
-   * @param int             $elementId
-   * @param TranslationType $type
-   * @param string          $originalLanguageCode
-   * @param Translation[]   $existingTranslation
-   */
   public function __construct(
     int $elementId,
     TranslationType $type,
@@ -54,9 +44,6 @@ class Element {
   }
 
 
-  /**
-   * @return Translation[]
-   */
   public function getExistingTranslations(): array {
     return $this->existingTranslations;
   }

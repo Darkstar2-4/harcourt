@@ -1,20 +1,11 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Download_Localization {
 	private $active_languages;
 	private $default_language;
 	private $not_founds = array();
 	private $errors     = array();
 
-	/**
-	 * WPML_Localization constructor.
-	 *
-	 * @param array  $active_languages
-	 * @param string $default_language
-	 */
 	public function __construct( array $active_languages, $default_language ) {
 		$this->active_languages = $active_languages;
 		$this->default_language = $default_language;
@@ -24,7 +15,6 @@ class WPML_Download_Localization {
 		$results = array();
 		if ( $this->active_languages ) {
 			if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-				/** WordPress Administration File API */
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
 
@@ -34,11 +24,9 @@ class WPML_Download_Localization {
 				return array();
 			}
 			if ( ! function_exists( 'wp_can_install_language_pack' ) ) {
-				/** WordPress Translation Install API */
 				require_once $translation_install_file;
 			}
 			if ( ! function_exists( 'submit_button' ) ) {
-				/** WordPress Administration File API */
 				require_once ABSPATH . 'wp-admin/includes/template.php';
 			}
 			if ( ! wp_can_install_language_pack() ) {
@@ -100,10 +88,6 @@ class WPML_Download_Localization {
 		}
 	}
 
-	/**
-	 * @param string $plugin
-	 * @return bool|WP_Error
-	 */
 	public function download_plugin_translations( string $plugin ) {
 		if ( ! function_exists( 'get_plugin_data' ) ) {
 			require_once ABSPATH . '/wp-admin/includes/plugin.php';
@@ -134,7 +118,6 @@ class WPML_Download_Localization {
 		}
 
 		if ( empty( $api['translations'] ) ) {
-			// No translations.
 			return true;
 		}
 
@@ -164,7 +147,6 @@ class WPML_Download_Localization {
 		}
 
 		if ( empty( $toUpgrade ) ) {
-			// No plugin translated languages correspond to $locales.
 			return true;
 		}
 

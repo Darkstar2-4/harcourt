@@ -2,32 +2,11 @@
 
 use WPML\TM\ATE\Review\ReviewStatus;
 
-/**
- * Represents a helper class for building the SQL statement which retrieves the job,
- * as well as for converting this collection to specific implementations of \WPML_Element_Translation_Job.
- *
- * @package WPML\TM
- */
 class WPML_Abstract_Job_Collection {
-	/**
-	 * Instance of \wpdb.
-	 *
-	 * @var \wpdb $wpdb
-	 */
 	public $wpdb;
 
-	/**
-	 * Instance of \SitePress.
-	 *
-	 * @var \SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * WPML_Abstract_Job_Collection constructor.
-	 *
-	 * @param WPDB $wpdb An instance of \wpdb.
-	 */
 	public function __construct( WPDB $wpdb ) {
 		$this->wpdb = $wpdb;
 
@@ -35,18 +14,6 @@ class WPML_Abstract_Job_Collection {
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * It gets the (INNER) JOIN clause of the query.
-	 *
-	 * @param bool   $single                            It should only return the last job revision.
-	 * @param string $icl_translate_alias               The alias for `{$this->wpdb->prefix}icl_translate_job`.
-	 * @param string $icl_translations_translated_alias The alias for translated documents in `{$this->wpdb->prefix}icl_translations`.
-	 * @param string $icl_translations_original_alias   The alias for original documents in `{$this->wpdb->prefix}icl_translations`.
-	 * @param string $icl_translation_status_alias      The alias for `{$this->wpdb->prefix}icl_translation_status`.
-	 * @param string $icl_translate_job_alias           The alias for `{$this->wpdb->prefix}icl_translate_job`.
-	 *
-	 * @return string
-	 */
 	protected function get_table_join(
 		$single = false,
 		$icl_translate_alias = 'iclt',
@@ -79,14 +46,6 @@ class WPML_Abstract_Job_Collection {
                 {$max_rev_snippet}";
 	}
 
-	/**
-	 * It gets the LEFT JOIN clause of the query.
-	 *
-	 * @param string $icl_translations_original_alias The alias for original documents in `{$this->wpdb->prefix}icl_translations`.
-	 * @param string $posts_alias                     The alias for `{$this->wpdb->prefix}posts`.
-	 *
-	 * @return array
-	 */
 	protected function left_join_post( $icl_translations_original_alias = 'ito', $posts_alias = 'p' ) {
 
 		$join   = "LEFT JOIN {$this->wpdb->prefix}posts {$posts_alias}
@@ -97,13 +56,6 @@ class WPML_Abstract_Job_Collection {
 		return array( $select, $join );
 	}
 
-	/**
-	 * It converts an array of \stdClass jobs into an array of \WPML_Element_Translation_Job instances.
-	 *
-	 * @param array $jobs The array of \stdClass jobs.
-	 *
-	 * @return \WPML_Element_Translation_Job[]|\WPML_Post_Translation_Job[]|\WPML_String_Translation_Job[]|\WPML_External_Translation_Job[]
-	 */
 	protected function plain_objects_to_job_instances( $jobs ) {
 		foreach ( $jobs as $key => $job ) {
 			if ( ! is_object( $job ) || ! isset( $job->element_type_prefix ) || ! isset( $job->job_id ) ) {
@@ -130,28 +82,6 @@ class WPML_Abstract_Job_Collection {
 		return $jobs;
 	}
 
-	/**
-	 * Optional arguments to filter the results.
-	 *
-	 * @param array $args {
-	 *                    Optional. An array of arguments.
-	 *
-	 * @type int    translator_id
-	 * @type int    status
-	 * @type int    status__not
-	 * @type bool   include_unassigned
-	 * @type int    limit_no
-	 * @type array  language_pairs
-	 * @type string service
-	 * @type string from
-	 * @type string to
-	 * @type string type
-	 * @type bool   overdue
-	 * @type string   title
-	 * }
-	 *
-	 * @return string
-	 */
 	protected function build_where_clause( array $args ) {
 		$defaults_args = array(
 			'translator_id'      => 0,
@@ -238,14 +168,7 @@ class WPML_Abstract_Job_Collection {
 		}
 
 		if ( empty( $from ) && false !== (bool) $language_pairs && is_array( $language_pairs ) && $translator_id ) {
-			/**
-			 * Only if we filter by translator, make sure to use just the 'from' languages that apply
-			 * in no translator_id, omit condition and all will be pulled.
-			 */
 			if ( ! empty( $to ) ) {
-				/**
-				 * Get 'from' languages corresponding to $to (to $translator_id).
-				 */
 				$from_languages = array();
 				foreach ( $language_pairs as $fl => $tls ) {
 					if ( isset( $tls[ $to ] ) ) {
@@ -256,10 +179,6 @@ class WPML_Abstract_Job_Collection {
 					$where .= ' AND t.source_language_code IN (' . wpml_prepare_in( $from_languages ) . ') ';
 				}
 			} else {
-				/**
-				 * All to all case.
-				 * Get all possible combinations for $translator_id.
-				 */
 				$from_languages   = array_keys( $language_pairs );
 				$where_conditions = array();
 				foreach ( $from_languages as $fl ) {
@@ -274,11 +193,6 @@ class WPML_Abstract_Job_Collection {
 		}
 
 		if ( empty( $to ) && $translator_id && ! empty( $from ) && isset( $language_pairs[ $from ] ) && false !== (bool) $language_pairs[ $from ] ) {
-			/**
-			 * Only if we filter by translator, make sure to use just the 'from' languages that apply
-			 * in no translator_id, omit condition and all will be pulled.
-			 * Get languages the user can translate into from $from.
-			 */
 			$where .= ' AND t.language_code IN(' . wpml_prepare_in( array_keys( $language_pairs[ $from ] ) ) . ')';
 		}
 

@@ -13,11 +13,6 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Source;
-/**
- * Represents a node in the AST.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class Node implements \WPML\Core\Twig_NodeInterface
 {
     protected $nodes;
@@ -26,12 +21,6 @@ class Node implements \WPML\Core\Twig_NodeInterface
     protected $tag;
     private $name;
     private $sourceContext;
-    /**
-     * @param array  $nodes      An array of named nodes
-     * @param array  $attributes An array of attributes (should not be nodes)
-     * @param int    $lineno     The line number
-     * @param string $tag        The tag name associated with the Node
-     */
     public function __construct(array $nodes = [], array $attributes = [], $lineno = 0, $tag = null)
     {
         foreach ($nodes as $name => $node) {
@@ -66,9 +55,6 @@ class Node implements \WPML\Core\Twig_NodeInterface
         }
         return \implode("\n", $repr);
     }
-    /**
-     * @deprecated since 1.16.1 (to be removed in 2.0)
-     */
     public function toXml($asDom = \false)
     {
         @\trigger_error(\sprintf('%s is deprecated since version 1.16.1 and will be removed in 2.0.', __METHOD__), \E_USER_DEPRECATED);
@@ -103,9 +89,6 @@ class Node implements \WPML\Core\Twig_NodeInterface
     {
         return $this->lineno;
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function getLine()
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0. Use getTemplateLine() instead.', \E_USER_DEPRECATED);
@@ -115,16 +98,10 @@ class Node implements \WPML\Core\Twig_NodeInterface
     {
         return $this->tag;
     }
-    /**
-     * @return bool
-     */
     public function hasAttribute($name)
     {
         return \array_key_exists($name, $this->attributes);
     }
-    /**
-     * @return mixed
-     */
     public function getAttribute($name)
     {
         if (!\array_key_exists($name, $this->attributes)) {
@@ -132,10 +109,6 @@ class Node implements \WPML\Core\Twig_NodeInterface
         }
         return $this->attributes[$name];
     }
-    /**
-     * @param string $name
-     * @param mixed  $value
-     */
     public function setAttribute($name, $value)
     {
         $this->attributes[$name] = $value;
@@ -144,16 +117,10 @@ class Node implements \WPML\Core\Twig_NodeInterface
     {
         unset($this->attributes[$name]);
     }
-    /**
-     * @return bool
-     */
     public function hasNode($name)
     {
         return \array_key_exists($name, $this->nodes);
     }
-    /**
-     * @return Node
-     */
     public function getNode($name)
     {
         if (!\array_key_exists($name, $this->nodes)) {
@@ -210,17 +177,11 @@ class Node implements \WPML\Core\Twig_NodeInterface
     {
         return $this->sourceContext;
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function setFilename($name)
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0. Use setTemplateName() instead.', \E_USER_DEPRECATED);
         $this->setTemplateName($name);
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function getFilename()
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0. Use getTemplateName() instead.', \E_USER_DEPRECATED);
@@ -228,5 +189,4 @@ class Node implements \WPML\Core\Twig_NodeInterface
     }
 }
 \class_alias('WPML\\Core\\Twig\\Node\\Node', 'WPML\\Core\\Twig_Node');
-// Ensure that the aliased name is loaded to keep BC for classes implementing the typehint with the old aliased name.
 \class_exists('WPML\\Core\\Twig\\Compiler');

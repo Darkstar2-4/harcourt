@@ -5,16 +5,9 @@ namespace WPML\REST\XMLConfig\Custom;
 use WP_REST_Request;
 
 class Actions extends \WPML_REST_Base {
-	/** @var array<string> */
 	private $capabilities = [ 'manage_options' ];
 
-	/**
-	 * @var \WPML_Custom_XML
-	 */
 	private $custom_xml;
-	/**
-	 * @var \WPML_XML_Config_Validate
-	 */
 	private $validate;
 
 	public function __construct( \WPML_Custom_XML $custom_xml, \WPML_XML_Config_Validate $validate ) {
@@ -52,13 +45,6 @@ class Actions extends \WPML_REST_Base {
 		);
 	}
 
-	/**
-	 * REST
-	 *
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return string
-	 */
 	public function update_content( WP_REST_Request $request ) {
 		$content = $request->get_param( 'content' );
 
@@ -68,13 +54,6 @@ class Actions extends \WPML_REST_Base {
 		return $this->custom_xml->get();
 	}
 
-	/**
-	 * REST
-	 *
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return \LibXMLError[]
-	 */
 	public function validate_content( WP_REST_Request $request ) {
 		$content = $request->get_param( 'content' );
 
@@ -85,9 +64,6 @@ class Actions extends \WPML_REST_Base {
 		return [];
 	}
 
-	/**
-	 * REST
-	 */
 	public function read_content() {
 		return $this->custom_xml->get();
 	}

@@ -12,20 +12,10 @@ namespace WPML\Core\Twig\Loader;
 
 use WPML\Core\Twig\Error\LoaderError;
 use WPML\Core\Twig\Source;
-/**
- * Loads templates from other loaders.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ChainLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\Core\Twig\Loader\ExistsLoaderInterface, \WPML\Core\Twig\Loader\SourceContextLoaderInterface
 {
     private $hasSourceCache = [];
     protected $loaders = [];
-    /**
-     * @param LoaderInterface[] $loaders
-     */
     public function __construct(array $loaders = [])
     {
         foreach ($loaders as $loader) {
@@ -37,9 +27,6 @@ class ChainLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\Core\
         $this->loaders[] = $loader;
         $this->hasSourceCache = [];
     }
-    /**
-     * @return LoaderInterface[]
-     */
     public function getLoaders()
     {
         return $this->loaders;

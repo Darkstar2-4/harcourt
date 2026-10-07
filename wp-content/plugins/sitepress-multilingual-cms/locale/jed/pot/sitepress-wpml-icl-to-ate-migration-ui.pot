@@ -360,7 +360,7 @@ msgid "Which languages do you want to translate your site into?"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:149
-msgid "If you cannot find languages that you need in the list"
+msgid "If you cannot find languages that you need in the list,"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:150

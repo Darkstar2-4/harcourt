@@ -13,11 +13,6 @@ namespace WPML\Core\Twig\Node;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
-/**
- * Represents a deprecated node.
- *
- * @author Yonel Ceruto <yonelceruto@gmail.com>
- */
 class DeprecatedNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct(\WPML\Core\Twig\Node\Expression\AbstractExpression $expr, $lineno, $tag = null)

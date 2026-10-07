@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "Connect this site to your %s account": [
-            "Conecte este sitio con su cuenta de %s"
+            "Conecte este sitio a su cuenta %s"
          ],
          "Error": [
             "Error"
@@ -20,7 +20,7 @@
             "Autenticar"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "Visite <link_to_service /> para solicitar un Token de API. Este token permite que WPML se conecte con <service_name /> para enviar y recibir trabajos."
+            "Visite <link_to_service /> para solicitar un token de API. Este token permite que WPML se conecte a <service_name /> para enviar y recibir trabajos."
          ],
          "Search translation services": [
             "Buscar servicios de traducción"
@@ -32,7 +32,16 @@
             "Ajustes"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "Actualmente, no es posible conectar un servicio de traducción cuando se ha seleccionado WPML para traducir el contenido de su sitio web de forma automática. Para usar un servicio de traducción, cambie el modo en la página <LinkToSettingsPage />."
+            "Actualmente no es posible conectar un servicio de traducción cuando WPML está configurado para traducir automáticamente el contenido de su sitio. Para usar un servicio de traducción, cambie su modo de traducción en la página <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Ordenar descendente"
+         ],
+         "Sort ascending": [
+            "Ordenar ascendente"
+         ],
+         "Cancel sorting": [
+            "Cancelar ordenación"
          ],
          "Documentation": [
             "Documentación"

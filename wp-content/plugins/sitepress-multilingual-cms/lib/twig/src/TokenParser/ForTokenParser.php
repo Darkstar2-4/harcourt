@@ -19,17 +19,6 @@ use WPML\Core\Twig\Node\Expression\NameExpression;
 use WPML\Core\Twig\Node\ForNode;
 use WPML\Core\Twig\Token;
 use WPML\Core\Twig\TokenStream;
-/**
- * Loops over each item of a sequence.
- *
- *   <ul>
- *    {% for user in users %}
- *      <li>{{ user.username|e }}</li>
- *    {% endfor %}
- *   </ul>
- *
- * @final
- */
 class ForTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)
@@ -76,7 +65,6 @@ class ForTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
     {
         return $token->test('endfor');
     }
-    // the loop variable cannot be used in the condition
     protected function checkLoopUsageCondition(\WPML\Core\Twig\TokenStream $stream, \WPML\Core\Twig_NodeInterface $node)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\GetAttrExpression && $node->getNode('node') instanceof \WPML\Core\Twig\Node\Expression\NameExpression && 'loop' == $node->getNode('node')->getAttribute('name')) {
@@ -89,8 +77,6 @@ class ForTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
             $this->checkLoopUsageCondition($stream, $n);
         }
     }
-    // check usage of non-defined loop-items
-    // it does not catch all problems (for instance when a for is included into another or when the variable is used in an include)
     protected function checkLoopUsageBody(\WPML\Core\Twig\TokenStream $stream, \WPML\Core\Twig_NodeInterface $node)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\GetAttrExpression && $node->getNode('node') instanceof \WPML\Core\Twig\Node\Expression\NameExpression && 'loop' == $node->getNode('node')->getAttribute('name')) {
@@ -99,7 +85,6 @@ class ForTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
                 throw new \WPML\Core\Twig\Error\SyntaxError(\sprintf('The "loop.%s" variable is not defined when looping with a condition.', $attribute->getAttribute('value')), $node->getTemplateLine(), $stream->getSourceContext());
             }
         }
-        // should check for parent.loop.XXX usage
         if ($node instanceof \WPML\Core\Twig\Node\ForNode) {
             return;
         }

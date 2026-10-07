@@ -9,14 +9,8 @@ use WPML\ICLToATEMigration\Data;
 use WPML_TM_ATE_API;
 
 class CheckMigrationStatus implements IHandler {
-	/**
-	 * @var WPML_TM_ATE_API
-	 */
 	private $apiClient;
 
-	/**
-	 * @param WPML_TM_ATE_API $apiClient
-	 */
 	public function __construct( WPML_TM_ATE_API $apiClient ) {
 		$this->apiClient = $apiClient;
 	}

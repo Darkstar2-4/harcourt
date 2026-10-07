@@ -64,3 +64,6 @@
     .rtl .wpml-ls-legacy-dropdown-click .wpml-ls-flag + span {
       margin-left: 0;
       margin-right: .4em; }
+
+#wpml-ls-submenu-click-default {
+  background-color: white; }

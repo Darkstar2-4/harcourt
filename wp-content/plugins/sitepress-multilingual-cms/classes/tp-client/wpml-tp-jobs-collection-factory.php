@@ -2,9 +2,6 @@
 
 class WPML_TP_Jobs_Collection_Factory {
 
-	/**
-	 * @return WPML_TP_Jobs_Collection
-	 */
 	public function create() {
 		$tp_jobs_collection = null;
 		$current_project    = TranslationProxy::get_current_project();

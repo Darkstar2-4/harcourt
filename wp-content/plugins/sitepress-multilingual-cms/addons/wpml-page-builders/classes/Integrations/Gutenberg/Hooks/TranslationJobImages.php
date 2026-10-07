@@ -16,12 +16,6 @@ class TranslationJobImages implements \IWPML_REST_Action, \WPML\PB\Gutenberg\Int
 			->then( spreadArgs( Lst::append( '/(?:image-|media-text-)(\d+)$/' ) ) );
 	}
 
-	/**
-	 * @param int   $sequence
-	 * @param mixed $block
-	 *
-	 * @return int
-	 */
 	public function getAttachmentId( $sequence, $block ) {
 		if ( ! is_a( $block, \WP_Block_Parser_Block::class ) ) {
 			return $sequence;

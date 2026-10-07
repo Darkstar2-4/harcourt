@@ -1,7 +1,4 @@
 <?php
-/**
- * @package wpml-core
- */
 
 function update_gettext_context_schema() {
 
@@ -77,12 +74,6 @@ function update_domain_name_context() {
 		$domain_name_context_md5 = md5( $string->domain . $string->name . $string->gettext_context );
 		while ( in_array( $domain_name_context_md5, $domain_name_context_md5_used ) ) {
 
-			/*
-			 We need to handle duplicates because previous versions of WPML didn't strictly
-			 * disallow them when handling gettext contexts.
-			 * This solution doesn't solve the problem because there is no solution
-			 * It just stops any DB errors about duplicate keys.
-			 */
 
 			$duplicate_count++;
 			$domain_name_context_md5 = md5( $string->domain . $string->name . 'duplicate-' . $duplicate_count . '-' . $string->gettext_context );

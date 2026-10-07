@@ -5,10 +5,10 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "zh@Hans"
+            "lang": "zh_CN"
          },
          "Your site doesn't meet WPML's minimum requirements": [
-            "您的网站不符合 WPML 的最低要求。"
+            "您的站点不符合 WPML 的最低要求"
          ]
       }
    }

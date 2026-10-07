@@ -30,7 +30,7 @@ class LCP_Preload_Tag {
 	 */
 	private $allowed_url_hostnames;
 
-	public function __construct( Page $page, LCP_Data $lcp_data ) {
+	public function __construct( $page, $lcp_data ) {
 		$this->page        = $page;
 		$this->array_utils = new Array_Utils();
 		$this->lcp_data    = $lcp_data;
@@ -76,7 +76,7 @@ class LCP_Preload_Tag {
 		return $tag;
 	}
 
-	private function analyze_composite_element( Composite_Element $composite_element ) {
+	private function analyze_composite_element( $composite_element ) {
 		$data                  = array(
 			'src_url' => '',
 			'sources' => array(),
@@ -151,7 +151,7 @@ class LCP_Preload_Tag {
 		return $data;
 	}
 
-	private function make_preload_tag_for_composite_element( Composite_Element $composite_element ) {
+	private function make_preload_tag_for_composite_element( $composite_element ) {
 		$composite_data = $this->analyze_composite_element( $composite_element );
 		switch ( $composite_data['type'] ) {
 			case 'multi_format':
@@ -289,7 +289,7 @@ class LCP_Preload_Tag {
 	 *
 	 * @return mixed|string
 	 */
-	private function get_attribute_value( Element $element, string $attribute ) {
+	private function get_attribute_value( $element, $attribute ) {
 		return $element->has_attribute( $attribute )
 			? $element->get_attribute( $attribute )->get_value()
 			: '';
@@ -301,7 +301,7 @@ class LCP_Preload_Tag {
 	 *
 	 * @return string
 	 */
-	private function get_attribute_single_url( Element $element, string $attribute_name ): string {
+	private function get_attribute_single_url( $element, $attribute_name ) {
 		$url = $element->has_attribute( $attribute_name )
 			? $element->get_attribute( $attribute_name )->get_single_image_url()
 			: null;

@@ -4,7 +4,7 @@ Plugin Name: Image Hotspot by DevVN
 Plugin URI: https://levantoan.com/devvn-image-hotspot
 Description: Image Hotspot help you add hotspot to your images.
 Author: Le Van Toan
-Version: 1.2.9
+Version: 1.3.0
 Author URI: https://levantoan.com/
 Text Domain: devvn-image-hotspot
 Domain Path: /languages
@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-define('DEVVN_IHOTSPOT_VER', '1.2.9');
+define('DEVVN_IHOTSPOT_VER', '1.3.0');
 define('DEVVN_IHOTSPOT_DEV_MOD', true);
 
 if ( !defined( 'DEVVN_IHOTSPOT_BASENAME' ) )
@@ -63,14 +63,14 @@ include 'admin/inc/settings.php';
 //load_textdomain('devvn-image-hotspot', dirname(__FILE__) . '/languages/devvn-image-hotspot-' . get_locale() . '.mo');
 //load_plugin_textdomain( 'devvn-image-hotspot', false, plugin_basename( dirname( __FILE__ ) ) . '/i18n/languages' );
 
-function ihotspot_load_my_own_textdomain( $mofile, $domain ) {
+function devvn_ihotspot_load_my_own_textdomain( $mofile, $domain ) {
 	if ( 'devvn-image-hotspot' === $domain && false !== strpos( $mofile, WP_LANG_DIR . '/plugins/' ) ) {
-		$locale = apply_filters( 'plugin_locale', determine_locale(), $domain );
+		$locale = apply_filters( 'plugin_locale', determine_locale(), $domain ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		$mofile = WP_PLUGIN_DIR . '/' . dirname( plugin_basename( __FILE__ ) ) . '/languages/' . $domain . '-' . $locale . '.mo';
 	}
 	return $mofile;
 }
-add_filter( 'load_textdomain_mofile', 'ihotspot_load_my_own_textdomain', 10, 2 );
+add_filter( 'load_textdomain_mofile', 'devvn_ihotspot_load_my_own_textdomain', 10, 2 );
 
 //metabox
 function devvn_ihotspot_meta_box() {
@@ -123,7 +123,7 @@ function devvn_ihotspot_meta_box_callback( $post ) {
 	}
 
 	$maps_images = (isset($data_post['maps_images']))?$data_post['maps_images']:'';
-    $data_points = isset($data_post['data_points']) && $data_post['data_points'] ? $data_post['data_points'] : array();
+	$data_points = isset($data_post['data_points']) && $data_post['data_points'] ? $data_post['data_points'] : array();
 
     if(!empty($data_points)){
 
@@ -139,7 +139,7 @@ function devvn_ihotspot_meta_box_callback( $post ) {
             }
         }
 
-        $data_points = $decoded_array;
+        $data_points = devvn_ihotspot_sanitize_data_points($decoded_array);
 
     }
 
@@ -230,7 +230,7 @@ function devvn_ihotspot_meta_box_callback( $post ) {
 		<div class="images_wrap">
 			<?php
 			if($maps_images):
-			$image_info = get_image_info_from_url($maps_images);
+			$image_info = devvn_ihotspot_get_image_info_from_url($maps_images);
             $alt = isset($image_info['alt']) ? sanitize_text_field($image_info['alt']) : '';
             ?>
 			<img src="<?php echo esc_attr($maps_images); ?>" alt="<?php echo esc_attr($alt);?>">
@@ -300,6 +300,60 @@ function devvn_ihotspot_is_base64($string) {
     return preg_match('/^[A-Za-z0-9+\/]+={0,2}$/', $string);
 }
 
+function devvn_ihotspot_get_allowed_tags() {
+	$allowed_tags = wp_kses_allowed_html( 'post' );
+	$allowed_tags['iframe'] = array(
+		'src' => array(),
+		'width' => array(),
+		'height' => array(),
+		'frameborder' => array(),
+		'scrolling' => array(),
+		'allowfullscreen' => array()
+	);
+	return apply_filters('devvn_ihotspot_allowed_tags', $allowed_tags);
+}
+
+function devvn_ihotspot_sanitize_data_points($data_points) {
+	if ( empty( $data_points ) || ! is_array( $data_points ) ) {
+		return array();
+	}
+
+	$allowed_tags = devvn_ihotspot_get_allowed_tags();
+	$sanitized_points = array();
+
+	foreach ( $data_points as $key => $point ) {
+		if ( ! is_array( $point ) ) {
+			continue;
+		}
+
+		$sanitized_point = array();
+
+		foreach ( $point as $field_key => $field_value ) {
+			if ( 'content' === $field_key ) {
+				$sanitized_point[ $field_key ] = wp_kses( $field_value, $allowed_tags );
+			} elseif ( 'linkpins' === $field_key ) {
+				$sanitized_point[ $field_key ] = esc_url_raw( $field_value );
+			} elseif ( 'pins_image_custom' === $field_key || 'pins_image_hover_custom' === $field_key ) {
+				$sanitized_point[ $field_key ] = esc_url_raw( $field_value );
+			} elseif ( 'link_target' === $field_key ) {
+				$sanitized_point[ $field_key ] = sanitize_text_field( $field_value );
+			} elseif ( 'placement' === $field_key ) {
+				$sanitized_point[ $field_key ] = sanitize_text_field( $field_value );
+			} elseif ( 'pins_id' === $field_key || 'pins_class' === $field_key || 'pinsalt' === $field_key ) {
+				$sanitized_point[ $field_key ] = sanitize_text_field( $field_value );
+			} elseif ( 'top' === $field_key || 'left' === $field_key ) {
+				$sanitized_point[ $field_key ] = is_numeric( $field_value ) ? floatval( $field_value ) : sanitize_text_field( $field_value );
+			} else {
+				$sanitized_point[ $field_key ] = sanitize_text_field( $field_value );
+			}
+		}
+
+		$sanitized_points[ $key ] = $sanitized_point;
+	}
+
+	return $sanitized_points;
+}
+
 function devvn_ihotspot_shortcode_callback( $post ){
 	if(get_post_status($post->ID) == "publish"):
 	?>
@@ -315,7 +369,7 @@ function devvn_ihotspot_save_meta_box_data( $post_id ) {
 	if ( ! isset( $_POST['maps_points_meta_box_nonce'] ) ) {
 		return;
 	}
-	if ( ! wp_verify_nonce( $_POST['maps_points_meta_box_nonce'], 'maps_points_save_meta_box_data' ) ) {
+	if ( ! wp_verify_nonce( wp_unslash( $_POST['maps_points_meta_box_nonce'] ), 'maps_points_save_meta_box_data' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		return;
 	}
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -334,22 +388,28 @@ function devvn_ihotspot_save_meta_box_data( $post_id ) {
 		return;
 	}
 
-	$my_data = isset($_POST['maps_images']) && $_POST['maps_images'] ? esc_url($_POST['maps_images']) :'';
+	$my_data = '';
+	if ( isset( $_POST['maps_images'] ) ) {
+		$maps_images_raw = sanitize_text_field( wp_unslash( $_POST['maps_images'] ) );
+		if ( $maps_images_raw ) {
+			$my_data = esc_url_raw( $maps_images_raw );
+		}
+	}
 	
 	$dataPoints = array();	
 	
 	/*sanitize in devvn_ihotspot_convert_array_data*/
-	$pointdata = isset($_POST['pointdata']) ? $_POST['pointdata'] : '';
+	$pointdata = isset($_POST['pointdata']) ? wp_unslash( $_POST['pointdata'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-	$choose_type = sanitize_text_field((isset($_POST['choose_type']))?$_POST['choose_type']:'');
+	$choose_type = isset($_POST['choose_type']) ? sanitize_text_field( wp_unslash( $_POST['choose_type'] ) ) : '';
 	
-	$custom_top = sanitize_text_field((isset($_POST['custom_top']))?$_POST['custom_top']:'');
-	$custom_left = sanitize_text_field((isset($_POST['custom_left']))?$_POST['custom_left']:'');
+	$custom_top = isset($_POST['custom_top']) ? sanitize_text_field( wp_unslash( $_POST['custom_top'] ) ) : '';
+	$custom_left = isset($_POST['custom_left']) ? sanitize_text_field( wp_unslash( $_POST['custom_left'] ) ) : '';
 	
-	$custom_hover_top = sanitize_text_field((isset($_POST['custom_hover_top']))?$_POST['custom_hover_top']:'');
-	$custom_hover_left = sanitize_text_field((isset($_POST['custom_hover_left']))?$_POST['custom_hover_left']:'');
+	$custom_hover_top = isset($_POST['custom_hover_top']) ? sanitize_text_field( wp_unslash( $_POST['custom_hover_top'] ) ) : '';
+	$custom_hover_left = isset($_POST['custom_hover_left']) ? sanitize_text_field( wp_unslash( $_POST['custom_hover_left'] ) ) : '';
 	
-	$pins_animation = sanitize_text_field((isset($_POST['pins_animation']))?$_POST['pins_animation']:'');
+	$pins_animation = isset($_POST['pins_animation']) ? sanitize_text_field( wp_unslash( $_POST['pins_animation'] ) ) : '';
 	
 	$pins_more_option = array(
 		'position'			=>	$choose_type,
@@ -364,8 +424,8 @@ function devvn_ihotspot_save_meta_box_data( $post_id ) {
 	}
 	$data_post = array(
 		'maps_images'		=>	$my_data,
-		'pins_image'		=>	sanitize_text_field( (isset($_POST['pins_image']))?$_POST['pins_image']:'' ),
-		'pins_image_hover'	=>	sanitize_text_field(isset($_POST['pins_image_hover'])?$_POST['pins_image_hover']:''),
+		'pins_image'		=>	isset($_POST['pins_image']) ? sanitize_text_field( wp_unslash( $_POST['pins_image'] ) ) : '',
+		'pins_image_hover'	=>	isset($_POST['pins_image_hover']) ? sanitize_text_field( wp_unslash( $_POST['pins_image_hover'] ) ) : '',
 		'pins_more_option'	=>	$pins_more_option,
 		'data_points'		=>	$dataPoints
 	);
@@ -505,13 +565,13 @@ function devvn_ihotspot_get_input_point_default($data = array()){
 					?>
 					<div class="devvn_row">
 						<div class="devvn_col_3">
-							<label>Link to pins<br>
-							<input type="text" name="pointdata[linkpins][]" value="<?php echo esc_attr($pointLink)?>" placeholder="Link to pins"/>
+							<label><?php esc_html_e('Link to pins', 'devvn-image-hotspot');?><br>
+							<input type="text" name="pointdata[linkpins][]" value="<?php echo esc_attr($pointLink)?>" placeholder="<?php esc_attr_e('Link to pins', 'devvn-image-hotspot');?>"/>
 							</label><br>
-							<label>Link target<br>
+							<label><?php esc_html_e('Link target', 'devvn-image-hotspot');?><br>
 							<select name="pointdata[link_target][]">
-							    <option value="_self" <?php selected('_self',$link_target);?>>Open curent window</option>
-							    <option value="_blank" <?php selected('_blank',$link_target);?>>Open new window</option>
+							    <option value="_self" <?php selected('_self',$link_target);?>><?php esc_html_e('Open in current window', 'devvn-image-hotspot');?></option>
+							    <option value="_blank" <?php selected('_blank',$link_target);?>><?php esc_html_e('Open in new window', 'devvn-image-hotspot');?></option>
 							</select>
 							</label>
 
@@ -540,40 +600,40 @@ function devvn_ihotspot_get_input_point_default($data = array()){
 
 						</div>
 						<div class="devvn_col_3">
-							<label><?php esc_html_e( 'Pins Alt', 'devvn-image-hotspot' )?><br>
-							<input type="text" name="pointdata[pinsalt][]" value="<?php echo esc_attr($pinsalt)?>" placeholder="Type a ALT"/>
+							<label><?php esc_html_e( 'Pin Alt Text', 'devvn-image-hotspot' )?><br>
+							<input type="text" name="pointdata[pinsalt][]" value="<?php echo esc_attr($pinsalt)?>" placeholder="<?php esc_attr_e('Enter ALT text', 'devvn-image-hotspot');?>"/>
 							</label>
 						</div>
 					</div>
 					<div class="devvn_row">
 						<div class="devvn_col_3">
-							<label>Placement<br></label>
+							<label><?php esc_html_e('Placement', 'devvn-image-hotspot');?><br></label>
 							<select name="pointdata[placement][]">
 							    <?php
 							    $allPlacement = array(
-                                    'n' =>  'North',
-                                    'e' =>  'East',
-                                    's' =>  'South',
-                                    'w' =>  'West',
-                                    'nw' =>  'North West',
-                                    'ne' =>  'North East',
-                                    'sw' =>  'South West',
-                                    'se' =>  'South East'
+                                    'n' =>  __('North', 'devvn-image-hotspot'),
+                                    'e' =>  __('East', 'devvn-image-hotspot'),
+                                    's' =>  __('South', 'devvn-image-hotspot'),
+                                    'w' =>  __('West', 'devvn-image-hotspot'),
+                                    'nw' =>  __('North West', 'devvn-image-hotspot'),
+                                    'ne' =>  __('North East', 'devvn-image-hotspot'),
+                                    'sw' =>  __('South West', 'devvn-image-hotspot'),
+                                    'se' =>  __('South East', 'devvn-image-hotspot')
 							    );
 							    foreach ($allPlacement as $k=>$v){
                                 ?>
-							    <option value="<?php echo esc_attr($k);?>" <?php selected($k,$placement)?>><?php echo esc_attr($v);?></option>
+							    <option value="<?php echo esc_attr($k);?>" <?php selected($k,$placement)?>><?php echo esc_html($v);?></option>
 							    <?php }?>
                             </select>
 						</div>
 						<div class="devvn_col_3">
-							<label>Pins ID<br>
-							<input type="text" name="pointdata[pins_id][]" value="<?php echo esc_attr($pins_id)?>" placeholder="Type a ID"/>
+							<label><?php esc_html_e('Pin ID', 'devvn-image-hotspot');?><br>
+							<input type="text" name="pointdata[pins_id][]" value="<?php echo esc_attr($pins_id)?>" placeholder="<?php esc_attr_e('Enter ID', 'devvn-image-hotspot');?>"/>
 							</label>
                         </div>
                         <div class="devvn_col_3">
-							<label>Pins Class<br>
-							<input type="text" name="pointdata[pins_class][]" value="<?php echo esc_attr($pins_class)?>" placeholder="Ex: class_1 class_2 class_3"/>
+							<label><?php esc_html_e('Pin Class', 'devvn-image-hotspot');?><br>
+							<input type="text" name="pointdata[pins_class][]" value="<?php echo esc_attr($pins_class)?>" placeholder="<?php esc_attr_e('e.g.: class_1 class_2 class_3', 'devvn-image-hotspot');?>"/>
 							</label>
                         </div>
 					</div>
@@ -619,14 +679,14 @@ function devvn_ihotspot_get_pins_default($datapin = array()){
 //Clone Point
 add_action( 'wp_ajax_devvn_ihotspot_clone_point', 'devvn_ihotspot_clone_point_func' );
 function devvn_ihotspot_clone_point_func() {
-	if ( !wp_verify_nonce( $_REQUEST['nonce'], "maps_points_save_meta_box_data")) {
+	if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( wp_unslash( $_REQUEST['nonce'] ), "maps_points_save_meta_box_data")) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
     	exit();
    	}   
-	if(!is_user_logged_in()){
+	if(!is_user_logged_in() || !current_user_can('edit_posts')){
 		wp_send_json_error();
 	}
-	$countPoint = intval($_POST['countpoint']);
-	$imgPin = esc_url($_POST['img_pins']);
+	$countPoint = isset($_POST['countpoint']) ? intval( wp_unslash( $_POST['countpoint'] ) ) : 0;
+	$imgPin = isset($_POST['img_pins']) ? esc_url_raw( wp_unslash( $_POST['img_pins'] ) ) : '';
 	$countPoint = (isset($countPoint) && !empty($countPoint)) ? $countPoint : wp_rand();
 	$datapin = array(
 		'countPoint'	=>	$countPoint,
@@ -659,17 +719,17 @@ function devvn_ihotspot_convert_array_data($inputArray = array()){
 		foreach ($inputArray as $key => $value){
 			//$element[$key] = base64_encode(wp_kses_post($value[$i]));
 
-			$allowed_tags = wp_kses_allowed_html( 'post' );
-            $allowed_tags['iframe'] = array(
-                'src' => array(),
-				'width' => array(),
-				'height' => array(),
-				'frameborder' => array(),
-				'scrolling' => array(),
-				'allowfullscreen' => array()
-            );
+			$allowed_tags = devvn_ihotspot_get_allowed_tags();
 
-			$element[$key] = base64_encode(wp_kses($value[$i], apply_filters('devvn_ihotspot_allowed_tags', $allowed_tags)));
+			if ( 'content' === $key ) {
+				$element[$key] = base64_encode(wp_kses($value[$i], $allowed_tags));
+			} elseif ( 'linkpins' === $key || 'pins_image_custom' === $key || 'pins_image_hover_custom' === $key ) {
+				$element[$key] = base64_encode(esc_url_raw($value[$i]));
+			} elseif ( 'top' === $key || 'left' === $key ) {
+				$element[$key] = base64_encode(is_numeric($value[$i]) ? floatval($value[$i]) : sanitize_text_field($value[$i]));
+			} else {
+				$element[$key] = base64_encode(sanitize_text_field($value[$i]));
+			}
 		}
 		array_push($aOutput,$element);
 	}
@@ -677,19 +737,27 @@ function devvn_ihotspot_convert_array_data($inputArray = array()){
 	return $aOutput;
 }
 
-if(!function_exists('get_image_info_from_url')){
-    function get_image_info_from_url($image_url) {
+if(!function_exists('devvn_ihotspot_get_image_info_from_url')){
+    function devvn_ihotspot_get_image_info_from_url($image_url) {
         global $wpdb;
 
-        $upload_dir = wp_upload_dir();
-        $relative_path = str_replace($upload_dir['baseurl'] . '/', '', $image_url);
+        $cache_key = 'devvn_ihotspot_image_info_' . md5( $image_url );
+        $attachment_id = wp_cache_get( $cache_key );
 
-        $attachment_id = $wpdb->get_var( $wpdb->prepare( "
-            SELECT post_id FROM {$wpdb->postmeta}
-            WHERE meta_key = '_wp_attached_file'
-            AND meta_value = %s
-            LIMIT 1
-        ", $relative_path ) );
+        if ( false === $attachment_id ) {
+            $upload_dir = wp_upload_dir();
+            $relative_path = str_replace($upload_dir['baseurl'] . '/', '', $image_url);
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching - No WordPress function exists to get attachment by file path, caching added above
+            $attachment_id = $wpdb->get_var( $wpdb->prepare( "
+                SELECT post_id FROM {$wpdb->postmeta}
+                WHERE meta_key = '_wp_attached_file'
+                AND meta_value = %s
+                LIMIT 1
+            ", $relative_path ) );
+
+            wp_cache_set( $cache_key, $attachment_id, '', 3600 );
+        }
 
         if (!$attachment_id) return false;
 

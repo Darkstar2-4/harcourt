@@ -8,21 +8,14 @@ use WPML\StringTranslation\Application\StringCore\Query\FindCountBySearchCriteri
 
 class FindCountBySearchCriteriaQuery implements FindCountBySearchCriteriaQueryInterface {
 
-	/** @var FindCountBySearchCriteriaQueryBuilder */
 	private $queryBuilder;
 
-	/**
-	 * @param FindCountBySearchCriteriaQueryBuilder $queryBuilder
-	 */
 	public function __construct(
 		FindCountBySearchCriteriaQueryBuilder $queryBuilder
 	) {
 		$this->queryBuilder = $queryBuilder;
 	}
 
-	/**
-	 * @param SearchCriteria $criteria
-	 */
 	public function execute( SearchCriteria $criteria ): int {
 		global $wpdb;
 

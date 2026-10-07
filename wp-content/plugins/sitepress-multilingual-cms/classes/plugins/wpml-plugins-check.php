@@ -1,12 +1,6 @@
 <?php
 
 class WPML_Plugins_Check {
-	/**
-	 * @param string $bundle_json
-	 * @param string $tm_version
-	 * @param string $st_version
-	 * @param string $wcml_version
-	 */
 	public static function disable_outdated(
 		$bundle_json,
 		$tm_version,

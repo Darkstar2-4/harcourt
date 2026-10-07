@@ -6,16 +6,25 @@ use Smush\Core\Media\Media_Item;
 use Smush\Core\Media\Media_Item_Optimization;
 use Smush\Core\Media\Media_Item_Size;
 use Smush\Core\Media\Media_Item_Stats;
+use Smush\Core\Modules\Helpers\WhiteLabel;
 use Smush\Core\Settings;
+use Smush\Core\Smush\Smusher_Options_Provider;
 use WP_Error;
 
 /**
  * Smushes a media item and updates the stats.
  */
 class Smush_Optimization extends Media_Item_Optimization {
-	const KEY = 'smush_optimization';
-	const SMUSH_META_KEY = 'wp-smpro-smush-data';
-	const LOSSY_META_KEY = 'wp-smush-lossy';
+	private static $key = 'smush_optimization';
+	private static $smush_meta_key = 'wp-smpro-smush-data';
+	private static $lossy_meta_key = 'wp-smush-lossy';
+
+	/**
+	 * White label helper used for replacing branding terms.
+	 *
+	 * @var WhiteLabel
+	 */
+	private $whitelabel;
 
 	/**
 	 * @var Media_Item_Stats
@@ -63,18 +72,34 @@ class Smush_Optimization extends Media_Item_Optimization {
 	 */
 	private $smusher;
 
+	/**
+	 * Each Smush API call returns a flag indicating whether the user is a pro user
+	 * @var bool
+	 */
+	private $is_premium;
+
 	public function __construct( $media_item ) {
 		$this->media_item = $media_item;
 		$this->settings   = Settings::get_instance();
-		$this->smusher    = new Smusher();
+		$smusher_options  = ( new Smusher_Options_Provider() )->get_options();
+		$this->smusher    = new Smusher( $smusher_options );
+		$this->whitelabel = new WhiteLabel();
 	}
 
-	public function get_key() {
-		return self::KEY;
+	public static function get_smush_meta_key() {
+		return self::$smush_meta_key;
+	}
+
+	public static function get_lossy_meta_key() {
+		return self::$lossy_meta_key;
+	}
+
+	public static function get_key() {
+		return self::$key;
 	}
 
 	public function get_name() {
-		return __( 'Smush', 'wp-smushit' );
+		return $this->whitelabel->replace_branding_terms( __( 'Smush', 'wp-smushit' ) );
 	}
 
 	public function get_stats() {
@@ -128,12 +153,12 @@ class Smush_Optimization extends Media_Item_Optimization {
 	public function save() {
 		$meta = $this->make_smush_meta();
 		if ( ! empty( $meta ) ) {
-			update_post_meta( $this->media_item->get_id(), self::SMUSH_META_KEY, $meta );
+			update_post_meta( $this->media_item->get_id(), self::$smush_meta_key, $meta );
 			// TODO: the separate lossy meta is only necessary for the backup global stats, if enough time has passed and enough people have moved to the new stats then we can remove it
 			if ( $this->get_lossy_level() ) {
-				update_post_meta( $this->media_item->get_id(), self::LOSSY_META_KEY, 1 );
+				update_post_meta( $this->media_item->get_id(), self::$lossy_meta_key, 1 );
 			} else {
-				delete_post_meta( $this->media_item->get_id(), self::LOSSY_META_KEY );
+				delete_post_meta( $this->media_item->get_id(), self::$lossy_meta_key );
 			}
 			$this->reset();
 		}
@@ -161,13 +186,10 @@ class Smush_Optimization extends Media_Item_Optimization {
 		}
 
 		$media_item        = $this->media_item;
-		$files_data        = array_map( function ( $size ) {
-			return array(
-				'url'  => $size->get_file_url(),
-				'path' => $size->get_file_path(),
-			);
+		$file_paths        = array_map( function ( $size ) {
+			return $size->get_file_path();
 		}, $this->get_sizes_to_smush() );
-		$responses         = $this->smusher->smush( $files_data );
+		$responses         = $this->smusher->smush( $file_paths );
 		$success_responses = array_filter( $responses );
 		if ( count( $success_responses ) !== count( $responses ) ) {
 			return false;
@@ -217,7 +239,7 @@ class Smush_Optimization extends Media_Item_Optimization {
 	}
 
 	private function fetch_smush_meta() {
-		$post_meta = get_post_meta( $this->media_item->get_id(), self::SMUSH_META_KEY, true );
+		$post_meta = get_post_meta( $this->media_item->get_id(), self::$smush_meta_key, true );
 
 		return empty( $post_meta ) || ! is_array( $post_meta )
 			? array()
@@ -297,6 +319,7 @@ class Smush_Optimization extends Media_Item_Optimization {
 					'keep_exif'   => $this->keep_exif(),
 					'lossy'       => $this->get_lossy_level(),
 					'api_version' => $this->get_api_version(),
+					'is_premium'  => $this->is_premium(),
 				)
 			);
 		}
@@ -362,6 +385,13 @@ class Smush_Optimization extends Media_Item_Optimization {
 		$this->set_api_version( $data->api_version );
 		$this->set_lossy_level( (int) $data->lossy );
 		$this->set_keep_exif( empty( $data->keep_exif ) ? 0 : $data->keep_exif );
+		$this->set_is_premium( $data->is_premium );
+
+		// Update file size.
+		if ( ! empty( $data->after_size ) ) {
+			$media_item_size = $this->media_item->get_size( $size_key );
+			$media_item_size->set_filesize( $data->after_size );
+		}
 
 		// Update the size stats
 		$size_stats->from_array( $this->size_stats_from_response( $size_stats, $data ) );
@@ -402,7 +432,7 @@ class Smush_Optimization extends Media_Item_Optimization {
 	}
 
 	public function delete_data() {
-		delete_post_meta( $this->media_item->get_id(), self::SMUSH_META_KEY );
+		delete_post_meta( $this->media_item->get_id(), self::$smush_meta_key );
 
 		$this->reset();
 	}
@@ -454,5 +484,35 @@ class Smush_Optimization extends Media_Item_Optimization {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * // TODO: [WPMUDEV SMUSH UI] it's probably best to get rid of this method because it's an extra pro check to care about
+	 */
+	public function is_premium() {
+		if ( is_null( $this->is_premium ) ) {
+			$this->is_premium = $this->prepare_is_premium();
+		}
+
+		return $this->is_premium;
+	}
+
+	private function prepare_is_premium() {
+		$smush_meta = $this->get_smush_meta();
+
+		return isset( $smush_meta['stats']['is_premium'] ) && $smush_meta['stats']['is_premium'];
+	}
+
+	private function set_is_premium( $is_premium ) {
+		$this->is_premium = ! empty( $is_premium );
+	}
+
+	/**
+	 * @param $smusher Smusher
+	 *
+	 * @return void
+	 */
+	public function set_smusher( $smusher ) {
+		$this->smusher = $smusher;
 	}
 }

@@ -7,21 +7,9 @@ use ReflectionMethod;
 use WPML\PHP\Exception\Exception;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @template ReturnTypeFromArray
- */
 trait ConstructableFromArrayTrait {
 
 
-  /**
-   * @phpstan-ignore-next-line Mixed array as input.
-   * @param array $array
-   *
-   * @throws Exception If the constructor is not accessible.
-   * @throws InvalidArgumentException If a required argument is missing.
-   *
-   * @return ReturnTypeFromArray
-   */
   public static function fromArray( $array ) {
     try {
       $reflectionMethod = new ReflectionMethod( static::class, '__construct' );

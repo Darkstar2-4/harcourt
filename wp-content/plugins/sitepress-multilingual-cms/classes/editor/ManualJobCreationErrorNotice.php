@@ -22,7 +22,6 @@ class ManualJobCreationErrorNotice implements \IWPML_Backend_Action {
 
 			Hooks::onAction( 'wp_loaded' )
 			     ->then( function () {
-				     /** @var  \WPML_Notices $notices */
 				     $notices = make( \WPML_Notices::class );
 
 				     if ( isset( $_GET['ateJobCreationError'] ) ) {
@@ -39,11 +38,6 @@ class ManualJobCreationErrorNotice implements \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @param array $params
-	 *
-	 * @return string
-	 */
 	private function getContent( array $params ) {
 		$isATENotActiveError  = pipe( Obj::prop( 'ateJobCreationError' ), Cast::toInt(), Relation::equals( Editor::ATE_IS_NOT_ACTIVE ) );
 		$isRetryLimitExceeded = pipe( Obj::prop( 'jobId' ), [ ATERetry::class, 'getCount' ], Relation::gt( self::RETRY_LIMIT ) );

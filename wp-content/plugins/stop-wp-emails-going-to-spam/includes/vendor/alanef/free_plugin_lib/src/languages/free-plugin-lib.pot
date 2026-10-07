@@ -166,6 +166,18 @@ msgstr ""
 msgid "Too many attempts. Please try again later."
 msgstr ""
 
+#: Main.php
+msgid "You haven't visited settings yet."
+msgstr ""
+
+#: Main.php
+msgid "Please check your settings"
+msgstr ""
+
+#: Main.php
+msgid "for optimal configuration and opt in for security updates, tips and occasional offers."
+msgstr ""
+
 #: Classes/Advert.php
 msgid "Premium Plugin Advertisement"
 msgstr ""

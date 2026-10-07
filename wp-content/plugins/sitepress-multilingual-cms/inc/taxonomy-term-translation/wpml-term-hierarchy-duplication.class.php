@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Class WPML_Term_Hierarchy_Duplication
- *
- * @package    wpml-core
- * @subpackage taxonomy-term-translation
- */
 class WPML_Term_Hierarchy_Duplication extends WPML_WPDB_And_SP_User {
 
 	public function duplicates_require_sync( $post_ids, $duplicates_only = true ) {

@@ -13,9 +13,6 @@ class InsertStringTranslationsCommand extends BulkActionBaseCommand implements I
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param StringTranslation[] $translations
-	 */
 	public function run( array $translations ) {
 		foreach ( array_chunk( $translations, $this->chunk_size ) as $chunk ) {
 			$query = "INSERT IGNORE INTO {$this->wpdb->prefix}icl_string_translations "
@@ -28,11 +25,6 @@ class InsertStringTranslationsCommand extends BulkActionBaseCommand implements I
 		}
 	}
 
-	/**
-	 * @param StringTranslation $translation
-	 *
-	 * @return string
-	 */
 	private function buildStringTranslationRow( StringTranslation $translation ) {
 		return $this->wpdb->prepare(
 			'(%s, %s, %s, %s, %s, %s, %s, %s, %s)',

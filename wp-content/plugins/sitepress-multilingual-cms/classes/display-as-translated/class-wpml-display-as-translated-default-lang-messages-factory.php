@@ -2,9 +2,6 @@
 
 class WPML_Display_As_Translated_Default_Lang_Messages_Factory extends WPML_Current_Screen_Loader_Factory {
 
-	/**
-	 * @return WPML_Display_As_Translated_Default_Lang_Messages
-	 */
 	public function create_hooks() {
 		global $sitepress;
 
@@ -18,7 +15,6 @@ class WPML_Display_As_Translated_Default_Lang_Messages_Factory extends WPML_Curr
 		);
 	}
 
-	/** @return string */
 	public function get_screen_regex() {
 		return '/^sitepress-multilingual-cms\/menu\/languages$/';
 	}

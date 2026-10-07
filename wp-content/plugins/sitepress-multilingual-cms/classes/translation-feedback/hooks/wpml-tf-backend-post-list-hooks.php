@@ -1,21 +1,13 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Post_List_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Post_List_Hooks implements IWPML_Action {
 
 	const RATING_COLUMN_ID = 'translation_rating';
 
-	/** @var WPML_TF_Post_Rating_Metrics $post_rating_metrics*/
 	private $post_rating_metrics;
 
-	/** @var WPML_TF_Document_Information $document_information */
 	private $document_information;
 
-	/** @var WPML_TF_Backend_Styles $styles */
 	private $styles;
 
 	public function __construct(
@@ -28,7 +20,6 @@ class WPML_TF_Backend_Post_List_Hooks implements IWPML_Action {
 		$this->styles               = $styles;
 	}
 
-	/** @return array */
 	private function get_post_types() {
 		return array(
 			'edit-post' => 'posts',
@@ -47,17 +38,11 @@ class WPML_TF_Backend_Post_List_Hooks implements IWPML_Action {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts_action' ) );
 	}
 
-	/**
-	 * @param array $columns
-	 *
-	 * @return array
-	 */
 	public function add_rating_column_header( array $columns ) {
 		$key_to_insert_before = 'date';
 		$column_name          = __( 'Translation rating', 'sitepress' );
 
 		if ( array_key_exists( $key_to_insert_before, $columns ) ) {
-			/** @var int $insert_position The if makes sure the following will return an int. */
 			$insert_position   = array_search( $key_to_insert_before, array_keys( $columns ) );
 			$columns_before    = array_slice( $columns, 0, $insert_position, true );
 			$columns_to_insert = array( self::RATING_COLUMN_ID => $column_name );
@@ -70,10 +55,6 @@ class WPML_TF_Backend_Post_List_Hooks implements IWPML_Action {
 		return $columns;
 	}
 
-	/**
-	 * @param string $column_name
-	 * @param int    $post_id
-	 */
 	public function add_rating_column_content( $column_name, $post_id ) {
 		if ( self::RATING_COLUMN_ID !== $column_name ) {
 			return;
@@ -87,11 +68,6 @@ class WPML_TF_Backend_Post_List_Hooks implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param array $columns
-	 *
-	 * @return array
-	 */
 	public function add_rating_sortable_column( array $columns ) {
 		$columns[ self::RATING_COLUMN_ID ] = self::RATING_COLUMN_ID;
 		return $columns;

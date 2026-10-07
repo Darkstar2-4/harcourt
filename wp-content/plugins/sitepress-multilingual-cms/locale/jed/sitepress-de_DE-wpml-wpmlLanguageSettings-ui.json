@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "de"
+            "lang": "de_DE"
          },
          "Choose the image file type for flags": [
-            "Wählen Sie den Bilddateityp für Flaggen."
+            "Wählen Sie den Bilddateityp für Flaggen"
          ],
          "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
-            "Diese Option wirkt sich nur auf die integrierten WPML-Flaggen aus, nicht auf eigene hochgeladene Flaggen."
+            "Diese Option betrifft nur die integrierten WPML-Flaggen, nicht die benutzerdefinierten hochgeladenen."
          ],
          "%s format": [
-            "%s Format"
+            "%s-Format"
          ],
          "Save": [
             "Speichern"

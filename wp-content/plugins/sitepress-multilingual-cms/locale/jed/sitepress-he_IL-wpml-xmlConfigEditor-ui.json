@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
-            "הקובץ wpml-config.xml בתיקיית השורש של ערכת העיצוב והתוספים מעדכנת את WPML איזה תוכן ניתן לתרגם. ניתן להחליף הגדרות אלו בהגדרות מותאמות אישית על-ידי הוספתן להלן."
+            "הקובץ wpml-config.xml בתיקיית הבסיס של התבנית והתוספים שלך אומר ל-WPML איזה תוכן ניתן לתרגום. באפשרותך לעקוף הגדרות אלה באמצעות הגדרות מותאמות אישית משלך על ידי הוספתן למטה."
          ],
          "Read more about language configuration files.": [
-            "מידע נוסף אודות קובצי הגדרת תצורה של השפה."
+            "קרא עוד על קובצי תצורת שפה."
          ],
          "Save": [
             "שמור"
@@ -23,10 +23,10 @@
             "קיצורי דרך"
          ],
          "Fold/Unfold code": [
-            "קפל/בטל קיפול קוד"
+            "קפל/פתח קוד"
          ],
          "Auto format": [
-            "פרמוט אוטומטי"
+            "עיצוב אוטומטי"
          ]
       }
    }

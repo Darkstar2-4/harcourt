@@ -10,29 +10,16 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use function WPML\PHP\Logger\error;
 
-/**
- * I don't use built-in WordPress functions like get_option or update_option because of the problem with caching
- * in parallel AJAX requests. I want to guarantee that we directly retrieve data
- * from the database and that the data is not cached.
- */
 final class MigrationStatusStorage implements MigrationStatusStorageInterface {
   const OPTION_NAME = 'wpml_translation_tables_optimization_status';
 
-  /** @var QueryHandlerInterface<int, string> */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var DatabaseWriteInterface */
   private $dbWriter;
 
 
-  /**
-   * @param QueryHandlerInterface<int, string> $queryHandler
-   * @param QueryPrepareInterface              $queryPrepare
-   * @param DatabaseWriteInterface             $dbWriter
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,

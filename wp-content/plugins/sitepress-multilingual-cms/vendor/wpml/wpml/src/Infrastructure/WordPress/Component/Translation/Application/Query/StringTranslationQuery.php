@@ -8,27 +8,15 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-import-type TranslationRow from TranslationQuery
- *
- */
 class StringTranslationQuery {
 
-  /** @phpstan-var QueryHandlerInterface<int, TranslationRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var TranslationResultMapper $resultMapper */
   private $resultMapper;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, TranslationRow> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   * @param TranslationResultMapper $resultMapper
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -40,11 +28,6 @@ class StringTranslationQuery {
   }
 
 
-  /**
-   * @param int[] $stringIds
-   *
-   * @return Translation[]
-   */
   public function getStringTranslations( array $stringIds ): array {
     if ( empty( $stringIds ) ) {
       return [];
@@ -65,11 +48,6 @@ class StringTranslationQuery {
   }
 
 
-  /**
-   * @phpstan-param TranslationRow[] $rowset
-   *
-   * @return Translation[]
-   */
   private function mapResult( array $rowset ): array {
     return array_map(
       [
@@ -82,22 +60,6 @@ class StringTranslationQuery {
 
 
   private function getBasicQuery(): string {
-    /*
-     * Fields status, batch_id, translation_service and translator_id exists in 2 tables:
-     * icl_string_translations and icl_translation_status.
-     *
-     * Which ones we should use for strings?
-     * 1) status = icl_string_translations table. Because icl_translation_status table
-     * stores status per strings batch and not per individual strings.
-     *
-     * 1 string batch = N strings selected for translation for 1 language per current selection.
-     * So, 5 selected strings for translation to 2 languages will create 2 batches(1 per language).
-     *
-     * 2) batch_id, translation_service, translator_id = icl_translation_status table.
-     * I tested our current automatic translation for strings and those fields are not filled
-     * at all when we translate strings automatically from ST dashboard. So, we should use
-     * columns from icl_translation_status table instead.
-     */
     return "
       SELECT
         `job`.`job_id`,

@@ -1,17 +1,7 @@
 <?php
 
-/**
- * Class WPML_AJAX_Action_Validation
- *
- * @author OnTheGoSystems
- */
 class WPML_AJAX_Action_Validation {
 
-	/**
-	 * @param string $action_name
-	 *
-	 * @return bool
-	 */
 	public function is_valid( $action_name ) {
 		$is_valid = false;
 

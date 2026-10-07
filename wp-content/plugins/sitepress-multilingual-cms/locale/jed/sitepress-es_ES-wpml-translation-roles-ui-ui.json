@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "From:": [
-            "Del:"
+            "De:"
          ],
          "--Choose language--": [
-            "--Seleccionar idioma--"
+            "--Elegir idioma--"
          ],
          "to:": [
-            "al:"
+            "a:"
          ],
          "Select %s": [
             "Seleccionar %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "Establecer los pares de idiomas para el traductor %s:"
+            "Establecer pares de idiomas para el traductor %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ Agregar más pares de idiomas para este traductor"
+            "+ Añadir más pares de idiomas para este traductor"
          ],
          "First Name": [
             "Nombre"
@@ -35,19 +35,19 @@
             "Rol"
          ],
          "(required)": [
-            " (requerido)"
+            "(obligatorio)"
          ],
          "Select a role for the user": [
-            "Selecciona un rol para el usuario"
+            "Seleccione un rol para el usuario"
          ],
          "Make sure that you have provided a correct email address e.g. name@domain.com": [
-            "Asegúrese de haber proporcionado la dirección de correo electrónico correcta, por ej., nombre@dominio.com"
+            "Asegúrese de haber proporcionado una dirección de correo electrónico correcta, por ejemplo, name@domain.com"
          ],
          "This field is required": [
             "Este campo es obligatorio"
          ],
          "A translator can be any WordPress role.": [
-            "Cualquier rol de WordPress puede ser traductor."
+            "Un traductor puede tener cualquier rol de WordPress."
          ],
          "Username": [
             "Nombre de usuario"
@@ -58,11 +58,14 @@
          "Search": [
             "Buscar"
          ],
+         "Your site has a large number of users, please enter the exact username.": [
+            "Su sitio tiene un gran número de usuarios, por favor, introduzca el nombre de usuario exacto."
+         ],
          "Cancel": [
             "Cancelar"
          ],
          "Add Translation Manager": [
-            "Agregar administrador de traducción"
+            "Añadir gestor de traducción"
          ],
          "user": [
             "usuario"
@@ -71,19 +74,19 @@
             "Editor"
          ],
          "Select an existing %s and set as Translation Manager": [
-            "Seleccione un %s existente y establézcalo como administrador de traducción"
+            "Seleccione un %s existente y configúrelo como Gestor de traducción"
          ],
          "Create a new %s and set as Translation Manager": [
-            "Cree un nuevo %s y establézcalo como administrador de traducción"
+            "Cree un nuevo %s y configúrelo como Gestor de traducción"
          ],
          "Add a Translation Manager": [
-            "Agregar un administrador de traducción"
+            "Añadir un gestor de traducción"
          ],
          "Select an existing user and set as Translator": [
-            "Seleccionar un usuario existente y establecerlo como traductor"
+            "Seleccione un usuario existente y configúrelo como Traductor"
          ],
          "Create a new user and set as Translator": [
-            "Crear un usuario nuevo y establecerlo como traductor"
+            "Crear un nuevo usuario y configurarlo como Traductor"
          ],
          "Set language pair(s)": [
             "Establecer pares de idiomas"
@@ -95,7 +98,7 @@
             "Guardar"
          ],
          "Add a Translator": [
-            "Agregar un traductor"
+            "Añadir un traductor"
          ],
          "Edit language pair(s) for translator": [
             "Editar pares de idiomas para el traductor"
@@ -107,40 +110,40 @@
             "Pares de idiomas"
          ],
          "You can translate to and from all languages": [
-            "Puede traducir desde y hacia todos los idiomas "
+            "Puede traducir a y desde todos los idiomas"
          ],
          "Edit language pair(s)": [
-            "Editar par(es) de idiomas"
+            "Editar pares de idiomas"
          ],
          "Delete language pair(s)": [
-            "Eliminar par(es) de idiomas"
+            "Eliminar pares de idiomas"
          ],
          "%s file upload failed.": [
             "Error al cargar el archivo %s."
          ],
          "Flag": [
-            "Marcar"
+            "Bandera"
          ],
          "Flag file": [
-            "Marcar archivo"
+            "Archivo de bandera"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "Acaba de agregar un idioma. Ahora, selecciónelo como el idioma predeterminado del sitio web o como un idioma de traducción."
+            "Acaba de añadir un idioma. A continuación, selecciónelo como idioma predeterminado del sitio o como idioma de traducción."
          ],
          "Language added": [
-            "Idioma agregado"
+            "Idioma añadido"
          ],
          "The value \"%s\" already exists": [
-            "El valor \"%s\" ya existe"
+            "El valor “%s” ya existe"
          ],
          "Add a new language": [
-            "Agregar un idioma nuevo"
+            "Añadir un nuevo idioma"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "Cree un idioma específico de un país seleccionando el idioma general de la siguiente lista. Luego, seleccione el país para el que debe ser localizado."
+            "Cree un idioma específico de un país eligiendo el idioma general de la lista siguiente. Luego, elija el país para el que debe localizarse."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "Al seleccionar una combinación que ya existe en la base de datos, WPML puede ayudar a completar los campos necesarios. Leer más sobre <AddingACustomLanguageLink />."
+            "Al elegir una combinación que ya existe en la base de datos, WPML puede ayudar a rellenar los campos necesarios. Lea más sobre <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
             "¿No lo encuentra?"
@@ -149,22 +152,22 @@
             "Haga clic aquí"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "Formato incorrecto. Sólo minúsculas y \"-\". Ej: \"fr\", \"pt-br\", \"zh-hans\""
+            "El formato es incorrecto. Solo puede contener letras minúsculas y “-”. Por ejemplo: “fr”, “pt-br”, “zh-hans”"
          ],
          "Language": [
             "Idioma"
          ],
          "Location": [
-            "Lugar"
+            "Ubicación"
          ],
          "Code": [
             "Código"
          ],
          "The language will not be supported by automatic translations": [
-            "El idioma no será admitido para la traducción automática"
+            "El idioma no será compatible con las traducciones automáticas"
          ],
          "Language mapping": [
-            "Asignación de idiomas"
+            "Asignación de idioma"
          ],
          "Don't map this language": [
             "No asignar este idioma"
@@ -173,16 +176,16 @@
             "Configuración regional predeterminada"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "Formato incorrecto. Sólo minúsculas y \"_\". Ej: \"de\", \"de_DE\", \"zh_Hant_TW\""
+            "El formato es incorrecto. Solo puede contener letras minúsculas y “_”. Por ejemplo: “de”, “de_DE”, “zh_Hant_TW”"
          ],
          "hreflang": [
             "hreflang"
          ],
          "Encode url?": [
-            "¿Codificar url?"
+            "¿Codificar URL?"
          ],
          "Flags must be:": [
-            "Los marcadores deben ser:"
+            "Las banderas deben ser:"
          ],
          "NO": [
             "NO"
@@ -191,10 +194,10 @@
             "SÍ"
          ],
          " (required)": [
-            " (requerido)"
+            " (obligatorio)"
          ],
          "Please fill in the field": [
-            "Complete el campo"
+            "Por favor, rellene el campo"
          ],
          "PNG, SVG, or JPG files": [
             "Archivos PNG, SVG o JPG"
@@ -206,25 +209,25 @@
             "18 x 12 píxeles"
          ],
          "Read more about ": [
-            "Más información sobre"
+            "Leer más sobre "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "El nombre del idioma tal como aparecerá en el selector de idiomas del sitio web."
+            "El nombre de su idioma tal como aparecerá en el selector de idioma de su sitio."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "Un valor único que identifica el idioma de la base de datos y la URL. Una vez guardado, el código de idioma no se puede cambiar."
+            "Un valor único que identifica el idioma en la base de datos y la URL. Una vez guardado, el código de idioma no se puede cambiar."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "Si su idioma personalizado es similar a un idioma existente, puede usar el corrector de ortografía y la traducción automática del idioma existente. Por ejemplo, si su idioma es alemán de Suiza, puede configurar el alemán como idioma para usar en la corrección de ortografía y la traducción automática. Si no asigna su idioma personalizado a un idioma existente, las funciones de corrección ortográfica y traducción automática no estarán disponibles en ese idioma."
+            "Si su idioma personalizado es similar a un idioma existente, puede usar la revisión ortográfica y la traducción automática del idioma existente. Por ejemplo, si su idioma personalizado es el suizo-alemán, puede asignarlo al alemán como idioma para la revisión ortográfica y la traducción automática. Si no asigna su idioma personalizado a un idioma existente, las funciones de revisión ortográfica y traducción automática no estarán disponibles en ese idioma."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "El valor que WPML verifica al cargar traducciones desde archivos MO y PO. La configuración regional está incluida en el nombre de los archivos de la carpeta /wp-content/languages/ de la configuración de su WordPress."
+            "El valor que WPML comprueba al cargar traducciones de archivos MO y PO. La configuración regional predeterminada se incluye en los nombres de archivo de su carpeta /wp-content/languages/ en su configuración de WordPress."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Google usa el atributo hreflang para dirigir a los usuarios a los sitios del idioma y lugar de relevancia. Por ejemplo:"
+            "Google utiliza el atributo hreflang para dirigir a los usuarios a sitios en su idioma y ubicación relevantes. Ejemplos:"
          ],
          "All English-speaking users: en": [
-            "Todos los usuario anglohablantes: en"
+            "Todos los usuarios de habla inglesa: en"
          ],
          "English for UK users: en-gb": [
             "Inglés para usuarios del Reino Unido: en-gb"
@@ -233,13 +236,13 @@
             "Inglés para usuarios de EE. UU.: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "Determina si las URL usan ASCII o están codificadas (si no estás seguro, déjalo en \"No\")."
+            "Determina si las URL en este idioma se codifican o usan caracteres ASCII (si no está seguro, déjelo como “No”)."
          ],
          "adding a custom language": [
-            "agregar un idioma personalizado"
+            "añadir un idioma personalizado"
          ],
          "What are the languages of your site?": [
-            "¿Cuáles son los idiomas de su sitio web?"
+            "¿Cuáles son los idiomas de su sitio?"
          ],
          "Default language": [
             "Idioma predeterminado"
@@ -251,28 +254,28 @@
             "Idiomas de traducción"
          ],
          "Which languages do you want to translate your site into?": [
-            "¿A qué idiomas desea traducir su sitio web?"
+            "¿A qué idiomas desea traducir su sitio?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "Si no encuentra los idiomas que necesita en la lista"
+         "If you cannot find languages that you need in the list,": [
+            "Si no encuentra los idiomas que necesita en la lista,"
          ],
          "create a custom language": [
-            "cree un idioma personalizado"
+            "crear un idioma personalizado"
          ],
          "You can add a dedicated person to oversee everything translation-related on your site. %sTranslation Managers%s can add new local translators or professional translation services, create and assign translation jobs, review completed translations, and change translation-related settings.": [
-            "Puede agregar a una persona que se encargue exclusivamente de supervisar todo lo relacionado con la traducción de su sitio. Los %sadministradores de traducción%s pueden agregar nuevos traductores locales o servicios de traducción profesional, crear y asignar trabajos de traducción, revisar traducciones completadas y cambiar configuraciones en relación a la traducción."
+            "Puede añadir una persona dedicada para supervisar todo lo relacionado con la traducción en su sitio. Los %sGestores de traducción%s pueden añadir nuevos traductores locales o servicios de traducción profesionales, crear y asignar trabajos de traducción, revisar traducciones completadas y cambiar la configuración relacionada con la traducción."
          ],
          "Translation Managers": [
-            "Administradores de traducción"
+            "Gestores de traducción"
          ],
          "Note: All Administrators are automatically given Translation Manager privileges.": [
-            "Nota: todos los administradores reciben automáticamente los privilegios del administrador de traducción."
+            "Nota: Todos los administradores reciben automáticamente privilegios de Gestor de traducción."
          ],
          "%sLocal translators%s are users of your site that can log in and add, edit, and review your site's translations. Add a translator and their associated translation pairs to assign them translation jobs.": [
-            "Los %straductores locales%s son los usuarios de su sitio web que pueden ingresar y agregar, editar y revisar las traducciones del sitio. Agregue un traductor y sus pares de idiomas correspondientes para asignarle trabajos de traducción."
+            "Los %straductores locales%s son usuarios de su sitio que pueden iniciar sesión y añadir, editar y revisar las traducciones de su sitio. Añada un traductor y sus pares de traducción asociados para asignarles trabajos de traducción."
          ],
          "You can %shire an experienced translator%s to review your automatic translations for perfect quality.": [
-            "Para obtener calidad y perfección, puede %scontratar a un traductor con experiencia%s para revisar las traducciones automáticas."
+            "Puede %scontratar a un traductor experimentado%s para que revise sus traducciones automáticas y garantice una calidad perfecta."
          ],
          "Translators": [
             "Traductores"

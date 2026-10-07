@@ -2,9 +2,6 @@
 
 class OTGS_Installer_WP_Components_Setting_Resources {
 
-	/**
-	 * @var WP_Installer
-	 */
 	private $installer;
 
 	const HANDLES_OTGS_INSTALLER_UI = 'otgs-installer-ui';

@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Infrastructure\WordPress\Component\String\Application\Query;
 
 use WPML\Core\Port\Persistence\Exception\DatabaseErrorException;
@@ -13,21 +12,13 @@ use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryIn
 
 class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, int> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 
-  /**
-   * @param QueryHandlerInterface<int, int> $queryHandler
-   * @param QueryPrepareInterface $queryPrepare
-   * @param LanguagesQueryInterface $languagesQuery
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -39,12 +30,17 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
   }
 
 
-  /** @return UntranslatedTypeCountDto[] */
+  public function forKind() {
+    return UntranslatedTypesCountQueryInterface::KIND_STRING;
+  }
+
+
   public function get( array $queryData = [] ): array {
     $languageCrossJoin = $this->buildLanguageCrossJoin();
 
     $sql = "
-			SELECT COUNT( DISTINCT strings.id ) as count
+      SELECT
+        COUNT( DISTINCT strings.id ) as count
 			FROM {$this->queryPrepare->prefix()}icl_strings strings
 			{$languageCrossJoin}
 			LEFT JOIN {$this->queryPrepare->prefix()}icl_string_translations translations
@@ -60,7 +56,7 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
 			ORDER BY langs.code, strings.id ASC
 		";
 
-    $sql = $this->queryPrepare->prepare( $sql, 6 ); // only frontend strings see: ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_FRONTEND
+    $sql = $this->queryPrepare->prepare( $sql, 6 );
 
     try {
       $count = (int) $this->queryHandler->querySingle( $sql );
@@ -69,8 +65,46 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
     }
 
     return [
-      new UntranslatedTypeCountDto( 'Strings', 'String', $count )
+      new UntranslatedTypeCountDto( 'Strings', 'String', $count, 'string', '' )
     ];
+  }
+
+
+  public function getSomeIds( $numberOfIdsToFetch, $offset, $type = '' ) {
+    $languageCrossJoin = $this->buildLanguageCrossJoin();
+
+    $sql = "
+      SELECT DISTINCT
+        strings.id
+			FROM {$this->queryPrepare->prefix()}icl_strings strings
+			{$languageCrossJoin}
+			LEFT JOIN {$this->queryPrepare->prefix()}icl_string_translations translations
+				ON strings.id = translations.string_id AND translations.language = langs.code
+			WHERE strings.string_type = 1
+				AND ( translations.status IS NULL OR translations.status = 0 )
+				AND EXISTS (
+	        SELECT 1
+	        FROM {$this->queryPrepare->prefix()}icl_string_positions positions
+	        WHERE positions.string_id = strings.id
+	          AND positions.kind = %d
+	    	) AND strings.language = 'en'
+			ORDER BY strings.id ASC
+      LIMIT %d OFFSET %d
+    ";
+
+    try {
+      $ids = $this->queryHandler->queryColumn(
+        $this->queryPrepare->prepare(
+          $sql,
+          6,
+          $numberOfIdsToFetch,
+          $offset
+        )
+      );
+      return $ids;
+    } catch ( DatabaseErrorException $e ) {
+      return [];
+    }
   }
 
 
@@ -82,7 +116,6 @@ class UntranslatedTypesCountQuery implements UntranslatedTypesCountQueryInterfac
       $this->languagesQuery->getSecondary()
     );
 
-    // We include only English strings in TEA process so it does not make sense to support EN as secondary language
     $secondaryWithoutEnglish = array_filter(
       $secondary,
       function ( string $language ) {

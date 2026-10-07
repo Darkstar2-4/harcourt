@@ -18,11 +18,6 @@ class WPML_Compatibility_Plugin_Fusion_Hooks_Factory implements IWPML_Frontend_A
 		);
 	}
 
-	/**
-	 * Get list of active languages.
-	 *
-	 * @return array
-	 */
 	private function get_filtered_active_languages() {
 		global $sitepress;
 

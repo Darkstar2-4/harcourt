@@ -4,13 +4,10 @@ use WPML\PB\ShortCodesInGutenbergBlocks;
 
 class WPML_PB_String_Translation_By_Strategy extends WPML_PB_String_Translation {
 
-	/** @var WPML_PB_Factory $factory */
 	private $factory;
 
-	/** @var IWPML_PB_Strategy $strategy */
 	private $strategy;
 
-	/** @var array $packages_to_update */
 	private $packages_to_update = array();
 
 	public function __construct( wpdb $wpdb, WPML_PB_Factory $factory, IWPML_PB_Strategy $strategy ) {
@@ -19,7 +16,6 @@ class WPML_PB_String_Translation_By_Strategy extends WPML_PB_String_Translation 
 		parent::__construct( $wpdb );
 	}
 
-	/** @param int $translated_string_id */
 	public function new_translation( $translated_string_id ) {
 		list( $package_id, $string_id, $language ) = $this->get_package_for_translated_string( $translated_string_id );
 		if ( $package_id ) {
@@ -49,12 +45,6 @@ class WPML_PB_String_Translation_By_Strategy extends WPML_PB_String_Translation 
 		}
 	}
 
-	/**
-	 * @param string $content
-	 * @param string $lang
-	 *
-	 * @return string
-	 */
 	public function update_translations_in_content( $content, $lang ) {
 		foreach ( $this->packages_to_update as $package_data ) {
 			if ( $package_data['package']->kind == $this->strategy->get_package_kind() ) {
@@ -65,11 +55,6 @@ class WPML_PB_String_Translation_By_Strategy extends WPML_PB_String_Translation 
 		return $content;
 	}
 
-	/**
-	 * @param int $translated_string_id
-	 *
-	 * @return array
-	 */
 	private function get_package_for_translated_string( $translated_string_id ) {
 		$sql    = $this->wpdb->prepare(
 			"SELECT s.string_package_id, s.id, t.language
@@ -86,10 +71,6 @@ class WPML_PB_String_Translation_By_Strategy extends WPML_PB_String_Translation 
 		}
 	}
 
-	/**
-	 * @param WPML_Package $package
-	 * @param string       $language
-	 */
 	public function add_package_to_update_list( WPML_Package $package, $language ) {
 		if ( ! isset( $this->packages_to_update[ $package->ID ] ) ) {
 			$this->packages_to_update[ $package->ID ] = array( 'package'   => $package,

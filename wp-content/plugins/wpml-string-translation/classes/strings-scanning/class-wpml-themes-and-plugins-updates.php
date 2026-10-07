@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_ST_Themes_And_Plugins_Updates {
 
 	const WPML_WP_UPDATED_MO_FILES            = 'wpml_wp_updated_mo_files';
@@ -11,17 +8,9 @@ class WPML_ST_Themes_And_Plugins_Updates {
 	const WPML_ST_FASTER_SETTINGS_NOTICE_ID   = 'wpml_st_faster_settings';
 	const WPML_ST_SCAN_ACTIVE_ITEMS_NOTICE_ID = 'wpml_st_scan_active_items';
 
-	/** @var WPML_Notices */
 	private $admin_notices;
-	/** @var WPML_ST_Themes_And_Plugins_Settings */
 	private $settings;
 
-	/**
-	 * WPML_ST_Admin_Notices constructor.
-	 *
-	 * @param WPML_Notices                        $admin_notices
-	 * @param WPML_ST_Themes_And_Plugins_Settings $settings
-	 */
 	public function __construct( WPML_Notices $admin_notices, WPML_ST_Themes_And_Plugins_Settings $settings ) {
 		$this->admin_notices = $admin_notices;
 		$this->settings      = $settings;
@@ -43,10 +32,6 @@ class WPML_ST_Themes_And_Plugins_Updates {
 		$this->admin_notices->remove_notice( $this->settings->get_notices_group(), $id );
 	}
 
-	/**
-	 * @param \WP_Upgrader                              $upgrader
-	 * @param array<string,string|array<string,string>> $language_translations
-	 */
 	public function store_mo_file_update( WP_Upgrader $upgrader, $language_translations ) {
 		if ( is_wp_error( $upgrader->result ) ) {
 			return;

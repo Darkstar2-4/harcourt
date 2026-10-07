@@ -198,10 +198,12 @@ jQuery(function ($) {
   function click_on_lock() {
     var radio_name = $(this).data('radio-name'),
       radio = $('input[name="' + radio_name + '"]'),
-      unlocked_name = $(this).data('unlocked-name'),
-      slug = radio.data('slug');
+      unlocked_name = $(this).data('unlocked-name');
 
-    $(this).fadeOut();
+    $(this)
+      .prop('disabled', true)
+      .find('i').removeClass('otgs-ico-lock').addClass('otgs-ico-unlock');
+
     radio.prop('disabled', false);
     $('input[name="' + unlocked_name + '"]').prop('value', '1');
 

@@ -5,10 +5,8 @@ class WPML_TM_Jobs_Deadline_Estimate {
 	const LATENCY_DAYS  = 1;
 	const WORDS_PER_DAY = 1200;
 
-	/** @var WPML_TM_Translatable_Element_Provider */
 	private $translatable_element_provider;
 
-	/** @var WPML_TM_Jobs_Repository */
 	private $jobs_repository;
 
 	public function __construct(
@@ -19,12 +17,6 @@ class WPML_TM_Jobs_Deadline_Estimate {
 		$this->jobs_repository               = $jobs_repository;
 	}
 
-	/**
-	 * @param array $basket
-	 * @param array $translator_options
-	 *
-	 * @return string
-	 */
 	public function get( array $basket, array $translator_options ) {
 		$pending_jobs = $this->get_pending_jobs_for_translator( $translator_options );
 
@@ -45,11 +37,6 @@ class WPML_TM_Jobs_Deadline_Estimate {
 		return $date->format( 'Y-m-d' );
 	}
 
-	/**
-	 * @param array $translator_options
-	 *
-	 * @return WPML_TM_Jobs_Collection
-	 */
 	private function get_pending_jobs_for_translator( array $translator_options ) {
 		$translator_id = $translator_options['translator_id'];
 		$params        = new WPML_TM_Jobs_Search_Params();
@@ -69,11 +56,6 @@ class WPML_TM_Jobs_Deadline_Estimate {
 		return $this->jobs_repository->get( $params );
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Collection $pending_jobs
-	 *
-	 * @return int[]
-	 */
 	private function get_pending_words_per_langs( WPML_TM_Jobs_Collection $pending_jobs ) {
 		$words_per_langs = array();
 
@@ -92,12 +74,6 @@ class WPML_TM_Jobs_Deadline_Estimate {
 		return $words_per_langs;
 	}
 
-	/**
-	 * @param array $basket
-	 * @param int[] $words_per_langs
-	 *
-	 * @return int[]
-	 */
 	private function add_basket_words_per_langs( array $basket, array $words_per_langs ) {
 		$element_types = array( 'post', 'string', 'package' );
 

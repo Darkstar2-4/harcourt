@@ -7,7 +7,6 @@ use WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Applicat
 
 class BackFromATEManualTranslationListener implements EventListenerInterface {
 
-  /** @var ManualTranslationsCountService */
   private $manualTranslationsCountService;
 
 
@@ -16,9 +15,6 @@ class BackFromATEManualTranslationListener implements EventListenerInterface {
   }
 
 
-  /**
-   * @return void
-   */
   public function recordTranslation() {
     $this->manualTranslationsCountService->increment();
   }

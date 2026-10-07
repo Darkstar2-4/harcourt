@@ -43,7 +43,10 @@ if (!function_exists('fn_base64')) {
     function fn_base64($v, $encode = TRUE) { return is_array($v) ? implode('~', $v) : $v; }
 }
 if (!function_exists('fn_href')) {
-    function fn_href($text, $url, $query = [], $opts = []) { return "<a href='#'>{$text}</a>"; }
+    function fn_href($text, $url, $query = [], $opts = []) {
+        $GLOBALS['fn_href_calls'][] = ['text' => $text, 'query' => $query, 'opts' => $opts];
+        return "<a href='#'>{$text}</a>";
+    }
 }
 
 // ── Stub: minimal database base class (classes/search.php extends this) ────
@@ -232,6 +235,7 @@ class CatalogTest extends TestCase
             'category_id'     => 0,
             'subcategory_id'  => 0,
             'debug'           => 0,
+            'unit_type'       => '',
         ], $overrides);
     }
 
@@ -305,7 +309,7 @@ class CatalogTest extends TestCase
     }
 
     private function subcategoryFixture(array $overrides = []): stdClass {
-        return (object) array_merge([
+        $data = array_merge([
             'id'               => 2,
             'name'             => 'Software',
             'category_id'      => 2,
@@ -319,6 +323,12 @@ class CatalogTest extends TestCase
             'description'      => '',
             'prj'              => 0,
         ], $overrides);
+        // Mirrors catalog.php: is_metric is derived once from the untranslated
+        // name at load time, before translation may overwrite ->name.
+        if (!array_key_exists('is_metric', $overrides)) {
+            $data['is_metric'] = (stripos($data['name'], '(Metric') !== false);
+        }
+        return (object) $data;
     }
 
     // ── /catalog page access control ────────────────────────────────────
@@ -535,6 +545,171 @@ class CatalogTest extends TestCase
         $this->assertStringContainsString("<a href='#'><span class='subcat20'>", $html);
         $this->assertStringNotContainsString('catalog_blocked_link', $html);
         $this->assertStringContainsString('Antivirus', $html);
+    }
+
+    // ── default_unit_type() / output_unit_filter(): country default ──────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_default_unit_type_is_unfiltered_for_us_users(): void {
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['country_code' => 'US']);
+        $this->assertSame('', $obj->default_unit_type());
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_default_unit_type_is_metric_outside_the_us(): void {
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['country_code' => 'fr ']);
+        $this->assertSame('metric', $obj->default_unit_type());
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_default_unit_type_is_unfiltered_without_a_country(): void {
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['country_code' => null]);
+        $this->assertSame('', $obj->default_unit_type());
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_default_unit_type_is_unfiltered_for_bots(): void {
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['country_code' => 'DE', 'bot_code' => 'crawler']);
+        $this->assertSame('', $obj->default_unit_type());
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_unit_filter_all_pill_carries_explicit_unit_type(): void {
+        // Without an explicit value, clicking "All" would fall back to the
+        // country default and a non-US user could never see everything.
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser(['country_code' => 'FR']);
+        $obj->php_self    = '/catalog.php';
+        $obj->search_code = '';
+        $obj->new_date    = 0;
+        $obj->unit_type   = '';
+
+        $GLOBALS['fn_href_calls'] = [];
+        $obj->output_unit_filter();
+        $pills = array_column($GLOBALS['fn_href_calls'], null, 'text');
+
+        $this->assertSame('all', $pills['All']['query']['unit_type']);
+        $this->assertSame('catalog_unit_filter_pill active', $pills['All']['opts']['class']);
+        $this->assertSame('metric', $pills['Metric']['query']['unit_type']);
+    }
+
+    // ── output_summary(): unit_type (metric/imperial) filter ────────────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_summary_metric_filter_shows_only_metric_subcategories(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = [];
+
+        $obj->category    = [1 => (object) ['id' => 1, 'name' => 'Bushings']];
+        $obj->subcategory = [
+            10 => $this->subcategoryFixture(['id' => 10, 'name' => 'Press Fit', 'category_id' => 1]),
+            16 => $this->subcategoryFixture(['id' => 16, 'name' => 'Press Fit (Metric)', 'category_id' => 1]),
+        ];
+        $obj->php_self    = '/catalog.php';
+        $obj->request     = ['debug' => 0];
+        $obj->search_code = '';
+        $obj->category_id = 0;
+        $obj->new_date    = 0;
+        $obj->unit_type   = 'metric';
+
+        ob_start();
+        $obj->output_summary([1 => [10, 16]]);
+        $html = ob_get_clean();
+
+        $this->assertStringNotContainsString("<span class='subcat10'>", $html);
+        $this->assertStringContainsString("<span class='subcat16'>", $html);
+        $this->assertStringContainsString('Press Fit (Metric)', $html);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_summary_imperial_filter_excludes_metric_subcategories(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = [];
+
+        $obj->category    = [1 => (object) ['id' => 1, 'name' => 'Bushings']];
+        $obj->subcategory = [
+            10 => $this->subcategoryFixture(['id' => 10, 'name' => 'Press Fit', 'category_id' => 1]),
+            16 => $this->subcategoryFixture(['id' => 16, 'name' => 'Press Fit (Metric)', 'category_id' => 1]),
+        ];
+        $obj->php_self    = '/catalog.php';
+        $obj->request     = ['debug' => 0];
+        $obj->search_code = '';
+        $obj->category_id = 0;
+        $obj->new_date    = 0;
+        $obj->unit_type   = 'imperial';
+
+        ob_start();
+        $obj->output_summary([1 => [10, 16]]);
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString("<span class='subcat10'>", $html);
+        $this->assertStringNotContainsString("<span class='subcat16'>", $html);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_summary_metric_filter_survives_translated_name_without_metric_suffix(): void {
+        // Regression: for non-EN users, catalog.php overwrites ->name with a
+        // translated string from the content table, which may not carry the
+        // "(Metric)" marker. is_metric is captured once from the untranslated
+        // name at load time, so the filter must keep working after translation.
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = [];
+
+        $obj->category    = [1 => (object) ['id' => 1, 'name' => 'Bushings']];
+        $obj->subcategory = [
+            16 => $this->subcategoryFixture(['id' => 16, 'name' => 'Ajustement Presse', 'category_id' => 1, 'is_metric' => true]),
+        ];
+        $obj->php_self    = '/catalog.php';
+        $obj->request     = ['debug' => 0];
+        $obj->search_code = '';
+        $obj->category_id = 0;
+        $obj->new_date    = 0;
+        $obj->unit_type   = 'metric';
+
+        ob_start();
+        $obj->output_summary([1 => [16]]);
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString("<span class='subcat16'>", $html);
+        $this->assertStringContainsString('Ajustement Presse', $html);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_summary_metric_filter_hides_category_with_no_metric_counterpart(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = [];
+
+        $obj->category    = [1 => (object) ['id' => 1, 'name' => 'Bushings']];
+        $obj->subcategory = [10 => $this->subcategoryFixture(['id' => 10, 'name' => 'Press Fit', 'category_id' => 1])];
+        $obj->php_self    = '/catalog.php';
+        $obj->request     = ['debug' => 0];
+        $obj->search_code = '';
+        $obj->category_id = 0;
+        $obj->new_date    = 0;
+        $obj->unit_type   = 'metric';
+
+        ob_start();
+        $obj->output_summary([1 => [10]]);
+        $html = ob_get_clean();
+
+        $this->assertStringNotContainsString('Bushings', $html);
+        $this->assertStringNotContainsString("<span class='subcat10'>", $html);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

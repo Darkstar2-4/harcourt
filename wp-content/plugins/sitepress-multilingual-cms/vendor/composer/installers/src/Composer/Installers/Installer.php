@@ -14,11 +14,6 @@ use React\Promise\PromiseInterface;
 class Installer extends LibraryInstaller
 {
 
-    /**
-     * Package types to installer class map
-     *
-     * @var array
-     */
     private $supportedTypes = array(
         'aimeos'       => 'AimeosInstaller',
         'asgard'       => 'AsgardInstaller',
@@ -121,18 +116,6 @@ class Installer extends LibraryInstaller
         'prestashop'   => 'PrestashopInstaller'
     );
 
-    /**
-     * Installer constructor.
-     *
-     * Disables installers specified in main composer extra installer-disable
-     * list
-     *
-     * @param IOInterface          $io
-     * @param Composer             $composer
-     * @param string               $type
-     * @param Filesystem|null      $filesystem
-     * @param BinaryInstaller|null $binaryInstaller
-     */
     public function __construct(
         IOInterface $io,
         Composer $composer,
@@ -145,9 +128,6 @@ class Installer extends LibraryInstaller
         $this->removeDisabledInstallers();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getInstallPath(PackageInterface $package)
     {
         $type = $package->getType();
@@ -175,20 +155,15 @@ class Installer extends LibraryInstaller
 
         $promise = parent::uninstall($repo, $package);
 
-        // Composer v2 might return a promise here
         if ($promise instanceof PromiseInterface) {
             return $promise->then($outputStatus);
         }
 
-        // If not, execute the code right away as parent::uninstall executed synchronously (composer v1, or v2 without async)
         $outputStatus();
 
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supports($packageType)
     {
         $frameworkType = $this->findFrameworkType($packageType);
@@ -202,12 +177,6 @@ class Installer extends LibraryInstaller
         return preg_match('#' . $frameworkType . '-' . $locationPattern . '#', $packageType, $matches) === 1;
     }
 
-    /**
-     * Finds a supported framework type if it exists and returns it
-     *
-     * @param  string       $type
-     * @return string|false
-     */
     protected function findFrameworkType($type)
     {
         krsort($this->supportedTypes);
@@ -221,19 +190,11 @@ class Installer extends LibraryInstaller
         return false;
     }
 
-    /**
-     * Get the second part of the regular expression to check for support of a
-     * package type
-     *
-     * @param  string $frameworkType
-     * @return string
-     */
     protected function getLocationPattern($frameworkType)
     {
         $pattern = false;
         if (!empty($this->supportedTypes[$frameworkType])) {
             $frameworkClass = 'Composer\\Installers\\' . $this->supportedTypes[$frameworkType];
-            /** @var BaseInstaller $framework */
             $framework = new $frameworkClass(null, $this->composer, $this->getIO());
             $locations = array_keys($framework->getLocations());
             $pattern = $locations ? '(' . implode('|', $locations) . ')' : false;
@@ -242,52 +203,30 @@ class Installer extends LibraryInstaller
         return $pattern ? : '(\w+)';
     }
 
-    /**
-     * Get I/O object
-     *
-     * @return IOInterface
-     */
     private function getIO()
     {
         return $this->io;
     }
 
-    /**
-     * Look for installers set to be disabled in composer's extra config and
-     * remove them from the list of supported installers.
-     *
-     * Globals:
-     *  - true, "all", and "*" - disable all installers.
-     *  - false - enable all installers (useful with
-     *     wikimedia/composer-merge-plugin or similar)
-     *
-     * @return void
-     */
     protected function removeDisabledInstallers()
     {
         $extra = $this->composer->getPackage()->getExtra();
 
         if (!isset($extra['installer-disable']) || $extra['installer-disable'] === false) {
-            // No installers are disabled
             return;
         }
 
-        // Get installers to disable
         $disable = $extra['installer-disable'];
 
-        // Ensure $disabled is an array
         if (!is_array($disable)) {
             $disable = array($disable);
         }
 
-        // Check which installers should be disabled
         $all = array(true, "all", "*");
         $intersect = array_intersect($all, $disable);
         if (!empty($intersect)) {
-            // Disable all installers
             $this->supportedTypes = array();
         } else {
-            // Disable specified installers
             foreach ($disable as $key => $installer) {
                 if (is_string($installer) && key_exists($installer, $this->supportedTypes)) {
                     unset($this->supportedTypes[$installer]);

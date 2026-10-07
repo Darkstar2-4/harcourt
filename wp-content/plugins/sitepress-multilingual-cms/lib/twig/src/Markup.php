@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig;
 
-/**
- * Marks a content as safe.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class Markup implements \Countable
 {
     protected $content;

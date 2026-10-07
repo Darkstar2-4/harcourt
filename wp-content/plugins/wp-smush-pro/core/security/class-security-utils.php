@@ -3,22 +3,22 @@
 namespace Smush\Core\Security;
 
 use Smush\Core\Array_Utils;
-use Smush\Core\Threads\Thread_Safe_Options;
+use Smush\Core\Threads\JSON_Object_Map;
 
 class Security_Utils {
-	const EXPECTED_NONCES_OPTION = 'wp_smush_public_expected_nonces';
+	private static $expected_nonces_option_id = 'wp_smush_public_expected_nonces';
 	/**
 	 * @var Array_Utils
 	 */
 	private $array_utils;
 	/**
-	 * @var Thread_Safe_Options
+	 * @var JSON_Object_Map
 	 */
-	private $thread_safe_options;
+	private $object_map;
 
 	public function __construct() {
-		$this->array_utils         = new Array_Utils();
-		$this->thread_safe_options = new Thread_Safe_Options();
+		$this->array_utils = new Array_Utils();
+		$this->object_map  = new JSON_Object_Map( self::$expected_nonces_option_id );
 	}
 
 	public function create_public_nonce( $action = - 1 ) {
@@ -40,12 +40,11 @@ class Security_Utils {
 	}
 
 	public function clean_public_nonce( $nonce ) {
-		$this->thread_safe_options->remove_data( self::EXPECTED_NONCES_OPTION, $this->expected_nonce_key( $nonce ) );
+		$this->object_map->remove( $this->expected_nonce_key( $nonce ) );
 	}
 
 	private function add_expected_nonce( $nonce ) {
-		return $this->thread_safe_options->add_data(
-			self::EXPECTED_NONCES_OPTION,
+		return $this->object_map->add(
 			$this->expected_nonce_key( $nonce ),
 			array( 'time' => time(), 'nonce' => $nonce )
 		);
@@ -68,7 +67,7 @@ class Security_Utils {
 
 	public function clean_expected_nonces() {
 		$expected_nonces = $this->clean_expected( $this->get_expected_nonces() );
-		update_option( self::EXPECTED_NONCES_OPTION, json_encode( $expected_nonces ) );
+		$this->object_map->unsafe_set( $expected_nonces );
 	}
 
 	private function clean_expected( $expected_nonces ) {
@@ -86,7 +85,7 @@ class Security_Utils {
 	 * @return array
 	 */
 	public function get_expected_nonces() {
-		$nonces = $this->thread_safe_options->get_option( self::EXPECTED_NONCES_OPTION, array() );
+		$nonces = $this->object_map->get( array() );
 
 		return $this->array_utils->ensure_array( $nonces );
 	}
@@ -102,4 +101,14 @@ class Security_Utils {
 	private function expected_nonce_key( $nonce ) {
 		return "nonce_$nonce";
 	}
+
+	/**
+	 * Get expected_nonces_option.
+	 *
+	 * @return string
+	 */
+	public static function get_expected_nonces_option_id() {
+		return self::$expected_nonces_option_id;
+	}
+
 }

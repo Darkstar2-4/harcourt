@@ -2,17 +2,14 @@
 
 class WPML_Upgrade_Element_Type_Length_And_Collation implements IWPML_Upgrade_Command {
 
-	/** @var bool $result */
 	private $result = true;
 
-	/** @var WPML_Upgrade_Schema */
 	private $upgrade_schema;
 
 	public function __construct( array $args ) {
 		$this->upgrade_schema = $args[0];
 	}
 
-	/** @return bool */
 	private function run() {
 		$table       = 'icl_translations';
 		$column      = 'element_type';
@@ -48,7 +45,6 @@ class WPML_Upgrade_Element_Type_Length_And_Collation implements IWPML_Upgrade_Co
 		return $this->run();
 	}
 
-	/** @return bool */
 	public function get_results() {
 		return $this->result;
 	}

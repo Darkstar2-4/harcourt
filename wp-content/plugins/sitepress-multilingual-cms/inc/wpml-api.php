@@ -1,9 +1,5 @@
 <?php
-/*
- @todo: [WPML 3.3] check if needed in 3.3 */
-/* This file includes a set of functions that can be used by WP plugins developers to make their plugins interact with WPML */
 
-/* constants */
 define( 'WPML_API_SUCCESS', 0 );
 define( 'WPML_API_ERROR', 99 );
 define( 'WPML_API_INVALID_LANGUAGE_CODE', 1 );
@@ -34,20 +30,6 @@ function _wpml_api_allowed_content_type( $content_type ) {
 	return ! isset( $reserved_types[ $content_type ] ) && preg_match( '#([a-z0-9_\-])#i', $content_type );
 }
 
-/**
- * Add translatable content to the WPML translations table
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string      $content_type  Content type.
- * @param int         $content_id    Content ID.
- * @param bool|string $language_code Content language code. (defaults to current language)
- * @param bool|int    $trid          Content trid - if a translation in a different language already exists.
- *
- * @return int error code
- */
 function wpml_add_translatable_content( $content_type, $content_id, $language_code = false, $trid = false ) {
 	global $sitepress, $wpdb;
 
@@ -97,19 +79,6 @@ function wpml_add_translatable_content( $content_type, $content_id, $language_co
 }
 
 
-/**
- * Update translatable content in the WPML translations table
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string $content_type  Content type.
- * @param int    $content_id    Content ID.
- * @param string $language_code Content language code.
- *
- * @return int error code
- */
 function wpml_update_translatable_content( $content_type, $content_id, $language_code ) {
 	global $sitepress;
 
@@ -141,21 +110,6 @@ function wpml_update_translatable_content( $content_type, $content_id, $language
 
 }
 
-/**
- * Update translatable content in the WPML translations table
- *
- * @since      1.3
- * @deprecated deprecated since 3.2
- *
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string      $content_type  Content type.
- * @param int         $content_id    Content ID.
- * @param bool|string $language_code Content language code. (when ommitted - delete all translations associated with the respective content)
- *
- * @return int error code
- */
 function wpml_delete_translatable_content( $content_type, $content_id, $language_code = false ) {
 	global $sitepress;
 
@@ -184,23 +138,11 @@ function wpml_delete_translatable_content( $content_type, $content_id, $language
 	return WPML_API_SUCCESS;
 }
 
-/**
- * Get trid value for a specific piece of content
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @param string $content_type Content type.
- * @param int    $content_id Content ID.
- *
- * @return int trid or 0 for error
- *  */
 function wpml_get_content_trid( $content_type, $content_id ) {
 	global $sitepress;
 
 	if ( ! _wpml_api_allowed_content_type( $content_type ) ) {
-		return WPML_API_GET_CONTENT_ERROR; // WPML_API_INVALID_CONTENT_TYPE;
+		return WPML_API_GET_CONTENT_ERROR;
 	}
 
 	$trid = $sitepress->get_element_trid( $content_id, $content_type );
@@ -212,20 +154,6 @@ function wpml_get_content_trid( $content_type, $content_id ) {
 	}
 }
 
-/**
- * Detects the current language and returns the language relevant content id. optionally it can return the original id if a translation is not found
- * See also wpml_object_id_filter() in \template-functions.php
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @param string $content_type Content type.
- * @param int    $content_id Content ID.
- * @param bool   $return_original return the original id when translation not found.
- *
- * @return int trid or 0 for error
- */
 function wpml_get_content( $content_type, $content_id, $return_original = true ) {
 	global $sitepress, $wpdb;
 
@@ -286,21 +214,6 @@ function wpml_get_content( $content_type, $content_id, $return_original = true )
 	}
 }
 
-/**
- * Get translations for a certain piece of content
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string $content_type Content type.
- * @param int    $content_id   Content ID.
- * @param bool   $skip_missing
- *
- * @internal   param bool $return_original return the original id when translation not found.
- *
- * @return array|int translations or error code
- */
 function wpml_get_content_translations( $content_type, $content_id, $skip_missing = true ) {
 	global $sitepress;
 
@@ -319,19 +232,6 @@ function wpml_get_content_translations( $content_type, $content_id, $skip_missin
 	return $tr;
 }
 
-/**
- *  Returns a certain translation for a piece of content
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @param string $content_type Content type.
- * @param int    $content_id Content ID.
- * @param bool   $language_code
- *
- * @return int|array error code or array('lang'=>element_id)
- */
 function wpml_get_content_translation( $content_type, $content_id, $language_code ) {
 	global $sitepress;
 
@@ -350,16 +250,6 @@ function wpml_get_content_translation( $content_type, $content_id, $language_cod
 
 }
 
-/**
- * Returns the list of active languages
- * See also wpml_get_active_languages_filter() in \template-functions.php
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @return array
- *  */
 function wpml_get_active_languages() {
 	global $sitepress;
 	$langs = $sitepress->get_active_languages();
@@ -368,19 +258,6 @@ function wpml_get_active_languages() {
 
 
 
-/**
- *  Get contents of a specific type
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string $content_type Content type.
- *
- * @param bool   $language_code
- *
- * @return int or array
- */
 
 function wpml_get_contents( $content_type, $language_code = false ) {
 	global $sitepress, $wpdb;
@@ -406,18 +283,6 @@ function wpml_get_contents( $content_type, $language_code = false ) {
 
 }
 
-/**
- * Returns the number of the words that will be sent to translation and a cost estimate
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param string      $string
- * @param bool|string $language - should be specified when the language is one of zh-hans|zh-hant|ja|ko
- *
- * @return array (count, cost)
- */
 function wpml_get_word_count( $string, $language = false ) {
 
 	$asian_languages = explode( '|', WPML_API_ASIAN_LANGUAGES );
@@ -440,18 +305,6 @@ function wpml_get_word_count( $string, $language = false ) {
 	return $ret;
 }
 
-/**
- *  Check user is translator
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @param string $from_language Language to translate from
- * @param string $to_language Language to translate into
- *
- * @return bool (true if translator)
- */
 function wpml_check_user_is_translator( $from_language, $to_language ) {
 	global $wpdb;
 
@@ -480,20 +333,6 @@ function wpml_check_user_is_translator( $from_language, $to_language ) {
 	return $is_translator;
 }
 
-/**
- *  Check user is translator
- *
- * @param int         $post_id          Post ID
- * @param int         $cred_form_id
- * @param bool|string $current_language (optional) current language
- *
- * @return bool (true if translator)
- * @package    WPML
- * @subpackage WPML API
- *
- * @internal   param int $form_id Form ID
- * @since      1.3
- */
 function wpml_generate_controls( $post_id, $cred_form_id, $current_language = false ) {
 	global $sitepress,$sitepress_settings;
 
@@ -516,22 +355,20 @@ function wpml_generate_controls( $post_id, $cred_form_id, $current_language = fa
 		}
 
 		if ( array_key_exists( $active_language['code'], $translations ) ) {
-			// edit translation
 			$controls[ $active_language['code'] ]['action'] = 'edit';
 			$post_url                                       = get_permalink( $translations[ $active_language['code'] ]->element_id );
 			if ( $post_url && ( false === strpos( $post_url, '?' ) || ( false === strpos( $post_url, '?' ) && $sitepress_settings['language_negotiation_type'] != '3' ) ) ) {
-				$controls[ $active_language['code'] ]['url'] = $post_url . '?action=edit_translation&cred-edit-form=' . $cred_form_id; // CRED edit form ID
+				$controls[ $active_language['code'] ]['url'] = $post_url . '?action=edit_translation&cred-edit-form=' . $cred_form_id;
 			} else {
-				$controls[ $active_language['code'] ]['url'] = $post_url . '&action=edit_translation&cred-edit-form=' . $cred_form_id; // CRED edit form ID
+				$controls[ $active_language['code'] ]['url'] = $post_url . '&action=edit_translation&cred-edit-form=' . $cred_form_id;
 			}
 		} else {
-			// add translation
 			$controls[ $active_language['code'] ]['action'] = 'create';
 			$post_url                                       = get_permalink( $post_id );
 			if ( $post_url && ( false === strpos( $post_url, '?' ) || ( false === strpos( $post_url, '?' ) && $sitepress_settings['language_negotiation_type'] != '3' ) ) ) {
-				$controls[ $active_language['code'] ]['url'] = get_permalink( $post_id ) . '?action=create_translation&trid=' . $trid . '&to_lang=' . $active_language['code'] . '&source_lang=' . $current_language . '&cred-edit-form=' . $cred_form_id; // CRED new form ID
+				$controls[ $active_language['code'] ]['url'] = get_permalink( $post_id ) . '?action=create_translation&trid=' . $trid . '&to_lang=' . $active_language['code'] . '&source_lang=' . $current_language . '&cred-edit-form=' . $cred_form_id;
 			} else {
-				$controls[ $active_language['code'] ]['url'] = get_permalink( $post_id ) . '&action=create_translation&trid=' . $trid . '&to_lang=' . $active_language['code'] . '&source_lang=' . $current_language . '&cred-edit-form=' . $cred_form_id; // CRED new form ID
+				$controls[ $active_language['code'] ]['url'] = get_permalink( $post_id ) . '&action=create_translation&trid=' . $trid . '&to_lang=' . $active_language['code'] . '&source_lang=' . $current_language . '&cred-edit-form=' . $cred_form_id;
 			}
 		}
 
@@ -542,20 +379,6 @@ function wpml_generate_controls( $post_id, $cred_form_id, $current_language = fa
 	return $controls;
 }
 
-/**
- *  Get original content
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param int    $post_id Post ID
- * @param string $field   Post field
- *
- * @param string|false   $field_name
- *
- * @return string or array
- */
 function wpml_get_original_content( $post_id, $field, $field_name = false ) {
 
 	$post = get_post( $post_id );
@@ -604,23 +427,9 @@ function wpml_get_original_content( $post_id, $field, $field_name = false ) {
 	return WPML_API_ERROR;
 }
 
-/**
- *  Get synchronizing taxonomies
- *
- * @since      1.3
- * @package    WPML
- * @subpackage WPML API
- *
- * @param int    $post_id Post ID
- *
- * @param string $tax_name
- *
- * @return array
- */
 function wpml_get_synchronizing_taxonomies( $post_id, $tax_name ) {
 	global $wpdb, $sitepress_settings;
 	$taxs = array();
-	// get custom taxonomies
 	if ( ! empty( $post_id ) ) {
 		$taxonomies = $wpdb->get_col(
 			$wpdb->prepare(
@@ -646,17 +455,6 @@ function wpml_get_synchronizing_taxonomies( $post_id, $tax_name ) {
 	return $taxs;
 }
 
-/**
- *  Get synchronizing fields
- *
- * @since 1.3
- * @package WPML
- * @subpackage WPML API
- *
- * @param int    $post_id Post ID
- * @param string $field_name Field name
- * @return array
- */
 function wpml_get_synchronizing_fields( $post_id, $field_name ) {
 	global $sitepress_settings;
 	$custom_fields_values = array();

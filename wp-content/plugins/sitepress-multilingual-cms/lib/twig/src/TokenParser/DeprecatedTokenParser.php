@@ -12,16 +12,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\DeprecatedNode;
 use WPML\Core\Twig\Token;
-/**
- * Deprecates a section of a template.
- *
- *    {% deprecated 'The "base.twig" template is deprecated, use "layout.twig" instead.' %}
- *    {% extends 'layout.html.twig' %}
- *
- * @author Yonel Ceruto <yonelceruto@gmail.com>
- *
- * @final
- */
 class DeprecatedTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

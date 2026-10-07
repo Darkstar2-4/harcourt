@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
          "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
-            "Plik wpml-config.xml file w katalogu głównym motywu i wtyczek informuje WPML, które treści są do przetłumaczenia. Możesz zastąpić te ustawienia własnymi poprzez dodanie ich poniżej."
+            "Plik wpml-config.xml w głównym folderze motywu i wtyczek informuje WPML, która zawartość jest tłumaczalna. Możesz zastąpić te ustawienia własnymi, dodając je poniżej."
          ],
          "Read more about language configuration files.": [
-            "Przeczytaj więcej o plikach konfiguracji języków"
+            "Przeczytaj więcej o plikach konfiguracji języka."
          ],
          "Save": [
             "Zapisz"
@@ -23,7 +23,7 @@
             "Skróty"
          ],
          "Fold/Unfold code": [
-            "Zwiń/Rozwiń kod"
+            "Zwiń/rozwiń kod"
          ],
          "Auto format": [
             "Automatyczne formatowanie"

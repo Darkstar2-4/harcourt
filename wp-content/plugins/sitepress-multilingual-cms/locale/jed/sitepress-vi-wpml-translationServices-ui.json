@@ -14,13 +14,13 @@
             "Lỗi"
          ],
          "« Use a different Translation Service": [
-            "« Sử dụng Dịch vụ Dịch thuật khác"
+            "« Sử dụng Dịch vụ dịch thuật khác"
          ],
          "Authenticate": [
             "Xác thực"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "Truy cập <link_to_service /> để yêu cầu một API Token. Token này cho phép WPML kết nối với <service_name /> để gửi và nhận các công việc."
+            "Truy cập <link_to_service /> để yêu cầu Mã thông báo API. Mã thông báo này cho phép WPML kết nối với <service_name /> để gửi và nhận công việc."
          ],
          "Search translation services": [
             "Tìm kiếm dịch vụ dịch thuật"
@@ -32,7 +32,16 @@
             "Cài đặt"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "Hiện tại không thể kết nối dịch vụ dịch thuật khi WPML được cài đặt để tự động dịch nội dung trang web của bạn. Để sử dụng dịch vụ dịch thuật, vui lòng thay đổi chế độ dịch thuật của bạn trên trang <LinkToSettingsPage />."
+            "Hiện tại không thể kết nối dịch vụ dịch thuật khi WPML được đặt để tự động dịch nội dung trang web của bạn. Để sử dụng dịch vụ dịch thuật, vui lòng thay đổi chế độ dịch của bạn trên trang <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Sắp xếp giảm dần"
+         ],
+         "Sort ascending": [
+            "Sắp xếp tăng dần"
+         ],
+         "Cancel sorting": [
+            "Hủy sắp xếp"
          ],
          "Documentation": [
             "Tài liệu"

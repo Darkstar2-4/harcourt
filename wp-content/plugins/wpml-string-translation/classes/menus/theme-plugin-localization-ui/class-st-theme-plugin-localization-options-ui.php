@@ -1,14 +1,8 @@
 <?php
 
 class WPML_ST_Theme_Plugin_Localization_Options_UI {
-	/** @var array */
 	private $st_settings;
 
-	/**
-	 * WPML_ST_Theme_Plugin_Localization_Options_UI constructor.
-	 *
-	 * @param array $st_settings
-	 */
 	public function __construct( $st_settings ) {
 		$this->st_settings = $st_settings;
 	}
@@ -17,11 +11,6 @@ class WPML_ST_Theme_Plugin_Localization_Options_UI {
 		add_filter( 'wpml_localization_options_ui_model', array( $this, 'add_st_options' ) );
 	}
 
-	/**
-	 * @param array $model
-	 *
-	 * @return array
-	 */
 	public function add_st_options( $model ) {
 		$model['top_options'][] = array(
 			'name'    => 'use_theme_plugin_domain',

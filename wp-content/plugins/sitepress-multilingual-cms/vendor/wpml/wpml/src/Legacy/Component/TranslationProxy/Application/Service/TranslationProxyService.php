@@ -7,7 +7,6 @@ use WPML\Core\Component\TranslationProxy\Application\Service\TranslationProxySer
 
 class TranslationProxyService implements TranslationProxyServiceInterface {
 
-  /** @var \TranslationProxy_Project|false */
   private $legacyTranslationProxyProject;
 
 
@@ -27,10 +26,6 @@ class TranslationProxyService implements TranslationProxyServiceInterface {
   }
 
 
-  /**
-   * @return int|bool
-   * @throws SendTranslationProxyCommitRequestException
-   */
   public function sendCommitRequest() {
 
     if ( ! $this->legacyTranslationProxyProject ) {
@@ -55,27 +50,18 @@ class TranslationProxyService implements TranslationProxyServiceInterface {
         return false;
       }
 
-      // As done in WPML legacy code, doing the wpml_tm_jobs_notification action.,
-      // should process emails and maybe do some other related stuff
       do_action( 'wpml_tm_jobs_notification' );
 
-      // Clean legacy TP basket name and batch after each success batch commit
       \TranslationProxy_Basket::cleanBasket();
 
       return $batchJobId;
-    } catch ( \Throwable $e ) { // generally catch any exception happens on legacy side
+    } catch ( \Throwable $e ) {
       throw new SendTranslationProxyCommitRequestException( $e->getMessage() );
     }
   }
 
 
-  /**
-   * Returns constant defined in sitepress-multilingual-cms/inc/constants.php
-   *
-   * @return string
-   */
   public function getTPUrl(): string {
-    /** @phpstan-ignore-next-line  */
     return OTG_TRANSLATION_PROXY_URL;
   }
 

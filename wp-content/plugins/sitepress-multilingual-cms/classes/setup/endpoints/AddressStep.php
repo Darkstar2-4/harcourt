@@ -39,39 +39,24 @@ class AddressStep implements IHandler {
 		            ->map( Fns::always( 'ok' ) );
 	}
 
-	/**
-	 * @return callable(Collection) : Either Left(unavailable) | Right(data)
-	 */
 	private function validateDomains() {
 		return function ( $data ) {
 			return $this->validate( wpml_collect( $data->get( 'domains' ) ), $data );
 		};
 	}
 
-	/**
-	 * @return callable(Collection) : Either Left(unavailable) | Right(data)
-	 */
 	private function handleDomains() {
 		$saveDomains = Fns::tap( pipe( Obj::prop( 'domains' ), LanguageNegotiation::saveDomains() ) );
 
 		return pipe( $this->validateDomains(), chain( $saveDomains ) );
 	}
 
-	/**
-	 * @return callable(Collection) : Either Left(unavailable) | Right(data)
-	 */
 	private function validateSubdirectoryUrls() {
 		return function ( Collection $data ) {
 			return $this->validate( \wpml_collect( $data->get( 'domains' ) )->map(  Fns::nthArg( 1 ) ), $data );
 		};
 	}
 
-	/**
-	 * @param Collection $domains
-	 * @param Collection $data
-	 *
-	 * @return callable|\WPML\FP\Left|Right
-	 */
 	private function validate( Collection $domains, Collection $data ) {
 		$unavailableUrls = $domains->reject( $this->getValidator( $data ) )->keys()->toArray();
 
@@ -80,11 +65,6 @@ class AddressStep implements IHandler {
 			: Either::of( $data );
 	}
 
-	/**
-	 * @param Collection $data
-	 *
-	 * @return callable(string) : bool
-	 */
 	private function getValidator( Collection $data ) {
 		$validator = Relation::propEq( 'mode', LanguageNegotiation::DIRECTORY_STRING, $data )
 			? [ make( \WPML_Lang_URL_Validator::class ), 'validate_langs_in_dirs' ]

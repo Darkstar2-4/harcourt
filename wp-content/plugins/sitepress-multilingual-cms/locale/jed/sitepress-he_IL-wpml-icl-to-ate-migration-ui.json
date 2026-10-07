@@ -5,34 +5,34 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "From:": [
-            "מ:"
+            "מאת:"
          ],
          "--Choose language--": [
             "--בחר שפה--"
          ],
          "to:": [
-            "ל:"
+            "אל:"
          ],
          "Select %s": [
             "בחר %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "הגדר זוגות שפות עבור מתרגם %s:"
+            "הגדר צמדי שפות עבור מתרגם %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ הוסף עוד זוגות שפות עבור מתרגם זה"
+            "+ הוסף צמדי שפות נוספים עבור מתרגם זה"
          ],
          "Translation Memory was successfully copied to Advanced Translation Editor.": [
-            "זיכרון התרגום הועתק בהצלחה אל 'עורך התרגום המתקדם'."
+            "זיכרון התרגום הועתק בהצלחה לעורך התרגום המתקדם."
          ],
          "Deactivate ICanLocalize.com as Translation Service on this site": [
-            "השבת את ICanLocalize.com כשירות התרגום באתר זה"
+            "בטל הפעלה של ICanLocalize.com כשירות תרגום באתר זה"
          ],
          "Missing a translator? Or were new jobs since the last copy of the Translation Memory?": [
-            "חסר לך מתרגם? או שהיו עבודות חדשות מאז ההעתקה האחרונה של זיכרון התרגום?"
+            "חסר מתרגם? או שהיו עבודות חדשות מאז העותק האחרון של זיכרון התרגום?"
          ],
          "Enter here your ICanLocalize authentication details.": [
             "הזן כאן את פרטי האימות שלך ב-ICanLocalize."
@@ -41,10 +41,10 @@
             "אסימון API:"
          ],
          "Please enter valid value for ICL token.": [
-            "הזן ערך חוקי עבור אסימון ICL."
+            "אנא הזן ערך חוקי עבור אסימון ICL."
          ],
          "Enter ICL API token here": [
-            "הזן כאן אסימון ICL API"
+            "הזן כאן את אסימון ה-API של ICL"
          ],
          "Submit": [
             "שלח"
@@ -53,16 +53,16 @@
             "הירשם"
          ],
          "to ICanLocalize to receive your API token.": [
-            "ל-ICanLocalize לקבל את אסימון ה-API שלך."
+            "ל-ICanLocalize כדי לקבל את אסימון ה-API שלך."
          ],
          "Already have an account? Login and": [
-            "כבר יש לך חשבון? היכנס ו"
+            "כבר יש לך חשבון? התחבר ו-"
          ],
          "get your token.": [
             "קבל את האסימון שלך."
          ],
          "Copy new Translation Memory to Advanced Translation Memory": [
-            "העתק את זיכרון התרגום החדש אל 'זיכרון תרגום מתקדם'"
+            "העתק זיכרון תרגום חדש לעורך תרגום מתקדם"
          ],
          "Import translation memory": [
             "ייבא זיכרון תרגום"
@@ -71,16 +71,16 @@
             "ICanLocalize כבר מושבת באתר זה"
          ],
          "You can still import Translators or Copy Translation Memory to Advanced Translator Editor": [
-            "עדיין תוכל לייבא מתרגמים או להעתיק את זיכרון התרגום על 'עורך התרגום המתקדם'"
+            "עדיין ניתן לייבא מתרגמים או להעתיק זיכרון תרגום לעורך התרגום המתקדם"
          ],
          "Move from ICanLocalize.com to Advanced Translation Editor": [
-            "העבר מ-ICanLocalize.com ל'עורך התרגום המתקדם'"
+            "עבור מ-ICanLocalize.com לעורך התרגום המתקדם"
          ],
          "Import translators": [
             "ייבא מתרגמים"
          ],
          "Come back": [
-            "חזור חזרה"
+            "חזור"
          ],
          "Cancel": [
             "ביטול"
@@ -92,37 +92,37 @@
             "שם"
          ],
          "Language Pairs": [
-            "זוגות שפות"
+            "צמדי שפות"
          ],
          "Not supported pairs:": [
-            "זוגות לא נתמכים:"
+            "צמדים שאינם נתמכים:"
          ],
          "ICanLocalize.com deactivated": [
             "ICanLocalize.com מושבת"
          ],
          "Translate memory is imported": [
-            "בוצע ייבוא לזיכרון התרגום"
+            "זיכרון התרגום יובא"
          ],
          "There is no translators in ICL": [
             "אין מתרגמים ב-ICL"
          ],
          "Translators saved": [
-            "המתרגמים נשמרו"
+            "מתרגמים נשמרו"
          ],
          "%s file upload failed.": [
-            "העלאת הקובץ %s נכשלה."
+            "העלאת קובץ %s נכשלה."
          ],
          "Flag": [
             "דגל"
          ],
          "Flag file": [
-            "סמן בדגל את הקובץ"
+            "קובץ דגל"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "זה עתה הוספת שפה. עכשיו, בחור אותה כשפת ברירת המחדל של האתר או כשפת תרגום."
+            "זה עתה הוספת שפה. לאחר מכן, בחר אותה כשפת ברירת המחדל של האתר או כשפת תרגום."
          ],
          "Language added": [
-            "נוספה שפה"
+            "השפה נוספה"
          ],
          "The value \"%s\" already exists": [
             "הערך \"%s\" כבר קיים"
@@ -131,10 +131,10 @@
             "הוסף שפה חדשה"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "צור שפה ספציפית לארץ על-ידי בחירת השפה הכללית מהרשימה שלהלן. לאחר מכן בחר את הארץ שעבורה יש לבצע לוקליזציה."
+            "צור שפה ספציפית למדינה על ידי בחירת השפה הכללית מהרשימה למטה. לאחר מכן, בחר את המדינה שעבורה יש לתרגם אותה."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
-            "על-ידי בחירה של שילוב שכבר קיים במסד הנתונים, WPML יכול לעזור במילוי השדות הנחוצים. קרא עוד אודות <AddingACustomLanguageLink />."
+            "על ידי בחירת שילוב שכבר קיים במסד הנתונים, WPML יכול לעזור למלא את השדות הנדרשים. קרא עוד על <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
             "לא מוצא?"
@@ -143,7 +143,7 @@
             "לחץ כאן"
          ],
          "The wrong format. It may contain only small letters and \"-\". E.g: \"fr\" , \"pt-br\", \"zh-hans\"": [
-            "פורמט שגוי. יכול להכיל רק אותיות קטנות ו-\"-\". לדוגמה: \"fr\", \"pt-br\", \"zh-hans\""
+            "פורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"-\". לדוגמה: \"fr\", \"pt-br\", \"zh-hans\""
          ],
          "Language": [
             "שפה"
@@ -155,7 +155,7 @@
             "קוד"
          ],
          "The language will not be supported by automatic translations": [
-            "השפה לא תהיה נתמכת על ידי תרגומים אוטומטיים"
+            "השפה לא תיתמך על ידי תרגומים אוטומטיים"
          ],
          "Language mapping": [
             "מיפוי שפה"
@@ -164,10 +164,10 @@
             "אל תמפה שפה זו"
          ],
          "Default locale": [
-            "מיקום ברירת מחדל"
+            "אזור ברירת מחדל"
          ],
          "The wrong format. It may contain only small letters and \"_\". E.g: \"de\" , \"de_DE\", \"zh_Hant_TW\"": [
-            "פורמט שגוי. יכול להכיל רק אותיות קטנות ו-\"_\". לדוגמה: \"de\", \"de_DE\", \"zh_Hant_TW\""
+            "פורמט שגוי. הוא יכול להכיל רק אותיות קטנות ו-\"_\". לדוגמה: \"de\", \"de_DE\", \"zh_Hant_TW\""
          ],
          "hreflang": [
             "hreflang"
@@ -176,7 +176,7 @@
             "לקודד כתובת אתר?"
          ],
          "Flags must be:": [
-            "הדגלים חייבים להיות:"
+            "דגלים חייבים להיות:"
          ],
          "NO": [
             "לא"
@@ -191,34 +191,34 @@
             "אנא מלא את השדה"
          ],
          "PNG, SVG, or JPG files": [
-            "קבצי PNG, SVG, או JPG"
+            "קבצי PNG, SVG או JPG"
          ],
          "Save language": [
             "שמור שפה"
          ],
          "18 x 12 pixels": [
-            "18 x 12 פיקסלים"
+            "18 על 12 פיקסלים"
          ],
          "Read more about ": [
-            "קרא עוד אודות "
+            "קרא עוד על "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "שם השפה שלך כפי שיופיע במחליף השפות באתר שלך."
+            "שם השפה שלך כפי שיופיע במחליף השפות של האתר שלך."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
             "ערך ייחודי המזהה את השפה במסד הנתונים ובכתובת האתר. לאחר השמירה, לא ניתן לשנות את קוד השפה."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "אם השפה המותאמת אישית שלך דומה לשפה קיימת, תוכל להשתמש בבדיקת האיות והתרגום האוטומטי של השפה הקיימת. לדוגמה, אם השפה המותאמת אישית שלך היא גרמנית-שוויצרית, תוכל למפות לגרמנית כשפה לשימוש עבור בדיקת איות ותרגום אוטומטי. אם לא תמפה את השפה המותאמת אישית שלך לשפה קיימת, תכונות בדיקת האיות והתרגום האוטומטי לא יהיו זמינות בשפה זו."
+            "אם השפה המותאמת אישית שלך דומה לשפה קיימת, תוכל להשתמש בבדיקת האיות ובשירות התרגום האוטומטי של השפה הקיימת. לדוגמה, אם השפה המותאמת אישית שלך היא גרמנית שוויצרית, תוכל למפות אותה לגרמנית כשפה לשימוש בבדיקת איות ותרגום אוטומטי. אם לא תמפה את השפה המותאמת אישית שלך לשפה קיימת, תכונות בדיקת האיות והתרגום האוטומטי לא יהיו זמינות בשפה זו."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "הערך ש-WPML בודק בעת טעינת תרגומים מקבצי MO ו-PO. המיקום ברירת המחדל נכלל בשמות הקבצים בתיקייה /wp-content/languages/ בהתקנת WordPress שלך."
+            "הערך ש-WPML בודק בעת טעינת תרגומים מקבצי MO ו-PO. אזור ברירת המחדל כלול בשמות הקבצים בתיקיית /wp-content/languages/ בהגדרת וורדפרס שלך."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
-            "Google משתמש במאפיין hreflang כדי להפנות משתמשים לאתרים בשפה ובמיקום הרלוונטיים להם. דוגמאות:"
+            "גוגל משתמשת בתכונת hreflang כדי להפנות משתמשים לאתרים בשפה ובמיקום הרלוונטיים להם. דוגמאות:"
          ],
          "All English-speaking users: en": [
-            "כל המשתמשים דוברי אנגלית: en"
+            "כל המשתמשים דוברי האנגלית: en"
          ],
          "English for UK users: en-gb": [
             "אנגלית למשתמשים בבריטניה: en-gb"
@@ -227,13 +227,13 @@
             "אנגלית למשתמשים בארה\"ב: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "קובע אם כתובות URL בשפה זו מקודדות או משתמשות בתווי ASCII (אם אינך בטוח, השאר זאת כ-\"לא\")."
+            "קובע אם כתובות אתרים בשפה זו מקודדות או משתמשות בתווי ASCII (אם אינך בטוח, השאר כ-\"לא\")."
          ],
          "adding a custom language": [
             "הוספת שפה מותאמת אישית"
          ],
          "What are the languages of your site?": [
-            "מהן השפות של האתר שלך?"
+            "מהן שפות האתר שלך?"
          ],
          "Default language": [
             "שפת ברירת מחדל"
@@ -247,8 +247,8 @@
          "Which languages do you want to translate your site into?": [
             "לאילו שפות ברצונך לתרגם את האתר שלך?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "אם אינך יכול למצוא שפות שאתה צריך ברשימה"
+         "If you cannot find languages that you need in the list,": [
+            "אם אינך מוצא את השפות שאתה צריך ברשימה,"
          ],
          "create a custom language": [
             "צור שפה מותאמת אישית"

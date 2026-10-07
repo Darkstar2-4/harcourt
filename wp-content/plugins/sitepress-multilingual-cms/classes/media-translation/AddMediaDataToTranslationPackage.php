@@ -9,7 +9,6 @@ class AddMediaDataToTranslationPackage implements \IWPML_Backend_Action, \IWPML_
 	const ALT_PLACEHOLDER = '{%ALT_TEXT%}';
 	const CAPTION_PLACEHOLDER = '{%CAPTION%}';
 
-	/** @var PostWithMediaFilesFactory $post_media_factory */
 	private $post_media_factory;
 
 	public function __construct( PostWithMediaFilesFactory $post_media_factory ) {
@@ -163,7 +162,6 @@ class AddMediaDataToTranslationPackage implements \IWPML_Backend_Action, \IWPML_
 		$custom_fields_to_translate = \WPML\TM\Settings\Repository::getCustomFieldsToTranslate();
 
 		foreach ( $media_custom_fields as $field_key => $field_value ) {
-			// Remove the media custom field if it is not set to Translate.
 			if (
 				! in_array( $field_key, $custom_fields_to_translate, true ) ||
 				'_wp_attachment_image_alt' === $field_key

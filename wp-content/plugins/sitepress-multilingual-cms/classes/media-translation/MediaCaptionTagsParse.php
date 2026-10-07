@@ -3,11 +3,6 @@
 namespace WPML\MediaTranslation;
 
 class MediaCaptionTagsParse {
-	/**
-	 * @param string $text
-	 *
-	 * @return array
-	 */
 	public function get_captions( $text ) {
 		$captions = [];
 

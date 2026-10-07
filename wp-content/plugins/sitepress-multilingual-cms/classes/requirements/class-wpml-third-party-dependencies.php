@@ -1,18 +1,9 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Third_Party_Dependencies {
 	private $integrations;
 	private $requirements;
 
-	/**
-	 * WPML_Third_Party_Dependencies constructor.
-	 *
-	 * @param WPML_Integrations $integrations
-	 * @param WPML_Requirements $requirements
-	 */
 	public function __construct( WPML_Integrations $integrations, WPML_Requirements $requirements ) {
 		$this->integrations = $integrations;
 		$this->requirements = $requirements;

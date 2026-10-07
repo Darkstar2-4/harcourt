@@ -13,11 +13,6 @@ namespace WPML\Core\Twig\Node;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 use WPML\Core\Twig\Node\Expression\NameExpression;
-/**
- * Represents an import node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ImportNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct(\WPML\Core\Twig\Node\Expression\AbstractExpression $expr, \WPML\Core\Twig\Node\Expression\AbstractExpression $var, $lineno, $tag = null)

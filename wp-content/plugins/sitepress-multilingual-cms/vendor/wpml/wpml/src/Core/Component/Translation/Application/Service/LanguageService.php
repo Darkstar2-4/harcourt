@@ -9,7 +9,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class LanguageService {
 
-  /** @var TranslationRepositoryInterface */
   private $translationRepository;
 
 
@@ -18,24 +17,13 @@ class LanguageService {
   }
 
 
-  /**
-   * @param int         $elementId
-   * @param string      $itemType stringBatch/stringPackage/post
-   * @param string      $elementType e.g post/page/gravity_form
-   * @param string      $languageCode
-   * @param string|null $sourceLanguageCode
-   * @param int|null    $trid
-   *
-   * @return void
-   * @throws InvalidArgumentException
-   */
   public function setLanguageOfElement(
     int $elementId,
     string $itemType,
     string $elementType,
     string $languageCode,
-    string $sourceLanguageCode = null,
-    int $trid = null
+    ?string $sourceLanguageCode = null,
+    ?int $trid = null
   ) {
     if ( $this->isInvalidTranslationRelation( $sourceLanguageCode, $trid ) ) {
       throw new InvalidArgumentException( 'Source language and trid must be provided together or not at all' );
@@ -68,7 +56,7 @@ class LanguageService {
   }
 
 
-  private function isInvalidTranslationRelation( string $sourceLanguageCode = null, int $trid = null ): bool {
+  private function isInvalidTranslationRelation( ?string $sourceLanguageCode = null, ?int $trid = null ): bool {
     return ( $sourceLanguageCode === null ) !== ( $trid === null );
   }
 

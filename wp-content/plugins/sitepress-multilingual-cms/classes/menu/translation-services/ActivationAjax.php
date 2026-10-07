@@ -9,7 +9,6 @@ class ActivationAjax {
 	const NONCE_ACTION           = 'translation_service_toggle';
 	const REFRESH_TS_INFO_ACTION = 'refresh_ts_info';
 
-	/** @var \WPML_TP_Client */
 	private $tp_client;
 
 	public function __construct( \WPML_TP_Client $tp_client ) {
@@ -79,12 +78,6 @@ class ActivationAjax {
 		$this->send_invalid_nonce_error();
 	}
 
-	/**
-	 * @param int $service_id
-	 *
-	 * @return array
-	 * @throws \InvalidArgumentException
-	 */
 	private function activate_service( $service_id ) {
 		$result  = TranslationProxy::select_service( $service_id );
 		$message = '';
@@ -109,11 +102,6 @@ class ActivationAjax {
 		);
 	}
 
-	/**
-	 * @param string $action
-	 *
-	 * @return bool
-	 */
 	private function is_valid_request( $action ) {
 		if ( ! isset( $_POST['nonce'] ) ) {
 			return false;

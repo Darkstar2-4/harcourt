@@ -3,6 +3,7 @@
 namespace WPML\TranslationRoles;
 
 use WPML\Collect\Support\Collection;
+use WPML\FP\Either;
 use WPML\FP\Fns;
 use WPML\LIB\WP\Hooks;
 use WPML\LIB\WP\User;
@@ -14,12 +15,11 @@ class SaveManager extends SaveUser {
 
 	const TRANSLATION_MANAGER_INSTRUCTIONS_TEMPLATE = 'notification/translation-manager-instructions.twig';
 
-	/**
-	 * @inheritDoc
-	 */
 	public function run( Collection $data ) {
+		if ( ! User::canManageOptions() ) {
+			return Either::left( 'Insufficient permissions' );
+		}
 
-		// $setRole :: WP_User -> WP_User
 		$setRole = Fns::tap( invoke( 'add_cap' )->with( User::CAP_MANAGE_TRANSLATIONS ) );
 
 		return self::getUser( $data )
@@ -63,7 +63,9 @@ class SaveManager extends SaveUser {
 
 		$forceDisplayName = Fns::always( $adminUser->display_name );
 
-		$sendMail = partial( 'wp_mail', $to, $subject, $message, $headers );
+		$sendMail = function () use ( $to, $subject, $message, $headers ) {
+			return \WPML_Mail_Sender::send( $to, $subject, $message, $headers, array(), 'translation-manager-instructions' );
+		};
 
 		Hooks::callWithFilter( $sendMail, 'wp_mail_from_name', $forceDisplayName );
 

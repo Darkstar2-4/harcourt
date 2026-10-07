@@ -13,13 +13,6 @@ namespace WPML\Core\Twig\TokenParser;
 use WPML\Core\Twig\Node\Expression\AssignNameExpression;
 use WPML\Core\Twig\Node\ImportNode;
 use WPML\Core\Twig\Token;
-/**
- * Imports macros.
- *
- *   {% import 'forms.html' as forms %}
- *
- * @final
- */
 class ImportTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

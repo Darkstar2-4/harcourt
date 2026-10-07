@@ -10,10 +10,8 @@ use WPML\Core\Component\Translation\Domain\Translation;
 
 class TranslationStatusQuery implements TranslationStatusQueryInterface {
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var StringBatchToStringsTranslationsMapper */
   private $stringBatchToStringsTranslationMapper;
 
 
@@ -26,14 +24,6 @@ class TranslationStatusQuery implements TranslationStatusQueryInterface {
   }
 
 
-  /**
-   * @param int[] $jobIds
-   * @param bool  $mapStringBatchesOnIndividualStrings Normally we return a TranslationStatusDto
-   *    for each string batch. If this is set to true,
-   *    we return a TranslationStatusDto for each string included in the batch.
-   *
-   * @return TranslationStatusDto[]
-   */
   public function getByJobIds( array $jobIds, bool $mapStringBatchesOnIndividualStrings = false ): array {
     $translations = $this->translationQuery->getManyByJobIds( $jobIds );
     if ( $mapStringBatchesOnIndividualStrings ) {

@@ -13,9 +13,6 @@ class InsertStringsCommand extends BulkActionBaseCommand implements InsertString
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	public function run( array $strings ) {
 		foreach ( array_chunk( $strings, $this->chunk_size ) as $chunk ) {
 			$query = "INSERT IGNORE INTO {$this->wpdb->prefix}icl_strings "
@@ -28,11 +25,6 @@ class InsertStringsCommand extends BulkActionBaseCommand implements InsertString
 		}
 	}
 
-	/**
-	 * @param StringItem $string
-	 *
-	 * @return string
-	 */
 	private function build_string_row( StringItem $string ) {
 		return $this->wpdb->prepare(
 			'(%s, %s, %s, %s, %s, %s, %d, %d, %s, %d)',

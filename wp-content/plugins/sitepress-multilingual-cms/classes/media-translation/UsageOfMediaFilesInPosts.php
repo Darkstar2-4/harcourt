@@ -7,13 +7,6 @@ class UsageOfMediaFilesInPosts {
 	const USAGES_AS_REFERENCE_IN_POSTS = '_wpml_media_usage_in_posts_as_reference';
 	const USAGES_FIELD_NAME = '_wpml_media_usage_in_posts';
 
-	/**
-	 * @param int   $post_id
-	 * @param array $last_copied_media_file_ids
-	 * @param array $last_referenced_media_file_ids
-	 * @param array $copied_media_file_ids
-	 * @param array $referenced_media_file_ids
-	 */
 	public function updateUsages(
 		$post_id,
 		$last_copied_media_file_ids,
@@ -34,16 +27,6 @@ class UsageOfMediaFilesInPosts {
 		}
 	}
 
-	/**
-	 * @param int   $post_id
-	 * @param array $last_copied_media_file_ids
-	 * @param array $last_referenced_media_file_ids
-	 * @param array $copied_media_file_ids
-	 * @param array $referenced_media_file_ids
-	 * @param array $usages_cache
-	 *
-	 * @return array
-	 */
 	public function getUsages(
 		$post_id,
 		$last_copied_media_file_ids,
@@ -84,11 +67,6 @@ class UsageOfMediaFilesInPosts {
 
 		foreach ( $all_media_file_ids as $media_file_id ) {
 			$existing_usages_in_posts = [];
-			/*
-				When calling this function from a background tasks to process batch of posts in 1 request $media_file_id
-				will always be setup, so we will always get usages from the cache(even if it not exists).
-				So, second case should be never called from batch processing and no extra guards for get queries are required there.
-			*/
 			if ( array_key_exists( $media_file_id, $usages_cache ) ) {
 				$existing_usages_in_posts = $usages_cache[ $media_file_id ];
 			} else {
@@ -161,16 +139,10 @@ class UsageOfMediaFilesInPosts {
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getUsagesAsCopy( $media_file_id ) {
 		return $this->getUsagesByType( $media_file_id, self::USAGES_AS_COPY_IN_POSTS );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getUsagesAsReference( $media_file_id ) {
 		return $this->getUsagesByType( $media_file_id, self::USAGES_AS_REFERENCE_IN_POSTS );
 	}

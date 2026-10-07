@@ -1,0 +1,198 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Your pending automatic translations will be canceled.": [
+            "Bekleyen otomatik çevirileriniz iptal edilecektir."
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Go to the <a>Translation Management Dashboard</a> to translate your content.": [
+            "İçeriğinizi çevirmek için <a>Çeviri Yönetimi Panosu</a>'na gidin."
+         ],
+         "Review the translations before publishing": [
+            "Yayınlamadan önce çevirileri gözden geçirin"
+         ],
+         "Publish translations and review them later": [
+            "Çevirileri yayınlayın ve daha sonra gözden geçirin"
+         ],
+         "Publish translations without reviewing": [
+            "Çevirileri gözden geçirmeden yayınlayın"
+         ],
+         "Translate Everything": [
+            "Her şeyi çevir"
+         ],
+         "WPML will automatically translate content that you publish or update": [
+            "WPML, yayınladığınız veya güncellediğiniz içeriği otomatik olarak çevirecektir"
+         ],
+         "How do you want to translate this site?": [
+            "Bu siteyi nasıl çevirmek istersiniz?"
+         ],
+         "Translate Some": [
+            "Bazılarını çevir"
+         ],
+         "I want to choose which content to translate": [
+            "Hangi içeriği çevireceğimi seçmek istiyorum"
+         ],
+         "All Languages": [
+            "Tüm diller"
+         ],
+         "Overwrite existing translations": [
+            "Mevcut çevirilerin üzerine yaz"
+         ],
+         "Some of the content you want to translate is already translated": [
+            "Çevirmek istediğiniz içeriğin bir kısmı zaten çevrilmiş"
+         ],
+         "What do you want to do with the content that’s already translated?": [
+            "Zaten çevrilmiş içerikle ne yapmak istersiniz?"
+         ],
+         "Leave existing translations as is": [
+            "Mevcut çevirileri olduğu gibi bırak"
+         ],
+         "You chose to review translations before publishing.": [
+            "Yayınlamadan önce çevirileri gözden geçirmeyi seçtiniz."
+         ],
+         "If you retranslate content that's already published, the changes will be applied directly to live pages or posts.": [
+            "Zaten yayınlanmış içeriği yeniden çevirirseniz, değişiklikler doğrudan canlı sayfalara veya gönderilere uygulanacaktır."
+         ],
+         "This also updates the translation memory for your site. Read more about <a href=\"%s\" target=\"_blank\" >translation memory</a>": [
+            "Bu aynı zamanda sitenizin çeviri belleğini de günceller. <a href=\"%s\" target=\"_blank\" >Çeviri belleği</a> hakkında daha fazla bilgi edinin"
+         ],
+         "Allows you to re-translate your content and update the translation memory for your site. Read more about <a href=\"%s\" target=\"_blank\" >translation memory</a>": [
+            "İçeriğinizi yeniden çevirmenize ve sitenizin çeviri belleğini güncellemenize olanak tanır. <a href=\"%s\" target=\"_blank\" >Çeviri belleği</a> hakkında daha fazla bilgi edinin"
+         ],
+         "Allows your translators to re-translate your content and update the translation memory for your site. Read more about <a href=\"%s\" target=\"_blank\" >translation memory</a>": [
+            "Çevirmenlerinizin içeriğinizi yeniden çevirmesine ve sitenizin çeviri belleğini güncellemesine olanak tanır. <a href=\"%s\" target=\"_blank\" >Çeviri belleği</a> hakkında daha fazla bilgi edinin"
+         ],
+         "HINT: You can add a Note for translators in the table above with special instructions.": [
+            "İPUCU: Yukarıdaki tabloya çevirmenler için özel talimatlar içeren bir Not ekleyebilirsiniz."
+         ],
+         "Translate automatically": [
+            "Otomatik çevir"
+         ],
+         "How do you want to translate?": [
+            "Nasıl çevirmek istersiniz?"
+         ],
+         "Assign to a translator": [
+            "Bir çevirmene ata"
+         ],
+         "Translate myself": [
+            "Kendim çevir"
+         ],
+         "You do not need translation credits to translate content yourself.": [
+            "İçeriği kendiniz çevirmek için çeviri kredilerine ihtiyacınız yoktur."
+         ],
+         "You can only automatically translate content from your site's default language (English), to your site's other languages. Deselect content in your site's secondary languages to proceed.": [
+            "İçeriği yalnızca sitenizin varsayılan dilinden (İngilizce) sitenizin diğer dillerine otomatik olarak çevirebilirsiniz. Devam etmek için sitenizin ikincil dillerindeki içeriğin seçimini kaldırın."
+         ],
+         "You can only automatically translate content from your primary language (%s) to other languages. Use the language switcher at the top of this page to switch to %s.": [
+            "İçeriği yalnızca birincil diliniz olan (%s)'ten diğer dillere otomatik olarak çevirebilirsiniz. %s'ya geçmek için bu sayfanın üst kısmındaki dil değiştiriciyi kullanın."
+         ],
+         "Selected content includes items that were originally created in this language. Deselect these items to proceed.": [
+            "Seçilen içerik, orijinal olarak bu dilde oluşturulmuş öğeleri içerir. Devam etmek için bu öğelerin seçimini kaldırın."
+         ],
+         "Add to Translation Queue": [
+            "Çeviri kuyruğuna ekle"
+         ],
+         "Select a post or page to translate": [
+            "Çevirmek için bir gönderi veya sayfa seçin"
+         ],
+         "Translate or duplicate content to at least one language": [
+            "İçeriği en az bir dile çevir veya çoğalt"
+         ],
+         "Choose how you want to translate your content": [
+            "İçeriğinizi nasıl çevirmek istediğinizi seçin"
+         ],
+         "Selected content is already translated": [
+            "Seçilen içerik zaten çevrilmiş"
+         ],
+         "Selected content includes items in a language other than your site's default language.": [
+            "Seçilen içerik, sitenizin varsayılan dili dışındaki bir dilde öğeler içerir."
+         ],
+         "Choose at least one translation action": [
+            "En az bir çeviri eylemi seçin"
+         ],
+         "Duplicate": [
+            "Çoğalt"
+         ],
+         "Start translating and duplicating": [
+            "Çevirmeye ve çoğaltmaya başla"
+         ],
+         "Add to Translation Basket and duplicate": [
+            "Çeviri Sepetine ekle ve çoğalt"
+         ],
+         "Add to Translation Queue and duplicate": [
+            "Çeviri Kuyruğuna ekle ve çoğalt"
+         ],
+         "Start translating": [
+            "Çevirmeye başla"
+         ],
+         "Add to Translation Basket": [
+            "Çeviri sepetine ekle"
+         ],
+         "One more thing...": [
+            "Bir şey daha..."
+         ],
+         "What would you like to do when your content has finished translating automatically?": [
+            "İçeriğiniz otomatik olarak çevrildikten sonra ne yapmak istersiniz?"
+         ],
+         "Save settings": [
+            "Ayarları kaydet"
+         ],
+         "This setting will apply to all future automatic translations. You can change this anytime in WPML → Settings.": [
+            "Bu ayar, gelecekteki tüm otomatik çeviriler için geçerli olacaktır. Bunu istediğiniz zaman WPML → Ayarlar bölümünden değiştirebilirsiniz."
+         ],
+         "Translate": [
+            "Çevir"
+         ],
+         "Duplicate content": [
+            "İçeriği çoğalt"
+         ],
+         "Do nothing": [
+            "Hiçbir şey yapma"
+         ],
+         "You need credits to use automatic translation.": [
+            "Otomatik çeviri kullanmak için kredilere ihtiyacınız var."
+         ],
+         "Finish setting up %s on your site": [
+            "Sitenizde %s kurulumunu tamamlayın"
+         ],
+         "You need to authenticate %s to send them content for translation. Visit the %s to finish the setup.": [
+            "Çeviri için içerik göndermek üzere %s'yı doğrulamanız gerekiyor. Kurulumu tamamlamak için %s'yı ziyaret edin."
+         ],
+         "Connection Error. Please wait a minute and reload this page. If the problem continues, please <a>contact WPML support</a>.": [
+            "Bağlantı Hatası. Lütfen bir dakika bekleyin ve bu sayfayı yeniden yükleyin. Sorun devam ederse, lütfen <a>WPML desteğiyle iletişime geçin</a>."
+         ],
+         "Add a translator to use %s.": [
+            "%s'yı kullanmak için bir çevirmen ekleyin."
+         ],
+         "To send content to %s for translation, go to the %s to add a translator on your site.": [
+            "Çeviri için %s'ya içerik göndermek için, sitenize bir çevirmen eklemek üzere %s'ya gidin."
+         ],
+         "Your selected automatic translation engines do not support the following language(s): %s. Read more about <a>choosing a translation engine</a>.": [
+            "Seçtiğiniz otomatik çeviri motorları aşağıdaki dilleri desteklemiyor: %s. <a>Çeviri motoru seçme</a> hakkında daha fazla bilgi edinin."
+         ],
+         "Some of the selected content is already being translated. This will cancel any in-progress translations.": [
+            "Seçilen içeriğin bir kısmı zaten çevriliyor. Bu, devam eden tüm çevirileri iptal edecektir."
+         ],
+         "Any existing content (translations) will be overwritten when creating duplicates.": [
+            "Çoğaltmalar oluşturulurken mevcut içerik (çeviriler) üzerine yazılacaktır."
+         ],
+         "When duplicating content, please first duplicate parent pages to maintain the site's hierarchy.": [
+            "İçeriği çoğaltırken, sitenin hiyerarşisini korumak için lütfen önce üst sayfaları çoğaltın."
+         ],
+         "To assign content to a translator, first <a href=\"%s\" target=\"_blank\">add a translator</a> or <a href=\"%s\" target=\"_blank\">connect to a translation service</a>.": [
+            "İçeriği bir çevirmene atamak için önce <a href=\"%s\" target=\"_blank\">bir çevirmen ekleyin</a> veya <a href=\"%s\" target=\"_blank\">bir çeviri hizmetine bağlanın</a>."
+         ],
+         "Translators Tab": [
+            "Çevirmenler sekmesi"
+         ]
+      }
+   }
+}

@@ -17,15 +17,75 @@ jQuery(function ($) {
 		title:         wpml_media_popup.title,
 		create:        function () {
 			$('#jquery-ui-style-css').prop('disabled', true);
+			dialogBox.removeAttr('hidden');
 		},
 		open:          function (event, ui) {
-			$('.ui-dialog-titlebar-close', ui.dialog | ui).hide();
+			var thisDialog = $(this);
+			var dialogRoot = thisDialog.closest('.ui-dialog');
+			var hasUsagesInPostsByCopy = thisDialog.find('input[name=has_usages_in_posts_by_copy]').val().toString() === '1';
+			var hasUsagesInPostsByReference = thisDialog.find('input[name=has_usages_in_posts_by_reference]').val().toString() === '1';
+			var copiedMediaLabel = thisDialog.find('input[name=copied_media_label]').val();
+			var referencedMediaLabel = thisDialog.find('input[name=referenced_media_label]').val();
+			var cannotEditAsCopyNotice = jQuery('#wpml-media-is-copy-notice #wpml-media-is-copy-cannot-edit-notice');
+
+			cannotEditAsCopyNotice.css('display', 'none');
+			dialogRoot.find('.wpml-form-row-translation-field button').removeClass('disabled');
+			dialogRoot.find('input[type=text], textarea').removeAttr('disabled');
+			dialogRoot.find('.wpml-form-row-translation-field button').attr('title', dialogRoot.find('.wpml-form-row-translation-field button').attr('data-defaulttitle'));
+
+			dialogRoot.find('.wpml-media-type-label').remove();
+			dialogRoot.find('#wpml-media-is-copy-notice').css('display', 'none');
+			dialogRoot.find('#wpml-media-is-reference-notice').css('display', 'none');
+			dialogRoot.find('#wpml-media-is-copyandreference-notice').css('display', 'none');
+			var label;
+
+			if (hasUsagesInPostsByCopy && !hasUsagesInPostsByReference) {
+				label = jQuery('<div class="wpml-media-type-label">' + copiedMediaLabel + '</div>');
+				dialogRoot.find('.ui-dialog-title').append(label);
+				dialogRoot.find('#wpml-media-is-copy-notice').css('display', 'block');
+			}
+			if (hasUsagesInPostsByReference && !hasUsagesInPostsByCopy) {
+				label = jQuery('<div class="wpml-media-type-label wpml-media-type-label--light">' + referencedMediaLabel + '</div>');
+				dialogRoot.find('.ui-dialog-title').append(label);
+				dialogRoot.find('#wpml-media-is-reference-notice').css('display', 'block');
+			}
+			if (hasUsagesInPostsByCopy && hasUsagesInPostsByReference) {
+				label = jQuery('<div class="wpml-media-type-label">' + copiedMediaLabel + '</div>');
+				dialogRoot.find('.ui-dialog-title').append(label);
+				label = jQuery('<div class="wpml-media-type-label wpml-media-type-label--light">' + referencedMediaLabel + '</div>');
+				dialogRoot.find('.ui-dialog-title').append(label);
+				dialogRoot.find('#wpml-media-is-copyandreference-notice').css('display', 'block');
+			}
+
 			repositionDialog();
 			if (WPML_Media_Batch_Url_Translation.hasDialog) {
 				WPML_Media_Batch_Url_Translation.reset();
 			}
+			var translationForm = thisDialog.find('form');
+			var nonceValue = translationForm.find('input[name="wpnonce"]').val();
+			var translatedLanguage = translationForm.find('input[name="translated-language"]').val();
+
+			$.ajax({
+				url:      ajaxurl,
+				type:     'GET',
+				dataType: 'json',
+				data: {
+					attachmentId: thisDialog.find('input[name="original-attachment-id"]').val(),
+					translatedLanguage: translatedLanguage,
+					wpnonce: nonceValue,
+					action: 'wpml_media_get_attachment_translation_data',
+				},
+				success:  function (response) {
+					if (response.data.wasAttachmentTranslatedAutomaticallyInAnyPostAsCopy && !hasUsagesInPostsByReference) {
+						cannotEditAsCopyNotice.css('display', 'block');
+						dialogRoot.find('.wpml-form-row-translation-field button').addClass('disabled');
+						dialogRoot.find('input[type=text], textarea').attr('disabled', 'disabled');
+						dialogRoot.find('.wpml-form-row-translation-field button').attr('title', dialogRoot.find('.wpml-form-row-translation-field button').attr('data-disabledtitle'));
+					}
+				}
+			});
 		},
-		close:         function () {
+		close: function () {
 			$('#jquery-ui-style-css').prop('disabled', false);
 			if (WPML_Media_Batch_Url_Translation.hasDialog) {
 				WPML_Media_Batch_Url_Translation.showDialog();
@@ -101,6 +161,20 @@ jQuery(function ($) {
 								mediaTranslationWrap.data('caption', $('#media-caption-translation').val());
 								mediaTranslationWrap.data('alt_text', $('#media-alt-text-translation').val());
 								mediaTranslationWrap.data('description', $('#media-description-translation').val());
+
+								var translatedCustomFields = translationForm.find('*[name^="translation[custom-field]"]');
+								var newCustomFieldsObject = {};
+
+								translatedCustomFields.each(function() {
+									var $el  = $(this);
+									var fieldID = $el.data('field_id');
+									if (!Array.isArray(newCustomFieldsObject[fieldID])) {
+										newCustomFieldsObject[fieldID] = [];
+									}
+									newCustomFieldsObject[fieldID].push($el.val());
+								});
+
+								mediaTranslationWrap.data('custom_fields', newCustomFieldsObject);
 
 								if (response.data.attachment_id) {
 									mediaTranslationWrap.data('attachment-id', response.data.attachment_id);
@@ -189,6 +263,18 @@ jQuery(function ($) {
 
 		dialogBox.dialog('open');
 
+		dialogBox.find('.js-button-copy').click(function (event) {
+			event.preventDefault();
+			var formRow          = $(this).closest('.wpml-form-row');
+			var originalInput    = formRow.find('input[id$="original"],textarea[id$="original"]');
+			var translationInput = formRow.find('input[id$="translation"],textarea[id$="translation"]');
+			if (translationInput.val() !== originalInput.val()) {
+				translationInput.val(originalInput.val());
+				enableFormSave();
+			}
+			return false;
+		});
+
 	});
 
 	function updateDialogImages(attachmentRow, translatedMedia) {
@@ -242,9 +328,69 @@ jQuery(function ($) {
 			$('#media-description-translation').val(translatedMedia.data('description'));
 			$('.wpml-form-row-description').show();
 		}
+
+		var customFieldsHTML = '';
+		if (attachmentRow.data('custom_fields')) {
+			var customFields = attachmentRow.data('custom_fields');
+			var copyText     = attachmentRow.data('copy_from_original');
+			var translatedCustomFields = translatedMedia.data('custom_fields');
+
+			function renderRow(fieldID, fieldName, displayVal, translatedVal) {
+				const hasNewLines = displayVal.includes('\n');
+				return `
+					  <div class="wpml-form-row wpml-form-row-custom-field ${fieldID}">
+						<label for="media-custom-field-${fieldID}-original">${fieldID}</label>
+				
+						${hasNewLines
+							? `<textarea readonly id="media-custom-field-${fieldName}-original" cols="22" rows="4">${displayVal}</textarea>`
+							: `<input readonly id="media-custom-field-${fieldName}-original" type="text" value="${displayVal}">`
+						}
+						<button class="button-copy button-secondary js-button-copy otgs-ico-copy"
+								title="${copyText}"></button>
+				
+						${hasNewLines
+							? `<textarea data-field_id="${fieldID}" name="translation[custom-field][${fieldName}]" id="media-custom-field-${fieldName}-translation" cols="22" rows="4">${translatedVal}</textarea>`
+							: `<input data-field_id="${fieldID}" name="translation[custom-field][${fieldName}]" id="media-custom-field-${fieldName}-translation" type="text" value="${translatedVal}">`
+						}
+					  </div>
+					`;
+			}
+
+			Object.entries(customFields).forEach(([fieldID, val]) => {
+				if (!val) return;
+
+				var translatedValOrBlank = k => (translatedCustomFields[k] || '');
+				var fieldName;
+
+				if ( val.length > 1 ) {
+					val.forEach((item, index) => {
+						fieldName = `${fieldID}__cf${index}`;
+						var displayVal = item;
+						var translatedVal = Array.isArray(translatedCustomFields[fieldID])
+							? (translatedCustomFields[fieldID][index] || '')
+							: '';
+						customFieldsHTML += renderRow( fieldID, fieldName, displayVal, translatedVal );
+					});
+				} else {
+					fieldName = fieldID;
+					customFieldsHTML += renderRow( fieldID, fieldName, val, translatedValOrBlank(fieldID) );
+				}
+			});
+		}
+
+		$('#wpml-custom-fields-container').html(customFieldsHTML);
 	}
 
 	function updateDialogHiddenFormFields(attachmentRow, translatedMedia) {
+		var hasUsagesInPostsByCopy = attachmentRow.closest('.wpml-media-attachment-row').attr('data-has-usages-in-posts-by-copy');
+		var hasUsagesInPostsByReference = attachmentRow.closest('.wpml-media-attachment-row').attr('data-has-usages-in-posts-by-reference');
+		var copiedMediaLabel = attachmentRow.closest('.wpml-media-attachment-row').attr('data-copied-media-label');
+		var referencedMediaLabel = attachmentRow.closest('.wpml-media-attachment-row').attr('data-referenced-media-label');
+		dialogForm.find('input[name=has_usages_in_posts_by_copy]').val(hasUsagesInPostsByCopy);
+		dialogForm.find('input[name=has_usages_in_posts_by_reference]').val(hasUsagesInPostsByReference);
+		dialogForm.find('input[name=copied_media_label]').val(copiedMediaLabel);
+		dialogForm.find('input[name=referenced_media_label]').val(referencedMediaLabel);
+
 		dialogForm.find('input[name=original-attachment-id]').val(attachmentRow.data('attachment-id'));
 		dialogForm.find('input[name=translated-attachment-id]').val(translatedMedia.data('attachment-id'));
 		dialogForm.find('input[name=translated-language]').val(translatedMedia.data('language-code'));
@@ -275,18 +421,6 @@ jQuery(function ($) {
 	function resetProgressAnimation() {
 		$('.wpml-media-dialog').find('.spinner').remove();
 	}
-
-	dialogBox.find('.js-button-copy').click(function (event) {
-		event.preventDefault();
-		var formRow          = $(this).closest('.wpml-form-row');
-		var originalInput    = formRow.find('input[id$="original"],textarea[id$="original"]');
-		var translationInput = formRow.find('input[id$="translation"],textarea[id$="translation"]');
-		if (translationInput.val() !== originalInput.val()) {
-			translationInput.val(originalInput.val());
-			enableFormSave();
-		}
-		return false;
-	});
 
 	function triggerMediaUpload(event) {
 		event.preventDefault();

@@ -1,51 +1,21 @@
 <?php
-/**
- * WPML_ST_Upgrade_Command_Factory class file.
- *
- * @package wpml-string-translation
- */
 
 use function WPML\Container\make;
 use WPML\ST\Upgrade\Command\RegenerateMoFilesWithStringNames;
 use WPML\ST\Upgrade\Command\MigrateMultilingualWidgets;
+use WPML\ST\Upgrade\Command\UpgradeWpSettingsStrings;
+use WPML\ST\Upgrade\Command\DeleteFileHashingOption;
 
-/**
- * Class WPML_ST_Upgrade_Command_Factory
- */
 class WPML_ST_Upgrade_Command_Factory {
-	/**
-	 * WP db instance.
-	 *
-	 * @var wpdb wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * SitePress instance.
-	 *
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * WPML_ST_Upgrade_Command_Factory constructor.
-	 *
-	 * @param wpdb      $wpdb WP db instance.
-	 * @param SitePress $sitepress SitePress instance.
-	 */
 	public function __construct( wpdb $wpdb, SitePress $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * Create upgrade commands.
-	 *
-	 * @param string $class_name Name of upgrade command class.
-	 *
-	 * @throws WPML_ST_Upgrade_Command_Not_Found_Exception Exception when command not found.
-	 * @return IWPML_St_Upgrade_Command
-	 */
 	public function create( $class_name ) {
 		switch ( $class_name ) {
 			case 'WPML_ST_Upgrade_Migrate_Originals':
@@ -88,6 +58,12 @@ class WPML_ST_Upgrade_Command_Factory {
 				break;
 			case MigrateMultilingualWidgets::class:
 				$result = new MigrateMultilingualWidgets();
+				break;
+			case UpgradeWpSettingsStrings::class:
+				$result = new UpgradeWpSettingsStrings();
+				break;
+			case DeleteFileHashingOption::class:
+				$result = new DeleteFileHashingOption();
 				break;
 			default:
 				throw new WPML_ST_Upgrade_Command_Not_Found_Exception( $class_name );

@@ -17,9 +17,6 @@ class AjaxFactory implements \IWPML_AJAX_Action_Loader {
 		return self::getActions()->map( self::buildHandler() )->toArray();
 	}
 
-	/**
-	 * @return \WPML\Collect\Support\Collection
-	 */
 	public static function getActions() {
 		return wpml_collect(
 			[
@@ -29,18 +26,12 @@ class AjaxFactory implements \IWPML_AJAX_Action_Loader {
 		);
 	}
 
-	/**
-	 * @return \Closure
-	 */
 	public static function buildHandler() {
 		return function( array $action ) {
 			return new RequestHandle( ...$action );
 		};
 	}
 
-	/**
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function showGenerateDialog() {
 		if ( is_super_admin() && is_multisite() ) {
 			( new Executor() )->executeWith(
@@ -56,11 +47,7 @@ class AjaxFactory implements \IWPML_AJAX_Action_Loader {
 		Factory::ignoreWpmlVersion();
 	}
 
-	/**
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function cleanup() {
-		/** @var Database $database */
 		$database = make( Database::class );
 		$database->deleteStringsFromImportedMoFiles();
 		$database->truncatePagesAndUrls();

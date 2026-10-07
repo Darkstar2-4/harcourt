@@ -9,15 +9,6 @@ class MediaWikiInstaller extends BaseInstaller
         'skin' => 'skins/{$name}/',
     );
 
-    /**
-     * Format package name.
-     *
-     * For package type mediawiki-extension, cut off a trailing '-extension' if present and transform
-     * to CamelCase keeping existing uppercase chars.
-     *
-     * For package type mediawiki-skin, cut off a trailing '-skin' if present.
-     *
-     */
     public function inflectPackageVars($vars)
     {
 

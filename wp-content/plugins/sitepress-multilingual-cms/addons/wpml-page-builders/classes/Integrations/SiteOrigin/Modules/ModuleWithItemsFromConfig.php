@@ -8,16 +8,10 @@ use WPML\FP\Obj;
 
 class ModuleWithItemsFromConfig extends ModuleWithItems {
 
-	/** @var array $fieldDefinitions */
 	private $fieldDefinitions = [];
 
-	/** @var string $itemsField */
 	private $itemsField;
 
-	/**
-	 * @param string $itemsField
-	 * @param array  $config
-	 */
 	public function __construct( $itemsField, array $config ) {
 		$this->itemsField = $itemsField;
 		$this->init( $config );
@@ -32,39 +26,22 @@ class ModuleWithItemsFromConfig extends ModuleWithItems {
 		return Obj::path( [ $field, $key ], $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_title( $field ) {
 		return $this->getFieldData( $field, 'type' );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_fields() {
 		return array_keys( $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_editor_type( $field ) {
 		return $this->getFieldData( $field, 'editor_type' );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_items_field() {
 		return $this->itemsField;
 	}
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	public function get_items( $settings ) {
 		$path            = $this->get_items_field();
 		$pathInFlatField = explode( '>', $path );

@@ -9,10 +9,8 @@ class QueueFrontendGettextStringsAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_queue_frontend_gettext_strings';
 	const ACTION_ARGS = 1;
 
-	/** @var HtmlStringsService */
 	private $htmlStringsService;
 
-	/** @var HtmlStringsRepositoryInterface */
 	private $htmlStringsRepository;
 
 	public function __construct(

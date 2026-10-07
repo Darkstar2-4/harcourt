@@ -4,10 +4,8 @@ use WPML\TM\Menu\TranslationServices\Troubleshooting\RefreshServices;
 use WPML\TM\Menu\TranslationServices\Troubleshooting\RefreshServicesFactory;
 
 class WPML_TM_Upgrade_Service_Redirect_To_Field implements IWPML_Upgrade_Command {
-	/** @var bool $result */
 	private $result = true;
 
-	/** @var RefreshServices */
 	private $service_refresh;
 
 	public function __construct( $args ) {
@@ -16,11 +14,6 @@ class WPML_TM_Upgrade_Service_Redirect_To_Field implements IWPML_Upgrade_Command
 		}
 	}
 
-	/**
-	 * Add the default terms for Translation Priority taxonomy
-	 *
-	 * @return bool
-	 */
 	private function run() {
 		$this->result = $this->get_service_refresh()->refresh_services();
 
@@ -40,7 +33,6 @@ class WPML_TM_Upgrade_Service_Redirect_To_Field implements IWPML_Upgrade_Command
 
 	}
 
-	/** @return bool */
 	public function get_results() {
 		return $this->result;
 	}

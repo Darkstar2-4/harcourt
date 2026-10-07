@@ -5,15 +5,16 @@ namespace Smush\Core\LCP;
 use Smush\Core\Array_Utils;
 use Smush\Core\Server_Utils;
 use Smush\Core\Settings;
-use Smush\Core\Threads\Thread_Safe_Options;
+use Smush\Core\Threads\JSON_Record;
+use Smush\Core\Urls_Exclusions;
 use Smush\Core\WP_Query_Utils;
 
 class LCP_Helper {
-	const KEY_PREFIX = 'wp-smush-lcp-data-';
-	const OPTION_LCP_DETAILS = 'wp-smush-lcp-details';
-	const NO_DATA_HASH = 'no-data';
-	const NO_DATA_VERSION = - 1;
-	const DEFAULT_VERSION = 0;
+	private static $key_prefix = 'wp-smush-lcp-data-';
+	private static $lcp_details_option_id = 'wp-smush-lcp-details';
+	private static $no_data_hash = 'no-data';
+	private static $no_data_version = - 1;
+	private static $default_version = 0;
 
 	/**
 	 * @var Settings
@@ -32,11 +33,17 @@ class LCP_Helper {
 	 */
 	private $array_utils;
 
+	/**
+	 * @var JSON_Record
+	 */
+	private $lcp_details;
+
 	public function __construct() {
 		$this->wp_query_utils = new WP_Query_Utils();
 		$this->server_utils   = new Server_Utils();
 		$this->array_utils    = new Array_Utils();
 		$this->settings       = Settings::get_instance();
+		$this->lcp_details    = new JSON_Record( self::$lcp_details_option_id );
 	}
 
 	/**
@@ -79,11 +86,11 @@ class LCP_Helper {
 	}
 
 	public static function delete_all_lcp_data() {
-		delete_option( self::OPTION_LCP_DETAILS );
+		delete_option( self::$lcp_details_option_id );
 
 		global $wpdb;
 
-		$key_prefix   = $wpdb->esc_like( self::KEY_PREFIX ) . '%';
+		$key_prefix   = $wpdb->esc_like( self::$key_prefix ) . '%';
 		$post_ids     = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key LIKE %s", $key_prefix ) );
 		$meta_deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s", $key_prefix ) );
 		if ( $meta_deleted ) {
@@ -98,13 +105,11 @@ class LCP_Helper {
 	}
 
 	public function get_current_lcp_data_version() {
-		$thread_safe_options = new Thread_Safe_Options();
-		return (int) $thread_safe_options->get_value( self::OPTION_LCP_DETAILS, 'version', self::DEFAULT_VERSION );
+		return (int) $this->lcp_details->get_value( 'version', self::$default_version );
 	}
 
 	public function increment_lcp_data_version() {
-		$thread_safe_options = new Thread_Safe_Options();
-		$thread_safe_options->increment_values( self::OPTION_LCP_DETAILS, array( 'version' ) );
+		$this->lcp_details->increment_values( array( 'version' ) );
 	}
 
 	public function set_server_utils( $server_utils ) {
@@ -123,7 +128,6 @@ class LCP_Helper {
 			'selector_class',
 			'image_url',
 			array( 'background_data', 'type' ),
-			array( 'background_data', 'property' ),
 			array( 'background_data', 'urls' ),
 		);
 
@@ -179,53 +183,7 @@ class LCP_Helper {
 	 * @return bool True if the current request URI is excluded, false otherwise.
 	 */
 	public function is_excluded_uri() {
-		$pattern = $this->get_excluded_uri_pattern();
-		if ( empty( $pattern ) ) {
-			return false;
-		}
-
-		$request_uri = $this->server_utils->get_request_uri();
-		$request_uri = wp_parse_url( $request_uri, PHP_URL_PATH );
-		return (bool) preg_match( "#{$pattern}#i", $request_uri );
-	}
-
-	/**
-	 * Generate a regex pattern from excluded page URLs.
-	 *
-	 * @return string Regex pattern without delimiters or flags.
-	 */
-	private function get_excluded_uri_pattern() {
-		$excluded_page_urls = $this->get_excluded_pages();
-
-		if ( empty( $excluded_page_urls ) ) {
-			return '';
-		}
-
-		$patterns = array_map( array( $this, 'build_url_pattern' ), $excluded_page_urls );
-
-		return implode( '|', array_filter( $patterns ) );
-	}
-
-	/**
-	 * Build regex pattern for a single URL.
-	 *
-	 * @param string $url The URL to convert to regex pattern.
-	 * @return string Regex pattern for the URL.
-	 */
-	private function build_url_pattern( $url ) {
-		$url = trim( $url );
-
-		if ( empty( $url ) ) {
-			return '';
-		}
-
-		if ( '/' === $url ) {
-			return $this->is_subsite()
-				? '^' . preg_quote( get_blog_details( get_current_blog_id() )->path, '#' ) . '$'
-				: '^/$';
-		}
-
-		return $url;
+		return ( new Urls_Exclusions() )->is_excluded_uri( $this->server_utils->get_request_uri(), $this->get_excluded_pages() );
 	}
 
 	/**
@@ -234,6 +192,7 @@ class LCP_Helper {
 	 * @return bool True if the current site is a subsite, false otherwise.
 	 */
 	public function is_subsite() {
+		_deprecated_function( __METHOD__, '4.0' );
 		return is_multisite() && ! is_main_site();
 	}
 
@@ -242,8 +201,14 @@ class LCP_Helper {
 	 *
 	 * @return array Preload options.
 	 */
-	private function get_preload_options() {
+	public function get_preload_options() {
 		$setting = $this->settings->get_setting( 'wp-smush-preload' );
+		$setting = $this->array_utils->ensure_array( $setting );
+		$setting = array_merge( array(
+			'exclude-pages'     => array(),
+			'lcp_fetchpriority' => false,
+		), $setting );
+
 		return $this->array_utils->ensure_array( $setting );
 	}
 
@@ -255,4 +220,54 @@ class LCP_Helper {
 	public function should_skip_preload() {
 		return $this->is_excluded_uri();
 	}
+
+	/**
+	 * Get default_version.
+	 *
+	 * @return int
+	 */
+	public static function get_default_version() {
+		return self::$default_version;
+	}
+
+
+	/**
+	 * Get key_prefix.
+	 *
+	 * @return string
+	 */
+	public static function get_key_prefix() {
+		return self::$key_prefix;
+	}
+
+
+	/**
+	 * Get no_data_hash.
+	 *
+	 * @return string
+	 */
+	public static function get_no_data_hash() {
+		return self::$no_data_hash;
+	}
+
+
+	/**
+	 * Get no_data_version.
+	 *
+	 * @return mixed
+	 */
+	public static function get_no_data_version() {
+		return self::$no_data_version;
+	}
+
+
+	/**
+	 * Get option_lcp_details.
+	 *
+	 * @return string
+	 */
+	public static function get_lcp_details_option_id() {
+		return self::$lcp_details_option_id;
+	}
+
 }

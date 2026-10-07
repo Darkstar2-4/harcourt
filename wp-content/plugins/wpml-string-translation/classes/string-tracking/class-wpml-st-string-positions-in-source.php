@@ -1,30 +1,15 @@
 <?php
 
-/**
- * Class WPML_ST_String_Positions_In_Source
- */
 class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 
 	const KIND = ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_SOURCE;
 	const TEMPLATE = 'positions-in-source.twig';
 
-	/**
-	 * @var SitePress $sitepress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var WP_Filesystem_Direct $filesystem
-	 */
 	private $filesystem;
 
-	/**
-	 * @var WPML_File_Name_Converter $filename_converter
-	 */
 	private $filename_converter;
-	/**
-	 * @var \WPML_WP_API
-	 */
 	private $wp_api;
 
 	public function __construct(
@@ -58,14 +43,10 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 		return self::TEMPLATE;
 	}
 
-	/**
-	 * @param int $string_id
-	 *
-	 * @return array
-	 */
 	private function get_positions( $string_id ) {
 		$positions = array();
 		$paths     = $this->get_mapper()->get_positions_by_string_and_kind( $string_id, self::KIND );
+		$domain    = $this->get_string_domain( $string_id );
 
 		foreach ( $paths as $path ) {
 			$position = explode( '::', $path );
@@ -76,7 +57,11 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 				$path = $this->maybe_transform_from_relative_path_to_absolute_path( $path );
 			}
 
-			if ( $path && $this->get_filesystem()->is_readable( $path ) ) {
+			$path = $path
+				? WPML_ST_Path_Confinement::resolve_source_path_for_domain( $path, $domain )
+				: false;
+
+			if ( $path && $this->get_filesystem()->is_readable( $path ) && $this->get_filesystem()->is_file( $path ) ) {
 				$positions[] = array(
 					'path' => $path,
 					'line' => isset( $position[1] ) ? $position[1] : null,
@@ -88,11 +73,15 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 		return $positions;
 	}
 
-	/**
-	 * @param string $path
-	 *
-	 * @return string|false
-	 */
+	private function get_string_domain( $string_id ) {
+		global $wpdb;
+
+		$strings_mapper = new WPML_ST_DB_Mappers_Strings( $wpdb );
+		$string         = (array) $strings_mapper->getById( $string_id );
+
+		return isset( $string['context'] ) ? (string) $string['context'] : '';
+	}
+
 	private function maybe_transform_from_relative_path_to_absolute_path( $path ) {
 		$path = $this->get_filename_converter()->transform_reference_to_realpath( $path );
 
@@ -103,9 +92,6 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 		return false;
 	}
 
-	/**
-	 * @return WP_Filesystem_Direct
-	 */
 	private function get_filesystem() {
 		if ( ! $this->filesystem ) {
 			$this->filesystem = $this->get_wp_api()->get_wp_filesystem_direct();
@@ -114,9 +100,6 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 		return $this->filesystem;
 	}
 
-	/**
-	 * @return WPML_WP_API
-	 */
 	private function get_wp_api() {
 		if ( ! $this->wp_api ) {
 			$this->wp_api = new WPML_WP_API();
@@ -125,9 +108,6 @@ class WPML_ST_String_Positions_In_Source extends WPML_ST_String_Positions {
 		return $this->wp_api;
 	}
 
-	/**
-	 * @return WPML_File_Name_Converter
-	 */
 	private function get_filename_converter() {
 		if ( ! $this->filename_converter ) {
 			$this->filename_converter = new WPML_File_Name_Converter();

@@ -4,15 +4,9 @@ class WPML_Languages_Notices {
 	const NOTICE_ID_MISSING_MENU_ITEMS           = 'wpml-missing-menu-items';
 	const NOTICE_GROUP                           = 'wpml-core';
 	const NOTICE_ID_MISSING_DOWNLOADED_LANGUAGES = 'wpml-missing-downloaded-languages';
-	/** @var WPML_Notices */
 	private $admin_notices;
 	private $translations = array();
 
-	/**
-	 * WPML_Languages_Notices constructor.
-	 *
-	 * @param WPML_Notices $admin_notices
-	 */
 	public function __construct( WPML_Notices $admin_notices ) {
 		$this->admin_notices = $admin_notices;
 	}
@@ -108,13 +102,6 @@ class WPML_Languages_Notices {
 		return $suggestions;
 	}
 
-	/**
-	 * @param string $language_attribute
-	 * @param array  $language
-	 * @param array  $translation
-	 *
-	 * @return string|null
-	 */
 	private function find_matching_attribute( $language_attribute, array $language, array $translation ) {
 		if ( $translation && $language[ $language_attribute ] ) {
 			$attribute_value = $language[ $language_attribute ];
@@ -146,12 +133,6 @@ class WPML_Languages_Notices {
 		return null;
 	}
 
-	/**
-	 * @param array $language
-	 * @param array $translation
-	 *
-	 * @return null|string
-	 */
 	private function get_matching_language( array $language, array $translation ) {
 		$default_locale = $this->find_matching_attribute( 'default_locale', $language, $translation );
 		if ( ! $default_locale ) {

@@ -5,25 +5,25 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "Accepted": [
-            "Aceptada"
+            "Aceptado"
          ],
          "Approved!": [
-            "¡Aprobada!"
+            "¡Aprobado!"
          ],
          "Loading the next translation for review...": [
             "Cargando la siguiente traducción para revisión..."
          ],
          "Back": [
-            "Volver"
+            "Atrás"
          ],
          "Turn off to not automatically load the next translation after finishing this review.": [
-            "Desactive esta opción para no cargar la siguiente traducción automáticamente después de finalizar esta revisión."
+            "Desactivar para no cargar automáticamente la siguiente traducción después de finalizar esta revisión."
          ],
          "Turn on to automatically load the next translation after finishing this  .": [
-            "Activar para cargar la siguiente traducción después de finalizar esta"
+            "Activar para cargar automáticamente la siguiente traducción después de finalizar esta."
          ],
          "Edit": [
             "Editar"
@@ -44,13 +44,13 @@
             "¡Publicado!"
          ],
          "Please wait, applying translation..": [
-            "Espere, por favor. Aplicando traducción..."
+            "Espere, aplicando traducción..."
          ],
          "There was an error in applying translation.": [
-            "Ocurrió un error al aplicar la traducción."
+            "Hubo un error al aplicar la traducción."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "Ya hay alguien revisando esta traducción. Inténtelo de nuevo más tarde."
+            "Alguien ya está revisando esta traducción. Por favor, inténtelo de nuevo más tarde."
          ]
       }
    }

@@ -8,10 +8,8 @@ use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryIn
 
 class GetTranslationBatchDefaultName implements EndpointInterface {
 
-  /** @var TranslationBatchesQueryInterface */
   private $translationBatchesQuery;
 
-  /** @var LanguagesQueryInterface */
   private $languagesQuery;
 
 

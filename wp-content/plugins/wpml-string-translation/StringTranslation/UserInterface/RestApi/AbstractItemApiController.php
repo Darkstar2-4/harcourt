@@ -51,24 +51,13 @@ abstract class AbstractItemApiController extends AbstractController
 		]);
 	}
 
-	/**
-	 * @return array
-	 */
 	abstract function get_routes();
 
-	/**
-	 * @param $translationStatuses
-	 * @return bool
-	 */
 	public function validateTranslationStatuses($translationStatuses)
 	{
 		return is_array($translationStatuses);
 	}
 
-	/**
-	 * @param $translationStatuses
-	 * @return int[]
-	 */
 	public function sanitizeTranslationStatuses($translationStatuses)
 	{
 		return array_map('intval', $translationStatuses);

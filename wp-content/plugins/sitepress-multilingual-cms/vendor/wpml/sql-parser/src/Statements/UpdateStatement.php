@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `UPDATE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -34,34 +31,20 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class UpdateStatement extends Statement
 {
-    /**
-     * Options for `UPDATE` statements and their slot ID.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'LOW_PRIORITY' => 1,
         'IGNORE' => 2
     );
 
-    /**
-     * The clauses of this statement, in order.
-     *
-     * @see Statement::$CLAUSES
-     *
-     * @var array
-     */
     public static $CLAUSES = array(
         'UPDATE' => array(
             'UPDATE',
             2,
         ),
-        // Used for options.
         '_OPTIONS' => array(
             '_OPTIONS',
             1,
         ),
-        // Used for updated tables.
         '_UPDATE' => array(
             'UPDATE',
             1,
@@ -84,38 +67,13 @@ class UpdateStatement extends Statement
         )
     );
 
-    /**
-     * Tables used as sources for this statement.
-     *
-     * @var Expression[]
-     */
     public $tables;
 
-    /**
-     * The updated values.
-     *
-     * @var SetOperation[]
-     */
     public $set;
 
-    /**
-     * Conditions used for filtering each row of the result set.
-     *
-     * @var Condition[]
-     */
     public $where;
 
-    /**
-     * Specifies the order of the rows in the result set.
-     *
-     * @var OrderKeyword[]
-     */
     public $order;
 
-    /**
-     * Conditions used for limiting the size of the result set.
-     *
-     * @var Limit
-     */
     public $limit;
 }

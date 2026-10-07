@@ -6,10 +6,6 @@ use WPML\TM\TranslationProxy\Services\Project\Manager;
 use function WPML\Container\make;
 
 class AuthorizationFactory {
-	/**
-	 * @return Authorization
-	 * @throws \Auryn\InjectionException
-	 */
 	public function create() {
 		$projectManager = make(
 			Manager::class,

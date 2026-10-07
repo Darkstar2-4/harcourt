@@ -8,12 +8,6 @@ use WPML\PHP\Exception\InvalidItemIdException;
 interface RepositoryInterface {
 
 
-  /**
-   * @param int $postId
-   *
-   * @return Post
-   * @throws InvalidItemIdException
-   */
   public function getById( int $postId ): Post;
 
 

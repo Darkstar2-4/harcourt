@@ -9,11 +9,6 @@ class OTGS_Installer_WP_Share_Local_Components_Setting {
 		update_option( self::OPTION_KEY, $settings );
 	}
 
-	/**
-	 * @param string $repo
-	 *
-	 * @return bool
-	 */
 	public function is_repo_allowed( $repo ) {
 		$allowed_repos = $this->get();
 

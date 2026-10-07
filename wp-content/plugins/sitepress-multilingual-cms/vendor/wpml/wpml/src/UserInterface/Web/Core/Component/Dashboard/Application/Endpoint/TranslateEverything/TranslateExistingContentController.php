@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class TranslateExistingContentController implements EndpointInterface {
 
-  /** @var TranslateExistingContentService */
   private $service;
 
 
@@ -16,15 +15,8 @@ class TranslateExistingContentController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed>|null $requestData
-   *
-   * @return array<mixed, mixed>
-   */
   public function handle( $requestData = null ): array {
-    /** @var string[] $postTypes */
     $postTypes    = $requestData['postTypes'] ?? [];
-    /** @var string[] $packageTypes */
     $packageTypes = $requestData['packageTypes'] ?? [];
 
     $sanitize     = function ( string $type ): string {

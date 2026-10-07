@@ -1,5 +1,5 @@
 <?php
-require_once "vendor/autoload.php";
+require_once $_SERVER['DOCUMENT_ROOT'] . (version_compare(PHP_VERSION, '8', '<') ? '/composer' : '/composer8') . '/vendor/autoload.php';
 //require_once "vendor/mk-j/php_xlsxwriter/xlsxwriter.class.php";
 /*
 function import_update changes:

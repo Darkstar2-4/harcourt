@@ -2,6 +2,7 @@
 
 namespace WPML\UserInterface\Web\Infrastructure\WordPress\CompositionRoot\Config;
 
+use WPML\UserInterface\Web\Core\SharedKernel\Config\AssetInterface;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Page as DomainPage;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Script;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Style;
@@ -10,7 +11,6 @@ use WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\PageInterface;
 
 class AdminPage implements PageInterface {
 
-  /** @var ApiInterface $api */
   private $api;
 
 
@@ -21,7 +21,6 @@ class AdminPage implements PageInterface {
 
   public function register( DomainPage $page, $onLoadPageHandle ) {
     $loadPage =
-      /** @return void */
       function( string $hook ) use ( $page, $onLoadPageHandle ) {
         add_action(
           $hook,
@@ -32,14 +31,11 @@ class AdminPage implements PageInterface {
       };
 
     if ( $useLegacy = $page->legacyExtension() ) {
-      // Use legacy hook to load the page scripts, styles and endpoints.
       $loadPage( $useLegacy );
       return;
     }
 
     if ( $wpPageId = $this->loadPage( $page ) ) {
-      // Subscribe to load page to trigger onLoadPageHandle when the page
-      // is really loaded.
       $loadPage( 'load-' . str_replace( '.php', '', $wpPageId ) );
     }
   }
@@ -48,7 +44,7 @@ class AdminPage implements PageInterface {
   public function loadStyle( Style $style ) {
       wp_enqueue_style(
         $style->id(),
-        plugins_url( $style->src() ?: '', WPML_PUBLIC_DIR ),
+        $this->assetUrl( $style ),
         $style->dependencies(),
         WPML_VERSION
       );
@@ -58,7 +54,7 @@ class AdminPage implements PageInterface {
   public function registerScript( Script $script ) {
       wp_register_script(
         $script->id(),
-        plugins_url( $script->src() ?: '', WPML_PUBLIC_DIR ),
+        $this->assetUrl( $script ),
         $script->dependencies(),
         WPML_VERSION,
         [
@@ -71,7 +67,7 @@ class AdminPage implements PageInterface {
   public function loadScript( Script $script ) {
       wp_enqueue_script(
         $script->id(),
-        plugins_url( $script->src() ?: '', WPML_PUBLIC_DIR ),
+        $this->assetUrl( $script ),
         $script->dependencies(),
         WPML_VERSION,
         [
@@ -86,9 +82,6 @@ class AdminPage implements PageInterface {
   }
 
 
-  /**
-   * @param array<mixed> $data
-   */
   public function provideDataForScript(
     Script $script,
     string $jsWindowKey,
@@ -102,10 +95,8 @@ class AdminPage implements PageInterface {
   }
 
 
-  /** @return ?string The WordPress name of the page or null if no page gets registered. */
   private function loadPage( DomainPage $page ) {
     if ( $page->legacyExtension() ) {
-      // Legacy is registering the page and menu.
       return null;
     }
 
@@ -129,9 +120,6 @@ class AdminPage implements PageInterface {
   }
 
 
-  /**
-   * @psalm-suppress HookNotFound Legacy hook 'wpml_admin_menu_configure'.
-   */
   private function legacyLoadPage( DomainPage $page ): string {
     if ( ! $parentId = $page->legacyParentId() ) {
       return '';
@@ -139,7 +127,6 @@ class AdminPage implements PageInterface {
 
     add_action(
       'wpml_admin_menu_configure',
-      /** @param string $menuId */
       function( $menuId ) use ( $page, $parentId )  {
         if ( $menuId !== $parentId ) {
           return;
@@ -158,13 +145,11 @@ class AdminPage implements PageInterface {
       }
     );
 
-    // Manually create page hook name.
-    $firstPart = $page->position() > 1 ? $parentId : 'toplevel'; // WordPress oddness.
+    $firstPart = $page->position() > 1 ? $parentId : 'toplevel';
     return strtolower( $firstPart . '_page_' . $page->id() );
   }
 
 
-  /** @return string The WordPress name of the page. */
   private function loadSubPage( DomainPage $page ): string {
     return (string) add_submenu_page(
       $page->parentId() ?: '',
@@ -175,6 +160,17 @@ class AdminPage implements PageInterface {
       [ $page, 'render' ],
       $page->position()
     );
+  }
+
+
+  private function assetUrl( AssetInterface $asset ): string {
+    $relativePath = $asset->src() ?: '';
+
+    if ( defined( 'WPML_HMR_SERVER' ) && $asset->supportsHMR() ) {
+      return WPML_HMR_SERVER . preg_replace( '#public/(js|css)/#', '', $relativePath );
+    }
+
+      return plugins_url( $relativePath, WPML_PUBLIC_DIR );
   }
 
 

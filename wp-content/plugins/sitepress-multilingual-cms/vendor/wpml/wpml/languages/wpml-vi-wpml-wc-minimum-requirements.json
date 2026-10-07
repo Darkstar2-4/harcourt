@@ -8,7 +8,7 @@
             "lang": "vi"
          },
          "Your site now meets WPML's minimum requirements": [
-            "Trang web của bạn hiện đã đáp ứng các yêu cầu tối thiểu của WPML"
+            "Trang web của bạn hiện đáp ứng các yêu cầu tối thiểu của WPML"
          ],
          "Start WPML Setup": [
             "Bắt đầu thiết lập WPML"
@@ -26,13 +26,13 @@
             "Trang web của bạn không đáp ứng các yêu cầu tối thiểu của WPML"
          ],
          "Ensure your site runs smoothly with WPML by meeting these simple minimum requirements.": [
-            "Đảm bảo trang web của bạn hoạt động trơn tru với WPML bằng cách đáp ứng những yêu cầu tối thiểu đơn giản này."
+            "Đảm bảo trang web của bạn chạy mượt mà với WPML bằng cách đáp ứng các yêu cầu tối thiểu đơn giản này."
          ],
          "Re-check Now": [
             "Kiểm tra lại ngay"
          ],
          "Skip for now": [
-            "Bỏ qua ngay"
+            "Bỏ qua bây giờ"
          ]
       }
    }

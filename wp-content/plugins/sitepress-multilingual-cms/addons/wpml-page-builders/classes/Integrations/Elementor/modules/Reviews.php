@@ -1,7 +1,4 @@
 <?php
-/**
- * Reviews
- */
 namespace WPML\PB\Elementor\Modules;
 
 class Reviews extends \WPML_Elementor_Module_With_Items {

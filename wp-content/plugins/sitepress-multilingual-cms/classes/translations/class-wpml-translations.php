@@ -1,44 +1,46 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Translations extends WPML_SP_User {
-	/** @var bool */
 	public $skip_empty = false;
-	/** @var bool */
 	public $all_statuses = false;
-	/** @var bool */
 	public $skip_cache = false;
-	/** @var bool */
 	public $skip_recursions = false;
 
 	private $duplicated_by              = array();
 	private $mark_as_duplicate_meta_key = '_icl_lang_duplicate_of';
 	private $wpml_cache;
 
-	/**
-	 * WPML_Translations constructor.
-	 *
-	 * @param SitePress     $sitepress
-	 * @param WPML_WP_Cache $wpml_cache
-	 */
-	public function __construct( SitePress $sitepress, WPML_WP_Cache $wpml_cache = null ) {
+	public function __construct( SitePress $sitepress, ?WPML_WP_Cache $wpml_cache = null ) {
 		parent::__construct( $sitepress );
 		$this->wpml_cache = $wpml_cache ? $wpml_cache : new WPML_WP_Cache( WPML_ELEMENT_TRANSLATIONS_CACHE_GROUP );
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $wpml_element_type
-	 * @param bool $skipPrivilegeChecking
-	 *
-	 * @return array<string,\stdClass>
-	 */
+	private function check_current_user_can( $capability ) {
+		$user_id = function_exists( 'get_current_user_id' ) ? get_current_user_id() : 0;
+		if ( 0 === $user_id ) {
+			return false;
+		}
+
+		return current_user_can( $capability );
+	}
+
 	public function get_translations( $trid, $wpml_element_type, $skipPrivilegeChecking = false ) {
-		$cache_key_args = array_filter( array( $trid, $wpml_element_type, $this->skip_empty, $this->all_statuses, $this->skip_recursions ) );
-		$cache_key      = md5( (string) wp_json_encode( $cache_key_args ) );
-		$cache_found    = false;
+		$edit_cap         = false;
+		$read_private_cap = false;
+
+		if ( 0 === strpos( $wpml_element_type, 'post_' ) ) {
+			$post_type = substr( $wpml_element_type, 5 );
+			if ( $post_type ) {
+				$post_type_plural = $post_type . 's';
+				$post_type_plural = apply_filters( 'wpml_translations_post_type_plural_capability', $post_type_plural, $post_type );
+
+				$edit_cap         = $this->check_current_user_can( sprintf( 'edit_%s', $post_type_plural ) );
+				$read_private_cap = $this->check_current_user_can( sprintf( 'read_private_%s', $post_type_plural ) );
+			}
+		}
+
+		$cache_key   = self::build_cache_key( $trid, $wpml_element_type, $this->skip_empty, $this->all_statuses, $this->skip_recursions, $edit_cap, $read_private_cap );
+		$cache_found = false;
 
 		$temp_elements = $this->wpml_cache->get( $cache_key, $cache_found );
 		if ( ! $this->skip_cache && $cache_found ) {
@@ -93,6 +95,17 @@ class WPML_Translations extends WPML_SP_User {
 		return $translations;
 	}
 
+	public static function build_cache_key( $trid, $wpml_element_type, $skip_empty, $all_statuses, $skip_recursions, $edit_cap = false, $read_private_cap = false ) {
+		$cache_key_args = array_filter( array( $trid, $wpml_element_type, $skip_empty, $all_statuses, $skip_recursions ) );
+
+		if ( 0 === strpos( $wpml_element_type, 'post_' ) && substr( $wpml_element_type, 5 ) ) {
+			$cache_key_args[] = $edit_cap;
+			$cache_key_args[] = $read_private_cap;
+		}
+
+		return md5( (string) wp_json_encode( $cache_key_args ) );
+	}
+
 	public function link_elements( WPML_Translation_Element $source_translation_element, WPML_Translation_Element $target_translation_element, $target_language = null ) {
 		if ( null !== $target_language ) {
 			$this->set_language_code( $target_translation_element, $target_language );
@@ -114,10 +127,6 @@ class WPML_Translations extends WPML_SP_User {
 		}
 	}
 
-	/**
-	 * @param WPML_Translation_Element $element
-	 * @param string                   $language_code
-	 */
 	public function set_language_code( WPML_Translation_Element $element, $language_code ) {
 		$element_id        = $element->get_element_id();
 		$wpml_element_type = $element->get_wpml_element_type();
@@ -126,12 +135,6 @@ class WPML_Translations extends WPML_SP_User {
 		$element->flush_cache();
 	}
 
-	/**
-	 * @param WPML_Translation_Element $element
-	 * @param int                      $trid
-	 *
-	 * @throws \UnexpectedValueException
-	 */
 	public function set_trid( WPML_Translation_Element $element, $trid ) {
 		if ( ! $element->get_language_code() ) {
 			throw new UnexpectedValueException( 'Element has no language information.' );
@@ -140,12 +143,6 @@ class WPML_Translations extends WPML_SP_User {
 		$element->flush_cache();
 	}
 
-	/**
-	 * @param \WPML_Translation_Element $duplicate
-	 * @param \WPML_Translation_Element $original
-	 *
-	 * @throws \UnexpectedValueException
-	 */
 	public function make_duplicate_of( WPML_Translation_Element $duplicate, WPML_Translation_Element $original ) {
 		$this->validate_duplicable_element( $duplicate );
 		$this->validate_duplicable_element( $original, 'source' );
@@ -155,12 +152,6 @@ class WPML_Translations extends WPML_SP_User {
 		$this->duplicated_by[ $duplicate->get_id() ] = array();
 	}
 
-	/**
-	 * @param \WPML_Translation_Element $element
-	 *
-	 * @return WPML_Post_Element
-	 * @throws \InvalidArgumentException
-	 */
 	public function is_a_duplicate_of( WPML_Translation_Element $element ) {
 		$this->validate_duplicable_element( $element );
 		$duplicate_of = get_post_meta( $element->get_id(), $this->mark_as_duplicate_meta_key, true );
@@ -171,13 +162,6 @@ class WPML_Translations extends WPML_SP_User {
 		return null;
 	}
 
-	/**
-	 * @param \WPML_Translation_Element $element
-	 *
-	 * @return array
-	 * @throws \UnexpectedValueException
-	 * @throws \InvalidArgumentException
-	 */
 	public function is_duplicated_by( WPML_Translation_Element $element ) {
 		$this->validate_duplicable_element( $element );
 
@@ -208,48 +192,31 @@ class WPML_Translations extends WPML_SP_User {
 		return $this->duplicated_by[ $element->get_id() ];
 	}
 
-	/**
-	 * @param \WPML_Translation_Element $element
-	 * @param string                    $argument_name
-	 *
-	 * @throws \UnexpectedValueException
-	 */
 	private function validate_duplicable_element( WPML_Translation_Element $element, $argument_name = 'element' ) {
 		if ( ! ( $element instanceof WPML_Duplicable_Element ) ) {
 			throw new UnexpectedValueException( sprintf( 'Argument %s does not implement `WPML_Duplicable_Element`.', $argument_name ) );
 		}
 	}
 
-	/**
-	 * @param \WPML_Translation_Element $element
-	 */
 	private function init_cache_for_element( WPML_Translation_Element $element ) {
 		if ( ! array_key_exists( $element->get_id(), $this->duplicated_by ) ) {
 			$this->duplicated_by[ $element->get_id() ] = array();
 		}
 	}
 
-	/**
-	 * @param string                     $element_type
-	 * @param array<string,array<string>> $sql_parts
-	 * @param bool $skipPrivilegeChecking
-	 *
-	 * @return array<string,array<string>>
-	 */
 	private function get_sql_parts_for_post( $element_type, $sql_parts, $skipPrivilegeChecking = false ) {
 		$sql_parts['select'][] = ', p.post_title, p.post_status';
 		$sql_parts['join'][]   = " LEFT JOIN {$this->sitepress->get_wpdb()->posts} p ON wpml_translations.element_id=p.ID";
 
 		if ( ! $this->all_statuses && 'post_attachment' !== $element_type && ! is_admin() ) {
 			$public_statuses_where = $this->get_public_statuses();
-			// the current user may not be the admin but may have read private post/page caps!
 			if ( ( defined( 'WP_CLI' ) && WP_CLI ) || current_user_can( 'read_private_pages' ) || current_user_can( 'read_private_posts' ) || $skipPrivilegeChecking ) {
-				$sql_parts['where'][] = ' AND (p.post_status IN (' . $public_statuses_where . ", 'draft', 'private', 'pending' ))";
+				$sql_parts['where'][] = ' AND (p.post_status IN (' . $public_statuses_where . ", 'draft', 'private', 'pending', 'future'))";
 			} else {
 				$sql_parts['where'][] = ' AND (';
 				$sql_parts['where'][] = 'p.post_status  IN (' . $public_statuses_where . ') ';
 				if ( $uid = $this->sitepress->get_current_user()->ID ) {
-					$sql_parts['where'][] = $this->sitepress->get_wpdb()->prepare( " OR (post_status in ('draft', 'private', 'pending') AND  post_author = %d)", $uid );
+					$sql_parts['where'][] = $this->sitepress->get_wpdb()->prepare( " OR (post_status in ('draft', 'private', 'pending', 'future') AND  post_author = %d)", $uid );
 				}
 				$sql_parts['where'][] = ') ';
 			}
@@ -258,18 +225,10 @@ class WPML_Translations extends WPML_SP_User {
 		return $sql_parts;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_public_statuses() {
 		return wpml_prepare_in( get_post_stati( [ 'public' => true ] ) );
 	}
 
-	/**
-	 * @param array<string,array<string>> $sql_parts
-	 *
-	 * @return array<string,array<string>>
-	 */
 	private function get_sql_parts_for_taxonomy( $sql_parts ) {
 		$sql_parts['select'][]   = ', tm.name, tm.term_id, COUNT(tr.object_id) AS instances';
 		$sql_parts['join'][]     = " LEFT JOIN {$this->sitepress->get_wpdb()->term_taxonomy} tt ON wpml_translations.element_id=tt.term_taxonomy_id
@@ -281,11 +240,6 @@ class WPML_Translations extends WPML_SP_User {
 		return $sql_parts;
 	}
 
-	/**
-	 * @param stdClass $translation
-	 *
-	 * @return bool
-	 */
 	private function must_ignore_translation( stdClass $translation ) {
 		return $this->skip_empty
 			   && (
@@ -294,31 +248,16 @@ class WPML_Translations extends WPML_SP_User {
 			   );
 	}
 
-	/**
-	 * @param stdClass $translation
-	 *
-	 * @return bool
-	 */
 	private function must_ignore_translation_for_taxonomy( stdClass $translation ) {
 		return $this->wpml_element_type_is_taxonomy( $translation->element_type )
 			   && $translation->instances === 0
 			   && ( ! $this->skip_recursions && ! _icl_tax_has_objects_recursive( $translation->element_id ) );
 	}
 
-	/**
-	 * @param string $wpml_element_type
-	 *
-	 * @return int
-	 */
 	private function wpml_element_type_is_taxonomy( $wpml_element_type ) {
 		return preg_match( '#^tax_(.+)$#', $wpml_element_type );
 	}
 
-	/**
-	 * @param string $wpml_element_type
-	 *
-	 * @return bool
-	 */
 	private function wpml_element_type_is_post( $wpml_element_type ) {
 		return 0 === strpos( $wpml_element_type, 'post_' );
 	}

@@ -1,30 +1,15 @@
 <?php
 
 class WPML_URL_Converter_CPT {
-	/**
-	 * @var WPML_Slash_Management
-	 */
 	private $slash_helper;
 
-	/**
-	 * @param WPML_Slash_Management $slash_helper
-	 */
-	public function __construct( WPML_Slash_Management $slash_helper = null ) {
+	public function __construct( ?WPML_Slash_Management $slash_helper = null ) {
 		if ( ! $slash_helper ) {
 			$slash_helper = new WPML_Slash_Management();
 		}
 		$this->slash_helper = $slash_helper;
 	}
 
-	/**
-	 * Adjusts the CPT archive slug for possible slug translations from ST.
-	 *
-	 * @param string      $link
-	 * @param string      $post_type
-	 * @param null|string $language_code
-	 *
-	 * @return string
-	 */
 	public function adjust_cpt_slug_in_url( $link, $post_type, $language_code = null ) {
 
 		$post_type_object = get_post_type_object( $post_type );

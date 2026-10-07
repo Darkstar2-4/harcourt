@@ -5,43 +5,42 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
          "Add glossary terms": [
-            "Dodaj terminy do glosariusza"
+            "Dodaj terminy do słownika"
          ],
          "Minimize": [
-            "Minimalizuj"
+            "Zminimalizuj"
          ],
          "Expand": [
             "Rozwiń"
          ],
          "There's nothing yet in the Glossary": [
-            "W Glosariuszu nie ma jeszcze żadnych pozycji"
+            "W słowniku nie ma jeszcze żadnych terminów"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Wygląda na to, że nie korzystasz jeszcze z glosariusza. Glosariusz może pomóc w:"
+            "Wygląda na to, że nie używasz jeszcze słownika. Słownik może pomóc Ci:"
          ],
          "Improve the quality of the translation": [
-            "Poprawie jakości tłumaczenia"
+            "Poprawić jakość tłumaczenia"
          ],
          "Ensure translation consistency": [
-            "Zapewnieniu spójności tłumaczenia"
+            "Zapewnić spójność tłumaczenia"
          ],
          "Reduce translation costs": [
-            "Redukcji kosztów tłumaczenia"
+            "Zmniejszyć koszty tłumaczenia"
          ],
          "Improve SEO in translation languages": [
-            "Poprawie SEO w językach tłumaczenia"
+            "Poprawić SEO w językach tłumaczenia"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "Jak korzystać z glosariusza, aby uzyskać precyzyjne tłumaczenia"
+            "Jak używać słownika do dokładnych tłumaczeń"
          ],
          "%d item in the <a>Glossary</a>": [
-            "%d pozycja w <a>Glosariuszu</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d pozycji w <a>Glosariuszu</a>"
+            "%d element w <a>Słowniku</a>",
+            "%d elementy w <a>Słowniku</a>",
+            "%d elementów w <a>Słowniku</a>"
          ],
          "Dismiss": [
             "Odrzuć"

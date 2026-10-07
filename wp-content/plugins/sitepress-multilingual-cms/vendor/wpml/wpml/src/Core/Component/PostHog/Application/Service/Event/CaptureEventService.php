@@ -6,51 +6,66 @@ use WPML\Core\Component\PostHog\Application\Cookies\CookiesInterface;
 use WPML\Core\Component\PostHog\Application\Repository\PostHogStateRepositoryInterface;
 use WPML\Core\Component\PostHog\Domain\Config\Config;
 use WPML\Core\Component\PostHog\Domain\Event\CaptureInterface;
+use WPML\Core\Component\PostHog\Domain\Event\EventInterface;
+use WPML\Core\Component\PostHog\Domain\Event\TEAEventInterface;
+use WPML\Core\Component\PostHog\Domain\TrackingMode;
+use WPML\Core\SharedKernel\Component\Installer\Application\Query\WpmlSiteKeyQueryInterface;
+use WPML\Core\SharedKernel\Component\Site\Application\Query\SiteUrlQueryInterface;
+use WPML\Core\SharedKernel\Component\User\Application\Query\UserQueryInterface;
+use WPML\PHP\Exception\RemoteException;
 
 class CaptureEventService {
 
-  /** @var PostHogStateRepositoryInterface */
   private $postHogStateRepository;
 
-  /** @var CookiesInterface */
   private $cookies;
 
-  /** @var CaptureInterface */
   private $captureEvent;
+
+  private $userQuery;
+
+  private $siteKeyQuery;
+
+  private $siteUrlQuery;
 
 
   public function __construct(
     PostHogStateRepositoryInterface $postHogStateRepository,
     CookiesInterface $cookies,
-    CaptureInterface $captureEvent
+    CaptureInterface $captureEvent,
+    UserQueryInterface $userQuery,
+    WpmlSiteKeyQueryInterface $siteKeyQuery,
+    SiteUrlQueryInterface $siteUrlQuery
   ) {
     $this->postHogStateRepository = $postHogStateRepository;
     $this->cookies                = $cookies;
     $this->captureEvent           = $captureEvent;
+    $this->userQuery              = $userQuery;
+    $this->siteKeyQuery           = $siteKeyQuery;
+    $this->siteUrlQuery           = $siteUrlQuery;
   }
 
 
-  /**
-   * @param Config $config
-   * @param string $eventName
-   * @param array<string, mixed> $eventProperties
-   * @param array<string, mixed> $personProperties
-   *
-   * @return bool
-   */
   public function capture(
     Config $config,
-    string $eventName,
-    array $eventProperties,
+    EventInterface $event,
     array $personProperties = []
   ): bool {
-    if ( ! $this->postHogStateRepository->isEnabled() ) {
+    $trackingMode = $this->postHogStateRepository->getTrackingMode();
+    $isTeaEvent   = $event instanceof TEAEventInterface;
+
+    if ( ! TrackingMode::isEventAllowed( $trackingMode, $isTeaEvent ) ) {
       return false;
     }
 
+    $event->addProperties( [ 'tracking_mode' => $trackingMode ] );
+
+    $properties = $event->getProperties();
+
     $apiKey     = $config->getApiKey();
     $host       = $config->getHost();
-    $distinctId = $this->cookies->getDistinctId();
+    $distinctId = $properties['distinct_id'] ?? $this->cookies->getDistinctId();
+    $sessionId  = $properties['session_id'] ?? $this->cookies->getSessionId() ?: '';
 
     if ( ! $distinctId ) {
       return false;
@@ -60,10 +75,29 @@ class CaptureEventService {
       $apiKey,
       $host,
       $distinctId,
-      $eventName,
-      $eventProperties,
-      $personProperties
+      $sessionId,
+      $event,
+      $this->preparePersonProps( $personProperties )
     );
+  }
+
+
+  private function preparePersonProps( array $personProps = [] ): array {
+
+    if ( ! isset( $personProps['wp_email'] ) ) {
+      $currentUser             = $this->userQuery->getCurrent();
+      $personProps['wp_email'] = $currentUser ? $currentUser->getEmail() : '';
+    }
+
+    if ( ! isset( $personProps['site_key'] ) ) {
+      $personProps['site_key'] = $this->siteKeyQuery->get();
+    }
+
+    if ( ! isset( $personProps['site_url'] ) ) {
+      $personProps['site_url'] = $this->siteUrlQuery->get();
+    }
+
+    return $personProps;
   }
 
 

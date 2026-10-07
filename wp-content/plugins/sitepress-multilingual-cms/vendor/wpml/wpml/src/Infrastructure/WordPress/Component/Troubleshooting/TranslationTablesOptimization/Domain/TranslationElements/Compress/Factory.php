@@ -11,19 +11,13 @@ use WPML\Core\Port\Persistence\DatabaseSchemaInfoInterface;
 
 class Factory implements CompressFactory {
 
-  /** @var DatabaseSchemaInfoInterface */
   private $databaseSchemaInfo;
 
-  /** @var \wpdb */
   private $wpdb;
 
-  /** @var MigrationStatusService */
   private $migrationStatusService;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct(
     DatabaseSchemaInfoInterface $databaseSchemaInfo,
     $wpdb,
@@ -50,10 +44,6 @@ class Factory implements CompressFactory {
   }
 
 
-  /**
-   * @return ProcessorInterface<object{tid: int, fieldData: string, fieldDataTranslated: string}>
-   * @psalm-suppress ImplementedReturnTypeMismatch
-   */
   public function createProcessor(): ProcessorInterface {
     return new Processor(
       $this->wpdb

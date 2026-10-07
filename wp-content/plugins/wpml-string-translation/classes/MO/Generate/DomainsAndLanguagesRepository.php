@@ -10,20 +10,12 @@ use function wpml_collect;
 use WPML_Locale;
 
 class DomainsAndLanguagesRepository {
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var Domains */
 	private $domains;
 
-	/** @var WPML_Locale */
 	private $locale;
 
-	/**
-	 * @param wpdb        $wpdb
-	 * @param Domains     $domains
-	 * @param WPML_Locale $wp_locale
-	 */
 	public function __construct( wpdb $wpdb, Domains $domains, WPML_Locale $wp_locale ) {
 		$this->wpdb    = $wpdb;
 		$this->domains = $domains;
@@ -31,9 +23,6 @@ class DomainsAndLanguagesRepository {
 	}
 
 
-	/**
-	 * @return Collection
-	 */
 	public function get() {
 		return $this->getAllDomains()->map( function ( $row ) {
 			return (object) [
@@ -43,9 +32,6 @@ class DomainsAndLanguagesRepository {
 		} )->values();
 	}
 
-	/**
-	 * @return Collection
-	 */
 	private function getAllDomains() {
 		$moDomains = $this->domains->getMODomains()->toArray();
 		if ( ! $moDomains ) {
@@ -64,9 +50,6 @@ class DomainsAndLanguagesRepository {
 		return wpml_collect( $result );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function hasTranslationFilesTable() {
 		return make( \WPML_Upgrade_Schema::class )->does_table_exist( 'icl_mo_files_domains' );
 	}

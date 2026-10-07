@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -75,9 +84,9 @@ if ( ! class_exists( 'ACF_Location_Taxonomy' ) ) :
 		 * @param   array $rule A location rule.
 		 * @return  string|array
 		 */
-		function get_object_subtype( $rule ) {
-			if ( $rule['operator'] === '==' ) {
-				return $rule['value'];
+		public function get_object_subtype( $rule ) {
+			if ( ( $rule['operator'] ?? '' ) === '==' ) {
+				return $rule['value'] ?? '';
 			}
 			return '';
 		}

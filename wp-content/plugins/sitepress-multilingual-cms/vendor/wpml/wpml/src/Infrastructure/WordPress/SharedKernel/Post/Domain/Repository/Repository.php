@@ -1,5 +1,4 @@
 <?php
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Infrastructure\WordPress\SharedKernel\Post\Domain\Repository;
 
 
@@ -11,7 +10,6 @@ class Repository implements RepositoryInterface {
 
 
   public function getById( int $postId ): Post {
-    /** @var \WP_Post|null $post */
     $post = \get_post( $postId );
     if ( ! $post ) {
       throw new InvalidItemIdException( sprintf( 'Post with ID %d not found', $postId ) );

@@ -6,28 +6,34 @@ namespace WPML\TM\ATE\API;
 class ErrorMessages {
 
 
-	public static function serverUnavailable( $uuid ) {
-		return [
+	public static function serverUnavailable( $uuid, $rawResponse = null ) {
+		$message = [
 			'header'      => self::serverUnavailableHeader(),
 			'description' => self::invalidResponseDescription( $uuid ),
 		];
+
+		return ErrorHandler::createError( $message, $rawResponse );
 	}
 
-	public static function offline( $uuid ) {
-		$description = _x( 'WPML needs an Internet connection to translate your site’s content. It seems that your server is not allowing external connections, or your network is temporarily down.', 'part1', 'wpml-translation-management' );
-		$description .= _x( 'If this is the first time you’re seeing this message, please wait a minute and reload the page. If the problem persists, contact %1$s for help and mention that your website ID is %2$s.', 'part2', 'wpml-translation-management' );
+	public static function offline( $uuid, $rawResponse = null ) {
+		$description = _x( 'WPML needs an Internet connection to translate your site\'s content. It seems that your server is not allowing external connections, or your network is temporarily down.', 'part1', 'wpml-translation-management' );
+		$description .= _x( 'If this is the first time you\'re seeing this message, please wait a minute and reload the page. If the problem persists, contact %1$s for help and mention that your website ID is %2$s.', 'part2', 'wpml-translation-management' );
 
-		return [
+		$message = [
 			'header'      => __( 'Cannot Connect to the Internet', 'wpml-translation-management' ),
 			'description' => sprintf( $description, self::getSupportLink(), $uuid ),
 		];
+
+		return ErrorHandler::createError( $message, $rawResponse );
 	}
 
-	public static function invalidResponse( $uuid ) {
-		return [
-			'header'      => __( 'WPML’s Advanced Translation Editor is not working', 'wpml-translation-management' ),
+	public static function invalidResponse( $uuid, $rawResponse = null ) {
+		$message = [
+			'header'      => __( 'WPML\'s Advanced Translation Editor is not working', 'wpml-translation-management' ),
 			'description' => self::invalidResponseDescription( $uuid ),
 		];
+
+		return ErrorHandler::createError( $message, $rawResponse );
 	}
 
 	public static function respondedWithError() {
@@ -54,7 +60,4 @@ class ErrorMessages {
 		return __( 'The body does not contain the required fields', 'wpml-translation-management' );
 	}
 
-	public static function uuidAlreadyExists() {
-		return __( 'UUID already exists', 'wpml-translation-management' );
-	}
 }

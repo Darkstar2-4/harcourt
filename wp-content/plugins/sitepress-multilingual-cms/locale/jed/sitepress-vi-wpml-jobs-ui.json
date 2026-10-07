@@ -8,7 +8,7 @@
             "lang": "vi"
          },
          "Start batch sync": [
-            "Bắt đầu đồng bộ hóa hàng loạt"
+            "Bắt đầu đồng bộ hàng loạt"
          ],
          "Cancel job": [
             "Hủy công việc"
@@ -20,61 +20,61 @@
             "Bắt đầu tải xuống tệp XLIFF"
          ],
          "Edit": [
-            "Sửa"
+            "Chỉnh sửa"
          ],
          "Get translation": [
             "Nhận bản dịch"
          ],
          "Resign": [
-            "Từ bỏ"
+            "Từ chối"
          ],
          "Review": [
-            "Đánh giá"
+            "Xem xét"
          ],
          "Translate": [
             "Dịch"
          ],
          "Take and Translate": [
-            "Lấy và Dịch"
+            "Nhận và dịch"
          ],
          "View": [
             "Xem"
          ],
          "Delete Translations": [
-            "Xóa các bản dịch"
+            "Xóa bản dịch"
          ],
          "Keep Translations as Draft": [
-            "Giữ các bản dịch dưới dạng Bản nháp"
+            "Giữ bản dịch dưới dạng bản nháp"
          ],
          "Never mind. I want to review these translations.": [
-            "Không sao. Tôi muốn rà soát các bản dịch này."
+            "Không sao. Tôi muốn xem xét các bản dịch này."
          ],
          "Cancel": [
             "Hủy"
          ],
          "This will remove the selected jobs from the Translations Queue without publishing them. What would you like to do with the translations?": [
-            "Việc này sẽ xóa các công việc đã chọn khỏi Hàng chờ Bản dịch mà không đăng tải chúng. Bạn muốn làm gì với các bản dịch?"
+            "Thao tác này sẽ xóa các công việc đã chọn khỏi Hàng đợi dịch mà không xuất bản chúng. Bạn muốn làm gì với các bản dịch?"
          ],
          "Cancel Translation Review": [
-            "Hủy việc rà soát bản dịch"
+            "Hủy xem xét bản dịch"
          ],
          "Bulk actions": [
-            "Hành động hàng loạt"
+            "Thao tác hàng loạt"
          ],
          "Apply": [
             "Áp dụng"
          ],
          "Actions applied to multiple translation jobs can take a few seconds. Please do not leave the page.": [
-            "Các hành động áp dụng cho nhiều công việc dịch thuật có thể mất vài giây. Vui lòng không rời khỏi trang."
+            "Các thao tác áp dụng cho nhiều công việc dịch có thể mất vài giây. Vui lòng không rời khỏi trang."
          ],
          "Actions applied to multiple translation jobs can take a few minutes. Please do not leave the page.": [
-            "Các hành động áp dụng cho nhiều công việc dịch thuật có thể mất vài phút. Vui lòng không rời khỏi trang."
+            "Các thao tác áp dụng cho nhiều công việc dịch có thể mất vài phút. Vui lòng không rời khỏi trang."
          ],
          "Select translator": [
             "Chọn người dịch"
          ],
          "Assign": [
-            "Phân công"
+            "Chỉ định"
          ],
          "Cancelled": [
             "Đã hủy"
@@ -95,13 +95,13 @@
             "%s được xuất bản ngay lập tức vì chúng không hỗ trợ chế độ bản nháp."
          ],
          "Published — Pending review": [
-            "Đã xuất bản — Chờ xem xét"
+            "Đã xuất bản — Đang chờ xem xét"
          ],
          "Draft — Pending review": [
-            "Bản nháp - Đang chờ rà soát"
+            "Bản nháp — Đang chờ xem xét"
          ],
          "Review in progress": [
-            "Đang trong quá trình xem xét"
+            "Đang xem xét"
          ],
          "Published — Review in progress": [
             "Đã xuất bản — Đang xem xét"
@@ -125,7 +125,7 @@
             "Dịch tự động"
          ],
          "TP ID: %d": [
-            "TP ID: %d"
+            "ID TP: %d"
          ],
          "Reset": [
             "Đặt lại"
@@ -164,10 +164,10 @@
             "Xóa tất cả bộ lọc"
          ],
          "Any Translation Service": [
-            "Bất kỳ Dịch vụ Dịch thuật nào"
+            "Bất kỳ dịch vụ dịch thuật nào"
          ],
          "Any WordPress Translator": [
-            "Bất kỳ Người dịch WordPress nào"
+            "Bất kỳ người dịch WordPress nào"
          ],
          "From": [
             "Từ"
@@ -179,13 +179,13 @@
             "Bất kỳ ai"
          ],
          "Include jobs from translation services": [
-            "Bao gồm công việc từ dịch vụ dịch thuật"
+            "Bao gồm các công việc từ dịch vụ dịch thuật"
          ],
          "All types": [
             "Tất cả các loại"
          ],
          "Select visible columns": [
-            "Chọn cột hiển thị"
+            "Chọn các cột hiển thị"
          ],
          "Sort descending": [
             "Sắp xếp giảm dần"
@@ -197,7 +197,7 @@
             "Hủy sắp xếp"
          ],
          "The bulk action is running...": [
-            "Đang thực hiện hành động hàng loạt..."
+            "Thao tác hàng loạt đang chạy..."
          ],
          "Export all jobs to XLIFF 1.0": [
             "Xuất tất cả công việc sang XLIFF 1.0"
@@ -221,7 +221,7 @@
             "Xuất"
          ],
          "Select File": [
-            "Chọn Tệp"
+            "Chọn tệp"
          ],
          ".xliff .zip": [
             ".xliff .zip"
@@ -233,7 +233,7 @@
             "Nhập"
          ],
          "Import / Export XLIFF": [
-            "Nhập / Xuất XLIFF"
+            "Nhập / xuất XLIFF"
          ],
          "Actions": [
             "Hành động"
@@ -248,13 +248,13 @@
             "Tiêu đề"
          ],
          "Approve translation reviews": [
-            "Phê duyệt xem xét bản dịch"
+            "Phê duyệt đánh giá bản dịch"
          ],
          "Cancel jobs": [
             "Hủy công việc"
          ],
          "Cancel translation reviews": [
-            "Hủy xem xét bản dịch"
+            "Hủy đánh giá bản dịch"
          ],
          "Export to XLIFF %s": [
             "Xuất sang XLIFF %s"
@@ -263,7 +263,7 @@
             "Nhận bản dịch"
          ],
          "This action does not apply to any of the selected translation jobs": [
-            "Hành động này không áp dụng cho bất kỳ công việc dịch thuật nào đã chọn"
+            "Hành động này không áp dụng cho bất kỳ công việc dịch nào đã chọn"
          ],
          "Translations have been downloaded": [
             "Các bản dịch đã được tải xuống"
@@ -278,22 +278,22 @@
             "Không thể tải xuống bản dịch"
          ],
          "Approving translations reviews failed!": [
-            "Phê duyệt xem xét bản dịch thất bại!"
+            "Phê duyệt đánh giá bản dịch không thành công!"
          ],
          "Failed approving translations for the following posts: ": [
-            "Không thể phê duyệt bản dịch cho các bài viết sau: "
+            "Không thể phê duyệt bản dịch cho các bài đăng sau: "
          ],
          "Translations reviews approved successfully!": [
-            "Xem xét bản dịch đã được phê duyệt thành công!"
+            "Đánh giá bản dịch đã được phê duyệt thành công!"
          ],
          "No valid jobs selected to approve translations reviews!": [
-            "Không có công việc hợp lệ nào được chọn để phê duyệt xem xét bản dịch!"
+            "Không có công việc hợp lệ nào được chọn để phê duyệt đánh giá bản dịch!"
          ],
          "The translator has been assigned to the job": [
-            "Người dịch đã được phân công cho công việc"
+            "Người dịch đã được chỉ định cho công việc"
          ],
          "The translator could not be assigned to the job": [
-            "Không thể phân công người dịch cho công việc"
+            "Không thể chỉ định người dịch cho công việc"
          ],
          "The jobs have been cancelled": [
             "Các công việc đã bị hủy"
@@ -308,19 +308,19 @@
             "Không thể hủy công việc"
          ],
          "Translation reviews have been canceled": [
-            "Xem xét bản dịch đã bị hủy"
+            "Đánh giá bản dịch đã bị hủy"
          ],
          "Translation review has been canceled": [
-            "Xem xét bản dịch đã bị hủy"
+            "Đánh giá bản dịch đã bị hủy"
          ],
          "Translation reviews could not be canceled": [
-            "Không thể hủy xem xét bản dịch"
+            "Không thể hủy đánh giá bản dịch"
          ],
          "Translation review could not be canceled": [
-            "Không thể hủy bỏ việc xem xét bản dịch"
+            "Không thể hủy đánh giá bản dịch"
          ],
          "Sent on": [
-            "Gửi lúc"
+            "Đã gửi vào"
          ],
          "Deadline": [
             "Hạn chót"
@@ -329,7 +329,7 @@
             "Trạng thái"
          ],
          "Pending review": [
-            "Đang chờ đánh giá"
+            "Đang chờ xem xét"
          ],
          "ID": [
             "ID"
@@ -344,13 +344,13 @@
             "Được dịch bởi"
          ],
          "Download XLIFF file couldn't be finished": [
-            "Không thể hoàn tất việc tải xuống tệp XLIFF"
+            "Không thể hoàn tất tải xuống tệp XLIFF"
          ],
          "Could not load jobs for export": [
-            "Không thể tải các công việc để xuất"
+            "Không thể tải công việc để xuất"
          ],
          "The export to XLIFF failed": [
-            "Việc xuất sang XLIFF thất bại"
+            "Xuất sang XLIFF không thành công"
          ],
          "Imported %d jobs": [
             "Đã nhập %d công việc"
@@ -362,43 +362,43 @@
             "Không thể nhập bất kỳ công việc nào"
          ],
          "Import failed!": [
-            "Nhập thất bại!"
+            "Nhập không thành công!"
          ],
          "Loading translations queue": [
-            "Đang tải hàng đợi bản dịch"
+            "Đang tải hàng đợi dịch"
          ],
          "Loading translation jobs": [
-            "Đang tải các công việc dịch thuật"
+            "Đang tải công việc dịch"
          ],
          "Jobs could not be loaded": [
-            "Không thể tải các công việc"
+            "Không thể tải công việc"
          ],
          "Specify some jobs to resign": [
             "Chỉ định một số công việc để từ chối"
          ],
          "We could not resign jobs: %s": [
-            "Chúng tôi không thể từ chối các công việc: %s"
+            "Chúng tôi không thể từ chối công việc: %s"
          ],
          "Resigned from jobs": [
-            "Đã từ chối các công việc"
+            "Đã từ chối công việc"
          ],
          "Resigned from job": [
             "Đã từ chối công việc"
          ],
          "Failed to resign from jobs": [
-            "Không thể từ chối các công việc"
+            "Không thể từ chối công việc"
          ],
          "The Advanced Editor jobs synchronization has failed": [
-            "Đồng bộ hóa công việc của Trình biên tập Nâng cao đã thất bại"
+            "Đồng bộ hóa công việc Trình chỉnh sửa nâng cao không thành công"
          ],
          "Synchronization with the Professional Translation service has failed": [
-            "Đồng bộ hóa với dịch vụ Dịch thuật Chuyên nghiệp đã thất bại"
+            "Đồng bộ hóa với dịch vụ Dịch thuật chuyên nghiệp không thành công"
          ],
          "%d translation has been downloaded": [
             "%d bản dịch đã được tải xuống"
          ],
          "Batch sync finished successfully!": [
-            "Đồng bộ hóa hàng loạt hoàn tất thành công!"
+            "Đồng bộ hóa hàng loạt đã hoàn tất thành công!"
          ],
          "Batch sync couldn't be finished": [
             "Không thể hoàn tất đồng bộ hóa hàng loạt"

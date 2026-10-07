@@ -7,19 +7,12 @@ use WPML\FP\Obj;
 
 class ThemeBuilder implements \IWPML_Action {
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/**
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * Add filters and actions.
-	 */
 	public function add_hooks() {
 		if ( ! defined( 'ET_THEME_BUILDER_DIR' ) ) {
 			return;
@@ -30,16 +23,13 @@ class ThemeBuilder implements \IWPML_Action {
 			add_filter( 'wpml_document_edit_item_link', [ $this, 'document_edit_layout_link' ], 10, 5 );
 
 			if ( is_admin() ) {
-				add_action( 'init', [ $this, 'make_layouts_editable' ], 1000 ); // Before WPML_Sticky_Links::init.
+				add_action( 'init', [ $this, 'make_layouts_editable' ], 1000 );
 			} else {
 				add_filter( 'get_post_metadata', [ $this, 'translate_layout_ids' ], 10, 4 );
 			}
 		}
 	}
 
-	/**
-	 * Gets all post types that are layouts.
-	 */
 	private static function get_types() {
 		return [
 			ET_THEME_BUILDER_HEADER_LAYOUT_POST_TYPE,
@@ -48,9 +38,6 @@ class ThemeBuilder implements \IWPML_Action {
 		];
 	}
 
-	/**
-	 * Access the global post types array to tweak the settings for layouts
-	 */
 	public function make_layouts_editable() {
 		global $wp_post_types;
 
@@ -61,24 +48,9 @@ class ThemeBuilder implements \IWPML_Action {
 		}
 	}
 
-	/**
-	 * Translate theme builder layout ids in the frontend.
-	 *
-	 * @param string $value   The layout id.
-	 * @param int    $post_id The post it belongs to.
-	 * @param string $key     The meta key we are handling.
-	 * @param bool   $single  Fetch a single row or an array.
-	 * @return string
-	 */
 	public function translate_layout_ids( $value, $post_id, $key, $single ) {
 
 		if ( in_array( $key, [ '_et_header_layout_id', '_et_body_layout_id', '_et_footer_layout_id' ], true ) ) {
-			/**
-			 * The `get_post_metadata` filter provides `null` as the initial `$value`.
-			 * When we return a different $value it is used directly, to avoid a second query.
-			 * This means that we have to get the original value first, removing ourselves so
-			 * we don't fall into an infinite loop.
-			 */
 			remove_filter( 'get_post_metadata', [ $this, 'translate_layout_ids' ], 10 );
 			$original_id = get_post_meta( $post_id, $key, true );
 			add_filter( 'get_post_metadata', [ $this, 'translate_layout_ids' ], 10, 4 );
@@ -94,17 +66,6 @@ class ThemeBuilder implements \IWPML_Action {
 		return $value;
 	}
 
-	/**
-	 * Remove the 'View' link because you can't view layouts alone.
-	 *
-	 * @param string $link   The complete link.
-	 * @param string $text   The text to link.
-	 * @param object $job    The corresponding translation job.
-	 * @param string $prefix The prefix of the element type.
-	 * @param string $type   The element type.
-	 *
-	 * @return string
-	 */
 	public function document_view_layout_link( $link, $text, $job, $prefix, $type ) {
 		if ( $this->is_theme_layout_row( $prefix, $type ) ) {
 			$link = '';
@@ -113,17 +74,6 @@ class ThemeBuilder implements \IWPML_Action {
 		return $link;
 	}
 
-	/**
-	 * Remove the 'Edit' link because you can't view layouts alone.
-	 *
-	 * @param string $link     The complete link.
-	 * @param string $oldLabel The old label for the link.
-	 * @param object $object   The corresponding translation job.
-	 * @param string $prefix   The prefix of the element type.
-	 * @param string $type     The element type.
-	 *
-	 * @return string
-	 */
 	public function document_edit_layout_link( $link, $oldLabel, $object, $prefix, $type ) {
 		if ( $this->is_theme_layout_row( $prefix, $type ) ) {
 			$id   = (int) Obj::prop( 'ID', $object );
@@ -133,14 +83,6 @@ class ThemeBuilder implements \IWPML_Action {
 		return $link;
 	}
 
-	/**
-	 * Check if a certain Type is a theme builder layout.
-	 *
-	 * @param string $prefix The prefix to check.
-	 * @param string $type   The type to check.
-	 *
-	 * @return bool
-	 */
 	private function is_theme_layout_row( $prefix, $type ) {
 		return 'post' === $prefix && in_array( $type, $this->get_types(), true );
 	}

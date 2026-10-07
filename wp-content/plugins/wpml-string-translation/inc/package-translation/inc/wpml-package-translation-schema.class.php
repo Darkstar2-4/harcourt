@@ -18,9 +18,6 @@ class WPML_Package_Translation_Schema {
 		}
 
 		if ( ! in_array( self::REQUIRED_VERSION, $updates_run ) ) {
-			// We need to make sure we build everything for 0.0.2 because users may
-			// only be updating the string translation plugin and may not do an
-			// activation.
 			self::build_icl_string_packages_table();
 			self::build_icl_string_packages_columns_if_required();
 			self::fix_icl_string_packages_ID_column();
@@ -56,7 +53,6 @@ class WPML_Package_Translation_Schema {
 
 		$result = $wpdb->query( $sql );
 
-		// Action called after string_package_id column is added to icl_strings tale
 		do_action( 'wpml_st_strings_table_altered' );
 
 		return $result;
@@ -68,7 +64,6 @@ class WPML_Package_Translation_Schema {
 
 		$result = $wpdb->query( $sql );
 
-		// Action called after type column is added to icl_strings tale
 		do_action( 'wpml_st_strings_table_altered' );
 
 		return $result;
@@ -80,7 +75,6 @@ class WPML_Package_Translation_Schema {
 
 		$result = $wpdb->query( $sql );
 
-		// Action called after title column is added to icl_strings tale
 		do_action( 'wpml_st_strings_table_altered' );
 
 		return $result;
@@ -172,6 +166,7 @@ class WPML_Package_Translation_Schema {
                   `view_link` TEXT NOT NULL,
                   `post_id` INTEGER DEFAULT NULL,
                   `word_count` VARCHAR(2000) DEFAULT NULL,
+                  `translator_note` LONGTEXT DEFAULT NULL,
                   PRIMARY KEY  (`ID`)
                 ) ' . $charset_collate . '';
 		if ( $wpdb->query( $sql ) === false ) {

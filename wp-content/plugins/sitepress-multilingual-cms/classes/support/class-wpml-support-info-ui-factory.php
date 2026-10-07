@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_Support_Info_UI_Factory {
 	function create() {
 		global $wpdb;

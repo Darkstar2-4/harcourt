@@ -2,18 +2,12 @@
 
 class WPML_Debug_Information {
 
-	/** @var wpdb $wpdb */
 	public $wpdb;
 
-	/** @var SitePress $sitepress */
 	protected $sitepress;
 
 	protected $info;
 
-	/**
-	 * @param wpdb      $wpdb
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( $wpdb, $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
@@ -73,7 +67,7 @@ class WPML_Debug_Information {
 				'MaxInputVars'    => ini_get( 'max_input_vars' ),
 				'MBString'        => $this->sitepress->get_wp_api()->extension_loaded( 'mbstring' ),
 				'libxml'          => $this->sitepress->get_wp_api()->extension_loaded( 'libxml' ),
-			),
+			) + $this->get_opcache_info(),
 		);
 
 		return $core;
@@ -108,7 +102,6 @@ class WPML_Debug_Information {
 	function get_theme_info() {
 
 		if ( $this->sitepress->get_wp_api()->get_bloginfo( 'version' ) < '3.4' ) {
-			/** @var \WP_Theme $current_theme */
 			$current_theme = get_theme_data( get_stylesheet_directory() . '/style.css' );
 			$theme         = $current_theme;
 			unset( $theme['Description'] );
@@ -156,5 +149,77 @@ class WPML_Debug_Information {
 		}
 
 		return $json_data;
+	}
+
+	function get_opcache_info() {
+		$opcache_info = array();
+
+		if ( ! function_exists( 'opcache_get_status' ) ) {
+			$opcache_info['OPcache'] = 'Not Installed';
+			return $opcache_info;
+		}
+
+		$status = @opcache_get_status( false );
+
+		if ( false === $status ) {
+			$opcache_info['OPcache'] = 'Installed but Disabled';
+			return $opcache_info;
+		}
+
+		$opcache_info['OPcache'] = 'Enabled';
+
+		if ( isset( $status['memory_usage'] ) ) {
+			$memory = $status['memory_usage'];
+
+			$used_memory_mb = isset( $memory['used_memory'] )
+				? round( $memory['used_memory'] / 1024 / 1024, 2 )
+				: 0;
+
+			$free_memory_mb = isset( $memory['free_memory'] )
+				? round( $memory['free_memory'] / 1024 / 1024, 2 )
+				: 0;
+
+			$wasted_memory_mb = isset( $memory['wasted_memory'] )
+				? round( $memory['wasted_memory'] / 1024 / 1024, 2 )
+				: 0;
+
+			$wasted_percentage = isset( $memory['current_wasted_percentage'] )
+				? round( $memory['current_wasted_percentage'], 2 )
+				: 0;
+
+			$total_memory_mb   = $used_memory_mb + $free_memory_mb + $wasted_memory_mb;
+			$usage_percentage  = $total_memory_mb > 0
+				? round( ( $used_memory_mb / $total_memory_mb ) * 100, 2 )
+				: 0;
+
+			$opcache_info['Memory Used']       = $used_memory_mb . ' MB';
+			$opcache_info['Memory Free']       = $free_memory_mb . ' MB';
+			$opcache_info['Memory Wasted']     = $wasted_memory_mb . ' MB (' . $wasted_percentage . '%)';
+			$opcache_info['Memory Total']      = $total_memory_mb . ' MB';
+			$opcache_info['Memory Usage']      = $usage_percentage . '%';
+		}
+
+		if ( isset( $status['opcache_statistics'] ) ) {
+			$stats = $status['opcache_statistics'];
+
+			$hits = isset( $stats['hits'] ) ? $stats['hits'] : 0;
+
+			$misses = isset( $stats['misses'] ) ? $stats['misses'] : 0;
+
+			$total_requests = $hits + $misses;
+			$hit_rate       = $total_requests > 0
+				? round( ( $hits / $total_requests ) * 100, 2 )
+				: 0;
+
+			$opcache_info['Cache Hits']   = number_format( $hits );
+			$opcache_info['Cache Misses'] = number_format( $misses );
+			$opcache_info['Hit Rate']     = $hit_rate . '%';
+
+			if ( isset( $stats['num_cached_scripts'] ) ) {
+				$opcache_info['Cached Scripts'] = number_format( $stats['num_cached_scripts'] );
+			}
+		}
+
+		return $opcache_info;
 	}
 }

@@ -7,13 +7,10 @@ use WPML\StringTranslation\Application\StringPackage\Query\SearchPopulatedKindsQ
 
 class SearchPopulatedKindsQuery implements SearchPopulatedKindsQueryInterface {
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var QueryBuilderResolver */
 	private $queryBuilderResolver;
 
 	public function __construct(
@@ -26,11 +23,6 @@ class SearchPopulatedKindsQuery implements SearchPopulatedKindsQueryInterface {
 		$this->queryBuilderResolver = $queryBuilderResolver;
 	}
 
-	/**
-	 * @param SearchPopulatedKindsCriteria $criteria
-	 *
-	 * @return string[]
-	 */
 	public function get( SearchPopulatedKindsCriteria $criteria ) {
 		$queryBuilder = $this->queryBuilderResolver->resolveSearchPopulatedKindsQueryBuilder();
 		$populatedKinds = $criteria->getStringPackageTypeIds();

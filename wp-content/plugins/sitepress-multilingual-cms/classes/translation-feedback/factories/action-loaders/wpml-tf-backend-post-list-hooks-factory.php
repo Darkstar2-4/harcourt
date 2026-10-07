@@ -1,18 +1,11 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Post_List_Hooks_Factory
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Post_List_Hooks_Factory extends WPML_Current_Screen_Loader_Factory {
 
-	/** @return string */
 	protected function get_screen_regex() {
 		return '/^edit$/';
 	}
 
-	/** @return WPML_TF_Backend_Post_List_Hooks */
 	protected function create_hooks() {
 		global $wpdb, $sitepress;
 

@@ -5,29 +5,16 @@ namespace WPML\TM\TranslationProxy\Services\Project;
 use WPML\Collect\Support\Collection;
 
 class Storage {
-	/** @var \SitePress */
 	private $sitepress;
 
-	/**
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct( \SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
 
-	/**
-	 * @param \stdClass $service
-	 *
-	 * @return Project|null
-	 */
 	public function getByService( \stdClass $service ) {
 		return $this->getProjects()->get( \TranslationProxy_Project::generate_service_index( $service ) );
 	}
 
-	/**
-	 * @param \stdClass $service
-	 * @param Project   $project
-	 */
 	public function save( \stdClass $service, Project $project ) {
 		$index = \TranslationProxy_Project::generate_service_index( $service );
 		$this->sitepress->set_setting(
@@ -41,9 +28,6 @@ class Storage {
 		);
 	}
 
-	/**
-	 * @return Collection
-	 */
 	public function getProjects() {
 		$projects = $this->sitepress->get_setting( 'icl_translation_projects', [] );
 		if ( ! is_array( $projects ) ) {

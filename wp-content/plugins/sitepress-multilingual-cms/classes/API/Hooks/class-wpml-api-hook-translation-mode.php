@@ -4,12 +4,10 @@ class WPML_API_Hook_Translation_Mode implements IWPML_Action {
 
 	const OPTION_KEY = 'custom_posts_sync_option';
 
-	/** Allowed modes */
 	const DO_NOT_TRANSLATE      = 'do_not_translate';
 	const TRANSLATE             = 'translate';
 	const DISPLAY_AS_TRANSLATED = 'display_as_translated';
 
-	/** @var WPML_Settings_Helper $settings */
 	private $settings;
 
 	public function __construct( WPML_Settings_Helper $settings  ) {
@@ -22,13 +20,6 @@ class WPML_API_Hook_Translation_Mode implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $post_type
-	 * @param string $translation_mode any of
-	 *                                 `WPML_API_Hook_Translation_Mode::DO_NOT_TRANSLATE`,
-	 *                                 `WPML_API_Hook_Translation_Mode::TRANSLATE`,
-	 *                                 `WPML_API_Hook_Translation_Mode::DISPLAY_AS_TRANSLATED`
-	 */
 	public function set_mode_for_post_type( $post_type, $translation_mode ) {
 		switch ( $translation_mode ) {
 			case self::DO_NOT_TRANSLATE:

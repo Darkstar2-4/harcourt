@@ -7,10 +7,8 @@ use WPML\TM\ATE\Log\Hooks;
 
 class View {
 
-	/** @var int */
 	private $logCount;
 
-	/** @var SecondaryDomains */
 	private $secondaryDomains;
 
 	public function __construct( int $logCount, SecondaryDomains $secondaryDomains ) {

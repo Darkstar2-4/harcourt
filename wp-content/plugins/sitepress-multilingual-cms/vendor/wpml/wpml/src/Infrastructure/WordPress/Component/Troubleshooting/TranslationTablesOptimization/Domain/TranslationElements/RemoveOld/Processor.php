@@ -4,28 +4,16 @@ namespace WPML\Infrastructure\WordPress\Component\Troubleshooting\TranslationTab
 
 use WPML\Core\Component\Troubleshooting\TranslationTablesOptimization\Domain\MigrationDataService\ProcessorInterface;
 
-/**
- * @implements ProcessorInterface<array{rid: int}>
- */
 class Processor implements ProcessorInterface {
 
-  /** @var \wpdb */
   private $wpdb;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct( $wpdb ) {
     $this->wpdb = $wpdb;
   }
 
 
-  /**
-   * @param array<array{rid: int}> $records
-   *
-   * @return int[]
-   */
   public function process( array $records ): array {
     $processed = [];
 
@@ -45,9 +33,7 @@ class Processor implements ProcessorInterface {
         ) to_delete ON t.job_id = to_delete.job_id
       ";
 
-      // @phpstan-ignore-next-line Parameter #1 $query of method wpdb::prepare() expects literal-string, string given.
       $sql = $this->wpdb->prepare( $sql, $record['rid'], $record['rid'] );
-      /** @var string $sql */
       $this->wpdb->query( $sql );
       $processed[] = $record['rid'];
     }

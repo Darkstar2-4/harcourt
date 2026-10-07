@@ -9,20 +9,11 @@ use WPML\Utils\XmlTranslatableIds;
 
 abstract class TranslateIds {
 
-	/** @var TranslationManagement $translationManagement */
 	protected $translationManagement;
-	/** @var WPML_WP_API $wpApi */
 	protected $wpApi;
-	/** @var TranslateNestedIds $translateNestedIds */
 	protected $translateNestedIds;
-	/** @var array $customFields */
 	protected $customFields;
 
-	/**
-	 * @param TranslationManagement $translationManagement
-	 * @param WPML_WP_API           $wpApi
-	 * @param TranslateNestedIds    $translateNestedIds
-	 */
 	public function __construct( &$translationManagement, &$wpApi, $translateNestedIds ) {
 		$this->translationManagement = &$translationManagement;
 		$this->wpApi                 = &$wpApi;
@@ -37,26 +28,12 @@ abstract class TranslateIds {
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function getTmSettingsKey();
 
-	/**
-	 * @return bool
-	 */
 	public function hasCustomFields() {
 		return (bool) $this->customFields;
 	}
 
-	/**
-	 * @param mixed  $metadata  - Always null for post metadata.
-	 * @param int    $object_id - Post ID for post metadata.
-	 * @param string $meta_key  - metadata key.
-	 * @param bool   $single    - Indicates if processing only a single $metadata value or array of values.
-	 *
-	 * @return mixed
-	 */
 	public function maybeTranslateIds( $metadata, $object_id, $meta_key, $single ) {
 		if ( ! array_key_exists( $meta_key, $this->customFields ) ) {
 			return $metadata;
@@ -91,14 +68,6 @@ abstract class TranslateIds {
 		return $metadata;
 	}
 
-	/**
-	 * @param mixed  $metadata  - Always null for post metadata.
-	 * @param int    $object_id - Post ID for post metadata.
-	 * @param string $meta_key  - metadata key.
-	 * @param bool   $single    - Indicates if processing only a single $metadata value or array of values.
-	 *
-	 * @return mixed
-	 */
 	abstract protected function getRawValue( $metadata, $object_id, $meta_key, $single );
 
 }

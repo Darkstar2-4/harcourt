@@ -18,7 +18,6 @@ use WPML\Infrastructure\WordPress\Component\Communication\Domain\DismissedNotice
 use WPML\UserInterface\Web\Infrastructure\WordPress\CompositionRoot\Config\RegisterNotices;
 
 if ( defined( 'WPML_VERSION' ) ) {
-  // Already loaded.
   return;
 }
 
@@ -57,19 +56,16 @@ $compositionRoot = new CompositionRoot(
   new ConfigEvents( $dic )
 );
 
-// Load event listeners.
 $compositionRoot->loadEventListeners();
 
-// Admin Pages.
 add_action(
   'admin_menu',
   function () use ( $compositionRoot ) {
       $compositionRoot->registerAdminPages();
   },
-  1 // We must run this before legacy is doing the menu.
+  1
 );
 
-// REST Api.
 add_action(
   'rest_api_init',
   function () use ( $compositionRoot ) {
@@ -78,7 +74,6 @@ add_action(
   }
 );
 
-// Admin.
 add_action(
   'admin_init',
   function () use ( $compositionRoot ) {
@@ -89,11 +84,11 @@ add_action(
 );
 
 
-// Admin Scripts.
 add_action(
   'admin_enqueue_scripts',
   function () use ( $compositionRoot ) {
     $compositionRoot->loadAdminScripts();
     $compositionRoot->loadContentStatsScripts();
+    $compositionRoot->loadCheckPosthogShouldRecordScript();
   }
 );

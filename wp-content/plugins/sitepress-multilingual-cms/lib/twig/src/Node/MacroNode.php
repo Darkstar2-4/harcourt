@@ -12,11 +12,6 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Error\SyntaxError;
-/**
- * Represents a macro node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class MacroNode extends \WPML\Core\Twig\Node\Node
 {
     const VARARGS_NAME = 'varargs';

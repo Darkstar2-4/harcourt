@@ -14,15 +14,10 @@ use WPML\TM\TranslationProxy\Services\AuthorizationFactory;
 
 class AuthenticateICL implements IHandler {
 
-	/** @var TranslationServices */
 	private $translationServices;
 
-	/** @var ICLStatus */
 	private $iclStatus;
 
-	/**
-	 * @param TranslationServices $translationServices
-	 */
 	public function __construct( TranslationServices $translationServices ) {
 		$this->translationServices = $translationServices;
 		$this->iclStatus           = new ICLStatus( $translationServices );

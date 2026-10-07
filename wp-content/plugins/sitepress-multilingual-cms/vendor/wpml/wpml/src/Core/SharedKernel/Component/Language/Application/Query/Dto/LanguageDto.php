@@ -4,28 +4,20 @@ namespace WPML\Core\SharedKernel\Component\Language\Application\Query\Dto;
 
 class LanguageDto {
 
-  /** @var string */
   private $code;
 
-  /** @var string */
   private $englishName;
 
-  /** @var string */
   private $nativeName;
 
-  /** @var string */
   private $displayName;
 
-  /** @var string|null */
   private $countryFlagUrl;
 
-  /** @var bool */
   private $isActivated;
 
-  /** @var bool|null */
   private $supportsAutomaticTranslations = null;
 
-  /** @var string */
   private $defaultLocale;
 
 
@@ -60,7 +52,6 @@ class LanguageDto {
   }
 
 
-  /** @return ?string */
   public function getCountryFlagUrl() {
     return $this->countryFlagUrl;
   }
@@ -71,9 +62,6 @@ class LanguageDto {
   }
 
 
-  /**
-   * @return void
-   */
   public function setCountryFlagUrl( string $countryFlagUrl ) {
     $this->countryFlagUrl = $countryFlagUrl;
   }
@@ -84,17 +72,11 @@ class LanguageDto {
   }
 
 
-  /**
-   * @return void
-   */
   public function setDisplayName( string $displayName ) {
     $this->displayName = $displayName;
   }
 
 
-  /**
-   * @return bool|null
-   */
   public function doesSupportAutomaticTranslations() {
     return $this->supportsAutomaticTranslations;
   }
@@ -105,12 +87,7 @@ class LanguageDto {
   }
 
 
-  /**
-   * @param bool|null $supportsAutomaticTranslations
-   *
-   * @return void
-   */
-  public function setSupportsAutomaticTranslations( bool $supportsAutomaticTranslations = null ) {
+  public function setSupportsAutomaticTranslations( ?bool $supportsAutomaticTranslations = null ) {
     $this->supportsAutomaticTranslations = $supportsAutomaticTranslations;
   }
 

@@ -6,11 +6,6 @@ class WPML_ST_Theme_Plugin_Localization_Options_Settings implements IWPML_Action
 		add_filter( 'wpml_localization_options_settings', array( $this, 'add_st_settings' ) );
 	}
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	public function add_st_settings( $settings ) {
 		$settings[ WPML_ST_Themes_And_Plugins_Settings::OPTION_NAME ] = array(
 			'settings_var' => WPML_ST_Themes_And_Plugins_Settings::OPTION_NAME,

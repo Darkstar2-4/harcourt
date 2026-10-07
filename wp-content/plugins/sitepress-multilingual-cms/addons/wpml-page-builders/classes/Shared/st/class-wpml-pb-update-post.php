@@ -6,9 +6,7 @@ use function \WPML\FP\invoke;
 class WPML_PB_Update_Post {
 
 	private $package_data;
-	/** @var  IWPML_PB_Strategy $strategy */
 	private $strategy;
-	/** @var  SitePress $sitepress */
 	private $sitepress;
 
 	public function __construct( $sitepress, $package_data, IWPML_PB_Strategy $strategy ) {
@@ -37,12 +35,6 @@ class WPML_PB_Update_Post {
 		}
 	}
 
-	/**
-	 * @param string $content
-	 * @param string $lang
-	 *
-	 * @return string
-	 */
 	public function update_content( $content, $lang ) {
 		return Wrapper::of( $this->strategy )
 		              ->map( invoke( 'get_content_updater' ) )

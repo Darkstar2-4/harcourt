@@ -1,5 +1,5 @@
 import tracker from '../utils/tracker';
-
+// TODO: Clean this file after handling all events.
 class ProductAnalytics {
 	troubleshootClicked = false;
 	resumeBulkSmushCount = 0;
@@ -22,10 +22,9 @@ class ProductAnalytics {
 		// Bulk Smush Interrupted Event from Bulk Smush Modal.
 		this.trackBulkSmushInterruptedEventOnStopBulkSmushModal();
 		this.trackBulkSmushInterruptedEventOnRetryBulkSmushModal();
-		this.registerBulkSmushResumeClickEvent();
 
 		// Bulk Smush Interrupted Event when exit ajax bulk smush.
-		this.trackBulkSmushInterruptedEventWhenExitingAjaxBulkSmush();
+		// this.trackBulkSmushInterruptedEventWhenExitingAjaxBulkSmush();
 
 		// Interrupted Event from Inline Notice.
 		this.trackInterruptedEventFromInlineNotice();
@@ -49,7 +48,7 @@ class ProductAnalytics {
 				directory: 'directory_summary',
 				'lazy-preload': 'lazy_summary',
 				cdn: 'cdn_summary',
-				webp: 'webp_summary',
+				'next-gen': 'webp_summary',
 			};
 			const locationId = ultraLink.classList.contains( 'wp-smush-ultra-compression-link' ) ? 'settings' : this.getCurrentPageSlug();
 			return locations[ locationId ] || 'bulksmush_settings';
@@ -88,9 +87,9 @@ class ProductAnalytics {
 					smush_bulksmush_library_gif_cdn: 'media_library',
 					smush_bulk_smush_complete_global: 'bulk_smush_complete',
 
-					// Local WebP.
-					summary_local_webp: 'dash_summary',
-					'smush-dashboard-local-webp-upsell': 'dash_widget',
+					// Local Next-Gen.
+					'summary_next-gen': 'dash_summary',
+					'smush-dashboard-next-gen-upsell': 'dash_widget',
 					// smush_webp_upgrade_button: 'webp_page',// Handled inside React WebP - free-content.jsx
 				};
 
@@ -99,10 +98,10 @@ class ProductAnalytics {
 				}
 
 				const Location = upsellLocations[ campaign ];
-				const matches = campaign.match( /(cdn|webp)/i );
+				const matches = campaign.match( /(cdn|next-gen)/i );
 				const upsellModule = matches && matches[ 0 ];
 
-				const eventName = 'webp' === upsellModule ? 'local_webp_upsell' : 'cdn_upsell';
+				const eventName = 'next-gen' === upsellModule ? 'local_webp_upsell' : 'cdn_upsell';
 				tracker.track( eventName, { Location } );
 			} );
 		} );
@@ -237,25 +236,21 @@ class ProductAnalytics {
 			return;
 		}
 
-		window.addEventListener( 'beforeunload', () => {
-			const ajaxBulkSmushObject = window.WP_Smush?.bulk?.bulkSmush;
-			const isBulkSmushInProgressing = ajaxBulkSmushObject && ajaxBulkSmushObject.ids.length > 0 && ! progressBar.classList.contains( 'sui-hidden' );
-			if ( ! isBulkSmushInProgressing ) {
+		window.addEventListener( 'beforeunload', async () => {
+			const isBulkSmushInProgress = window.WP_Smush?.bulk.isBulkSmushInProgress() && ! progressBar.classList.contains( 'sui-hidden' );
+			if ( ! isBulkSmushInProgress ) {
 				return;
 			}
-
-			const isFreeExceeded = progressBar.classList.contains( 'wp-smush-exceed-limit' );
 
 			const event = 'Bulk Smush Interrupted';
 			const properties = this.getBulkSmushInterruptedEventProperties(
 				{
-					Trigger: isFreeExceeded ? 'exit_50_limit' : 'exit_in_progress',
+					Trigger: 'exit_in_progress',
 					'Modal Action': 'Exit',
-					'Retry Attempts': this.resumeBulkSmushCount,
 				}
-			);
+			); 
 
-			tracker.track( event, properties ).catch( () => {
+			await tracker.track( event, properties ).catch( () => {
 				this.cacheMissedEvent( {
 					event,
 					properties,
@@ -309,20 +304,8 @@ class ProductAnalytics {
 	}
 
 	getBulkSmushProcessStats() {
-		if ( this.canUseBackgroundOptimization() ) {
-			// Handled it via PHP.
+		// Handled it via PHP.
 			return {};
-		}
-		const ajaxBulkSmushObject = window.WP_Smush?.bulk?.bulkSmush;
-		const totalEnqueuedImages = ajaxBulkSmushObject?.total || 0;
-		const processedImages = ajaxBulkSmushObject?.smushed + ajaxBulkSmushObject?.errors.length;
-		const completionPercentage = totalEnqueuedImages > 0 ? Math.ceil( processedImages * 100 / totalEnqueuedImages ) : 0;
-
-		return {
-			'Retry Attempts': this.resumeBulkSmushCount,
-			'Total Enqueued Images': totalEnqueuedImages,
-			'Completion Percentage': completionPercentage,
-		};
 	}
 
 	trackInterruptedEventFromInlineNotice() {
@@ -496,17 +479,6 @@ class ProductAnalytics {
 			missedEvents.forEach( ( missedEvent ) => {
 				tracker.track( missedEvent.event, missedEvent.properties );
 			} );
-		} );
-	}
-
-	registerBulkSmushResumeClickEvent() {
-		const resumeBulkSmushButton = document.querySelector( '.wp-smush-resume-bulk-smush' );
-		if ( ! resumeBulkSmushButton ) {
-			return;
-		}
-
-		resumeBulkSmushButton.addEventListener( 'click', () => {
-			this.resumeBulkSmushCount += 1;
 		} );
 	}
 

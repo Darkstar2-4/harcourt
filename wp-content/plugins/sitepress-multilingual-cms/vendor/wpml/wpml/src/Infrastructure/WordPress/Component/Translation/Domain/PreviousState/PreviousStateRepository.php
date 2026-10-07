@@ -12,10 +12,8 @@ use WPML\PHP\Exception\InvalidItemIdException;
 
 class PreviousStateRepository implements PreviousStateRepositoryInterface {
 
-  /** @var DatabaseWriteInterface */
   private $dbWriter;
 
-  /** @var DataCompressInterface */
   private $dataCompress;
 
 
@@ -25,14 +23,7 @@ class PreviousStateRepository implements PreviousStateRepositoryInterface {
   }
 
 
-  /**
-   * @param int                $translationId
-   * @param PreviousState|null $previousState
-   *
-   * @return void
-   * @throws InvalidItemIdException
-   */
-  public function update( int $translationId, PreviousState $previousState = null ) {
+  public function update( int $translationId, ?PreviousState $previousState = null ) {
     $data = $previousState ? $this->dataCompress->compress( $previousState->toArray() ) : null;
 
     try {
@@ -51,14 +42,6 @@ class PreviousStateRepository implements PreviousStateRepositoryInterface {
   }
 
 
-  /**
-   * Resets translation status to 0
-   *
-   * @param int $translationId
-   *
-   * @return void
-   * @throws InvalidItemIdException
-   */
   public function resetStatus( int $translationId ) {
     try {
       $updatedItems = $this->dbWriter->update(
@@ -76,15 +59,6 @@ class PreviousStateRepository implements PreviousStateRepositoryInterface {
   }
 
 
-  /**
-   * Restores translation status from previous state
-   *
-   * @param int           $translationId
-   * @param PreviousState $previousState
-   *
-   * @return void
-   * @throws InvalidItemIdException
-   */
   public function restoreState( int $translationId, PreviousState $previousState ) {
     try {
       $data = $previousState->toArray();

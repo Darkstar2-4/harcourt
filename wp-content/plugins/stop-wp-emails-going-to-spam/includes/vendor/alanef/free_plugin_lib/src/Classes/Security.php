@@ -11,7 +11,11 @@ class Security {
      * @return bool
      */
     public static function verify_nonce($nonce_name, $action) {
-        return isset($_REQUEST[$nonce_name]) && wp_verify_nonce($_REQUEST[$nonce_name], $action);
+        if (!isset($_REQUEST[$nonce_name])) {
+            return false;
+        }
+        $nonce = sanitize_text_field(wp_unslash($_REQUEST[$nonce_name]));
+        return wp_verify_nonce($nonce, $action);
     }
 
     /**
@@ -42,15 +46,15 @@ class Security {
      */
     public static function get_client_ip() {
         $ip = '127.0.0.1';
-        
+
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = sanitize_text_field($_SERVER['HTTP_CLIENT_IP']);
+            $ip = sanitize_text_field(wp_unslash($_SERVER['HTTP_CLIENT_IP']));
         } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = sanitize_text_field($_SERVER['HTTP_X_FORWARDED_FOR']);
+            $ip = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
         } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-            $ip = sanitize_text_field($_SERVER['REMOTE_ADDR']);
+            $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));
         }
-        
+
         return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '127.0.0.1';
     }
 

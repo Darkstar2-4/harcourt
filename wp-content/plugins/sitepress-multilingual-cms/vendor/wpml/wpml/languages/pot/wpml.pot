@@ -7,24 +7,24 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-09-24T13:08:45+00:00\n"
+"POT-Creation-Date: 2026-02-18T16:02:20+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: wpml\n"
 
-#: src/config-admin-pages.php:126
+#: src/config-admin-pages.php:144
 msgid "Translation Dashboard"
 msgstr ""
 
-#: src/config-admin-pages.php:311
+#: src/config-admin-pages.php:341
 msgid "Automatic translation settings"
 msgstr ""
 
-#: src/config-admin-pages.php:353
+#: src/config-admin-pages.php:383
 msgid "WPML Setup"
 msgstr ""
 
-#: src/config-admin-pages.php:382
+#: src/config-admin-pages.php:412
 msgid "WPML Support"
 msgstr ""
 
@@ -109,7 +109,23 @@ msgid "The WordPress REST API must be enabled for WPML to work correctly."
 msgstr ""
 
 #: src/Core/Component/MinimumRequirements/Domain/Entity/RestEnabledRequirement.php:49
-msgid "Ensure the REST API endpoint %s is reachable and that the WordPress REST API is enabled."
+msgid "The REST API test endpoint %s is not responding correctly."
+msgstr ""
+
+#: src/Core/Component/MinimumRequirements/Domain/Entity/RestEnabledRequirement.php:58
+msgid "<strong>Common causes:</strong>"
+msgstr ""
+
+#: src/Core/Component/MinimumRequirements/Domain/Entity/RestEnabledRequirement.php:65
+msgid "• A security or firewall plugin is blocking REST API requests<br>• The REST API has been disabled via the <code>rest_enabled</code> filter<br>• Server configuration (Apache/Nginx) is interfering with query parameters<br>• Custom rewrite rules are conflicting with WordPress routing"
+msgstr ""
+
+#: src/Core/Component/MinimumRequirements/Domain/Entity/RestEnabledRequirement.php:79
+msgid "<strong>Troubleshooting:</strong> Try accessing %s directly in your browser. It should return a JSON response with <code>\"status\":\"valid\"</code> and <code>\"get_parameters\":\"valid\"</code>."
+msgstr ""
+
+#: src/Core/Component/MinimumRequirements/Domain/Entity/RestEnabledRequirement.php:87
+msgid "the test endpoint"
 msgstr ""
 
 #: src/Core/Component/MinimumRequirements/Domain/Entity/SimpleXMLExtensionRequirement.php:31
@@ -148,11 +164,29 @@ msgstr ""
 msgid "Please update your WordPress installation to version %s or higher."
 msgstr ""
 
-#: src/Legacy/Component/ATE/Application/Query/Account.php:20
+#: src/Core/Component/Translation/Application/Service/Dto/SendToTranslationDto.php:147
+msgid "Language pairs cannot be empty"
+msgstr ""
+
+#: src/Core/Component/Translation/Application/Service/Dto/SendToTranslationDto.php:156
+msgid "Batch name cannot be empty"
+msgstr ""
+
+#: src/Core/Component/Translation/Application/Service/Dto/SendToTranslationDto.php:160
+msgid "Source language code cannot be empty"
+msgstr ""
+
+#: src/Core/Component/Translation/Application/Service/Dto/SendToTranslationDto.php:167
+msgid ""
+"Posts, packages and strings cannot be empty.\n"
+"          At least one of those elements must be specified."
+msgstr ""
+
+#: src/Legacy/Component/ATE/Application/Query/Account.php:23
 msgid "Error getting credits"
 msgstr ""
 
-#: src/Legacy/Component/ATE/Application/Query/Account.php:39
+#: src/Legacy/Component/ATE/Application/Query/Account.php:46
 msgid "Error getting account balances"
 msgstr ""
 
@@ -168,22 +202,30 @@ msgstr ""
 msgid "Error fetching available formalities"
 msgstr ""
 
-#: src/Legacy/Component/Translation/Sender/ErrorMapper/ErrorMapper.php:32
+#: src/Legacy/Component/Translation/Sender/ErrorMapper/ErrorMapper.php:36
 msgid "The jobs could not be created."
+msgstr ""
+
+#: src/Legacy/Component/Translation/Sender/ErrorMapper/TranslationServiceUnavailable.php:34
+msgid "The translation service \"%s\" is not accepting new translation jobs at this moment. Please contact the service support for more information and assistance."
+msgstr ""
+
+#: src/Legacy/Component/Translation/Sender/ErrorMapper/TranslationServiceUnavailable.php:45
+msgid "The translation service is not accepting new translation jobs at this moment. Please contact the service support for more information and assistance."
 msgstr ""
 
 #: src/Legacy/Component/Translation/Sender/ErrorMapper/UnsupportedLanguagesInTranslationService.php:43
 msgid "The selected translation service doesn't support the following languages: %s"
 msgstr ""
 
-#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:310
-#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:311
-#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:312
+#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:318
+#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:319
+#: src/UserInterface/Web/Core/Component/Dashboard/Application/DashboardController.php:320
 msgid "Other texts (Strings)"
 msgstr ""
 
-#: src/UserInterface/Web/Core/Component/Dashboard/Application/Endpoint/SendToTranslation/SendToTranslationController.php:48
-msgid "The request data for SendToTranslation is not valid."
+#: src/UserInterface/Web/Core/Component/Dashboard/Application/Endpoint/SendToTranslation/SendToTranslationController.php:49
+msgid "The request data for SendToTranslation is not valid: %s"
 msgstr ""
 
 #: src/UserInterface/Web/Core/Component/Dashboard/Application/Endpoint/TranslateEverything/EnableController.php:45

@@ -4,28 +4,20 @@ namespace WPML\Core\SharedKernel\Component\Post\Application\Query\Dto;
 
 class PostTypeDto {
 
-  /** @var string */
   private $id;
 
-  /** @var string */
   private $title;
 
-  /** @var string */
   private $singular;
 
-  /** @var string */
   private $plural;
 
-  /** @var bool */
   private $isDisplayAsTranslated;
 
-  /** @var bool */
   private $hierarchical;
 
-  /** @var bool */
   private $isPublic;
 
-  /** @var bool */
   private $hasUi;
 
 
@@ -90,18 +82,6 @@ class PostTypeDto {
   }
 
 
-  /**
-   * @return array{
-   *   id: string,
-   *   title: string,
-   *   singular: string,
-   *   plural: string,
-   *   hierarchical: bool,
-   *   isPublic: bool,
-   *   hasUi: bool,
-   *   isDisplayAsTranslated: bool
-   * }
-   */
   public function toArray(): array {
     return [
       'id'                    => $this->id,

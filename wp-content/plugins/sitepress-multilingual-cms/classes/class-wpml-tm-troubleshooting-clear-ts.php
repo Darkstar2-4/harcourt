@@ -5,11 +5,6 @@ use WPML\API\Sanitize;
 class WPML_TM_Troubleshooting_Clear_TS extends WPML_TM_AJAX_Factory_Obsolete {
 	private $script_handle = 'wpml_clear_ts';
 
-	/**
-	 * WPML_TM_Troubleshooting_Clear_TS constructor.
-	 *
-	 * @param WPML_WP_API $wpml_wp_api
-	 */
 	public function __construct( &$wpml_wp_api ) {
 		parent::__construct( $wpml_wp_api );
 

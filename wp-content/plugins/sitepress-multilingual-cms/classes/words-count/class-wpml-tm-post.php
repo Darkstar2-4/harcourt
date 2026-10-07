@@ -2,7 +2,6 @@
 
 class WPML_TM_Post extends WPML_TM_Translatable_Element {
 
-	/** @var array|null|WP_Post */
 	private $wp_post;
 
 	protected function init( $id ) {

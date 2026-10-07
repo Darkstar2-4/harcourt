@@ -8,14 +8,6 @@ use WPML\FP\Obj;
 use WPML\FP\Relation;
 use function WPML\FP\curryN;
 
-/**
- * Class Translations
- * @package WPML\Records
- *
- * @method static callable|array getByTrid( ...$trid )
- *
- * Returns array of records from wp_icl_translations matching given $trid
- */
 class Translations {
 
 	const OLDEST_FIRST = 'ASC';
@@ -23,9 +15,6 @@ class Translations {
 
 	use Macroable;
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 		self::macro( 'getByTrid', curryN( 1, function ( $trid ) {
 			global $wpdb;
@@ -36,13 +25,7 @@ class Translations {
 		} ) );
 	}
 
-	/**
-	 * @param array|null  $order
-	 * @param string|null $postType
-	 *
-	 * @return callable|Collection
-	 */
-	public static function getForPostType( array $order = null, $postType = null ) {
+	public static function getForPostType( $order = null, $postType = null ) {
 		$get = function ( array $order, $postType ) {
 			global $wpdb;
 
@@ -60,13 +43,7 @@ class Translations {
 		return call_user_func_array( curryN( 2, $get ), func_get_args() );
 	}
 
-	/**
-	 * @param string|null     $lang
-	 * @param Collection|null $translations
-	 *
-	 * @return callable|Collection
-	 */
-	public static function getSourceInLanguage( $lang = null, Collection $translations = null ) {
+	public static function getSourceInLanguage( $lang = null, $translations = null ) {
 		$getSource = function ( $defaultLang, Collection $translations ) {
 			return self::getSource( $translations )->filter( Relation::propEq( 'language_code', $defaultLang ) )->values();
 		};
@@ -74,7 +51,7 @@ class Translations {
 		return call_user_func_array( curryN( 2, $getSource ), func_get_args() );
 	}
 
-	public static function getSource( Collection $translations = null) {
+	public static function getSource( $translations = null) {
 		$getSource = function ( Collection $translations ) {
 			return $translations->filter( Relation::propEq( 'source_language_code', null ) )->values();
 		};

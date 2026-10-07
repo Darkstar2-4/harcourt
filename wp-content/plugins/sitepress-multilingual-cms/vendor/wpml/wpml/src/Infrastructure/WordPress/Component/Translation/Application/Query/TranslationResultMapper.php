@@ -19,19 +19,9 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationEditorType;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-import-type TranslationRow from TranslationQuery
- *
- */
 class TranslationResultMapper {
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return Translation
-   * @throws InvalidArgumentException
-   */
   public function mapRow( array $row ): Translation {
     $job = null;
     if ( $row['job_id'] && $row['batch_id'] && $row['editor'] ) {
@@ -41,7 +31,7 @@ class TranslationResultMapper {
         $this->mapMethod( $row ),
         $row['translation_service'] !== 'local' ?
           new NoneEditor() :
-          $this->mapEditor( $row['editor'] ),
+          $this->mapEditor( $row['editor'], isset( $row['editor_job_id'] ) ? $row['editor_job_id'] : null ),
         (bool) $row['job_completed'],
         $row['translation_service'] !== 'local' ?
           (int) $row['translation_service'] :
@@ -64,10 +54,10 @@ class TranslationResultMapper {
   }
 
 
-  private function mapEditor( string $editor ): EditorInterface {
+  private function mapEditor( string $editor, $editorJobId = null ): EditorInterface {
     switch ( $editor ) {
       case TranslationEditorType::ATE:
-        return new AteEditor();
+        return new AteEditor( $editorJobId );
       case TranslationEditorType::WORDPRESS:
         return new WordpressEditor();
       case TranslationEditorType::CLASSIC:
@@ -78,11 +68,6 @@ class TranslationResultMapper {
   }
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return TranslationMethodInterface
-   */
   private function mapMethod( array $row ): TranslationMethodInterface {
     if ( $row['automatic'] ) {
       $method = new AutomaticMethod();
@@ -97,12 +82,6 @@ class TranslationResultMapper {
   }
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return TranslationType
-   * @throws InvalidArgumentException
-   */
   private function mapType( array $row ): TranslationType {
     $type = substr(
       $row['element_type'],

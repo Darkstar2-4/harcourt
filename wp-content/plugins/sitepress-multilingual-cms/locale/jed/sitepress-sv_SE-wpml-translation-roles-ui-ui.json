@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "From:": [
             "Från:"
@@ -20,10 +20,10 @@
             "Välj %s"
          ],
          "Set language pair(s) for Translator %s:": [
-            "Ställ in språkpar för översättare %s:"
+            "Ange språkpar för översättare %s:"
          ],
          "+ Add more language pairs for this translator": [
-            "+ Lägg till fler språkpar för denna översättare"
+            "+ Lägg till fler språkpar för den här översättaren"
          ],
          "First Name": [
             "Förnamn"
@@ -58,6 +58,9 @@
          "Search": [
             "Sök"
          ],
+         "Your site has a large number of users, please enter the exact username.": [
+            "Din webbplats har ett stort antal användare, ange det exakta användarnamnet."
+         ],
          "Cancel": [
             "Avbryt"
          ],
@@ -68,7 +71,7 @@
             "användare"
          ],
          "Editor": [
-            "Redaktör"
+            "Redigerare"
          ],
          "Select an existing %s and set as Translation Manager": [
             "Välj en befintlig %s och ange som översättningsansvarig"
@@ -86,7 +89,7 @@
             "Skapa en ny användare och ange som översättare"
          ],
          "Set language pair(s)": [
-            "Ställ in språkpar"
+            "Ange språkpar"
          ],
          "Previous": [
             "Föregående"
@@ -116,16 +119,16 @@
             "Ta bort språkpar"
          ],
          "%s file upload failed.": [
-            "%s-filuppladdningen misslyckades."
+            "%s filuppladdning misslyckades."
          ],
          "Flag": [
             "Flagga"
          ],
          "Flag file": [
-            "Flaggfil"
+            "Flagga fil"
          ],
          "You just added  language. Next, select it as the site's default language or a translation language.": [
-            "Du har just lagt till språk. Välj det nu som webbplatsens standardspråk eller ett översättningsspråk."
+            "Du har precis lagt till språk. Välj det sedan som webbplatsens standardspråk eller ett översättningsspråk."
          ],
          "Language added": [
             "Språk tillagt"
@@ -137,13 +140,13 @@
             "Lägg till ett nytt språk"
          ],
          "Create a country-specific language by choosing the general language from the list below. Then, choose the country it should be localized for.": [
-            "Skapa ett landsspecifikt språk genom att välja det allmänna språket från listan nedan. Välj sedan landet det ska lokaliseras för."
+            "Skapa ett landsspecifikt språk genom att välja det allmänna språket från listan nedan. Välj sedan det land det ska lokaliseras för."
          ],
          "By choosing a combination that already exists in the database, WPML can help fill out the necessary fields. Read more about <AddingACustomLanguageLink />.": [
             "Genom att välja en kombination som redan finns i databasen kan WPML hjälpa till att fylla i de nödvändiga fälten. Läs mer om <AddingACustomLanguageLink />."
          ],
          "Cannot find?": [
-            "Kan inte hitta?"
+            "Hittar du inte?"
          ],
          "Click here": [
             "Klicka här"
@@ -164,10 +167,10 @@
             "Språket kommer inte att stödjas av automatiska översättningar"
          ],
          "Language mapping": [
-            "Språkmappning"
+            "Språkkartläggning"
          ],
          "Don't map this language": [
-            "Mappa inte detta språk"
+            "Karta inte detta språk"
          ],
          "Default locale": [
             "Standardlokal"
@@ -209,16 +212,16 @@
             "Läs mer om "
          ],
          "The name of your language as it will appear on your site's language switcher.": [
-            "Namnet på ditt språk som det kommer att visas i din webbplats språkväljare."
+            "Namnet på ditt språk som det kommer att visas i din webbplats språkbytare."
          ],
          "A unique value that identifies the language in the database and URL. Once saved, the language code cannot be changed.": [
-            "Ett unikt värde som identifierar språket i databasen och URL:en. När det sparats kan språkkoden inte ändras."
+            "Ett unikt värde som identifierar språket i databasen och URL:en. När det väl har sparats kan språkkoden inte ändras."
          ],
          "If your custom language is similar to an existing language, you can use the existing language's spellcheck and automatic translation. For example, if your custom language is Swiss-German, you can map to German as the language to use for spellcheck and automatic translation. If you don't map your custom language to an existing language, spellcheck and automatic translation features will be unavailable in that language.": [
-            "Om ditt anpassade språk liknar ett befintligt språk kan du använda det befintliga språkets stavningskontroll och automatisk översättning. Till exempel, om ditt anpassade språk är schweizisk-tyska kan du mappa till tyska som språk att använda för stavningskontroll och automatisk översättning. Om du inte mappar ditt anpassade språk till ett befintligt språk kommer funktioner för stavningskontroll och automatisk översättning inte att vara tillgängliga på det språket."
+            "Om ditt anpassade språk liknar ett befintligt språk kan du använda det befintliga språkets stavningskontroll och automatiska översättning. Om ditt anpassade språk till exempel är schweizertyska kan du mappa till tyska som det språk som ska användas för stavningskontroll och automatisk översättning. Om du inte mappar ditt anpassade språk till ett befintligt språk kommer stavningskontroll och automatiska översättningsfunktioner inte att vara tillgängliga på det språket."
          ],
          "The value WPML checks when loading translations from MO and PO files. The default locale is included in the filenames in your /wp-content/languages/ folder in your WordPress setup.": [
-            "Det värde WPML kontrollerar vid inläsning av översättningar från MO- och PO-filer. Standardlokalen ingår i filnamnen i mappen /wp-content/languages/ i din WordPress-installation."
+            "Värdet WPML kontrollerar när översättningar laddas från MO- och PO-filer. Standardlokalen ingår i filnamnen i din /wp-content/languages/-mapp i din WordPress-installation."
          ],
          "Google uses the hreflang attribute to direct users to sites in their relevant language and location. Examples:": [
             "Google använder hreflang-attributet för att dirigera användare till webbplatser på deras relevanta språk och plats. Exempel:"
@@ -233,7 +236,7 @@
             "Engelska för amerikanska användare: en-us"
          ],
          "Determines if URLs in this language are encoded or use ASCII characters (if unsure, leave it as \"No\").": [
-            "Avgör om URL:er på detta språk är kodade eller använder ASCII-tecken (om osäker, lämna det som “Nej”)."
+            "Avgör om URL:er på detta språk är kodade eller använder ASCII-tecken (om du är osäker, lämna det som “Nej”)."
          ],
          "adding a custom language": [
             "lägga till ett anpassat språk"
@@ -245,7 +248,7 @@
             "Standardspråk"
          ],
          "What is the current language of your website?": [
-            "Vad är det nuvarande språket på din webbplats?"
+            "Vilket är det aktuella språket på din webbplats?"
          ],
          "Translation languages": [
             "Översättningsspråk"
@@ -253,23 +256,23 @@
          "Which languages do you want to translate your site into?": [
             "Vilka språk vill du översätta din webbplats till?"
          ],
-         "If you cannot find languages that you need in the list": [
-            "Om du inte kan hitta språk du behöver i listan"
+         "If you cannot find languages that you need in the list,": [
+            "Om du inte hittar de språk du behöver i listan,"
          ],
          "create a custom language": [
             "skapa ett anpassat språk"
          ],
          "You can add a dedicated person to oversee everything translation-related on your site. %sTranslation Managers%s can add new local translators or professional translation services, create and assign translation jobs, review completed translations, and change translation-related settings.": [
-            "Du kan lägga till en dedikerad person för att övervaka allt översättningsrelaterat på din webbplats. %sÖversättningsansvariga%s kan lägga till nya lokala översättare eller professionella översättningstjänster, skapa och tilldela översättningsjobb, granska färdiga översättningar och ändra översättningsrelaterade inställningar."
+            "Du kan lägga till en dedikerad person för att övervaka allt översättningsrelaterat på din webbplats. %sÖversättningsansvariga%s kan lägga till nya lokala översättare eller professionella översättningstjänster, skapa och tilldela översättningsjobb, granska slutförda översättningar och ändra översättningsrelaterade inställningar."
          ],
          "Translation Managers": [
             "Översättningsansvariga"
          ],
          "Note: All Administrators are automatically given Translation Manager privileges.": [
-            "Obs: Alla administratörer får automatiskt översättningsansvarigs behörigheter."
+            "Obs: Alla administratörer får automatiskt behörighet som översättningsansvarig."
          ],
          "%sLocal translators%s are users of your site that can log in and add, edit, and review your site's translations. Add a translator and their associated translation pairs to assign them translation jobs.": [
-            "%sLokala översättare%s är användare på din webbplats som kan logga in och lägga till, redigera och granska webbplatsens översättningar. Lägg till en översättare och deras tillhörande översättningspar för att tilldela dem översättningsjobb."
+            "%sLokala översättare%s är användare av din webbplats som kan logga in och lägga till, redigera och granska din webbplats översättningar. Lägg till en översättare och deras associerade översättningspar för att tilldela dem översättningsjobb."
          ],
          "You can %shire an experienced translator%s to review your automatic translations for perfect quality.": [
             "Du kan %sanlita en erfaren översättare%s för att granska dina automatiska översättningar för perfekt kvalitet."

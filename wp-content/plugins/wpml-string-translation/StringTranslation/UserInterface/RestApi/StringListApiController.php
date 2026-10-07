@@ -10,10 +10,8 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 
 class StringListApiController extends AbstractStringItemApiController {
 
-	/** @var FindBySearchCriteriaQueryInterface */
 	private $findBySearchCriteriaQuery;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(
@@ -26,9 +24,6 @@ class StringListApiController extends AbstractStringItemApiController {
 		$this->settingsRepository        = $settingsRepository;
 	}
 
-	/**
-	 * @return array
-	 */
 	function get_routes() {
 		return [
 			[
@@ -43,10 +38,6 @@ class StringListApiController extends AbstractStringItemApiController {
 	}
 
 
-	/**
-	 * @return array
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public function get( \WP_REST_Request $request ) {
 		$criteria = new SearchCriteria(
 			$request->get_param( 'kind' ),

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Notice_Render {
 	private $dismiss_html_added;
 	private $hide_html_added;
@@ -12,11 +9,6 @@ class WPML_Notice_Render {
 		echo $this->get_html( $notice );
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return string
-	 */
 	public function get_html( WPML_Notice $notice ) {
 		$result = '';
 
@@ -92,11 +84,6 @@ class WPML_Notice_Render {
 		return $result;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return string
-	 */
 	private function add_nonce( $notice ) {
 		return wp_nonce_field( $notice->get_nonce_action(), $notice->get_nonce_action(), true, false );
 	}
@@ -109,11 +96,6 @@ class WPML_Notice_Render {
 		return $this->is_current_page_allowed( $notice ) && $this->is_allowed_by_callback( $notice );
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return string
-	 */
 	private function get_actions_html( WPML_Notice $notice ) {
 		$actions_html = '';
 		if ( $notice->get_actions() ) {
@@ -136,7 +118,6 @@ class WPML_Notice_Render {
 
 		$sanitized_notice = $text;
 		if ( 2 === count( $matches ) ) {
-			/** @var array<string> $matches_to_sanitize */
 			$matches_to_sanitize = $matches[1];
 
 			foreach ( $matches_to_sanitize as &$match_to_sanitize ) {
@@ -150,11 +131,6 @@ class WPML_Notice_Render {
 		return stripslashes( $sanitized_notice );
 	}
 
-	/**
-	 * @param null|string $localized_text
-	 *
-	 * @return string
-	 */
 	private function get_hide_html( $localized_text = null ) {
 		$hide_html  = '';
 		$hide_html .= '<span class="otgs-notice-hide notice-hide"><span class="screen-reader-text">';
@@ -168,11 +144,6 @@ class WPML_Notice_Render {
 		return $hide_html;
 	}
 
-	/**
-	 * @param null|string $localized_text
-	 *
-	 * @return string
-	 */
 	private function get_dismiss_html( $localized_text = null ) {
 		$dismiss_html  = '';
 		$dismiss_html .= '<span class="otgs-notice-dismiss notice-dismiss" role="button" tabindex="0">';
@@ -187,11 +158,6 @@ class WPML_Notice_Render {
 		return $dismiss_html;
 	}
 
-	/**
-	 * @param string|null $localized_text
-	 *
-	 * @return string
-	 */
 	private function get_collapse_html( $localized_text = null ) {
 		$hide_html = '<span class="otgs-notice-collapse-hide"><span class="screen-reader-text">';
 		if ( $localized_text ) {
@@ -204,12 +170,6 @@ class WPML_Notice_Render {
 		return $hide_html;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 * @param string|null $localized_text
-	 *
-	 * @return string
-	 */
 	private function get_collapsed_html( WPML_Notice $notice, $localized_text = null ) {
 		$content = '
 			<div class="otgs-notice-collapsed-text">
@@ -234,11 +194,6 @@ class WPML_Notice_Render {
 		return $content;
 	}
 
-	/**
-	 * @param WPML_Notice_Action $action
-	 *
-	 * @return string
-	 */
 	private function get_action_html( $action ) {
 		$action_html = '';
 		if ( $action->can_hide() ) {
@@ -258,11 +213,6 @@ class WPML_Notice_Render {
 		return $action_html;
 	}
 
-	/**
-	 * @param WPML_Notice_Action $action
-	 *
-	 * @return string
-	 */
 	private function get_action_anchor( WPML_Notice_Action $action ) {
 		$anchor_attributes = array();
 
@@ -306,18 +256,10 @@ class WPML_Notice_Render {
 		return $action_url;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_data_nonce_attribute() {
 		return ' data-nonce="' . wp_create_nonce( WPML_Notices::NONCE_NAME ) . '"';
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return bool
-	 */
 	private function is_current_screen_allowed( WPML_Notice $notice ) {
 		$allow_current_screen   = true;
 		$restrict_to_screen_ids = $notice->get_restrict_to_screen_ids();
@@ -329,12 +271,6 @@ class WPML_Notice_Render {
 		return $allow_current_screen;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 * @param string      $current_page
-	 *
-	 * @return bool
-	 */
 	private function is_current_page_prefix_allowed( WPML_Notice $notice, $current_page ) {
 		$restrict_to_page_prefixes = $notice->get_restrict_to_page_prefixes();
 		if ( $current_page && $restrict_to_page_prefixes ) {
@@ -352,11 +288,6 @@ class WPML_Notice_Render {
 		return true;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return bool
-	 */
 	private function is_current_page_allowed( WPML_Notice $notice ) {
 		$current_page = array_key_exists( 'page', $_GET ) ? $_GET['page'] : null;
 
@@ -384,11 +315,6 @@ class WPML_Notice_Render {
 		return true;
 	}
 
-	/**
-	 * @param WPML_Notice $notice
-	 *
-	 * @return bool
-	 */
 	private function is_allowed_by_callback( WPML_Notice $notice ) {
 		$allow_by_callback = true;
 		$display_callbacks = $notice->get_display_callbacks();

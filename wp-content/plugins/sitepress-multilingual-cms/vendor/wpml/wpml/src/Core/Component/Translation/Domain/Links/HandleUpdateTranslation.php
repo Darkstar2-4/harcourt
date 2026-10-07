@@ -2,19 +2,12 @@
 
 namespace WPML\Core\Component\Translation\Domain\Links;
 
-/**
- * Handles links for translations and also for other translations that link to
- * this translation.
- */
 class HandleUpdateTranslation {
 
-  /** @var AdjustLinksInterface */
   private $adjustLinks;
 
-  /** @var RepositoryInterface */
   private $repository;
 
-  /** @var array<string,bool> */
   private $adjustedItems = [];
 
 
@@ -27,7 +20,6 @@ class HandleUpdateTranslation {
   }
 
 
-  /** @return void */
   public function handle( Item $item ) {
     if (
       $item->isOriginal()
@@ -37,24 +29,20 @@ class HandleUpdateTranslation {
     }
 
     if ( $item->canLinkToOtherItems() ) {
-      // Adjust the links for the current item.
       $this->adjustOnlyOnce( $item );
     }
 
-    // Adjust the links for other posts that are linked to the current post.
     $this->triggerOtherPostsLinksAdjustment( $item );
+
+    $this->flushCache( $item );
   }
 
 
-  /** @return void */
   private function triggerOtherPostsLinksAdjustment( Item $itemTo ) {
     if (
       ! $itemTo->isPublished()
       || ( ! $itemTo->gotPublished() && ! $itemTo->linkHasChanged() )
     ) {
-      // Not published or...
-      // published, but neither a new publication nor the link has changed.
-      // => No need to adjust the items linking to this time.
       return;
     }
 
@@ -71,8 +59,7 @@ class HandleUpdateTranslation {
   }
 
 
-  /** @return void */
-  private function adjustOnlyOnce( Item $item, Item $triggerItem = null ) {
+  private function adjustOnlyOnce( Item $item, ?Item $triggerItem = null ) {
     $itemIdAndType = $item->getId() . $item->getType();
     if ( array_key_exists( $itemIdAndType, $this->adjustedItems ) ) {
       return;
@@ -80,6 +67,22 @@ class HandleUpdateTranslation {
 
     $this->adjustLinks->adjust( $item, $triggerItem );
     $this->adjustedItems[ $itemIdAndType ] = true;
+  }
+
+
+  private function flushCache( Item $item ) {
+    if ( $item->getType() !== 'post' ) {
+      return;
+    }
+
+    $itemId   = $item->getId();
+    $postType = get_post_field( 'post_type', $itemId );
+
+    if ( ! $postType ) {
+      return;
+    }
+
+    clean_object_term_cache( $itemId, $postType );
   }
 
 

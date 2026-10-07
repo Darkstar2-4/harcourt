@@ -2,7 +2,6 @@
 
 class Installer_Upgrader_Skins extends WP_Upgrader_Skin {
 
-	/** @var WP_Error|null */
 	public $installer_error;
 
 	function __construct( $args = array() ) {

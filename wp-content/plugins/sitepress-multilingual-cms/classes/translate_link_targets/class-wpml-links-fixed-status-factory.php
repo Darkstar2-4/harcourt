@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Class WPML_Links_Fixed_Status_Factory
- *
- * @package wpml-translation-management
- */
 class WPML_Links_Fixed_Status_Factory extends WPML_WPDB_User {
 
 	private $wp_api;

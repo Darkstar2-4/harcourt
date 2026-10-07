@@ -1,3 +1,8 @@
+### 5.7.2 | 2025-12-15
+- Updated the add-on to use the new [versioning system](https://docs.gravityforms.com/version-numbering/).
+- Fixed a PHP fatal error that can occur if an API error is returned when checking if a member already exists.
+- Removed the deprecated class GF_MailChimp_Exception.
+
 ### 5.7.0 | 2025-06-02
 - Updated the API to return WP_Error instead of throwing an exception when an error occurs.
 - Deprecated GF_MailChimp_Exception.

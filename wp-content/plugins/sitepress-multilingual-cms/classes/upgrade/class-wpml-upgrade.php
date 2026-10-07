@@ -7,35 +7,22 @@ class WPML_Upgrade {
 	const SCOPE_AJAX      = 'ajax';
 	const SCOPE_FRONT_END = 'front-end';
 
-	/** @var array */
 	private $commands;
 	const UPDATE_STATUSES_KEY = 'wpml_update_statuses';
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/** @var WPML_Upgrade_Command_Factory */
 	private $command_factory;
 
-	/** @var CommandsStatus */
 	private $command_status;
 
-	/** @var bool $upgrade_in_progress */
 	private $upgrade_in_progress;
 
-	/**
-	 * WPML_Upgrade constructor.
-	 *
-	 * @param array                        $commands
-	 * @param SitePress                    $sitepress
-	 * @param WPML_Upgrade_Command_Factory $command_factory
-	 * @param CommandsStatus               $command_status
-	 */
 	public function __construct(
 		array $commands,
 		SitePress $sitepress,
 		WPML_Upgrade_Command_Factory $command_factory,
-		CommandsStatus $command_status = null
+		?CommandsStatus $command_status = null
 	) {
 		$this->add_commands( $commands );
 		$this->sitepress       = $sitepress;
@@ -43,9 +30,6 @@ class WPML_Upgrade {
 		$this->command_status  = $command_status ?: new CommandsStatus();
 	}
 
-	/**
-	 * @param array $commands
-	 */
 	public function add_commands( array $commands ) {
 		foreach ( $commands as $command ) {
 			if ( $command instanceof WPML_Upgrade_Command_Definition ) {
@@ -57,17 +41,6 @@ class WPML_Upgrade {
 	public function run() {
 		$result = false;
 
-		/**
-		 * Add commands to the upgrade logic.
-		 *
-		 * The filter must be added before the `wpml_loaded` action is fired (the action is fired on `plugins_loaded`).
-		 *
-		 * @param array $commands An empty array.
-		 * @return array Array of classes created with \wpml_create_upgrade_command_definition.
-		 *
-		 * @since 4.1.0
-		 * @see   \wpml_create_upgrade_command_definition
-		 */
 		$new_commands = apply_filters( 'wpml_upgrade_commands', array() );
 		if ( $new_commands && is_array( $new_commands ) ) {
 			$this->add_commands( $new_commands );
@@ -90,7 +63,6 @@ class WPML_Upgrade {
 
 	private function get_commands_by_scope( $scope ) {
 		$results = array();
-		/** @var WPML_Upgrade_Command_Definition $command */
 		foreach ( $this->commands as $command ) {
 			if ( in_array( $scope, $command->get_scopes(), true ) ) {
 				$results[] = $command;
@@ -126,7 +98,6 @@ class WPML_Upgrade {
 
 	private function run_commands( $commands, $default ) {
 		$results = array();
-		/** @var WPML_Upgrade_Command_Definition $command */
 		foreach ( $commands as $command ) {
 			$results[] = $this->run_command( $command, $default );
 		}
@@ -150,11 +121,6 @@ class WPML_Upgrade {
 		return null;
 	}
 
-	/** @noinspection PhpUnusedPrivateMethodInspection
-	 * @param IWPML_Upgrade_Command $upgrade
-	 *
-	 * @return null
-	 */
 	private function maybe_run_admin( IWPML_Upgrade_Command $upgrade ) {
 		if ( $upgrade->run_admin() ) {
 			$this->mark_command_as_executed( $upgrade );
@@ -163,11 +129,6 @@ class WPML_Upgrade {
 		return $upgrade->get_results();
 	}
 
-	/** @noinspection PhpUnusedPrivateMethodInspection
-	 * @param IWPML_Upgrade_Command $upgrade
-	 *
-	 * @return null
-	 */
 	private function maybe_run_front_end( IWPML_Upgrade_Command $upgrade ) {
 		if ( $upgrade->run_frontend() ) {
 			$this->mark_command_as_executed( $upgrade );
@@ -176,11 +137,6 @@ class WPML_Upgrade {
 		return $upgrade->get_results();
 	}
 
-	/** @noinspection PhpUnusedPrivateMethodInspection
-	 * @param IWPML_Upgrade_Command $upgrade
-	 *
-	 * @return null
-	 */
 	private function maybe_run_ajax( IWPML_Upgrade_Command $upgrade ) {
 		if ( $this->nonce_ok( $upgrade ) && $upgrade->run_ajax() ) {
 			$this->mark_command_as_executed( $upgrade );
@@ -207,18 +163,10 @@ class WPML_Upgrade {
 		return false;
 	}
 
-	/**
-	 * @param IWPML_Upgrade_Command $class
-	 */
 	public function mark_command_as_executed( IWPML_Upgrade_Command $class ) {
 		$this->command_status->markAsExecuted( get_class( $class ) );
 	}
 
-	/**
-	 * @param string $class_name
-	 *
-	 * @return string
-	 */
 	private function get_command_id( $class_name ) {
 		return str_replace( '_', '-', strtolower( $class_name ) );
 	}

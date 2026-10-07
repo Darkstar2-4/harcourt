@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Could not fetch engines data": [
             "לא ניתן לאחזר נתוני מנועים"
@@ -32,19 +32,19 @@
             "תרגום AI"
          ],
          "Don't translate drafts. Only translate when I publish content.": [
-            "אל תתרגם טיוטות. תרגם רק כשאני מפרסם תוכן."
+            "אל תתרגם טיוטות. תרגם רק כאשר אני מפרסם תוכן."
          ],
          "Translate drafts as I save them (consumes a bit more translation credits).": [
-            "תרגם טיוטות כשאני שומר אותן (צורך קצת יותר נקודות זכות לתרגום)."
+            "תרגם טיוטות כשאני שומר אותן (צורכת קצת יותר נקודות זכות לתרגום)."
          ],
          "Do you want to translate drafts automatically?": [
-            "האם ברצונך לתרגם טיוטות אוטומטית?"
+            "האם ברצונך לתרגם טיוטות באופן אוטומטי?"
          ],
          "This feature is only available when you enable \"Translate Everything Automatically\" from the %sTranslation Dashboard%s.": [
-            "תכונה זו זמינה רק כאשר מפעילים \"תרגום הכל אוטומטית\" מ%sלוח בקרת התרגום%s."
+            "תכונה זו זמינה רק כאשר אתה מפעיל את \"תרגם הכל באופן אוטומטי\" מלוח הבקרה של %sהתרגום%s."
          ],
          "What would you like to do after WPML finishes translating your content automatically?": [
-            "מה ברצונך לעשות לאחר ש-WPML מסיים לתרגם את התוכן שלך אוטומטית?"
+            "מה תרצה לעשות לאחר ש-WPML יסיים לתרגם את התוכן שלך באופן אוטומטי?"
          ],
          "Publish without review": [
             "פרסם ללא בדיקה"
@@ -53,10 +53,10 @@
             "מומלץ עם PTC"
          ],
          "PTC provides Better Than Human Translations that rarely need improvements, so you can confidently skip the review process. For other translation engines, a human review is recommended to confirm accuracy.": [
-            "PTC מספק תרגומים טובים יותר מתרגום אנושי שכמעט ולא זקוקים לשיפורים, כך שתוכל לדלג בביטחון על תהליך הסקירה. עבור מנועי תרגום אחרים, מומלץ לבצע סקירה אנושית כדי לאשר את הדיוק."
+            "PTC מספק תרגומים טובים יותר מתרגומי אנוש, שלעתים רחוקות דורשים שיפורים, כך שתוכל לדלג בביטחון על תהליך הבדיקה. עבור מנועי תרגום אחרים, מומלצת בדיקה אנושית כדי לאשר דיוק."
          ],
          "WPML publishes translations immediately, skipping the review process.": [
-            "WPML מפרסם תרגומים מיד, מדלג על תהליך הבדיקה."
+            "WPML מפרסם תרגומים באופן מיידי, תוך דילוג על תהליך הבדיקה."
          ],
          "Wait for review": [
             "המתן לבדיקה"
@@ -65,10 +65,10 @@
             "מומלץ עם DeepL, Google ו-Microsoft"
          ],
          "DeepL, Google, and Microsoft deliver great translations, but we recommend a human review to confirm they are correct. PTC provides Better Than Human Translations that understand context, so you can confidently skip the review process.": [
-            "DeepL, Google ו-Microsoft מספקים תרגומים מצוינים, אך אנו ממליצים על סקירה אנושית כדי לוודא שהם נכונים. PTC מספק תרגומים טובים יותר מתרגום אנושי שמבינים הקשר, כך שתוכל לדלג בביטחון על תהליך הסקירה."
+            "DeepL, Google ו-Microsoft מספקים תרגומים מצוינים, אך אנו ממליצים על בדיקה אנושית כדי לוודא שהם נכונים. PTC מספק תרגומים טובים יותר מתרגומי אנוש, שמבינים הקשר, כך שתוכל לדלג בביטחון על תהליך הבדיקה."
          ],
          "WPML keeps translations unpublished, so you can review them first.": [
-            "WPML שומר תרגומים כלא מפורסמים, כך שתוכל לבדוק אותם תחילה."
+            "WPML משאיר תרגומים לא מפורסמים, כך שתוכל לבדוק אותם תחילה."
          ],
          "Your translators review and approve translations before publishing.": [
             "המתרגמים שלך בודקים ומאשרים תרגומים לפני הפרסום."
@@ -77,10 +77,10 @@
             "פרסם וסמן לבדיקה"
          ],
          "WPML publishes translations immediately but flags them for you to check at your convenience.": [
-            "WPML מפרסם תרגומים מיד אך מסמן אותם לבדיקה בנוחות שלך."
+            "WPML מפרסם תרגומים באופן מיידי אך מסמן אותם עבורך לבדיקה בזמנך החופשי."
          ],
          "WPML publishes translations immediately but flags them for translators to review later.": [
-            "WPML מפרסם תרגומים מיד אך מסמן אותם למתרגמים לבדיקה מאוחר יותר."
+            "WPML מפרסם תרגומים באופן מיידי אך מסמן אותם למתרגמים לבדיקה מאוחר יותר."
          ]
       }
    }

@@ -42,18 +42,14 @@ class Repository implements RepositoryInterface {
     self::TYPE_TERM => [ self::TABLE_FROM_POST_TO_TERM ],
   ];
 
-  /** @var PublicationStatusDefinitions */
   private $publicationStatusDefinitions;
 
 
   public function __construct() {
-    // No need to inject PublicationStatusDefinitions here
-    // as it MUST be the WordPress implementation.
     $this->publicationStatusDefinitions = new PublicationStatusDefinitions();
   }
 
 
-  /** @throws InvalidTypeException */
   public function get( int $id, string $type ): Item {
     try {
       switch ( $type ) {
@@ -78,7 +74,7 @@ class Repository implements RepositoryInterface {
           if ( $this->publicationStatusDefinitions->isPublished( $itemStatus ) ) {
             $item->markAsPublished();
           } elseif (
-            $itemName // We don't want to mark as publishable if the name is empty. A post is only in this state as long as it's did not get saved by a user (but auto-saved).
+            $itemName
             && $this->publicationStatusDefinitions->isPublishable( $itemStatus )
           ) {
             $item->markAsPublishable();
@@ -88,7 +84,6 @@ class Repository implements RepositoryInterface {
 
           break;
         case self::TYPE_TERM:
-          /** @var array<string,string>|null $item */
           $item = Term::get( $id, '', 'ARRAY_A' );
 
           if ( ! is_array( $item ) ) {
@@ -143,7 +138,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return Item[] */
   public function getFromItemsByToItem( Item $item ) {
     if ( ! array_key_exists( $item->getType(), self::TABLES_TO_BY_TYPE ) ) {
       return [];
@@ -168,7 +162,6 @@ class Repository implements RepositoryInterface {
 
       foreach ( $itemIds as $itemId ) {
         if ( $item->isOriginal() ) {
-          /** @phpstan-ignore-next-line At this point we can't have an invalid type. */
           $items[] = $this->get( $itemId, $table['from'] );
           continue;
         }
@@ -178,7 +171,6 @@ class Repository implements RepositoryInterface {
           $langCode
           && $translationId = $this->getTranslationIdOfOriginal( $itemId, $table['from'], $langCode )
         ) {
-          /** @phpstan-ignore-next-line At this point we can't have an invalid type. */
           $items[] = $this->get( $translationId, $table['from'] );
         }
       }
@@ -188,7 +180,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return ?int */
   private function getTranslationIdOfOriginal(
     int $originalId,
     string $type,
@@ -198,14 +189,12 @@ class Repository implements RepositoryInterface {
 
     switch ( $type ) {
       case self::TYPE_POST:
-        /** @var array<string,string>|null $post */
         $post = get_post( $originalId, 'ARRAY_A' );
         $elementType = $post
           ? 'post_' . $post['post_type']
           : null;
         break;
       case self::TYPE_TERM:
-        /** @var array<string,string>|null $term */
         $term = Term::get( $originalId, '', 'ARRAY_A' );
         $elementType = $term
           ? 'tax_' . $term['taxonomy']
@@ -235,7 +224,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return Item[] */
   public function getToItemsByFromItem( Item $item ) {
     if ( ! array_key_exists( $item->getType(), self::TABLES_FROM_BY_TYPE ) ) {
       return [];
@@ -256,7 +244,6 @@ class Repository implements RepositoryInterface {
 
       if ( is_array( $itemIds ) ) {
         foreach ( $itemIds as $itemId ) {
-          /** @phpstan-ignore-next-line At this point we can't have an invalid type. */
           $items[] = $this->get( $itemId, $table['to'] );
         }
       }
@@ -266,7 +253,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return void */
   public function addRelationship( Item $from, Item $to ) {
     if ( ! $table = $this->getTableByItems( $from, $to ) ) {
       return;
@@ -286,7 +272,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return void */
   public function deleteRelationship( Item $from, Item $to ) {
     if ( ! $table = $this->getTableByItems( $from, $to ) ) {
       return;
@@ -304,7 +289,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return ?self::TABLE_FROM_* */
   private function getTableByItems( Item $from, Item $to ) {
     $tablesFrom = self::TABLES_FROM_BY_TYPE[ $from->getType() ] ?? [];
 
@@ -318,7 +302,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return void */
   public function deleteAllRelationshipsFrom( Item $item ) {
     if ( ! array_key_exists( $item->getType(), self::TABLES_FROM_BY_TYPE ) ) {
       return;
@@ -335,7 +318,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /** @return void */
   public function deleteAllRelationshipsTo( Item $item ) {
     if ( ! array_key_exists( $item->getType(), self::TABLES_TO_BY_TYPE ) ) {
       return;
@@ -357,10 +339,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /*
-  * DO NOT CHANGE THIS METHOD NAME / VISIBLITY.
-  * This is called by legacy initial database setup.
-  */
   public static function createDatabaseTables(): bool {
     $wpdb = $GLOBALS['wpdb'];
 

@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "But...": [
             "Pero..."
          ],
          "Wait to translate any content that contains media until we're finished configuring it. It will be just a moment.": [
-            "Para traducir cualquier contenido que contenga mulltimedia, espere hasta que terminemos de configurarlo. Solo demorará unos instantes."
+            "Espere a traducir cualquier contenido que contenga medios hasta que hayamos terminado de configurarlo. Será solo un momento."
          ]
       }
    }

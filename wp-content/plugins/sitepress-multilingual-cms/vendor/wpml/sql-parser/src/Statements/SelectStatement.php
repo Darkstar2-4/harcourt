@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `SELECT` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -53,11 +50,6 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class SelectStatement extends Statement
 {
-    /**
-     * Options for `SELECT` statements and their slot ID.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'ALL' => 1,
         'DISTINCT' => 1,
@@ -81,24 +73,15 @@ class SelectStatement extends Statement
         'LOCK IN SHARE MODE' => 1
     );
 
-    /**
-     * The clauses of this statement, in order.
-     *
-     * @see Statement::$CLAUSES
-     *
-     * @var array
-     */
     public static $CLAUSES = array(
         'SELECT' => array(
             'SELECT',
             2,
         ),
-        // Used for options.
         '_OPTIONS' => array(
             '_OPTIONS',
             1,
         ),
-        // Used for selected expressions.
         '_SELECT' => array(
             'SELECT',
             1,
@@ -217,121 +200,38 @@ class SelectStatement extends Statement
             '_END_OPTIONS',
             1,
         ),
-        // These are available only when `UNION` is present.
-        // 'ORDER BY'                      => array('ORDER BY', 3),
-        // 'LIMIT'                         => array('LIMIT', 3)
     );
 
-    /**
-     * Expressions that are being selected by this statement.
-     *
-     * @var Expression[]
-     */
     public $expr = array();
 
-    /**
-     * Tables used as sources for this statement.
-     *
-     * @var Expression[]
-     */
     public $from = array();
 
-    /**
-     * Index hints
-     *
-     * @var IndexHint[]
-     */
     public $index_hints;
 
-    /**
-     * Partitions used as source for this statement.
-     *
-     * @var ArrayObj
-     */
     public $partition;
 
-    /**
-     * Conditions used for filtering each row of the result set.
-     *
-     * @var Condition[]
-     */
     public $where;
 
-    /**
-     * Conditions used for grouping the result set.
-     *
-     * @var GroupKeyword[]
-     */
     public $group;
 
-    /**
-     * Conditions used for filtering the result set.
-     *
-     * @var Condition[]
-     */
     public $having;
 
-    /**
-     * Specifies the order of the rows in the result set.
-     *
-     * @var OrderKeyword[]
-     */
     public $order;
 
-    /**
-     * Conditions used for limiting the size of the result set.
-     *
-     * @var Limit
-     */
     public $limit;
 
-    /**
-     * Procedure that should process the data in the result set.
-     *
-     * @var FunctionCall
-     */
     public $procedure;
 
-    /**
-     * Destination of this result set.
-     *
-     * @var IntoKeyword
-     */
     public $into;
 
-    /**
-     * Joins.
-     *
-     * @var JoinKeyword[]
-     */
     public $join;
 
-    /**
-     * Unions.
-     *
-     * @var SelectStatement[]
-     */
     public $union = array();
 
-    /**
-     * The end options of this query.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$END_OPTIONS
-     */
     public $end_options;
 
-    /**
-     * Gets the clauses of this statement.
-     *
-     * @return array
-     */
     public function getClauses()
     {
-        // This is a cheap fix for `SELECT` statements that contain `UNION`.
-        // The `ORDER BY` and `LIMIT` clauses should be at the end of the
-        // statement.
         if (! empty($this->union)) {
             $clauses = static::$CLAUSES;
             unset($clauses['ORDER BY'], $clauses['LIMIT']);

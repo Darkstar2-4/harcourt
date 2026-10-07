@@ -12,19 +12,14 @@ use WP_Post;
 
 class ItemUpdateEventListenerAdapter {
 
-  /** @var ItemUpdateListener */
   private $itemUpdateListener;
 
-  /** @var PublicationStatusDefinitions */
   private $publicationStatusDefinitions;
 
-  /** @var Repository */
   private $repository;
 
-  /** @var array{post: ?WP_Post, statusBefore: string, nameBefore:string}[] */
   private $updatedPosts = [];
 
-  /** @var array<int,string> */
   private $updatedTerms = [];
 
 
@@ -39,38 +34,23 @@ class ItemUpdateEventListenerAdapter {
   }
 
 
-  /** @return void */
   public function onPostUpdate( WP_Post $postBeforeSave ) {
     $postId = $postBeforeSave->ID;
     if ( array_key_exists( $postId, $this->updatedPosts ) ) {
-      // The post status is collected here to determine if a post was published
-      // for the first time - in that case the status here is empty/"draft" and
-      // "publish" on the later save hook (see onPostSave).
-      // Same for the name to check if the link has changed.
-      //
-      // But some plugins (Elementor) trigger an additional update and in that
-      // update the post status or name is already the final state. So
-      // onPostSave wouldn't determine a change in status or name.
-      //
-      // Solution: Keep the first state and ignore further updates in the request.
       return;
     }
     $this->setDefaultsForPost( $postId );
-    // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
     $this->updatedPosts[ $postId ]['statusBefore'] = $postBeforeSave->post_status;
-    // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
     $this->updatedPosts[ $postId ]['nameBefore'] = $postBeforeSave->post_name;
   }
 
 
-  /** @return void */
   public function onPostSave( int $postId, WP_Post $wpPost ) {
     $this->setDefaultsForPost( $postId );
     $this->updatedPosts[ $postId ]['post'] = $wpPost;
   }
 
 
-  /** @return void */
   private function setDefaultsForPost( int $postId ) {
     if ( array_key_exists( $postId, $this->updatedPosts ) ) {
       return;
@@ -83,18 +63,15 @@ class ItemUpdateEventListenerAdapter {
   }
 
 
-  /** @return void */
   public function onTermCreation( int $termId ) {
     if ( array_key_exists( $termId, $this->updatedTerms ) ) {
       return;
     }
 
-    // No previous slug.
     $this->updatedTerms[ $termId ] = '';
   }
 
 
-  /** @return void */
   public function beforeTermUpdate( int $termId ) {
     if ( array_key_exists( $termId, $this->updatedTerms ) ) {
       return;
@@ -107,13 +84,6 @@ class ItemUpdateEventListenerAdapter {
   }
 
 
-  /**
-   * Do the actual work on shutdown to prevent multiple adjustment calls.
-   * So even if multiple posts were translated in one request,
-   * we only adjust the links once.
-   *
-   * @return void
-   */
   public function onShutdown() {
     if ( ! $this->updatedPosts && ! $this->updatedTerms ) {
       return;
@@ -122,7 +92,7 @@ class ItemUpdateEventListenerAdapter {
     foreach ( $this->updatedPosts as $post ) {
       try {
         if ( $post['post'] === null ) {
-          continue; // Shouldn't happen, but just in case.
+          continue;
         }
 
         $item = $this->getItemByPost(
@@ -152,9 +122,6 @@ class ItemUpdateEventListenerAdapter {
   }
 
 
-  /**
-  * @throws InvalidTypeException
-  */
   private function getItemByPost(
     WP_Post $wpPost,
     string $statusBefore,
@@ -163,7 +130,6 @@ class ItemUpdateEventListenerAdapter {
       $item = $this->repository->get( $wpPost->ID, Repository::TYPE_POST );
     if (
         $this->publicationStatusDefinitions->gotPublished(
-          // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
           $wpPost->post_status,
           $statusBefore
         )
@@ -171,7 +137,6 @@ class ItemUpdateEventListenerAdapter {
       $item->markAsGotPublished();
     }
 
-    // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
     if ( $wpPost->post_name !== $nameBefore ) {
       $item->markLinkAsChanged( $nameBefore );
     }
@@ -180,10 +145,6 @@ class ItemUpdateEventListenerAdapter {
   }
 
 
-  /**
-  * @throws InvalidTypeException
-  * @return ?Item
-  */
   private function getItemByTerm( int $termId, string $slugBefore ) {
     $term = Term::get( $termId, '', 'ARRAY_A' );
 

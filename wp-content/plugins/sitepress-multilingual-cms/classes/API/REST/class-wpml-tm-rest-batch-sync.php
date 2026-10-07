@@ -3,7 +3,6 @@
 use WPML\LIB\WP\User;
 
 class WPML_TM_REST_Batch_Sync extends WPML_REST_Base {
-	/** @var WPML_TP_Batch_Sync_API */
 	private $batch_sync_api;
 
 	public function __construct( WPML_TP_Batch_Sync_API $batch_sync_api ) {

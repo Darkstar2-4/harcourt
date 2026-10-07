@@ -19,18 +19,12 @@ class DuplicationBatchMapper {
   }
 
 
-  /**
-   * @param DuplicationBatch $batch
-   *
-   * @return \WPML_TM_Translation_Batch_Element[]
-   */
   private function buildElements( DuplicationBatch $batch ): array {
     $targetLanguagesCodes = $batch->getTargetLanguages();
 
-    /** @var array<string, int> $targetLanguages */
     $targetLanguages = array_combine(
       $targetLanguagesCodes,
-      array_fill( 0, count( $targetLanguagesCodes ), 2 ) // 2 represents "duplicate" action
+      array_fill( 0, count( $targetLanguagesCodes ), 2 )
     );
 
     $elements = [];
@@ -50,18 +44,12 @@ class DuplicationBatchMapper {
   }
 
 
-  /**
-   * @param DuplicationBatch $batch
-   *
-   * @return array<string, int>
-   */
   private function buildTranslators( DuplicationBatch $batch ): array {
     $targetLanguagesCodes = $batch->getTargetLanguages();
 
-    /** @var array<string, int> $result */
     $result = array_combine(
       $targetLanguagesCodes,
-      array_fill( 0, count( $targetLanguagesCodes ), 0 ) // 0 -> no translator
+      array_fill( 0, count( $targetLanguagesCodes ), 0 )
     );
 
     return $result;

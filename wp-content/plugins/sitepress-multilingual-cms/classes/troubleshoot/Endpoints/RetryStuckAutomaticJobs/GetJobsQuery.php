@@ -4,21 +4,12 @@ namespace WPML\TM\Troubleshooting\Endpoints\RetryStuckAutomaticJobs;
 
 class GetJobsQuery {
 
-	/**
-	 * @var \wpdb
-	 */
 	private $wpdb;
 
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param int $limit
-	 *
-	 * @return array<array<string, int>>
-	 * @throws \Exception
-	 */
 	public function get( int $limit ) {
 		$query = "SELECT
 				    wpml_tj.job_id,

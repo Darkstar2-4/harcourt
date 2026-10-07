@@ -7,10 +7,8 @@ use WPML\Infrastructure\WordPress\Component\Translation\Application\Event\Posts\
 
 class PostInsertedEvent {
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var LanguageOfAutosavedDraftPostListener|null */
   private $setLanguageToAutosavedDraftPostListener;
 
 
@@ -20,9 +18,6 @@ class PostInsertedEvent {
   }
 
 
-  /**
-   * @return void
-   */
   public function register() {
     add_action(
       'wp_after_insert_post',

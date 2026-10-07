@@ -7,16 +7,8 @@ use WPML\FP\Curryable;
 use WPML\FP\Fns;
 use WPML\FP\Obj;
 use WPML\TM\Jobs\Dispatch\Messages;
-use function WPML\Container\make;
+use WPML\Translation\CancelJobsServiceFactory;
 
-/**
- * Class Batch
- * @package WPML\TM\API
- *
- * @method static callable|void rollback( ...$batchName ) - Curried :: string->void
- *
- * It rollbacks just sent batch.
- */
 class Batch {
 
 	use Curryable;
@@ -24,24 +16,18 @@ class Batch {
 	public static function init() {
 
 		self::curryN( 'rollback', 1, function ( $basketName ) {
-			$batch = make( \WPML_Translation_Basket::class )->get_basket_batch( $basketName );
-			$batch->cancel_all_jobs();
-			$batch->clear_batch_data();
+			$batchId = \WPML_Translation_Basket::get_batch_id_from_name( $basketName );
+
+			if ( $batchId ) {
+				$cancelJobsService = CancelJobsServiceFactory::create();
+				$cancelJobsService->cancelJobsInBatch( $batchId );
+			}
+
+			\TranslationProxy_Basket::set_batch_data( null );
+			icl_cache_clear();
 		} );
 
 
-	}
-
-	public static function sendPosts( Messages $messages, $batch, $sendFrom = Jobs::SENT_VIA_BASKET ) {
-		$dispatchActions = function ( $batch ) use ( $sendFrom ) {
-			$allowedTypes = array_keys( \TranslationProxy_Basket::get_basket_items_types() );
-
-			foreach ( $allowedTypes as $type ) {
-				do_action( 'wpml_tm_send_' . $type . '_jobs', $batch, $type, $sendFrom );
-			}
-		};
-
-		self::send( $dispatchActions, [ $messages, 'showForPosts' ], $batch );
 	}
 
 	public static function sendStrings( Messages $messages, $batch ) {

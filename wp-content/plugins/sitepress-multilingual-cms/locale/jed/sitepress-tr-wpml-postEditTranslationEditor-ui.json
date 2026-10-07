@@ -1,0 +1,69 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Translation Dashboard": [
+            "Çeviri kontrol paneli"
+         ],
+         "WPML Translation Editor": [
+            "WPML Çeviri Düzenleyicisi"
+         ],
+         "WordPress Editor": [
+            "WordPress düzenleyici"
+         ],
+         "Also, switching back to WPML's Translation Editor later will require re-translating content that you translated with the WordPress editor.": [
+            "Ayrıca, daha sonra WPML'nin Çeviri Düzenleyicisi'ne geri dönmek, WordPress düzenleyiciyle çevirdiğiniz içeriği yeniden çevirmenizi gerektirecektir."
+         ],
+         "This will overwrite content you translated with the WordPress Editor. If you switch now, you'll have to translate selected content again.": [
+            "Bu işlem, WordPress Düzenleyici ile çevirdiğiniz içeriğin üzerine yazacaktır. Şimdi geçiş yaparsanız, seçilen içeriği tekrar çevirmeniz gerekecektir."
+         ],
+         "You are about to translate with the %s": [
+            "%s ile çevirmek üzeresiniz"
+         ],
+         "Translate with the WordPress Editor if you need different designs per language or if the content isn't compatible with WPML's Translation Editor.": [
+            "Dil başına farklı tasarımlara ihtiyacınız varsa veya içerik WPML'nin Çeviri Düzenleyicisi ile uyumlu değilse WordPress Düzenleyici ile çevirin."
+         ],
+         "What do you want to translate?": [
+            "Ne çevirmek istiyorsunuz?"
+         ],
+         "I understand, switch to the WordPress Editor": [
+            "Anladım, WordPress Düzenleyici'ye geç"
+         ],
+         "Apply": [
+            "Uygula"
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "I understand, switch to %s": [
+            "Anladım, %s'e geç"
+         ],
+         "Only this %s": [
+            "Sadece bu %s"
+         ],
+         "Recommended": [
+            "Önerilen"
+         ],
+         "All %s": [
+            "Tüm %s"
+         ],
+         "All the site's content": [
+            "Sitenin tüm içeriği"
+         ],
+         "I understand, switch to Translation Dashboard": [
+            "Anladım, Çeviri Kontrol Paneli'ne geç"
+         ],
+         "The WordPress Editor doesn't offer Automatic Translation, Translation Memory and other features that make translation easier.": [
+            "WordPress Düzenleyici, Otomatik Çeviri, Çeviri Belleği ve çeviriyi kolaylaştıran diğer özellikleri sunmaz."
+         ],
+         "Translate items in batch after reviewing the cost of AI translation": [
+            "Yapay zeka çevirisinin maliyetini inceledikten sonra öğeleri toplu olarak çevir"
+         ]
+      }
+   }
+}

@@ -8,9 +8,6 @@ use WPML\FP\Relation;
 
 class FormPopup {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$popupIdPath = [ 'settings', 'popup_action_popup_id' ];
 

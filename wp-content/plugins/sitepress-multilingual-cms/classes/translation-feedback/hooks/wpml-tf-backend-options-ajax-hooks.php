@@ -1,32 +1,15 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Options_AJAX_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Options_AJAX_Hooks implements IWPML_Action {
 
-	/** @var WPML_TF_Settings $settings */
 	private $settings;
 
-	/** @var WPML_TF_Settings_Write $settings_write */
 	private $settings_write;
 
-	/** @var WPML_TF_Promote_Notices $promote_notices */
 	private $promote_notices;
 
-	/** @var array $post_data */
 	private $post_data;
 
-	/**
-	 * WPML_TF_Frontend_AJAX_Hooks constructor.
-	 *
-	 * @param WPML_TF_Settings        $settings
-	 * @param WPML_TF_Settings_Write  $settings_write
-	 * @param WPML_TF_Promote_Notices $promote_notices
-	 * @param array                   $post_data
-	 */
 	public function __construct(
 		WPML_TF_Settings $settings,
 		WPML_TF_Settings_Write $settings_write,

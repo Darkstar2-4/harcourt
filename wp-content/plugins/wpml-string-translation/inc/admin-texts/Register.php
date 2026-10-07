@@ -11,22 +11,17 @@ use function WPML\FP\pipe;
 
 class Register implements IHandler {
 
-	/** @var \WPML_Admin_Texts */
 	private $adminTexts;
 
 	public function __construct( \WPML_Admin_Texts $adminTexts ) {
 		$this->adminTexts = $adminTexts;
 	}
 
-	/**
-	 * Registers or Unregisters an option for translation depending
-	 * on the `state` data.
-	 *
-	 * @param Collection $data
-	 *
-	 * @return Either
-	 */
 	public function run( Collection $data ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return Either::left( 'not allowed' );
+		}
+
 		$state      = $data->get( 'state' ) ? 'on' : '';
 		$applyState = partial( [ self::class, 'flatToHierarchical' ], $state );
 
@@ -43,17 +38,8 @@ class Register implements IHandler {
 	}
 
 
-	/**
-	 * string $state -> string [key1][key2][name] -> array [ key1 => [ key2 => [ name => $state ] ] ]
-	 *
-	 * @param string $state
-	 * @param string $option
-	 *
-	 * @return array
-	 */
 	public static function flatToHierarchical( $state, $option ) {
 
-		// string $value -> mixed $key -> array [ $key => $value ]
 		$makeArrayWithStringKey = function ( $value, $key ) {
 			return [ (string) $key => $value ];
 		};

@@ -9,9 +9,6 @@ class OntoWikiInstaller extends BaseInstaller
         'translation' => 'extensions/translations/{$name}/',
     );
 
-    /**
-     * Format package name to lower case and remove ".ontowiki" suffix
-     */
     public function inflectPackageVars($vars)
     {
         $vars['name'] = strtolower($vars['name']);

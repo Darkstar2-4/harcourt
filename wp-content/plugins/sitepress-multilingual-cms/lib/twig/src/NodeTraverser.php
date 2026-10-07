@@ -11,22 +11,10 @@
 namespace WPML\Core\Twig;
 
 use WPML\Core\Twig\NodeVisitor\NodeVisitorInterface;
-/**
- * A node traverser.
- *
- * It visits all nodes and their children and calls the given visitor for each.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class NodeTraverser
 {
     protected $env;
     protected $visitors = [];
-    /**
-     * @param NodeVisitorInterface[] $visitors
-     */
     public function __construct(\WPML\Core\Twig\Environment $env, array $visitors = [])
     {
         $this->env = $env;
@@ -38,11 +26,6 @@ class NodeTraverser
     {
         $this->visitors[$visitor->getPriority()][] = $visitor;
     }
-    /**
-     * Traverses a node and calls the registered visitors.
-     *
-     * @return \Twig_NodeInterface
-     */
     public function traverse(\WPML\Core\Twig_NodeInterface $node)
     {
         \ksort($this->visitors);
@@ -53,7 +36,7 @@ class NodeTraverser
         }
         return $node;
     }
-    protected function traverseForVisitor(\WPML\Core\Twig\NodeVisitor\NodeVisitorInterface $visitor, \WPML\Core\Twig_NodeInterface $node = null)
+    protected function traverseForVisitor(\WPML\Core\Twig\NodeVisitor\NodeVisitorInterface $visitor, ?\WPML\Core\Twig_NodeInterface $node = null)
     {
         if (null === $node) {
             return;

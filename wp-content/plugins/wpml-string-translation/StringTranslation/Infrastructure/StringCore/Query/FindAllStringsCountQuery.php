@@ -7,12 +7,8 @@ use WPML\StringTranslation\Application\StringCore\Query\FindAllStringsCountQuery
 
 class FindAllStringsCountQuery implements FindAllStringsCountQueryInterface {
 
-	/** @var FindAllStringsCountQueryBuilder */
 	private $queryBuilder;
 
-	/**
-	 * @param FindAllStringsCountQueryBuilder $queryBuilder
-	 */
 	public function __construct(
 		FindAllStringsCountQueryBuilder $queryBuilder
 	) {

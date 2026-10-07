@@ -9,7 +9,13 @@
 	data-caption="{{ attachment.post.post_excerpt }}"
 	data-alt_text="{{ attachment.alt }}"
 	data-description="{{ attachment.post.post_content }}"
-	data-flag="{{ languages[attachment.language].flag }}">
+	data-flag="{{ languages[attachment.language].flag }}"
+	data-custom_fields="{{ attachment.custom_fields|json_encode }}"
+	data-copy_from_original="{{ strings.copy_from_original }}"
+	data-copied-media-label="{{ strings.copied_media }}"
+	data-referenced-media-label="{{ strings.referenced_media }}"
+	data-has-usages-in-posts-by-copy="{% if attachment.has_usages_in_posts_by_copy %}1{% else %}0{% endif %}"
+	data-has-usages-in-posts-by-reference="{% if attachment.has_usages_in_posts_by_reference %}1{% else %}0{% endif %}">
 	<td class="wpml-col-media-title">
         <span title="{{ languages[attachment.language].name }}" class="wpml-media-original-flag js-otgs-popover-tooltip"
 			  data-tippy-distance="-12">
@@ -36,6 +42,19 @@
 			{{ attachment.file_name }}
 		</span>
 	</td>
+	{% if should_handle_media_auto %}
+	<td class="wpml-col-media-title" style="vertical-align: middle">
+		{% if attachment.has_usages_in_posts_by_copy %}
+		<div class="wpml-media-type-label">{{ strings.copied_media }}</div>
+		{% endif %}
+		{% if attachment.has_usages_in_posts_by_copy and attachment.has_usages_in_posts_by_reference %}
+		<div class="vertical-separator"></div>
+		{% endif %}
+		{% if attachment.has_usages_in_posts_by_reference %}
+		<div class="wpml-media-type-label wpml-media-type-label--light">{{ strings.referenced_media }}</div>
+		{% endif %}
+	</td>
+	{% endif %}
 	<td class="wpml-col-media-translations">
 		{% for code, language in languages %}
 			{% if target_language is empty or target_language == code %}
@@ -62,7 +81,9 @@
 						  data-alt_text="{{ attachment.translations[code].alt }}"
 						  data-description="{{ attachment.translations[code].description }}"
 						  data-flag="{{ languages[code].flag }}"
-						  data-media-is-translated="{{ attachment.translations[code].media_is_translated }}">
+						  data-media-is-translated="{{ attachment.translations[code].media_is_translated }}"
+						  data-custom_fields="{{ attachment.translations[code].custom_fields|json_encode }}"
+					>
                                     <a class="js-open-media-translation-dialog {% if attachment.translations[code].media_is_translated %}wpml-media-translation-image{% endif %}">
                                         <img src="{{ attachment.translations[code].thumb.src }}"
 											 width="{{ attachment.thumb.width }}" height="{{ attachment.thumb.height }}"

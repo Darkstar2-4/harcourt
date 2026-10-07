@@ -4,10 +4,8 @@ namespace WPML\Core\Component\Translation\Application\Query\Dto;
 
 class TranslationBatchDto {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $name;
 
 

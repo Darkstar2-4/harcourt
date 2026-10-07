@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `INSERT` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -55,11 +52,6 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class InsertStatement extends Statement
 {
-    /**
-     * Options for `INSERT` statements.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'LOW_PRIORITY' => 1,
         'DELAYED' => 2,
@@ -67,47 +59,16 @@ class InsertStatement extends Statement
         'IGNORE' => 4
     );
 
-    /**
-     * Tables used as target for this statement.
-     *
-     * @var IntoKeyword
-     */
     public $into;
 
-    /**
-     * Values to be inserted.
-     *
-     * @var ArrayObj[]|null
-     */
     public $values;
 
-    /**
-     * If SET clause is present
-     * holds the SetOperation.
-     *
-     * @var SetOperation[]
-     */
     public $set;
 
-    /**
-     * If SELECT clause is present
-     * holds the SelectStatement.
-     *
-     * @var SelectStatement
-     */
     public $select;
 
-    /**
-     * If ON DUPLICATE KEY UPDATE clause is present
-     * holds the SetOperation.
-     *
-     * @var SetOperation[]
-     */
     public $onDuplicateSet;
 
-    /**
-     * @return string
-     */
     public function build()
     {
         $ret = 'INSERT ' . $this->options;
@@ -128,15 +89,10 @@ class InsertStatement extends Statement
         return $ret;
     }
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
-        ++$list->idx; // Skipping `INSERT`.
+        ++$list->idx;
 
-        // parse any options if provided
         $this->options = OptionsArray::parse(
             $parser,
             $list,
@@ -144,41 +100,17 @@ class InsertStatement extends Statement
         );
         ++$list->idx;
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ---------------------------------[ INTO ]----------------------------------> 1
-         *
-         *      1 -------------------------[ VALUES/VALUE/SET/SELECT ]-----------------------> 2
-         *
-         *      2 -------------------------[ ON DUPLICATE KEY UPDATE ]-----------------------> 3
-         *
-         * @var int
-         */
         $state = 0;
 
-        /**
-         * For keeping track of semi-states on encountering
-         * ON DUPLICATE KEY UPDATE ...
-         */
         $miniState = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -204,11 +136,11 @@ class InsertStatement extends Statement
                     if ($token->keyword === 'VALUE'
                         || $token->keyword === 'VALUES'
                     ) {
-                        ++$list->idx; // skip VALUES
+                        ++$list->idx;
 
                         $this->values = Array2d::parse($parser, $list);
                     } elseif ($token->keyword === 'SET') {
-                        ++$list->idx; // skip SET
+                        ++$list->idx;
 
                         $this->set = SetOperation::parse($parser, $list);
                     } elseif ($token->keyword === 'SELECT') {

@@ -14,10 +14,8 @@ class FailureHooks implements \IWPML_Backend_Action {
 	const NOTICE_GROUP             = 'mo-failure';
 	const NOTICE_ID_MISSING_FOLDER = 'missing-folder';
 
-	/** @var Status */
 	private $status;
 
-	/** @var SingleSiteProcess $singleProcess */
 	private $singleProcess;
 
 	public function __construct(
@@ -64,9 +62,6 @@ class FailureHooks implements \IWPML_Backend_Action {
 		}
 	}
 
-	/**
-	 * @param string $dir
-	 */
 	public function displayMissingFolderNotice( $dir ) {
 		$notices = wpml_get_admin_notices();
 		$notice = $notices->get_new_notice(
@@ -77,11 +72,6 @@ class FailureHooks implements \IWPML_Backend_Action {
 		$notices->add_notice( $notice );
 	}
 
-	/**
-	 * @param string $dir
-	 *
-	 * @return string
-	 */
 	public static function missingFolderNoticeContent( $dir ) {
 		$text = '<p>' .
 		        esc_html__( 'WPML String Translation is attempting to write .mo files with translations to folder:',
@@ -122,18 +112,10 @@ class FailureHooks implements \IWPML_Backend_Action {
 		$notices->add_notice( new RegenerationInProgressNotice() );
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function getSubdir() {
 		return WP_LANG_DIR . '/' . \WPML\ST\TranslationFile\Manager::SUB_DIRECTORY;
 	}
 
-	/**
-	 * @param string $dir
-	 *
-	 * @return bool
-	 */
 	private function isDirectoryMissing( $dir ) {
 		return ! $this->filesystem->is_writable( $dir );
 	}

@@ -5,15 +5,6 @@ namespace OTGS\Installer\FP\Traits;
 use function OTGS\Installer\FP\curryN;
 
 trait Pointed {
-	/**
-	 * of :: a -> M a
-	 *
-	 * Curried function that returns an instance of the derived class
-	 *
-	 * @param mixed $value (optional)
-	 *
-	 * @return mixed|callable
-	 */
 	public static function of( $value = null ) {
 		$of = function ( $value ) {
 			return new static( $value );

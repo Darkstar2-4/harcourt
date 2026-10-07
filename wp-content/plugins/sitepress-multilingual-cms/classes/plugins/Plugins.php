@@ -62,9 +62,6 @@ class Plugins {
 		}
 	}
 
-	/**
-	 * @param bool $isSetupComplete
-	 */
 	public static function loadEmbeddedTM( $isSetupComplete ) {
 		$tmSlug  = 'wpml-translation-management/plugin.php';
 
@@ -108,8 +105,8 @@ class Plugins {
 	public static function isTMActive() {
 		$hasTM = function ( $plugins ) {
 			return is_array( $plugins ) && (
-					Lst::includes( self::WPML_TM_PLUGIN, $plugins ) || // 'active_plugins' stores plugins as values
-					array_key_exists( self::WPML_TM_PLUGIN, $plugins ) // 'active_sitewide_plugins' stores plugins as keys
+					Lst::includes( self::WPML_TM_PLUGIN, $plugins ) ||
+					array_key_exists( self::WPML_TM_PLUGIN, $plugins )
 				);
 		};
 

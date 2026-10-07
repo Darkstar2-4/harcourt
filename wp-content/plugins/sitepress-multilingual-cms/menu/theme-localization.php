@@ -16,7 +16,6 @@ if ( ( ! isset( $sitepress_settings['existing_content_language_verified'] ) ||
 
 	<?php
 
-	/** @deprecated use wpml_custom_localization_type instead */
 		do_action( 'icl_custom_localization_type' );
 
 		do_action( 'wpml_custom_localization_type' );

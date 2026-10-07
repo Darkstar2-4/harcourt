@@ -8,6 +8,7 @@ use WPML\FP\Cast;
 use WPML\FP\Fns;
 use WPML\FP\Logic;
 use WPML\FP\Obj;
+use WPML\LIB\WP\User;
 use WPML\TM\API\Jobs;
 use WPML\TM\ATE\Review\PreviewLink;
 use WPML\TM\ATE\Review\ReviewStatus;
@@ -16,12 +17,11 @@ use function WPML\FP\pipe;
 
 class GetJobsInfo implements \WPML\Ajax\IHandler {
 
-	/**
-	 * @param Collection<jobIds: int[], returnUrl: string> $data
-	 *
-	 * @return Either<{jobId: int, automatic:'1'|'0', status: int, ateJobId: int}[]>
-	 */
 	public function run( Collection $data ) {
+		if ( ! User::canManageTranslations() ) {
+			return Either::left( 'Insufficient permissions' );
+		}
+
 		$jobIds    = $data->get( 'jobIds', [] );
 		$returnUrl = $data->get( 'returnUrl', '' );
 

@@ -5,7 +5,6 @@ use function WPML\Container\share;
 
 class WPML_Gutenberg_Integration_Factory {
 
-	/** @return \WPML\PB\Gutenberg\Integration_Composite */
 	public function create() {
 		$integrations = new WPML\PB\Gutenberg\Integration_Composite();
 
@@ -47,17 +46,14 @@ class WPML_Gutenberg_Integration_Factory {
 			make( \WPML\PB\Gutenberg\Hooks\TranslationGuiLabels::class )
 		);
 
+		$integrations->add(
+			new \WPML\PB\Gutenberg\MediaHooksIntegration( $mainIntegration->get_config_option() )
+		);
+
 		return $integrations;
 	}
 
-	/**
-	 * @return WPML_Gutenberg_Integration
-	 */
 	public function create_gutenberg_integration() {
-		/**
-		 * @var SitePress $sitepress
-		 * @var wpdb $wpdb
-		 */
 		global $sitepress, $wpdb;
 
 		$config_option    = new WPML_Gutenberg_Config_Option();
@@ -76,7 +72,8 @@ class WPML_Gutenberg_Integration_Factory {
 		return new WPML_Gutenberg_Integration(
 			$strings_in_block,
 			$config_option,
-			$strings_registration
+			$strings_registration,
+			$sitepress
 		);
 	}
 
@@ -89,14 +86,11 @@ class WPML_Gutenberg_Integration_Factory {
 		return new WPML\PB\Gutenberg\StringsInBlock\Collection( $string_parsers );
 	}
 
-	/** @return bool */
 	private function should_translate_reusable_blocks() {
-		/** @var SitePress $sitepress */
 		global $sitepress;
 
 		return $sitepress->is_translated_post_type(
 			WPML\PB\Gutenberg\ReusableBlocks\Translation::POST_TYPE
 		);
-
 	}
 }

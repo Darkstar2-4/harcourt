@@ -1,27 +1,13 @@
 <?php
 
-/**
- * Class WPML_Beaver_Builder_Module_With_Items
- */
 abstract class WPML_Beaver_Builder_Module_With_Items implements IWPML_Page_Builders_Module {
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	abstract protected function get_title( $field );
 
-	/** @return array */
 	protected function get_fields() {
 		return array( 'label', 'content' );
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_editor_type( $field ) {
 		switch( $field ) {
 			case 'label':
@@ -35,22 +21,10 @@ abstract class WPML_Beaver_Builder_Module_With_Items implements IWPML_Page_Build
 		}
 	}
 
-	/**
-	 * @param object $settings
-	 *
-	 * @return array
-	 */
 	protected function &get_items( $settings ) {
 		return $settings->items;
 	}
 
-	/**
-	 * @param string|int $node_id
-	 * @param object $settings
-	 * @param WPML_PB_String[] $strings
-	 *
-	 * @return WPML_PB_String[]
-	 */
 	public function get( $node_id, $settings, $strings ) {
 		foreach ( $this->get_items( $settings ) as $item ) {
 			foreach( $this->get_fields() as $field ) {
@@ -76,13 +50,6 @@ abstract class WPML_Beaver_Builder_Module_With_Items implements IWPML_Page_Build
 		return $strings;
 	}
 
-	/**
-	 * @param string|int $node_id
-	 * @param object $settings
-	 * @param WPML_PB_String $string
-	 *
-	 * @return null
-	 */
 	public function update( $node_id, $settings, WPML_PB_String $string ) {
 		foreach ( $this->get_items( $settings ) as &$item ) {
 			foreach( $this->get_fields() as $field ) {

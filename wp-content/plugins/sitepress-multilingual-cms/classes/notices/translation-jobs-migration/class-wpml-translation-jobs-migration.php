@@ -21,12 +21,6 @@ class WPML_Translation_Jobs_Migration {
 		$this->jobs_api        = $jobs_api;
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity[] $jobs
-	 * @param bool                      $recover_status
-	 *
-	 * @throws WPML_TP_API_Exception
-	 */
 	public function migrate_jobs( array $jobs, $recover_status = false ) {
 		$mapped_jobs = $this->map_cms_id_job_id( $jobs );
 
@@ -46,23 +40,12 @@ class WPML_Translation_Jobs_Migration {
 		}
 	}
 
-	/**
-	 * @param array $mapped_jobs
-	 *
-	 * @throws WPML_TP_API_Exception
-	 * @return array
-	 */
 	private function get_tp_jobs( array $mapped_jobs ) {
 		return $this->get_latest_jobs_grouped_by_cms_id(
 			$this->jobs_api->get_jobs_per_cms_ids( array_values( $mapped_jobs ), true )
 		);
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 * @param int                     $tp_id
-	 * @param int                     $revision_id
-	 */
 	private function recovery_mode( WPML_TM_Post_Job_Entity $job, $tp_id, $revision_id ) {
 		if ( $tp_id !== $job->get_tp_id() ) {
 			$new_status = $this->get_new_status( $job, $tp_id );
@@ -72,20 +55,10 @@ class WPML_Translation_Jobs_Migration {
 		}
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 * @param int                     $tp_id
-	 * @param int                     $revision_id
-	 */
 	private function first_migration_mode( WPML_TM_Post_Job_Entity $job, $tp_id, $revision_id ) {
 		$this->fix_job_fields( $tp_id, $revision_id, false, $job->get_id() );
 	}
 
-	/**
-	 * @param array $tp_jobs
-	 *
-	 * @return array
-	 */
 	private function get_latest_jobs_grouped_by_cms_id( $tp_jobs ) {
 		$result = array();
 
@@ -100,12 +73,6 @@ class WPML_Translation_Jobs_Migration {
 		return $result;
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 * @param int                     $new_tp_id
-	 *
-	 * @return int|false
-	 */
 	private function get_new_status( WPML_TM_Post_Job_Entity $job, $new_tp_id ) {
 		$new_status = false;
 		if ( $job->get_tp_id() !== null && $new_tp_id ) {
@@ -117,22 +84,10 @@ class WPML_Translation_Jobs_Migration {
 		return $new_status;
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity $job
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
 	private function has_been_completed_after_release( WPML_TM_Post_Job_Entity $job ) {
 		return $job->get_status() === ICL_TM_COMPLETE && $job->get_completed_date() && $job->get_completed_date() > $this->get_4_2_0_release_date();
 	}
 
-	/**
-	 * @param int   $cms_id
-	 * @param array $tp_jobs
-	 *
-	 * @return array
-	 */
 	private function get_tp_id_revision_id( $cms_id, $tp_jobs ) {
 		$result = array( 0, 0 );
 		if ( isset( $tp_jobs[ $cms_id ] ) ) {
@@ -145,12 +100,6 @@ class WPML_Translation_Jobs_Migration {
 		return $result;
 	}
 
-	/**
-	 * @param int       $tp_id
-	 * @param int       $revision_id
-	 * @param int|false $status
-	 * @param int       $job_id
-	 */
 	private function fix_job_fields( $tp_id, $revision_id, $status, $job_id ) {
 		$new_data = array(
 			'tp_id'       => $tp_id,
@@ -168,11 +117,6 @@ class WPML_Translation_Jobs_Migration {
 		);
 	}
 
-	/**
-	 * @param WPML_TM_Post_Job_Entity[] $jobs
-	 *
-	 * @return array
-	 */
 	private function map_cms_id_job_id( $jobs ) {
 		$mapped_jobs = array();
 
@@ -184,23 +128,12 @@ class WPML_Translation_Jobs_Migration {
 		return $mapped_jobs;
 	}
 
-	/**
-	 * @return DateTime
-	 * @throws Exception
-	 */
 	private function get_4_2_0_release_date() {
 		return new DateTime(
 			defined( 'WPML_4_2_0_RELEASE_DATE' ) ? WPML_4_2_0_RELEASE_DATE : '2019-01-20'
 		);
 	}
 
-	/**
-	 * @param int $rid
-	 * @param int $old_tp_id
-	 * @param int $new_tp_id
-	 * @param int $old_status
-	 * @param int|false $new_status
-	 */
 	private function log( $rid, $old_tp_id, $new_tp_id, $old_status, $new_status ) {
 		$log = get_option( self::MIGRATION_FIX_LOG_KEY, array() );
 		$key = $new_status ? 'status_changed' : 'status_not_changed';

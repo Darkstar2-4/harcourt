@@ -4,10 +4,8 @@ use OTGS\Installer\CDTClient\Api\Endpoints\v1\Requests\Actions\AddStats\Action a
 
 class WPML_Content_Stats_Sender {
 
-	/** @var WP_Installer */
 	private $installer;
 
-	/** @var OTGS_Installer_WP_Share_Local_Components_Setting */
 	private $settings;
 
 	private $action;
@@ -22,36 +20,6 @@ class WPML_Content_Stats_Sender {
 		$this->action    = $action;
 	}
 
-	/**
-	 * @param array{
-	 *     siteKey: string,
-	 *     currentTranslationEditor: string,
-	 *     siteUUID: string,
-	 *     siteUrl: string,
-	 *     siteSharedKey: string,
-	 *     defaultLanguage: array{
-	 *     code: string,
-	 *     defaultLocale: string,
-	 *     nativeName: string,
-	 *     englishName: string,
-	 *     displayName: string,
-	 *  },
-	 *     translationLanguages: array{
-	 *     code: string,
-	 *     defaultLocale: string,
-	 *     nativeName: string,
-	 *     englishName: string,
-	 *     displayName: string,
-	 *  }[],
-	 *     contentStats: array<string, array{
-	 *     postsCount: int,
-	 *     charactersCount: int,
-	 *     translationCoverage: array<string, float|int>
-	 *  }>
-	 * } $data
-	 *
-	 * @return bool
-	 */
 	public function send( array $data ) {
 		if ( ! $this->installer->get_repositories() ) {
 			$this->installer->load_repositories_list();

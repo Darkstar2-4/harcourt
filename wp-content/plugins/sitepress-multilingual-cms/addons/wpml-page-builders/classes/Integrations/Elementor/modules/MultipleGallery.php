@@ -1,7 +1,4 @@
 <?php
-/**
- * MulitpleGallery
- */
 namespace WPML\PB\Elementor\Modules;
 
 class MultipleGallery extends \WPML_Elementor_Module_With_Items {

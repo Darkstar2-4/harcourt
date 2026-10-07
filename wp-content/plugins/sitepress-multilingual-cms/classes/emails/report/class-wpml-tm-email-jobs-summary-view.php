@@ -1,44 +1,19 @@
 <?php
 
-/**
- * Class WPML_TM_Email_Jobs_Summary_View
- */
 class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 
 	const JOBS_TEMPLATE   = 'batch-report/email-job-pairs.twig';
 
-	/**
-	 * @var WPML_TM_Blog_Translators
-	 */
 	private $blog_translators;
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var array
-	 */
 	private $assigned_jobs;
 
-	/**
-	 * @var int
-	 */
 	private $job_elements_count;
 
-	/**
-	 * @var int
-	 */
 	private $job_elements_count_total;
 
-	/**
-	 * WPML_TM_Batch_Report_Email_Template constructor.
-	 *
-	 * @param WPML_Twig_Template $template_service
-	 * @param WPML_TM_Blog_Translators $blog_translators
-	 * @param SitePress $sitepress
-	 */
 	public function __construct(
 		WPML_Twig_Template $template_service,
 		WPML_TM_Blog_Translators $blog_translators,
@@ -49,24 +24,12 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		$this->sitepress        = $sitepress;
 	}
 
-	/**
-	 * @return int
-	 */
 	private function get_jobs_limit() {
 		$tm_settings = $this->sitepress->get_setting( 'translation-management', array() );
 		$limit = isset( $tm_settings['notification']['job_limits'] ) ? (int) $tm_settings['notification']['job_limits'] : 0;
 		return 0 === $limit ? null : $limit;
 	}
 
-	/**
-	 * @param array $language_pairs
-	 * @param int $translator_id
-	 * @param string $title_singular
-	 * @param string $title_plural
-	 * @param string $title_sliced
-	 *
-	 * @return null|string
-	 */
 	public function render_jobs_list( $language_pairs, $translator_id, $title_singular, $title_plural = '%s', $title_sliced = '%1$s %2$s' ) {
 		$this->clear_assigned_jobs();
 		$limit = $this->get_jobs_limit();
@@ -147,9 +110,6 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		return $this->job_elements_count_total ? $this->template_service->show( $model, self::JOBS_TEMPLATE ) : null;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function render_link_to_jobs() {
 		return sprintf(
 			'<p><a href="%1$s">%2$s</a></p>',
@@ -158,7 +118,6 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		);
 	}
 
-	/** @return string */
 	public function render_footer() {
 		$site_url     = get_bloginfo( 'url' );
 		$profile_link = '<a href="' . admin_url( 'profile.php' ) . '" style="color: #ffffff;">' . esc_html__( 'Your Profile', '' ) .'</a>';
@@ -178,10 +137,6 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		return $this->render_email_footer( $bottom_text );
 	}
 
-	/**
-	 * @param int $job_id
-	 * @param string $type
-	 */
 	private function add_assigned_job( $job_id, $type ) {
 		$this->assigned_jobs[] = array(
 			'job_id' => $job_id,
@@ -189,9 +144,6 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_assigned_jobs( $sliced = false ) {
 		$assigned_jobs = $this->assigned_jobs;
 
@@ -209,9 +161,6 @@ class WPML_TM_Email_Jobs_Summary_View extends WPML_TM_Email_View {
 		$this->job_elements_count_total = 0;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function has_sliced_assigned_jobs() {
 		$limit = $this->get_jobs_limit();
 		return $limit && $limit < $this->job_elements_count_total;

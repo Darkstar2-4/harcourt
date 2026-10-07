@@ -21,6 +21,7 @@ class catalog_output_class {
     var $category_id=0;
     var $subcategory_id=0;
     var $new_date=0;
+    var $unit_type="";
     var $tabs;
     var $inventory;
     var $portal_category=0;
@@ -97,6 +98,7 @@ class catalog_output_class {
 		$this->new_date=intval($this->request['new_date']);
         $this->search_source=$this->request['search_source'];
         $this->portal_category=$this->request['portal_category'];
+        $this->unit_type=in_array($this->request['unit_type'],array("metric","imperial")) ? $this->request['unit_type'] : "";
     	switch (TRUE) {
           case (isset($_SESSION['user']->bot_code)):
             $this->access=TRUE;
@@ -157,6 +159,7 @@ class catalog_output_class {
 		$database->subcategory->query("select * from subcategory");
         while ($database->subcategory->fetch = $database->subcategory->fetch_array() ) {
 			$database->subcategory->fetch();
+            $database->subcategory->data->is_metric=(stripos($database->subcategory->data->name,"(Metric") !== FALSE);
             $this->subcategory[$database->subcategory->data->id]=$database->subcategory->data;
         }
         $database->subcategory->free_result();
@@ -604,6 +607,10 @@ class catalog_output_class {
             print $this->portal->summary();
             print "<h1>Standard Products</h1>";
         }
+        // Country default only applies here, where the pills are shown; search
+        // results also go through output_summary() but have no way to undo it.
+        if (!strlen($this->request['unit_type'])) $this->unit_type=$this->default_unit_type();
+        print $this->output_unit_filter();
 	    $query_where=array();
 	    $query_where[]=new query_where("category.active","=",1);
         if ($database->user->access("Administrator",FALSE)) {
@@ -652,6 +659,79 @@ class catalog_output_class {
         $this->output_summary($summary_list);
 		print "</div> <!-- products_summary -->";
     }
+    function default_unit_type() {
+        // Users outside the US land on Metric. Bots and users with no country
+        // stay unfiltered so nothing is hidden from them by default.
+        if (isset($_SESSION['user']->bot_code)) return "";
+        $country_code=strtoupper(trim($_SESSION['user']->country_code));
+        return (strlen($country_code) && ($country_code != "US")) ? "metric" : "";
+    }
+    function output_unit_filter() {
+    	$this->trace[]=__FUNCTION__;
+        $url_query=array();
+        $url_query['lang']=strtolower($_SESSION['user']->language_code);
+        if (strlen($this->search_code)) $url_query['search_code']=$this->search_code;
+        if ($this->new_date) $url_query['new_date']=1;
+        $unit_type_options=array(""=>"All","metric"=>"Metric","imperial"=>"Imperial");
+        $results=array();
+        $results[]=$this->output_unit_filter_script();
+        $results[]="<div class='catalog_unit_filter'>";
+        $results[]="<span class='catalog_unit_filter_label nobr'>Show:</span>";
+        foreach ($unit_type_options as $value => $label) {
+            $pill_query=$url_query;
+            // "All" must be explicit, otherwise default_unit_type() re-applies.
+            $pill_query['unit_type']=strlen($value) ? $value : "all";
+            $class="catalog_unit_filter_pill" . (($value == $this->unit_type) ? " active" : "");
+            $results[]=fn_href($label,$this->php_self,$pill_query,array("class"=>$class));
+        }
+        $results[]="</div>";
+        return implode("\n",$results);
+    }
+    function output_unit_filter_script() {
+        // Delegated on document (not the swapped nodes) so it keeps working after
+        // an AJAX swap replaces .products_summary, and only needs to run once —
+        // browsers don't execute <script> tags inserted via replaceWith/innerHTML.
+        // The spinner is appended to <body> (not inside .products_summary) so it
+        // isn't dimmed along with the rest of the content while opacity is reduced.
+        $results=array();
+        $results[]="<script type='text/javascript'>";
+        $results[]="if (!window.fn_catalog_unit_filter_bound) {";
+        $results[]="  window.fn_catalog_unit_filter_bound=true;";
+        $results[]="  document.addEventListener('click', function(e) {";
+        $results[]="    var pill=e.target.closest && e.target.closest('.catalog_unit_filter_pill');";
+        $results[]="    if (!pill) return;";
+        $results[]="    e.preventDefault();";
+        $results[]="    fn_catalog_unit_filter_load(pill.href, true);";
+        $results[]="  });";
+        $results[]="  window.addEventListener('popstate', function() {";
+        $results[]="    fn_catalog_unit_filter_load(location.href, false);";
+        $results[]="  });";
+        $results[]="}";
+        $results[]="function fn_catalog_unit_filter_load(url, push_state) {";
+        $results[]="  var old_summary=document.querySelector('.products_summary');";
+        $results[]="  if (old_summary) old_summary.classList.add('catalog_loading');";
+        $results[]="  var spinner=document.createElement('div');";
+        $results[]="  spinner.className='catalog_unit_filter_spinner';";
+        $results[]="  document.body.appendChild(spinner);";
+        $results[]="  fetch(url, {credentials: 'same-origin'}).then(function(response) {";
+        $results[]="    if (!response.ok) throw new Error('http_error');";
+        $results[]="    return response.text();";
+        $results[]="  }).then(function(html) {";
+        $results[]="    var new_summary=new DOMParser().parseFromString(html, 'text/html').querySelector('.products_summary');";
+        $results[]="    var current_summary=document.querySelector('.products_summary');";
+        $results[]="    if (!new_summary || !current_summary) { window.location.href=url; return; }";
+        $results[]="    current_summary.replaceWith(new_summary);";
+        $results[]="    if (push_state) window.history.pushState({}, '', url);";
+        $results[]="    window.scrollTo(0, 0);";
+        $results[]="  }).catch(function() {";
+        $results[]="    window.location.href=url;";
+        $results[]="  }).finally(function() {";
+        $results[]="    spinner.remove();";
+        $results[]="  });";
+        $results[]="}";
+        $results[]="</script>";
+        return implode("\n",$results);
+    }
     function blocked_categories() {
         global $database;
         if (is_array($this->blocked_categories)) return $this->blocked_categories;
@@ -698,6 +778,13 @@ class catalog_output_class {
         $url_query['subcategory_id']=0;
         if ($this->new_date) $url_query['new_date']=1;
 		foreach ($summary_list as $category_id => $subcategory_list) {
+	        if (strlen($this->unit_type)) {
+	            $subcategory_list=array_values(array_filter($subcategory_list,function($subcategory_id) {
+	                $is_metric=$this->subcategory[$subcategory_id]->is_metric;
+	                return ($this->unit_type=="metric") ? $is_metric : !$is_metric;
+	            }));
+	            if (!sizeof($subcategory_list)) continue;
+	        }
 			$blocked=in_array($category_id,$blocked_categories);
 			$results[]="<a class=anchor id=category{$category_id}></a><h2>" . $this->category[$category_id]->name . "</h2>";
 			$results[]="<div class='catalog_category_wrapper'>";

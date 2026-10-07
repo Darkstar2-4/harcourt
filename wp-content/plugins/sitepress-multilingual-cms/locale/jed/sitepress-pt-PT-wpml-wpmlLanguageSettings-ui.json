@@ -1,0 +1,30 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
+            "lang": "pt_PT"
+         },
+         "Choose the image file type for flags": [
+            "Escolha o tipo de ficheiro de imagem para as bandeiras"
+         ],
+         "This option affects only the built-in WPML flags, not the custom uploaded ones.": [
+            "Esta opção afeta apenas as bandeiras WPML incorporadas, não as personalizadas carregadas."
+         ],
+         "%s format": [
+            "Formato %s"
+         ],
+         "Save": [
+            "Guardar"
+         ],
+         "The new format has been saved.": [
+            "O novo formato foi guardado."
+         ],
+         "Failed to save the new format": [
+            "Falha ao guardar o novo formato"
+         ]
+      }
+   }
+}

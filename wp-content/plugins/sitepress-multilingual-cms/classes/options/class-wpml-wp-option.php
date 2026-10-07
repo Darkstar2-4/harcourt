@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 abstract class WPML_WP_Option {
 
 	abstract public function get_key();

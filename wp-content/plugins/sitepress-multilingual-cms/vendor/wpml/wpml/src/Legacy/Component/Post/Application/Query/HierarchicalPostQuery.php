@@ -8,26 +8,13 @@ use WPML\Core\Component\Post\Application\Query\HierarchicalPostQueryInterface;
 use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
-/**
- * @phpstan-type HierarchicalPostItem array{
- *   ID: int,
- *   post_title: string,
- *   post_parent: int
- * }
- */
 class HierarchicalPostQuery implements HierarchicalPostQueryInterface {
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var QueryHandlerInterface<int, HierarchicalPostItem> */
   private $queryHandler;
 
 
-  /**
-   * @param QueryPrepareInterface $queryPrepare
-   * @param QueryHandlerInterface<int, HierarchicalPostItem> $queryHandler
-   */
   public function __construct(
     QueryPrepareInterface $queryPrepare,
     QueryHandlerInterface $queryHandler
@@ -37,13 +24,7 @@ class HierarchicalPostQuery implements HierarchicalPostQueryInterface {
   }
 
 
-  /**
-   * @param HierarchicalPostCriteria $criteria
-   * @return HierarchicalPostDto[]
-   * @throws \WPML\Core\Port\Persistence\Exception\DatabaseErrorException
-   */
   public function getMany( HierarchicalPostCriteria $criteria ) {
-    // Query - get all posts type "$criteria->getType()" only if they are present in another row as ``post_parent``, limit by "$criteria->getLimit()" and offset by "$criteria->getOffset()"
     $query = $this->prepareQuery( $criteria );
 
     $wpPages = $this->queryHandler->query( $query )->getResults();
@@ -56,9 +37,7 @@ class HierarchicalPostQuery implements HierarchicalPostQueryInterface {
       function( $wpPage ) {
         return new HierarchicalPostDto(
           $wpPage['ID'],
-          // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
           $wpPage['post_title'],
-          // phpcs:ignore Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
           $wpPage['post_parent']
         );
       },
@@ -67,11 +46,6 @@ class HierarchicalPostQuery implements HierarchicalPostQueryInterface {
   }
 
 
-  /**
-   * @param HierarchicalPostCriteria $criteria
-   *
-   * @return string
-   */
   private function prepareQuery( HierarchicalPostCriteria $criteria ) {
     $prefix = $this->queryPrepare->prefix();
     $query = "

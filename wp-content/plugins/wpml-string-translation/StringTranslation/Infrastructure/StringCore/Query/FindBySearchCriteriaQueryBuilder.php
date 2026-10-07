@@ -8,7 +8,6 @@ use WPML\StringTranslation\Application\StringCore\Query\Criteria\SearchSelectCri
 
 class FindBySearchCriteriaQueryBuilder extends QueryBuilder {
 
-	/** @var SettingsRepository */
 	protected $settingsRepository;
 
 	public function __construct(
@@ -40,14 +39,6 @@ class FindBySearchCriteriaQueryBuilder extends QueryBuilder {
 	}
 
 
-	/**
-	 * @codingStandardsIgnoreStart
-	 *
-	 * @param SearchCriteria $criteria
-	 * @param SearchSelectCriteria $selectCriteria
-	 *
-	 * @return string
-	 */
 	public function buildStringsQuery( SearchCriteria $criteria, SearchSelectCriteria $selectCriteria ) {
 		$sql = "
             SELECT {$this->getSelectColumns( $selectCriteria )}
@@ -66,12 +57,6 @@ class FindBySearchCriteriaQueryBuilder extends QueryBuilder {
 		return $sql;
 	}
 
-	/**
-	 * @param int[]    $stringIds
-	 * @param string[] $targetLanguageCodes
-	 *
-	 * @return string
-	 */
 	public function buildStringTranslationsQuery(
 		array $stringIds,
 		array $targetLanguageCodes

@@ -8,13 +8,13 @@
             "lang": "th"
          },
          "Please wait, applying translation..": [
-            "กรุณารอสักครู่ กำลังนำการแปลไปใช้.."
+            "โปรดรอ กำลังใช้การแปล..."
          ],
          "There was an error in applying translation.": [
-            "เกิดข้อผิดพลาดในการนำการแปลไปใช้."
+            "เกิดข้อผิดพลาดในการใช้การแปล"
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "มีคนกำลังตรวจสอบการแปลนี้อยู่ กรุณาลองใหม่อีกครั้งในภายหลัง."
+            "มีคนกำลังตรวจสอบการแปลนี้อยู่แล้ว โปรดลองอีกครั้งในภายหลัง"
          ]
       }
    }

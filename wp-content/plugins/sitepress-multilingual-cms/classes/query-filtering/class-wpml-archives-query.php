@@ -4,13 +4,10 @@ use WPML\FP\Obj;
 
 class WPML_Archives_Query implements IWPML_Frontend_Action, IWPML_DIC_Action {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var WPML_Language_Where_Clause $language_where_clause */
 	private $language_where_clause;
 
-	/** @var SitePress */
 	private $sitepress;
 
 	public function __construct(
@@ -28,12 +25,6 @@ class WPML_Archives_Query implements IWPML_Frontend_Action, IWPML_DIC_Action {
 		add_filter( 'getarchives_where', array( $this, 'get_archives_where' ), 10, 2 );
 	}
 
-	/**
-	 * @param string $join
-	 * @param array $args
-	 *
-	 * @return string
-	 */
 	public function get_archives_join( $join, $args ) {
 		$postType = esc_sql( Obj::propOr( 'post', 'post_type', $args ) );
 
@@ -44,12 +35,6 @@ class WPML_Archives_Query implements IWPML_Frontend_Action, IWPML_DIC_Action {
 		return $join;
 	}
 
-	/**
-	 * @param string $where_clause
-	 * @param array $args
-	 *
-	 * @return string
-	 */
 	public function get_archives_where( $where_clause, $args ) {
 		return $where_clause . $this->language_where_clause->get( Obj::propOr( 'post', 'post_type', $args ) );
 	}

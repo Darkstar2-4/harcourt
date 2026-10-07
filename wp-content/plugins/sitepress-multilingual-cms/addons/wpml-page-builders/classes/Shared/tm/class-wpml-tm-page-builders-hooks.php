@@ -2,19 +2,11 @@
 
 class WPML_TM_Page_Builders_Hooks {
 
-	/** @var WPML_TM_Page_Builders $worker */
 	private $worker;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/**
-	 * WPML_TM_Page_Builders constructor.
-	 *
-	 * @param WPML_TM_Page_Builders $worker
-	 * @param SitePress             $sitepress
-	 */
-	public function __construct( WPML_TM_Page_Builders $worker = null, SitePress $sitepress ) {
+	public function __construct( ?WPML_TM_Page_Builders $worker = null, ?SitePress $sitepress = null ) {
 		$this->worker    = $worker;
 		$this->sitepress = $sitepress;
 	}
@@ -29,72 +21,30 @@ class WPML_TM_Page_Builders_Hooks {
 		add_filter( 'wpml_get_translatable_types', array( $this, 'remove_shortcode_strings_type_filter' ), 11 );
 	}
 
-	/**
-	 * @param array $translation_package
-	 * @param mixed $post
-	 * @param bool  $isOriginal
-	 *
-	 * @return array
-	 */
 	public function translation_job_data_filter( array $translation_package, $post, $isOriginal = false ) {
 		return $this->get_worker()->translation_job_data_filter( $translation_package, $post, $isOriginal );
 	}
 
-	/**
-	 * @param int      $new_post_id
-	 * @param array    $fields
-	 * @param stdClass $job
-	 */
 	public function pro_translation_completed_action( $new_post_id, array $fields, stdClass $job ) {
 		$this->get_worker()->pro_translation_completed_action( $new_post_id, $fields, $job );
 	}
 
-	/**
-	 * @param array $fields
-	 *
-	 * @return array
-	 */
 	public function adjust_translation_fields_filter( array $fields ) {
 		return $this->get_worker()->adjust_translation_fields_filter( $fields );
 	}
 
-	/**
-	 * @param array $fields
-	 *
-	 * @return array
-	 */
 	public function adjust_translation_job_filter( array $fields ) {
 		return $this->get_worker()->adjust_translation_job_filter( $fields );
 	}
 
-	/**
-	 * @param array $layout
-	 *
-	 * @return array
-	 */
 	public function job_layout_filter( array $layout ) {
 		return $this->get_worker()->job_layout_filter( $layout );
 	}
 
-	/**
-	 * @param string $link
-	 * @param int    $post_id
-	 * @param string $lang
-	 * @param int    $trid
-	 *
-	 * @return string
-	 */
 	public function link_to_translation_filter( $link, $post_id, $lang, $trid ) {
 		return $this->get_worker()->link_to_translation_filter( $link, $post_id, $lang, $trid );
 	}
 
-	/**
-	 * Remove "Page Builder ShortCode Strings" from translation dashboard filters
-	 *
-	 * @param array $types
-	 *
-	 * @return mixed
-	 */
 	public function remove_shortcode_strings_type_filter( $types ) {
 
 		if ( array_key_exists( 'page-builder-shortcode-strings', $types ) ) {
@@ -104,9 +54,6 @@ class WPML_TM_Page_Builders_Hooks {
 		return $types;
 	}
 
-	/**
-	 * @return WPML_TM_Page_Builders
-	 */
 	private function get_worker() {
 		if ( null === $this->worker ) {
 			$this->worker = new WPML_TM_Page_Builders( $this->sitepress );

@@ -4,10 +4,10 @@ namespace WPML\Legacy\Port;
 
 use SitePress;
 use WPML\Core\Port\PluginInterface;
+use WPML_TM_ATE_AMS_Endpoints;
 
 class Plugin implements PluginInterface {
 
-  /** @var SitePress $sitepress */
   private $sitepress;
 
 
@@ -45,11 +45,6 @@ class Plugin implements PluginInterface {
   }
 
 
-  /**
-   * @param string $version
-   *
-   * @return string
-   */
   private function versionWithoutSuffix( $version ) {
     $versionWithoutSuffix = preg_replace( '/[-+].*$/', '', $version );
 
@@ -59,7 +54,34 @@ class Plugin implements PluginInterface {
 
   public function getLanguageHomeUrl( string $languageCode ): string {
     $languageUrl = $this->sitepress->language_url( $languageCode );
+
     return is_string( $languageUrl ) ? $languageUrl : '';
+  }
+
+
+  public function getATEHost(): string {
+    if ( ! class_exists( 'WPML_TM_ATE_AMS_Endpoints' ) ) {
+      return 'https://ate.wpml.org';
+    }
+    $endpoints = new WPML_TM_ATE_AMS_Endpoints();
+    if ( ! method_exists( $endpoints, 'get_ATE_base_url' ) ) {
+      return 'https://ate.wpml.org';
+    }
+
+    return $endpoints->get_ATE_base_url();
+  }
+
+
+  public function getAMSHost(): string {
+    if ( ! class_exists( 'WPML_TM_ATE_AMS_Endpoints' ) ) {
+      return 'https://ams.wpml.org';
+    }
+    $endpoints = new WPML_TM_ATE_AMS_Endpoints();
+    if ( ! method_exists( $endpoints, 'get_AMS_base_url' ) ) {
+      return 'https://ams.wpml.org';
+    }
+
+    return $endpoints->get_AMS_base_url();
   }
 
 

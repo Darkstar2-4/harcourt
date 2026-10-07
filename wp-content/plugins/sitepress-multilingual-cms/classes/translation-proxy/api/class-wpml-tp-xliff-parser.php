@@ -2,23 +2,12 @@
 
 class WPML_TP_Xliff_Parser {
 
-	/** @var WPML_TM_Validate_HTML $validate_html */
 	private $validate_html;
 
-	/**
-	 * WPML_TP_Xliff_Parser constructor.
-	 *
-	 * @param WPML_TM_Validate_HTML $validate_html
-	 */
 	public function __construct( WPML_TM_Validate_HTML $validate_html ) {
 		$this->validate_html = $validate_html;
 	}
 
-	/**
-	 * @param SimpleXMLElement $xliff
-	 *
-	 * @return WPML_TP_Translation_Collection
-	 */
 	public function parse( SimpleXMLElement $xliff ) {
 		$source_lang = (string) $xliff->file->attributes()->{'source-language'};
 		$target_lang = (string) $xliff->file->attributes()->{'target-language'};
@@ -44,12 +33,6 @@ class WPML_TP_Xliff_Parser {
 		);
 	}
 
-	/**
-	 * @param SimpleXMLElement $xliff_node
-	 * @param string           $field
-	 *
-	 * @return string
-	 */
 	protected function get_cdata_value( SimpleXMLElement $xliff_node, $field ) {
 		$value = '';
 		if ( isset( $xliff_node->$field->mrk ) ) {
@@ -61,11 +44,6 @@ class WPML_TP_Xliff_Parser {
 		return self::restore_new_line( $value );
 	}
 
-	/**
-	 * @param string $string
-	 *
-	 * @return string
-	 */
 	public static function restore_new_line( $string ) {
 		return preg_replace( '/<br class="xliff-newline"\s*\/>/i', "\n", $string );
 	}

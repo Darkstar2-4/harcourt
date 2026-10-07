@@ -13,19 +13,12 @@ namespace WPML\Core\Twig\Node;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
-/**
- * Represents an embed node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class EmbedNode extends \WPML\Core\Twig\Node\IncludeNode
 {
-    // we don't inject the module to avoid node visitors to traverse it twice (as it will be already visited in the main module)
-    public function __construct($name, $index, \WPML\Core\Twig\Node\Expression\AbstractExpression $variables = null, $only = \false, $ignoreMissing = \false, $lineno, $tag = null)
+    public function __construct($name, $index, ?\WPML\Core\Twig\Node\Expression\AbstractExpression $variables = null, $only = \false, $ignoreMissing = \false, $lineno, $tag = null)
     {
         parent::__construct(new \WPML\Core\Twig\Node\Expression\ConstantExpression('not_used', $lineno), $variables, $only, $ignoreMissing, $lineno, $tag);
         $this->setAttribute('name', $name);
-        // to be removed in 2.0, used name instead
         $this->setAttribute('filename', $name);
         $this->setAttribute('index', $index);
     }

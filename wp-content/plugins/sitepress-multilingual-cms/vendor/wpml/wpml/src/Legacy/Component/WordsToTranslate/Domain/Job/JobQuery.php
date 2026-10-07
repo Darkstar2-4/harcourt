@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Legacy\Component\WordsToTranslate\Domain\Job;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Job\Query\JobQueryInterface;
@@ -14,93 +13,41 @@ use WPML\PHP\Exception\InvalidArgumentException;
 class JobQuery implements JobQueryInterface {
 
 
-  /** @var array<int, Job> */
   private $jobs = [];
 
-  /** @var array<int, ?int> */
   private $wordsToTranslateCount = [];
 
-  /** @var array<int, ?int> */
   private $automaticTranslationCosts = [];
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return string
-   */
   public function getSourceLang( $id ) {
     return $this->getJob( $id )->sourceLanguage;
   }
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return string
-   */
   public function getTargetLang( $id ) {
     return $this->getJob( $id )->targetLanguage;
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return int[]
-   */
   public function getPreviousAteJobIds( $id ) {
     return $this->getJob( $id )->previousAteJobIds;
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return bool
-   */
   public function isAutomatic( $id ) {
     return $this->getJob( $id )->isAutomatic;
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return int
-   */
   public function getJobItemId( $id ) {
     return $this->getJob( $id )->itemId;
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return string
-   */
   public function getJobItemType( $id ) {
     return $this->getJob( $id )->itemType;
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException
-   *
-   * @return TranslatableDTO[]
-   */
   public function getContent( $id ) {
     return $this->getJob( $id )->content;
   }
@@ -124,7 +71,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /** @return void */
   private function fetchWordsToTranslateAndAutomaticCosts( int $id ) {
     $wpdb = $GLOBALS['wpdb'];
 
@@ -158,13 +104,6 @@ class JobQuery implements JobQueryInterface {
       : null;
   }
 
-  /**
-   * @param int $id
-   *
-   * @throws InvalidArgumentException Job for given id could not be found.
-   *
-   * @return Job
-   */
   private function getJob( $id ) {
     if ( ! isset( $this->jobs[ $id ] ) ) {
       $wpdb = $GLOBALS['wpdb'];
@@ -234,7 +173,6 @@ class JobQuery implements JobQueryInterface {
         );
       }
 
-      // Find previous conmpleted job for the same item.
       $previousAteJobIds = $wpdb->get_col(
         $wpdb->prepare(
           "SELECT editor_job_id
@@ -265,15 +203,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * Converts raw data to a specific type.
-   *
-   * @param string $rawType
-   *
-   * @throws InvalidArgumentException Given rawType is unknown.
-   *
-   * @return string
-   */
   private function convertType( $rawType ) {
     if ( strpos( $rawType, 'post_' ) === 0 ) {
       return ProviderPost::TYPE;
@@ -299,41 +228,23 @@ class JobQuery implements JobQueryInterface {
 }
 
 
-/**
- * File internal class Job
- */
-class Job { /** @var int */
+class Job {  
   public $itemId;
 
-  /** @var string */
   public $itemType;
 
-  /** @var string */
   public $sourceLanguage;
 
-  /** @var string */
   public $targetLanguage;
 
-  /** @var bool */
   public $isAutomatic;
 
-  /** @var int[] */
   public $previousAteJobIds;
 
-  /** @var TranslatableDTO[] */
   public $content = [];
 
 
 
-  /**
-   * @param int $itemId
-   * @param string $itemType
-   * @param string $sourceLanguage
-   * @param string $targetLanguage
-   * @param bool $isAutomatic
-   * @param int[] $previousAteJobIds
-   * @param TranslatableDTO[] $content
-   */
   public function __construct(
     $itemId,
     $itemType,

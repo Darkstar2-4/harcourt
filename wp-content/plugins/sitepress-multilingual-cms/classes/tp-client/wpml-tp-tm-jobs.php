@@ -1,31 +1,15 @@
 <?php
 
-/**
- * Class WPML_TP_TM_Jobs
- *
- * @author OnTheGoSystems
- */
 class WPML_TP_TM_Jobs {
 
 	const CACHE_BATCH_ID = 'wpml_tp_tm_jobs_batch_id';
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/**
-	 * WPML_TF_Rating_TP_API constructor.
-	 *
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param int $job_id
-	 *
-	 * @return null|string
-	 */
 	public function get_batch_id( $job_id ) {
 		$cached_batch_id = wp_cache_get( $job_id, self::CACHE_BATCH_ID );
 

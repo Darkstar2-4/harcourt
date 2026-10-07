@@ -2,13 +2,13 @@
 /**
  * Plugin Name:  WP Crontrol
  * Plugin URI:   https://wp-crontrol.com
- * Description:  Take control of the cron events on your WordPress website.
+ * Description:  Take control of the cron events on your WordPress website or WooCommerce store.
  * Author:       John Blackbourn
  * Author URI:   https://wp-crontrol.com
- * Version:      1.19.2
+ * Version:      1.21.2
  * Text Domain:  wp-crontrol
  * Domain Path:  /languages/
- * Requires at least: 6.3
+ * Requires at least: 6.6
  * Requires PHP: 7.4
  * License URI:  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  * License:      GPL v2 or later
@@ -28,7 +28,7 @@
  *
  * @package    wp-crontrol
  * @author     John Blackbourn & Edward Dale
- * @copyright  Copyright 2008 Edward Dale, 2012-2025 John Blackbourn
+ * @copyright  Copyright 2008 Edward Dale, 2012-2026 John Blackbourn
  * @license    https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt GPL 2.0
  * @link       https://github.com/johnbillion/wp-crontrol/
  */
@@ -36,7 +36,7 @@
 namespace Crontrol;
 
 const PLUGIN_FILE = __FILE__;
-const WP_CRONTROL_VERSION = '1.19.2';
+const WP_CRONTROL_VERSION = '1.21.2';
 
 if ( ! defined( 'ABSPATH' ) ) {
 	header( 'HTTP/1.1 403 Forbidden' );

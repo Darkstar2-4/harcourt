@@ -7,7 +7,6 @@ use WPML\ST\MO\Hooks\LoadTranslationFile;
 
 class GetFilepathesForTranslationFiles implements \IWPML_Action {
 
-	/** @var LoadedMODictionary $loadedDictionary */
 	private $loadedDictionary;
 
 	public function __construct(

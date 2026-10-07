@@ -11,34 +11,12 @@ class CompositeQuery implements Query {
 	const METHOD_UNION = 'union';
 	const METHOD_COUNT = 'count';
 
-	/**
-	 * Job queries
-	 *
-	 * @var Query[]
-	 */
 	private $queries;
 
-	/**
-	 * Limit query helper
-	 *
-	 * @var LimitQueryHelper
-	 */
 	private $limit_query_helper;
 
-	/**
-	 * Order query helper
-	 *
-	 * @var OrderQueryHelper
-	 */
 	private $order_query_helper;
 
-	/**
-	 * @param Query[]  $queries      Job queries.
-	 * @param LimitQueryHelper $limit_helper Limit helper.
-	 * @param OrderQueryHelper $order_helper Order helper.
-	 *
-	 * @throws InvalidArgumentException In case of error.
-	 */
 	public function __construct(
 		array $queries,
 		LimitQueryHelper $limit_helper,
@@ -55,17 +33,8 @@ class CompositeQuery implements Query {
 	}
 
 
-	/**
-	 * Get data query
-	 *
-	 * @param WPML_TM_Jobs_Search_Params $params Job search params.
-	 *
-	 * @throws InvalidArgumentException In case of error.
-	 * @return string
-	 */
 	public function get_data_query( WPML_TM_Jobs_Search_Params $params ) {
 		if ( ! $params->get_job_types() ) {
-			// We are merging subqueries here, that's why LIMIT must be applied to final query.
 			$params_without_pagination_and_sorting = clone $params;
 			$params_without_pagination_and_sorting->set_limit( 0 )->set_offset( 0 );
 			$params_without_pagination_and_sorting->set_sorting( array() );
@@ -87,13 +56,6 @@ class CompositeQuery implements Query {
 		}
 	}
 
-	/**
-	 * Get count query
-	 *
-	 * @param WPML_TM_Jobs_Search_Params $params Job search params.
-	 *
-	 * @return int|string
-	 */
 	public function get_count_query( WPML_TM_Jobs_Search_Params $params ) {
 		$params_without_pagination_and_sorting = clone $params;
 		$params_without_pagination_and_sorting->set_limit( 0 )->set_offset( 0 );
@@ -102,16 +64,6 @@ class CompositeQuery implements Query {
 		return $this->get_sql( $params_without_pagination_and_sorting, self::METHOD_COUNT );
 	}
 
-	/**
-	 * Get SQL request string
-	 *
-	 * @param WPML_TM_Jobs_Search_Params $params Job search params.
-	 * @param string                     $method Query method.
-	 *
-	 * @throws InvalidArgumentException In case of error.
-	 * @throws RuntimeException In case of error.
-	 * @return string
-	 */
 	private function get_sql( WPML_TM_Jobs_Search_Params $params, $method ) {
 		switch ( $method ) {
 			case self::METHOD_UNION:
@@ -150,35 +102,14 @@ class CompositeQuery implements Query {
 		return null;
 	}
 
-	/**
-	 * Get union
-	 *
-	 * @param array $parts Query parts.
-	 *
-	 * @return string
-	 */
 	private function get_union( array $parts ) {
 		return '( ' . implode( ' ) UNION ( ', $parts ) . ' )';
 	}
 
-	/**
-	 * Get count
-	 *
-	 * @param array $parts Query parts.
-	 *
-	 * @return string
-	 */
 	private function get_count( array $parts ) {
 		return 'SELECT ( ' . implode( ' ) + ( ', $parts ) . ' )';
 	}
 
-	/**
-	 * Is query valid
-	 *
-	 * @param mixed $query SQL query.
-	 *
-	 * @return bool
-	 */
 	private function is_query_valid( $query ) {
 		return $query instanceof Query;
 	}

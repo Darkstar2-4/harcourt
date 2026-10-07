@@ -1,7 +1,6 @@
 <?php
 
 class WPML_TM_Rest_Job_Progress {
-	/** @var wpdb */
 	private $wpdb;
 
 	public function __construct() {
@@ -9,11 +8,6 @@ class WPML_TM_Rest_Job_Progress {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param WPML_TM_Job_Entity $job
-	 *
-	 * @return string
-	 */
 	public function get( WPML_TM_Job_Entity $job ) {
 		if ( $job->get_translation_service() !== 'local' ) {
 			return '';

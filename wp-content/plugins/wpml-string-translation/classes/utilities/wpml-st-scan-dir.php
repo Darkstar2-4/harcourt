@@ -3,14 +3,6 @@
 class WPML_ST_Scan_Dir {
 	const PLACEHOLDERS_ROOT = '<root>';
 
-	/**
-	 * @param string $folder
-	 * @param array  $extensions
-	 * @param bool   $single_file
-	 * @param array  $ignore_folders
-	 *
-	 * @return array
-	 */
 	public function scan( $folder, array $extensions = array(), $single_file = false, $ignore_folders = array() ) {
 
 		$files         = array();

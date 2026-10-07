@@ -10,10 +10,8 @@ final class SortingCriteria {
   const DEFAULT_SORT_BY = 'date';
   const DEFAULT_SORTING_DIRECTION = 'DESC';
 
-  /** @var string */
   private $sortBy;
 
-  /** @var string */
   private $sortingOrder;
 
 

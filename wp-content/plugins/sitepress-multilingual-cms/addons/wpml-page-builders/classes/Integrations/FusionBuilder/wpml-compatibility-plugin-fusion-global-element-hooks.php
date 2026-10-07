@@ -17,19 +17,14 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 	const SECTIONS_SCREEN_ID           = 'avada-layout-sections';
 	const SECTIONS_SCREEN_ID_BEFORE_V7 = 'fusion-builder_page_fusion-layout-sections';
 
-	/** @var IWPML_Current_Language */
 	private $current_language;
 
-	/** @var WPML_Translation_Element_Factory */
 	private $element_factory;
 
-	/** @var WPML_Custom_Columns */
 	private $custom_columns;
 
-	/** @var WPML_Post_Status_Display */
 	private $postStatusDisplay;
 
-	/** @var array */
 	private $activeLanguages;
 
 	public function __construct(
@@ -62,6 +57,9 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 			add_filter( 'manage_fusion_tb_section_posts_columns', [ $this, 'add_language_column_header' ] );
 			add_action( 'manage_fusion_tb_section_custom_column', [ $this, 'add_language_column_content' ], 10, 2 );
 
+			add_filter( 'manage_fusion_form_posts_columns', [ $this, 'add_language_column_header' ] );
+			add_action( 'manage_fusion_form_custom_column', [ $this, 'add_language_column_content' ], 10, 2 );
+
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 			add_action( 'wp_ajax_' . self::ACTION, [ $this, 'get_template_translation_icons' ] );
 		}
@@ -69,14 +67,7 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		add_filter( 'wpml_ls_exclude_in_menu', [ $this, 'wpml_ls_exclude_in_menu_filter' ] );
 	}
 
-	/**
-	 * @param bool $render
-	 *
-	 * @return bool
-	 */
 	public function wpml_ls_exclude_in_menu_filter( $render ) {
-		// Nonce is checked by fusion builder plugin.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$action = isset( $_POST['action'] ) ? Sanitize::string( wp_unslash( $_POST['action'] ) ) : '';
 
 		if ( wp_doing_ajax() && 'fusion_app_partial_refresh' === $action ) {
@@ -104,13 +95,6 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		return self::GLOBAL_SHORTCODE_START . $global_id . '"]';
 	}
 
-	/**
-	 * Filter overrides.
-	 *
-	 * @param WP_Post|stdClass|false $override  The override.
-	 *
-	 * @return WP_Post|stdClass|false
-	 */
 	public function fusion_get_override_filter( $override ) {
 		if ( ! $override instanceof \WP_Post ) {
 			return $override;
@@ -121,11 +105,6 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		return $id === $override->ID ? $override : get_post( $id );
 	}
 
-	/**
-	 * @param array $columns
-	 *
-	 * @return array
-	 */
 	public function add_language_column_header( $columns ) {
 		if ( $this->getLibraryPostTypeTranslatable() ) {
 			$columns = $this->custom_columns->add_posts_management_column( $columns );
@@ -134,19 +113,18 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		return $columns;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function getLibraryPostTypeTranslatable() {
-		/* phpcs:ignore WordPress.Security.NonceVerification.Recommended */
 		if ( ! isset( $_GET['type'] ) ) {
 			return true;
 		}
 
-		/* phpcs:ignore WordPress.Security.NonceVerification.Recommended */
 		$type = 'template' === $_GET['type']
 			? 'fusion_template'
 			: 'fusion_element';
+
+		if ( 'avada-forms' === $_GET['page'] ) {
+			$type = 'fusion_form';
+		}
 
 		return apply_filters( 'wpml_is_translated_post_type', false, $type );
 	}
@@ -175,14 +153,10 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		);
 	}
 
-	/**
-	 * @param string     $column_name
-	 * @param array|null $item
-	 */
 	public function add_language_column_content( $column_name, $item = null ) {
 		$id = $item ? $item['id'] : null;
 
-		if ( $id && apply_filters( 'wpml_is_translated_post_type', false, get_post_type( $id ) ) ) {
+		if ( $id && $this->getLibraryPostTypeTranslatable() ) {
 			$this->custom_columns->add_content_for_posts_management_column( $column_name, $id );
 		}
 	}
@@ -222,20 +196,10 @@ class WPML_Compatibility_Plugin_Fusion_Global_Element_Hooks extends BaseHooks im
 		);
 	}
 
-	/**
-	 * @param string $screenId
-	 *
-	 * @return bool
-	 */
 	private static function isLayoutsScreen( $screenId ) {
 		return in_array( $screenId, [ self::LAYOUTS_SCREEN_ID_BEFORE_V7, self::LAYOUTS_SCREEN_ID ], true );
 	}
 
-	/**
-	 * @param string $screenId
-	 *
-	 * @return bool
-	 */
 	private static function isSectionsScreen( $screenId ) {
 		return in_array( $screenId, [ self::SECTIONS_SCREEN_ID_BEFORE_V7, self::SECTIONS_SCREEN_ID ], true );
 	}

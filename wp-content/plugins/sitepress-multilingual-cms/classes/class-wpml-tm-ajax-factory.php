@@ -3,9 +3,6 @@
 abstract class WPML_TM_AJAX_Factory_Obsolete {
 	protected $ajax_actions;
 
-	/**
-	 * @var WPML_WP_API
-	 */
 	protected $wpml_wp_api;
 
 

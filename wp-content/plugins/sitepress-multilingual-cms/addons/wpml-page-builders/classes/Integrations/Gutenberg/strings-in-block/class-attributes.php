@@ -6,11 +6,6 @@ use WPML\FP\Obj;
 
 class Attributes extends Base {
 
-	/**
-	 * @param \WP_Block_Parser_Block $block
-	 *
-	 * @return array
-	 */
 	public function find( \WP_Block_Parser_Block $block ) {
 		$strings = [];
 		$attrs   = $this->getAttributes( $block );
@@ -23,13 +18,6 @@ class Attributes extends Base {
 		return $strings;
 	}
 
-	/**
-	 * @param array                  $attrs
-	 * @param array                  $config_keys
-	 * @param \WP_Block_Parser_Block $block
-	 *
-	 * @return array
-	 */
 	private function findStringsRecursively( array $attrs, array $config_keys, \WP_Block_Parser_Block $block ) {
 		$strings = [];
 
@@ -37,6 +25,10 @@ class Attributes extends Base {
 			$matching_key = $this->getMatchingConfigKey( $attr_key, $config_keys );
 
 			if ( ! $matching_key ) {
+				continue;
+			}
+
+			if ( $this->shouldSkipMediaType( $config_keys, $matching_key ) ) {
 				continue;
 			}
 
@@ -62,13 +54,6 @@ class Attributes extends Base {
 		return $strings;
 	}
 
-	/**
-	 * @param string $attr_value
-	 * @param string $attr_key
-	 * @param array  $config_keys
-	 *
-	 * @return mixed
-	 */
 	private function get_attribute_string_type( $attr_value, $attr_key, $config_keys ) {
 		$config_type = $config_keys[ $attr_key ]['type'] ?? null;
 
@@ -79,21 +64,11 @@ class Attributes extends Base {
 		return self::get_string_type( $attr_value );
 	}
 
-	/**
-	 * @param string $attr_key
-	 * @param array  $config_keys
-	 *
-	 * @return string|null
-	 */
 	private function getMatchingConfigKey( $attr_key, array $config_keys ) {
 		if ( isset( $config_keys[ $attr_key ] ) ) {
 			return $attr_key;
 		}
 
-		/**
-		 * If we don't find an exactly matching key,
-		 * we'll try to find a key with a wildcard or a regex.
-		 */
 		foreach ( $config_keys as $config_key => $key_attrs ) {
 
 			if ( preg_match( $this->getRegex( $config_key, $key_attrs ), $attr_key ) ) {
@@ -104,27 +79,12 @@ class Attributes extends Base {
 		return null;
 	}
 
-	/**
-	 * @param array  $config_keys
-	 * @param string $matching_key
-	 *
-	 * @return array
-	 */
 	private function getChildrenConfigKeys( array $config_keys, $matching_key ) {
 		return isset( $config_keys[ $matching_key ]['children'] )
 			? $config_keys[ $matching_key ]['children']
 			: $this->getMatchAllKey();
 	}
 
-	/**
-	 * If the config key is not already a regex
-	 * we will replace the wildcard (*) and make it a valid regex.
-	 *
-	 * @param string $config_key
-	 * @param array  $key_attrs
-	 *
-	 * @return string
-	 */
 	private function getRegex( $config_key, array $key_attrs ) {
 		if ( $this->isRegex( $key_attrs ) ) {
 			return $config_key;
@@ -133,32 +93,15 @@ class Attributes extends Base {
 		return self::getWildcardRegex( $config_key );
 	}
 
-	/**
-	 * @param string $config_key
-	 *
-	 * @return string
-	 */
 	public static function getWildcardRegex( $config_key ) {
 		return '/^' . str_replace( '*', 'S+', preg_quote( $config_key, '/' ) ) . '$/';
 	}
 
-	/**
-	 * @param array $key_attrs
-	 *
-	 * @return bool
-	 */
 	private function isRegex( array $key_attrs ) {
 		return isset( $key_attrs['search-method'] )
-			   && \WPML_Gutenberg_Config_Option::SEARCH_METHOD_REGEX === $key_attrs['search-method'];
+			&& \WPML_Gutenberg_Config_Option::SEARCH_METHOD_REGEX === $key_attrs['search-method'];
 	}
 
-	/**
-	 * @param \WP_Block_Parser_Block $block
-	 * @param array                  $string_translations
-	 * @param string                 $lang
-	 *
-	 * @return \WP_Block_Parser_Block
-	 */
 	public function update( \WP_Block_Parser_Block $block, array $string_translations, $lang ) {
 		$attrs = $this->getAttributes( $block );
 
@@ -170,15 +113,6 @@ class Attributes extends Base {
 		return $block;
 	}
 
-	/**
-	 * @param array  $attrs
-	 * @param array  $config_keys
-	 * @param array  $translations
-	 * @param string $lang
-	 * @param string $block_name
-	 *
-	 * @return array
-	 */
 	public function updateStringsRecursively( array $attrs, array $config_keys, array $translations, $lang, $block_name ) {
 		foreach ( $attrs as $attr_key => $attr_value ) {
 			$matching_key = $this->getMatchingConfigKey( $attr_key, $config_keys );
@@ -213,44 +147,38 @@ class Attributes extends Base {
 		return $attrs;
 	}
 
-	/**
-	 * @param array $attr_key
-	 * @param array $config_keys
-	 *
-	 * @retrun bool
-	 */
 	private function hasJsonEncoding( $attr_key, $config_keys ) {
 		return 'json' === Obj::path( [ $attr_key, 'encoding' ], $config_keys );
 	}
 
-	/**
-	 * @param \WP_Block_Parser_Block $block
-	 *
-	 * @return array
-	 */
 	private function getAttributes( \WP_Block_Parser_Block $block ) {
 		return is_array( $block->attrs ) && $block->blockName ? $block->attrs : [];
 	}
 
-	/**
-	 * @param \WP_Block_Parser_Block $block
-	 *
-	 * @return array
-	 */
 	private function getKeyConfig( \WP_Block_Parser_Block $block ) {
 		$config = $this->get_block_config( $block, 'key' );
 
 		return $config ? $config : [];
 	}
 
-	/**
-	 * @return array
-	 */
 	private function getMatchAllKey() {
 		return [
 			'*' => [
 				'search-method' => \WPML_Gutenberg_Config_Option::SEARCH_METHOD_WILDCARD,
 			],
 		];
+	}
+
+	private function shouldSkipMediaType( array $configKeys, $matchingKey ) {
+		$configType = $configKeys[ $matchingKey ]['type'] ?? null;
+
+		return in_array(
+			$configType,
+			[
+				\WPML_Page_Builders_Media_Gutenberg::TYPE_URL,
+				\WPML_Page_Builders_Media_Gutenberg::TYPE_IDS,
+			],
+			true
+		);
 	}
 }

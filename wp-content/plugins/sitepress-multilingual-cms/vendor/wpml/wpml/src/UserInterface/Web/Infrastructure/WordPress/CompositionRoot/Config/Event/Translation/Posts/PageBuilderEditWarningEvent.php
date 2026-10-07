@@ -7,10 +7,8 @@ use WPML\UserInterface\Web\Core\Component\Notices\WarningTranslationEdit\Applica
 
 class PageBuilderEditWarningEvent {
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var WarningTranslationEditController|null */
   private $warningTranslationEditController;
 
 
@@ -20,13 +18,7 @@ class PageBuilderEditWarningEvent {
   }
 
 
-  /**
-   * @return void
-   */
   public function register() {
-    /**
-     * @psalm-suppress HookNotFound Custom hook 'wpml_maybe_display_modal_page_builder_warning'.
-     */
     add_action(
       'wpml_maybe_display_modal_page_builder_warning',
       function( int $postId, string $pageBuilderName, array $args = [] ) {

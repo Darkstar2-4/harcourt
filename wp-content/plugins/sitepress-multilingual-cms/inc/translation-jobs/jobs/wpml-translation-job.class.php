@@ -10,14 +10,8 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 	protected $job_id;
 	protected $batch_id;
 
-	/** @var  WPML_TM_Blog_Translators $blog_translators */
 	protected $blog_translators;
 
-	/**
-	 * @param  int                      $job_id
-	 * @param int|null                 $batch_id
-	 * @param WPML_TM_Blog_Translators $blog_translators
-	 */
 	function __construct( $job_id, $batch_id = null, &$blog_translators = null ) {
 		$this->job_id           = $job_id;
 		$batch_id               = $batch_id ? $batch_id : $this->get_batch_id();
@@ -25,15 +19,10 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		$this->blog_translators = $blog_translators ? $blog_translators : wpml_tm_load_blog_translators();
 	}
 
-	abstract public function cancel();
-
 	abstract public function get_original_element_id();
 
 	abstract public function to_array();
 
-	/**
-	 * @return string
-	 */
 	abstract function get_title();
 
 	public function get_status() {
@@ -68,19 +57,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $this->element_id;
 	}
 
-	/**
-	 * Checks whether the input user is allowed to edit this job.
-	 *
-	 * If he is an administrator, he is allowed to edit any job.
-	 * If he is an editor, he is allowed to edit any job as long as he's able to translate such language pair.
-	 * Otherwise, we check two conditions:
-	 *  - job needs to be assigned to the user or to no one
-	 *  - user needs to be able to translate the language pair
-	 *
-	 * @param WP_User $user
-	 *
-	 * @return bool
-	 */
 	public function user_can_translate( $user ) {
 		if ( User::isAdministrator( $user ) ) {
 			return apply_filters( 'wpml_user_can_translate', true, $user );
@@ -105,21 +81,10 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return apply_filters( 'wpml_user_can_translate', $user_can_take_this_job && $translator_has_job_language_pairs, $user );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	protected function filter_is_translator_args( array $args ) {
 		return $args;
 	}
 
-	/**
-	 * @param WP_User $user
-	 * @param int     $translator_id
-	 *
-	 * @return bool
-	 */
 	private function is_current_user_allowed_to_translate( WP_User $user, $translator_id ) {
 		$allowed_translators   = apply_filters( 'wpml_tm_allowed_translators_for_job', array(), $this );
 		$allowed_translators[] = $translator_id;
@@ -135,11 +100,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $this->batch_id;
 	}
 
-	/**
-	 * @param bool|false $as_name if true will return the language's display name if applicable
-	 *
-	 * @return bool|string
-	 */
 	public function get_language_code( $as_name = false ) {
 		$this->maybe_load_basic_data();
 		$code = isset( $this->basic_data->language_code ) ? $this->basic_data->language_code : false;
@@ -147,11 +107,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $code && $as_name ? $this->lang_code_to_name( $code ) : $code;
 	}
 
-	/**
-	 * @param bool|false $as_name if true will return the language's display name if applicable
-	 *
-	 * @return bool|string
-	 */
 	function get_source_language_code( $as_name = false ) {
 		$this->maybe_load_basic_data();
 		$code = isset( $this->basic_data->source_language_code ) ? $this->basic_data->source_language_code : false;
@@ -159,9 +114,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $code && $as_name ? $this->lang_code_to_name( $code ) : $code;
 	}
 
-	/**
-	 * @return string|false
-	 */
 	public function get_translator_name() {
 		$this->maybe_load_basic_data();
 		if ( Obj::prop( 'translation_service', $this->basic_data ) == TranslationProxy::get_current_service_id() ) {
@@ -173,11 +125,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $this->basic_data->translator_name;
 	}
 
-	/**
-	 * Returns the id of the assigned translator or 0 if no translator is assigned to the job
-	 *
-	 * @return int
-	 */
 	public function get_translator_id() {
 		$this->maybe_load_basic_data();
 
@@ -193,12 +140,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $this->basic_data;
 	}
 
-	/**
-	 * @param  int    $translator_id
-	 * @param string $service
-	 *
-	 * @return bool true on success false on failure
-	 */
 	public function assign_to( $translator_id, $service = 'local' ) {
 		$this->maybe_load_basic_data();
 		$prev_translator_id = $this->get_translator_id();
@@ -236,11 +177,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return true;
 	}
 
-	/**
-	 * Returns either the translation service id for the job or 'local' for local jobs
-	 *
-	 * @return int|string
-	 */
 	public function get_translation_service() {
 		$this->maybe_load_basic_data();
 		$this->basic_data->translation_service = ! empty( $this->basic_data->translation_service )
@@ -305,14 +241,8 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return $service;
 	}
 
-	/**
-	 * Retrieves the batch ID associated to the job ID
-	 */
 	abstract protected function load_batch_id();
 
-	/**
-	 * @return string
-	 */
 	protected function generate_lang_text() {
 		$this->maybe_load_basic_data();
 
@@ -321,11 +251,6 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 			   . $this->lang_code_to_name( (string) $this->get_language_code() );
 	}
 
-	/**
-	 * @param string $code
-	 *
-	 * @return string
-	 */
 	private function lang_code_to_name( $code ) {
 		global $sitepress;
 
@@ -334,21 +259,12 @@ abstract class WPML_Translation_Job extends WPML_Translation_Job_Helper {
 		return isset( $lang_details['display_name'] ) ? $lang_details['display_name'] : $code;
 	}
 
-	/**
-	 * @param string $name
-	 *
-	 * @return mixed
-	 */
 	public function get_basic_data_property( $name ) {
 		$this->maybe_load_basic_data();
 
 		return Obj::prop( $name, $this->basic_data );
 	}
 
-	/**
-	 * @param string $name
-	 * @param mixed $value
-	 */
 	public function set_basic_data_property( $name, $value ) {
 		$this->basic_data = Obj::assoc( $name, $value, $this->basic_data );
 	}

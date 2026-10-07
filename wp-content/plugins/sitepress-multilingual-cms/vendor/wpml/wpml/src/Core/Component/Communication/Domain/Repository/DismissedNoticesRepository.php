@@ -6,7 +6,6 @@ use WPML\Core\Component\Communication\Domain\DismissedNoticesStorageInterface;
 
 class DismissedNoticesRepository {
 
-  /** @var DismissedNoticesStorageInterface */
   private $storage;
 
 
@@ -15,11 +14,6 @@ class DismissedNoticesRepository {
   }
 
 
-  /**
-   * @param string $noticeId
-   *
-   * @return void
-   */
   public function dismiss( string $noticeId ) {
     $dismissedNotices = $this->storage->getGlobal();
 
@@ -29,12 +23,6 @@ class DismissedNoticesRepository {
   }
 
 
-  /**
-   * @param string $noticeId
-   * @param int    $userId
-   *
-   * @return void
-   */
   public function dismissPerUser( string $noticeId, int $userId ) {
     $dismissedNotices = $this->storage->getPerUser( $userId );
 

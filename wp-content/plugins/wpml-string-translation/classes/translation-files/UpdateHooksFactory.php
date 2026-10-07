@@ -6,7 +6,6 @@ use WPML\ST\MO\File\ManagerFactory;
 use function WPML\Container\make;
 
 class UpdateHooksFactory {
-	/** @return UpdateHooks */
 	public static function create() {
 		static $instance;
 

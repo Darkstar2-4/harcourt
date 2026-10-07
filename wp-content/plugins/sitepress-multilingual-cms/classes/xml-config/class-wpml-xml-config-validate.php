@@ -1,12 +1,6 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_XML_Config_Validate {
-	/**
-	 * @var \LibXMLError[]
-	 */
 	private $errors = [];
 	private $path_to_xsd;
 
@@ -14,18 +8,10 @@ class WPML_XML_Config_Validate {
 		$this->path_to_xsd = $path_to_xsd ? realpath( $path_to_xsd ) : null;
 	}
 
-	/**
-	 * @return \LibXMLError[]
-	 */
 	public function get_errors() {
 		return $this->errors;
 	}
 
-	/**
-	 * @param string $file_full_path
-	 *
-	 * @return bool
-	 */
 	function from_file( $file_full_path ) {
 		$this->errors = array();
 
@@ -34,11 +20,6 @@ class WPML_XML_Config_Validate {
 		return $xml ? $this->from_string( $xml ) : false;
 	}
 
-	/**
-	 * @param string $xml
-	 *
-	 * @return bool
-	 */
 	function from_string( $xml ) {
 		if ( '' === preg_replace( '/(\W)+/', '', $xml ) ) {
 			return false;
@@ -58,11 +39,6 @@ class WPML_XML_Config_Validate {
 		return count($this->errors) === 0;
 	}
 
-	/**
-	 * @param string $content The string representation of the XML file
-	 *
-	 * @return DOMDocument
-	 */
 	private function get_xml( $content ) {
 		$xml = new DOMDocument();
 		$xml->loadXML( $content );

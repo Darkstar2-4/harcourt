@@ -3,42 +3,21 @@
 class WPML_Resolve_Object_Url_Helper implements IWPML_Resolve_Object_Url {
 	const CACHE_GROUP = 'resolve_object_url';
 
-	/**
-	 * @var bool
-	 */
 	protected $lock = false;
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var WP_Query
-	 */
 	private $wp_query;
 
-	/**
-	 * @var WPML_Term_Translation
-	 */
 	private $wpml_term_translations;
 
-	/**
-	 * @var WPML_Post_Translation
-	 */
 	private $wpml_post_translations;
 
-	/**
-	 * @param SitePress             $sitepress
-	 * @param WP_Query              $wp_query
-	 * @param WPML_Term_Translation $wpml_term_translations
-	 * @param WPML_Post_Translation $wpml_post_translations
-	 */
 	public function __construct(
-		SitePress &$sitepress = null,
-		WP_Query &$wp_query = null,
-		WPML_Term_Translation $wpml_term_translations = null,
-		WPML_Post_Translation $wpml_post_translations = null
+		&$sitepress = null,
+		&$wp_query = null,
+		?WPML_Term_Translation $wpml_term_translations = null,
+		?WPML_Post_Translation $wpml_post_translations = null
 	) {
 		$this->sitepress              = &$sitepress;
 		$this->wp_query               = &$wp_query;
@@ -47,14 +26,6 @@ class WPML_Resolve_Object_Url_Helper implements IWPML_Resolve_Object_Url {
 	}
 
 
-	/**
-	 * Try to parse the URL to find a related post or term
-	 *
-	 * @param string $url
-	 * @param string $lang_code
-	 *
-	 * @return string|bool
-	 */
 	public function resolve_object_url( $url, $lang_code ) {
 		if ( $this->lock ) {
 			return false;
@@ -77,7 +48,6 @@ class WPML_Resolve_Object_Url_Helper implements IWPML_Resolve_Object_Url {
 					$new_url = get_permalink( $translations[ $lang_code ]->element_id );
 					break;
 				case 'tax':
-					/** @var WP_Term|false $term */
 					$term    = get_term_by( 'term_taxonomy_id', $translations[ $lang_code ]->element_id, $subtype );
 					$new_url = $term ? get_term_link( $term ) : false;
 					break;
@@ -90,11 +60,6 @@ class WPML_Resolve_Object_Url_Helper implements IWPML_Resolve_Object_Url {
 		return $new_url;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return array<string,\stdClass>
-	 */
 	private function cached_retrieve_translations( $url ) {
 		$cache_key    = md5( $url );
 		$cache_found  = false;
@@ -109,11 +74,8 @@ class WPML_Resolve_Object_Url_Helper implements IWPML_Resolve_Object_Url {
 		return $translations;
 	}
 
-	/**
-	 * @return array<string,\stdClass>
-	 */
 	private function retrieve_translations() {
-		$this->sitepress->set_wp_query(); // Make sure $sitepress->wp_query is set
+		$this->sitepress->set_wp_query();
 		$_wp_query_back = clone $this->wp_query;
 		$wp_query       = $this->sitepress->get_wp_query();
 		$wp_query       = is_object( $wp_query ) ? clone $wp_query : clone $_wp_query_back;

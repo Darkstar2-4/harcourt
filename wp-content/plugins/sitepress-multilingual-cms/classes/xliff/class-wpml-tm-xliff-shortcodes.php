@@ -1,20 +1,11 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_XLIFF_Shortcodes extends WPML_TM_XLIFF_Phase {
 	const SHORTCODE_STORE_OPTION_KEY = 'wpml_xliff_shortcodes';
 
-	/**
-	 * @return string
-	 */
 	protected function get_data() {
 		return implode( ',', $this->get_shortcodes() );
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_shortcodes() {
 		global $shortcode_tags;
 

@@ -2,30 +2,13 @@
 
 use WPML\FP\Str;
 
-/**
- * Class WPML_Language_Resolution
- *
- * @package    wpml-core
- * @subpackage wpml-requests
- */
 class WPML_Language_Resolution {
 
 	private $active_language_codes = array();
 	private $current_request_lang  = null;
 	private $default_lang          = null;
-	/**
-	 * @var array|null $hidden_lang_codes if set to null,
-	 * indicates that the cache needs to be reloaded due to changing settings
-	 * or current user within the request
-	 */
 	private $hidden_lang_codes = null;
 
-	/**
-	 * WPML_Language_Resolution constructor.
-	 *
-	 * @param string[] $active_language_codes
-	 * @param string   $default_lang
-	 */
 	public function __construct( $active_language_codes, $default_lang ) {
 		add_action( 'wpml_cache_clear', array( $this, 'reload' ), 11, 0 );
 		$this->active_language_codes = array_fill_keys(
@@ -60,8 +43,9 @@ class WPML_Language_Resolution {
 			} elseif ( $this->use_cookie_language() ) {
 				$lang = $wpml_request_handler->get_cookie_lang();
 			}
+
+			$this->current_request_lang = $this->filter_for_legal_langs( $lang );
 		}
-		$this->current_request_lang = $this->filter_for_legal_langs( $lang );
 
 		return $this->current_request_lang;
 	}
@@ -75,12 +59,20 @@ class WPML_Language_Resolution {
 	public function is_language_hidden( $lang_code ) {
 		$this->maybe_reload();
 
+		if ( null === $lang_code ) {
+			return false;
+		}
+
 		return isset( $this->hidden_lang_codes[ $lang_code ] );
 	}
 
 	public function is_language_active( $lang_code, $is_all_active = false ) {
 		global $wpml_request_handler;
 		$this->maybe_reload();
+
+		if ( null === $lang_code ) {
+			return false;
+		}
 
 		return ( $is_all_active === true && $lang_code === 'all' )
 			   || isset( $this->active_language_codes[ $lang_code ] )
@@ -94,13 +86,6 @@ class WPML_Language_Resolution {
 			? $this->active_language_codes : array_fill_keys( wpml_reload_active_languages_setting( true ), 1 );
 	}
 
-	/**
-	 * Returns the language_code of the http referrer's location from which a request originated.
-	 * Used to correctly determine the language code on ajax link lists for the post edit screen or
-	 * the flat taxonomy auto-suggest.
-	 *
-	 * @return string|null
-	 */
 	public function get_referrer_language_code() {
 		if ( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
 			$query_string = wpml_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY );
@@ -112,16 +97,6 @@ class WPML_Language_Resolution {
 		return isset( $language_code ) ? $language_code : null;
 	}
 
-	/**
-	 *
-	 * Sets the language of frontend requests to false, if they are not for
-	 * a hidden or active language code. The handling of permissions in case of
-	 * hidden languages is done in \SitePress::init.
-	 *
-	 * @param string $lang
-	 *
-	 * @return string
-	 */
 	private function filter_for_legal_langs( $lang ) {
 		if ( Str::includes( 'wp-login.php', $_SERVER['REQUEST_URI'] ) ) {
 			return $lang;
@@ -134,16 +109,17 @@ class WPML_Language_Resolution {
 			return 'all';
 		}
 
-		if ( ! isset( $this->hidden_lang_codes[ $lang ] ) && ! isset( $this->active_language_codes[ $lang ] ) ) {
+		if ( null === $lang ) {
+			$lang = $this->default_lang ? $this->default_lang : icl_get_setting( 'default_language' );
+		}
+
+		if ( null !== $lang && ! isset( $this->hidden_lang_codes[ $lang ] ) && ! isset( $this->active_language_codes[ $lang ] ) ) {
 			$lang = $this->default_lang ? $this->default_lang : icl_get_setting( 'default_language' );
 		}
 
 		return $lang;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function use_cookie_language() {
 
 		return ( isset( $_GET['action'] ) && $_GET['action'] === 'ajax-tag-search' )
@@ -154,12 +130,6 @@ class WPML_Language_Resolution {
 			) );
 	}
 
-	/**
-	 * Adjusts the output of the filtering for the current language in case
-	 * the request is for a preview page.
-	 *
-	 * @return null|string
-	 */
 	private function filter_preview_language_code() {
 		$preview_id   = filter_var(
 			isset( $_GET['preview_id'] ) ? $_GET['preview_id'] : '',

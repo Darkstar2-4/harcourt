@@ -3,7 +3,10 @@
 var WPML_Core = WPML_Core || {};
 WPML_Core.taxonomy_sync_complete_reload = function () {
 	"use strict";
-	location.reload();
+	var url = new URL(window.location.href);
+  // Add parameter to prevent duplicate PostHog event capture
+	url.searchParams.set('event_captured', '1');
+	window.location.href = url.toString();
 }
 
 WPML_Core.taxonomy_sync_complete = function ( event, xhr, settings ) {

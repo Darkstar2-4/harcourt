@@ -1,20 +1,10 @@
 <?php
-/**
- * Main loader script to include in the plugin to initialize Installer.
- *
- * @package Installer
- */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+	exit;
 }
 
 if ( ! function_exists( 'otgs_is_rest_request' ) ) {
-	/**
-	 * Returns true if the current request is a REST one.
-	 *
-	 * @return bool
-	 */
 	function otgs_is_rest_request() {
 		$rest_url_prefix = 'wp-json';
 
@@ -27,8 +17,27 @@ if ( ! function_exists( 'otgs_is_rest_request' ) ) {
 }
 
 if ( file_exists( __DIR__ . '/../../otgs/icons/loader.php' ) ) {
-	$vendor_root_url = plugins_url( '/', __FILE__ )  . '../..'; // This variable is required in otgs/icons/loader.php
+	$vendor_root_url = plugins_url( '/', __FILE__ )  . '../..';
 	require_once __DIR__ . '/../../otgs/icons/loader.php';
+}
+
+global $otgs_installer_version;
+$otgs_installer_version = '3.1.14';
+
+if ( ! function_exists( 'wpml_installer_force_load' ) ) {
+	function wpml_installer_force_load() {
+		if ( function_exists( 'OTGS_Installer' ) ) {
+			return \OTGS_Installer();
+		}
+
+		global $otgs_installer_version;
+		$delegate = [ 'version' => $otgs_installer_version, 'bootfile' => dirname( __FILE__ ) . '/installer.php' ];
+
+		include_once $delegate['bootfile'];
+		include_once dirname( __FILE__ ) . '/includes/functions-core.php';
+
+		return \OTGS_Installer();
+	}
 }
 
 $is_cron_request   = defined( 'DOING_CRON' ) && DOING_CRON;
@@ -36,16 +45,12 @@ $is_wp_cli_request = defined( 'WP_CLI' ) && WP_CLI;
 
 if ( ! $is_cron_request && ! $is_wp_cli_request && ! is_admin() && ! otgs_is_rest_request() ) {
 	if ( ! function_exists( 'WP_Installer_Setup' ) ) {
-		// phpcs:disable WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
-		/**
-		 * Stub function to short-circuit Installer when it should not run.
-		 */
 		function WP_Installer_Setup( $wp_installer_instance, $args = [] ) {
 			if ( isset( $args['site_key_nags'][0]['repository_id'] ) ) {
 				require_once __DIR__ . '/includes/class-otgs-installer-settings.php';
 				require_once __DIR__ . '/includes/class-otgs-installer-subscription.php';
 
-				$settings = OTGS\Installer\Settings::load();
+				$settings = OTGS\Installer\Settings::load_subscriptions();
 
 				$repository_id = $args['site_key_nags'][0]['repository_id'];
 
@@ -95,7 +100,7 @@ if ( ! $is_cron_request && ! $is_wp_cli_request && ! is_admin() && ! otgs_is_res
                                 line-height: 18px;
                                 text-align: center;
                                 color: white;
-                                background-color: #33879E;
+                                background-color: #0369a1;
                             }
 						</style>
 						<?php
@@ -106,7 +111,6 @@ if ( ! $is_cron_request && ! $is_wp_cli_request && ! is_admin() && ! otgs_is_res
 				}
 			}
 		}
-		// phpcs:enable WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
 	}
 	$wp_installer_instance = null;
 
@@ -115,18 +119,12 @@ if ( ! $is_cron_request && ! $is_wp_cli_request && ! is_admin() && ! otgs_is_res
 
 $wp_installer_instance = dirname( __FILE__ ) . '/installer.php';
 
-// Global stack of instances.
 global $wp_installer_instances;
 $wp_installer_instances[ $wp_installer_instance ] = [
 	'bootfile' => $wp_installer_instance,
-	'version'  => '3.1.14'
+	'version'  => $otgs_installer_version,
 ];
 
-/**
- * Exception: When WPML prior 3.2 is used, that instance must be used regardless of another newer instance.
- *
- * WPML loaded before Types - eliminate other instances.
- */
 if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, '3.2', '<' ) ) {
 	foreach ( $wp_installer_instances as $key => $instance ) {
 		if ( isset( $instance['args']['site_key_nags'] ) ) {
@@ -137,18 +135,8 @@ if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSIO
 	}
 }
 
-/**
- * Exception: Types 1.8.9 (Installer 1.7.0) with WPML before 3.3 (Installer before 1.7.0).
- *
- * New products file http://d2salfytceyqoe.cloudfront.net/wpml-products33.json overrides the old one
- * while the WPML's instance is being used (force using the new Installer Instance).
- */
 if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, '3.3.1', '<' ) ) {
 
-	/**
-	 * If Installer 1.7.0+ is present, unregister Installer from old WPML.
-	 * Force Installer 1.7.0+ being used over older Installer versions.
-	 */
 	$installer_171_plus_on = false;
 	foreach ( $wp_installer_instances as $key => $instance ) {
 		if ( version_compare( $instance['version'], '1.7.1', '>=' ) ) {
@@ -167,32 +155,18 @@ if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSIO
 	}
 }
 
-/**
- * Exception: When using the embedded plugins module allow the set up to run completely with the
- * Installer instance that triggers it.
- *
- * phpcs:disable WordPress.CSRF.NonceVerification.NoNonceVerification -- No need for nonce verification here
- */
 if ( isset( $_POST['installer_instance'] ) && isset( $wp_installer_instances[ $_POST['installer_instance'] ] ) ) {
 	$wp_installer_instances[ $_POST['installer_instance'] ]['version'] = '999';
 }
-// phpcs:enable WordPress.CSRF.NonceVerification.NoNonceVerification -- No need for nonce verification here
 
-/**
- * Only one of these in the end.
- */
 remove_action( 'after_setup_theme', 'wpml_installer_instance_delegator', 1 );
 add_action( 'after_setup_theme', 'wpml_installer_instance_delegator', 1 );
 
 if ( ! function_exists( 'wpml_installer_instance_delegator' ) ) {
-	/**
-	 * When all plugins load pick the newest version.
-	 */
 	function wpml_installer_instance_delegator() {
 		global $wp_installer_instances;
 
 		$delegated_instance_key = null;
-		// version based election.
 		foreach ( $wp_installer_instances as $instance_key => $instance ) {
 			$wp_installer_instances[ $instance_key ]['delegated'] = false;
 
@@ -204,7 +178,6 @@ if ( ! function_exists( 'wpml_installer_instance_delegator' ) ) {
 
 		$wp_installer_instances[ $delegated_instance_key ]['delegated'] = true;
 
-		// priority based election.
 		$highest_priority = null;
 		foreach ( $wp_installer_instances as $instance ) {
 			if ( isset( $instance['args']['high_priority'] ) ) {
@@ -215,16 +188,11 @@ if ( ! function_exists( 'wpml_installer_instance_delegator' ) ) {
 			}
 		}
 
-		/**
-		 * Exception: When WPML prior 3.2 is used, that instance must be used regardless of another newer instance.
-		 *
-		 * WPML loaded after Types
-		 */
 		if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, '3.2', '<' ) ) {
 			foreach ( $wp_installer_instances as $key => $instance ) {
 				if ( isset( $instance['args']['site_key_nags'] ) ) {
 					$delegate               = $instance;
-					$wp_installer_instances = array( $key => $delegate ); // Eliminate other instances.
+					$wp_installer_instances = array( $key => $delegate );
 					break;
 				}
 			}
@@ -235,10 +203,8 @@ if ( ! function_exists( 'wpml_installer_instance_delegator' ) ) {
 		require_once dirname( __FILE__ ) . '/includes/loader/Config.php';
 		$delegate = OTGS\Installer\Loader\Config::merge( $delegate, $wp_installer_instances );
 
-		// set configuration.
 		$template_path = realpath( get_template_directory() );
 		if ( $template_path && strpos( (string) realpath( $delegate['bootfile'] ), (string) $template_path ) === 0 ) {
-			/** @var string $filepath */
 			$filepath = str_replace( (string) realpath( get_template_directory() ), '', (string) realpath( $delegate['bootfile'] ) );
 			$delegate['args']['in_theme_folder'] = dirname( ltrim( $filepath, '\\/' ) );
 		}
@@ -254,18 +220,6 @@ if ( ! function_exists( 'wpml_installer_instance_delegator' ) ) {
 
 if ( ! function_exists( 'WP_Installer_Setup' ) ) {
 
-	/**
-	 * $args:
-	 *  plugins_install_tab = true|false (default: true)
-	 *  repositories_include = array() (default: all)
-	 *  repositories_exclude = array() (default: none)
-	 *  template = name (default: default)
-	 *
-	 * @param int   $wp_installer_instance The WP_Installer instance.
-	 * @param array $args                  The repository configuration.
-	 *
-	 * phpcs:disable WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
-	 */
 	function WP_Installer_Setup( $wp_installer_instance, $args = array() ) {
 		global $wp_installer_instances;
 
@@ -273,5 +227,4 @@ if ( ! function_exists( 'WP_Installer_Setup' ) ) {
 			$wp_installer_instances[ $wp_installer_instance ]['args'] = $args;
 		}
 	}
-	// phpcs:enable WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid
 }

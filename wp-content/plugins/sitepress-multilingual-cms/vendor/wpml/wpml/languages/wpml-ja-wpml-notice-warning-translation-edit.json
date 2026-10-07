@@ -11,22 +11,22 @@
             "警告:"
          ],
          "Edits you're about to make will be lost": [
-            "これから行う編集は失われます"
+            "行おうとしている編集は失われます"
          ],
          "You are about to edit this translation using %s.": [
-            "この翻訳を%sを使用して編集しようとしています。"
+            "%s を使用してこの翻訳を編集しようとしています。"
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "次回このページを翻訳に送信する際、行った変更はすべて失われます。"
+            "次回このページを翻訳に送信すると、加えた変更は失われます。"
          ],
          "Go back": [
             "戻る"
          ],
          "Edit in Advanced Translation Editor": [
-            "アドバンスド翻訳エディタで編集"
+            "高度な翻訳エディターで編集"
          ],
          "Edit anyway (Not recommended)": [
-            "それでも編集する（推奨されません）"
+            "とにかく編集 (非推奨)"
          ]
       }
    }

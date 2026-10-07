@@ -4,24 +4,12 @@ class WPML_Update_Term_Count {
 
 	const CACHE_GROUP = __CLASS__;
 
-	/** @var  WPML_WP_API $wp_api */
 	private $wp_api;
 
-	/**
-	 * WPML_Update_Term_Count constructor.
-	 *
-	 * @param WPML_WP_API $wp_api
-	 */
 	public function __construct( $wp_api ) {
 		$this->wp_api = $wp_api;
 	}
 
-	/**
-	 * Triggers an update to the term count of all terms associated with the
-	 * input post_id
-	 *
-	 * @param int $post_id
-	 */
 	public function update_for_post( $post_id ) {
 		static $taxonomies;
 

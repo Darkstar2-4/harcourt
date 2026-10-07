@@ -2,7 +2,6 @@
 
 class WPML_ST_String_Dependencies_Builder {
 
-	/** @var WPML_ST_String_Dependencies_Records $records */
 	private $records;
 
 	private $types_map = array(
@@ -14,12 +13,6 @@ class WPML_ST_String_Dependencies_Builder {
 		$this->records = $records;
 	}
 
-	/**
-	 * @param string|null $type
-	 * @param int         $id
-	 *
-	 * @return WPML_ST_String_Dependencies_Node
-	 */
 	public function from( $type, $id ) {
 		$parent_id = $type === null ? false : $this->records->get_parent_id_from( $type, $id );
 
@@ -39,11 +32,6 @@ class WPML_ST_String_Dependencies_Builder {
 		return $this->populate_node( $node );
 	}
 
-	/**
-	 * @param WPML_ST_String_Dependencies_Node $node
-	 *
-	 * @return WPML_ST_String_Dependencies_Node
-	 */
 	private function populate_node( WPML_ST_String_Dependencies_Node $node ) {
 		$child_ids = $this->records->get_child_ids_from( $node->get_type(), $node->get_id() );
 
@@ -60,20 +48,10 @@ class WPML_ST_String_Dependencies_Builder {
 		return $node;
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return null|string
-	 */
 	private function get_parent_type( $type ) {
 		return array_search( $type, $this->types_map, true ) ?: null;
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return null|string
-	 */
 	private function get_child_type( $type ) {
 		return isset( $this->types_map[ $type ] ) ? $this->types_map[ $type ] : null;
 	}

@@ -10,9 +10,6 @@ class Trigger {
 	const OPTION_GROUP = 'WPML\TM\ATE\Retry';
 	const RETRY_LAST = 'last';
 
-	/**
-	 * @return bool
-	 */
 	public function isRetryRequired() {
 		$retrySync = OptionManager::getOr( 0, self::RETRY_LAST, self::OPTION_GROUP );
 

@@ -150,7 +150,7 @@ class Table {
 				'null'    => false,
 				'default' => 'CURRENT_TIMESTAMP',
 				'extra'   => 'ON UPDATE CURRENT_TIMESTAMP',
-			]
+			],
 		);
 	}
 
@@ -180,7 +180,7 @@ class Table {
 	 *
 	 * @return bool|string
 	 *
-	 * @throws Exception If the table definition has not been intialized.
+	 * @throws Exception If the table definition has not been initialized.
 	 */
 	public function finish( $wants_sql = false ) {
 		if ( ! $this->initialized ) {
@@ -208,7 +208,7 @@ class Table {
 					'unsigned'       => true,
 					'null'           => false,
 					'auto_increment' => true,
-				]
+				],
 			);
 			$create_table_sql    .= $primary_id->to_sql() . ",\n";
 		}

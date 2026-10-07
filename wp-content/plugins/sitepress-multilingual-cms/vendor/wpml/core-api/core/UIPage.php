@@ -9,30 +9,6 @@ use WPML\FP\Obj;
 use WPML\FP\Relation;
 use function WPML\FP\curryN;
 
-/**
- * Class UIPage
- * @package WPML
- *
- * @method static callback|bool isLanguages( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTranslationManagement( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTMDashboard( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTMBasket( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTMJobs( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTMTranslators( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTMATE( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTroubleshooting( ...$get ) - Curried :: array → bool
- * @method static callback|bool isTranslationQueue( ...$get ) - Curried :: array → bool
- * @method static callback|bool isPage( ...$page, ...$get ) - Curried :: string → array → bool
- * @method static string getLanguages()
- * @method static string getTroubleshooting()
- * @method static string getTM()
- * @method static string getTMDashboard()
- * @method static string getTMBasket()
- * @method static string getTMATE()
- * @method static string getTMTranslators()
- * @method static string getTMJobs()
- * @method static string getTranslationQueue()
- */
 class UIPage {
 
 	const TM_PAGE = 'tm/menu/main.php';
@@ -83,7 +59,7 @@ class UIPage {
 
 	}
 
-	public static function isSettings( array $get = null ) {
+	public static function isSettings( ?array $get = null ) {
 		$isSettings = function ( $get ) {
 			return defined( 'WPML_TM_FOLDER' )
 				? self::isPage( WPML_TM_FOLDER . '/menu/settings', $get )
@@ -93,41 +69,20 @@ class UIPage {
 		return call_user_func_array( curryN( 1, $isSettings ), func_get_args() );
 	}
 
-	/**
-	 * @param array|null $get
-	 *
-	 * @return bool
-	 */
-	public static function isMainSettingsTab( array $get = null ) {
+	public static function isMainSettingsTab( ?array $get = null ) {
 		return self::isSettingTab( 'mcsetup', $get );
 	}
 
-	/**
-	 * @param array|null $get
-	 *
-	 * @return bool
-	 */
-	public static function isNotificationSettingsTab( array $get = null ) {
+	public static function isNotificationSettingsTab( ?array $get = null ) {
 		return self::isSettingTab( 'notifications', $get );
 	}
 
-	/**
-	 * @param array|null $get
-	 *
-	 * @return bool
-	 */
-	public static function isCustomXMLConfigSettingsTab( array $get = null ) {
+	public static function isCustomXMLConfigSettingsTab( ?array $get = null ) {
 		return self::isSettingTab( 'custom-xml-config', $get );
 	}
 
 
-	/**
-	 * @param string|null $tab
-	 * @param array|null $get
-	 *
-	 * @return bool
-	 */
-	public static function isSettingTab( $tab = null, array $get = null ) {
+	public static function isSettingTab( ?string $tab = null, ?array $get = null ) {
 		$fn = function ( $tab, $get ) {
 			if ( self::isSettings( $get ) ) {
 				return Obj::propOr( 'mcsetup', 'sm', $get ) === $tab;

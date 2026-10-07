@@ -4,21 +4,6 @@ namespace WPML\StringTranslation\Infrastructure\StringGettext\Repository\Util;
 
 class FilterOnlyNewFrontendStrings {
 
-	/**
-	 * @var array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * } $newData
-	 * @var array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * } $existingData
-	 *
-	 * @return array{
-	 *     requestUrl: string,
-	 *     gettextStrings: array<array{domain: string, value: string, context: string|null}>
-	 * }
-	 */
 	public function run( array $newData, array $existingData ): array {
 		$filteredNewDataItems = [];
 

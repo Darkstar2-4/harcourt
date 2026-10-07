@@ -4,18 +4,12 @@ class WPML_TM_Word_Count_Post_Records {
 
 	const META_KEY = '_wpml_word_count';
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * Returns only IDs in the source language
-	 *
-	 * @return array
-	 */
 	public function get_all_ids_without_word_count() {
 		$query = "
 			SELECT ID FROM {$this->wpdb->posts} AS p
@@ -32,21 +26,10 @@ class WPML_TM_Word_Count_Post_Records {
 		return array_map( 'intval', $this->wpdb->get_col( $query ) );
 	}
 
-	/**
-	 * @param int $post_id
-	 *
-	 * @return string raw word count
-	 */
 	public function get_word_count( $post_id ) {
 		return get_post_meta( $post_id, self::META_KEY, true );
 	}
 
-	/**
-	 * @param int    $post_id
-	 * @param string $word_count raw word count
-	 *
-	 * @return bool|int
-	 */
 	public function set_word_count( $post_id, $word_count ) {
 		return update_post_meta( $post_id, self::META_KEY, $word_count );
 	}
@@ -64,11 +47,6 @@ class WPML_TM_Word_Count_Post_Records {
 		$this->wpdb->query( $this->wpdb->prepare( $query, self::META_KEY ) );
 	}
 
-	/**
-	 * @param array $post_types
-	 *
-	 * @return array
-	 */
 	public function get_source_ids_from_types( array $post_types ) {
 		$query = "SELECT ID FROM {$this->wpdb->posts} AS p
 				  LEFT JOIN {$this->wpdb->prefix}icl_translations AS t
@@ -80,11 +58,6 @@ class WPML_TM_Word_Count_Post_Records {
 		return array_map( 'intval', $this->wpdb->get_col( $query ) );
 	}
 
-	/**
-	 * @param string $post_type
-	 *
-	 * @return int
-	 */
 	public function count_source_items_by_type( $post_type ) {
 		$query = "SELECT COUNT(*) FROM {$this->wpdb->posts} AS p
 				  LEFT JOIN {$this->wpdb->prefix}icl_translations AS t
@@ -107,11 +80,6 @@ class WPML_TM_Word_Count_Post_Records {
 		return (int) $this->wpdb->get_var( $this->wpdb->prepare( $query, $post_type ) );
 	}
 
-	/**
-	 * @param string $post_type
-	 *
-	 * @return array
-	 */
 	public function get_word_counts_by_type( $post_type ) {
 		$query = "SELECT meta_value FROM {$this->wpdb->postmeta} AS pm
 				  LEFT JOIN {$this->wpdb->posts} AS p

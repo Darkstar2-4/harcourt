@@ -1,12 +1,7 @@
 <?php
-// adapted from http://wordpress.org/extend/plugins/black-studio-wpml-javascript-redirect/
-// thanks to Blank Studio - http://www.blackstudio.it/
 
 class WPML_Browser_Redirect {
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
 	public function __construct( $sitepress ) {
@@ -31,7 +26,6 @@ class WPML_Browser_Redirect {
 
 		$args['skip_missing'] = intval( $this->sitepress->get_setting( 'automatic_redirect' ) == 1 );
 
-		// Build multi language urls array
 		$languages     = $this->sitepress->get_ls_languages( $args );
 		$language_urls = [];
 		foreach ( $languages as $language ) {
@@ -49,7 +43,6 @@ class WPML_Browser_Redirect {
 			}
 			$language_urls[ $language['language_code'] ] = $language['url'];
 		}
-		// Cookie parameters
 		$http_host = $_SERVER['HTTP_HOST'] == 'localhost' ? '' : $_SERVER['HTTP_HOST'];
 		$cookie    = array(
 			'name'       => '_icl_visitor_lang_js',
@@ -58,57 +51,30 @@ class WPML_Browser_Redirect {
 			'expiration' => $this->sitepress->get_setting( 'remember_language' ),
 		);
 
-		// Send params to javascript
 		$params = array(
 			'pageLanguage' => defined( 'ICL_LANGUAGE_CODE' ) ? ICL_LANGUAGE_CODE : get_bloginfo( 'language' ),
 			'languageUrls' => $language_urls,
 			'cookie'       => $cookie,
 		);
 
-		/**
-		 * Filters the data sent to the browser redirection script.
-		 *
-		 * If ´$param´ is empty or ´$params['pageLanguage']´ or ´$params['languageUrls']´ are not set, the script won't be enqueued.
-		 *
-		 * @since 4.0.6
-		 *
-		 * @param array $params {
-		 *     Data sent to the script as `wpml_browser_redirect_params` object.
-		 *
-		 *     @type string $pageLanguage The language of the current page.
-		 *     @type array  $languageUrls Associative array where the key is the language code and the value the translated URLs of the current page.
-		 *     @type array  $cookie       Associative array containing information to use for creating the cookie.
-		 * }
-		 */
+		$current_page_id = get_queried_object_id();
+		$url             = $this->sitepress->get_setting( 'urls' );
+		if ( $url && isset( $url['root_page'] ) && $current_page_id === (int) $url['root_page'] ) {
+			$params['pageLanguage'] = '';
+		}
+
 		$params = apply_filters( 'wpml_browser_redirect_language_params', $params );
 
 		$enqueue = false;
 		if ( $params && isset( $params['pageLanguage'], $params['languageUrls'] ) ) {
 			wp_localize_script( 'wpml-browser-redirect', 'wpml_browser_redirect_params', $params );
 
-			/**
-			 * Prevents the `wpml-browser-redirect` from being enqueued.
-			 *
-			 * If the filter returns as falsy value, the script won't be enqueued.
-			 *
-			 * @since 4.0.6
-			 *
-			 * @param bool $enqueue Defaults to `true`
-			 */
 			$enqueue = apply_filters( 'wpml_enqueue_browser_redirect_language', true );
 			if ( $enqueue ) {
 				wp_enqueue_script( 'wpml-browser-redirect' );
 			}
 		}
 
-		/**
-		 * Fires after the browser redirection logic runs, even if the script is not enqueued.
-		 *
-		 * @since 4.0.6
-		 *
-		 * @param bool $enqueue Defaults to `true`
-		 * @param array $params  @see `wpml_browser_redirect_language_params`
-		 */
 		do_action( 'wpml_enqueued_browser_redirect_language', $enqueue, $params );
 	}
 }

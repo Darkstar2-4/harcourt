@@ -8,30 +8,12 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 use WPML\PHP\Exception\Exception;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-type RequestData=array{
- *   itemSectionIds: string[],
- *   sourceLanguageCode: string,
- *   targetLanguageCode?: string,
- *   translationStatuses?: int[],
- *   publicationStatus?: string,
- *  }
- */
 class GetPopulatedItemSectionsController implements EndpointInterface {
 
-  /**
-   * @var SearchPopulatedTypesQueryInterface
-   */
   private $searchPopulatedTypesQuery;
 
-  /**
-   * @var PopulatedItemSectionsFilterInterface
-   */
   private $populatedItemSectionsFilter;
 
-  /**
-   * @var SearchPopulatedTypesCriteriaBuilder
-   */
   private $criteriaBuilder;
 
 
@@ -46,12 +28,6 @@ class GetPopulatedItemSectionsController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string,mixed>
-   * @throws InvalidArgumentException|Exception
-   */
   public function handle( $requestData = null ): array {
     $requestData = $this->validateRequestData( $requestData ?? [] );
 
@@ -72,7 +48,6 @@ class GetPopulatedItemSectionsController implements EndpointInterface {
         strpos( $itemSectionId, 'post/' ) === 0 &&
         ! in_array( str_replace( 'post/', '', $itemSectionId ), $populatedPostItems )
       ) {
-        // If it's a post type, and not populated, remove it.
         unset( $itemSectionIds[ $key ] );
       }
     }
@@ -87,18 +62,6 @@ class GetPopulatedItemSectionsController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array{
-   *   itemSectionIds: string[],
-   *   sourceLanguageCode?: string,
-   *   targetLanguageCode?: string,
-   *   translationStatuses?: non-empty-list<int>,
-   *   publicationStatus?: string
-   * }
-   * @throws InvalidArgumentException
-   */
   private function validateRequestData( array $requestData ): array {
     if (
       ! isset( $requestData['itemSectionIds'] ) ||

@@ -20,10 +20,11 @@ export class AutoResizing {
 	 * @param {number}  [options.precision=0]         - Allowed width variation (in pixels) for determining if resizing is necessary.
 	 * @param {boolean} [options.skipAutoWidth=false] - Whether to skip auto width resizing.
 	 */
-	constructor( { precision = 0, skipAutoWidth = false } = {} ) {
+	constructor( { precision = 0, skipAutoWidth = false, cdnBaseURL = '' } = {} ) {
 		this.precision = parseInt( precision, 10 );
 		this.precision = isNaN( this.precision ) ? 0 : this.precision;
 		this.skipAutoWidth = skipAutoWidth;
+		this.cdnBaseURL = typeof cdnBaseURL === 'string' ? cdnBaseURL.trim() : '';
 
 		this.initEventListeners();
 	}
@@ -61,6 +62,9 @@ export class AutoResizing {
 
 		// Skip processing if it's not the initial render.
 		if ( ! isInitialRender ) {
+			if ( ! this.getOriginalSizesAttr( element ) ) {
+				lazyEvent.preventDefault();
+			}
 			return;
 		}
 
@@ -116,8 +120,13 @@ export class AutoResizing {
 	 */
 	shouldAutoResize( imageElement, resizeWidth ) {
 		const wrapper = imageElement.parentNode;
+
 		if ( wrapper && this.isInlineElement( wrapper ) ) {
-			const wrapperWidth = wrapper.offsetWidth;
+			if ( 'PICTURE' === wrapper.nodeName ) {
+				return false;
+			}
+
+			const wrapperWidth = wrapper.clientWidth;
 			const imageWidth = imageElement.offsetWidth;
 			const isWrapperAndImageSameWidth = resizeWidth === wrapperWidth && wrapperWidth === imageWidth;
 
@@ -161,12 +170,50 @@ export class AutoResizing {
 			return;
 		}
 
+		const isNonResponsive = 1 === sortedSources.length && '' === sortedSources[ 0 ].unit;
+		if ( isNonResponsive ) {
+			this.resizeNonResponsiveSource( sourceElement, sortedSources[ 0 ].src, resizeWidth );
+			return;
+		}
+
 		const baseSourceSrc = this.getBaseSourceSrcForResize( sortedSources, resizeWidth );
 		if ( ! this.isFromSmushCDN( baseSourceSrc ) ) {
 			return;
 		}
 
 		this.updateSrcsetForResize( sourceElement, srcset, baseSourceSrc, resizeWidth, sortedSources );
+	}
+
+	resizeNonResponsiveSource(sourceElement, sourceSrc, resizeWidth ) {
+		if ( ! this.isFromSmushCDN( sourceSrc ) ) {
+			return;
+		}
+
+		if ( ! this.isSourceActive( sourceElement ) ) {
+			return;
+		}
+
+		let newSrcset = this.getResizedCDNURL( sourceSrc, resizeWidth );
+
+		// Add a new retina source to the srcset if no similar source exists for the retina width.
+		const scale = this.getPixelRatio();
+		if ( scale > 1 ) {
+			const retinaWidth = Math.ceil( resizeWidth * scale );
+			const retinaCDNURL = this.getResizedCDNURL( sourceSrc, retinaWidth );
+			const newRetinaSourceString = retinaCDNURL + ' ' + retinaWidth + SRCSET_WIDTH_DESCRIPTOR;
+			newSrcset += ` ${ resizeWidth }${ SRCSET_WIDTH_DESCRIPTOR }, ${ newRetinaSourceString }`;
+		}
+
+		// Update the element's data-srcset attribute if the srcset has changed.
+		this.updateElementSrcset( sourceElement, null, newSrcset );
+	}
+
+	isSourceActive( sourceElement ) {
+		const media = sourceElement.getAttribute( 'media' );
+		if ( media && ! window?.matchMedia( media )?.matches ) {
+			return false;
+		}
+		return true;
 	}
 
 	getBaseSourceSrcForResize( sortedSources, resizeWidth ) {
@@ -323,7 +370,7 @@ export class AutoResizing {
 			return srcset;
 		}
 
-		const retinaWidth = Math.floor( resizeWidth * scale );
+		const retinaWidth = Math.ceil( resizeWidth * scale );
 		const hasRetinaSource = this.findSimilarSource( sources, scale, SRCSET_DENSITY_DESCRIPTOR ) ||
 								this.findSimilarSource( sources, retinaWidth, SRCSET_WIDTH_DESCRIPTOR );
 
@@ -547,7 +594,21 @@ export class AutoResizing {
 	 * @return {boolean} True if the source is from the CDN, false otherwise.
 	 */
 	isFromSmushCDN( src ) {
-		return src && src.includes( SMUSH_CDN_DOMAIN );
+		if ( ! src || ! this.cdnBaseURL ) {
+			return false;
+		}
+
+		if ( src.startsWith( this.cdnBaseURL ) ) {
+			return true;
+		}
+
+		const url = this.parseURL( src );
+		if ( ! url?.hostname ) {
+			return false;
+		}
+
+		// Keep legacy support for old CDN/cache URLs like b1234567.smushcdn.com.
+		return url.hostname === SMUSH_CDN_DOMAIN || url.hostname.endsWith( `.${ SMUSH_CDN_DOMAIN }` );
 	}
 
 	/**

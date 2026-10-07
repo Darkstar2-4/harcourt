@@ -12,10 +12,8 @@ use WPML\PHP\Exception\InvalidItemIdException;
 class Provider implements ProviderInterface {
   const TYPE = 'stringBatch';
 
-  /** @var StringBatchQueryInterface */
   private $stringBatchQuery;
 
-  /** @var StringProvider */
   private $stringProvider;
 
 
@@ -28,17 +26,6 @@ class Provider implements ProviderInterface {
   }
 
 
-  /**
-   * @param int $id
-   * @param string $type
-   * @param string[] $langs
-   * @param bool $freshTranslation When true, previous translations will be
-   * ignored.
-   *
-   * @return Item|false
-   *
-   * @throws InvalidItemIdException
-   */
   public function getByIdAndTypeForLangs( $id, $type, $langs, $freshTranslation = false ) {
     if ( $type !== self::TYPE ) {
       return false;
@@ -71,15 +58,7 @@ class Provider implements ProviderInterface {
   }
 
 
-  /**
-   * @param int $id
-   * @param string $type
-   * @param TranslatableDTO[] $content
-   *
-   * @return void
-   */
   public function useThisContentForItem( $id, $type, $content ) {
-    // Nothing to do here for string batches.
   }
 
 

@@ -1,29 +1,15 @@
 <?php
 
-/**
- * Class WPML_Elementor_Slides
- */
 class WPML_Elementor_Slides extends WPML_Elementor_Module_With_Items {
 
-	/**
-	 * @return string
-	 */
 	public function get_items_field() {
 		return 'slides';
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields() {
 		return array( 'heading', 'description', 'button_text', 'link' => array( 'url' ) );
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_title( $field ) {
 		switch( $field ) {
 			case 'heading':
@@ -43,11 +29,6 @@ class WPML_Elementor_Slides extends WPML_Elementor_Module_With_Items {
 		}
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_editor_type( $field ) {
 		switch( $field ) {
 			case 'heading':

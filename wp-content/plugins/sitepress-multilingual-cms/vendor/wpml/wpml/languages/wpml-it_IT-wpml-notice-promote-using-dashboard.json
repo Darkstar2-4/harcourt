@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "it"
+            "lang": "it_IT"
          },
          "Dissmiss Notice": [
-            "Ignora notifica"
+            "Ignora avviso"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "Snellisci la traduzione del tuo sito usando la Bacheca di traduzione di WPML"
+            "Ottimizza la traduzione del tuo sito usando la Bacheca di traduzione di WPML"
          ],
          "Translate pages, posts, products and strings from one place": [
-            "Traduci pagine, post, prodotti e stringhe da un unico posto"
+            "Traduci pagine, articoli, prodotti e stringhe da un unico posto"
          ],
          "Bulk automatic translation": [
             "Traduzione automatica in blocco"

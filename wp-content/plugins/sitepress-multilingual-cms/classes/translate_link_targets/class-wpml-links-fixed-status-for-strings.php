@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Class WPML_Links_Fixed_Status_For_Posts
- *
- * @package wpml-tm
- */
 class WPML_Links_Fixed_Status_For_Strings extends WPML_Links_Fixed_Status {
 
 	private $wp_api;

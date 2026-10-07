@@ -9,14 +9,6 @@ class WinterInstaller extends BaseInstaller
         'theme'     => 'themes/{$name}/'
     );
 
-    /**
-     * Format package name.
-     *
-     * For package type winter-plugin, cut off a trailing '-plugin' if present.
-     *
-     * For package type winter-theme, cut off a trailing '-theme' if present.
-     *
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] === 'winter-module') {

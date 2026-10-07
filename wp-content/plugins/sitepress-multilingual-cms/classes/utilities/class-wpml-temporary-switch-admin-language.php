@@ -4,10 +4,6 @@ class WPML_Temporary_Switch_Admin_Language extends WPML_SP_User {
 
 	private $old_lang = false;
 	
-	/**
-	 * @param SitePress $sitepress
-	 * @param string $target_lang
-	 */
 	public function __construct( &$sitepress, $target_lang ) {
 		parent::__construct( $sitepress );
 		$this->old_lang = $sitepress->get_admin_language();

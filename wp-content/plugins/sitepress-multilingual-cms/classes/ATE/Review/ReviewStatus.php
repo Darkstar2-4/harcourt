@@ -12,12 +12,6 @@ use WPML\FP\Obj;
 use function WPML\FP\curryN;
 use function WPML\FP\pipe;
 
-/**
- * Class ReviewStatus
- * @package WPML\TM\ATE\Review
- *
- * @method static callable|bool doesJobNeedReview( ...$job ) - Curried :: \stdClass->bool
- */
 class ReviewStatus {
 	use Macroable;
 
@@ -34,12 +28,6 @@ class ReviewStatus {
 		) ));
 	}
 
-	/**
-	 * @template A as string|curried
-	 * @param A $reviewStatus
-	 *
-	 * @return (A is curried ? callable : bool)
-	 */
 	public static function needsReview( $reviewStatus = null ) {
 		return Lst::includes(
 			$reviewStatus ?: Fns::__,

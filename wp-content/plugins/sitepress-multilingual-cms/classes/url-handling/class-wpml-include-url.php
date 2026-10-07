@@ -20,7 +20,6 @@ class WPML_Include_Url extends WPML_WPDB_User {
 			$php_host_in_domain = wpml_parse_url( $result, PHP_URL_HOST );
 
 			if ( null === $php_host_in_domain ) {
-				// Relative path used. No adjustment needed.
 				return $result;
 			}
 
@@ -49,11 +48,6 @@ class WPML_Include_Url extends WPML_WPDB_User {
 		return $form;
 	}
 
-	/**
-	 * Returns the value of the unfiltered home option directly from the wp_options table.
-	 *
-	 * @return string
-	 */
 	public function get_unfiltered_home() {
 		$this->unfiltered_home_url = $this->unfiltered_home_url
 			? $this->unfiltered_home_url

@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\StringCore\Query\FindCountBySearchCriteri
 
 class StringItemsCountApiController extends AbstractStringItemApiController {
 
-	/** @var FindCountBySearchCriteriaQueryInterface */
 	private $findCountBySearchCriteriaQuery;
 
 	public function __construct(
@@ -18,9 +17,6 @@ class StringItemsCountApiController extends AbstractStringItemApiController {
 		$this->findCountBySearchCriteriaQuery = $findCountBySearchCriteriaQuery;
 	}
 
-	/**
-	 * @return array
-	 */
 	function get_routes() {
 		return [
 			[
@@ -34,10 +30,6 @@ class StringItemsCountApiController extends AbstractStringItemApiController {
 		];
 	}
 
-	/**
-	 * @return array
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public function get( \WP_REST_Request $request ) {
 		$criteria = new SearchCriteria(
 			$request->get_param( 'kind' ),

@@ -168,6 +168,18 @@ msgstr "Güvenlik kontrolü başarısız"
 msgid "Too many attempts. Please try again later."
 msgstr "Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin."
 
+#: Main.php
+msgid "You haven't visited settings yet."
+msgstr "Henüz ayarları ziyaret etmediniz."
+
+#: Main.php
+msgid "Please check your settings"
+msgstr "Lütfen ayarlarınızı kontrol edin"
+
+#: Main.php
+msgid "for optimal configuration and opt in for security updates, tips and occasional offers."
+msgstr "en iyi yapılandırma için ve güvenlik güncellemeleri, ipuçları ve ara sıra teklifler almak için kaydolun."
+
 #: Classes/Advert.php
 msgid "Premium Plugin Advertisement"
 msgstr "Premium Sürüm Bilgileri"

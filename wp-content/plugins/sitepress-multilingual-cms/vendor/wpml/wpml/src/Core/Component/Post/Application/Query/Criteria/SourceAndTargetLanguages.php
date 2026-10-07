@@ -6,19 +6,11 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 final class SourceAndTargetLanguages {
 
-  /** @var string */
   private $sourceLanguageCode;
 
-  /** @var string[] */
   private $targetLanguageCodes;
 
 
-  /**
-   * @param string   $sourceLanguageCode
-   * @param string[] $targetLanguageCodes
-   *
-   * @throws InvalidArgumentException
-   */
   public function __construct( string $sourceLanguageCode, array $targetLanguageCodes ) {
     if ( empty( $targetLanguageCodes ) ) {
       throw new InvalidArgumentException( 'Target language codes cannot be empty' );
@@ -38,9 +30,6 @@ final class SourceAndTargetLanguages {
   }
 
 
-  /**
-   * @return string[]
-   */
   public function getTargetLanguageCodes(): array {
     return $this->targetLanguageCodes;
   }

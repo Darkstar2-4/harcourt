@@ -1,36 +1,11 @@
 <?php
-/*
- * Load the shared OTGS icons library, on demand.
- *
- * =================
- * Usage
- * =================
- * $vendor_root_url = [ URL of the root of your relative vendor directory housing this repository ]
- * require_once( [ path to the root of your relative vendor directory housing this repository ] .  '/otgs/icons/loader.php' );
- *
- * =================
- * Restrictions
- * =================
- * - Assets are registered at init:10
- * - Their handles are stored in constants that you can use as dependencies, on assets registered after init:10.
- */
 
 if ( ! isset( $vendor_root_url ) ) {
 	return;
 }
 
-/*
- * OTGS icons version - increase after every major update.
- */
-$otg_icons_version = 104;
+$otg_icons_version = 108;
 
-/*
- * =================
- * ||   WARNING   ||
- * =================
- *
- * DO NOT EDIT below this line.
- */
 
 global $otg_icons_versions;
 if ( ! isset( $otg_icons_versions ) ) {

@@ -15,18 +15,9 @@ use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Source;
-/**
- * Represents a module node.
- *
- * Consider this class as being final. If you need to customize the behavior of
- * the generated class, consider adding nodes to the following nodes: display_start,
- * display_end, constructor_start, constructor_end, and class_end.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ModuleNode extends \WPML\Core\Twig\Node\Node
 {
-    public function __construct(\WPML\Core\Twig_NodeInterface $body, \WPML\Core\Twig\Node\Expression\AbstractExpression $parent = null, \WPML\Core\Twig_NodeInterface $blocks, \WPML\Core\Twig_NodeInterface $macros, \WPML\Core\Twig_NodeInterface $traits, $embeddedTemplates, $name, $source = '')
+    public function __construct(\WPML\Core\Twig_NodeInterface $body, ?\WPML\Core\Twig\Node\Expression\AbstractExpression $parent = null, ?\WPML\Core\Twig_NodeInterface $blocks = null, ?\WPML\Core\Twig_NodeInterface $macros = null, ?\WPML\Core\Twig_NodeInterface $traits = null, $embeddedTemplates = null, $name = '', $source = '')
     {
         if (!$name instanceof \WPML\Core\Twig\Source) {
             @\trigger_error(\sprintf('Passing a string as the $name argument of %s() is deprecated since version 1.27. Pass a \\Twig\\Source instance instead.', __METHOD__), \E_USER_DEPRECATED);
@@ -38,16 +29,12 @@ class ModuleNode extends \WPML\Core\Twig\Node\Node
         if (null !== $parent) {
             $nodes['parent'] = $parent;
         }
-        // embedded templates are set as attributes so that they are only visited once by the visitors
         parent::__construct($nodes, [
-            // source to be remove in 2.0
             'source' => $source->getCode(),
-            // filename to be remove in 2.0 (use getTemplateName() instead)
             'filename' => $source->getName(),
             'index' => null,
             'embedded_templates' => $embeddedTemplates,
         ], 1);
-        // populate the template name of all node children
         $this->setTemplateName($source->getName());
         $this->setSourceContext($source);
     }
@@ -107,13 +94,11 @@ class ModuleNode extends \WPML\Core\Twig\Node\Node
     protected function compileConstructor(\WPML\Core\Twig\Compiler $compiler)
     {
         $compiler->write("public function __construct(Environment \$env)\n", "{\n")->indent()->subcompile($this->getNode('constructor_start'))->write("parent::__construct(\$env);\n\n");
-        // parent
         if (!$this->hasNode('parent')) {
             $compiler->write("\$this->parent = false;\n\n");
         }
         $countTraits = \count($this->getNode('traits'));
         if ($countTraits) {
-            // traits
             foreach ($this->getNode('traits') as $i => $trait) {
                 $this->compileLoadTemplate($compiler, $trait->getNode('template'), \sprintf('$_trait_%s', $i));
                 $node = $trait->getNode('template');
@@ -135,7 +120,6 @@ class ModuleNode extends \WPML\Core\Twig\Node\Node
         } else {
             $compiler->write("\$this->blocks = [\n");
         }
-        // blocks
         $compiler->indent();
         foreach ($this->getNode('blocks') as $name => $node) {
             $compiler->write(\sprintf("'%s' => [\$this, 'block_%s'],\n", $name, $name));
@@ -177,13 +161,6 @@ class ModuleNode extends \WPML\Core\Twig\Node\Node
     }
     protected function compileIsTraitable(\WPML\Core\Twig\Compiler $compiler)
     {
-        // A template can be used as a trait if:
-        //   * it has no parent
-        //   * it has no macros
-        //   * it has no body
-        //
-        // Put another way, a template can be used as a trait if it
-        // only contains blocks and use statements.
         $traitable = !$this->hasNode('parent') && 0 === \count($this->getNode('macros'));
         if ($traitable) {
             if ($this->getNode('body') instanceof \WPML\Core\Twig\Node\BodyNode) {

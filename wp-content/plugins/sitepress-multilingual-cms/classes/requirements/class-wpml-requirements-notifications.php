@@ -2,20 +2,9 @@
 
 use WPML\Setup\Option;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Requirements_Notification {
-	/**
-	 * @var \IWPML_Template_Service
-	 */
 	private $template_service;
 
-	/**
-	 * WPML_Requirements_Notification constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service
-	 */
 	public function __construct( IWPML_Template_Service $template_service ) {
 		$this->template_service = $template_service;
 	}
@@ -49,11 +38,9 @@ class WPML_Requirements_Notification {
 
 					$issues = [];
 				} else {
-					// When the product_name is Elementor but there is more than one required plugin or the required plugin is not string translation.
 					$strings = $this->get_default_message( $issues );
 				}
 			} else {
-				// When the product_name is not Elementor(default case).
 				$strings = $this->get_default_message( $issues );
 			}
 
@@ -161,22 +148,12 @@ class WPML_Requirements_Notification {
 		return null;
 	}
 
-	/**
-	 * @param array $issues
-	 *
-	 * @return string
-	 */
 	private function get_product_names( $issues ) {
 		$products = wp_list_pluck( $issues['causes'], 'name' );
 
 		return $this->build_items_in_sentence( $products );
 	}
 
-	/**
-	 * @param array<string> $items
-	 *
-	 * @return string
-	 */
 	private function build_items_in_sentence( $items ) {
 		if ( count( $items ) <= 2 ) {
 			/* translators: Used between elements of a two elements list */

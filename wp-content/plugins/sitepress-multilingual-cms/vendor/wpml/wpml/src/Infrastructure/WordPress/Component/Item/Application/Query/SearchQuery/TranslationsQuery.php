@@ -9,40 +9,13 @@ use WPML\Core\Port\Persistence\ResultCollection;
 use WPML\Core\Port\Persistence\ResultCollectionInterface;
 use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery;
 
-/**
- * @phpstan-import-type PostsData from SearchQuery
- *
- * @phpstan-type SearchQueryJobData array{
- *  language_code:string,
- *  element_id:int|string,
- *  trid:int|string,
- *  original_element_id:int|string,
- *  translation_id: int|string,
- *  status:int|string,
- *  review_status:'ACCEPTED'|'EDITING'|'NEEDS_REVIEW'|null,
- *  needs_update:int,
- *  rid:int|string,
- *  job_id:string,
- *  translator_id:string,
- *  automatic:string,
- *  translation_service:string,
- *  editor:string,
- *  editor_job_id:string|null
- *  }
- */
 class TranslationsQuery {
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var QueryHandlerInterface<int, array<string,mixed>> */
   private $queryHandler;
 
 
-  /**
-   * @param QueryPrepareInterface                           $queryPrepare
-   * @param QueryHandlerInterface<int, array<string,mixed>> $queryHandler
-   */
   public function __construct(
     QueryPrepareInterface $queryPrepare,
     QueryHandlerInterface $queryHandler
@@ -52,14 +25,6 @@ class TranslationsQuery {
   }
 
 
-  /**
-   * @param ResultCollectionInterface<int,PostsData> $posts
-   * @param string                                 $postType
-   * @param string                                 $sourceLanguageCode
-   *
-   * @return ResultCollectionInterface<int,SearchQueryJobData>
-   * @throws DatabaseErrorException
-   */
   public function get(
     ResultCollectionInterface $posts,
     string $postType,
@@ -70,18 +35,10 @@ class TranslationsQuery {
       return new ResultCollection( [] );
     }
 
-    /** @var ResultCollectionInterface<int,SearchQueryJobData> */
     return $this->queryHandler->query( $query );
   }
 
 
-  /**
-   * @param ResultCollectionInterface<int,PostsData> $posts
-   * @param string                                 $postType
-   * @param string                                 $sourceLanguageCode
-   *
-   * @return string|null
-   */
   private function buildQuery(
     ResultCollectionInterface $posts,
     string $postType,

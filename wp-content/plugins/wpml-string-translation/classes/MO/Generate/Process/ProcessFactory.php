@@ -12,20 +12,12 @@ class ProcessFactory {
 	const FILES_PAGE_SIZE = 20;
 	const SITES_PAGER     = 'wpml-st-mo-generate-sites-pager';
 
-	/** @var Condition */
 	private $multiSiteCondition;
 
-	/**
-	 * @param Condition $multiSiteCondition
-	 */
-	public function __construct( Condition $multiSiteCondition = null ) {
+	public function __construct( ?Condition $multiSiteCondition = null ) {
 		$this->multiSiteCondition = $multiSiteCondition ?: new Condition();
 	}
 
-	/**
-	 * @return Process
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public function create() {
 		$singleSiteProcess = self::createSingle();
 
@@ -38,12 +30,6 @@ class ProcessFactory {
 		}
 	}
 
-	/**
-	 * @param bool $isBackgroundProcess
-	 *
-	 * @return SingleSiteProcess
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function createSingle( $isBackgroundProcess = false ) {
 		return make(
 			SingleSiteProcess::class,
@@ -56,12 +42,6 @@ class ProcessFactory {
 		);
 	}
 
-	/**
-	 * @param bool $isBackgroundProcess
-	 *
-	 * @return mixed|\Mockery\MockInterface|Status
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function createStatus( $isBackgroundProcess = false ) {
 		return make( Status::class, [
 			':optionPrefix' => $isBackgroundProcess ? Status::class . '_background' : null

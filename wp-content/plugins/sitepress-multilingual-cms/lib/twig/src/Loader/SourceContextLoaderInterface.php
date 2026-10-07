@@ -12,24 +12,8 @@ namespace WPML\Core\Twig\Loader;
 
 use WPML\Core\Twig\Error\LoaderError;
 use WPML\Core\Twig\Source;
-/**
- * Adds a getSourceContext() method for loaders.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since 1.27 (to be removed in 3.0)
- */
 interface SourceContextLoaderInterface
 {
-    /**
-     * Returns the source context for a given template logical name.
-     *
-     * @param string $name The template logical name
-     *
-     * @return Source
-     *
-     * @throws LoaderError When $name is not found
-     */
     public function getSourceContext($name);
 }
 \class_alias('WPML\\Core\\Twig\\Loader\\SourceContextLoaderInterface', 'WPML\\Core\\Twig_SourceContextLoaderInterface');

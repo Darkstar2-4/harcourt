@@ -9,24 +9,18 @@ $action_filter_loader->load(
 
 add_action( 'plugins_loaded', 'wpml_plugins_integration_setup', 10 );
 
-/**
- * Loads compatibility classes for active plugins.
- */
 function wpml_plugins_integration_setup() {
 	global $sitepress, $wpdb;
 
 	$factories_to_load = [];
 
-	// bbPress integration.
 	if ( class_exists( 'bbPress' ) ) {
 		$wpml_bbpress_api     = new WPML_BBPress_API();
 		$wpml_bbpress_filters = new WPML_BBPress_Filters( $wpml_bbpress_api );
 		$wpml_bbpress_filters->add_hooks();
 	}
 
-	// NextGen Gallery.
 	if ( defined( 'NEXTGEN_GALLERY_PLUGIN_VERSION' ) ) {
-		// Todo: do not include files: move to autoloaded classes.
 		require_once WPML_PLUGIN_PATH . '/inc/plugin-integration-nextgen.php';
 	}
 
@@ -39,12 +33,10 @@ function wpml_plugins_integration_setup() {
 		$factories_to_load[] = 'WPML_Compatibility_Tiny_Compress_Images_Factory';
 	}
 
-	// phpcs:disable WordPress.NamingConventions.ValidVariableName
 	global $DISQUSVERSION;
 	if ( $DISQUSVERSION ) {
 		$factories_to_load[] = 'WPML_Compatibility_Disqus_Factory';
 	}
-	// phpcs:enable
 
 	if ( defined( 'GOOGLESITEKIT_VERSION' ) ) {
 		$factories_to_load[] = \WPML\Compatibility\GoogleSiteKit\Hooks::class;
@@ -56,9 +48,6 @@ function wpml_plugins_integration_setup() {
 
 add_action( 'after_setup_theme', 'wpml_themes_integration_setup' );
 
-/**
- * Loads compatibility classes for active themes.
- */
 function wpml_themes_integration_setup() {
 
 	$actions = [];

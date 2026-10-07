@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Parses an array.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,85 +17,35 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class ArrayObj extends Component
 {
-    /**
-     * The array that contains the unprocessed value of each token.
-     *
-     * @var array
-     */
     public $raw = array();
 
-    /**
-     * The array that contains the processed value of each token.
-     *
-     * @var array
-     */
     public $values = array();
 
-    /**
-     * Constructor.
-     *
-     * @param array $raw    the unprocessed values
-     * @param array $values the processed values
-     */
     public function __construct(array $raw = array(), array $values = array())
     {
         $this->raw = $raw;
         $this->values = $values;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return ArrayObj|Component[]
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = empty($options['type']) ? new self() : array();
 
-        /**
-         * The last raw expression.
-         *
-         * @var string
-         */
         $lastRaw = '';
 
-        /**
-         * The last value.
-         *
-         * @var string
-         */
         $lastValue = '';
 
-        /**
-         * Counts brackets.
-         *
-         * @var int
-         */
         $brackets = 0;
 
-        /**
-         * Last separator (bracket or comma).
-         *
-         * @var bool
-         */
         $isCommaLast = false;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE)
                 || ($token->type === Token::TYPE_COMMENT)
             ) {
@@ -117,11 +64,11 @@ class ArrayObj extends Component
 
             if ($token->type === Token::TYPE_OPERATOR) {
                 if ($token->value === '(') {
-                    if (++$brackets === 1) { // 1 is the base level.
+                    if (++$brackets === 1) {
                         continue;
                     }
                 } elseif ($token->value === ')') {
-                    if (--$brackets === 0) { // Array ended.
+                    if (--$brackets === 0) {
                         break;
                     }
                 } elseif ($token->value === ',') {
@@ -149,16 +96,6 @@ class ArrayObj extends Component
             }
         }
 
-        // Handling last element.
-        //
-        // This is treated differently to treat the following cases:
-        //
-        //           => array()
-        //      (,)  => array('', '')
-        //      ()   => array()
-        //      (a,) => array('a', '')
-        //      (a)  => array('a')
-        //
         $lastRaw = trim($lastRaw);
         if ((empty($options['type']))
             && ((strlen($lastRaw) > 0) || ($isCommaLast))
@@ -170,12 +107,6 @@ class ArrayObj extends Component
         return $ret;
     }
 
-    /**
-     * @param ArrayObj|ArrayObj[] $component the component to be built
-     * @param array               $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         if (is_array($component)) {

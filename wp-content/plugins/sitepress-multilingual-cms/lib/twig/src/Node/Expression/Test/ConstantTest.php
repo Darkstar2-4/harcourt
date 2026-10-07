@@ -12,15 +12,6 @@ namespace WPML\Core\Twig\Node\Expression\Test;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\TestExpression;
-/**
- * Checks if a variable is the exact same value as a constant.
- *
- *    {% if post.status is constant('Post::PUBLISHED') %}
- *      the status attribute is exactly the same as Post::PUBLISHED
- *    {% endif %}
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ConstantTest extends \WPML\Core\Twig\Node\Expression\TestExpression
 {
     public function compile(\WPML\Core\Twig\Compiler $compiler)

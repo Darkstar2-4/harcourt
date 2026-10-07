@@ -8,18 +8,11 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class JobQuery implements JobQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, int|bool> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, int|bool> $queryHandler
-   *
-   * @param QueryPrepareInterface                        $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare

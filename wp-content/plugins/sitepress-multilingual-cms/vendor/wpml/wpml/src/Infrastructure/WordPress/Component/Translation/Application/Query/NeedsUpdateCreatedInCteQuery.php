@@ -10,22 +10,13 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class NeedsUpdateCreatedInCteQuery implements NeedsUpdateCreatedInCteQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, int> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var PackageDefinitionQueryInterface */
   private $packageDefinitionQuery;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, int> $queryHandler
-   *
-   * @param QueryPrepareInterface                        $queryPrepare
-   * @param PackageDefinitionQueryInterface              $packageDefinitionQuery
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -38,10 +29,6 @@ class NeedsUpdateCreatedInCteQuery implements NeedsUpdateCreatedInCteQueryInterf
 
 
   public function get(): int {
-    /**
-     * PERFORMANCE IMPROVEMENT: Add a "CTE was ever used on site" flag inside wp_option. If the flag is set to false
-     * then we could skip the whole query.
-     */
 
     $translatablePackages = $this->packageDefinitionQuery->getNamesList();
     $translatablePackages = array_map(

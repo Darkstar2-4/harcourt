@@ -8,14 +8,6 @@ class VgmcpInstaller extends BaseInstaller
         'theme' => 'themes/{$name}/'
     );
 
-    /**
-     * Format package name.
-     *
-     * For package type vgmcp-bundle, cut off a trailing '-bundle' if present.
-     *
-     * For package type vgmcp-theme, cut off a trailing '-theme' if present.
-     *
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] === 'vgmcp-bundle') {

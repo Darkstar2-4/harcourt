@@ -8,73 +8,36 @@ use WPML\FP\Str;
 use WPML\LIB\WP\Hooks;
 use function WPML\FP\pipe;
 
-/**
- * Class WPML_TM_Dashboard
- */
 class WPML_TM_Dashboard {
 
 	const LIMIT_RETRIEVED_POSTS_VALUE = 200;
 
-	/**
-	 * @var array
-	 */
 	private $translatable_post_types = null;
 
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var int
-	 */
 	private $found_documents = 0;
 
-	/**
-	 * @var int|null
-	 */
 	private $limit_retrieved_posts_value = null;
 
-	/**
-	 * WPML_TM_Dashboard constructor.
-	 *
-	 * @param wpdb      $wpdb
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( wpdb $wpdb, SitePress $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
 		add_filter( 'posts_where', array( $this, 'add_dashboard_filter_conditions' ), 10, 2 );
 	}
 
-	/**
-	 * @return int|null
-	 */
 	private function get_limit_retrieved_posts_value() {
 		return ( is_null( $this->limit_retrieved_posts_value ) )
 			? self::LIMIT_RETRIEVED_POSTS_VALUE
 			: $this->limit_retrieved_posts_value;
 	}
 
-	/**
-	 * Required for integration test to set smaller limit for test performance
-	 *
-	 * @param int|null $limit_retrieved_posts_value
-	 */
 	public function set_limit_retrieved_posts_value( $limit_retrieved_posts_value ) {
 		$this->limit_retrieved_posts_value = $limit_retrieved_posts_value;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	public function get_documents( $args = array() ) {
 		$results   = array();
 		$documents = array();
@@ -103,11 +66,6 @@ class WPML_TM_Dashboard {
 		$filtered_documents = apply_filters( 'wpml_tm_dashboard_documents', $documents );
 		$countAfterFilter   = count( $documents ) - count( $filtered_documents );
 
-		/**
-		 * Slicing the posts and string packages array according to page number and limit of posts per page.
-		 *
-		 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-		 */
 		$filtered_documents = wpml_collect( Lst::slice( $args['page'] * $args['limit_no'], $args['limit_no'], $filtered_documents ) );
 
 		$results['documents']       = $this->addBlockedPostParameterToDocuments( $filtered_documents );
@@ -116,11 +74,6 @@ class WPML_TM_Dashboard {
 		return $results;
 	}
 
-	/**
-	 * @param \WPML\Collect\Support\Collection $filtered_documents
-	 *
-	 * @return array
-	 */
 	private function addBlockedPostParameterToDocuments( $filtered_documents ) {
 		$documentIds = $filtered_documents
 			->filter( pipe( Obj::prop( 'translation_element_type' ), Str::includes( 'post_', Fns::__ ) ) )
@@ -139,11 +92,6 @@ class WPML_TM_Dashboard {
 		return $filtered_documents->map( Obj::addProp( 'is_blocked_by_filter', $filterBlockedPostDocument ) )->toArray();
 	}
 
-	/**
-	 * @param $args
-	 *
-	 * @return array
-	 */
 	private function remove_empty_arguments( $args ) {
 		$output = array();
 		foreach ( $args as $argument_name => $argument_value ) {
@@ -155,23 +103,10 @@ class WPML_TM_Dashboard {
 		return $output;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return bool
-	 */
 	private function has_filter_selected( $args ) {
 		return ( strlen( $args['type'] ) > 0 );
 	}
 
-	/**
-	 * Add list of translatable post types to dashboard.
-	 *
-	 * @param array $results
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function add_translatable_posts( $results, $args ) {
 		$dashboardPagination = new WPML_TM_Dashboard_Pagination();
 		$post_types          = $this->get_translatable_post_types();
@@ -183,12 +118,6 @@ class WPML_TM_Dashboard {
 		}
 
 
-		/**
-		 * Preparing query arguments without specific pagination args and with 'no_found_rows = true' to avoid extra query for getting total posts number
-		 * That's done because we're already limiting the number of retrieved posts based on number set in self::LIMIT_RETRIEVED_POSTS_VALUE constant
-		 *
-		 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-		 */
 		$query_args = [
 			'post_type'               => $post_types,
 			'orderby'                 => $args['sort_by'],
@@ -251,13 +180,6 @@ class WPML_TM_Dashboard {
 		$lang = $this->sitepress->get_admin_language();
 		$this->sitepress->switch_lang( $args['from_lang'] );
 
-		/**
-		 * Callback function that queries and prepares posts documents
-		 *
-		 * @return array
-		 *
-		 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-		 */
 		$preparePosts = function () use ( $query_args, $results, $lang ) {
 			$query = new WPML_TM_WP_Query( $query_args );
 
@@ -279,11 +201,6 @@ class WPML_TM_Dashboard {
 					return $post_obj;
 				} )->toArray();
 
-				/**
-				 * Setting value of found documents depending on actual number of posts retrieved from database.
-				 *
-				 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-				 */
 				$this->found_documents += $query->getPostCount();
 				$results               = array_merge( $results, $posts );
 			}
@@ -305,17 +222,6 @@ class WPML_TM_Dashboard {
 		return $results;
 	}
 
-	/**
-	 * Add additional where conditions to support the following query arguments:
-	 *  - post_title_like         - Allow query posts with SQL LIKE in post title.
-	 *  - post_language_to        - Allow query posts with language they are translated to.
-	 *  - post_translation_status - Allow to query posts by their translation status.
-	 *
-	 * @param string $where
-	 * @param object $wp_query
-	 *
-	 * @return string
-	 */
 	public function add_dashboard_filter_conditions( $where, $wp_query ) {
 		$post_title_like         = $wp_query->get( 'post_title_like' );
 		$post_language           = $wp_query->get( 'post_language_to' );
@@ -333,20 +239,12 @@ class WPML_TM_Dashboard {
 		return $where;
 	}
 
-	/**
-	 * Finds if each post is translated without ATE with wordpress default editor.
-	 *
-	 * @param array $post_ids
-	 *
-	 * @return array
-	 */
 	private function get_is_translation_editor_mode_native_by_post_id( $post_ids ) {
 		$sql  = '';
 		$sql .= 'SELECT post_id FROM ' . $this->wpdb->postmeta . ' postmeta ';
 		$sql .= 'WHERE postmeta.post_id IN (' . wpml_prepare_in( $post_ids, '%d' ) . ') ';
 		$sql .= 'AND postmeta.meta_key = %s AND postmeta.meta_value = "yes"';
 
-		/* phpcs:disable WordPress.DB.PreparedSQL.NotPrepared */
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				$sql,
@@ -371,14 +269,6 @@ class WPML_TM_Dashboard {
 		return $is_native_by_post_id;
 	}
 
-	/**
-	 * Add string packages to translation dashboard.
-	 *
-	 * @param array $results
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function add_string_packages( $results, $args ) {
 		$string_packages_table = $this->wpdb->prefix . 'icl_string_packages';
 		$translations_table    = $this->wpdb->prefix . 'icl_translations';
@@ -391,7 +281,6 @@ class WPML_TM_Dashboard {
 			return $results;
 		}
 
-		// Exit if *icl_string_packages table doesn't exist.
 		if ( $this->wpdb->get_var( "SHOW TABLES LIKE '$string_packages_table'" ) !== $string_packages_table ) {
 			return $results;
 		}
@@ -430,23 +319,11 @@ class WPML_TM_Dashboard {
 			$results[] = $package_obj;
 		}
 
-		/**
-		 * Setting value of found documents depending on actual number of string packages retrieved from database.
-		 *
-		 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-616
-		 */
 		$this->found_documents += is_array( $packages ) ? count( $packages ) : 0;
 
 		return $results;
 	}
 
-	/**
-	 * Create additional where clause for querying string packages based on filters.
-	 *
-	 * @param array $args
-	 *
-	 * @return string
-	 */
 	private function create_string_packages_where( $args ) {
 		$where = " AND wpml_translations.element_type LIKE 'package%' AND st_table.post_id IS NULL";
 		if ( ! $this->is_cpt_type( $args ) && ! empty( $args['type'] ) ) {
@@ -471,12 +348,6 @@ class WPML_TM_Dashboard {
 		return $where;
 	}
 
-	/**
-	 * @param  string|int $translation_status
-	 * @param  string  $language
-	 *
-	 * @return string
-	 */
 	private function build_translation_status_where( $translation_status, $language = null ) {
 		if ( $translation_status < 0 && ! $language ) {
 			return '';
@@ -615,12 +486,6 @@ class WPML_TM_Dashboard {
 		return $this->wpdb->prepare( ' AND translations.language_code = %s', $language );
 	}
 
-	/**
-	 * @param array  $args
-	 * @param string $post_type
-	 *
-	 * @return bool
-	 */
 	private function is_cpt_type( $args = array(), $post_type = '' ) {
 		$is_cpt_type = false;
 		if ( ! empty( $args ) && '' === $post_type && array_key_exists( 'type', $args ) && ! empty( $args['type'] ) ) {
@@ -634,9 +499,6 @@ class WPML_TM_Dashboard {
 		return $is_cpt_type;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_translatable_post_types() {
 		if ( null === $this->translatable_post_types ) {
 			$translatable_post_types       = $this->sitepress->get_translatable_documents();

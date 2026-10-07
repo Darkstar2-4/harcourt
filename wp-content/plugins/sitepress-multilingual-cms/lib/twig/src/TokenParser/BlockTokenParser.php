@@ -17,16 +17,6 @@ use WPML\Core\Twig\Node\BlockReferenceNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Token;
-/**
- * Marks a section of a template as being reusable.
- *
- *  {% block head %}
- *    <link rel="stylesheet" href="style.css" />
- *    <title>{% block title %}{% endblock %} - My Webpage</title>
- *  {% endblock %}
- *
- * @final
- */
 class BlockTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

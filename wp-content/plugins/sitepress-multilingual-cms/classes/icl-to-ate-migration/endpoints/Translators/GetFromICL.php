@@ -10,9 +10,6 @@ use WPML_TM_ATE_API;
 
 class GetFromICL implements IHandler {
 
-	/**
-	 * @var WPML_TM_ATE_API
-	 */
 	private $apiClient;
 
 	public function __construct( WPML_TM_ATE_API $apiClient ) {

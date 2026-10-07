@@ -1,11 +1,6 @@
 <?php
 
 class WPML_TM_Rest_Jobs_Translation_Service {
-	/**
-	 * @param string|int $service_id
-	 *
-	 * @return string
-	 */
 	public function get_name( $service_id ) {
 		$name = '';
 		if ( is_numeric( $service_id ) ) {

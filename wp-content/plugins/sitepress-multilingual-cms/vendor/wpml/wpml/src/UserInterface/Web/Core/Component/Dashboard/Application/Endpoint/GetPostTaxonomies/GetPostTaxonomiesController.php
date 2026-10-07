@@ -12,7 +12,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class GetPostTaxonomiesController implements EndpointInterface {
 
-  /** @var TaxonomyQueryInterface */
   private $taxonomyQuery;
 
 
@@ -23,14 +22,6 @@ class GetPostTaxonomiesController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @throws Exception Some system related error.
-   * @throws InvalidArgumentException The requestData was not valid.
-   *
-   * @return array<int, mixed>
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 

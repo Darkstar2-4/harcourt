@@ -15,8 +15,8 @@ namespace Smush\Core;
 use finfo;
 use Smush\Core\Media\Media_Item_Cache;
 use Smush\Core\Media\Media_Item_Stats;
+use Smush\Core\Membership\Membership;
 use Smush\Core\Png2Jpg\Png2Jpg_Optimization;
-use WP_Smush;
 use WDEV_Logger;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -111,8 +111,8 @@ class Helper {
 	 * @param string $file File path.
 	 * @return string
 	 */
-	public static function clean_file_path( $file ) {
-		return str_replace( WP_CONTENT_DIR, '', $file );
+	public static function clean_file_path( $file, $base_dir = WP_CONTENT_DIR ) {
+		return str_replace( $base_dir, '', $file );
 	}
 
 	/**
@@ -475,7 +475,7 @@ class Helper {
 		if ( ! file_exists( $original_file_path ) ) {
 			return false;
 		}
-		$max_file_size = WP_Smush::is_pro() ? WP_SMUSH_PREMIUM_MAX_BYTES : WP_SMUSH_MAX_BYTES;
+		$max_file_size = Settings::get_instance()->get_file_size_limit();
 		$file_size     = filesize( $original_file_path );
 
 		return $file_size > $max_file_size ? $file_size : false;
@@ -493,27 +493,6 @@ class Helper {
 		$upload_path = $uploads['basedir'];
 
 		return path_join( $upload_path, $original_file );
-	}
-
-	/**
-	 * Gets the WPMU DEV API key.
-	 *
-	 * @since 3.8.6
-	 *
-	 * @return string|false
-	 */
-	public static function get_wpmudev_apikey() {
-		// If API key defined manually, get that.
-		if ( defined( 'WPMUDEV_APIKEY' ) && WPMUDEV_APIKEY ) {
-			return WPMUDEV_APIKEY;
-		}
-
-		// If dashboard plugin is active, get API key from db.
-		if ( class_exists( 'WPMUDEV_Dashboard' ) ) {
-			return get_site_option( 'wpmudev_apikey' );
-		}
-
-		return false;
 	}
 
 	/**
@@ -540,7 +519,7 @@ class Helper {
 			$hash               = '#' . $hash;
 		}
 
-		$utm_source = WP_Smush::is_pro() ? 'smush_pro' : 'smush';
+		$utm_source = Membership::get_instance()->get_member_value( 'smush_pro', 'smush' );
 		$args       = wp_parse_args(
 			$args,
 			array(

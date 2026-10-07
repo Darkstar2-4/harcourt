@@ -4,27 +4,18 @@ namespace WPML\XMLConfig\RemoteNotices;
 
 class Conditions {
 
-	/** @var \WPML_Active_Plugin_Provider $activePlugins */
 	private $activePlugins;
 
-	/** @var null|string[] $activePluginNames */
 	private $activePluginNames;
 
-	/** @var null|string $themeName */
 	private $themeName;
 
-	/** @var null|string $themeParentName */
 	private $themeParentName;
 
 	public function __construct( \WPML_Active_Plugin_Provider $activePlugins ) {
 		$this->activePlugins = $activePlugins;
 	}
 
-	/**
-	 * @param array $conditions
-	 *
-	 * @return bool
-	 */
 	public function meetConditions( $conditions ) {
 		$relation = $conditions['relation'] ?? 'AND';
 
@@ -43,7 +34,7 @@ class Conditions {
 		}
 
 		if ( empty( $results ) ) {
-			return true; // No condition required.
+			return true;
 		}
 
 		if ( 'AND' === $relation ) {
@@ -53,20 +44,10 @@ class Conditions {
 		}
 	}
 
-	/**
-	 * @param array $plugins
-	 *
-	 * @return bool[]
-	 */
 	private function getPluginResults( $plugins ) {
 		return array_map( [ $this, 'isPluginActive' ], $plugins );
 	}
 
-	/**
-	 * @param string $pluginName
-	 *
-	 * @return bool
-	 */
 	private function isPluginActive( $pluginName ) {
 		if ( null === $this->activePluginNames ) {
 			$this->activePluginNames = $this->activePlugins->get_active_plugin_names();
@@ -75,11 +56,6 @@ class Conditions {
 		return in_array( $pluginName, $this->activePluginNames, true );
 	}
 
-	/**
-	 * @param array $themes
-	 *
-	 * @return bool[]
-	 */
 	private function getThemeResults( $themes ) {
 		if ( ! $themes ) {
 			return [];

@@ -24,6 +24,19 @@ class WPML_Media_Posts_Media_Flag_Notice implements IWPML_Action {
 
 	public function add_hooks() {
 
+		if ( WPML_Media::has_setup_run() ) {
+			return;
+		}
+
+		if ( ! $this->sitepress->has_uploaded_media() ) {
+			WPML_Media::set_setup_run();
+			return;
+		}
+
+		$this->exec_add_hooks();
+	}
+
+	public function exec_add_hooks() {
 		if ( $this->is_wpml_media_screen() ) {
 			add_filter( 'wpml_media_menu_overrides', array( $this, 'override_default_menu' ) );
 		} else {

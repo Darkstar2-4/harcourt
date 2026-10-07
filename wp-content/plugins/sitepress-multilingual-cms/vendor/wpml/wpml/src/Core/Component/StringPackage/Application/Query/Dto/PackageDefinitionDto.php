@@ -4,13 +4,10 @@ namespace WPML\Core\Component\StringPackage\Application\Query\Dto;
 
 class PackageDefinitionDto {
 
-  /** @var string */
   private $title;
 
-  /** @var string */
   private $slug;
 
-  /** @var string */
   private $plural;
 
 

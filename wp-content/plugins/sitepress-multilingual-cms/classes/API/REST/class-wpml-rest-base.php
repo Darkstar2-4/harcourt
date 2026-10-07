@@ -1,24 +1,11 @@
 <?php
 
-/**
- * Class WPML_REST_Base
- *
- * @author OnTheGo Systems
- */
 abstract class WPML_REST_Base {
 	const CAPABILITY_EXTERNAL = 'external';
 
 	const REST_NAMESPACE = 'wpml/v1';
-	/**
-	 * @var string
-	 */
 	protected $namespace;
 
-	/**
-	 * WPML_REST_Base constructor.
-	 *
-	 * @param string|null $namespace Defaults to `\WPML_REST_Base::REST_NAMESPACE`.
-	 */
 	public function __construct( $namespace = null ) {
 		if ( ! $namespace ) {
 			$namespace = self::REST_NAMESPACE;
@@ -42,21 +29,12 @@ abstract class WPML_REST_Base {
 
 	abstract public function get_allowed_capabilities( WP_REST_Request $request );
 
-	/**
-	 * @param string $route
-	 * @param array  $args
-	 */
 	protected function register_route( $route, array $args ) {
 		$args = $this->ensure_permission( $args );
 
 		register_rest_route( $this->namespace, $route, $args );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function ensure_permission( array $args ) {
 		if ( ! array_key_exists( 'permission_callback', $args ) || ! $args['permission_callback'] ) {
 			$args['permission_callback'] = array( $this, 'validate_permission' );
@@ -65,11 +43,6 @@ abstract class WPML_REST_Base {
 		return $args;
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return bool
-	 */
 	private function user_has_matching_capabilities( WP_REST_Request $request ) {
 		$capabilities = $this->get_allowed_capabilities( $request );
 
@@ -87,11 +60,6 @@ abstract class WPML_REST_Base {
 		return $user_can;
 	}
 
-	/**
-	 * @param \WP_REST_Request $request
-	 *
-	 * @return mixed|string|null
-	 */
 	private function get_nonce( WP_REST_Request $request ) {
 		$nonce = $request->get_header( 'x_wp_nonce' );
 		if ( ! $nonce ) {

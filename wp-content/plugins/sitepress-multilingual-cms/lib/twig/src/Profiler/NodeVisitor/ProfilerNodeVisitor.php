@@ -20,11 +20,6 @@ use WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor;
 use WPML\Core\Twig\Profiler\Node\EnterProfileNode;
 use WPML\Core\Twig\Profiler\Node\LeaveProfileNode;
 use WPML\Core\Twig\Profiler\Profile;
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @final
- */
 class ProfilerNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
 {
     private $extensionName;

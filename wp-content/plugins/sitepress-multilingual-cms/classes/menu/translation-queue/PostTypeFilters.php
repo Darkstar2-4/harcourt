@@ -5,12 +5,8 @@ namespace WPML\TM\Menu\TranslationQueue;
 use WPML\FP\Obj;
 
 class PostTypeFilters {
-	/** @var \WPML_TM_Jobs_Repository */
 	private $jobsRepository;
 
-	/**
-	 * @param \WPML_TM_Jobs_Repository $jobsRepository
-	 */
 	public function __construct( \WPML_TM_Jobs_Repository $jobsRepository ) {
 		$this->jobsRepository = $jobsRepository;
 	}
@@ -59,12 +55,6 @@ class PostTypeFilters {
 		return $output;
 	}
 
-	/**
-	 * @param \WPML_TM_Jobs_Search_Params $searchParams
-	 * @param array $filters
-	 *
-	 * @return \WPML_TM_Jobs_Search_Params
-	 */
 	private function addFilteringConditions( \WPML_TM_Jobs_Search_Params $searchParams, array $filters ) {
 		global $wpdb;
 

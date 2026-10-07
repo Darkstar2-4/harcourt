@@ -2,30 +2,18 @@
 
 class WPML_PB_API_Hooks_Strategy implements IWPML_PB_Strategy {
 
-	/** @var  WPML_PB_Factory $factory */
 	private $factory;
-	/** @var string */
 	private $name;
 
 	public function __construct( $name ) {
 		$this->name = $name;
 	}
 
-	/**
-	 * @param \WP_Post|stdClass $post
-	 */
 	public function register_strings( $post ) {
 		do_action( 'wpml_page_builder_register_strings', $post, $this->get_package_key( $post->ID ) );
 	}
 
-	/**
-	 * @param string|int                      $post_id
-	 * @param string                          $content
-	 * @param WPML\PB\Shortcode\StringCleanUp $stringCleanUp
-	 *
-	 * @return bool
-	 */
-	public function register_strings_in_content( $post_id, $content, WPML\PB\Shortcode\StringCleanUp $stringCleanUp = null ) {
+	public function register_strings_in_content( $post_id, $content, ?WPML\PB\Shortcode\StringCleanUp $stringCleanUp = null ) {
 		return false;
 	}
 
@@ -33,11 +21,6 @@ class WPML_PB_API_Hooks_Strategy implements IWPML_PB_Strategy {
 		$this->factory = $factory;
 	}
 
-	/**
-	 * @param int $page_id
-	 *
-	 * @return array
-	 */
 	public function get_package_key( $page_id ) {
 		return array(
 			'kind'    => $this->get_package_kind(),
@@ -68,7 +51,5 @@ class WPML_PB_API_Hooks_Strategy implements IWPML_PB_Strategy {
 	}
 
 	public function migrate_location( $post_id, $post_content ) {
-
 	}
-
 }

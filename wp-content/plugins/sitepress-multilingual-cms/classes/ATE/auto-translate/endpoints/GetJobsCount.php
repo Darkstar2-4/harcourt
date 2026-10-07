@@ -8,14 +8,7 @@ use WPML\FP\Either;
 use WPML\TM\ATE\AutoTranslate\Repository\JobsCountInterface;
 use WPML\TM\ATE\Jobs;
 
-/**
- * The endpoint is used in the sync process to determine:
- *  - how many any ATE jobs left to sync
- *  - how many automatic ATE jobs left to sync
- *  - how many jobs needs review
- */
 class GetJobsCount implements IHandler {
-	/** @var JobsCountInterface $jobsCount */
 	private $jobsCount;
 
 	public function __construct( JobsCountInterface $jobsCount ) {

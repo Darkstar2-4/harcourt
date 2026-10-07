@@ -1,11 +1,10 @@
 <tr style="background-color:#EAF2FA">
-	<td colspan="2">
-		<strong style="font-family: sans-serif; font-size:12px;"><?php echo esc_html( $order_summary['labels']['order_label'] ); ?></strong>
+	<td style="font-family: sans-serif; font-size:12px; padding: 8px 16px;">
+		<strong><?php echo esc_html( $order_summary['labels']['order_label'] ); ?></strong>
 	</td>
 </tr>
 <tr style="background-color: #FFFFFF">
-	<td style="width: 20px">&nbsp;</td>
-	<td>
+	<td style="padding: 16px">
 		<table cellspacing="0" style="border-left:1px solid #DFDFDF; border-top:1px solid #DFDFDF; width: 97%">
 			<thead>
 			<tr>
@@ -26,7 +25,7 @@
 								$count = sizeof( $row['options'] );
 								for ( $i = 0; $i < $count; $i ++ ) {
 									?>
-									<li style="padding:4px 0 4px 0"><?php echo esc_html( rgar( $row['options'][ $i ], 'option_label' ) );?></li>
+									<li style="padding:4px 0 4px 0"><?php echo \GFCommon::maybe_wp_kses( rgar( $row['options'][ $i ], 'option_label' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped?></li>
 								<?php } ?>
 						<?php } ?>
 							</ul>

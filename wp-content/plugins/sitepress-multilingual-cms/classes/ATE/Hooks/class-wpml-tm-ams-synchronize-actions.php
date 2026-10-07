@@ -2,35 +2,18 @@
 
 use WPML\LIB\WP\User;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_AMS_Synchronize_Actions implements IWPML_Action {
 
 	const ENABLED_FOR_TRANSLATION_VIA_ATE = 'wpml_enabled_for_translation_via_ate';
 
-	/**
-	 * @var WPML_TM_AMS_API
-	 */
 	private $ams_api;
-	/**
-	 * @var WPML_TM_AMS_Users
-	 */
 	private $ams_user_records;
-	/**
-	 * @var WPML_WP_User_Factory $user_factory
-	 */
 	private $user_factory;
 
-	/**
-	 * @var WPML_TM_AMS_Translator_Activation_Records
-	 */
 	private $translator_activation_records;
 
-	/** @var int[] */
 	private $deletedManagerIds = [];
 
-	/** @var int[] */
 	private $deletedTranslatorIds = [];
 
 	public function __construct(
@@ -56,9 +39,6 @@ class WPML_TM_AMS_Synchronize_Actions implements IWPML_Action {
 
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	public function synchronize_translators() {
 		$result = $this->ams_api->synchronize_translators( $this->ams_user_records->get_translators() );
 		if ( ! is_wp_error( $result ) ) {
@@ -66,9 +46,6 @@ class WPML_TM_AMS_Synchronize_Actions implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	public function synchronize_managers() {
 		$this->ams_api->synchronize_managers( $this->ams_user_records->get_managers() );
 	}
@@ -81,9 +58,6 @@ class WPML_TM_AMS_Synchronize_Actions implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function prepare_user_deleted( $user_id ) {
 		$user = User::get( $user_id );
 
@@ -97,9 +71,6 @@ class WPML_TM_AMS_Synchronize_Actions implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param int $user_id
-	 */
 	public function user_changed( $user_id ) {
 		$user = User::get( $user_id );
 

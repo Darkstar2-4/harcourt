@@ -2,10 +2,6 @@
 
 class WPML_ST_TM_Jobs extends WPML_WPDB_User {
 
-	/**
-	 * @param wpdb $wpdb
-	 * WPML_ST_TM_Jobs constructor.
-	 */
 	public function __construct( &$wpdb ) {
 		parent::__construct( $wpdb );
 		add_filter(
@@ -26,60 +22,12 @@ class WPML_ST_TM_Jobs extends WPML_WPDB_User {
 			10,
 			1
 		);
-		add_filter(
-			'wpml_st_job_state_pending',
-			array(
-				$this,
-				'tm_external_job_in_progress_filter',
-			),
-			10,
-			2
-		);
-	}
-
-	/**
-	 * @param bool         $in_progress_status
-	 * @param array|object $job_arr
-	 *
-	 * @return bool true if a job is in progress for the given arguments
-	 */
-	public function tm_external_job_in_progress_filter( $in_progress_status, $job_arr ) {
-		$job_arr = (array) $job_arr;
-		if ( isset( $job_arr['batch'] ) ) {
-			$job_arr['batch'] = (array) $job_arr['batch'];
-		}
-
-		return isset( $job_arr['batch']['id'] )
-			   && empty( $job_arr['cms_id'] )
-			   && ! empty( $job_arr['id'] )
-			   && ! empty( $job_arr['job_state'] )
-			   && $job_arr['job_state'] === 'delivered'
-			&& $this->wpdb->get_var(
-				$this->wpdb->prepare(
-					"
-			SELECT COUNT(*)
-			FROM {$this->wpdb->prefix}icl_core_status ct
-			JOIN {$this->wpdb->prefix}icl_string_status st
-				ON ct.rid = st.rid
-			JOIN {$this->wpdb->prefix}icl_string_translations t
-				ON st.string_translation_id = t.id
-				WHERE ct.rid = %d AND t.status < %d
-		",
-					$job_arr['id'],
-					ICL_TM_COMPLETE
-				)
-			) ? true : $in_progress_status;
 	}
 
 	public function jobs_union_table_sql_filter( $sql_statements, $args ) {
 		return $this->get_jobs_table_sql_part( $sql_statements, $args );
 	}
 
-	/**
-	 * @param string $table
-	 *
-	 * @return string
-	 */
 	public function filter_tm_post_job_table( $table ) {
 		return " (SELECT ID, post_type FROM {$table}
 						UNION ALL
@@ -100,20 +48,8 @@ class WPML_ST_TM_Jobs extends WPML_WPDB_User {
 		return $sql_statements;
 	}
 
-	/**
-	 * @param array $args
-	 *          string_where
-	 *          translator_id
-	 *          from
-	 *          to
-	 *          status
-	 *          service
-	 *
-	 * @return string
-	 */
 	private function build_string_where( $args ) {
 		if ( isset( $args['overdue'] ) && $args['overdue'] ) {
-			// We do not save "deadline" for string jobs so we just want to exclude them in such case
 			return 'WHERE 1 = 0';
 		}
 
@@ -156,7 +92,6 @@ class WPML_ST_TM_Jobs extends WPML_WPDB_User {
 		if ( count( $wheres ) > 0 && count( $wheres ) === count( $where_args ) ) {
 			$where_sql = implode( ' AND ', $wheres );
 
-			/** @var string $sql */
 			$sql = $this->wpdb->prepare( $where_sql, $where_args );
 			$string_where = 'WHERE ' . $sql;
 		}

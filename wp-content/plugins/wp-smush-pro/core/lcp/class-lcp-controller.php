@@ -9,7 +9,7 @@ use Smush\Core\Settings;
 use WP_Error;
 
 class LCP_Controller extends Controller {
-	const LCP_TRANSFORM_PRIORITY = 30;
+	private static $lcp_transform_priority = 30;
 	/**
 	 * @var Settings
 	 */
@@ -34,10 +34,9 @@ class LCP_Controller extends Controller {
 		$this->register_action( 'wp_ajax_smush_handle_lcp_data', array( $this, 'ajax_handle_lcp_data' ) );
 		$this->register_action( 'wp_ajax_nopriv_smush_handle_lcp_data', array( $this, 'ajax_handle_lcp_data' ) );
 		$this->register_action( 'wp_smush_transformed_page_markup', array( $this, 'preload_lcp_images' ), 10, 2 );
-		$this->register_action( 'edit_post', array( $this, 'clear_post_lcp_data' ) );
 		$this->register_action( 'after_switch_theme', array( $this, 'mark_all_lcp_data_as_dirty' ) );
-		$this->register_action( 'wp_ajax_clear_all_lcp_data', array( $this, 'ajax_mark_all_lcp_data_as_dirty' ) );
-		$this->register_filter( 'wp_smush_content_transforms', array( $this, 'register_lcp_transform' ), self::LCP_TRANSFORM_PRIORITY );
+		$this->register_filter( 'wp_smush_content_transforms', array( $this, 'register_lcp_transform' ), self::$lcp_transform_priority );
+		$this->register_filter( 'wp_get_loading_optimization_attributes', array( $this, 'remove_fetchpriority_attribute' ) );
 	}
 
 	public function register_lcp_transform( $transforms ) {
@@ -48,8 +47,8 @@ class LCP_Controller extends Controller {
 
 	public function should_run() {
 		return parent::should_run() &&
-				$this->settings->is_lcp_preload_enabled() &&
-				! $this->lcp_helper->should_skip_preload();
+		       $this->settings->is_lcp_preload_enabled() &&
+		       ! $this->lcp_helper->should_skip_preload();
 	}
 
 	public function maybe_enqueue_detector_script() {
@@ -73,8 +72,8 @@ class LCP_Controller extends Controller {
 			'nonce'                 => wp_create_nonce( 'smush_handle_lcp_data' ),
 			'is_mobile'             => wp_is_mobile(),
 			'data_store'            => $this->data_store_serializer->serialize( $data_store ),
-			'previous_data_version' => $previous_lcp_data ? $previous_lcp_data->get_version() : LCP_Helper::NO_DATA_VERSION,
-			'previous_data_hash'    => $previous_lcp_data ? $previous_lcp_data->get_hash() : LCP_Helper::NO_DATA_HASH,
+			'previous_data_version' => $previous_lcp_data ? $previous_lcp_data->get_version() : LCP_Helper::get_no_data_version(),
+			'previous_data_hash'    => $previous_lcp_data ? $previous_lcp_data->get_hash() : LCP_Helper::get_no_data_hash(),
 		) );
 	}
 
@@ -88,8 +87,8 @@ class LCP_Controller extends Controller {
 
 		$url                   = empty( $_POST['url'] ) ? '' : esc_url_raw( $_POST['url'] );
 		$raw_data              = empty( $_POST['data'] ) ? array() : json_decode( stripslashes( $_POST['data'] ), true );
-		$previous_data_version = ! isset( $_POST['previous_data_version'] ) ? LCP_Helper::NO_DATA_HASH : intval( $_POST['previous_data_version'] );
-		$previous_data_hash    = ! isset( $_POST['previous_data_hash'] ) ? LCP_Helper::NO_DATA_HASH : sanitize_text_field( $_POST['previous_data_hash'] );
+		$previous_data_version = ! isset( $_POST['previous_data_version'] ) ? LCP_Helper::get_no_data_hash() : intval( $_POST['previous_data_version'] );
+		$previous_data_hash    = ! isset( $_POST['previous_data_hash'] ) ? LCP_Helper::get_no_data_hash() : sanitize_text_field( $_POST['previous_data_hash'] );
 		$is_mobile             = ! empty( $_POST['is_mobile'] );
 		$serialized_data_store = empty( $_POST['data_store'] ) ? array() : json_decode( stripslashes( $_POST['data_store'] ), true );
 		$data_store            = $this->data_store_serializer->deserialize( $serialized_data_store );
@@ -114,8 +113,8 @@ class LCP_Controller extends Controller {
 			return new WP_Error( 'error-in-processing', esc_html__( 'Error in processing LCP data, fields empty.', 'wp-smushit' ) );
 		}
 
-		$version_changed = $previous_data_version === LCP_Helper::NO_DATA_VERSION || $current_data_version !== $previous_data_version;
-		$hash_changed    = $previous_data_hash === LCP_Helper::NO_DATA_HASH || $lcp_data->get_hash() !== $previous_data_hash;
+		$version_changed = $previous_data_version === LCP_Helper::get_no_data_version() || $current_data_version !== $previous_data_version;
+		$hash_changed    = $previous_data_hash === LCP_Helper::get_no_data_hash() || $lcp_data->get_hash() !== $previous_data_hash;
 		if ( ! $version_changed && ! $hash_changed ) {
 			return new WP_Error( 'data-already-up-to-date', esc_html__( 'LCP data is already up to date', 'wp-smushit' ) );
 		}
@@ -158,27 +157,34 @@ class LCP_Controller extends Controller {
 		return $replace;
 	}
 
-	public function clear_post_lcp_data( $post_id ) {
-		$data_store = new LCP_Data_Store_Post_Meta();
-		$data_store->set_post_id( $post_id );
-		$data_store->delete_all();
-
-		$data_store_home = new LCP_Data_Store_Home();
-		$data_store_home->delete_all();
-	}
-
 	public function mark_all_lcp_data_as_dirty() {
 		$this->lcp_helper->increment_lcp_data_version();
 	}
 
-	public function ajax_mark_all_lcp_data_as_dirty() {
-		if ( ! check_ajax_referer( 'wp-smush-ajax', '_ajax_nonce', false ) ) {
-			wp_send_json_error( array(
-				'error_msg' => esc_html__( 'Nonce verification failed.', 'wp-smushit' ),
-			) );
+	/**
+	 * Remove fetchpriority attribute from if Smart LCP fetchpriority is enabled
+	 *
+	 * @param array $attributes
+	 *
+	 * @return array
+	 */
+	public function remove_fetchpriority_attribute( $attributes ) {
+		$preload_settings = $this->settings->get_setting( 'wp-smush-preload' );
+		if ( empty( $preload_settings['lcp_fetchpriority'] ) ) {
+			return $attributes;
 		}
 
-		$this->mark_all_lcp_data_as_dirty();
+		// Exit early if attribute not set or not "high".
+		if ( empty( $attributes['fetchpriority'] ) || $attributes['fetchpriority'] !== 'high' ) {
+			return $attributes;
+		}
+
+		// Only remove if we have LCP data for this page.
+		if ( $this->lcp_helper->get_lcp_data_for_current_page() ) {
+			unset( $attributes['fetchpriority'] );
+		}
+
+		return $attributes;
 	}
 
 	/**
@@ -188,17 +194,17 @@ class LCP_Controller extends Controller {
 	 *
 	 * @return void
 	 */
-	private function do_lcp_data_updated_action( LCP_Data $lcp_data, LCP_Data_Store $data_store, $url ) {
+	private function do_lcp_data_updated_action( $lcp_data, $data_store, $url ) {
 		do_action( 'wp_smush_lcp_data_updated', $lcp_data, $data_store, $url );
 	}
 
-	private function clear_cache( LCP_Data_Store $data_store, $url ): void {
+	private function clear_cache( $data_store, $url ) {
 		switch ( $data_store->get_type() ) {
-			case LCP_Data_Store_Post_Meta::TYPE:
+			case LCP_Data_Store_Post_Meta::get_type_key():
 				$this->cache_helper->clear_post_cache( $data_store->get_object_id() );
 				break;
 
-			case LCP_Data_Store_Home::TYPE:
+			case LCP_Data_Store_Home::get_type_key():
 				$this->cache_helper->clear_home_cache( $url );
 				break;
 		}

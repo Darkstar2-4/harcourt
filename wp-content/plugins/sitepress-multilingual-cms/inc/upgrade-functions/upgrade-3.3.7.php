@@ -1,7 +1,4 @@
 <?php
-/**
- * @package wpml-core
- */
 
 global $wpdb;
 

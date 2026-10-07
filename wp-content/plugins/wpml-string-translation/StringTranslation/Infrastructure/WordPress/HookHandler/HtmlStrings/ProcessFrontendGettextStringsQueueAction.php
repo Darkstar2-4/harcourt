@@ -7,7 +7,6 @@ use WPML\StringTranslation\Infrastructure\WordPress\HookHandler\AbstractActionHo
 class ProcessFrontendGettextStringsQueueAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_process_frontend_gettext_strings_queue';
 
-	/** @var HtmlStringsService */
 	private $htmlStringsService;
 
 	public function __construct(

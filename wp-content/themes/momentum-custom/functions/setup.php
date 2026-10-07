@@ -3,6 +3,14 @@
 * Setup
 */
 
+add_action( 'acf/init', 'momentumst_register_options_page' );
+if ( ! function_exists( 'momentumst_register_options_page' ) ) {
+	function momentumst_register_options_page() {
+		if ( function_exists( 'acf_add_options_page' ) ) {
+			acf_add_options_page();
+		}
+	}
+}
 
 if ( ! function_exists('momentumst_setup') ) {
 	function momentumst_setup() {

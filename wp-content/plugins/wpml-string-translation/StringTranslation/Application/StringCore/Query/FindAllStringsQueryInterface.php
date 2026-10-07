@@ -8,8 +8,5 @@ use WPML\StringTranslation\Application\StringCore\Query\Criteria\SearchSelectCri
 
 interface FindAllStringsQueryInterface {
 
-	/**
-	 * @return StringDto[]
-	 */
 	public function execute( SearchCriteria $criteria, SearchSelectCriteria $selectCriteria ): array;
 }

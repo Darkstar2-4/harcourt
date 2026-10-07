@@ -41,10 +41,6 @@ class Registered {
 
 	}
 
-	/**
-	 * @param $repoId
-	 * @return string
-	 */
 	private static function getMaskedSiteKey( $repoId ) {
 		$siteKey = \WP_Installer()->get_site_key( $repoId );
 		return str_repeat('*', strlen( $siteKey ) - 4 ) . substr( $siteKey, -4 );

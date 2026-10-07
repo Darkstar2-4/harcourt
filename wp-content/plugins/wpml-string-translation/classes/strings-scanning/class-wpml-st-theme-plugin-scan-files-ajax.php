@@ -2,14 +2,8 @@
 
 class WPML_ST_Theme_Plugin_Scan_Files_Ajax implements IWPML_Action {
 
-	/** @var IWPML_ST_String_Scanner */
 	private $string_scanner;
 
-	/**
-	 * WPML_ST_Theme_Scan_Files_Ajax constructor.
-	 *
-	 * @param IWPML_ST_String_Scanner $string_scanner
-	 */
 	public function __construct( IWPML_ST_String_Scanner $string_scanner ) {
 		$this->string_scanner = $string_scanner;
 	}
@@ -19,6 +13,11 @@ class WPML_ST_Theme_Plugin_Scan_Files_Ajax implements IWPML_Action {
 	}
 
 	public function scan() {
+		if ( ! current_user_can( 'wpml_manage_theme_and_plugin_localization' ) ) {
+			wp_send_json_error( __( 'not allowed', 'wpml-string-translation' ) );
+			return;
+		}
+
 		wpml_get_admin_notices()->remove_notice(
 			WPML_ST_Themes_And_Plugins_Settings::NOTICES_GROUP,
 			WPML_ST_Themes_And_Plugins_Updates::WPML_ST_SCAN_NOTICE_ID

@@ -14,8 +14,9 @@ namespace Smush\Core\Integrations;
 
 use Smush\Core\CDN\CDN_Helper;
 use Smush\Core\Helper;
-use Smush\Core\Modules\Helpers\Parser;
 use Smush\Core\Modules\Smush;
+use Smush\Core\Optimizer;
+use Smush\Core\Parser\Parser;
 use WP_Smush;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -150,8 +151,6 @@ class Common {
 	 * @param string $image_size   Image size.
 	 */
 	public function smush_retina_image( $id, $retina_file, $image_size ) {
-		$smush = WP_Smush::get_instance()->core()->mod->smush;
-
 		/**
 		 * Allows to Enable/Disable WP Retina 2x Integration
 		 */
@@ -167,7 +166,8 @@ class Common {
 		}
 
 		// Do not smush if auto smush is turned off.
-		if ( ! $smush->should_auto_smush( $id ) ) {
+		$optimizer = Optimizer::get_instance();
+		if ( ! $optimizer->should_auto_optimize( $id ) ) {
 			return;
 		}
 
@@ -187,7 +187,8 @@ class Common {
 			return;
 		}
 
-		$stats = $smush->do_smushit( $retina_file );
+		$optimizer = Optimizer::get_instance();
+		$stats     = $optimizer->optimize_file( $retina_file );
 		// If we squeezed out something, Update stats.
 		if ( ! is_wp_error( $stats ) && ! empty( $stats['data'] ) && isset( $stats['data'] ) && $stats['data']->bytes_saved > 0 ) {
 			$image_size = $image_size . '@2x';
@@ -221,7 +222,7 @@ class Common {
 				// if stats for a particular size doesn't exists.
 				if ( empty( $stats['sizes'][ $image_size ] ) ) {
 					// Update size wise details.
-					$stats['sizes'][ $image_size ] = (object) $smush->array_fill_placeholders( $smush->get_size_signature(), (array) $data );
+					$stats['sizes'][ $image_size ] = (object) $this->array_fill_placeholders( $this->get_size_signature(), (array) $data );
 				} else {
 					// Update compression percent and bytes saved for each size.
 					$stats['sizes'][ $image_size ]->bytes   = $stats['sizes'][ $image_size ]->bytes + $data->bytes_saved;
@@ -232,7 +233,7 @@ class Common {
 			// Create new stats.
 			$stats = array(
 				'stats' => array_merge(
-					$smush->get_size_signature(),
+					$this->get_size_signature(),
 					array(
 						'api_version' => - 1,
 						'lossy'       => - 1,
@@ -246,7 +247,7 @@ class Common {
 			$stats['stats']['keep_exif']   = ! empty( $data->keep_exif ) ? $data->keep_exif : 0;
 
 			// Update size wise details.
-			$stats['sizes'][ $image_size ] = (object) $smush->array_fill_placeholders( $smush->get_size_signature(), (array) $data );
+			$stats['sizes'][ $image_size ] = (object) $this->array_fill_placeholders( $this->get_size_signature(), (array) $data );
 		}
 
 		// Calculate the total compression.
@@ -414,7 +415,8 @@ class Common {
 		 *      images as well which doesn't uses placeholder.
 		 */
 		if ( false !== strpos( $src, 'buddyboss-platform' ) && false !== strpos( $src, 'placeholder.png' ) ) {
-			$new_src = Parser::get_attribute( $image, 'data-src' );
+			$parser  = new Parser();
+			$new_src = $parser->get_element_attribute_value( $image, 'data-src' );
 
 			if ( ! empty( $new_src ) ) {
 				$src = $new_src;
@@ -617,5 +619,38 @@ class Common {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns signature for single size of the smush api message to be saved to db;
+	 *
+	 * @return array
+	 */
+	private function get_size_signature() {
+		return array(
+			'percent'     => 0,
+			'bytes'       => 0,
+			'size_before' => 0,
+			'size_after'  => 0,
+			'time'        => 0,
+		);
+	}
+
+	/**
+	 * Fills $placeholder array with values from $data array
+	 *
+	 * @param array $placeholders  Placeholders array.
+	 * @param array $data          Data to fill with.
+	 *
+	 * @return array
+	 */
+	private function array_fill_placeholders( $placeholders, $data ) {
+		$placeholders['percent']     = $data['compression'];
+		$placeholders['bytes']       = $data['bytes_saved'];
+		$placeholders['size_before'] = $data['before_size'];
+		$placeholders['size_after']  = $data['after_size'];
+		$placeholders['time']        = $data['time'];
+
+		return $placeholders;
 	}
 }

@@ -1,44 +1,17 @@
 <?php
 
-/**
- * Class WPML_TM_Translators_Dropdown
- */
 class WPML_TM_Translators_Dropdown {
 
-	/**
-	 * @var WPML_TM_Blog_Translators $blog_translators
-	 */
 	private $blog_translators;
 
-	/**
-	 * @param WPML_TM_Blog_Translators $blog_translators
-	 */
 	public function __construct( $blog_translators ) {
 		$this->blog_translators = $blog_translators;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return string
-	 */
 	public function render( $args = array() ) {
 		$dropdown = '';
 
-		/** @var $from string|false */
-		/** @var $to string|false */
-		/** @var $classes string|false */
-		/** @var $id string|false */
-		/** @var $name string|false */
-		/** @var $selected bool */
-		/** @var $echo bool */
-		/** @var $add_label bool */
-		/** @var $services array */
-		/** @var $disabled bool */
-		/** @var $default_name bool|string */
-		/** @var $local_only bool */
 
-		// set default value for variables
 		$from         = false;
 		$to           = false;
 		$id           = 'translator_id';
@@ -64,7 +37,6 @@ class WPML_TM_Translators_Dropdown {
 			$translation_service_name = TranslationProxy::get_current_service_name();
 			$is_service_authenticated = TranslationProxy::is_service_authenticated();
 
-			// if translation service does not support translators choice, always shows first available
 			if ( isset( $translation_service->id ) && ! TranslationProxy::translator_selection_available() && $is_service_authenticated ) {
 				$translators[] = (object) array(
 					'ID'           => TranslationProxy_Service::get_wpml_translator_id( $translation_service->id ),

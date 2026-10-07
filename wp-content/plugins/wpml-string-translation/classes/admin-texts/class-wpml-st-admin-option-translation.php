@@ -2,21 +2,10 @@
 
 class WPML_ST_Admin_Option_Translation extends WPML_SP_User {
 
-	/** @var  WPML_String_Translation $st_instance */
 	private $st_instance;
-	/** @var  string $option_name */
 	private $option_name;
-	/** @var  string $option_name */
 	private $language;
 
-	/**
-	 * WPML_ST_Admin_Option constructor.
-	 *
-	 * @param SitePress               $sitepress
-	 * @param WPML_String_Translation $st_instance
-	 * @param string                  $option_name
-	 * @param string                  $language
-	 */
 	public function __construct(
 		&$sitepress,
 		&$st_instance,
@@ -33,16 +22,6 @@ class WPML_ST_Admin_Option_Translation extends WPML_SP_User {
 		$this->language    = $language ? $language : $this->st_instance->get_current_string_language( $option_name );
 	}
 
-	/**
-	 *
-	 * @param string         $option_name
-	 * @param string|array   $new_value
-	 * @param int|bool       $status
-	 * @param int            $translator_id
-	 * @param int            $rec_level
-	 *
-	 * @return boolean|mixed
-	 */
 	public function update_option(
 		$option_name = '',
 		$new_value = null,

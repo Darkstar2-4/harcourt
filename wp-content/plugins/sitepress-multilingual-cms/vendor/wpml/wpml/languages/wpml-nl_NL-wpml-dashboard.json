@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Untranslated strings that I encounter on front-end while logged in": [
-            "Onvertaalde teksten die ik tegenkom op de frontend terwijl ik ben ingelogd"
+            "Onvertaalde strings die ik tegenkom op de front-end terwijl ik ben ingelogd"
          ],
          "Untranslated strings that all front-end users encounter": [
-            "Onvertaalde teksten die alle frontend gebruikers tegenkomen"
+            "Onvertaalde strings die alle front-end gebruikers tegenkomen"
          ],
          "Disable auto-registration of strings": [
-            "Automatische registratie van teksten uitschakelen"
+            "Automatische registratie van strings uitschakelen"
          ],
          "Plugins": [
             "Plugins"
@@ -28,44 +28,59 @@
          "Other": [
             "Overig"
          ],
+         "We cancelled %1$d of %2$d items, but %3$d failed. Please reload the page and try again.": [
+            "We hebben %1$d van %2$d items geannuleerd, maar %3$d is mislukt. Laad de pagina opnieuw en probeer het nogmaals."
+         ],
+         "We resent %1$d of %2$d items, but %3$d failed. Please reload the page and try again.": [
+            "We hebben %1$d van %2$d items opnieuw verzonden, maar %3$d is mislukt. Laad de pagina opnieuw en probeer het nogmaals."
+         ],
          "Error in fetching default translation batch name": [
-            "Fout bij het ophalen van de standaard vertaalbatchnaam"
+            "Fout bij het ophalen van de standaard batchnaam voor vertalingen"
          ],
          "Error in fetching translation editor type.": [
-            "Fout bij het ophalen van het type vertaaleditor."
+            "Fout bij het ophalen van het type vertaalbewerker."
          ],
          "Error in fetching untranslated types count": [
-            "Fout bij het ophalen van het aantal onvertaalde types"
+            "Fout bij het ophalen van het aantal onvertaalde typen"
          ],
          "Error in fetching remote translation service data.": [
-            "Fout bij het ophalen van gegevens van externe vertaaldienst."
+            "Fout bij het ophalen van gegevens van de externe vertaalservice."
          ],
          "Validation failed": [
             "Validatie mislukt"
+         ],
+         "Translation jobs couldn’t be canceled": [
+            "Vertaaltaken konden niet worden geannuleerd"
+         ],
+         "Reload the page and try again.": [
+            "Ververs de pagina en probeer het opnieuw."
+         ],
+         "All unfinished translation jobs were canceled": [
+            "Alle onvoltooide vertaaltaken zijn geannuleerd"
          ],
          "Please wait until download finishes": [
             "Wacht tot het downloaden is voltooid"
          ],
          "You need to wait 5 minutes after the last check": [
-            "Je moet 5 minuten wachten na de laatste check"
+            "U moet 5 minuten wachten na de laatste controle"
          ],
          "Check status and get translations": [
-            "Controleer status en haal vertalingen op"
+            "Controleer de status en ontvang vertalingen"
          ],
          "Status: ": [
             "Status: "
          ],
          "Downloaded jobs: ": [
-            "Gedownloade opdrachten: "
+            "Gedownloade taken: "
          ],
          "Cancelled jobs: ": [
-            "Geannuleerde opdrachten: "
+            "Geannuleerde taken: "
          ],
          "none of your translation jobs have been completed": [
-            "geen van uw vertaalopdrachten zijn voltooid"
+            "geen van uw vertaaltaken is voltooid"
          ],
          "Checking translation jobs status. Please don't close this page!": [
-            "De status van vertaalopdrachten wordt gecontroleerd. Sluit deze pagina niet af!"
+            "Status van vertaaltaken controleren. Sluit deze pagina niet!"
          ],
          " have been sent to remote translators": [
             " zijn verzonden naar externe vertalers"
@@ -87,11 +102,11 @@
             "%d items geselecteerd"
          ],
          "(%d words to translate)": [
-            "(%d te vertalen woorden)"
+            "(%d woorden om te vertalen)"
          ],
          "%s item not showing.": [
-            "%s item wordt niet getoond.",
-            "%s items worden niet getoond."
+            "%s item wordt niet weergegeven.",
+            "%s items worden niet weergegeven."
          ],
          "Show all selected items": [
             "Toon alle geselecteerde items"
@@ -100,7 +115,7 @@
             "Vertaal uw inhoud"
          ],
          "Unselect all": [
-            "Deselecteer alles"
+            "Alles deselecteren"
          ],
          "Source Language:": [
             "Brontaal:"
@@ -115,7 +130,7 @@
             "U staat op het punt het brontaalfilter te wijzigen van %s naar %s"
          ],
          "Updating the source language filter will clear the items you've selected for translation. Are you sure you want to continue?": [
-            "Het bijwerken van het brontaalfilter zal de items die u voor vertaling hebt geselecteerd wissen. Weet u zeker dat u wilt doorgaan?"
+            "Het bijwerken van het brontaalfilter wist de items die u voor vertaling hebt geselecteerd. Weet u zeker dat u wilt doorgaan?"
          ],
          "Change source language": [
             "Brontaal wijzigen"
@@ -142,7 +157,7 @@
             "Moet worden bijgewerkt"
          ],
          "Translation in progress": [
-            "Vertaling in uitvoering"
+            "Vertaling bezig"
          ],
          "Translation complete": [
             "Vertaling voltooid"
@@ -157,10 +172,10 @@
             "Bovenliggend:"
          ],
          "Search parent by title": [
-            "Zoek bovenliggend element op titel"
+            "Bovenliggend zoeken op titel"
          ],
          "Search by term title in %s": [
-            "Zoek op term titel in %s"
+            "Zoeken op termtitel in %s"
          ],
          "All taxonomies": [
             "Alle taxonomieën"
@@ -169,7 +184,7 @@
             "Laden"
          ],
          "Taxonomy Term:": [
-            "Taxonomieterm:"
+            "Taxonomie term:"
          ],
          "Loading terms": [
             "Termen laden"
@@ -183,11 +198,24 @@
          "Title": [
             "Titel"
          ],
-         "There is an issue with automatic translation that needs your attention.": [
-            "Er is een probleem met de automatische vertaling dat uw aandacht vereist."
+         "Automatic translation paused — payment required to continue.": [
+            "Automatische vertaling gepauzeerd — betaling vereist om door te gaan."
          ],
-         "Fix to continue translating automatically": [
-            "Corrigeer om door te gaan met automatisch vertalen"
+         "You have %1s%2s prepaid translation credit in your WPML account%3s. Assign these credits to this site to resume automatic translation": [
+            "U heeft %1s%2s prepaid vertaaltegoed in uw WPML-account%3s. Wijs deze tegoeden toe aan deze site om de automatische vertaling te hervatten",
+            "U heeft %1s%2s prepaid vertaaltegoeden in uw WPML-account%3s. Wijs deze tegoeden toe aan deze site om de automatische vertaling te hervatten"
+         ],
+         "Not enough credits to continue automatic translation. Add more credits to resume.": [
+            "Niet genoeg tegoeden om de automatische vertaling voort te zetten. Voeg meer tegoeden toe om te hervatten."
+         ],
+         "Pay now": [
+            "Nu betalen"
+         ],
+         "Get more credits": [
+            "Meer tegoeden krijgen"
+         ],
+         "Assign credits": [
+            "Tegoeden toewijzen"
          ],
          "View": [
             "Bekijken"
@@ -202,10 +230,10 @@
             "Notitie voor de vertalers toevoegen"
          ],
          "This page is set to be %1$stranslated manually%2$s using the WordPress Editor": [
-            "Deze pagina is ingesteld om %1$shandmatig vertaald te worden%2$s met behulp van de WordPress Editor"
+            "Deze pagina is ingesteld om %1$shandmatig vertaald%2$s te worden met de WordPress Editor"
          ],
          "Select %s": [
-            "%s selecteren"
+            "Selecteer %s"
          ],
          "(no title)": [
             "(geen titel)"
@@ -214,7 +242,7 @@
             "Afbeelding"
          ],
          "Date / Status": [
-            "Datum / Status"
+            "Datum / status"
          ],
          "Loading items...": [
             "Items laden..."
@@ -232,7 +260,7 @@
             "Filter toepassen"
          ],
          "%1$d %2$s not showing": [
-            "%1$d %2$s wordt niet getoond"
+            "%1$d %2$s niet getoond"
          ],
          "Show selected items": [
             "Geselecteerde items tonen"
@@ -247,7 +275,7 @@
             "Volgende"
          ],
          "Your site's content is too vast for a single translation batch. Use filters to reduce the selection, then \"select all\".": [
-            "De inhoud van uw site is te omvangrijk voor één vertaalbatch. Gebruik filters om de selectie te beperken en “selecteer dan alles”."
+            "De inhoud van uw site is te uitgebreid voor één vertaalbatch. Gebruik filters om de selectie te verkleinen en “selecteer alles”."
          ],
          "The current filter captures too much content. Narrow it down to enable \"select all\" for translation.": [
             "Het huidige filter omvat te veel inhoud. Beperk het om “alles selecteren” voor vertaling mogelijk te maken."
@@ -256,13 +284,13 @@
             "Alles selecteren"
          ],
          "All %d items matching criteria are selected": [
-            "Alle %d items die aan de criteria voldoen zijn geselecteerd"
+            "Alle %d items die aan de criteria voldoen, zijn geselecteerd"
          ],
          "All %d items in this section are selected": [
             "Alle %d items in deze sectie zijn geselecteerd"
          ],
          "You have too many items to send for translation at once. Apply a filter to narrow down the items to enable this option.": [
-            "U heeft te veel items om in één keer te verzenden voor vertaling. Pas een filter toe om de items te beperken om deze optie mogelijk te maken."
+            "U hebt te veel items geselecteerd om in één keer voor vertaling te verzenden. Pas een filter toe om de items te beperken en deze optie in te schakelen."
          ],
          "Clear selection": [
             "Selectie wissen"
@@ -274,13 +302,13 @@
             "Laden..."
          ],
          "Select all %ss": [
-            "Alle %ss selecteren"
+            "Selecteer alle %ss"
          ],
          "Save note": [
             "Notitie opslaan"
          ],
          "The following target languages do not support automatic translation: %s. <a>Map to known languages</a> to enable automatic translation.": [
-            "De volgende doeltalen ondersteunen geen automatische vertaling: %s. <a>Koppel aan bekende talen</a> om automatische vertaling mogelijk te maken."
+            "De volgende doeltalen ondersteunen geen automatische vertaling: %s. <a>Koppel aan bekende talen</a> om automatische vertaling in te schakelen."
          ],
          "The site's default language %s doesn't support automatic translation.": [
             "De standaardtaal van de site %s ondersteunt geen automatische vertaling."
@@ -292,7 +320,7 @@
             "Stap 1"
          ],
          "Select items for translation": [
-            "Selecteer items voor vertaling"
+            "Items selecteren voor vertaling"
          ],
          "Clear filters": [
             "Filters wissen"
@@ -301,25 +329,25 @@
             "strings"
          ],
          "WPML didn't find any %s matching your criteria.": [
-            "WPML heeft geen %s gevonden die aan uw criteria voldoen."
+            "WPML heeft geen %s gevonden die overeenkomen met uw criteria."
          ],
          "You have too many items selected to use this feature. Deselect some of the items to enable it.": [
-            "U hebt te veel items geselecteerd om deze functie te gebruiken. Deselecteer enkele items om het mogelijk te maken."
+            "U hebt te veel items geselecteerd om deze functie te gebruiken. Deselecteer enkele items om deze in te schakelen."
          ],
          "Show strings in:": [
-            "Toon teksten in:"
+            "Strings tonen in:"
          ],
          "Display Columns": [
             "Kolommen weergeven"
          ],
          "Close modal": [
-            "Modal sluiten"
+            "Modaal sluiten"
          ],
          "Select visible columns": [
             "Zichtbare kolommen selecteren"
          ],
          "String": [
-            "Tekst"
+            "String"
          ],
          "Name": [
             "Naam"
@@ -352,7 +380,7 @@
             "Onbekend"
          ],
          "Search string or a name": [
-            "Zoek een string of een naam"
+            "String of naam zoeken"
          ],
          "All Translation Priorities": [
             "Alle vertaalprioriteiten"
@@ -373,13 +401,13 @@
             "Strings in het thema en plugins"
          ],
          "Translate front-end texts you can customize from the WordPress admin like footer text, copyright notices, plugin options and settings, time format, widget texts, and more.": [
-            "Vertaal front-end teksten die u kunt aanpassen vanuit het WordPress-beheer, zoals voettekst, copyrightmededelingen, plugin-opties en -instellingen, tijdnotatie, widget-teksten en meer."
+            "Vertaal front-end teksten die u kunt aanpassen vanuit de WordPress-admin, zoals footertekst, copyrightmeldingen, pluginopties en -instellingen, tijdformaat, widgetteksten en meer."
          ],
          "Translating Strings From Admin and Settings": [
-            "Strings vertalen vanuit beheer en instellingen"
+            "Strings vertalen vanuit admin en instellingen"
          ],
          "Translate texts in admin screens": [
-            "Teksten in beheerschermen vertalen"
+            "Teksten vertalen in admin-schermen"
          ],
          "Translate User Meta Information": [
             "Gebruikersmeta-informatie vertalen"
@@ -391,7 +419,7 @@
             "Gebruikersprofielstrings vertalen"
          ],
          "You need to visit translations on your site's front-end (<a/>) and WPML will identify all untranslated strings and list them here. ": [
-            "U moet vertalingen bezoeken op de front-end van uw site (<a/>) en WPML zal alle onvertaalde strings identificeren en hier weergeven."
+            "U moet vertalingen bezoeken op de front-end van uw site (<a/>) en WPML zal alle onvertaalde strings identificeren en hier weergeven. "
          ],
          "hide details": [
             "details verbergen"
@@ -400,61 +428,61 @@
             "meer details"
          ],
          "Still can't find the strings you're looking to translate? Add more strings for translation.": [
-            "Kun je de strings die je wilt vertalen nog steeds niet vinden? Voeg meer strings toe voor vertaling."
+            "Kunt u de strings die u wilt vertalen nog steeds niet vinden? Voeg meer strings toe voor vertaling."
          ],
          "Not seeing strings that you are looking for?": [
-            "Zie je de strings die je zoekt niet?"
+            "Ziet u de strings die u zoekt niet?"
          ],
          "Enable the autoregistration setting.": [
-            "Schakel de instelling voor automatische registratie in."
+            "Schakel de autoregistratie-instelling in."
          ],
-         "Visit translations the site's front-end for WPML to see which strings are missing translations. Visiting one language is enough: %s.": [
-            "Bezoek de vertalingen op de frontend van de site zodat WPML kan zien welke strings nog vertaald moeten worden. Het is voldoende om één taal te bezoeken: %s."
+         "Visit translations on the site's frontend for WPML to see which strings are missing translations. Visiting one language is enough: %s.": [
+            "Bezoek vertalingen op de frontend van de site voor WPML om te zien welke strings ontbrekende vertalingen hebben. Eén taal bezoeken is voldoende: %s."
          ],
          "Alternatively, you can register strings manually.": [
-            "Je kunt ook handmatig strings registreren."
+            "U kunt strings ook handmatig registreren."
          ],
          "Translate Everything translates only those strings which are registered in English language": [
-            "Translate Everything vertaalt alleen die strings die in de Engelse taal zijn geregistreerd"
+            "Alles vertalen vertaalt alleen die strings die in het Engels zijn geregistreerd"
          ],
          "Most strings from your plugins and theme are in English, so we’re showing them alongside your default language. Use the <b>Source Language</b> filter to view strings in a specific language.": [
             "De meeste strings van uw plugins en thema zijn in het Engels, dus we tonen ze naast uw standaardtaal. Gebruik het filter <b>Brontaal</b> om strings in een specifieke taal te bekijken."
          ],
          "You’re using <b>%s</b> to cache your site, which may prevent WPML from automatically registering new strings. To fix this, clear your page cache, then visit your translated pages again on the frontend to detect new strings.": [
-            "Je gebruikt <b>%s</b> om je site te cachen, wat kan voorkomen dat WPML automatisch nieuwe strings registreert. Om dit op te lossen, leeg je pagina-cache en bezoek dan je vertaalde pagina's opnieuw aan de voorkant om nieuwe strings te detecteren."
+            "U gebruikt <b>%s</b> om uw site te cachen, wat kan voorkomen dat WPML nieuwe strings automatisch registreert. Om dit op te lossen, leegt u uw paginacache en bezoekt u uw vertaalde pagina's opnieuw op de frontend om nieuwe strings te detecteren."
          ],
          "WPML can detect strings that appear on the site and list them here. This feature helps you identify the strings that actually appear on the site and translate them. To see here only the strings that actually appear on the site, you need to enable this feature.": [
-            "WPML kan teksten detecteren die op de site verschijnen en ze hier vermelden. Deze functie helpt u de teksten te identificeren die daadwerkelijk op de site verschijnen en ze te vertalen. Om hier alleen de teksten te zien die daadwerkelijk op de site verschijnen, moet u deze functie inschakelen."
+            "WPML kan strings detecteren die op de site verschijnen en deze hier weergeven. Deze functie helpt u de strings te identificeren die daadwerkelijk op de site verschijnen en deze te vertalen. Om hier alleen de strings te zien die daadwerkelijk op de site verschijnen, moet u deze functie inschakelen."
          ],
          "WPML detects strings that appear on the site and lists them here. This feature helps you identify the strings that actually appear on the site and translate them. To see here all the strings in the site, you need to disable this feature.": [
-            "WPML detecteert teksten die op de site verschijnen en vermeldt ze hier. Deze functie helpt u de teksten te identificeren die daadwerkelijk op de site verschijnen en ze te vertalen. Om hier alle teksten in de site te zien, moet u deze functie uitschakelen."
+            "WPML detecteert strings die op de site verschijnen en geeft deze hier weer. Deze functie helpt u de strings te identificeren die daadwerkelijk op de site verschijnen en deze te vertalen. Om hier alle strings op de site te zien, moet u deze functie uitschakelen."
          ],
          "Detect untranslated strings": [
-            "Detecteer onvertaalde teksten"
+            "Onvertaalde strings detecteren"
          ],
          "WPML can detect untranslated strings and automatically register them for translation. This happens in real time as you or your visitors browse your website.": [
-            "WPML kan onvertaalde strings detecteren en ze automatisch registreren voor vertaling. Dit gebeurt realtime terwijl jij of je bezoekers door je website browsen."
+            "WPML kan onvertaalde strings detecteren en deze automatisch registreren voor vertaling. Dit gebeurt in realtime terwijl u of uw bezoekers uw website bekijken."
          ],
          "Automatically register untranslated strings": [
-            "Onvertaalde teksten automatisch registreren"
+            "Onvertaalde strings automatisch registreren"
          ],
          "Learn how to use auto-registration": [
-            "Leer hoe u autoregistratie kunt gebruiken"
+            "Leer hoe u automatische registratie gebruikt"
          ],
          "recommended": [
             "aanbevolen"
          ],
          "Also register strings from the website's back-end": [
-            "Registreer ook teksten van de backend van de website"
+            "Ook strings van de back-end van de website registreren"
          ],
          "Save settings": [
             "Instellingen opslaan"
          ],
          "Request failed because of the network error": [
-            "Verzoek mislukt vanwege een netwerkfout"
+            "Verzoek mislukt vanwege netwerkfout"
          ],
          "Try again": [
-            "Probeer opnieuw"
+            "Opnieuw proberen"
          ],
          "Enabled": [
             "Ingeschakeld"
@@ -468,26 +496,126 @@
          "You can only translate %1$s from the site's default language (%2$s).": [
             "U kunt alleen %1$s vertalen vanuit de standaardtaal van de site (%2$s)."
          ],
+         "%1sCheck pricing%2s.": [
+            "%1sBekijk prijzen%2s."
+         ],
+         "The current site content costs %1$sapproximately €%2$s%3$s to translate.": [
+            "De vertaling van de huidige site-inhoud kost %1$songeveer €%2$s%3$s."
+         ],
+         "The selected content costs %1$sapproximately €%2$s%3$s to translate.": [
+            "De vertaling van de geselecteerde inhoud kost %1$songeveer €%2$s%3$s."
+         ],
+         "Pay-As-You-Go": [
+            "Pay-As-You-Go"
+         ],
+         "Activate Pay-As-You-Go to translate automatically with monthly billing.": [
+            "Activeer Pay-As-You-Go om automatisch te vertalen met maandelijkse facturering."
+         ],
+         "Activate Pay-As-You-Go": [
+            "Pay-As-You-Go activeren"
+         ],
+         "Already using Pay-As-You-Go on another site?": [
+            "Gebruikt u Pay-As-You-Go al op een andere site?"
+         ],
+         "Connect this site to it": [
+            "Deze site eraan koppelen"
+         ],
+         "Buy and assign credits": [
+            "Tegoeden kopen en toewijzen"
+         ],
+         "Buy a %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s and assign them to this site.": [
+            "Koop een %1$sprepaidpakket%2$s met ten minste %3$s%4$s tegoeden%5$s en wijs deze toe aan deze site."
+         ],
+         "This amount will cover translation of all your current content.": [
+            "Dit bedrag dekt de vertaling van al uw huidige inhoud."
+         ],
+         "Assign at least %1$s%2$s credits%3$s to this site to continue.": [
+            "Wijs ten minste %1$s%2$s tegoeden%3$s toe aan deze site om door te gaan."
+         ],
+         "Assign credits from your WPML account and buy an additional %1$sprepaid package%2$s with at least %3$s%4$s credits%5$s credits to cover the remaining amount.": [
+            "Wijs tegoeden toe vanuit uw WPML-account en koop een aanvullend %1$sprepaidpakket%2$s met ten minste %3$s%4$s tegoeden%5$s om het resterende bedrag te dekken."
+         ],
+         "Prepaid credits": [
+            "Prepaid tegoeden"
+         ],
+         "There are %1$s%2$s available on your WPML account.%3$s": [
+            "Er zijn %1$s%2$s beschikbaar op uw WPML-account.%3$s"
+         ],
+         "(Only the WPML account owner can do this.)": [
+            "(Alleen de eigenaar van het WPML-account kan dit doen.)"
+         ],
+         "Checking for new credits...": [
+            "Controleren op nieuwe tegoeden..."
+         ],
+         "Still not enough credits. Refresh again in %d seconds.": [
+            "Nog steeds niet genoeg tegoeden. Ververs opnieuw over %d seconden."
+         ],
+         "Already assigned?": [
+            "Al toegewezen?"
+         ],
+         "Refresh": [
+            "Vernieuwen"
+         ],
+         "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support.": [
+            "Verbindingsfout. Wacht een minuut en laad deze pagina opnieuw. Als het probleem aanhoudt, neem dan contact op met de WPML-ondersteuning."
+         ],
+         "Pay-As-You-Go activated": [
+            "Pay-As-You-Go geactiveerd"
+         ],
+         "You can now continue translating your content automatically.": [
+            "U kunt nu doorgaan met het automatisch vertalen van uw inhoud."
+         ],
+         "%s credits assigned to this site.": [
+            "%s tegoeden toegewezen aan deze site."
+         ],
+         "You don’t have enough credits to translate this content.": [
+            "U heeft niet genoeg tegoeden om deze inhoud te vertalen."
+         ],
+         "You have %s credits — %s more are needed to translate this content": [
+            "U heeft %s tegoeden — %s meer zijn nodig om deze inhoud te vertalen"
+         ],
+         "You’re missing %s credits for the translation jobs in progress — %s are needed in total": [
+            "U mist %s tegoeden voor de lopende vertaaltaken — %s zijn in totaal nodig"
+         ],
+         "Summary:": [
+            "Samenvatting:"
+         ],
+         "Credit": [
+            "Tegoed",
+            "Tegoeden"
+         ],
+         "€%1$s approximately": [
+            "€%1$s ongeveer"
+         ],
+         "Pricing": [
+            "Prijzen"
+         ],
+         "Your Automatic Translation Credits": [
+            "Uw automatische vertaalcredits"
+         ],
+         "To proceed with translation, activate Pay-As-You-Go or assign prepaid credits.": [
+            "Om door te gaan met vertalen, activeert u Pay-As-You-Go of wijst u prepaid tegoeden toe."
+         ],
          "Leave existing translations as they are": [
-            "Laat bestaande vertalingen zoals ze zijn"
+            "Bestaande vertalingen laten zoals ze zijn"
          ],
          "Overwrite existing translations": [
             "Bestaande vertalingen overschrijven"
          ],
          "Some of the content you want to translate is already translated": [
-            "Een deel van de inhoud die u wilt vertalen is al vertaald"
+            "Een deel van de inhoud die u wilt vertalen, is al vertaald"
          ],
          "What do you want to do with the content that's already translated?": [
-            "Wat wilt u doen met de inhoud die al vertaald is?"
+            "Wat wilt u doen met de inhoud die al is vertaald?"
          ],
          "Suggested deadline:": [
             "Voorgestelde deadline:"
          ],
          "Set a batch name and deadline": [
-            "Stel een batchnaam en deadline in"
+            "Een batchnaam en deadline instellen"
          ],
          "You can assign a custom name to this batch for easy tracking and suggest a deadline to clarify the priority for translators.": [
-            "U kunt een aangepaste naam aan deze batch toewijzen voor eenvoudige tracking en een deadline voorstellen om de prioriteit voor vertalers te verduidelijken."
+            "U kunt deze batch een aangepaste naam geven voor eenvoudige tracking en een deadline voorstellen om de prioriteit voor vertalers te verduidelijken."
          ],
          "Batch name:": [
             "Batchnaam:"
@@ -499,64 +627,52 @@
             "Wijzigen"
          ],
          "Failed to load engines": [
-            "Laden van engines mislukt"
+            "Engines konden niet worden geladen"
          ],
          "No engines enabled": [
             "Geen engines ingeschakeld"
          ],
-         "Your Automatic Translation Credits": [
-            "Uw Automatische Vertaalkredieten"
-         ],
          "In order to assign yourself as translator, you first need to <add_yourself>add yourself as %s translator</add_yourself> to the site.<br/> Add yourself as %s translator and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om uzelf als vertaler toe te wijzen, moet u eerst <add_yourself>uzelf als %s vertaler</add_yourself> aan de site toevoegen.<br/> Voeg uzelf toe als %s vertaler en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om uzelf als vertaler toe te wijzen, moet u uzelf eerst <add_yourself>toevoegen als %s vertaler</add_yourself> aan de site.<br/> Voeg uzelf toe als %s vertaler en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "In order to assign yourself as translator, you first need to <add_yourself>add yourself as %s to %s translator</add_yourself> to the site.<br/> Add yourself as %s to %s translator and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om uzelf als vertaler toe te wijzen, moet u eerst <add_yourself>uzelf toevoegen als %s naar %s vertaler</add_yourself> aan de site.<br/> Voeg uzelf toe als %s naar %s vertaler en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om uzelf als vertaler toe te wijzen, moet u uzelf eerst <add_yourself>toevoegen als %s aan %s vertaler</add_yourself> aan de site.<br/> Voeg uzelf toe als %s aan %s vertaler en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "Checking": [
             "Controleren"
          ],
          "In order to assign a translation service, you first need to <activate_ts>activate a translation service</activate_ts>.<br/>Activate a translation service and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om een vertaaldienst toe te wijzen, moet u eerst <activate_ts>een vertaaldienst activeren</activate_ts>.<br/>Activeer een vertaaldienst en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om een vertaalservice toe te wijzen, moet u eerst <activate_ts>een vertaalservice activeren</activate_ts>.<br/>Activeer een vertaalservice en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          " Checking ": [
-            " Bezig met controleren "
+            " Controleren "
          ],
          "In order to translate automatically, you first need to <enable_ate>enable WPML's Advanced Translation Editor</enable_ate>.<br/>Enable the Advanced Translation Editor and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om automatisch te vertalen, moet u eerst <enable_ate>WPML's Geavanceerde Vertaal Editor inschakelen</enable_ate>.<br/>Schakel de Geavanceerde Vertaal Editor in en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om automatisch te vertalen, moet u eerst <enable_ate>WPML's Geavanceerde Vertaaleditor inschakelen</enable_ate>.<br/>Schakel de Geavanceerde Vertaaleditor in en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "Selected content was translated using the Classic Translation Editor and can't be sent for automatic translation. To allow this, enable \"Use also for old translations\" in <wpmlSettingLink>WPML Settings</wpmlSettingLink> page.": [
-            "Geselecteerde inhoud werd vertaald met de Klassieke Vertaal-editor en kan niet worden verzonden voor automatische vertaling. Om dit toe te staan, schakel “Gebruik ook voor oude vertalingen” in op de pagina <wpmlSettingLink>WPML-instellingen</wpmlSettingLink>."
+            "Geselecteerde inhoud is vertaald met de Klassieke Vertaaleditor en kan niet worden verzonden voor automatische vertaling. Om dit toe te staan, schakelt u “Ook gebruiken voor oude vertalingen” in op de pagina <wpmlSettingLink>WPML-instellingen</wpmlSettingLink>."
          ],
          "Some of the selected content was translated using the Classic Translation Editor and can't be sent for automatic translation. To allow this, enable \"Use also for old translations\" in <wpmlSettingLink>WPML Settings</wpmlSettingLink> page.": [
-            "Een deel van de geselecteerde inhoud werd vertaald met de Klassieke Vertaal-editor en kan niet worden verzonden voor automatische vertaling. Om dit toe te staan, schakel “Gebruik ook voor oude vertalingen” in op de pagina <wpmlSettingLink>WPML-instellingen</wpmlSettingLink>."
+            "Een deel van de geselecteerde inhoud is vertaald met de Klassieke Vertaaleditor en kan niet worden verzonden voor automatische vertaling. Om dit toe te staan, schakelt u “Ook gebruiken voor oude vertalingen” in op de pagina <wpmlSettingLink>WPML-instellingen</wpmlSettingLink>."
          ],
          "Any existing content (translations) will be overwritten when creating duplicates.\nWhen duplicating content, please first duplicate parent pages to maintain the site's hierarchy.": [
-            "Bestaande inhoud (vertalingen) wordt overschreven bij het maken van duplicaten.\nBij het dupliceren van inhoud, dupliceer eerst de bovenliggende pagina's om de hiërarchie van de site te behouden."
+            "Bestaande inhoud (vertalingen) wordt overschreven bij het maken van duplicaten.\nBij het dupliceren van inhoud, dupliceer eerst bovenliggende pagina's om de hiërarchie van de site te behouden."
          ],
          "Some of the selected content is already being translated. This will cancel any in-progress translations.": [
-            "Sommige geselecteerde inhoud wordt al vertaald. Dit zal alle lopende vertalingen annuleren."
+            "Een deel van de geselecteerde inhoud wordt al vertaald. Dit annuleert alle lopende vertalingen."
          ],
          "The selected items were translated using the WordPress Editor and will be overwritten with automatic translations.": [
-            "De geselecteerde items zijn vertaald met de WordPress-editor en zullen worden overschreven met automatische vertalingen."
+            "De geselecteerde items zijn vertaald met de WordPress Editor en worden overschreven met automatische vertalingen."
          ],
          "Some of the selected content was translated using the WordPress Editor and will be overwritten.": [
-            "Een deel van de geselecteerde inhoud is vertaald met de WordPress-editor en zal worden overschreven."
-         ],
-         "Connection Error. Please wait a minute and reload this page. If the problem continues, please contact WPML support.": [
-            "Verbindingsfout. Wacht een minuut en laad deze pagina opnieuw. Als het probleem aanhoudt, neem dan contact op met WPML-ondersteuning."
-         ],
-         "Buy credits": [
-            "Koop credits"
-         ],
-         "You don't have enough credits to translate your content automatically.": [
-            "U heeft niet genoeg credits om uw inhoud automatisch te vertalen."
+            "Een deel van de geselecteerde inhoud is vertaald met de WordPress Editor en wordt overschreven."
          ],
          "In order to assign to a translator, you first need to <add_translators>add %s translators</add_translators> to the site.<br/> Add %s translators and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om aan een vertaler toe te wijzen, moet u eerst <add_translators>%s vertalers</add_translators> aan de site toevoegen.<br/> Voeg %s vertalers toe en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om toe te wijzen aan een vertaler, moet u eerst <add_translators>%s vertalers</add_translators> aan de site toevoegen.<br/> Voeg %s vertalers toe en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "In order to assign to a translator, you first need to <add_translators>add %s to %s translators</add_translators> to the site.<br/> Add %s to %s translators and click <check_again>check again</check_again> or choose a different translation option.": [
-            "Om toe te wijzen aan een vertaler, moet u eerst <add_translators>%s naar %s vertalers toevoegen</add_translators> aan de site.<br/> Voeg %s naar %s vertalers toe en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
+            "Om toe te wijzen aan een vertaler, moet u eerst <add_translators>%s aan %s vertalers</add_translators> aan de site toevoegen.<br/> Voeg %s aan %s vertalers toe en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "Your site doesn't have any reviewers for %s. This means that you’re the only person who can review these translations.": [
             "Uw site heeft geen beoordelaars voor %s. Dit betekent dat u de enige persoon bent die deze vertalingen kan beoordelen."
@@ -565,40 +681,40 @@
             "Uw site heeft nog geen beoordelaars. Dit betekent dat u de enige persoon bent die vertalingen kan beoordelen."
          ],
          "If you want other people to review the translations, go to <a>WPML → Translation Dashboard → Translators</a> and add translators. They will be able to both review and translate content for you.": [
-            "Als je wilt dat anderen de vertalingen beoordelen, ga dan naar <a>WPML → Vertaaldashboard → Vertalers</a> en voeg vertalers toe. Zij kunnen dan zowel inhoud voor je beoordelen als vertalen."
+            "Als u wilt dat andere mensen de vertalingen beoordelen, ga dan naar <a>WPML → Vertaaldashboard → Vertalers</a> en voeg vertalers toe. Zij kunnen dan zowel inhoud voor u beoordelen als vertalen."
+         ],
+         "Automatic translation is blocked - payment required": [
+            "Automatische vertaling geblokkeerd - betaling vereist"
+         ],
+         "We couldn’t process your payment. Click “Pay now” to retry and resume automatic translation.": [
+            "We konden uw betaling niet verwerken. Klik op “Nu betalen” om het opnieuw te proberen en de automatische vertaling te hervatten."
          ],
          "WPML does not support duplicating strings. Your selection to duplicate strings to %1$s will be ignored if you proceed with the translation.": [
-            "WPML ondersteunt geen duplicatie van strings. Je selectie om strings te dupliceren naar %1$s wordt genegeerd als je doorgaat met de vertaling."
+            "WPML ondersteunt het dupliceren van strings niet. Uw selectie om strings naar %1$s te dupliceren wordt genegeerd als u doorgaat met de vertaling."
          ],
          "WPML does not support duplicating %1$s elements. Your selection to duplicate elements to %2$s will be ignored if you proceed with the translation.": [
-            "WPML ondersteunt geen duplicatie van %1$s elementen. Je selectie om elementen te dupliceren naar %2$s wordt genegeerd als je doorgaat met de vertaling."
+            "WPML ondersteunt het dupliceren van %1$s elementen niet. Uw selectie om elementen naar %2$s te dupliceren wordt genegeerd als u doorgaat met de vertaling."
          ],
          "WPML does not support duplicating %1$s elements and strings. Your selection to duplicate elements and strings to %2$s will be ignored if you proceed with the translation.": [
-            "WPML ondersteunt geen duplicatie van %1$s elementen en strings. Je selectie om elementen en strings te dupliceren naar %2$s wordt genegeerd als je doorgaat met de vertaling."
+            "WPML ondersteunt het dupliceren van %1$s elementen en strings niet. Uw selectie om elementen en strings naar %2$s te dupliceren wordt genegeerd als u doorgaat met de vertaling."
          ],
          "WPML does not support duplicating strings.": [
             "WPML ondersteunt het dupliceren van strings niet."
          ],
          "WPML does not support duplicating %1$s elements.": [
-            "WPML ondersteunt geen duplicatie van %1$s elementen."
+            "WPML ondersteunt het dupliceren van %1$s elementen niet."
          ],
          "WPML does not support duplicating %1$s elements and strings.": [
-            "WPML ondersteunt geen duplicatie van %1$s elementen en strings."
+            "WPML ondersteunt het dupliceren van %1$s elementen en strings niet."
          ],
          "Finish setting up %s on your site": [
-            "Voltooi de configuratie van %s op uw site"
+            "Voltooi de installatie van %s op uw site"
          ],
          "You need to authenticate %s to send them content for translation.<br/>Visit the <a>Translators tab</a> to finish the setup and click <check_again>check again</check_again> or choose a different translation option.": [
-            "U moet %s authenticeren om hen inhoud voor vertaling te sturen.<br/>Bezoek het <a>Vertalers tabblad</a> om de configuratie te voltooien en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
-         ],
-         "Set Up Translate Everything Automatically": [
-            "Stel Alles Automatisch Vertalen in"
-         ],
-         "WPML will translate your content into %d languages": [
-            "WPML zal uw inhoud vertalen naar %d talen"
+            "U moet %s authenticeren om inhoud voor vertaling te verzenden.<br/>Bezoek het <a>tabblad Vertalers</a> om de installatie te voltooien en klik op <check_again>opnieuw controleren</check_again> of kies een andere vertaaloptie."
          ],
          "You selected multiple translation methods for content across different languages:": [
-            "U heeft meerdere vertaalmethoden geselecteerd voor inhoud in verschillende talen:"
+            "U hebt meerdere vertaalmethoden geselecteerd voor inhoud in verschillende talen:"
          ],
          "Sent for translation": [
             "Verzonden voor vertaling"
@@ -614,60 +730,60 @@
             "<s>%d items</s> worden automatisch vertaald."
          ],
          "You can track their progress at the top of the page.": [
-            "U kunt hun voortgang bovenaan de pagina volgen."
+            "U kunt de voortgang bovenaan de pagina volgen."
          ],
          "From now on, WPML will automatically translate new content on your site.": [
-            "Vanaf nu zal WPML nieuwe inhoud op uw site automatisch vertalen."
+            "Vanaf nu vertaalt WPML nieuwe inhoud op uw site automatisch."
          ],
          "This number might vary because you enabled the Translate Everything Automatically Mode.": [
-            "Dit aantal kan verschillen omdat je de Vertaal Alles Automatisch Modus hebt aangezet."
+            "Dit aantal kan variëren omdat u de modus “Alles automatisch vertalen” hebt ingeschakeld."
          ],
          "From now on, WPML will automatically translate your site's content.": [
-            "Vanaf nu zal WPML de inhoud van uw site automatisch vertalen."
+            "Vanaf nu vertaalt WPML de inhoud van uw site automatisch."
          ],
          "Automatic translations summary": [
             "Samenvatting automatische vertalingen"
          ],
          "Some of the content that you selected for translation includes fields that are encoded. Translators will not be able to work on this kind of content, so we removed it from the job.": [
-            "Een deel van de inhoud die u heeft geselecteerd voor vertaling bevat gecodeerde velden. Vertalers zullen niet in staat zijn om aan dit soort inhoud te werken, dus we hebben het uit de opdracht verwijderd."
+            "Een deel van de inhoud die u voor vertaling hebt geselecteerd, bevat gecodeerde velden. Vertalers kunnen dit soort inhoud niet bewerken, dus hebben we het uit de taak verwijderd."
          ],
          "To fix this problem, please contact our support team and describe this issue.": [
-            "Neem contact op met ons ondersteuningsteam en beschrijf dit probleem om het op te lossen."
+            "Neem contact op met ons ondersteuningsteam en beschrijf dit probleem om dit op te lossen."
          ],
          "WPML cannot send some fo the content to translation": [
-            "WPML kan bepaalde inhoud niet naar vertaling sturen"
+            "WPML kan een deel van de inhoud niet ter vertaling aanbieden"
          ],
          "Open support ticket": [
             "Open ondersteuningsticket"
          ],
          "<s>1 item</s> has been successfully assigned to you! To check its status, please go to <s>WPML → Translations</s>. <translations_queue/>": [
-            "<s>1 item</s> is succesvol aan jou toegewezen! Om de status te checken, ga naar <s>WPML → Vertalingen</s>. <translations_queue/>",
-            "<s>%d items</s> zijn succesvol aan jou toegewezen! Voor statusupdates, ga naar <s>WPML → Vertalingen</s>. <translations_queue/>"
+            "<s>1 item</s> is succesvol aan u toegewezen! Ga naar <s>WPML → Vertalingen</s> om de status te controleren. <translations_queue/>",
+            "<s>%d items</s> zijn succesvol aan u toegewezen! Ga voor statusupdates naar <s>WPML → Vertalingen</s>. <translations_queue/>"
          ],
          "Currently logged in translator summary": [
             "Samenvatting van de momenteel ingelogde vertaler"
          ],
          "Go to Translations": [
-            "Ga naar Vertalingen"
+            "Ga naar vertalingen"
          ],
          "<s>1 item</s> has been duplicated.": [
             "<s>1 item</s> is gedupliceerd.",
             "<s>%d items</s> zijn gedupliceerd."
          ],
          "Duplication summary": [
-            "Samenvatting duplicatie"
+            "Duplicatieoverzicht"
          ],
          "There was a problem sending your content for translation.": [
-            "Er was een probleem bij het verzenden van uw inhoud voor vertaling."
+            "Er is een probleem opgetreden bij het verzenden van uw inhoud voor vertaling."
          ],
          "Please try again in a few minutes. If the issue persists, please contact our support.": [
             "Probeer het over een paar minuten opnieuw. Als het probleem aanhoudt, neem dan contact op met onze ondersteuning."
          ],
          "See technical details": [
-            "Bekijk technische details"
+            "Technische details bekijken"
          ],
          "Hide technical details": [
-            "Verberg technische details"
+            "Technische details verbergen"
          ],
          "Some of the selected strings are already registered or translated into %s. Since their source language matches the target language, they cannot be retranslated.": [
             "Sommige van de geselecteerde strings zijn al geregistreerd of vertaald naar %s. Aangezien hun brontaal overeenkomt met de doeltaal, kunnen ze niet opnieuw worden vertaald."
@@ -676,32 +792,32 @@
             "Een deel van de geselecteerde inhoud is al vertaald van %s naar %s en kan niet opnieuw worden vertaald van %s naar %s."
          ],
          "Content already translated": [
-            "Inhoud is al vertaald"
+            "Inhoud al vertaald"
          ],
          "Some content couldn't be sent to translation.": [
-            "Sommige inhoud kon niet naar vertaling worden gestuurd."
+            "Sommige inhoud kon niet ter vertaling worden aangeboden."
          ],
          "WPML did not create translations for some languages because of the following reasons:": [
             "WPML heeft voor sommige talen geen vertalingen gemaakt om de volgende redenen:"
          ],
          "<s>1 item</s> has been successfully sent to translators!": [
-            "<s>1 item</s> is succesvol naar vertalers gestuurd!",
-            "<s>%d items</s> zijn succesvol naar vertalers gestuurd!"
+            "<s>1 item</s> is succesvol naar vertalers verzonden!",
+            "<s>%d items</s> zijn succesvol naar vertalers verzonden!"
          ],
          "Local translations summary": [
-            "Overzicht lokale vertalingen"
+            "Samenvatting lokale vertalingen"
          ],
          "You can check their status in WPML → Translation": [
             "U kunt hun status controleren in WPML → Vertaling"
          ],
          "Continue to %s": [
-            "Ga door naar %s"
+            "Doorgaan naar %s"
          ],
          "We were unable to send the following batches for professional translation:": [
             "We konden de volgende batches niet verzenden voor professionele vertaling:"
          ],
          "<p><a><s>Contact WPML support for help</s></a></p>": [
-            "<p><a><s>Neem contact op met WPML-ondersteuning voor hulp</s></a></p>"
+            "<p><a><s>Neem contact op met de WPML-ondersteuning voor hulp</s></a></p>"
          ],
          "Translation Service": [
             "Vertaalservice"
@@ -710,35 +826,35 @@
             "verzenden voor professionele vertaling.."
          ],
          "<s>%d item</s> is being sent for translation to %s. Please continue to their site to start the translation.": [
-            "<s>%d item</s> wordt verzonden voor vertaling naar %s. Ga alstublieft verder naar hun site om de vertaling te starten.",
-            "<s>%d items</s> worden verzonden voor vertaling naar %s. Ga alstublieft verder naar hun site om de vertaling te starten."
+            "<s>%d item</s> wordt ter vertaling naar %s verzonden. Ga verder naar hun site om de vertaling te starten.",
+            "<s>%d items</s> worden ter vertaling naar %s verzonden. Ga verder naar hun site om de vertaling te starten."
          ],
          "Translation service translations summary": [
-            "Overzicht vertalingen vertaalservice"
+            "Samenvatting vertalingen van vertaalservice"
          ],
          "One or more assigned translators are invalid. The translator may have been removed or their language permissions changed.<br/> Review your settings on the <translators_page>Translators page</translators_page>.": [
-            "Een of meer toegewezen vertalers zijn ongeldig. De vertaler kan zijn verwijderd of hun taalmachtigingen zijn gewijzigd.<br/> Bekijk uw instellingen op de <translators_page>Vertalers-pagina</translators_page>."
+            "Een of meer toegewezen vertalers zijn ongeldig. De vertaler is mogelijk verwijderd of hun taalrechten zijn gewijzigd.<br/> Controleer uw instellingen op de <translators_page>Vertalerspagina</translators_page>."
          ],
          "The selected translation service is no longer valid. It may have been changed, unauthenticated, or deactivated.<br/> Review your settings on the <translators_page>Translators page</translators_page>.": [
-            "De geselecteerde vertaalservice is niet langer geldig. Deze kan zijn gewijzigd, niet-geauthenticeerd of gedeactiveerd.<br/> Bekijk uw instellingen op de <translators_page>Vertalers-pagina</translators_page>."
+            "De geselecteerde vertaalservice is niet langer geldig. Deze is mogelijk gewijzigd, niet-geauthenticeerd of gedeactiveerd.<br/> Controleer uw instellingen op de <translators_page>Vertalerspagina</translators_page>."
          ],
          "Currently selected translation editor doesn't support automatic translation. You must enable the Advanced Translation Editor to send content for automatic translation.<br/> Check your settings on the <wpml_settings>WPML settings page</wpml_settings>.": [
-            "De momenteel geselecteerde vertaaleditor ondersteunt geen automatische vertaling. U moet de Geavanceerde Vertaaleditor inschakelen om inhoud voor automatische vertaling te verzenden.<br/> Controleer uw instellingen op de <wpml_settings>WPML-instellingenpagina</wpml_settings>."
+            "De momenteel geselecteerde vertaal-editor ondersteunt geen automatische vertaling. U moet de Geavanceerde Vertaal-editor inschakelen om inhoud voor automatische vertaling te verzenden.<br/> Controleer uw instellingen op de <wpml_settings>WPML-instellingenpagina</wpml_settings>."
          ],
          "Validation error happened during send to translation.": [
-            "Er is een validatiefout opgetreden tijdens het verzenden naar vertaling."
-         ],
-         "Sending for translation": [
-            "Verzenden voor vertaling"
+            "Validatiefout opgetreden tijdens verzenden voor vertaling."
          ],
          "Translate and Duplicate": [
-            "Vertalen en Dupliceren"
+            "Vertalen en dupliceren"
          ],
          "Duplicate": [
             "Dupliceren"
          ],
-         "Translate": [
-            "Vertalen"
+         "Translate content": [
+            "Inhoud vertalen"
+         ],
+         "Please choose one of the available payment options.": [
+            "Kies een van de beschikbare betaalopties."
          ],
          "Selected content is already translated": [
             "Geselecteerde inhoud is al vertaald"
@@ -747,10 +863,10 @@
             "Selecteer een beoordelingsmodus"
          ],
          "Assign local translator or choose another option": [
-            "Wijs lokale vertaler toe of kies een andere optie"
+            "Wijs een lokale vertaler toe of kies een andere optie"
          ],
          "Assign yourself or choose another option": [
-            "Wijs jezelf toe of kies een andere optie"
+            "Wijs uzelf toe of kies een andere optie"
          ],
          "Activate translation service or choose another option": [
             "Activeer vertaalservice of kies een andere optie"
@@ -762,31 +878,34 @@
             "Authenticeer vertaalservice of kies een andere optie"
          ],
          "Please provide context to enable translation": [
-            "Geef context om vertaling mogelijk te maken"
+            "Geef context op om vertaling mogelijk te maken"
          ],
-         "Please don't close this page or refresh it, as doing so will cancel the translation process.": [
-            "Sluit deze pagina niet af en vernieuw 'm niet, want dan stop je het vertaalproces."
+         "Please keep this page open while WPML sends your content for translation. If you leave now, the remaining items won't be sent.": [
+            "Houd deze pagina open terwijl WPML uw inhoud ter vertaling verzendt. Als u nu weggaat, worden de resterende items niet verzonden."
+         ],
+         "Sending content to translation": [
+            "Inhoud verzenden voor vertaling"
          ],
          "<s>%s</s> cannot process more than <s>%d</s> jobs in a single batch. WPML will automatically split your jobs into separate batches to ensure an error-free delivery to <s>%s</s>. <br/><br/> Do you want to proceed?": [
-            "<s>%s</s> kan niet meer dan <s>%d</s> opdrachten in één batch verwerken. WPML zal uw opdrachten automatisch in aparte batches splitsen om een foutloze levering aan <s>%s</s> te garanderen. <br/><br/> Wilt u doorgaan?"
+            "<s>%s</s> kan niet meer dan <s>%d</s> taken in één batch verwerken. WPML splitst uw taken automatisch in afzonderlijke batches om een foutloze levering aan <s>%s</s> te garanderen. <br/><br/> Wilt u doorgaan?"
          ],
          "WPML will send jobs to %s in separate batches": [
-            "WPML zal opdrachten in aparte batches naar %s sturen"
+            "WPML stuurt taken naar %s in afzonderlijke batches"
          ],
          "Yes, send jobs in separate batches": [
-            "Ja, stuur opdrachten in aparte batches"
+            "Ja, stuur taken in afzonderlijke batches"
          ],
          "No, I will split jobs myself": [
-            "Nee, ik zal de opdrachten zelf splitsen"
+            "Nee, ik splits de taken zelf"
          ],
          "This will translate only your future content": [
-            "Dit zal alleen uw toekomstige inhoud vertalen"
+            "Dit vertaalt alleen uw toekomstige inhoud"
          ],
          "This will translate your entire site": [
-            "Dit zal uw hele site vertalen"
+            "Dit vertaalt uw hele site"
          ],
          "Translate everything automatically from now on, without asking me.": [
-            "Vertaal vanaf nu alles automatisch, zonder het mij te vragen."
+            "Vertaal alles automatisch vanaf nu, zonder mij te vragen."
          ],
          "Loading options to translate the content": [
             "Opties laden om de inhoud te vertalen"
@@ -798,55 +917,49 @@
             "Vertaal mijn hele site"
          ],
          "WPML will translate all of your site's content, including:": [
-            "WPML zal alle inhoud van uw site vertalen, inclusief:"
+            "WPML vertaalt alle inhoud van uw site, inclusief:"
          ],
-         "Any content that already exists but hasn't been translated yet": [
-            "Alle bestaande inhoud die nog niet vertaald is"
+         "Any existing content that hasn’t been translated yet": [
+            "Alle bestaande inhoud die nog niet is vertaald"
          ],
          "All new content you create in the future": [
             "Alle nieuwe inhoud die u in de toekomst maakt"
-         ],
-         "Hide what WPML will translate now": [
-            "Verberg wat WPML nu zal vertalen"
-         ],
-         "See what WPML will translate now": [
-            "Bekijk wat WPML nu zal vertalen"
          ],
          "Translate only future content": [
             "Vertaal alleen toekomstige inhoud"
          ],
          "WPML will translate only the content you create after enabling this translation mode.": [
-            "WPML zal alleen de inhoud vertalen die u maakt na het inschakelen van deze vertaalmodus."
+            "WPML vertaalt alleen de inhoud die u maakt nadat u deze vertaalmodus hebt ingeschakeld."
          ],
          "Existing untranslated content on your side will not be translated.": [
-            "Bestaande onvertaalde inhoud op uw site zal niet worden vertaald."
+            "Bestaande onvertaalde inhoud aan uw kant wordt niet vertaald."
          ],
          "WPML Settings": [
             "WPML-instellingen"
          ],
          "Some of your content was translated using the Classic Translation Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Een deel van je inhoud is vertaald met de Klassieke Vertaal-editor. Deze vertalingen worden niet meegenomen in Alles Automatisch Vertalen."
+            "Een deel van uw inhoud is vertaald met de Klassieke Vertaal-editor. Deze vertalingen worden niet opgenomen in “Alles automatisch vertalen”."
          ],
          "To include them, enable \"Use also for old translations\" in <wpmlSettingLink/>.": [
-            "Om ze mee te nemen, schakel “Gebruik ook voor oude vertalingen” in bij <wpmlSettingLink/>."
+            "Om ze op te nemen, schakelt u “Ook gebruiken voor oude vertalingen” in <wpmlSettingLink/> in."
          ],
          "Some of your content was translated using the WordPress Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Een deel van je inhoud is vertaald met de WordPress-editor. Deze vertalingen worden niet meegenomen in Alles Automatisch Vertalen."
+            "Een deel van uw inhoud is vertaald met de WordPress-editor. Deze vertalingen worden niet opgenomen in “Alles automatisch vertalen”."
          ],
          "Some of your content was translated using the Classic Translation Editor or WordPress Editor. These translations won’t be included in Translate Everything Automatically.": [
-            "Een deel van je inhoud is vertaald met de Klassieke Vertaal-editor of WordPress-editor. Deze vertalingen worden niet meegenomen in Alles Automatisch Vertalen."
+            "Een deel van uw inhoud is vertaald met de Klassieke Vertaal-editor of WordPress-editor. Deze vertalingen worden niet opgenomen in “Alles automatisch vertalen”."
          ],
          "To include Classic Editor translations, enable \"Use also for old translations\" in <wpmlSettingLink/>.": [
-            "Om vertalingen van de Klassieke Editor mee te nemen, schakel “Gebruik ook voor oude vertalingen” in bij <wpmlSettingLink/>."
+            "Om vertalingen van de Klassieke Editor op te nemen, schakelt u “Ook gebruiken voor oude vertalingen” in <wpmlSettingLink/> in."
          ],
          "Existing content": [
             "Bestaande inhoud"
          ],
          "You selected to translate strings that are in %s. Only these strings will be translated to %s.": [
-            "U heeft ervoor gekozen om strings te vertalen die in %s staan. Alleen deze strings zullen naar %s worden vertaald."
+            "U hebt geselecteerd om strings te vertalen die in %s zijn. Alleen deze strings worden vertaald naar %s."
          ],
          "You selected to translate strings that are in %s and %s. Only these strings will be translated to %s.": [
-            "U heeft ervoor gekozen om strings te vertalen die in %s en %s staan. Alleen deze strings zullen naar %s worden vertaald."
+            "U hebt geselecteerd om strings te vertalen die in %s en %s zijn. Alleen deze strings worden vertaald naar %s."
          ],
          "Source language": [
             "Brontaal"
@@ -855,10 +968,7 @@
             "Doeltaal"
          ],
          "Words to translate": [
-            "Te vertalen woorden"
-         ],
-         "Apply to all languages": [
-            "Toepassen op alle talen"
+            "Woorden om te vertalen"
          ],
          "Credits needed": [
             "Benodigde credits"
@@ -867,23 +977,16 @@
             "Automatische vertaling wordt niet ondersteund voor %s."
          ],
          "The selected translation engines do not support %s.": [
-            "De geselecteerde vertaalmachines ondersteunen %s niet."
+            "De geselecteerde vertaalengines ondersteunen %s niet."
          ],
-         "Summary": [
-            "Samenvatting"
-         ],
-         "credit": [
-            "credit",
-            "credits"
+         "%1sTotal Credits:%2s %3s": [
+            "%1sTotaal tegoeden:%2s %3s"
          ],
          "Translation service additional options": [
-            "Extra opties voor vertaaldienst"
-         ],
-         "Refresh": [
-            "Vernieuwen"
+            "Aanvullende opties voor vertaalservice"
          ],
          "Fetching translation service data...": [
-            "Ophalen van gegevens van vertaaldienst..."
+            "Vertaalservicegegevens ophalen..."
          ],
          "-": [
             "-"
@@ -895,7 +998,7 @@
             "Zelf vertalen"
          ],
          "Assign a translator": [
-            "Een vertaler toewijzen"
+            "Vertaler toewijzen"
          ],
          "Assign translation service": [
             "Vertaalservice toewijzen"
@@ -904,108 +1007,66 @@
             "Niets doen"
          ],
          "Please choose": [
-            "Maak een keuze"
+            "Kies alstublieft"
          ],
          "Choose a translator": [
             "Kies een vertaler"
          ],
          "First available": [
-            "Eerste beschikbare"
+            "Eerst beschikbare"
          ],
          "(Me)": [
-            "(Ik)"
+            "(ik)"
          ],
          "Step 2": [
             "Stap 2"
          ],
-         "<a><s>Read more about automatic translation credits</s></a>": [
-            "<a><s>Lees meer over automatische vertaalkredieten</s></a>"
+         "Calculating...": [
+            "Berekenen..."
          ],
-         "I understand that automatic translation uses credits": [
-            "Ik begrijp dat automatische vertaling krediet gebruikt"
+         "Refining estimation... about %1$d minute remaining": [
+            "Schatting verfijnen... ongeveer %1$d minuut resterend",
+            "Schatting verfijnen... ongeveer %1$d minuten resterend"
          ],
-         "Translate Everything Automatically - credit wizard error": [
-            "Alles automatisch vertalen - fout in kredietwizard"
+         "Refining estimation... %d second remaining": [
+            "Schatting verfijnen... %d seconde resterend",
+            "Schatting verfijnen... %d seconden resterend"
          ],
-         "There was an error when loading the credit wizard.": [
-            "Er is een fout opgetreden bij het laden van de kredietwizard."
+         "Estimated cost:": [
+            "Geschatte kosten:"
          ],
-         "Translate Everything Automatically - no credits": [
-            "Alles automatisch vertalen - geen credits"
+         "Current estimated cost:": [
+            "Huidige geschatte kosten:"
          ],
-         "Start Translate Everything Automatically": [
-            "Start Alles Automatisch Vertalen"
+         "Changing translation engine and recalculating estimate...": [
+            "Vertaalengine wijzigen en schatting opnieuw berekenen..."
          ],
-         "Continue": [
-            "Doorgaan"
+         "%s credits": [
+            "%s tegoeden"
          ],
-         "Go back": [
-            "Ga terug"
+         "€%1$s": [
+            "€%1$s"
          ],
-         "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content.": [
-            "U kunt Alles Automatisch Vertalen gaan gebruiken nadat u enige inhoud voor vertaling heeft verzonden. We raden aan dat u deze vertalingen controleert en ervoor zorgt dat ze goed zijn voordat u de hele inhoud van uw site vertaalt."
+         "All content is already translated. New and edited content will be translated automatically.": [
+            "Alle inhoud is al vertaald. Nieuwe en bewerkte inhoud wordt automatisch vertaald."
          ],
-         "Translate Everything Automatically - disabled": [
-            "Alles automatisch vertalen - uitgeschakeld"
+         "%1$s and %2$s": [
+            "%1$s en %2$s"
          ],
-         "Translate Everything Automatically": [
-            "Alles automatisch vertalen"
+         "in other types": [
+            "in andere typen"
          ],
-         "Automatically translate your entire site, but only from %s to %s.": [
-            "Vertaal automatisch uw hele site, maar alleen van %s naar %s."
+         "Hide what will be translated": [
+            "Verbergen wat vertaald zal worden"
          ],
-         "Translate Everything Automatically - pausing": [
-            "Alles automatisch vertalen - pauzeren"
+         "Show what will be translated": [
+            "Tonen wat vertaald zal worden"
          ],
-         "Translate Everything Automatically is pausing": [
-            "Alles automatisch vertalen wordt gepauzeerd"
+         "Calculation complete": [
+            "Berekening voltooid"
          ],
-         "Translate Everything Automatically - paused": [
-            "Alles automatisch vertalen - gepauzeerd"
-         ],
-         "%d translation left in the queue. Preparing more content for translation.": [
-            "%d vertaling in de wachtrij. Meer inhoud voor vertaling aan het voorbereiden.",
-            "%d vertalingen in de wachtrij. Meer inhoud voor vertaling aan het voorbereiden."
-         ],
-         "Preparing content for translation...": [
-            "Inhoud voor vertaling aan het voorbereiden..."
-         ],
-         "%d translation left in the queue...": [
-            "%d vertaling in de wachtrij...",
-            "%d vertalingen in de wachtrij..."
-         ],
-         "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue.": [
-            "Alles automatisch vertalen is klaar met het vertalen van je content. Er staan geen vertalingen in de wachtrij."
-         ],
-         "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself.": [
-            "Sommige items zijn vertaald met de Klassieke Vertaaleditor en kunnen niet worden verzonden voor automatische vertaling. Selecteer deze items en kies de optie om ze zelf te vertalen."
-         ],
-         "Translate Everything Automatically - enabled": [
-            "Alles automatisch vertalen - ingeschakeld"
-         ],
-         "Translate Everything Automatically is enabled": [
-            "Alles Automatisch Vertalen is ingeschakeld"
-         ],
-         "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s.": [
-            "Wanneer u nieuwe inhoud maakt of bestaande inhoud bewerkt, zal WPML het automatisch vertalen, maar alleen van %s naar %s."
-         ],
-         "You have <s>%s</s> prepaid translation credits in your wpml.org account. Assign these credits to your site to start using automatic translation": [
-            "Je hebt <s>%s</s> vooruitbetaalde vertaalcredits in je wpml.org account. Wijs deze credits toe aan je site om automatisch vertalen te starten"
-         ],
-         "Translation not running... there is an issue that needs your attention. Fix it to continue.": [
-            "Vertaling loopt niet... er is een probleem dat je aandacht nodig heeft. Los het op om door te gaan."
-         ],
-         "Assign credits now": [
-            "Ken nu credits toe"
-         ],
-         "Fix now": [
-            "Nu oplossen"
-         ],
-         "Translate Everything Automatically is stopped": [
-            "Alles automatisch vertalen is gestopt"
-         ],
-         "Out of Credits for Automatic Translation": [
-            "Geen credits meer voor automatische vertaling"
+         "%d of %d analyzed": [
+            "%d van %d geanalyseerd"
          ],
          "Automatic translations completed": [
             "Automatische vertalingen voltooid"
@@ -1015,17 +1076,24 @@
             "<s>%d vertalingen</s> zijn succesvol automatisch vertaald"
          ],
          "Automatic jobs in progress": [
-            "Automatische opdrachten in uitvoering"
+            "Automatische taken in uitvoering"
          ],
          "<s>%d automatic translation</s> is in progress": [
             "<s>%d automatische vertaling</s> is bezig",
             "<s>%d automatische vertalingen</s> zijn bezig"
          ],
+         "Remaining time: <s>Less than 1 minute</s>": [
+            "Resterende tijd: <s>Minder dan 1 minuut</s>"
+         ],
+         "Remaining time: <s>%d minute</s>": [
+            "Resterende tijd: <s>%d minuut</s>",
+            "Resterende tijd: <s>%d minuten</s>"
+         ],
          "Your default language, %s, must be mapped to a supported language in order to use automatic translation": [
-            "Je standaardtaal, %s, moet gekoppeld zijn aan een ondersteunde taal om automatisch vertalen te gebruiken"
+            "Uw standaardtaal, %s, moet worden toegewezen aan een ondersteunde taal om automatische vertaling te kunnen gebruiken"
          ],
          "Map the language": [
-            "Koppel de taal"
+            "Taal toewijzen"
          ],
          "%d translations ": [
             "%d vertalingen "
@@ -1034,7 +1102,7 @@
             "%d vertaling "
          ],
          "this includes translations from Translate Everything Automatically": [
-            "dit omvat vertalingen van Vertaal Alles Automatisch"
+            "dit omvat vertalingen van “Alles automatisch vertalen”"
          ],
          "are waiting for your review": [
             "wachten op uw beoordeling"
@@ -1046,19 +1114,19 @@
             "Vertalingen beoordelen"
          ],
          "Translate existing content": [
-            "Vertaal bestaande inhoud"
+            "Bestaande inhoud vertalen"
          ],
          "Translate now": [
             "Nu vertalen"
          ],
          "Starting with version 4.7, WPML will also automatically translate texts (strings) coming from %s.": [
-            "Vanaf versie 4.7 zal WPML ook automatisch teksten (strings) vertalen die afkomstig zijn van %s."
+            "Vanaf versie 4.7 vertaalt WPML ook automatisch teksten (strings) afkomstig van %s."
          ],
          "WPML will not translate existing texts of this type but any new ones you create will be automatically translated. If you prefer, you can <button />.": [
-            "WPML zal bestaande teksten van dit type niet vertalen, maar alle nieuwe teksten die u maakt, zullen automatisch worden vertaald. Als u dat prefereert, kunt u <button />."
+            "WPML vertaalt geen bestaande teksten van dit type, maar alle nieuwe teksten die u maakt, worden automatisch vertaald. Als u wilt, kunt u <button />."
          ],
          "Starting with version 4.7, WPML will also automatically translate:": [
-            "Vanaf versie 4.7 zal WPML ook automatisch vertalen:"
+            "Vanaf versie 4.7 vertaalt WPML ook automatisch:"
          ],
          "Content set to \"use translation if available or fallback to default language\": %s.": [
             "Inhoud ingesteld op “gebruik vertaling indien beschikbaar of val terug op standaardtaal”: %s."
@@ -1067,10 +1135,10 @@
             "Teksten (strings) afkomstig van: %s."
          ],
          "WPML will not translate existing content for these post types and texts but any new content you create will be automatically translated. If you prefer, you can start <button />.": [
-            "WPML zal bestaande inhoud voor deze berichttypen en teksten niet vertalen, maar alle nieuwe inhoud die u maakt, zal automatisch worden vertaald. Als u dat prefereert, kunt u beginnen met <button />."
+            "WPML vertaalt geen bestaande inhoud voor deze posttypes en teksten, maar alle nieuwe inhoud die u maakt, wordt automatisch vertaald. Als u wilt, kunt u <button /> starten."
          ],
          "WPML will not translate existing content for these post types but any new content you create will be automatically translated. If you prefer, you can start <button />.": [
-            "WPML zal bestaande inhoud voor deze berichttypen niet vertalen, maar alle nieuwe inhoud die u maakt, zal automatisch worden vertaald. Als u dat prefereert, kunt u beginnen met <button />."
+            "WPML vertaalt geen bestaande inhoud voor deze posttypes, maar alle nieuwe inhoud die u maakt, wordt automatisch vertaald. Als u wilt, kunt u <button /> starten."
          ],
          "start translating existing content now": [
             "begin nu met het vertalen van bestaande inhoud"
@@ -1079,34 +1147,205 @@
             "De volgende doeltalen ondersteunen geen automatische vertalingen: %s"
          ],
          "To enable automatic translation map them to known languages.": [
-            "Om automatisch vertalen mogelijk te maken, koppel ze aan bekende talen."
+            "Om automatische vertaling in te schakelen, moet u ze toewijzen aan bekende talen."
          ],
          "Map to known languages": [
-            "Koppel aan bekende talen"
+            "Toewijzen aan bekende talen"
+         ],
+         "Copied!": [
+            "Gekopieerd!"
+         ],
+         "Copy All": [
+            "Alles kopiëren"
+         ],
+         "Error type": [
+            "Fouttype"
+         ],
+         "Error Message": [
+            "Foutmelding"
+         ],
+         "Job ID": [
+            "Taak-ID"
+         ],
+         "ATE Job ID": [
+            "ATE taak-ID"
+         ],
+         "Original ID": [
+            "Originele ID"
+         ],
+         "Element ID": [
+            "Element-ID"
+         ],
+         "Copy to clipboard": [
+            "Kopiëren naar klembord"
+         ],
+         "Hide errors details": [
+            "Foutdetails verbergen"
+         ],
+         "Show errors details": [
+            "Foutdetails tonen"
+         ],
+         "https://wpml.org/forums/forum/english-support/": [
+            "https://wpml.org/forums/forum/english-support/"
+         ],
+         "<strong>%d item</strong> couldn't be completed due to an unexpected error. Try resending it for translation. If the issue continues, <a>contact WPML support</a>.": [
+            "<strong>%d item</strong> kon niet worden voltooid vanwege een onverwachte fout. Probeer het opnieuw te verzenden voor vertaling. Als het probleem aanhoudt, <a>neem dan contact op met de WPML-ondersteuning</a>.",
+            "<strong>%d items</strong> konden niet worden voltooid vanwege een onverwachte fout. Probeer ze opnieuw te verzenden voor vertaling. Als het probleem aanhoudt, <a>neem dan contact op met de WPML-ondersteuning</a>."
+         ],
+         "Cancelling %d/%d...": [
+            "Annuleren %d/%d..."
+         ],
+         "Cancelling...": [
+            "Annuleren..."
+         ],
+         "Discard jobs": [
+            "Taken verwijderen"
+         ],
+         "Resending %d/%d...": [
+            "Opnieuw verzenden %d/%d..."
+         ],
+         "Resending...": [
+            "Opnieuw verzenden..."
+         ],
+         "Resend": [
+            "Opnieuw verzenden"
+         ],
+         "We recommend staying on this page to monitor progress and respond to any issues if they occur. You can leave this page, but you should remain within your WordPress admin area.": [
+            "We raden aan op deze pagina te blijven om de voortgang te volgen en eventuele problemen op te lossen. U kunt deze pagina verlaten, maar u moet wel binnen uw WordPress-beheergebied blijven."
          ],
          "Translation status": [
             "Vertaalstatus"
          ],
          "Before translating with PTC, please provide context about your website and target audience (one-time thing).": [
-            "Geef voordat je met PTC gaat vertalen context over je website en doelgroep (eenmalig)."
+            "Voordat u met PTC vertaalt, moet u context geven over uw website en doelgroep (eenmalig)."
          ],
          "Provide Context": [
             "Context geven"
          ],
          "Default language does not support automatic translations.": [
-            "De standaardtaal ondersteunt geen automatische vertalingen."
+            "Standaardtaal ondersteunt geen automatische vertalingen."
          ],
          "You must enable ATE to activate Translate Everything Automatically.": [
-            "U moet ATE inschakelen om Alles automatisch vertalen te activeren."
+            "U moet ATE inschakelen om “Alles automatisch vertalen” te activeren."
+         ],
+         "Select payment method": [
+            "Betaalmethode selecteren"
+         ],
+         "Credits assigned": [
+            "Tegoeden toegewezen"
+         ],
+         "You’re all set.": [
+            "U bent helemaal klaar."
+         ],
+         "Click Translate Everything Automatically to start translating your entire site.": [
+            "Klik op Alles automatisch vertalen om uw hele site te vertalen."
+         ],
+         "Content to translate": [
+            "Inhoud om te vertalen"
+         ],
+         "Publishing method": [
+            "Publicatiemethode"
+         ],
+         "Payment method": [
+            "Betaalmethode"
+         ],
+         "Enable Translate Everything Automatically": [
+            "Alles automatisch vertalen inschakelen"
+         ],
+         "Go back": [
+            "Terug"
+         ],
+         "Continue": [
+            "Doorgaan"
+         ],
+         "Calculating credits for translating existing content. Please wait...": [
+            "Tegoeden berekenen voor het vertalen van bestaande inhoud. Even geduld alstublieft..."
+         ],
+         "Set Up Translate Everything Automatically": [
+            "Alles automatisch vertalen instellen"
+         ],
+         "WPML will translate your content into %d languages": [
+            "WPML vertaalt uw inhoud naar %d talen"
+         ],
+         "You can start using Translate Everything Automatically after sending some content for translation. We recommend that you review these translations and make sure that they are good before translating your entire site's content.": [
+            "U kunt “Alles automatisch vertalen” gaan gebruiken nadat u inhoud ter vertaling hebt aangeboden. We raden u aan deze vertalingen te controleren en ervoor te zorgen dat ze goed zijn voordat u de inhoud van uw hele site vertaalt."
+         ],
+         "Translate Everything Automatically - disabled": [
+            "Alles automatisch vertalen - uitgeschakeld"
+         ],
+         "Translate Everything Automatically": [
+            "Alles automatisch vertalen"
+         ],
+         "Automatically translate all %s content to %s.": [
+            "Vertaal alle %s inhoud automatisch naar %s."
+         ],
+         "Translate Everything Automatically - pausing": [
+            "Alles automatisch vertalen - pauzeren"
+         ],
+         "Translate Everything Automatically is pausing": [
+            "Alles automatisch vertalen wordt gepauzeerd"
+         ],
+         "Translate Everything Automatically - paused": [
+            "Alles automatisch vertalen - gepauzeerd"
+         ],
+         "%d translation left in the queue. Preparing more content for translation.": [
+            "%d vertaling over in de wachtrij. Meer inhoud wordt voorbereid voor vertaling.",
+            "%d vertalingen over in de wachtrij. Meer inhoud wordt voorbereid voor vertaling."
+         ],
+         "Preparing content for translation...": [
+            "Inhoud voorbereiden voor vertaling..."
+         ],
+         "%d translation left in the queue...": [
+            "%d vertaling over in de wachtrij...",
+            "%d vertalingen over in de wachtrij..."
+         ],
+         "Translate Everything Automatically has finished translating your content. There are no pending translations in the queue.": [
+            "Alles automatisch vertalen is klaar met het vertalen van uw inhoud. Er staan geen vertalingen meer in de wachtrij."
+         ],
+         "Some items were translated using the Classic Translation Editor and cannot be sent for automatic translation. Please select these items and choose the option to translate them yourself.": [
+            "Sommige items zijn vertaald met de Klassieke Vertaal-editor en kunnen niet automatisch worden vertaald. Selecteer deze items en kies de optie om ze zelf te vertalen."
+         ],
+         "Translate Everything Automatically - enabled": [
+            "Alles automatisch vertalen - ingeschakeld"
+         ],
+         "Translate Everything Automatically is enabled": [
+            "Alles automatisch vertalen is ingeschakeld"
+         ],
+         "As you create new content or edit existing content, WPML will automatically translate it, but only from %s to %s.": [
+            "Wanneer u nieuwe inhoud maakt of bestaande inhoud bewerkt, vertaalt WPML deze automatisch, maar alleen van %s naar %s."
+         ],
+         "Translate Everything Automatically is paused — payment required": [
+            "Alles automatisch vertalen is gepauzeerd — betaling vereist"
+         ],
+         "Automatic translation is paused — payment required": [
+            "Automatische vertaling is gepauzeerd — betaling vereist"
+         ],
+         "Automatic translation - payment required": [
+            "Automatische vertaling - betaling vereist"
+         ],
+         "We couldn’t process payment for your completed translations. Click “Pay now” to retry and continue using automatic translation.": [
+            "We konden de betaling voor uw voltooide vertalingen niet verwerken. Klik op “Nu betalen” om het opnieuw te proberen en de automatische vertaling te blijven gebruiken."
+         ],
+         "Cancel translation": [
+            "Vertaling annuleren"
+         ],
+         "Translate Everything Automatically is paused — not enough credits": [
+            "Alles automatisch vertalen is gepauzeerd — niet genoeg tegoeden"
+         ],
+         "Automatic translation is paused — not enough credits": [
+            "Automatische vertaling is gepauzeerd — niet genoeg tegoeden"
+         ],
+         "Translation will resume automatically after you assign more credits.": [
+            "De vertaling wordt automatisch hervat nadat u meer tegoeden heeft toegewezen."
          ],
          "This item needs a translation update but can't be translated automatically because it was translated with the Classic Translation Editor.": [
-            "Dit item heeft een vertaalupdate nodig maar kan niet automatisch worden vertaald omdat het is vertaald met de Klassieke Vertaal-editor."
+            "Dit item heeft een vertaalupdate nodig, maar kan niet automatisch worden vertaald omdat het is vertaald met de Klassieke Vertaal-editor."
          ],
          "This item needs update. Please, select the item and send for translation.": [
-            "Dit item heeft een update nodig. Selecteer het item en stuur het voor vertaling."
+            "Dit item moet worden bijgewerkt. Selecteer het item en stuur het ter vertaling."
          ],
          "Translations completed with the Classic Translation Editor cannot be sent for automatic translation": [
-            "Vertalingen voltooid met de Klassieke Vertaaleditor kunnen niet worden verzonden voor automatische vertaling"
+            "Vertalingen die met de Klassieke Vertaal-editor zijn voltooid, kunnen niet automatisch worden vertaald"
          ],
          "automatic translation": [
             "automatische vertaling"
@@ -1118,13 +1357,13 @@
             "niet vertaald"
          ],
          "waiting for translator": [
-            "wachtend op vertaler"
+            "wacht op vertaler"
          ],
          "in progress": [
-            "in uitvoering"
+            "bezig"
          ],
          "needs update": [
-            "update nodig"
+            "moet worden bijgewerkt"
          ],
          "duplicate": [
             "duplicaat"
@@ -1133,7 +1372,7 @@
             "voltooid"
          ],
          "needs review": [
-            "behoeft beoordeling"
+            "moet worden beoordeeld"
          ],
          "preparing for translation": [
             "voorbereiden voor vertaling"
@@ -1141,11 +1380,14 @@
          "needs attention": [
             "vereist aandacht"
          ],
+         "translation error": [
+            "vertaalfout"
+         ],
          "This item was translated using the WordPress Editor. Switching to the WPML's Translation Editor will overwrite the existing translation.": [
-            "Dit item is vertaald met de WordPress-editor. Overschakelen naar de WPML-vertaaleditor zal de bestaande vertaling overschrijven."
+            "Dit item is vertaald met de WordPress-editor. Overschakelen naar de WPML Vertaal-editor zal de bestaande vertaling overschrijven."
          ],
          "This item needs a translation update but was previously translated using the WordPress Editor. Using the WPML's Translation Editor will overwrite the existing translation.": [
-            "Dit item heeft een vertaalupdate nodig maar is eerder vertaald met de WordPress-editor. Het gebruik van de WPML-vertaaleditor zal de bestaande vertaling overschrijven."
+            "Dit item heeft een vertaalupdate nodig, maar is eerder vertaald met de WordPress-editor. Het gebruik van de WPML Vertaal-editor zal de bestaande vertaling overschrijven."
          ],
          "This item hasn't been translated yet and is set to use the WordPress Editor.": [
             "Dit item is nog niet vertaald en is ingesteld om de WordPress-editor te gebruiken."
@@ -1154,7 +1396,7 @@
             "%1$s: %2$s%3$s"
          ],
          "Could not fetch engines data": [
-            "Kon enginedata niet ophalen"
+            "Kon geen enginegegevens ophalen"
          ],
          "Error in fetching currently logged in translator": [
             "Fout bij het ophalen van de momenteel ingelogde vertaler"
@@ -1187,10 +1429,10 @@
             "Extern"
          ],
          "Collapse": [
-            "Inklappen"
+            "Invouwen"
          ],
          "Expand": [
-            "Uitklappen"
+            "Uitvouwen"
          ],
          "Select an item": [
             "Selecteer een item"
@@ -1214,7 +1456,7 @@
             "AAN"
          ],
          "%1$s Flag": [
-            "%1$s Vlag"
+            "%1$s vlag"
          ],
          "- Select a review mode -": [
             "- Selecteer een beoordelingsmodus -"
@@ -1232,7 +1474,7 @@
             "Aanbevolen met PTC"
          ],
          "PTC provides Better Than Human Translations that rarely need improvements, so you can confidently skip the review process. For other translation engines, a human review is recommended to confirm accuracy.": [
-            "PTC levert vertalingen die beter zijn dan die van mensen en die zelden verbeteringen nodig hebben, zodat je het reviewproces met vertrouwen kunt overslaan. Voor andere vertaalmachines wordt een menselijke review aanbevolen om de nauwkeurigheid te bevestigen."
+            "PTC levert betere dan menselijke vertalingen die zelden verbeteringen nodig hebben, zodat u het beoordelingsproces met vertrouwen kunt overslaan. Voor andere vertaalengines wordt een menselijke beoordeling aanbevolen om de nauwkeurigheid te bevestigen."
          ],
          "WPML publishes translations immediately, skipping the review process.": [
             "WPML publiceert vertalingen onmiddellijk, waarbij het beoordelingsproces wordt overgeslagen."
@@ -1244,7 +1486,7 @@
             "Aanbevolen met DeepL, Google en Microsoft"
          ],
          "DeepL, Google, and Microsoft deliver great translations, but we recommend a human review to confirm they are correct. PTC provides Better Than Human Translations that understand context, so you can confidently skip the review process.": [
-            "DeepL, Google en Microsoft leveren geweldige vertalingen, maar we raden een menselijke review aan om te bevestigen dat ze correct zijn. PTC levert vertalingen die beter zijn dan die van mensen en die de context begrijpen, zodat je het reviewproces met vertrouwen kunt overslaan."
+            "DeepL, Google en Microsoft leveren geweldige vertalingen, maar we raden een menselijke beoordeling aan om te bevestigen dat ze correct zijn. PTC levert betere dan menselijke vertalingen die context begrijpen, zodat u het beoordelingsproces met vertrouwen kunt overslaan."
          ],
          "WPML keeps translations unpublished, so you can review them first.": [
             "WPML houdt vertalingen ongepubliceerd, zodat u ze eerst kunt beoordelen."
@@ -1259,7 +1501,7 @@
             "WPML publiceert vertalingen onmiddellijk, maar markeert ze zodat u ze op uw gemak kunt controleren."
          ],
          "WPML publishes translations immediately but flags them for translators to review later.": [
-            "WPML publiceert vertalingen onmiddellijk maar markeert ze voor vertalers om later te beoordelen."
+            "WPML publiceert vertalingen onmiddellijk, maar markeert ze voor latere beoordeling door vertalers."
          ]
       }
    }

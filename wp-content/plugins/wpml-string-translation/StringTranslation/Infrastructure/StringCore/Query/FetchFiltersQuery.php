@@ -8,21 +8,14 @@ use WPML\StringTranslation\Application\StringCore\Query\FetchFiltersQueryInterfa
 
 class FetchFiltersQuery implements FetchFiltersQueryInterface {
 
-	/** @var FindDomainsAndPrioritiesQueryBuilder */
 	private $findDomainsAndPrioritiesQueryBuilder;
 
-	/**
-	 * @param FindDomainsAndPrioritiesQueryBuilder $findDomainsAndPrioritiesQueryBuilder
-	 */
 	public function __construct(
 		FindDomainsAndPrioritiesQueryBuilder $findDomainsAndPrioritiesQueryBuilder
 	) {
 		$this->findDomainsAndPrioritiesQueryBuilder = $findDomainsAndPrioritiesQueryBuilder;
 	}
 
-	/**
-	 * @param FetchFiltersCriteria $criteria
-	 */
 	public function execute( FetchFiltersCriteria $criteria ): FiltersDto {
 		global $wpdb;
 

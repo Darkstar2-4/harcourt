@@ -1,29 +1,15 @@
 <?php
 
-/**
- * Class WPML_TF_WP_Cron_Events
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_WP_Cron_Events implements IWPML_Action {
 
 	const SYNCHRONIZE_RATINGS_EVENT = 'wpml_tf_synchronize_ratings_event';
 
-	/** @var WPML_TF_Settings_Read $settings_read */
 	private $settings_read;
 
-	/** @var WPML_TF_Settings $settings */
 	private $settings;
 
-	/** @var WPML_TF_TP_Ratings_Synchronize_Factory $ratings_synchronize_factory */
 	private $ratings_synchronize_factory;
 
-	/**
-	 * WPML_TF_WP_Cron_Events constructor.
-	 *
-	 * @param WPML_TF_Settings_Read                  $settings_read
-	 * @param WPML_TF_TP_Ratings_Synchronize_Factory $ratings_synchronize_factory
-	 */
 	public function __construct(
 		WPML_TF_Settings_Read $settings_read,
 		WPML_TF_TP_Ratings_Synchronize_Factory $ratings_synchronize_factory
@@ -62,7 +48,6 @@ class WPML_TF_WP_Cron_Events implements IWPML_Action {
 		$ratings_synchronize->run();
 	}
 
-	/** @return WPML_TF_Settings */
 	private function get_settings() {
 		if ( ! $this->settings ) {
 			$this->settings = $this->settings_read->get( 'WPML_TF_Settings' );

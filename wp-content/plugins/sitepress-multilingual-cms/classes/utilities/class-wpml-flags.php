@@ -2,37 +2,19 @@
 use WPML\FP\Obj;
 use WPML\TM\Settings\Flags\Options;
 
-/**
- * Class WPML_Flags
- *
- * @package wpml-core
- */
 class WPML_Flags {
-	/** @var icl_cache  */
 	private $cache;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var WP_Filesystem_Direct */
 	private $filesystem;
 
-	/**
-	 * @param wpdb                 $wpdb
-	 * @param icl_cache            $cache
-	 * @param WP_Filesystem_Direct $filesystem
-	 */
 	public function __construct( $wpdb, icl_cache $cache, WP_Filesystem_Direct $filesystem ) {
 		$this->wpdb       = $wpdb;
 		$this->cache      = $cache;
 		$this->filesystem = $filesystem;
 	}
 
-	/**
-	 * @param string $lang_code
-	 *
-	 * @return \stdClass|null
-	 */
 	public function get_flag( $lang_code ) {
 		$flag = $this->cache->get( $lang_code );
 
@@ -52,11 +34,6 @@ class WPML_Flags {
 		return $flag;
 	}
 
-	/**
-	 * @param string $lang_code
-	 *
-	 * @return string
-	 */
 	public function get_flag_url( $lang_code ) {
 		$flag = $this->get_flag( $lang_code );
 		if ( ! $flag ) {
@@ -82,14 +59,6 @@ class WPML_Flags {
 		return '';
 	}
 
-	/**
-	 * @param string $lang_code
-	 * @param int[]  $size An array describing [ $width, $height ]. It defaults to [18, 12].
-	 * @param string $fallback_text
-	 * @param string[] $css_classes Array of CSS class strings.
-	 *
-	 * @return string
-	 */
 	public function get_flag_image( $lang_code, $size = [], $fallback_text = '', $css_classes = [] ) {
 		$url = $this->get_flag_url( $lang_code );
 
@@ -113,11 +82,6 @@ class WPML_Flags {
 		$this->cache->clear();
 	}
 
-	/**
-	 * @param array $allowed_file_types
-	 *
-	 * @return string[]
-	 */
 	public function get_wpml_flags( $allowed_file_types = null ) {
 		if ( null === $allowed_file_types ) {
 			$allowed_file_types = array( 'gif', 'jpeg', 'png', 'svg' );
@@ -137,49 +101,26 @@ class WPML_Flags {
 		return $result;
 	}
 
-	/**
-	 * @return string
-	 */
 	final public function get_wpml_flags_directory() {
 		return WPML_PLUGIN_PATH . '/res/flags/';
 	}
 
-	/**
-	 * @return string
-	 */
 	final public static function get_wpml_flags_url() {
 		return ICL_PLUGIN_URL . '/res/flags/';
 	}
 
-	/**
-	 * @return string
-	 */
 	final public static function get_wpml_flags_by_locales_url() {
 		return ICL_PLUGIN_URL . '/res/flags_by_locales.json';
 	}
 
-	/**
-	 * @return string
-	 */
 	final public static function get_wpml_flag_image_ext() {
 		return Options::getFormat();
 	}
 
-	/**
-	 * @param string $path
-	 *
-	 * @return bool
-	 */
 	private function flag_file_exists( $path ) {
 		return $this->filesystem->exists( $path );
 	}
 
-	/**
-	 * @param array $allowed_file_types
-	 * @param array $files
-	 *
-	 * @return array
-	 */
 	private function filter_flag_files( $allowed_file_types, $files ) {
 		$result = array();
 		foreach ( $files as $file ) {
@@ -195,12 +136,6 @@ class WPML_Flags {
 		return $result;
 	}
 
-	/**
-	 * @param string $base_url
-	 * @param string $path
-	 *
-	 * @return string
-	 */
 	private function append_path_to_url( $base_url, $path ) {
 		$base_url_parts = wp_parse_url( $base_url );
 

@@ -11,9 +11,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class CheckSecurityNode extends \WPML\Core\Twig\Node\Node
 {
     protected $usedFilters;

@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "zh@Hans"
+            "lang": "zh_CN"
          },
          "Connect this site to your %s account": [
             "将此网站连接到您的 %s 账户"
@@ -32,7 +32,16 @@
             "设置"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "当 WPML 设置为自动翻译您网站的内容时，目前无法连接翻译服务。要使用翻译服务，请在 <LinkToSettingsPage /> 页面上更改您的翻译模式。"
+            "当 WPML 设置为自动翻译您的网站内容时，目前无法连接翻译服务。要使用翻译服务，请在 <LinkToSettingsPage /> 页面上更改您的翻译模式。"
+         ],
+         "Sort descending": [
+            "降序排序"
+         ],
+         "Sort ascending": [
+            "升序排序"
+         ],
+         "Cancel sorting": [
+            "取消排序"
          ],
          "Documentation": [
             "文档"

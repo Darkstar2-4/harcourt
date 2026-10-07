@@ -1,19 +1,9 @@
 <?php
 
-/**
- * WPML_Term_Actions Class
- *
- * @package    wpml-core
- * @subpackage taxonomy-term-translation
- */
 class WPML_Term_Actions extends WPML_Full_Translation_API {
 
-	/** @var bool $delete_recursion_flag */
 	private $delete_recursion_flag = false;
 
-	/**
-	 * Handle AJAX request to generate unique slug.
-	 */
 	public function generate_unique_term_slug_ajax_handler() {
 		if ( $this->sitepress->get_wp_api()->is_ajax() && wp_verify_nonce( $_POST['nonce'], 'wpml_generate_unique_slug_nonce' ) ) {
 			$term          = array_key_exists( 'term', $_POST ) ? sanitize_text_field( $_POST['term'] ) : '';
@@ -30,10 +20,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * @param int    $tt_id    Taxonomy Term ID of the saved Term
-	 * @param string $taxonomy Taxonomy of the saved Term
-	 */
 	function save_term_actions( $tt_id, $taxonomy ) {
 		if ( ! $this->sitepress->is_translated_taxonomy( $taxonomy ) ) {
 			return;
@@ -53,20 +39,12 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		add_action( "saved_{$taxonomy}", array( $this, 'sync_term_meta' ), PHP_INT_MAX, 2 );
 	}
 
-	/**
-	 * @param int $term_id
-	 * @param int $tt_id
-	 */
 	public function sync_term_meta( $term_id, $tt_id ) {
 		$is_new_term      = 'created_term' === current_filter();
 		$sync_meta_action = new WPML_Sync_Term_Meta_Action( $this->sitepress, $tt_id, $is_new_term );
 		$sync_meta_action->run();
 	}
 
-	/**
-	 * @param int    $term_taxonomy_id term taxonomy id of the deleted term
-	 * @param string $taxonomy_name    taxonomy of the deleted term
-	 */
 	function delete_term_actions( $term_taxonomy_id, $taxonomy_name ) {
 		$element_type = 'tax_' . $taxonomy_name;
 
@@ -105,10 +83,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		do_action( 'wpml_translation_update', array_merge( $update_args, array( 'type' => 'after_delete' ) ) );
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $deleted_language_code
-	 */
 	public function set_new_original_term( $trid, $deleted_language_code ) {
 		if ( $trid && $deleted_language_code ) {
 			$order_languages = $this->sitepress->get_setting( 'languages_order' );
@@ -144,17 +118,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * Whether the term is original or not, there should be a post with same lang code as this term.
-	 * If the term is original, the post translation with same language code as term should be an unoriginal post (translation) because the original post already has its related term relation deleted.
-	 *
-	 * @param stdClass $term
-	 * @param array $postTranslations
-	 *
-	 * @return bool
-	 *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-673
-	 */
 	public function isTranslatedTermValidForRelationDeletion( $term, $postTranslations ) {
 		$valid = isset( $postTranslations[ $term->language_code ] );
 
@@ -165,15 +128,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		return $valid;
 	}
 
-	/**
-	 * This action is hooked to the 'deleted_term_relationships' hook.
-	 * It removes terms from translated posts as soon as they are removed from the original post.
-	 * It only fires, if the setting 'sync_post_taxonomies' is activated.
-	 *
-	 * @param int $post_id ID of the post the deleted terms were attached to
-	 * @param array $delete_terms Array of terms ids that were deleted from the post.
-	 * @param string $taxonomy
-	 */
 	public function deleted_term_relationships( $post_id, $delete_terms, $taxonomy ) {
 		$post     = get_post( $post_id );
 		$postTrid = $this->sitepress->get_element_trid( $post_id, 'post_' . $post->post_type );
@@ -189,44 +143,22 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		$postTranslations = $this->sitepress->get_element_translations( $postTrid, 'post_' . $post->post_type );
 		$originalPost     = wpml_collect( $postTranslations )->filter( $isOriginalPost )->first();
 
-		if ( ! $originalPost ) { // only try to delete term relations if the target post is original.
+		if ( ! $originalPost ) {
 			return;
 		}
 
-		/**
-		 * @param int $termId
-		 *
-		 * @return bool|mixed|string|null
-		 */
 		$getTermsTrids = function ( $termId ) use ( $taxonomy ) {
 			return $this->sitepress->get_element_trid( $termId, 'tax_' . $taxonomy );
 		};
 
-		/**
-		 * @param int $trid
-		 *
-		 * @return bool
-		 */
 		$onlyValidTermsTrids = function ( $trid ) {
 			return \WPML\FP\Logic::isTruthy( $trid );
 		};
 
-		/**
-		 * @param int $trid
-		 *
-		 * @return stdClass[]
-		 */
 		$getDeletedTermsTranslations = function ( $trid ) use ( $taxonomy ) {
 			return $this->sitepress->get_element_translations( $trid, 'tax_' . $taxonomy );
 		};
 
-		/**
-		 * Performs DB query to delete term relations only if term translation is valid for relation deletion.
-		 *
-		 * @param stdClass $deletedTermTranslation
-		 *
-		 * @return void
-		 */
 		$deleteTermTranslationsRelations = function ( $deletedTermTranslation ) use ( $postTranslations ) {
 			if ( $this->isTranslatedTermValidForRelationDeletion( $deletedTermTranslation, $postTranslations ) ) {
 				$translated_post = $postTranslations[ $deletedTermTranslation->language_code ];
@@ -250,12 +182,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		\WPML\FP\Fns::map( \WPML\FP\Fns::tap( $deleteTermTranslationsRelations ), $deletedTermsTranslations );
 	}
 
-	/**
-	 * Copies taxonomy terms from original posts to their translation, if the translations of these terms exist
-	 * and the option 'sync_post_taxonomies' is set.
-	 *
-	 * @param int $object_id ID of the object, that terms have just been added to.
-	 */
 	public function added_term_relationships( $object_id ) {
 		$i                 = $this->wpdb->prefix . 'icl_translations';
 		$current_ttids_sql =
@@ -296,11 +222,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		is_array( $corrections ) && $this->apply_added_term_changes( $corrections );
 	}
 
-	/**
-	 * @param array $corrections
-	 *
-	 * @uses \WPML_WP_API::wp_set_object_terms to add terms to posts, always appending terms
-	 */
 	private function apply_added_term_changes( $corrections ) {
 		$changes = array();
 
@@ -331,17 +252,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * Gets the language under which a term is to be saved from the HTTP request and falls back on existing data in
-	 * case the HTTP request does not contain the necessary data.
-	 * If no language can be determined for the term to be saved under the default language is used as a fallback.
-	 *
-	 * @param int    $tt_id Taxonomy Term ID of the saved term
-	 * @param string $post_action
-	 * @param string $taxonomy
-	 *
-	 * @return null|string
-	 */
 	private function get_term_lang( $tt_id, $post_action, $taxonomy ) {
 		$term_lang = filter_input(
 			INPUT_POST,
@@ -359,22 +269,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		return $term_lang;
 	}
 
-	/**
-	 * If no language could be set from the WPML $_POST variables as well as from the HTTP Referrer, then this function
-	 * uses fallbacks to determine the language from the post the the term might be associated to.
-	 * A post language determined from $_POST['icl_post_language'] will be used as term language.
-	 * Also a check for whether the publishing of the term happens via quickpress is performed in which case the term
-	 * is always associated with the default language.
-	 * Next a check for the 'inline-save-tax' and the 'editedtag' action is performed. In case the check returns true
-	 * the language of the term is not changed from what is saved for it in the database.
-	 * If no term language can be determined from the above the $_POST['post_ID'] is checked as a last resort and in
-	 * case it contains a valid post_ID the posts language is associated with the term.
-	 *
-	 * @param string $post_action
-	 * @param int    $tt_id
-	 *
-	 * @return string|null Language code of the term
-	 */
 	private function get_lang_from_post( $post_action, $tt_id ) {
 		$icl_post_lang = filter_input( INPUT_POST, 'icl_post_language' );
 		$term_lang     = $post_action === 'editpost' && $icl_post_lang ? $icl_post_lang : null;
@@ -390,15 +284,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		return $term_lang;
 	}
 
-	/**
-	 * This function tries to determine the terms language from the HTTP Referer. This is used in case of ajax actions
-	 * that save the term.
-	 *
-	 * @param string $taxonomy
-	 * @param string $post_action
-	 *
-	 * @return null|string
-	 */
 	public function get_term_lang_ajax( $taxonomy, $post_action ) {
 		if ( isset( $_POST['_ajax_nonce'] ) && filter_var( $_POST['_ajax_nonce'] ) !== false
 			 && $post_action === 'add-' . $taxonomy
@@ -440,11 +325,6 @@ class WPML_Term_Actions extends WPML_Full_Translation_API {
 		return $trid;
 	}
 
-	/**
-	 * @param int    $term_taxonomy_id
-	 * @param string $taxonomy
-	 * @param array  $translations
-	 */
 	private function delete_translations( $term_taxonomy_id, $taxonomy, array $translations ) {
 		$has_filter = remove_filter( 'get_term', array( $this->sitepress, 'get_term_adjust_id' ), 1 );
 		foreach ( $translations as $translation ) {

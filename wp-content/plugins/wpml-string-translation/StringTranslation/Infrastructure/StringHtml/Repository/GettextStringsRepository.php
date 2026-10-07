@@ -10,16 +10,12 @@ use WPML\StringTranslation\Application\StringHtml\Repository\GettextStringsRepos
 use WPML\StringTranslation\Infrastructure\StringHtml\Command\MatchHtmlStringWithGettextStrings;
 
 class GettextStringsRepository implements GettextStringsRepositoryInterface {
-	/** @var DebugService */
 	private $debugService;
 
-	/** @var QueueRepositoryInterface  */
 	private $queueRepository;
 
-	/** @var InsertStringsCommandInterface */
 	private $insertStringsCommand;
 
-	/** @var MatchHtmlStringWithGettextStrings */
 	private $matchHtmlStringWithGettextStrings;
 
 	public function __construct(
@@ -34,18 +30,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		$this->matchHtmlStringWithGettextStrings = $matchHtmlStringWithGettextStrings;
 	}
 
-	/**
-	 * Example: __( '&laquo; Older Entries', 'Divi' ) is called from Divi theme and is rendered as '« Older Entries' on page.
-	 * So, our icl_strings table will autoregister that gettext string with value equal to '&laquo; Older Entries'.
-	 * So, gettext string '&laquo; Older Entries' will be rendered as '« Older Entries' in browser because of '&laquo;' html entity.
-	 * When we send html for frontend string filtering we are storing extracted html strings in json file,
-	 * so json_encode for '« Older Entries' will give us '\u00ab Older Entries' string with Unicode escape sequences for special chars.
-	 *
-	 * When we json_decode that string for html string processing it will be auto converted from '\u00ab Older Entries'
-	 * to '« Older Entries' again, but as gettext strings could be stored in the database directly with html entities for special chars
-	 * included, we need to add here at least html string versions with special characters converted to html entities back again to
-	 * get strings like '&laquo; Older Entries' back from '« Older Entries' format.
-	 */
 	private function addHtmlStringsWithConvertedSpecialCharsForSearchInDb( array $htmlStrings ): array {
 		$allHtmlStrings = [];
 		foreach ( $htmlStrings as $htmlString ) {
@@ -56,22 +40,10 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $allHtmlStrings;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $allGettextStringsWithPlaceholders
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function getAllGettextStringsWithPlaceholdersForHtmlString( array $allGettextStringsWithPlaceholders, string $htmlString ): array {
 		return $this->matchHtmlStringWithGettextStrings->run( $allGettextStringsWithPlaceholders, $htmlString );
 	}
 
-	/**
-	 * Consider allowing percentage sign to pass here and parse only placeholder formats.
-	 *
-	 * @param array<array{string, string, string|null}> $stringModels
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function filterGettextStringsOnlyWithPlaceholders( array $stringModels ): array {
 		$filteredStringModels = [];
 
@@ -91,13 +63,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $filteredStringModels;
 	}
 
-	/**
-	 * Consider allowing percentage sign to pass here and parse only placeholder formats.
-	 *
-	 * @param array<array{string, string, string|null}> $stringModels
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function filterGettextStringsOnlyWithoutPlaceholders( array $stringModels ): array {
 		$filteredStringModels = [];
 
@@ -110,11 +75,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $filteredStringModels;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $allSourceStrings
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function groupGettextStringsByStringValue( array $allSourceStrings ): array {
 		$byStringValues = [];
 		foreach ( $allSourceStrings as $string ) {
@@ -130,13 +90,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $byStringValues;
 	}
 
-	/**
-	 * Multiple html strings can match 1 gettext string with placeholder. Like: 'Edit A' and 'Edit B' => 'Edit %s'.
-	 *
-	 * @param array<array{string, string, string|null}> $allStrings
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function filterOutDuplicateGettextStrings( array $allStrings ): array {
 		$stringIds = [];
 		$strings   = [];
@@ -154,12 +107,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $strings;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $gettextStrings
-	 * @param string[]                                  $htmlStringWords
-	 *
-	 * @return array<string, array{string, string, string|null}>
-	 */
 	private function filterGettextStringsThatCanMatchHtmlStrings( array $gettextStrings, array $htmlStringWords ): array {
 		$gettextStringsThatCanMatchByWord = [];
 
@@ -177,21 +124,12 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $gettextStringsThatCanMatchByWord;
 	}
 
-	/**
-	 * @param string $value
-	 * @param array $gettextStringsWithoutPlaceholdersByValue
-	 */
 	private function maybeGetGettextStringWithoutPlaceholderByValue ( $value, $gettextStringsWithoutPlaceholdersByValue ): array {
 		return array_key_exists( $value, $gettextStringsWithoutPlaceholdersByValue )
 			? $gettextStringsWithoutPlaceholdersByValue[ $value ]
 			: [];
 	}
 
-	/**
-	 * @param string $htmlString
-	 * @param array $wordsFromCurrentHtmlString
-	 * @param array $allGettextStringsWithPlaceholdersThatCanMatchByWord
-	 */
 	private function matchGettextStringsWithPlaceholders( $htmlString, $wordsFromCurrentHtmlString, $allGettextStringsWithPlaceholdersThatCanMatchByWord ): array {
 		$gettextStringsWithPlaceholdersThatCanMatch = [];
 
@@ -218,10 +156,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 	private $totalPartialMatchesCount = 0;
 	const MAX_TOTAL_PARTIAL_MATCHES_COUNT = 100000;
 
-	/**
-	 * @param array $wordsFromCurrentHtmlString
-	 * @param array $gettextStringsWithoutPlaceholdersByValue
-	 */
 	private function matchGettextStringsWithoutPlaceholdersWithPartialMatch( $wordsFromCurrentHtmlString, $gettextStringsWithoutPlaceholdersByValue ): array {
 		if ( $this->totalPartialMatchesCount >= self::MAX_TOTAL_PARTIAL_MATCHES_COUNT ) {
 			return [];
@@ -230,10 +164,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		$wordsFromCurrentHtmlStringCount = count( $wordsFromCurrentHtmlString );
 		$minWordsCountForPartialMatch = 2;
 		$maxWordsCountForPartialMatch = $wordsFromCurrentHtmlStringCount;
-		/*
-		 * For HTML strings that didn’t produce an exact match and only if the string has from 3 to 25 words
-		 * we try to find partial matches.
-		 */
 		if ( $wordsFromCurrentHtmlStringCount <= 2 || $maxWordsCountForPartialMatch > 25 ) {
 			return [];
 		}
@@ -289,12 +219,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $gettextStrings;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $allGettextStrings
-	 * @param string[]                                  $htmlStrings
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	private function filterGettextStringsMatchedForHtmlStrings( array $allGettextStrings, array $htmlStrings ): array {
 		$htmlStrings = array_values(
 			array_unique(
@@ -351,12 +275,6 @@ class GettextStringsRepository implements GettextStringsRepositoryInterface {
 		return $gettextStrings;
 	}
 
-	/**
-	 * @param array<array{string, string, string|null}> $allGettextStrings
-	 * @param string[]                                  $htmlStrings
-	 *
-	 * @return array<array{string, string, string|null}>
-	 */
 	public function filterOnlyGettextStringsThatMatchesHtmlStrings( array $allGettextStrings, array $htmlStrings ): array {
 		$htmlStrings    = $this->addHtmlStringsWithConvertedSpecialCharsForSearchInDb( $htmlStrings );
 		$gettextStrings = $this->filterGettextStringsMatchedForHtmlStrings( $allGettextStrings, $htmlStrings );

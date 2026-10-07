@@ -9,25 +9,18 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 	const TRANSIENT_DEFERRED_UPGRADE_IN_PROGRESS = 'wpml_upgrade_media_duplication_in_progress';
 	const MAX_TIME                               = 10;
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/** @var WPML_Upgrade $wpml_upgrade */
 	private $wpml_upgrade;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/** @var WPML_Notices $notices */
 	private $notices;
 
-	/** @var WPML_Media_Attachments_Duplication $media_attachment_duplication */
 	private $media_attachment_duplication;
 
-	/** @var array $post_thumbnail_map */
 	private $post_thumbnail_map;
 
-	/** @var int $start_time */
 	private $start_time;
 
 	public function __construct( array $args ) {
@@ -36,19 +29,8 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 		$this->notices   = $args[2];
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_admin() {
-		if ( $this->has_notice() ) {
-			$this->create_or_refresh_notice();
-			return false;
-		}
-
 		if ( $this->find_posts_altered_between_402_and_404() ) {
-			/**
-			 * The rest of the upgrade needs to run when all the custom post types are registered
-			 */
 			add_action( 'init', array( $this, 'deferred_upgrade_admin' ), PHP_INT_MAX );
 			return false;
 		}
@@ -58,20 +40,19 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 	}
 
 	public function deferred_upgrade_admin() {
+		if ( $this->has_notice() ) {
+			$this->create_or_refresh_notice();
+			return;
+		}
+
 		list( $is_complete ) = $this->process_upgrade();
 
-		if ( ! $is_complete ) { // We could not complete the upgrade in the same request
+		if ( ! $is_complete ) {
 			$this->create_or_refresh_notice();
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_ajax() {
-		/**
-		 * The rest of the upgrade needs to run when all the custom post types are registered
-		 */
 		add_action( 'init', array( $this, 'deferred_upgrade_ajax' ), PHP_INT_MAX );
 		return false;
 	}
@@ -96,16 +77,10 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 		wp_send_json_success( $data );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_frontend() {
 		return false;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_results() {
 		return array();
 	}
@@ -210,10 +185,6 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 		return ob_get_clean();
 	}
 
-	/**
-	 * Some posts could have been created between WPML 4.0.2 and WPML 4.0.4
-	 * And they would have '_wpml_featured_image_as_translated' but not '_wpml_media_featured'
-	 */
 	private function find_posts_altered_between_402_and_404() {
 		$source_posts_missing_duplicate_featured_meta =
 			"SELECT pm.post_id AS ID, pm.meta_value AS duplicate_featured, t.trid, t.element_type FROM {$this->wpdb->postmeta} AS pm
@@ -235,7 +206,6 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 			$this->get_media_attachment_duplication()->duplicate_featured_image_in_post( $post, $this->get_post_thumbnail_map() );
 		}
 
-		// Add the meta to the source post and its translations
 		$translations = $this->sitepress->get_element_translations( $post->trid, $post->element_type );
 		$post_ids     = wp_list_pluck( $translations, 'element_id' );
 
@@ -259,9 +229,6 @@ class WPML_Upgrade_Media_Duplication_In_Core implements IWPML_Upgrade_Command {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_post_thumbnail_map() {
 		if ( ! $this->post_thumbnail_map ) {
 			list( $this->post_thumbnail_map ) = $this->get_media_attachment_duplication()->get_post_thumbnail_map();

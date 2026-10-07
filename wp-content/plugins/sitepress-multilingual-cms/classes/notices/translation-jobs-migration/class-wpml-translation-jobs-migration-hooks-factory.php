@@ -4,11 +4,6 @@ use WPML\API\Sanitize;
 
 class WPML_Translation_Jobs_Migration_Hooks_Factory implements IWPML_Backend_Action_Loader, IWPML_AJAX_Action_Loader {
 
-	/**
-	 * It creates an instance of WPML_Translation_Jobs_Migration_Notice.
-	 *
-	 * @return null|WPML_Translation_Jobs_Migration_Hooks|WPML_TM_Restore_Skipped_Migration
-	 */
 	public function create() {
 		$fixing_migration = false;
 
@@ -72,9 +67,6 @@ class WPML_Translation_Jobs_Migration_Hooks_Factory implements IWPML_Backend_Act
 		);
 	}
 
-	/**
-	 * Check if location is allowed to add migration hooks.
-	 */
 	private function should_add_migration_hooks() {
 		$allowed_uris = array(
 			'/.*page=sitepress-multilingual-cms.*/',
@@ -97,11 +89,6 @@ class WPML_Translation_Jobs_Migration_Hooks_Factory implements IWPML_Backend_Act
 		return false;
 	}
 
-	/**
-	 * Get request uri.
-	 *
-	 * @return string
-	 */
 	private function get_request_uri() {
 		if ( isset( $_SERVER['REQUEST_URI'] ) ) {
 			return wp_unslash( Sanitize::stringProp( 'REQUEST_URI', $_SERVER ) );

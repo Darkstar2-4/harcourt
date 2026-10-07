@@ -1,18 +1,11 @@
 <?php
 
-/**
- * @package    wpml-core
- * @subpackage wpml-user-language
- */
 class WPML_User_Language_Switcher_Resources {
 	private $nonce_name = 'wpml_user_language_switcher';
 
 	public function __construct() {
 	}
 
-	/**
-	 * @param array<string,mixed> $data
-	 */
 	public function enqueue_scripts( $data ) {
 		wp_register_script( 'wpml-user-language', ICL_PLUGIN_URL . '/res/js/wpml-user-language.js', array( 'jquery' ), ICL_SITEPRESS_SCRIPT_VERSION );
 

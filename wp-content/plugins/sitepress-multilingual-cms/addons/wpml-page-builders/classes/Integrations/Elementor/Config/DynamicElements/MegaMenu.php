@@ -8,9 +8,6 @@ use function WPML\FP\compose;
 
 class MegaMenu {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$isMenuItem = Relation::propEq( 'widgetType', 'mega-menu' );
 

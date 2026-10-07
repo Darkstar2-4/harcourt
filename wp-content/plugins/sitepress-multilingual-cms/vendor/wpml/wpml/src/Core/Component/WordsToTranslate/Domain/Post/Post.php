@@ -7,10 +7,8 @@ use WPML\Core\Component\WordsToTranslate\Domain\Post\Term\Term;
 
 class Post extends Item {
 
-  /** @var int */
   private $lastEdit;
 
-  /** @var ?Term[] */
   private $terms;
 
 
@@ -25,50 +23,32 @@ class Post extends Item {
   }
 
 
-  /** @return int */
   public function getLastEdit() {
     return $this->lastEdit;
   }
 
 
-  /**
-   * @param Term[] $terms
-   *
-   * @return void
-   */
   public function setTerms( $terms ) {
     $this->terms = $terms;
   }
 
 
-  /**
-   * @return ?Term[]
-   */
   public function getTerms() {
     return $this->terms;
   }
 
 
-  /**
-   * @param ?string $langCode
-   *
-   * @return int
-   */
   public function getWordsToTranslate( $langCode = null ) {
     $wordsToTranslate = 0;
 
-    // Post Content.
     if ( ! $langCode ) {
-      // All languages.
       foreach ( $this->lastTranslations as $lastTranslation ) {
         $wordsToTranslate += $lastTranslation->getWordsToTranslate() ?? 0;
       }
     } elseif ( isset( $this->lastTranslations[ $langCode ] ) ) {
-      // Specific language.
       $wordsToTranslate = $this->lastTranslations[ $langCode ]->getWordsToTranslate() ?? 0;
     }
 
-    // Terms.
     if ( ! $this->terms ) {
       return $wordsToTranslate;
     }

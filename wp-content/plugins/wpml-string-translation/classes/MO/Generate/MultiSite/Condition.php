@@ -3,9 +3,6 @@
 namespace WPML\ST\MO\Generate\MultiSite;
 
 class Condition {
-	/**
-	 * @return bool
-	 */
 	public function shouldRunWithAllSites() {
 		return is_multisite() && (
 				$this->hasPostBodyParam()

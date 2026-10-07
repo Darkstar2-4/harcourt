@@ -1,10 +1,6 @@
 <?php
 namespace Composer\Installers;
 
-/**
- * Plugin/theme installer for shopware
- * @author Benjamin Boit
- */
 class ShopwareInstaller extends BaseInstaller
 {
     protected $locations = array(
@@ -16,11 +12,6 @@ class ShopwareInstaller extends BaseInstaller
         'frontend-theme'    => 'themes/Frontend/{$name}/',
     );
 
-    /**
-     * Transforms the names
-     * @param  array $vars
-     * @return array
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] === 'shopware-theme') {
@@ -30,11 +21,6 @@ class ShopwareInstaller extends BaseInstaller
         return $this->correctPluginName($vars);        
     }
 
-    /**
-     * Changes the name to a camelcased combination of vendor and name
-     * @param  array $vars
-     * @return array
-     */
     private function correctPluginName($vars)
     {
         $camelCasedName = preg_replace_callback('/(-[a-z])/', function ($matches) {
@@ -46,11 +32,6 @@ class ShopwareInstaller extends BaseInstaller
         return $vars;
     }
 
-    /**
-     * Changes the name to a underscore separated name
-     * @param  array $vars
-     * @return array
-     */
     private function correctThemeName($vars)
     {
         $vars['name'] = str_replace('-', '_', $vars['name']);

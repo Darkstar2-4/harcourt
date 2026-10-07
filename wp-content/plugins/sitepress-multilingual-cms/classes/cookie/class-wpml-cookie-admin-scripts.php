@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Cookie_Admin_Scripts
- */
 class WPML_Cookie_Admin_Scripts {
 
 	public function enqueue() {

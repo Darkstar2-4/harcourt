@@ -9,12 +9,6 @@ use OTGS\Installer\Collection;
 class ApiConnection {
 	const CONNECTION_ISSUES = 'connection-issues';
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $initialNotices
-	 *
-	 * @return array
-	 */
 	public static function getCurrentNotices( \WP_Installer $installer, array $initialNotices ) {
 		$config = $installer->getRepositories();
 
@@ -29,12 +23,6 @@ class ApiConnection {
 
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowConnectionIssues( \WP_Installer $installer, array $nag ) {
 		return $installer->shouldDisplayConnectionIssueMessage( $nag['repository_id'] );
 	}

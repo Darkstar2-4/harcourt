@@ -10,7 +10,9 @@ use Smush\Core\Parser\Element_Attribute;
 use Smush\Core\Transform\Transformation_Controller;
 
 class Image_Dimensions_Transform implements Transform {
-	const IMAGE_DIMENSIONS_CLASS = 'smush-dimensions';
+	private static $image_dimensions_class = 'smush-dimensions';
+	private static $image_width_css_var = '--smush-image-width';
+	private static $image_aspect_ratio_css_var = '--smush-image-aspect-ratio';
 
 	/**
 	 * @var Url_Utils
@@ -49,7 +51,7 @@ class Image_Dimensions_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function transform_elements( array $elements ) {
+	private function transform_elements( $elements ) {
 		foreach ( $elements as $element ) {
 			$this->transform_element( $element );
 		}
@@ -68,7 +70,7 @@ class Image_Dimensions_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function update_element_attributes( Element $image_element ) {
+	private function update_element_attributes( $image_element ) {
 		$src_attribute = $this->get_src_attribute( $image_element );
 		if ( ! $src_attribute ) {
 			return;
@@ -83,8 +85,8 @@ class Image_Dimensions_Transform implements Transform {
 		if (
 			empty( $width ) ||
 			empty( $height ) ||
-			$width < Transformation_Controller::MIN_TRANSFORMABLE_IMAGE_DIMENSION ||
-			$height < Transformation_Controller::MIN_TRANSFORMABLE_IMAGE_DIMENSION
+			$width < Transformation_Controller::get_min_transformable_image_dimension() ||
+			$height < Transformation_Controller::get_min_transformable_image_dimension()
 		) {
 			return;
 		}
@@ -92,7 +94,7 @@ class Image_Dimensions_Transform implements Transform {
 		$this->assign_image_dimensions( $image_element, $width, $height );
 	}
 
-	private function assign_image_dimensions( Element $image_element, $width, $height ) {
+	private function assign_image_dimensions( $image_element, $width, $height ) {
 		$render_by_width = apply_filters( 'wp_smush_image_dimensions_use_width_attribute', true, $image_element );
 		if ( $render_by_width ) {
 			$image_element->remove_attribute( $image_element->get_attribute( 'height' ) );
@@ -103,11 +105,11 @@ class Image_Dimensions_Transform implements Transform {
 		}
 
 		// Class attribute.
-		$image_element->append_attribute_value( 'class', self::IMAGE_DIMENSIONS_CLASS );
+		$image_element->append_attribute_value( 'class', self::$image_dimensions_class );
 
 		// Custom style attribute.
 		$original_style = $image_element->get_attribute_value( 'style' );
-		$new_style      = "--smush-image-width: {$width}px; --smush-image-aspect-ratio: $width/$height;$original_style";
+		$new_style      = self::$image_width_css_var . ": {$width}px; " . self::$image_aspect_ratio_css_var . ": $width/$height;$original_style";
 
 		$image_element->add_or_update_attribute( new Element_Attribute( 'style', $new_style ) );
 	}
@@ -115,7 +117,7 @@ class Image_Dimensions_Transform implements Transform {
 	/**
 	 * TODO: Check if dimensions need updating when only width or height is missing.
 	 */
-	private function can_specify_dimensions( Element $element ) {
+	private function can_specify_dimensions( $element ) {
 		if (
 			! $element->is_image_element() ||
 			empty( $this->get_src_attribute( $element ) ) ||
@@ -132,7 +134,7 @@ class Image_Dimensions_Transform implements Transform {
 		return apply_filters( 'wp_smush_can_specify_dimensions', $can_specify_dimensions, $element );
 	}
 
-	private function element_has_excluded_attribute_values( Element $element ) {
+	private function element_has_excluded_attribute_values( $element ) {
 		$excluded_attributes = $this->get_excluded_attributes();
 		if ( empty( $excluded_attributes ) ) {
 			return false;
@@ -193,4 +195,14 @@ class Image_Dimensions_Transform implements Transform {
 
 		return $element->get_attribute( 'src' );
 	}
+
+	/**
+	 * Get image_aspect_ratio_css_var.
+	 *
+	 * @return string
+	 */
+	public static function get_image_aspect_ratio_css_var() {
+		return self::$image_aspect_ratio_css_var;
+	}
+
 }

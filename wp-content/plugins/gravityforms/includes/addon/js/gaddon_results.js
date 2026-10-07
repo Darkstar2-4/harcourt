@@ -237,22 +237,21 @@ jQuery( window ).on( 'load', function () {
         };
 
 
-        jQuery("#gresults-results-filter-date-start, #gresults-results-filter-date-end").datepicker({dateFormat: 'yy-mm-dd', changeMonth: true, changeYear: true});
-
-        jQuery('.ui-datepicker-trigger').on('click', function() {
-            jQuery(this).parent().find('input').datepicker( 'show' );
-        });
-
         jQuery("#gresults-results-filter-form").submit(function (e) {
             gresults.getResults();
             return false;
         });
 
-        if (history.state) {
-            gresults.renderStateData(history.state)
+        // Ensure we only treat a state as valid if it contains our expected data.
+        const initialState = history.state;
+        const hasGResultsState = initialState && typeof initialState === 'object' && ( 'html' in initialState ) && ( 'searchCriteria' in initialState );
+
+        if ( hasGResultsState ) {
+            gresults.renderStateData( initialState );
         } else {
             gresults.getResults();
         }
+
         if (window["gform_initialize_tooltips"])
             gform_initialize_tooltips();
 

@@ -4,19 +4,15 @@ namespace WPML\TM\ATE\Log;
 
 class EventsTypes {
 
-	/** Communication errors */
 	const SERVER_ATE = 1;
 	const SERVER_AMS = 2;
 	const SERVER_XLIFF = 3;
 
-	/** Internal errors */
 	const JOB_DOWNLOAD = 10;
 
-	/** Retry  */
 	const JOB_RETRY = 20;
 	const SITE_REGISTRATION_RETRY = 21;
 
-	/** Sync */
 	const JOBS_SYNC = 30;
 
 	public static function getLabel( $eventType ) {

@@ -8,7 +8,6 @@ class Hooks implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC
 	const PRIORITY_SAVE_TRANSLATIONS_TO_POST = 20;
 	const PRIORITY_TRANSLATE_MEDIA           = 30;
 
-	/** @var \WPML_PB_Integration $pbIntegration */
 	private $pbIntegration;
 
 	public function __construct( \WPML_PB_Integration $pbIntegration ) {
@@ -21,18 +20,12 @@ class Hooks implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC
 		add_action( 'shutdown', [ $this, 'translateMedias' ], self::PRIORITY_TRANSLATE_MEDIA );
 	}
 
-	/**
-	 * This applies only on original posts.
-	 */
 	public function registerStrings() {
 		foreach( $this->pbIntegration->get_save_post_queue() as $post ) {
 			$this->pbIntegration->register_all_strings_for_translation( $post );
 		}
 	}
 
-	/**
-	 * This applies only on post translations.
-	 */
 	public function translateMedias() {
 		foreach( $this->pbIntegration->get_save_post_queue() as $post ) {
 			$this->pbIntegration->translate_media( $post );

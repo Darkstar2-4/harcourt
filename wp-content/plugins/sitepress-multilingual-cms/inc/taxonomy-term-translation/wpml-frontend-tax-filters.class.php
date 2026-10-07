@@ -8,15 +8,6 @@ class WPML_Frontend_Tax_Filters {
 		add_filter( 'tag_template', array( $this, 'slug_template' ) );
 	}
 
-	/**
-	 * Adjust template (taxonomy-)$taxonomy-$term.php for translated term slugs and IDs
-	 *
-	 * @since 3.1
-	 *
-	 * @param string $template
-	 *
-	 * @return string The template filename if found.
-	 */
 	function slug_template( $template ) {
 		global $sitepress;
 
@@ -89,7 +80,6 @@ class WPML_Frontend_Tax_Filters {
 
 	private function get_queried_tax_term() {
 		global $wp_query;
-		/** @var WP_Query $wp_query */
 		$term = $wp_query->get_queried_object();
 		$res  = false;
 

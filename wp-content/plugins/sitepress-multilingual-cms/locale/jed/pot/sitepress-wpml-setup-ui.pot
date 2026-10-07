@@ -69,20 +69,24 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: src/js/components/roles/ExistingUserSelect.js:46
+#: src/js/components/roles/ExistingUserSelect.js:59
 #: src/js/translationServices/components/SearchForm.js:12
 msgid "Search"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:117
-#: src/js/components/translators/AddTranslatorDialog.js:151
+#: src/js/components/roles/ExistingUserSelect.js:70
+msgid "Your site has a large number of users, please enter the exact username."
+msgstr ""
+
+#: src/js/components/translation-managers/AddManagerDialog.js:118
+#: src/js/components/translators/AddTranslatorDialog.js:152
 #: src/js/components/translators/EditLanguagesDialog.js:73
 #: src/js/setup/components/Steps/AddLanguagesModal.js:496
 #: src/js/setup/components/Steps/TranslationSettings/TranslationServices/ListModal.js:32
 msgid "Cancel"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:122
+#: src/js/components/translation-managers/AddManagerDialog.js:123
 msgid "Add Translation Manager"
 msgstr ""
 
@@ -98,7 +102,7 @@ msgstr ""
 msgid "Select an existing %s and set as Translation Manager"
 msgstr ""
 
-#: src/js/components/translation-managers/AddManagerDialog.js:96
+#: src/js/components/translation-managers/AddManagerDialog.js:97
 msgid "Create a new %s and set as Translation Manager"
 msgstr ""
 
@@ -110,19 +114,19 @@ msgstr ""
 msgid "Select an existing user and set as Translator"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:124
+#: src/js/components/translators/AddTranslatorDialog.js:125
 msgid "Create a new user and set as Translator"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:141
+#: src/js/components/translators/AddTranslatorDialog.js:142
 msgid "Set language pair(s)"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:156
+#: src/js/components/translators/AddTranslatorDialog.js:157
 msgid "Previous"
 msgstr ""
 
-#: src/js/components/translators/AddTranslatorDialog.js:159
+#: src/js/components/translators/AddTranslatorDialog.js:160
 #: src/js/components/translators/EditLanguagesDialog.js:78
 msgid "Save"
 msgstr ""
@@ -158,7 +162,71 @@ msgstr ""
 msgid "Delete language pair(s)"
 msgstr ""
 
-#: src/js/setup/components/Steps/AITranslation.js:52
+#: src/js/setup/components/CorruptedWizard.js:41
+msgid "An error occurred. Please try again."
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:47
+msgid "WPML setup isn't working properly"
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:50
+msgid "Something interrupted the setup process."
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:52
+msgid "You can safely reset the wizard and try again."
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:60
+msgid "Resetting…"
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:60
+msgid "Reset setup"
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:63
+msgid "Need help?"
+msgstr ""
+
+#: src/js/setup/components/CorruptedWizard.js:69
+msgid "Contact support"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:39
+msgid "Failed to enable AI Translation Step"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:45
+msgid "AI Translation Activation Failed"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:49
+msgid "Please contact "
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:51
+msgid "WPML Support"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:53
+msgid " and provide the technical details below (use the Copy button to copy them)."
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:71
+msgid "Technical Details (for WPML Support)"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:83
+msgid "Copied!"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/ErrorInfo.js:83
+msgid "Copy"
+msgstr ""
+
+#: src/js/setup/components/Steps/AITranslation/index.js:68
 msgid "Loading AI Translation..."
 msgstr ""
 
@@ -368,19 +436,19 @@ msgstr ""
 msgid "Language name added as a parameter"
 msgstr ""
 
-#: src/js/setup/components/Steps/Address.js:164
+#: src/js/setup/components/Steps/Address.js:178
 msgid "I will set up the domains for my secondary languages later."
 msgstr ""
 
-#: src/js/setup/components/Steps/Address.js:213
+#: src/js/setup/components/Steps/Address.js:229
 msgid "The domain you have entered is invalid."
 msgstr ""
 
-#: src/js/setup/components/Steps/Address.js:215
+#: src/js/setup/components/Steps/Address.js:231
 msgid "The domain you have entered must be unique."
 msgstr ""
 
-#: src/js/setup/components/Steps/Address.js:235
+#: src/js/setup/components/Steps/Address.js:251
 msgid ""
 "Please Note: Your site won't work in your secondary languages until this is "
 "successfully set up or you switch to a different URL option."
@@ -504,7 +572,7 @@ msgid "Which languages do you want to translate your site into?"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:149
-msgid "If you cannot find languages that you need in the list"
+msgid "If you cannot find languages that you need in the list,"
 msgstr ""
 
 #: src/js/setup/components/Steps/Languages.js:150
@@ -535,11 +603,19 @@ msgstr ""
 msgid "Get a key for this site"
 msgstr ""
 
-#: src/js/setup/components/Steps/Plugins.js:130
+#: src/js/setup/components/Steps/Plugins.js:123
+msgid "Error in activating plugin."
+msgstr ""
+
+#: src/js/setup/components/Steps/Plugins.js:125
+msgid "Error in installing plugin."
+msgstr ""
+
+#: src/js/setup/components/Steps/Plugins.js:167
 msgid "Improve your site’s translations using helpful plugins"
 msgstr ""
 
-#: src/js/setup/components/Steps/Plugins.js:135
+#: src/js/setup/components/Steps/Plugins.js:173
 msgid ""
 "Based on the themes and other plugins running on your site, we recommend "
 "that you enable the following WPML components. These are included with your "
@@ -547,17 +623,9 @@ msgid ""
 "more."
 msgstr ""
 
-#: src/js/setup/components/Steps/Plugins.js:97
-msgid "Error in activating plugin."
-msgstr ""
-
-#: src/js/setup/components/Steps/Plugins.js:99
-msgid "Error in installing plugin."
-msgstr ""
-
 #: src/js/setup/components/Steps/Support.js:22
 msgid ""
-"YES, send this information to wpml.org to improve my site’s maintenance and "
+"Yes, send this information to wpml.org to improve my site’s maintenance and "
 "support"
 msgstr ""
 
@@ -645,7 +713,7 @@ msgid "You will be the sole translator for this site."
 msgstr ""
 
 #: src/js/setup/components/Steps/TranslationSettings.js:93
-msgid "A \"Translation Manager\" who will setup the translators for my site"
+msgid "A Translation Manager who will setup the translators for my site"
 msgstr ""
 
 #: src/js/setup/components/Steps/TranslationSettings.js:94
@@ -758,6 +826,18 @@ msgid ""
 "set to translate your site’s content automatically. To use a translation "
 "service, please change your translation mode on the <LinkToSettingsPage /> "
 "page."
+msgstr ""
+
+#: src/js/translationServices/components/ServicesList.js:105
+msgid "Sort descending"
+msgstr ""
+
+#: src/js/translationServices/components/ServicesList.js:106
+msgid "Sort ascending"
+msgstr ""
+
+#: src/js/translationServices/components/ServicesList.js:107
+msgid "Cancel sorting"
 msgstr ""
 
 #: src/js/translationServices/components/ServicesList.js:41

@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "zh@Hans"
+            "lang": "zh_CN"
          },
          "Dissmiss Notice": [
             "关闭通知"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "使用WPML的翻译仪表板简化您网站的翻译"
+            "使用 WPML 的翻译仪表板简化您网站的翻译"
          ],
          "Translate pages, posts, products and strings from one place": [
-            "从一个地方翻译页面、帖子、产品和字符串"
+            "在一个地方翻译页面、文章、产品和字符串"
          ],
          "Bulk automatic translation": [
             "批量自动翻译"

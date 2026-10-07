@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
-         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
-            "Aby wyświetlić ten blok Niestandardowego HTML w określonym języku, najpierw umieść go wewnątrz bloku Grupy."
-         ],
-         "Place inside Group block": [
-            "Umieść wewnątrz bloku Grupy"
-         ],
          "All": [
             "Wszystkie"
          ],
+         "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
+            "Aby wyświetlić ten niestandardowy blok HTML w określonym języku, najpierw umieść go w bloku Grupa."
+         ],
+         "Place inside Group block": [
+            "Umieść w bloku Grupa"
+         ],
          "Display on language": [
-            "Wyświetlaj w języku"
+            "Wyświetl w języku"
          ]
       }
    }

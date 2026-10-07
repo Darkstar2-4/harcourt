@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "hide the translations instead.": [
             "dölj översättningarna istället."
          ],
          "Error happened! Please try again.": [
-            "Ett fel inträffade! Vänligen försök igen."
+            "Ett fel uppstod! Försök igen."
          ],
          "Cancel": [
             "Avbryt"
@@ -35,10 +35,10 @@
             "Lägg till nytt språk"
          ],
          "Never mind - don't add new languages": [
-            "Glöm det - lägg inte till nya språk"
+            "Strunt samma – lägg inte till nya språk"
          ],
          "Never mind - don't add new language": [
-            "Glöm det - lägg inte till nytt språk"
+            "Strunt samma – lägg inte till nytt språk"
          ],
          "Choose which content to translate into the new language": [
             "Välj vilket innehåll som ska översättas till det nya språket"
@@ -56,7 +56,7 @@
             "När du återupptar automatisk översättning kommer detta innehåll att <a>översättas automatiskt</a>."
          ],
          "You can still translate existing content any time from the Translation Management Dashboard.": [
-            "Du kan fortfarande översätta befintligt innehåll när som helst från instrumentpanelen för översättningshantering."
+            "Du kan fortfarande översätta befintligt innehåll när som helst från översättningshanteringspanelen."
          ]
       }
    }

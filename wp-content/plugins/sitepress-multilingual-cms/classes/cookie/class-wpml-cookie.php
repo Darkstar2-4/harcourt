@@ -2,15 +2,6 @@
 
 class WPML_Cookie {
 
-	/**
-	 * @param string $name
-	 * @param string $value
-	 * @param int $expires
-	 * @param string $path
-	 * @param string $domain
-	 * @param bool $HTTPOnly
-	 * @param string|null $sameSite
-	 */
 	public function set_cookie( $name, $value, $expires, $path, $domain, $HTTPOnly  = false, $sameSite = null ) {
 		$name  = is_null( $name ) ? '' : rawurlencode( $name );
 		$value = is_null( $value ) ? '' : rawurlencode( $value );
@@ -38,11 +29,6 @@ class WPML_Cookie {
 		}
 	}
 
-	/**
-	 * @param string $name
-	 *
-	 * @return string
-	 */
 	public function get_cookie( $name ) {
 		if ( isset( $_COOKIE[ $name ] ) ) {
 			return $_COOKIE[ $name ];
@@ -50,21 +36,11 @@ class WPML_Cookie {
 		return '';
 	}
 
-	/**
-	 * simple wrapper for \headers_sent
-	 *
-	 * @return bool
-	 */
 	public function headers_sent() {
 		return headers_sent();
 	}
 
-	/**
-	 * @param string $name
-	 */
 	private function handle_cache_plugins( $name ) {
-		// @todo uncomment or delete when #wpmlcore-5796 is resolved
-		// do_action( 'wpsc_add_cookie', $name );
 	}
 
 	private function is_secure_connection() {

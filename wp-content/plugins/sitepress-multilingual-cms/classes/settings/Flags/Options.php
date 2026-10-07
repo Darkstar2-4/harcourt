@@ -11,11 +11,6 @@ use function WPML\Container\make;
 class Options {
 	const FORMAT_OPTION = 'wpml_flags_format';
 
-	/**
-	 * @param string $format One of the values defined in the `getAllowedTypes` method.
-	 *
-	 * @return Either
-	 */
 	public static function saveFormat( $format ) {
 		return Either::of( $format )
 		             ->filter( Lst::includes( Fns::__, self::getAllowedFormats() ) )
@@ -25,7 +20,6 @@ class Options {
 	}
 
 	public static function getFormat() {
-		/** @var \WPML\TM\Settings\Flags\FlagsRepository */
 		$repo   = make( \WPML\TM\Settings\Flags\FlagsRepository::class );
 		$notset = 'notset';
 		$res    = Option::getOr( self::FORMAT_OPTION, $notset );

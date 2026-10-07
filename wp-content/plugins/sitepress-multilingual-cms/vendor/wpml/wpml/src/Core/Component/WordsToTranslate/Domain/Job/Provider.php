@@ -10,23 +10,13 @@ use WPML\PHP\Exception\RuntimeException;
 
 class Provider {
 
-  /** @var JobQueryInterface */
   private $jobQuery;
 
-  /** @var TranslationEngineQueryInterface */
   private $translationEngineQuery;
 
-  /** @var ProviderInterface[] */
   private $providers = [];
 
 
-  /**
-   * Provider constructor.
-   *
-   * @param JobQueryInterface $jobQuery
-   * @param TranslationEngineQueryInterface $translationEngineQuery
-   * @param ProviderInterface[] $providers
-   */
   public function __construct(
     $jobQuery,
     $translationEngineQuery,
@@ -38,16 +28,6 @@ class Provider {
   }
 
 
-  /**
-   * @param int $id
-   * @param bool $freshTranslation When true, previous translations will be
-   * ignored.
-   *
-   * @return JobDTO
-   *
-   * @throws InvalidArgumentException
-   * @throws RuntimeException
-   */
   public function getById( $id, $freshTranslation = false ) {
     if ( ! $freshTranslation ) {
       $wordsToTranslate = $this->jobQuery->getWordsToTranslate( $id );
@@ -56,8 +36,6 @@ class Provider {
         $automaticTranslationCosts = $this->jobQuery->getAutomaticTranslationCosts( $id );
 
         if ( $automaticTranslationCosts !== null ) {
-          // Words to translate and automatic translation costs are already calculated.
-          // Return a JobDTO directly.
           return new JobDTO(
             $id,
             $wordsToTranslate,
@@ -67,7 +45,6 @@ class Provider {
       }
     }
 
-    // Fresh translation or no words to translate calculated yet.
     $job = $this->getWithItemById( $id, $freshTranslation );
 
     return new JobDTO(
@@ -79,16 +56,6 @@ class Provider {
   }
 
 
-  /**
-   * @param int $id
-   * @param bool $freshTranslation When true, previous translations will be
-   * ignored.
-   *
-   * @return Job
-   *
-   * @throws InvalidArgumentException
-   * @throws RuntimeException
-   */
   public function getWithItemById( $id, $freshTranslation = false ) {
     $sourceLang = $this->jobQuery->getSourceLang( $id );
     $targetLang = $this->jobQuery->getTargetLang( $id );

@@ -14,13 +14,6 @@ namespace WPML\Core\Twig\TokenParser;
 use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Token;
-/**
- * Extends a template by another one.
- *
- *  {% extends "base.html" %}
- *
- * @final
- */
 class ExtendsTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

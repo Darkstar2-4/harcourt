@@ -1,9 +1,4 @@
 <?php
-/**
- * Fetch the wpml config files for known plugins and themes
- *
- * @package wpml-core
- */
 
 function update_wpml_config_index_event() {
 	global $sitepress;

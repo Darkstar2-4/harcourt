@@ -1,16 +1,8 @@
 <?php
 
-/**
- * Class WPML_ST_Upgrade_DB_String_Packages
- */
 class WPML_ST_Upgrade_DB_String_Packages implements IWPML_St_Upgrade_Command {
 	private $wpdb;
 
-	/**
-	 * WPML_ST_Upgrade_DB_String_Packages constructor.
-	 *
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
@@ -44,9 +36,6 @@ class WPML_ST_Upgrade_DB_String_Packages implements IWPML_St_Upgrade_Command {
 	public function run_frontend() {
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_command_id() {
 		return __CLASS__ . '_2.4.2';
 	}

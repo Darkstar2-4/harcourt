@@ -10,6 +10,10 @@ use WPML\FP\Either;
 class UpdateStats implements IHandler {
 
 	public function run( Collection $data ) {
+		if ( ! current_user_can( 'wpml_manage_theme_and_plugin_localization' ) ) {
+			return Either::left( 'not allowed' );
+		}
+
 		$stats = $this->sanitizeStats( $data->get( 'stats', [] ) );
 		$st    = apply_filters( 'wpml_get_setting', false, 'st' );
 

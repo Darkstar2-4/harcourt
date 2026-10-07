@@ -2,7 +2,6 @@
 
 namespace WPML\MediaTranslation\MediaCollector;
 
-// Previously Ultimate Addons for Gutenberg (uagb).
 return [
 	new CollectorBlock(
 		'uagb/image',

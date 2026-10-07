@@ -12,13 +12,6 @@ namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Node\FlushNode;
 use WPML\Core\Twig\Token;
-/**
- * Flushes the output to the client.
- *
- * @see flush()
- *
- * @final
- */
 class FlushTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

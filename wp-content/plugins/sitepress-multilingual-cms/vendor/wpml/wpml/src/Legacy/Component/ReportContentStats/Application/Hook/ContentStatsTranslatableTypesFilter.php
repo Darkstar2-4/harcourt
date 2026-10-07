@@ -9,11 +9,6 @@ class ContentStatsTranslatableTypesFilter implements PostTypeFilterInterface {
   const NAME = 'wpml_tm_dashboard_translatable_types';
 
 
-  /**
-   * @param array<string, mixed> $postTypes
-   *
-   * @return array<string, mixed>
-   */
   public function filter( array $postTypes ) {
     if ( isset( $postTypes['attachment'] ) ) {
       unset( $postTypes['attachment'] );

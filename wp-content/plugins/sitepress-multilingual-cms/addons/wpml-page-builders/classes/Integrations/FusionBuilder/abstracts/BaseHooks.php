@@ -43,18 +43,6 @@ abstract class BaseHooks {
 		);
 	}
 
-	/**
-	 * This class was originally located in WPML Core
-	 * and later moved to WPML Page Builders addons.
-	 * As we don't have needs to build JS/CSS assets
-	 * in the WPML Page Builder addon, and we want to keep
-	 * a simple build here, we'll keep the assets in Core
-	 * (where it's built).
-	 *
-	 * @param string $uri
-	 *
-	 * @throws \Exception
-	 */
 	private static function check_asset( $uri ) {
 		$filepath = WPML_PLUGIN_PATH . $uri;
 
@@ -63,11 +51,6 @@ abstract class BaseHooks {
 		}
 	}
 
-	/**
-	 * @param string $uri
-	 *
-	 * @return string
-	 */
 	private static function get_url( $uri ) {
 		return ICL_PLUGIN_URL . $uri;
 	}

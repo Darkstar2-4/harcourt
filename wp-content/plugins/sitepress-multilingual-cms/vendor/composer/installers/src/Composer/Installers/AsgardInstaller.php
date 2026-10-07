@@ -8,14 +8,6 @@ class AsgardInstaller extends BaseInstaller
         'theme' => 'Themes/{$name}/'
     );
 
-    /**
-     * Format package name.
-     *
-     * For package type asgard-module, cut off a trailing '-plugin' if present.
-     *
-     * For package type asgard-theme, cut off a trailing '-theme' if present.
-     *
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] === 'asgard-module') {

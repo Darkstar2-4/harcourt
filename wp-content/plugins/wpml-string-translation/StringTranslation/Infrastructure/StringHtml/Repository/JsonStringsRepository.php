@@ -8,10 +8,8 @@ use WPML\StringTranslation\Application\StringHtml\Validator\IsExcludedHtmlString
 
 class JsonStringsRepository implements JsonStringsRepositoryInterface {
 
-	/** @var HtmlStringsRepositoryInterface */
 	private $htmlStringsRepository;
 
-	/** @var IsExcludedHtmlStringValidatorInterface */
 	private $isExcludedHtmlStringValidator;
 
 	public function __construct(
@@ -22,9 +20,6 @@ class JsonStringsRepository implements JsonStringsRepositoryInterface {
 		$this->isExcludedHtmlStringValidator = $isExcludedHtmlStringValidator;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public function getAllStringsFromOutput( string $output ): array {
 		$jsonStrings = $this->extractStringsFromJson( $output );
 		if ( is_null( $jsonStrings ) ) {
@@ -36,9 +31,6 @@ class JsonStringsRepository implements JsonStringsRepositoryInterface {
 		return $htmlStrings;
 	}
 
-	/**
-	 * @return null|array
-	 */
 	private function extractStringsFromJson( $output ) {
 		$jsonArr   = json_decode( $output, true );
 		$hasErrors = json_last_error() !== JSON_ERROR_NONE;

@@ -1,18 +1,11 @@
 <?php
 
-/**
- * Class WPML_Translate_Link_Targets_In_Content
- *
- * @package wpml-tm
- */
 abstract class WPML_Translate_Link_Targets_In_Content extends WPML_WPDB_User {
 
 	protected $scanning_in_progress = false;
 	protected $content_to_fix;
 	protected $number_of_links_fixed;
-	/* var WPML_Pro_Translation	$pro_translation */
 	protected $pro_translation;
-	/** @var  WPML_Translate_Link_Target_Global_State $translate_link_target_global_state */
 	private $translate_link_target_global_state;
 
 	const MAX_TO_FIX_FOR_NEW_CONTENT = 10;

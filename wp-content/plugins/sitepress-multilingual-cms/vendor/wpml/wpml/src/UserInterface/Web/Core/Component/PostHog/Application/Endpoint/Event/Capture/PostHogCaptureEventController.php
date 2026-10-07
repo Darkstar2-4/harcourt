@@ -4,40 +4,30 @@ namespace WPML\UserInterface\Web\Core\Component\PostHog\Application\Endpoint\Eve
 
 use WPML\Core\Component\PostHog\Application\Service\Config\ConfigService;
 use WPML\Core\Component\PostHog\Application\Service\Event\CaptureEventService;
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
 use WPML\Core\Port\Endpoint\EndpointInterface;
+use WPML\PHP\Exception\RemoteException;
 
 class PostHogCaptureEventController implements EndpointInterface {
 
-  /** @var ConfigService */
   private $configService;
 
-  /** @var CaptureEventService */
   private $captureEventService;
+
+  private $eventInstanceService;
 
 
   public function __construct(
     ConfigService $configService,
-    CaptureEventService $captureEventService
+    CaptureEventService $captureEventService,
+    EventInstanceService $eventInstanceService
   ) {
-    $this->configService       = $configService;
-    $this->captureEventService = $captureEventService;
+    $this->configService        = $configService;
+    $this->captureEventService  = $captureEventService;
+    $this->eventInstanceService = $eventInstanceService;
   }
 
 
-  /**
-   * @psalm-suppress MoreSpecificImplementedParamType
-   *
-   * @param array{
-   *   eventName: string,
-   *   eventProps: array<string, mixed>,
-   *   personProps?: array<string, mixed>,
-   * }|null $requestData
-   *
-   * @return array{
-   *   success: bool,
-   *   message: string,
-   * }
-   */
   public function handle( $requestData = null ): array {
     if (
       ! is_array( $requestData ) ||
@@ -52,9 +42,6 @@ class PostHogCaptureEventController implements EndpointInterface {
 
     $personProperties = [];
 
-    /**
-     * @psalm-suppress RedundantConditionGivenDocblockType
-     */
     if (
       array_key_exists( 'personProps', $requestData ) &&
       is_array( $requestData['personProps'] )
@@ -62,14 +49,25 @@ class PostHogCaptureEventController implements EndpointInterface {
       $personProperties = $requestData['personProps'];
     }
 
-    $config = $this->configService->create();
+    try {
+      $config = $this->configService->create();
 
-    $result = $this->captureEventService->capture(
-      $config,
-      $requestData['eventName'],
-      $requestData['eventProps'],
-      $personProperties
-    );
+      $event = $this->eventInstanceService->getCustomEvent(
+        $requestData['eventName'],
+        $requestData['eventProps']
+      );
+
+      $result = $this->captureEventService->capture(
+        $config,
+        $event,
+        $personProperties
+      );
+    } catch ( RemoteException $e ) {
+      return [
+        'success' => false,
+        'message' => 'Failed to capture event: ' . $e->getMessage()
+      ];
+    }
 
     return [
       'success' => $result,

@@ -9,18 +9,12 @@ use WPML\Core\Component\Translation\Domain\TranslationBatch\DuplicationBatch;
 
 class DuplicationSender implements DuplicationSenderInterface {
 
-  /**
-   * It's legacy constant defined also in \WPML\TM\API\Jobs
-   */
   const SEND_VIA_DASHBOARD = 6;
 
-  /** @var  \TranslationManagement $legacyTranslationManagement */
   private $legacyTranslationManagement;
 
-  /** @var DuplicationBatchMapper $duplicationBatchMapper */
   private $duplicationBatchMapper;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
 
@@ -34,15 +28,9 @@ class DuplicationSender implements DuplicationSenderInterface {
   }
 
 
-  /**
-   * @param DuplicationBatch $batch
-   *
-   * @return Translation[]
-   */
   public function send( DuplicationBatch $batch ): array {
     $legacyBatch = $this->duplicationBatchMapper->map( $batch );
 
-    // Only posts can be duplicated. Therefore, other types are not supported.
     do_action(
       'wpml_tm_send_post_jobs',
       $legacyBatch,
@@ -50,7 +38,6 @@ class DuplicationSender implements DuplicationSenderInterface {
       self::SEND_VIA_DASHBOARD
     );
 
-    // Even though, the method is called `get_sent_job_ids`, but it returns translated post ids in this case.
     $translatedPostIds = $this->legacyTranslationManagement->get_sent_job_ids();
     if ( ! is_array( $translatedPostIds ) ) {
       return [];

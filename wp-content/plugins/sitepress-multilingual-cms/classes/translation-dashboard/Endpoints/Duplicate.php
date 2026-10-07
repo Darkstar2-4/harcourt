@@ -8,9 +8,6 @@ use WPML\FP\Fns;
 use WPML\FP\Lst;
 use function WPML\FP\spreadArgs;
 
-/**
- * It duplicates posts into specified languages.
- */
 class Duplicate {
 
 	public function run( Collection $data ) {

@@ -9,21 +9,11 @@ use function WPML\Container\make;
 
 class TranslationEditor implements TranslationEditorInterface {
 
-  /**
-   * @var ?\WPML_TM_Translation_Status_Display $_statusDisplay
-   */
   private $_statusDisplay;
 
-  /** @var ?\WPML_Translation_Element_Factory $_elementFactory */
   private $_elementFactory;
 
 
-  /**
-   *
-   * @throws RuntimeException
-   *
-   * @return \WPML_TM_Translation_Status_Display
-   */
   private function statusDisplay() {
     if ( $this->_statusDisplay === null ) {
       $wpml_tm_status_display_filter = $GLOBALS['wpml_tm_status_display_filter'] ?? null;
@@ -46,9 +36,6 @@ class TranslationEditor implements TranslationEditorInterface {
   }
 
 
-  /**
-   * @return \WPML_Translation_Element_Factory
-   */
   private function elementFactory() {
     if ( $this->_elementFactory === null ) {
       $this->_elementFactory = make( \WPML_Translation_Element_Factory::class );
@@ -95,12 +82,10 @@ class TranslationEditor implements TranslationEditorInterface {
       }
 
       $url = remove_query_arg( 'return_url', $url );
-      // make a full URL because can be used in frontend and admin
       $url = admin_url() . ltrim( $url, '/' );
 
       return $url;
     } catch ( \Throwable $e ) {
-      // Just don't return the link if something goes wrong.
       return '';
     }
   }

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @package wpml-core
- */
 class WPML_UI_Help_Tab {
 	private $wp_api;
 	private $id;

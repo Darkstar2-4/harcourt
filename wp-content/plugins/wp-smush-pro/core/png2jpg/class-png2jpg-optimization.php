@@ -14,11 +14,11 @@ use Smush\Core\Upload_Dir;
 use WP_Error;
 
 class Png2Jpg_Optimization extends Media_Item_Optimization {
-	const KEY = 'png2jpg_optimization';
-	const PNG2JPG_SAVINGS_KEY = 'wp-smush-pngjpg_savings';
-	const CONVERTED_PNG_FILES_META = 'converted_png_files';
-	const CONVERTED_LARGER_ERROR_KEY = 'converted_image_larger';
-	const SKIP_META_KEY = 'skip_png2jpg';
+	private static $key = 'png2jpg_optimization';
+	private static $png2jpg_savings_meta_key = 'wp-smush-pngjpg_savings';
+	private static $converted_png_files_key = 'converted_png_files';
+	private static $converted_larger_error_key = 'converted_image_larger';
+	private static $skip_meta_key = 'skip_png2jpg';
 	/**
 	 * @var Media_Item
 	 */
@@ -79,8 +79,8 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 		$this->upload_dir = new Upload_Dir();
 	}
 
-	public function get_key() {
-		return self::KEY;
+	public static function get_key() {
+		return self::$key;
 	}
 
 	public function get_name() {
@@ -118,7 +118,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 	public function save() {
 		$meta = $this->make_meta();
 		if ( ! empty( $meta ) ) {
-			update_post_meta( $this->media_item->get_id(), self::PNG2JPG_SAVINGS_KEY, $meta );
+			update_post_meta( $this->media_item->get_id(), self::$png2jpg_savings_meta_key, $meta );
 			$this->reset();
 		}
 	}
@@ -130,7 +130,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 		$meta = array();
 
 		if ( $this->skip_conversion() ) {
-			$meta[ self::SKIP_META_KEY ] = true;
+			$meta[ self::$skip_meta_key ] = true;
 
 			return $meta;
 		}
@@ -143,7 +143,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 		}
 
 		if ( ! empty( $this->get_converted_png_files() ) ) {
-			$meta[ self::CONVERTED_PNG_FILES_META ] = $this->get_converted_png_files();
+			$meta[ self::$converted_png_files_key ] = $this->get_converted_png_files();
 		}
 
 		return $meta;
@@ -183,7 +183,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 
 	private function prepare_skip_conversion() {
 		$meta = $this->get_meta();
-		return ! empty( $meta[ self::SKIP_META_KEY ] );
+		return ! empty( $meta[ self::$skip_meta_key ] );
 	}
 
 	private function set_skip_convert( $skip_convert ) {
@@ -212,7 +212,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 	}
 
 	private function fetch_meta() {
-		$post_meta = get_post_meta( $this->media_item->get_id(), self::PNG2JPG_SAVINGS_KEY, true );
+		$post_meta = get_post_meta( $this->media_item->get_id(), self::$png2jpg_savings_meta_key, true );
 
 		return empty( $post_meta ) || ! is_array( $post_meta )
 			? array()
@@ -364,7 +364,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 			$this->delete_files( $converted_files_to_delete );
 
 			$error_codes = $this->get_errors()->get_error_codes();
-			if ( in_array( self::CONVERTED_LARGER_ERROR_KEY, $error_codes ) ) {
+			if ( in_array( self::$converted_larger_error_key, $error_codes ) ) {
 				$this->set_skip_convert( true );
 
 				$this->save();
@@ -405,7 +405,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 			$this->fs->unlink( $new_file_path );
 			$this->add_error(
 				$media_item_size->get_key(),
-				self::CONVERTED_LARGER_ERROR_KEY,
+				self::$converted_larger_error_key,
 				__( 'Skipped: Smushed file is larger than the original file.', 'wp-smushit' )
 			);
 
@@ -571,7 +571,7 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 	}
 
 	public function delete_data() {
-		delete_post_meta( $this->media_item->get_id(), self::PNG2JPG_SAVINGS_KEY );
+		delete_post_meta( $this->media_item->get_id(), self::$png2jpg_savings_meta_key );
 
 		$this->reset();
 	}
@@ -607,9 +607,9 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 	private function prepare_converted_png_files() {
 		$meta = $this->get_meta();
 
-		return empty( $meta[ self::CONVERTED_PNG_FILES_META ] )
+		return empty( $meta[ self::$converted_png_files_key ] )
 			? array()
-			: $meta[ self::CONVERTED_PNG_FILES_META ];
+			: $meta[ self::$converted_png_files_key ];
 	}
 
 	public function set_converted_png_files( $converted_png_files ) {
@@ -754,4 +754,24 @@ class Png2Jpg_Optimization extends Media_Item_Optimization {
 
 		return $count;
 	}
+
+	/**
+	 * Get converted_png_files_meta.
+	 *
+	 * @return string
+	 */
+	public static function get_converted_png_files_key() {
+		return self::$converted_png_files_key;
+	}
+
+
+	/**
+	 * Get png2jpg_savings_key.
+	 *
+	 * @return string
+	 */
+	public static function get_png2jpg_savings_meta_key() {
+		return self::$png2jpg_savings_meta_key;
+	}
+
 }

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Parses a reference to a CASE expression.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -21,98 +18,37 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class CaseExpression extends Component
 {
-    /**
-     * The value to be compared.
-     *
-     * @var Expression
-     */
     public $value;
 
-    /**
-     * The conditions in WHEN clauses.
-     *
-     * @var array
-     */
     public $conditions = array();
 
-    /**
-     * The results matching with the WHEN clauses.
-     *
-     * @var array
-     */
     public $results = array();
 
-    /**
-     * The values to be compared against.
-     *
-     * @var array
-     */
     public $compare_values = array();
 
-    /**
-     * The result in ELSE section of expr.
-     *
-     * @var Expression
-     */
     public $else_result;
 
-    /**
-     * The alias of this CASE statement.
-     *
-     * @var string
-     */
     public $alias;
 
-    /**
-     * The sub-expression.
-     *
-     * @var string
-     */
     public $expr = '';
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return CaseExpression
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
 
-        /**
-         * State of parser.
-         *
-         * @var int
-         */
         $state = 0;
 
-        /**
-         * Syntax type (type 0 or type 1).
-         *
-         * @var int
-         */
         $type = 0;
 
-        ++$list->idx; // Skip 'CASE'
+        ++$list->idx;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE)
                 || ($token->type === Token::TYPE_COMMENT)
             ) {
@@ -123,19 +59,19 @@ class CaseExpression extends Component
                 if ($token->type === Token::TYPE_KEYWORD) {
                     switch ($token->keyword) {
                         case 'WHEN':
-                            ++$list->idx; // Skip 'WHEN'
+                            ++$list->idx;
                             $new_condition = Condition::parse($parser, $list);
                             $type = 1;
                             $state = 1;
                             $ret->conditions[] = $new_condition;
                             break;
                         case 'ELSE':
-                            ++$list->idx; // Skip 'ELSE'
+                            ++$list->idx;
                             $ret->else_result = Expression::parse($parser, $list);
-                            $state = 0; // last clause of CASE expression
+                            $state = 0;
                             break;
                         case 'END':
-                            $state = 3; // end of CASE expression
+                            $state = 3;
                             ++$list->idx;
                             break 2;
                         default:
@@ -152,18 +88,18 @@ class CaseExpression extends Component
                     if ($token->type === Token::TYPE_KEYWORD) {
                         switch ($token->keyword) {
                             case 'WHEN':
-                                ++$list->idx; // Skip 'WHEN'
+                                ++$list->idx;
                                 $new_value = Expression::parse($parser, $list);
                                 $state = 2;
                                 $ret->compare_values[] = $new_value;
                                 break;
                             case 'ELSE':
-                                ++$list->idx; // Skip 'ELSE'
+                                ++$list->idx;
                                 $ret->else_result = Expression::parse($parser, $list);
-                                $state = 0; // last clause of CASE expression
+                                $state = 0;
                                 break;
                             case 'END':
-                                $state = 3; // end of CASE expression
+                                $state = 3;
                                 ++$list->idx;
                                 break 2;
                             default:
@@ -175,7 +111,7 @@ class CaseExpression extends Component
                     if ($token->type === Token::TYPE_KEYWORD
                         && $token->keyword === 'THEN'
                     ) {
-                        ++$list->idx; // Skip 'THEN'
+                        ++$list->idx;
                         $new_result = Expression::parse($parser, $list);
                         $state = 0;
                         $ret->results[] = $new_result;
@@ -189,7 +125,7 @@ class CaseExpression extends Component
                     if ($token->type === Token::TYPE_KEYWORD
                         && $token->keyword === 'THEN'
                     ) {
-                        ++$list->idx; // Skip 'THEN'
+                        ++$list->idx;
                         $new_result = Expression::parse($parser, $list);
                         $ret->results[] = $new_result;
                         $state = 1;
@@ -207,24 +143,20 @@ class CaseExpression extends Component
                 $list->tokens[$list->idx - 1]
             );
         } else {
-            // Parse for alias of CASE expression
             $asFound = false;
             for (; $list->idx < $list->count; ++$list->idx) {
                 $token = $list->tokens[$list->idx];
 
-                // End of statement.
                 if ($token->type === Token::TYPE_DELIMITER) {
                     break;
                 }
 
-                // Skipping whitespaces and comments.
                 if (($token->type === Token::TYPE_WHITESPACE)
                     || ($token->type === Token::TYPE_COMMENT)
                 ) {
                     continue;
                 }
 
-                // Handle optional AS keyword before alias
                 if ($token->type === Token::TYPE_KEYWORD
                     && $token->keyword === 'AS') {
                     if ($asFound || ! empty($ret->alias)) {
@@ -248,7 +180,6 @@ class CaseExpression extends Component
                     || ($token->type === Token::TYPE_SYMBOL && ! $token->flags & Token::FLAG_SYMBOL_VARIABLE)
                     || $token->type === Token::TYPE_NONE
                 ) {
-                    // An alias is expected (the keyword `AS` was previously found).
                     if (! empty($ret->alias)) {
                         $parser->error('An alias was previously found.', $token);
                         break;
@@ -273,17 +204,10 @@ class CaseExpression extends Component
         return $ret;
     }
 
-    /**
-     * @param CaseExpression $component the component to be built
-     * @param array          $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $ret = 'CASE ';
         if (isset($component->value)) {
-            // Syntax type 0
             $ret .= $component->value . ' ';
             $val_cnt = count($component->compare_values);
             $res_cnt = count($component->results);
@@ -292,7 +216,6 @@ class CaseExpression extends Component
                 $ret .= 'THEN ' . $component->results[$i] . ' ';
             }
         } else {
-            // Syntax type 1
             $val_cnt = count($component->conditions);
             $res_cnt = count($component->results);
             for ($i = 0; $i < $val_cnt && $i < $res_cnt; ++$i) {

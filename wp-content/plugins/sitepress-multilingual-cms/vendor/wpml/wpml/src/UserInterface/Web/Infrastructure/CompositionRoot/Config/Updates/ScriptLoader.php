@@ -12,10 +12,8 @@ class ScriptLoader {
   const SCRIPT_SRC = 'public/js/updates.js';
   const SCRIPT_JS_VAR = 'wpmlUpdates';
 
-  /** @var ApiInterface $api */
   private $api;
 
-  /** @var PageInterface $page */
   private $page;
 
 
@@ -25,12 +23,6 @@ class ScriptLoader {
   }
 
 
-  /**
-   * @param array<int> $idsOfUpdatesToPerform
-   * @param Endpoint $endpoint
-   *
-   * @return void
-   */
   public function loadScript( $idsOfUpdatesToPerform, $endpoint ) {
     if ( empty( $idsOfUpdatesToPerform ) ) {
       return;

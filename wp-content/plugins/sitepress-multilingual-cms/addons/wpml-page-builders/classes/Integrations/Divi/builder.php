@@ -16,6 +16,6 @@ class Builder implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_A
 
 	private static function isLoadingAssetsForDiviBuilder(): bool {
 		return isset( $_POST['action'] )
-			&& 'et_fb_update_builder_assets' === $_POST['action']; // phpcs:ignore WordPress.CSRF.NonceVerification
+			&& 'et_fb_update_builder_assets' === $_POST['action'];
 	}
 }

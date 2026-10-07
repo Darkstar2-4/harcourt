@@ -3,7 +3,7 @@
 namespace WPML\TM\ATE;
 
 use WPML\Element\API\Languages;
-use WPML\TM\API\ATE\CachedLanguageMappings;
+use WPML\TM\ATE\AutomaticTranslationCapabilities;
 use WPML\API\Settings;
 use WPML\Core\BackgroundTask\Model\BackgroundTask;
 use WPML\Core\BackgroundTask\Repository\BackgroundTaskRepository;
@@ -46,13 +46,10 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 
 	const JOB_ID_PLACEHOLDER = '###';
 
-	/** @var BackgroundTaskRepository */
 	private $backgroundTaskRepository;
 
-	/** @var TranslateEverything */
 	private $translateEverything;
 
-	/** @var MarkPreviouslyUnsupportedContentAsCompletedInTEA */
 	private $markPreviouslyUnsupportedContentAsCompletedInTEA;
 
 
@@ -68,11 +65,10 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 
 	public function add_hooks() {
 		if ( wpml_is_ajax() ) {
-			// Prevent loading this for ajax calls.
-			// All tasks of this class are not relevant for ajax requests. Currently it's loaded by the root plugin.php
-			// which do not separate between ajax and non-ajax calls and loads this whenever is_admin() is true.
-			// Problem: ALL ajax calls return true for is_admin() - also on the frontend and for non logged-in users.
-			// TODO: Remove once wpmltm-4351 is done.
+			return;
+		}
+
+		if ( $this->isPreviewAction() ) {
 			return;
 		}
 
@@ -86,14 +82,6 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 				 ->then( [ self::class, 'showAteConsoleContainer' ] );
 		} );
 
-		/**
-		 * The `MarkPreviouslyUnsupportedContentAsCompletedInTEA::run` migration must be run here, instead
-		 * of inside the regular Upgrade logic due to various reasons described in: wpmldev-3809.
-		 *
-		 * In short, the regular upgrade logic is run too early in WP lifecycle, and custom post types may not
-		 * be registered yet. Moreover, we need to aldo handle a case when a user temporarily disables ST, upgrades to WPML 4.7
-		 * and AFTER that, he re-enables ST. In this case, we need to run ST migration logic later, when ST is enabled.
-		 */
 		Hooks::onAction( 'wp_loaded' )
 				 ->then( [ $this->markPreviouslyUnsupportedContentAsCompletedInTEA, 'run' ] )
 		     ->then( [ $this, 'getData' ] )
@@ -106,6 +94,10 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		     ->then( [ self::class, 'getWpmlAutoTranslateContainer' ] );
 	}
 
+	private function isPreviewAction() {
+		return isset( $_POST['wp-preview'] ) && 'dopreview' === $_POST['wp-preview'];
+	}
+
 	public function getData() {
 		$ateTab = admin_url( UIPage::getTMATE() );
 
@@ -114,8 +106,8 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		$defaultLanguage = Languages::getDefaultCode();
 		$getLanguages    = pipe(
 			Languages::class . '::getActive',
-			CachedLanguageMappings::withCanBeTranslatedAutomatically(),
-			CachedLanguageMappings::withMapping(),
+			AutomaticTranslationCapabilities::withCapabilityInfo(),
+			\WPML\TM\API\ATE\CachedLanguageMappings::withMapping(),
 			Fns::map( Obj::over( Obj::lensProp( 'mapping' ), Obj::prop( 'targetCode' ) ) ),
 			Fns::map(
 				Obj::addProp(
@@ -126,10 +118,8 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 			Obj::values()
 		);
 
-		/** @var Jobs $jobs */
 		$jobs = make( Jobs::class );
 
-		/** @var Scheduler */
 		$scheduler = make( Scheduler::class );
 
 		$data = [
@@ -140,9 +130,10 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 				'jobIdPlaceHolder'     => self::JOB_ID_PLACEHOLDER,
 				'languages'            => $isAteActive ? $getLanguages() : [],
 				'isTranslationManager' => User::canManageTranslations(),
+				'isTranslatorOrHigher'        => User::isTranslator() || User::canManageTranslations(),
 
 				'shouldTranslateEverything'   =>
-					Option::shouldTranslateEverything()
+					AutomaticTranslationCapabilities::shouldTranslateEverything()
 					&& ! $this->translateEverything->isEverythingProcessed( true ),
 
 				'isAutomaticTranslations' => Option::shouldTranslateEverything(),
@@ -155,7 +146,7 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 					'doc_translation_method'
 				] ),
 				'shouldCheckForRetranslation' => $scheduler->shouldRun(),
-				'ateCallbacks' => [], // Should be used to add any needed ATE callbacks in JS side, refer to 'src/js/ate/retranslation/index.js' for example
+				'ateCallbacks' => [],
 
 				'settings' => [
 					'numberOfParallelDownloads' => defined('WPML_ATE_MAX_PARALLEL_DOWNLOADS') ? WPML_ATE_MAX_PARALLEL_DOWNLOADS : 2,
@@ -164,44 +155,22 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 		];
 
 		if ( UIPage::isTMDashboard( $_GET ) ) {
-			$data['data']['anyJobsExist'] = $jobs->hasAny(); // any jobs, even including CTE jobs
+			$data['data']['anyJobsExist'] = $jobs->hasAny();
 		}
 
 		return $data;
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function getNotEnoughCreditPopup() {
 		$isTranslationManager = User::canManageTranslations();
 
-		$content = $isTranslationManager
-			? __(
-				"There is an issue with automatic translation that needs your attention.",
-				'wpml-translation-management'
-			)
-			: __(
-				" There is an issue with automatic translation that needs attention from a translation manager.",
-				'wpml-translation-management'
-			);
-
-		$fix = __( 'Fix it to continue translating automatically', 'wpml-translation-management' );
-
 		$primaryButton = $isTranslationManager
-			? '<button class="wpml-antd-button wpml-antd-button-primary" onclick="CREDITS_ACTION">' . $fix . '</button>'
+			? '<button class="wpml-antd-button wpml-antd-button-primary" onclick="BUTTON_ACTION">BUTTON_TEXT</button>'
 			: '';
 
-		$translate = __( 'Translate content myself', 'wpml-translation-management' );
-
-		$secondaryButton = UIPage::isTMDashboard( $_GET ) || ! $isTranslationManager
-			? ''
-			: '<button class="wpml-antd-button wpml-antd-button-secondary" onclick="window.location.href=\'TRANSLATE_LINK\'">' . $translate . '</button>';
-
 		return '<div class="wpml-not-enough-credit-popup">' .
-		       '<p>' . $content . '</p>' .
+		       '<p>MESSAGE_TEXT</p>' .
 		       $primaryButton .
-		       $secondaryButton .
 		       '</div>';
 	}
 
@@ -218,7 +187,6 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 
 	private static function getAteData() {
 		if ( User::canManageTranslations() ) {
-			/** @var NoCreditPopup $noCreditPopup */
 			$noCreditPopup = make( NoCreditPopup::class );
 
 			return $noCreditPopup->getData();
@@ -258,6 +226,7 @@ class Loader implements \IWPML_Backend_Action, \IWPML_DIC_Action {
 			),
 			'currentUrl'                => \WPML\TM\API\Jobs::getCurrentUrl(),
 			'editLanguages'             => add_query_arg( [ 'trop' => 1 ], UIPage::getLanguages() ),
+			'translationDashboard'      => \admin_url( UIPage::getTMDashboard() ),
 		];
 	}
 }

@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
          "Get More Features with WPML's Advanced Translation Editor": [
-            "Zdobądź więcej funkcji z Zaawansowanym Edytorem Tłumaczeń WPML"
+            "Uzyskaj więcej funkcji dzięki zaawansowanemu edytorowi tłumaczeń WPML"
          ],
          "Close banner": [
             "Zamknij baner"
          ],
          "You're using the Classic Translation Editor, an old legacy tool, and missing out on the many features and efficiency of our Advanced Translation Editor:": [
-            "Korzystasz z Klasycznego Edytora Tłumaczeń, starego narzędzia, i omijasz wiele funkcji oraz efektywność naszego Zaawansowanego Edytora Tłumaczeń:"
+            "Używasz klasycznego edytora tłumaczeń, starego, przestarzałego narzędzia, i tracisz wiele funkcji i wydajności naszego zaawansowanego edytora tłumaczeń:"
          ],
          "Translation Memory": [
             "Pamięć tłumaczeniowa"
@@ -23,22 +23,22 @@
             "Ochrona HTML"
          ],
          "Glossary": [
-            "Glosariusz"
+            "Słownik"
          ],
          "Spellchecker": [
             "Sprawdzanie pisowni"
          ],
          "AI Assistant": [
-            "Asystent AI"
+            "Asystent SI"
          ],
          "Automatic Translation": [
             "Automatyczne tłumaczenie"
          ],
          "Switch now for a faster, more convenient, and reliable translation experience.": [
-            "Przełącz się teraz, aby uzyskać szybsze, wygodniejsze i bardziej niezawodne doświadczenie tłumaczeniowe."
+            "Przełącz się teraz, aby uzyskać szybsze, wygodniejsze i bardziej niezawodne tłumaczenie."
          ],
          "Switch Now": [
-            "Przełącz teraz"
+            "Przełącz się teraz"
          ],
          "Learn more about Advanced Translation Editor": [
             "Dowiedz się więcej o zaawansowanym edytorze tłumaczeń"

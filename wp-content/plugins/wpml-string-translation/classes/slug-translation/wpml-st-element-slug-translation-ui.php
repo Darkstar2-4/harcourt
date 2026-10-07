@@ -4,10 +4,8 @@ class WPML_ST_Element_Slug_Translation_UI {
 
 	const TEMPLATE_FILE = 'slug-translation-ui.twig';
 
-	/** @var WPML_ST_Element_Slug_Translation_UI_Model $model */
 	private $model;
 
-	/** @var IWPML_Template_Service $template_service */
 	private $template_service;
 
 	public function __construct(
@@ -18,7 +16,6 @@ class WPML_ST_Element_Slug_Translation_UI {
 		$this->template_service = $template_service;
 	}
 
-	/** @return WPML_ST_Element_Slug_Translation_UI */
 	public function init() {
 		wp_enqueue_script(
 			'wpml-custom-type-slug-ui',
@@ -31,12 +28,6 @@ class WPML_ST_Element_Slug_Translation_UI {
 		return $this;
 	}
 
-	/**
-	 * @param string                   $type_name
-	 * @param WP_Post_Type|WP_Taxonomy $custom_type
-	 *
-	 * @return string
-	 */
 	public function render( $type_name, $custom_type ) {
 		$model = $this->model->get( $type_name, $custom_type );
 

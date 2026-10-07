@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `ALTER` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -23,25 +20,10 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class AlterStatement extends Statement
 {
-    /**
-     * Table affected.
-     *
-     * @var Expression
-     */
     public $table;
 
-    /**
-     * Column affected by this statement.
-     *
-     * @var AlterOperation[]
-     */
     public $altered = array();
 
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'ONLINE' => 1,
         'OFFLINE' => 1,
@@ -58,13 +40,9 @@ class AlterStatement extends Statement
         'VIEW' => 3
     );
 
-    /**
-     * @param Parser     $parser the instance that requests parsing
-     * @param TokensList $list   the list of tokens to be parsed
-     */
     public function parse(Parser $parser, TokensList $list)
     {
-        ++$list->idx; // Skipping `ALTER`.
+        ++$list->idx;
         $this->options = OptionsArray::parse(
             $parser,
             $list,
@@ -72,7 +50,6 @@ class AlterStatement extends Statement
         );
         ++$list->idx;
 
-        // Parsing affected table.
         $this->table = Expression::parse(
             $parser,
             $list,
@@ -81,35 +58,17 @@ class AlterStatement extends Statement
                 'breakOnAlias' => true
             )
         );
-        ++$list->idx; // Skipping field.
+        ++$list->idx;
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 -----------------[ alter operation ]-----------------> 1
-         *
-         *      1 -------------------------[ , ]-----------------------> 0
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -136,9 +95,6 @@ class AlterStatement extends Statement
         }
     }
 
-    /**
-     * @return string
-     */
     public function build()
     {
         $tmp = array();

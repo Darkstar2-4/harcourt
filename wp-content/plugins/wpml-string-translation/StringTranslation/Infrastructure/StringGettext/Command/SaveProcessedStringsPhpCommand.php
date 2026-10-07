@@ -7,10 +7,8 @@ use WPML\StringTranslation\Application\StringGettext\Command\SaveProcessedString
 
 class SaveProcessedStringsPhpCommand implements SaveProcessedStringsCommandInterface {
 
-	/** @var FilesystemRepositoryInterface */
 	private $filesystemRepository;
 
-	/** @var CreateFileCommand */
 	private $createPhpFile;
 
 	public function __construct(

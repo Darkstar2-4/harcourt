@@ -11,7 +11,6 @@ use function WPML\FP\spreadArgs;
 
 class AdminTextHooks implements \IWPML_REST_Action {
 
-	/** @var string[]|null */
 	private $optionNames = null;
 
 	public function add_hooks() {
@@ -19,11 +18,6 @@ class AdminTextHooks implements \IWPML_REST_Action {
 			->then( spreadArgs( [ $this, 'setGroupsAndLabels' ] ) );
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return bool
-	 */
 	private function isAdminText( $slug ) {
 		if ( null === $this->optionNames ) {
 			$this->optionNames = array_keys( get_option( \WPML_Admin_Text_Functionality::TRANSLATABLE_NAMES_SETTING, [] ) );
@@ -32,11 +26,6 @@ class AdminTextHooks implements \IWPML_REST_Action {
 		return in_array( $slug, $this->optionNames, true );
 	}
 
-	/**
-	 * @param list<array> $fields
-	 *
-	 * @return list<array>
-	 */
 	public function setGroupsAndLabels( $fields ) {
 		foreach ( $fields as $key => $field ) {
 			if ( StringTranslations::isBatchField( $field ) ) {
@@ -47,11 +36,6 @@ class AdminTextHooks implements \IWPML_REST_Action {
 		return $fields;
 	}
 
-	/**
-	 * @param array $field
-	 *
-	 * @return array
-	 */
 	private function processField( $field ) {
 		$label = Obj::prop( 'title', $field );
 
@@ -84,17 +68,7 @@ class AdminTextHooks implements \IWPML_REST_Action {
 		return $field;
 	}
 
-	/**
-	 * @param string $group
-	 *
-	 * @return array<string,string>
-	 */
 	private function getTopLevelGroup( $group ) {
-		/**
-		 * Allows 3rd party plugins to map their admin-text prefixes to groups in translation jobs.
-		 *
-		 * @param array<string,string> $prefixes
-		 */
 		$prefixes = apply_filters( 'wpml_st_translation_job_admin_text_prefixes_to_groups', [] );
 
 		foreach ( $prefixes as $prefix => $topLevelGroup ) {

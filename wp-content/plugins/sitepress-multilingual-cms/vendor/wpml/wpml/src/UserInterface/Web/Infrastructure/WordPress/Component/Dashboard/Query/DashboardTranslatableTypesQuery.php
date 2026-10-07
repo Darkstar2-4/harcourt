@@ -6,10 +6,6 @@ use WPML\Legacy\Component\Post\Application\Query\TranslatableTypesQuery;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Hook\DashboardTranslatablePostTypesFilterInterface;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Query\DashboardTranslatableTypesQueryInterface;
 
-/**
- * @phpcs:disable Glingener.Classes.ForbiddenSitePressClasses.Found
- * @phpcs:disable Generic.CodeAnalysis.UselessOverridingMethod.Found
- */
 class DashboardTranslatableTypesQuery
   extends TranslatableTypesQuery
   implements DashboardTranslatableTypesQueryInterface {

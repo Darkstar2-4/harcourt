@@ -15,17 +15,6 @@ use WPML\Core\Twig\Node\IncludeNode;
 use WPML\Core\Twig\Node\SandboxNode;
 use WPML\Core\Twig\Node\TextNode;
 use WPML\Core\Twig\Token;
-/**
- * Marks a section of a template as untrusted code that must be evaluated in the sandbox mode.
- *
- *    {% sandbox %}
- *        {% include 'user.html' %}
- *    {% endsandbox %}
- *
- * @see https://twig.symfony.com/doc/api.html#sandbox-extension for details
- *
- * @final
- */
 class SandboxTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)
@@ -34,7 +23,6 @@ class SandboxTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
         $stream->expect(\WPML\Core\Twig\Token::BLOCK_END_TYPE);
         $body = $this->parser->subparse([$this, 'decideBlockEnd'], \true);
         $stream->expect(\WPML\Core\Twig\Token::BLOCK_END_TYPE);
-        // in a sandbox tag, only include tags are allowed
         if (!$body instanceof \WPML\Core\Twig\Node\IncludeNode) {
             foreach ($body as $node) {
                 if ($node instanceof \WPML\Core\Twig\Node\TextNode && \ctype_space($node->getAttribute('data'))) {

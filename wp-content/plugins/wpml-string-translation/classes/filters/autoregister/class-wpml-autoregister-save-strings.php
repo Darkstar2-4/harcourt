@@ -3,32 +3,15 @@
 class WPML_Autoregister_Save_Strings {
 	const INSERT_CHUNK_SIZE = 200;
 
-	/**
-	 * @var wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var SitePress $sitepress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var array
-	 */
 	private $data = array();
 
-	/**
-	 * @var WPML_Language_Of_Domain
-	 */
 	private $lang_of_domain;
 
-	/**
-	 * @param wpdb                    $wpdb
-	 * @param SitePress               $sitepress
-	 * @param WPML_Language_Of_Domain $language_of_domain
-	 */
-	public function __construct( wpdb $wpdb, SitePress $sitepress, WPML_Language_Of_Domain $language_of_domain = null ) {
+	public function __construct( wpdb $wpdb, SitePress $sitepress, ?WPML_Language_Of_Domain $language_of_domain = null ) {
 		$this->wpdb           = $wpdb;
 		$this->sitepress      = $sitepress;
 		$this->lang_of_domain = $language_of_domain ? $language_of_domain : new WPML_Language_Of_Domain( $this->sitepress );
@@ -36,12 +19,6 @@ class WPML_Autoregister_Save_Strings {
 		add_action( 'shutdown', array( $this, 'shutdown' ) );
 	}
 
-	/**
-	 * @param string|bool $value
-	 * @param string      $name
-	 * @param string      $domain
-	 * @param string      $gettext_context
-	 */
 	public function save( $value, $name, $domain, $gettext_context = '' ) {
 		$this->data[] = array(
 			'value'           => $value,
@@ -51,12 +28,6 @@ class WPML_Autoregister_Save_Strings {
 		);
 	}
 
-	/**
-	 * @param string $name
-	 * @param string $domain
-	 *
-	 * @return string
-	 */
 	public function get_source_lang( $name, $domain ) {
 		$domain_lang = $this->lang_of_domain->get_language( $domain );
 

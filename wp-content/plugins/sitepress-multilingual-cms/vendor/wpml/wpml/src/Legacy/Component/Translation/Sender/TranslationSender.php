@@ -11,32 +11,16 @@ use WPML\Core\Component\Translation\Domain\TranslationBatch\TranslationBatch;
 use WPML\Core\Component\Translation\Domain\TranslationMethod\TranslationServiceMethod;
 use WPML\Legacy\Component\Translation\Sender\ErrorMapper\ErrorMapper;
 
-/**
- * @phpstan-import-type TranslationServiceExtraFieldsArray from SendToTranslationExtraInformationDto
- *
- * @phpstan-type TpBatchInfoArray array{
- * batchName: string,
- * deadline: \DateTime|null,
- * extraFields: TranslationServiceExtraFieldsArray|null
- * }
- */
 class TranslationSender implements TranslationSenderInterface {
 
-  /**
-   * It's legacy constant defined also in \WPML\TM\API\Jobs
-   */
   const SEND_VIA_DASHBOARD = 6;
 
-  /** @var  \TranslationManagement $legacyTranslationManagement */
   private $legacyTranslationManagement;
 
-  /** @var TranslationBatchMapper $translationBatchMapper */
   private $translationBatchMapper;
 
-  /** @var TranslationQueryInterface */
   private $translationQuery;
 
-  /** @var ErrorMapper */
   private $errorMapper;
 
 
@@ -52,19 +36,8 @@ class TranslationSender implements TranslationSenderInterface {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return Translation[]
-   * @throws SendBatchException
-   */
   public function send( TranslationBatch $batch ): array {
 
-    // Here we call the setTargetLanguagesInTranslationProxy function explicitly.,
-    // because in legacy code it's only called when the WPML_Translation_Proxy_Basket_Networking::send_all_jobs().,
-    // is invoked, and what we did here is that we extracted the logic to send items to translation.,
-    // and rollback the failed batch from legacy code in our new WPML code, so.,
-    // just calling 'wpml_tm_send_' . $type . '_jobs' isn't enough to do both things.
     $this->setTargetLanguagesInTranslationProxy( $batch );
 
     $translationProxyBatchInfo = null;
@@ -72,7 +45,6 @@ class TranslationSender implements TranslationSenderInterface {
     $batchHasJobsForTranslationProxy = $this->getTargetLanguagesForTranslationProxy( $batch );
 
     if ( $batchHasJobsForTranslationProxy ) {
-      /** @var TpBatchInfoArray $translationProxyBatchInfo */
       $translationProxyBatchInfo = [
         'batchName'   => $batch->getBatchName(),
         'deadline'    => $batch->getDeadline(),
@@ -80,8 +52,6 @@ class TranslationSender implements TranslationSenderInterface {
       ];
     }
 
-    // We may have two batches - one for automatic and one for manual translations.
-    // Such division is required because legacy API doesn't support both automatic and manual translations in one batch.
     $legacyBatches = $this->translationBatchMapper->map( $batch, $translationProxyBatchInfo );
 
     $jobIds = [];
@@ -118,11 +88,6 @@ class TranslationSender implements TranslationSenderInterface {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return string[]
-   */
   private function getTargetLanguagesForTranslationProxy( TranslationBatch $batch ): array {
     $targetLanguages = [];
 
@@ -136,11 +101,6 @@ class TranslationSender implements TranslationSenderInterface {
   }
 
 
-  /**
-   * @param TranslationBatch $batch
-   *
-   * @return void
-   */
   private function setTargetLanguagesInTranslationProxy( TranslationBatch $batch ) {
     $targetLanguages = $this->getTargetLanguagesForTranslationProxy( $batch );
     if ( $targetLanguages ) {
@@ -150,13 +110,7 @@ class TranslationSender implements TranslationSenderInterface {
   }
 
 
-  /**
-   * @return string[] string|post|package
-   */
   private function getElementTypes(): array {
-    /**
-     * @var array<string, string> $types
-     */
     $types = \apply_filters(
       'wpml_tm_basket_items_types',
       [

@@ -2,19 +2,12 @@
 
 class WPML_ST_String_Dependencies_Records {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param string $type
-	 * @param int    $id
-	 *
-	 * @return int
-	 */
 	public function get_parent_id_from( $type, $id ) {
 		switch ( $type ) {
 			case 'package':
@@ -32,12 +25,6 @@ class WPML_ST_String_Dependencies_Records {
 		return (int) $this->wpdb->get_var( $this->wpdb->prepare( $query, $id ) );
 	}
 
-	/**
-	 * @param string $type
-	 * @param int    $id
-	 *
-	 * @return array
-	 */
 	public function get_child_ids_from( $type, $id ) {
 		switch ( $type ) {
 			case 'post':

@@ -30,8 +30,10 @@ class WPML_PO_Parser {
 				$translation = '';
 			}
 			if ( isset( $positions[ $s[ 'string_id' ] ] ) ) {
-				$exp  = @explode( '::', $positions[ $s[ 'string_id' ] ] );
-				$file = @file( $exp[ 0 ] );
+				$exp       = @explode( '::', $positions[ $s[ 'string_id' ] ] );
+				$domain    = isset( $s[ 'context' ] ) ? (string) $s[ 'context' ] : '';
+				$file_path = WPML_ST_Path_Confinement::resolve_source_path_for_domain( $exp[ 0 ], $domain );
+				$file      = false !== $file_path && is_file( $file_path ) ? @file( $file_path ) : null;
 			} else {
 				unset( $file );
 				unset( $exp );
@@ -40,8 +42,8 @@ class WPML_PO_Parser {
 			$po_single = '';
 			if ( isset( $file ) && isset( $exp ) ) {
 				$line_number = (int) $exp[ 1 ];
-				$line_number--; // Make it 0 base
-				$line_number -= 2; // Go back 2 lines
+				$line_number--;
+				$line_number -= 2;
 				if ( $line_number < 0 ) {
 					$line_number = 0;
 				}

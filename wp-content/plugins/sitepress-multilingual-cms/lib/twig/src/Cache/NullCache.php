@@ -10,13 +10,6 @@
  */
 namespace WPML\Core\Twig\Cache;
 
-/**
- * Implements a no-cache strategy.
- *
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class NullCache implements \WPML\Core\Twig\Cache\CacheInterface
 {
     public function generateKey($name, $className)

@@ -12,11 +12,6 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a text node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class TextNode extends \WPML\Core\Twig\Node\Node implements \WPML\Core\Twig\Node\NodeOutputInterface
 {
     public function __construct($data, $lineno)

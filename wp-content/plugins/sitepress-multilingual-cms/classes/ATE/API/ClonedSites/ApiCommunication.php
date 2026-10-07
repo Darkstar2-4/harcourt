@@ -5,6 +5,7 @@ namespace WPML\TM\ATE\ClonedSites;
 use WPML\FP\Fns;
 use WPML\FP\Lst;
 use WPML\FP\Str;
+use WPML\TM\ATE\ClonedSites\AutoMigration\Handler as AutoMigrationHandler;
 use WPML\UIPage;
 
 class ApiCommunication {
@@ -14,16 +15,13 @@ class ApiCommunication {
 	const SITE_MOVED_OR_COPIED_MESSAGE  = "WPML has detected a change in your site's URL. To continue translating your site, go to your <a href='%s'>WordPress Dashboard</a> and tell WPML if your site has been <a href='%s'>moved or copied</a>.";
 	const SITE_MOVED_OR_COPIED_DOCS_URL = 'https://wpml.org/documentation/translating-your-contents/advanced-translation-editor/using-advanced-translation-editor-when-you-move-or-use-a-copy-of-your-site/?utm_source=plugin&utm_medium=gui&utm_campaign=wpmltm';
 
-	/**
-	 * @var Lock
-	 */
 	private $lock;
 
-	/**
-	 * @param Lock $lock
-	 */
-	public function __construct( Lock $lock ) {
-		$this->lock = $lock;
+	private $autoMigrationHandler;
+
+	public function __construct( Lock $lock, AutoMigrationHandler $autoMigrationHandler ) {
+		$this->lock                 = $lock;
+		$this->autoMigrationHandler = $autoMigrationHandler;
 	}
 
 	public function handleClonedSiteError( $response ) {
@@ -47,11 +45,6 @@ class ApiCommunication {
 		return $response;
 	}
 
-	/**
-	 * @param string $endpointUrl
-	 *
-	 * @return \WP_Error|null
-	 */
 	public function checkCloneSiteLock( $endpointUrl = '' ) {
 		$isOnWhiteList = function ( $endpointUrl ) {
 			$endpointsWhitelist = \apply_filters( 'wpml_ate_locked_endpoints_whitelist', [] );
@@ -73,6 +66,13 @@ class ApiCommunication {
 
 	private function handleClonedDetection( $error_data ) {
 		$error = array_pop( $error_data );
+		$urls  = $this->lock->extractUrls( is_array( $error ) ? $error : [] );
+
+		if ( $this->autoMigrationHandler->tryMigrate( $urls['old_url'], $urls['new_url'] ) ) {
+			$this->lock->unlock();
+			return;
+		}
+
 		$this->lock->lock( $error );
 	}
 }

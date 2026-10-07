@@ -18,11 +18,11 @@ class LCP_Data_Store_Option extends LCP_Data_Store {
 		parent::__construct();
 	}
 
-	public function save( $url, $is_mobile, LCP_Data $lcp_data ) {
+	public function save( $url, $is_mobile, $lcp_data ) {
 		return update_option( $this->make_key( $url, $is_mobile ), $lcp_data->to_array(), false );
 	}
 
-	public function get( $url, $is_mobile ): LCP_Data {
+	public function get( $url, $is_mobile ) {
 		$data = get_option( $this->make_key( $url, $is_mobile ) );
 		$data = ! empty( $data ) && is_array( $data )
 			? $data
@@ -44,7 +44,7 @@ class LCP_Data_Store_Option extends LCP_Data_Store {
 	 *
 	 * @return string
 	 */
-	protected function make_key( $url, $is_mobile ): string {
+	protected function make_key( $url, $is_mobile ) {
 		if ( $this->location ) {
 			$key = $this->make_location_key( $is_mobile );
 		} else {
@@ -58,8 +58,8 @@ class LCP_Data_Store_Option extends LCP_Data_Store {
 	 *
 	 * @return string
 	 */
-	private function make_location_key( $is_mobile ): string {
-		$key = LCP_Helper::KEY_PREFIX . $this->location;
+	private function make_location_key( $is_mobile ) {
+		$key = LCP_Helper::get_key_prefix() . $this->location;
 		if ( $is_mobile ) {
 			$key .= '-mobile';
 		}
@@ -78,5 +78,9 @@ class LCP_Data_Store_Option extends LCP_Data_Store {
 
 	public function get_type() {
 		return $this->location;
+	}
+
+	public static function get_type_key() {
+		return 'option';
 	}
 }

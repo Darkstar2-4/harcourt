@@ -13,17 +13,10 @@ class RegenerateMoFilesWithStringNames implements \IWPML_St_Upgrade_Command {
 
 	const WPML_VERSION_FOR_THIS_COMMAND = '4.3.4';
 
-	/** @var Status $status */
 	private $status;
 
-	/** @var SingleSiteProcess $singleProcess */
 	private $singleProcess;
 
-	/**
-	 * @param Status            $status
-	 * @param SingleSiteProcess $singleProcess We use run the single site process because
-	 *                                         the migration command runs once per site.
-	 */
 	public function __construct( Status $status, SingleSiteProcess $singleProcess ) {
 		$this->status        = $status;
 		$this->singleProcess = $singleProcess;
@@ -51,9 +44,6 @@ class RegenerateMoFilesWithStringNames implements \IWPML_St_Upgrade_Command {
 		return false;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function hasWpmlStartedBeforeThisCommand() {
 		return (bool) version_compare(
 			get_option( WPML_Installation::WPML_START_VERSION_KEY, '0.0.0' ),

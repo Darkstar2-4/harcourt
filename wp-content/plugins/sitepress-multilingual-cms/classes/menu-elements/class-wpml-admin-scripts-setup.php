@@ -3,16 +3,8 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 
 	const PRIORITY_ENQUEUE_SCRIPTS = 10;
 
-	/** @var string $page */
 	private $page;
 
-	/**
-	 * @param wpdb                    $wpdb
-	 * @param SitePress               $sitepress
-	 * @param WPML_Post_Translation   $post_translation
-	 * @param WPML_Terms_Translations $term_translation
-	 * @param string                  $page
-	 */
 	public function __construct( &$wpdb, &$sitepress, &$post_translation, &$term_translation, $page ) {
 		parent::__construct( $sitepress, $wpdb, $post_translation, $term_translation );
 		$this->page = $page;
@@ -79,7 +71,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 	}
 
 	public function wpml_js_scripts_setup() {
-		// TODO: [WPML 3.3] move javascript to external resource (use wp_localize_script() to pass arguments)
 		global $pagenow, $sitepress;
 		$default_language = $this->sitepress->get_default_language();
 		$current_language = $this->sitepress->get_current_language();
@@ -230,12 +221,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * Prints JavaScript to display correct links on the posts by status break down and also fixes links
-	 * to category and tag pages
-	 *
-	 * @param string $current_language
-	 */
 	private function correct_status_links_js( $current_language ) {
 		?>
 		<script type="text/javascript">
@@ -263,12 +248,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 		<?php
 	}
 
-	/**
-	 * Prints the JavaScript for synchronizing page order or page template on the post edit screen.
-	 *
-	 * @param int    $trid
-	 * @param string $source_lang
-	 */
 	private function print_mo_sync_js( $trid, $source_lang ) {
 		$menu_order    = $this->sitepress->get_setting( 'sync_page_ordering' )
 			? $this->post_translations->get_original_menu_order( $trid, $source_lang )
@@ -300,12 +279,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * Prints the JavaScript for synchronizing ping and comment status for a post translation on the post edit screen.
-	 *
-	 * @param int    $trid
-	 * @param string $source_lang
-	 */
 	private function print_ping_and_comment_sync_js( $trid, $source_lang ) {
 		?>
 		<script type="text/javascript">addLoadEvent(function () {
@@ -329,10 +302,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 			<?php
 	}
 
-	/**
-	 * Prints the JavaScript for disabling editing the post_date on the post edit screen,
-	 * when the synchronize post_date for translations setting is activated.
-	 */
 	private function print_sync_date_js() {
 		$post_id = $this->get_current_req_post_id();
 		if ( $post_id !== null ) {
@@ -494,13 +463,6 @@ class WPML_Admin_Scripts_Setup extends WPML_Full_Translation_API {
 		return array( $warn_home, $warn_posts );
 	}
 
-	/**
-	 * @param int    $original_page_id
-	 * @param string $label
-	 * @param string $additional_css
-	 *
-	 * @return string
-	 */
 	private function missing_page_warning( $original_page_id, $label, $additional_css = '' ) {
 		$warn_posts = '';
 		if ( $original_page_id ) {

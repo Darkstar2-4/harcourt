@@ -17,10 +17,10 @@
             "توسيع"
          ],
          "There's nothing yet in the Glossary": [
-            "لا يوجد شيء في المسرد حتى الآن"
+            "لا يوجد شيء بعد في المسرد"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "يبدو أنك لم تستخدم المسرد بعد. يمكن للمسرد أن يساعدك في:"
+            "يبدو أنك لا تستخدم المسرد بعد. يمكن أن يساعدك المسرد في:"
          ],
          "Improve the quality of the translation": [
             "تحسين جودة الترجمة"
@@ -32,18 +32,18 @@
             "تقليل تكاليف الترجمة"
          ],
          "Improve SEO in translation languages": [
-            "تحسين تحسين محركات البحث في لغات الترجمة"
+            "تحسين تحسين محركات البحث (SEO) في لغات الترجمة"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "كيفية استخدام المسرد للحصول على ترجمات دقيقة"
+            "كيفية استخدام المسرد لترجمات دقيقة"
          ],
          "%d item in the <a>Glossary</a>": [
-            "%d items in the <a>Glossary</a>",
-            "%d عنصر في <a>المسرد</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d عنصر في <a>المسرد</a>"
+            "%d عناصر في <a>المسرد</a>",
+            "عنصر %d في <a>المسرد</a>",
+            "عنصران %d في <a>المسرد</a>",
+            "%d عناصر في <a>المسرد</a>",
+            "%d عناصر في <a>المسرد</a>",
+            "%d عناصر في <a>المسرد</a>"
          ],
          "Dismiss": [
             "تجاهل"

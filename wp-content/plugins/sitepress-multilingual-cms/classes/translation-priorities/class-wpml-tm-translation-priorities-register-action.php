@@ -1,20 +1,11 @@
 <?php
 
-/**
- * Class WPML_TM_Translation_Priorities_Register_Action
- */
 class WPML_TM_Translation_Priorities_Register_Action implements IWPML_Action {
 
-	/** @var SitePress */
 	private $sitepress;
 
 	const TRANSLATION_PRIORITY_TAXONOMY = 'translation_priority';
 
-	/**
-	 * WPML_TM_Translation_Priorities_Register_Action constructor.
-	 *
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}

@@ -9,28 +9,17 @@ class Glossary implements GlossaryInterface
 {
 
 
-    /**
-     * @inheritDoc
-     */
   public function getGlossaryCount(): int {
     $glossaryApi = \WPML\Container\make( \WPML\TM\API\ATE\Glossary::class );
 
     $apiResponse = $glossaryApi->getGlossaryCount();
 
-    /**
-     * @psalm-suppress MissingClosureReturnType
-     * @psalm-suppress MissingClosureParamType
-     */
     $errorHandler = function ( $error ) {
         throw new GlossaryException(
           $error['error'] ?? __( 'Error getting glossary data', 'wpml' )
         );
     };
 
-    /**
-     * @psalm-suppress MissingClosureReturnType
-     * @psalm-suppress MissingClosureParamType
-     */
     $identity = function ( array $result ) {
         return $result;
     };

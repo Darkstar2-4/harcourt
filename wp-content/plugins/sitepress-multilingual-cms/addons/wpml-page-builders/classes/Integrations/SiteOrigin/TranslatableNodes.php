@@ -14,21 +14,8 @@ class TranslatableNodes implements \IWPML_Page_Builders_Translatable_Nodes {
 		'SiteOrigin_Panels_Widgets_Layout',
 	];
 
-	/**
-	 * Nodes to translate.
-	 *
-	 * @var array
-	 */
 	private $translatableNodes;
 
-	/**
-	 * Get translatable node.
-	 *
-	 * @param string|int $node_id  Node id.
-	 * @param array      $settings Node settings.
-	 *
-	 * @return \WPML_PB_String[]
-	 */
 	public function get( $node_id, $settings ) {
 		$strings = [];
 
@@ -62,32 +49,23 @@ class TranslatableNodes implements \IWPML_Page_Builders_Translatable_Nodes {
 		return $strings;
 	}
 
-	/**
-	 * Update translatable node.
-	 *
-	 * @param string          $node_id  Node id.
-	 * @param array           $settings Node settings.
-	 * @param \WPML_PB_String $string   String object.
-	 *
-	 * @return mixed
-	 */
-	public function update( $node_id, $settings, \WPML_PB_String $string ) {
+	public function update( $node_id, $settings, \WPML_PB_String $pbString ) {
 		foreach ( $this->getTranslatableNodes() as $node_data ) {
 			if ( $this->conditions_ok( $node_data, $settings ) ) {
 				foreach ( $node_data['fields'] as $field ) {
 					$field_key = $field['field'];
-					if ( $this->get_string_name( $node_id, $field, $settings ) === $string->get_name() ) {
+					if ( $this->get_string_name( $node_id, $field, $settings ) === $pbString->get_name() ) {
 						$pathInFlatField   = self::get_partial_path( $field_key );
 						$stringInFlatField = Obj::path( $pathInFlatField, $settings );
 
 						if ( is_string( $stringInFlatField ) ) {
-							$settings = Obj::assocPath( $pathInFlatField, $string->get_value(), $settings );
+							$settings = Obj::assocPath( $pathInFlatField, $pbString->get_value(), $settings );
 						}
 					}
 				}
 
 				foreach ( $this->get_integration_instances( $node_data ) as $node ) {
-					list( $key, $item ) = $node->update( $node_id, $settings, $string );
+					list( $key, $item ) = $node->update( $node_id, $settings, $pbString );
 					if ( $item ) {
 						if ( strpos( $key, '>' ) ) {
 							$pathInFlatField = $node->get_field_path( $key );
@@ -104,20 +82,10 @@ class TranslatableNodes implements \IWPML_Page_Builders_Translatable_Nodes {
 		return $settings;
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string[]
-	 */
 	private static function get_partial_path( $field ) {
 		return explode( '>', $field );
 	}
 
-	/**
-	 * @param array $node_data
-	 *
-	 * @return ModuleWithItemsFromConfig[]
-	 */
 	private function get_integration_instances( array $node_data ) {
 		$instances = [];
 
@@ -127,42 +95,17 @@ class TranslatableNodes implements \IWPML_Page_Builders_Translatable_Nodes {
 			}
 		}
 
-		return array_filter( $instances );
+		return $instances;
 	}
 
-	/**
-	 * Get string name.
-	 *
-	 * @param string $node_id  Node id.
-	 * @param array  $field    Page builder field.
-	 * @param array  $settings Node settings.
-	 *
-	 * @return string
-	 */
 	public function get_string_name( $node_id, $field, $settings ) {
 		return $node_id . '-' . $settings[ self::SETTINGS_FIELD ]['id'] . '-' . $field['field'];
 	}
 
-	/**
-	 * Get wrap tag for string.
-	 * Used for SEO, can contain (h1...h6, etc.)
-	 *
-	 * @param array $settings Field settings.
-	 *
-	 * @return string
-	 */
 	private function get_wrap_tag( $settings ) {
 		return '';
 	}
 
-	/**
-	 * Check if node condition is ok.
-	 *
-	 * @param array $node_data Node data.
-	 * @param array $settings  Node settings.
-	 *
-	 * @return bool
-	 */
 	private function conditions_ok( $node_data, $settings ) {
 		$conditions_meet = true;
 		foreach ( $node_data['conditions'] as $field_value ) {
@@ -187,11 +130,6 @@ class TranslatableNodes implements \IWPML_Page_Builders_Translatable_Nodes {
 		return apply_filters( 'wpml_siteorigin_modules_to_translate', [] );
 	}
 
-	/**
-	 * @param array $module
-	 *
-	 * @return bool
-	 */
 	public static function isWrappingModule( $module ) {
 		return isset( $module[ self::CHILDREN_FIELD ] ) &&
 			in_array( Obj::path( [ self::SETTINGS_FIELD, 'class' ], $module ), self::WRAPPING_MODULES, true );

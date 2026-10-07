@@ -2,14 +2,10 @@
 
 use WPML\API\Sanitize;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_XML_Config_Log_Notice {
 	const NOTICE_ERROR_GROUP = 'wpml-config-update';
 	const NOTICE_ERROR_ID    = 'wpml-config-update-error';
 
-	/** @var WPML_Config_Update_Log */
 	private $log;
 
 	public function __construct( WPML_Log $log ) {
@@ -76,9 +72,6 @@ class WPML_XML_Config_Log_Notice {
 		$notices->add_notice( $notice );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_admin_user_action() {
 		return is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX )
 		       && ( 'heartbeat' !== Sanitize::stringProp( 'action', $_POST ) )

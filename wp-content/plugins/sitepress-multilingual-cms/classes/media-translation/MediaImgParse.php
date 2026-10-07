@@ -9,14 +9,8 @@ class MediaImgParse {
 	private $media = [];
 	private $collector;
 
-	/**
-	 * @param string $text
-	 *
-	 * @return array
-	 */
 	public function get_imgs( $text ) {
 		if ( $this->can_parse_blocks( $text ) ) {
-			/** @var WP_Block_Parser_Block[] $blocks */
 			$blocks = parse_blocks( $text );
 			$this->collect_media_in_blocks( $blocks, $this->media );
 			Attachment::addToCache( $this->media );
@@ -29,11 +23,6 @@ class MediaImgParse {
 		return $images;
 	}
 
-	/**
-	 * @param string $text
-	 *
-	 * @return array
-	 */
 	public function get_imgs_from_blocks( $text ) {
 		if ( ! $this->can_parse_blocks( $text ) ) {
 			return array();
@@ -42,7 +31,6 @@ class MediaImgParse {
 		$media             = array();
 		$media_srcs_to_ids = array();
 
-		/** @var WP_Block_Parser_Block[] $blocks */
 		$blocks = parse_blocks( $text );
 		$this->collect_media_in_blocks( $blocks, $media_srcs_to_ids );
 		Attachment::addToCache( $media_srcs_to_ids );
@@ -65,10 +53,6 @@ class MediaImgParse {
 		return $media;
 	}
 
-	/**
-	 * @param WP_Block_Parser_Block[] $blocks
-	 * @param array                   $mediaCollection
-	 */
 	public function collect_media_in_blocks( $blocks, &$mediaCollection = [] ) {
 		if ( $this->collector == null ) {
 			$file = __DIR__ . '/media-collector/block-definitions/all.php';
@@ -88,12 +72,6 @@ class MediaImgParse {
 		return $mediaCollection;
 	}
 
-	/**
-	 * @param string $text
-	 * @param bool   $get_attachment_ids_from_urls
-	 *
-	 * @return array
-	 */
 	public function get_from_img_tags( $text, $get_attachment_ids_from_urls = true ) {
 		$media = wpml_collect( [] );
 
@@ -112,11 +90,6 @@ class MediaImgParse {
 		return $media->toArray();
 	}
 
-	/**
-	 * @param bool $get_attachment_ids_from_urls
-	 *
-	 * @return array
-	 */
 	private function getAttachments( $matches, $get_attachment_ids_from_urls = true ) {
 		$attachments = [];
 
@@ -136,11 +109,6 @@ class MediaImgParse {
 		return $attachments;
 	}
 
-	/**
-	 * @param string $text
-	 *
-	 * @return array
-	 */
 	private function get_from_css_background_images( $text ) {
 		$images = [];
 
@@ -156,11 +124,6 @@ class MediaImgParse {
 		return $images;
 	}
 
-	/**
-	 * @param array $blocks
-	 *
-	 * @return array
-	 */
 	private function get_from_css_background_images_in_blocks( $blocks ) {
 		$images = [];
 
@@ -189,20 +152,10 @@ class MediaImgParse {
 		return $images;
 	}
 
-	/**
-	 * `parse_blocks` does not specify which kind of collection it should return
-	 * (not always an array of `WP_Block_Parser_Block`) and the block parser can be filtered,
-	 *  so we'll cast it to a standard object for now.
-	 *
-	 * @param mixed $block
-	 *
-	 * @return stdClass|WP_Block_Parser_Block
-	 */
 	private function sanitize_block( $block ) {
 		$block = (object) $block;
 
 		if ( isset( $block->attrs ) && ! is_object( $block->attrs ) ) {
-			/** Sometimes `$block->attrs` is an object or an array, so we'll use an object */
 			$block->attrs = (object) $block->attrs;
 		}
 

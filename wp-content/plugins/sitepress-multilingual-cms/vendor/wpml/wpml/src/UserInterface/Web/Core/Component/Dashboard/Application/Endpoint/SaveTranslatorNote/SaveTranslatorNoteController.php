@@ -9,7 +9,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class SaveTranslatorNoteController implements EndpointInterface {
 
-  /** @var TranslatorNoteService */
   private $translatorNoteService;
 
 
@@ -18,13 +17,6 @@ class SaveTranslatorNoteController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<mixed> $requestData
-   *
-   * @return array|mixed[]
-   *
-   * @throws InvalidArgumentException The requestData was not valid.
-   */
   public function handle( $requestData = null ): array {
     $requestData = $requestData ?: [];
 

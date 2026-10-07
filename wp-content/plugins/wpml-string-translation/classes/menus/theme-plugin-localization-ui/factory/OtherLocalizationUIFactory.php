@@ -6,9 +6,6 @@ use function WPML\Container\make;
 
 class OtherLocalizationUIFactory {
 
-	/**
-	 * @return \WPML\ST\ThemePluginLocalization\OtherLocalizationUI
-	 */
 	public function create() {
 		global $wpdb;
 

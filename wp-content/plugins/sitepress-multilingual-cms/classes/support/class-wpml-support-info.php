@@ -1,14 +1,7 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_Support_Info {
-	/** @var wpdb */
 	private $wpdb;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}

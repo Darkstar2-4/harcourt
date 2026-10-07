@@ -1,16 +1,7 @@
 <?php
 
-// Mapping of class definitions.
-// Use this if a class needs a specific implementation other than the default
-// interface mapping (of config-interface-mappings.php).
 
-// FORMAT: className => [ 'argument1Name' => className1, 'argument2Name' => className2, ... ]
-// You only need to specify the arguments that need a specific implementation.
 
-// Example:
-// MyClass::__construct(Interface1 $arg1, Interface2 $arg2)
-// I only want to specify the implementation of $arg2 so the mapping would be:
-// MyClass::class => ['arg2' => SpecificImplementation::class]
 
 use WPML\Core\Component\MinimumRequirements\Application\Service\RequirementsService;
 use WPML\Core\Component\MinimumRequirements\Domain\Entity\DatabaseVersionRequirement;
@@ -23,7 +14,11 @@ use WPML\Core\Component\MinimumRequirements\Domain\Entity\RestEnabledRequirement
 use WPML\Core\Component\MinimumRequirements\Domain\Entity\SimpleXMLExtensionRequirement;
 use WPML\Core\Component\MinimumRequirements\Domain\Entity\StackSizeRequirement;
 use WPML\Core\Component\MinimumRequirements\Domain\Entity\WordPressVersionRequirement;
-use WPML\Core\Component\Translation\Application\Repository\SettingsRepository;
+use WPML\Core\Component\Translation\Application\Query\Priority\PostDataQueryInterface;
+use WPML\Core\Component\Translation\Application\Query\Priority\SiteSettingsQueryInterface;
+use WPML\Core\Component\Translation\Application\Query\Priority\StringDataQueryInterface;
+use WPML\Core\Component\Translation\Application\Service\Priority\ClassificationContextBuilder;
+use WPML\Core\Component\Translation\Application\Service\Priority\JobPriorityService;
 use WPML\Core\Component\Translation\Application\Service\TranslationService;
 use WPML\Core\Component\Translation\Application\Service\TranslatorNoteService;
 use WPML\Core\Component\Translation\Application\String\StringBatchBuilder;
@@ -33,8 +28,10 @@ use WPML\Core\Component\Translation\Domain\TranslationBatch\Validator\CompositeV
 use WPML\Core\Component\Translation\Domain\TranslationBatch\Validator\ElementTargetLanguageValidator;
 use WPML\Core\Component\Translation\Domain\TranslationBatch\Validator\EmptyMethodsValidator;
 use WPML\Core\Component\Translation\Domain\TranslationBatch\Validator\ValidatorInterface;
+use WPML\Core\SharedKernel\Component\Item\Application\Service\UntranslatedService;
 use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryInterface;
 use WPML\Core\SharedKernel\Component\Server\Domain\CacheInterface;
+use WPML\Core\SharedKernel\Component\Setting\Application\Service\TranslationEditorService;
 use WPML\Core\SharedKernel\Component\User\Application\Query\UserQueryInterface;
 use WPML\DicInterface;
 use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery\QueryBuilder\ManyLanguagesStrategy\QueryBuilderFactory as ManyTargetLanguagesFactory;
@@ -50,14 +47,13 @@ use WPML\Infrastructure\WordPress\Component\StringPackage\Application\Query\Untr
 use WPML\Infrastructure\WordPress\Component\Translation\Application\Repository\StringPackageTranslatorNoteRepository;
 use WPML\Legacy\Component\Language\Application\Query\AutomaticTranslationsSupportInfoDecoratorForLanguagesQuery;
 use WPML\Legacy\Component\Language\Application\Query\LanguagesQuery;
-use WPML\Legacy\Component\Translation\Domain\TranslationBatch\Validator\Base64Validator;
 use WPML\Legacy\Component\Translation\Sender\ErrorMapper\ErrorMapper;
 use WPML\Legacy\Component\Translation\Sender\ErrorMapper\LegacyAteJobCreationError;
+use WPML\Legacy\Component\Translation\Sender\ErrorMapper\TranslationServiceUnavailable;
 use WPML\Legacy\Component\Translation\Sender\ErrorMapper\UnsupportedLanguagesInTranslationService;
 use WPML\Legacy\Port\Plugin;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetPosts\GetPostsController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetPosts\WordCountDecoratorController;
-use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetUntranslatedTypesCount\GetUntranslatedTypesCountController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\TranslateEverything\EnableController;
 use WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Application\Repository\ManualTranslationsCountRepositoryInterface;
 use WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Application\Service\ManualTranslationsCountService;
@@ -69,12 +65,13 @@ use WPML\UserInterface\Web\Infrastructure\WordPress\CompositionRoot\Config\Exist
 return [
   \WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\ContentStats\Controller::class =>
     [ 'api' => Api::class, ],
+  \WPML\UserInterface\Web\Infrastructure\CompositionRoot\Config\PostHog\Controller::class =>
+    [ 'api' => Api::class, 'plugin' => Plugin::class, ],
   TranslationService::class                                                                    =>
     [ 'batchBuilder' => StringBatchBuilder::class ],
   TranslatorNoteService::class                                                                 =>
     [
       'stringPackageTranslatorNoteRepo' =>
-      // phpcs:ignore Glingener.File.LineLength.LineTooLong
         StringPackageTranslatorNoteRepository::class
     ],
   WordCountDecoratorController::class                                                          =>
@@ -82,8 +79,23 @@ return [
       'innerController' =>
         GetPostsController::class
     ],
+  JobPriorityService::class =>
+    [
+      'postDataQuery'   => PostDataQueryInterface::class,
+      'stringDataQuery' => StringDataQueryInterface::class,
+    ],
 
-  GetUntranslatedTypesCountController::class =>
+  ClassificationContextBuilder::class =>
+    function ( DicInterface $dic ) {
+      return new ClassificationContextBuilder(
+        $dic->make( SiteSettingsQueryInterface::class ),
+        [],
+        [],
+        []
+      );
+    },
+
+  UntranslatedService::class =>
     function ( DicInterface $dic ) {
       $queries = [ $dic->make( PostUntranslatedTypesCountQuery::class ) ];
 
@@ -92,9 +104,9 @@ return [
         $queries[] = $dic->make( StringUntranslatedTypesCountQuery::class );
       }
 
-      return new GetUntranslatedTypesCountController(
+      return new UntranslatedService(
         $queries,
-        $dic->make( SettingsRepository::class )
+        $dic->make( TranslationEditorService::class )
       );
     },
 
@@ -105,18 +117,17 @@ return [
     [
       'languagesQuery' => AutomaticTranslationsSupportInfoDecoratorForLanguagesQuery::class
     ],
-  LanguagePreferencesLoader::class      =>
+    LanguagePreferencesLoader::class      =>
     [
       'languagesQuery' => AutomaticTranslationsSupportInfoDecoratorForLanguagesQuery::class,
       'pluginInterface'=> Plugin::class,
     ],
-  ValidatorInterface::class             =>
+    ValidatorInterface::class             =>
     function ( DicInterface $dic ) {
       return new CompositeValidator(
         [
           new ElementTargetLanguageValidator(),
-          new CompletedTranslationValidator( $dic->make( CompletedTranslationDetector::class ) ),
-          new Base64Validator()
+          new CompletedTranslationValidator( $dic->make( CompletedTranslationDetector::class ) )
         ],
         new EmptyMethodsValidator()
       );
@@ -126,6 +137,7 @@ return [
       return new ErrorMapper(
         [
           $dic->make( UnsupportedLanguagesInTranslationService::class ),
+          $dic->make( TranslationServiceUnavailable::class ),
           $dic->make( LegacyAteJobCreationError::class )
         ]
       );
@@ -180,7 +192,6 @@ return [
 
   \WPML\Core\Component\WordsToTranslate\Domain\Post\Provider::class =>
     [
-      // Comment out the following line to completely ignore terms in WTT.
       'postTermsLoader' => WPML\Core\Component\WordsToTranslate\Domain\Post\PostTermsLoader::class,
     ],
 

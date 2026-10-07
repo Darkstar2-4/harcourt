@@ -8,13 +8,10 @@ use WPML\ST\AdminTexts\TranslateNestedIds;
 
 class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 
-	/** @var WPML_ST_Records $st_records */
 	private $st_records;
 
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 
-	/** @var array */
 	private $translatable_ids = [];
 
 	function __construct( WPML_ST_Records $st_records, WPML_WP_API $wp_api ) {
@@ -22,10 +19,6 @@ class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 		$this->wp_api     = $wp_api;
 	}
 
-	/**
-	 * @param array  $admin_texts
-	 * @param string $config_handler_hash
-	 */
 	function parse_config( array $admin_texts, $config_handler_hash ) {
 
 		$admin_texts_hash = md5( serialize( $admin_texts ) );
@@ -122,17 +115,6 @@ class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 		}
 	}
 
-	/**
-	 * @param array  $keys
-	 * @param string $admin_text_context
-	 * @param string $admin_string_type
-	 * @param array  $arr_context
-	 * @param array  $arr_type
-	 * @param string $admin_string_name
-	 * @param string $path
-	 *
-	 * @return array|false
-	 */
 	protected function read_admin_texts_recursive( $keys, $admin_text_context, $admin_string_type, &$arr_context, &$arr_type, $admin_string_name = '', $path = '' ) {
 		$keys = ! empty( $keys ) && isset( $keys ['attr']['name'] ) ? array( $keys ) : $keys;
 		foreach ( $keys as $key ) {
@@ -164,31 +146,15 @@ class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 		return isset( $arr ) ? $arr : false;
 	}
 
-	/**
-	 * @param array $entry
-	 *
-	 * @return bool
-	 */
 	private function has_translatable_ids( $entry ) {
 		$entry = Obj::path( [ 'attr', 'type' ], $entry );
 		return in_array( $entry, [ TranslateNestedIds::TYPE_POST_IDS, TranslateNestedIds::TYPE_TAXONOMY_IDS ], true );
 	}
 
-	/**
-	 * @param array $entry
-	 *
-	 * @return string
-	 */
 	private function get_translatable_ids_type( $entry ) {
 		return Obj::pathOr( TranslateNestedIds::TYPE_POST_IDS, [ 'attr', 'type' ], $entry );
 	}
 
-	/**
-	 * @param array  $entry
-	 * @param string $type
-	 *
-	 * @return string
-	 */
 	private function get_translatable_ids_slug( $entry, $type ) {
 		return Obj::path( [ 'attr', 'sub-type' ], $entry ) ?: wpml_collect( [
 			TranslateNestedIds::TYPE_POST_IDS     => Ids::ANY_POST,
@@ -200,12 +166,6 @@ class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 		$this->translatable_ids = get_option( self::TRANSLATABLE_ID_NAMES_SETTING, [] );
 	}
 
-	/**
-	 * @param string $setting_name The name of the option holding the translatable ID
-	 * @param string $type "post-ids" or "taxonomy-ids".
-	 * @param string $slug e.g. "page", "category", ...
-	 * @param string $path The path to the option nested value, eg. 'subkey_1>subkey_1_1>...', supports '*' wildcards. Empty means that the option itself holds the translatable IDs.
-	 */
 	private function register_translatable_id( $setting_name, $type, $slug, $path = '' ) {
 		if ( ! array_key_exists( $setting_name, $this->translatable_ids ) ) {
 			$this->translatable_ids[ $setting_name ] = [];
@@ -223,7 +183,6 @@ class WPML_Admin_Text_Import extends WPML_Admin_Text_Functionality {
 
 	private function register_string_recursive( $key, $value, $arr, $prefix, $suffix, $requires_upgrade, $type, $admin_text_context_old ) {
 		if ( is_scalar( $value ) ) {
-			/** @phpstan-ignore-next-line */
 			icl_register_string( WPML_Admin_Texts::DOMAIN_NAME_PREFIX . $suffix, $prefix . $key, $value, true );
 			if ( $requires_upgrade ) {
 				$this->migrate_3_2( $type, $admin_text_context_old, $suffix, $prefix . $key );

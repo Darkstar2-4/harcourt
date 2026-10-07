@@ -1,28 +1,16 @@
 <?php
 
 class WPML_TM_Translation_Batch_Element {
-	/** @var int */
 	private $element_id;
 
-	/** @var string */
 	private $element_type;
 
-	/** @var string */
 	private $source_lang;
 
-	/** @var array */
 	private $target_langs;
 
-	/** @var $media_to_translations */
 	private $media_to_translations;
 
-	/**
-	 * @param int $element_id
-	 * @param string $element_type
-	 * @param string $source_lang
-	 * @param array $target_languages
-	 * @param array $media_to_translations
-	 */
 	public function __construct(
 		$element_id,
 		$element_type,
@@ -64,37 +52,22 @@ class WPML_TM_Translation_Batch_Element {
 	}
 
 
-	/**
-	 * @return int
-	 */
 	public function get_element_id() {
 		return $this->element_id;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_element_type() {
 		return $this->element_type;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_source_lang() {
 		return $this->source_lang;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public function get_target_langs() {
 		return $this->target_langs;
 	}
 
-	/**
-	 * @return mixed
-	 */
 	public function get_media_to_translations() {
 		return $this->media_to_translations;
 	}

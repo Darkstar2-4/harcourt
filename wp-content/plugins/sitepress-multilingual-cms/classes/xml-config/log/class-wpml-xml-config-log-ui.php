@@ -1,14 +1,7 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_XML_Config_Log_UI {
-	/** @var IWPML_Template_Service */
 	private $template_service;
-	/**
-	 * @var \WPML_Config_Update_Log
-	 */
 	private $log;
 
 	function __construct( WPML_Config_Update_Log $log, IWPML_Template_Service $template_service ) {
@@ -16,16 +9,12 @@ class WPML_XML_Config_Log_UI {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function show() {
 		$model = $this->get_model();
 
 		return $this->template_service->show( $model, 'main.twig' );
 	}
 
-	/** @return array */
 	private function get_model() {
 		$entries = $this->log->get();
 		krsort( $entries );
@@ -104,7 +93,7 @@ class WPML_XML_Config_Log_UI {
 			return $time;
 		}
 
-		list( $sec, $usec ) = explode( '.', $time ); // split the microtime on .
+		list( $sec, $usec ) = explode( '.', $time );
 
 		return date( $dFormat, (int) $sec ) . $usec;
 	}

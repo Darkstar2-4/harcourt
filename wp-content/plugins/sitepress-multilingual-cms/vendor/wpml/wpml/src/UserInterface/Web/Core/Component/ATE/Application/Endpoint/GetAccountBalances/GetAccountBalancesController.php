@@ -8,7 +8,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetAccountBalancesController implements EndpointInterface {
 
-  /** @var AccountInterface */
   private $ateAccount;
 
 
@@ -17,13 +16,6 @@ class GetAccountBalancesController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string, mixed>
-   * @throws AccountException
-   *
-   */
   public function handle( $requestData = null ): array {
     try {
       $accountBalances = $this->ateAccount->getAccountBalances();

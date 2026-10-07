@@ -2,18 +2,12 @@
 
 class WPML_TM_MCS_Custom_Field_Settings_Menu_Factory {
 
-	/** @var WPML_Custom_Field_Setting_Factory $setting_factory */
 	private $setting_factory;
 
-	/** @var WPML_UI_Unlock_Button $unlock_button */
 	private $unlock_button;
 
-	/** @var WPML_Custom_Field_Setting_Query_Factory $query_factory */
 	private $query_factory;
 
-	/**
-	 * @return WPML_TM_MCS_Post_Custom_Field_Settings_Menu
-	 */
 	public function create_post() {
 		return new WPML_TM_MCS_Post_Custom_Field_Settings_Menu(
 			$this->get_setting_factory(),
@@ -22,9 +16,6 @@ class WPML_TM_MCS_Custom_Field_Settings_Menu_Factory {
 		);
 	}
 
-	/**
-	 * @return WPML_TM_MCS_Term_Custom_Field_Settings_Menu
-	 */
 	public function create_term() {
 		return new WPML_TM_MCS_Term_Custom_Field_Settings_Menu(
 			$this->get_setting_factory(),

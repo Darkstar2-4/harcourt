@@ -2,16 +2,10 @@
 
 class WPML_Lang_URL_Validator {
 
-	/** @var  SitePress $sitepress */
 	private $sitepress;
 
-	/** @var WPML_URL_Converter $wpml_url_converter */
 	private $url_converter;
 
-	/**
-	 * @param WPML_URL_Converter $wpml_url_converter
-	 * @param SitePress          $sitepress
-	 */
 	public function __construct( WPML_URL_Converter $wpml_url_converter, SitePress $sitepress ) {
 		$this->sitepress     = $sitepress;
 		$this->url_converter = $wpml_url_converter;

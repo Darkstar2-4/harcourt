@@ -14,20 +14,6 @@ use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Token;
-/**
- * Imports blocks defined in another template into the current template.
- *
- *    {% extends "base.html" %}
- *
- *    {% use "blocks.html" %}
- *
- *    {% block title %}{% endblock %}
- *    {% block content %}{% endblock %}
- *
- * @see https://twig.symfony.com/doc/templates.html#horizontal-reuse for details.
- *
- * @final
- */
 class UseTokenParser extends \WPML\Core\Twig\TokenParser\AbstractTokenParser
 {
     public function parse(\WPML\Core\Twig\Token $token)

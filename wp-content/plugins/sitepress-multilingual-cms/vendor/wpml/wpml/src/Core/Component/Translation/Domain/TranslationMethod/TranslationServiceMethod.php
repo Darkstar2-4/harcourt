@@ -6,7 +6,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 
 class TranslationServiceMethod implements TranslationMethodInterface {
 
-  /** @var int */
   private $serviceId;
 
 
@@ -15,7 +14,6 @@ class TranslationServiceMethod implements TranslationMethodInterface {
   }
 
 
-  /** @return TargetLanguageMethodType::TRANSLATION_SERVICE */
   public function get() {
     return TargetLanguageMethodType::TRANSLATION_SERVICE;
   }

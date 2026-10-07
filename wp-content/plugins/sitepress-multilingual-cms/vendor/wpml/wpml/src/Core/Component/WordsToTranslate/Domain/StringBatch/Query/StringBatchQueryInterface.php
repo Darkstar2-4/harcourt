@@ -7,13 +7,6 @@ use WPML\PHP\Exception\InvalidItemIdException;
 interface StringBatchQueryInterface {
 
 
-  /**
-   * @param int $id
-   *
-   * @return int[]
-   *
-   * @throws InvalidItemIdException
-   */
   public function getStringsIdsById( $id );
 
 

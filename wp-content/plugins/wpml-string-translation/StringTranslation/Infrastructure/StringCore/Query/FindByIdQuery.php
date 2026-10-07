@@ -9,16 +9,12 @@ use WPML\StringTranslation\Application\StringCore\Query\FindByIdQueryInterface;
 
 class FindByIdQuery implements FindByIdQueryInterface {
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct( $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @return StringItem[]
-	 */
 	public function execute( array $ids ): array {
 		if ( count( $ids ) === 0 ) {
 			return [];

@@ -1,8 +1,9 @@
 <?php
 
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
+
 class WPML_Root_Page_Actions {
 
-	/** @var array $sp_settings */
 	private $sp_settings;
 
 	public function __construct( &$sitepress_settings ) {
@@ -31,15 +32,6 @@ class WPML_Root_Page_Actions {
 		}
 	}
 
-	/**
-	 * Checks if a given $url points at the root page
-	 *
-	 * @param string $url
-	 *
-	 * @return bool
-	 *
-	 * @uses \WPML_Root_Page::is_root_page
-	 */
 	public function is_url_root_page( $url ) {
 		$ret = false;
 
@@ -50,11 +42,6 @@ class WPML_Root_Page_Actions {
 		return $ret;
 	}
 
-	/**
-	 * If a page is used as the root page, returns the id of that page, otherwise false.
-	 *
-	 * @return int|false
-	 */
 	public function get_root_page_id() {
 		$urls_in_dirs = isset($this->sp_settings['language_negotiation_type']) && (int)$this->sp_settings['language_negotiation_type'] === 1;
 		$urls = isset( $this->sp_settings['urls'] ) ? $this->sp_settings['urls'] : array();
@@ -100,15 +87,6 @@ class WPML_Root_Page_Actions {
 		return $args;
 	}
 
-	/**
-	 * Filters out all page menu items that point to the root page.
-	 *
-	 * @param object[] $items
-	 *
-	 * @return array
-	 *
-	 * @hook wp_get_nav_menu_items
-	 */
 	function exclude_root_page_menu_item( $items ) {
 		$root_id = $this->get_root_page_id();
 		foreach ( $items as $key => $item ) {
@@ -156,18 +134,6 @@ class WPML_Root_Page_Actions {
 			__( 'Language', 'sitepress' ),
 			array( $this, 'wpml_home_url_language_box' ),
 			'page',
-			/**
-			 * Filter meta box position.
-			 *
-			 * The context within the screen where the boxes should display. Available contexts vary from screen to screen.
-			 * Post edit screen contexts include 'normal', 'side', and 'advanced'.
-			 *
-			 * @param 'advanced'|'normal'|'side' $position
-			 * @param string $meta_box_id Meta box ID.
-			 *
-			 * @since 4.2.8
-			 *
-			 */
 			apply_filters( 'wpml_post_edit_meta_box_context', 'side', WPML_Meta_Boxes_Post_Edit_HTML::WRAPPER_ID ),
 			apply_filters( 'wpml_post_edit_meta_box_priority', 'high' )
 		);
@@ -217,6 +183,13 @@ class WPML_Root_Page_Actions {
 			);
 
 			do_action( 'wpml_translation_update', array_merge( $update_args, array( 'type' => 'after_delete' ) ) );
+
+			\WPML\PostHog\Event\CaptureEvent::capture(
+				( new EventInstanceService() )->getRootPageSavedEvent( [
+					'root_page_id'     => $post->ID,
+					'root_page_status' => $post->post_status,
+				] )
+			);
 		}
 	}
 
@@ -235,11 +208,6 @@ class WPML_Root_Page_Actions {
 		}
 	}
 
-	/**
-	 * @param WP_Query $q
-	 *
-	 * @return mixed
-	 */
 	function wpml_home_url_parse_query( $q, $remove_filter = 'wpml_home_url_parse_query' ) {
 		if ( ! $q->is_main_query() ) {
 			return $q;
@@ -302,12 +270,6 @@ class WPML_Root_Page_Actions {
 	}
 }
 
-/**
- * Checks if the language switcher is to be displayed.
- * Used to check if the displayed page is a root page and the switcher is to be hidden because of it.
- *
- * @return bool true if the switcher is to be hidden
- */
 function wpml_home_url_ls_hide_check() {
 	global $sitepress;
 

@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -45,7 +54,8 @@ if ( ! class_exists( 'ACF_Location_Nav_Menu' ) ) :
 			}
 
 			// Allow for "location/xxx" rule value.
-			$bits = explode( '/', $rule['value'] );
+			$rule['value'] = $rule['value'] ?? '';
+			$bits          = explode( '/', $rule['value'] );
 			if ( $bits[0] === 'location' ) {
 				$location = $bits[1];
 

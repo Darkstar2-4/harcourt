@@ -7,9 +7,6 @@ class PimcoreInstaller extends BaseInstaller
         'plugin' => 'plugins/{$name}/',
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         $vars['name'] = strtolower(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $vars['name']));

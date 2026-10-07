@@ -2,28 +2,18 @@
 
 class OTGS_Installer_Upgrade_Response {
 
-	/**
-	 * @var array
-	 */
-	private $plugins;
+	private $_plugins;
 
-	/**
-	 * @var OTGS_Installer_Repositories
-	 */
+	private $plugin_finder;
+
 	private $repositories;
 
-	/**
-	 * @var OTGS_Installer_Source_Factory
-	 */
 	private $source_factory;
 
-	/**
-	 * @var OTGS_Installer_Package_Product_Finder
-	 */
 	private $product_finder;
 
-	public function __construct( array $plugins, OTGS_Installer_Repositories $repositories, OTGS_Installer_Source_Factory $source_factory, OTGS_Installer_Package_Product_Finder $product_finder ) {
-		$this->plugins        = $plugins;
+	public function __construct( OTGS_Installer_Plugin_Finder $plugin_finder, OTGS_Installer_Repositories $repositories, OTGS_Installer_Source_Factory $source_factory, OTGS_Installer_Package_Product_Finder $product_finder ) {
+		$this->plugin_finder  = $plugin_finder;
 		$this->repositories   = $repositories;
 		$this->source_factory = $source_factory;
 		$this->product_finder = $product_finder;
@@ -37,13 +27,17 @@ class OTGS_Installer_Upgrade_Response {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'modify_upgrade_response' ) );
 	}
 
-	/**
-	 * @param stdClass|null $update_plugins
-	 * @return mixed
-	 */
+	private function plugins() {
+	  	if ( null === $this->_plugins ) {
+			$this->_plugins = $this->plugin_finder->get_all();
+		}
+
+		return $this->_plugins;
+	}
+
 	public function modify_upgrade_response( $update_plugins ) {
 		if ( isset( $update_plugins ) && is_object( $update_plugins ) ) {
-			foreach ( $this->plugins as $plugin ) {
+			foreach ( $this->plugins() as $plugin ) {
 				$repository   = $this->repositories->get( $plugin->get_repo() );
 				$subscription = $repository->get_subscription();
 

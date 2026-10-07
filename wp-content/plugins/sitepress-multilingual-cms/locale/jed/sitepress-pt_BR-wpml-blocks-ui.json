@@ -4,7 +4,7 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
          "Advanced": [
@@ -14,13 +14,13 @@
             "Âncora HTML"
          ],
          "Add a shortcut to this block when loading the page using the “#anchor” URL.": [
-            "Adicione um atalho para este bloco ao carregar a página usando a URL “#anchor”."
+            "Adicionar um atalho para este bloco ao carregar a página usando o URL “#anchor”."
          ],
          "Additional CSS class(es)": [
             "Classe(s) CSS adicional(is)"
          ],
          "Separate multiple classes with spaces.": [
-            "Separe múltiplas classes com espaços."
+            "Separar várias classes com espaços."
          ],
          "Color": [
             "Cor"
@@ -53,7 +53,7 @@
             "Preenchimento do idioma"
          ],
          "Display": [
-            "Exibição"
+            "Exibir"
          ],
          "Show flag": [
             "Mostrar bandeira"
@@ -79,8 +79,14 @@
          "Spacing": [
             "Espaçamento"
          ],
+         "Switch to %s": [
+            "Mudar para %s"
+         ],
+         "Available languages": [
+            "Idiomas disponíveis"
+         ],
          "Allow wrapping to multiple lines": [
-            "Permitir quebra em múltiplas linhas"
+            "Permitir quebra de linha"
          ],
          "Open on click": [
             "Abrir ao clicar"
@@ -92,10 +98,16 @@
             "Layout"
          ],
          "Justification": [
-            "Alinhamento"
+            "Justificativa"
          ],
          "Orientation": [
             "Orientação"
+         ],
+         "Language Switcher": [
+            "Seletor de idioma"
+         ],
+         "Language switcher, press tab to navigate to other languages": [
+            "Seletor de idioma, pressione tab para navegar para outros idiomas"
          ],
          "Typography": [
             "Tipografia"
@@ -122,16 +134,16 @@
             "Código"
          ],
          "Justify items left": [
-            "Alinhar itens à esquerda"
+            "Justificar itens à esquerda"
          ],
          "Justify items center": [
-            "Alinhar itens ao centro"
+            "Justificar itens ao centro"
          ],
          "Justify items right": [
-            "Alinhar itens à direita"
+            "Justificar itens à direita"
          ],
          "Justify items space between": [
-            "Alinhar itens com espaço entre"
+            "Justificar itens com espaço entre"
          ],
          "Horizontal": [
             "Horizontal"
@@ -164,19 +176,16 @@
             "Pequeno"
          ],
          "Displays the WPML Language Switcher.": [
-            "Exibe o Seletor de Idiomas do WPML."
-         ],
-         "Language Switcher": [
-            "Seletor de Idiomas"
+            "Exibe o seletor de idioma do WPML."
          ],
          "displays the WPML Language Switcher": [
-            "exibe o Seletor de Idiomas do WPML"
+            "exibe o seletor de idioma do WPML"
          ],
          "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this block</a>.": [
-            "Exibe o Seletor de Idiomas do WPML. <br/> Saiba <a>como traduzir este bloco</a>."
+            "Exibe o seletor de idioma do WPML. <br/> Saiba <a>como traduzir este bloco</a>."
          ],
          "Navigation Language Switcher": [
-            "Seletor de Idiomas de Navegação"
+            "Seletor de idioma de navegação"
          ],
          "Reset all": [
             "Redefinir tudo"

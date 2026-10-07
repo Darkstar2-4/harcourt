@@ -424,7 +424,7 @@ class Plugin_Settings {
 				array(
 					'name'        => 'disable_badge_v3',
 					'label'       => esc_html__( 'Disable Google reCAPTCHA Badge', 'gravityformsrecaptcha' ),
-					'description' => esc_html__( 'By default reCAPTCHA v3 displays a badge on every page of your site with links to the Google terms of service and privacy policy. You are allowed to hide the badge as long as you include the reCAPTCHA branding and links visibly in the user flow.', 'gravityformsrecaptcha' ),
+					'description' => esc_html__( 'By default reCAPTCHA v3 (score type keys) displays a badge on every page of your site with links to the Google terms of service and privacy policy. You are allowed to hide the badge as long as you include the reCAPTCHA branding and links visibly in the user flow.', 'gravityformsrecaptcha' ),
 					'type'        => 'checkbox',
 					'choices'     => array(
 						array(
@@ -726,7 +726,7 @@ class Plugin_Settings {
 	private function get_score_threshold_description() {
 		$description = array(
 			array(
-				esc_html__( 'reCAPTCHA v3 returns a score (1.0 is very likely a good interaction, 0.0 is very likely a bot).', 'gravityformsrecaptcha' ),
+				esc_html__( 'reCAPTCHA v3 (score and checkbox type keys) returns a score (1.0 is very likely a good interaction, 0.0 is very likely a bot).', 'gravityformsrecaptcha' ),
 				esc_html__( 'If the score is less than or equal to this threshold, the form submission will be sent to spam.', 'gravityformsrecaptcha' ),
 				esc_html__( 'The default threshold is 0.5.', 'gravityformsrecaptcha' ),
 				sprintf(
@@ -841,6 +841,12 @@ class Plugin_Settings {
 	 * @since 1.0
 	 */
 	public function verify_v3_keys() {
+		check_ajax_referer( $this->addon->get_slug() . '_verify_token_nonce', 'nonce' );
+
+		if ( ! GFCommon::current_user_can_any( $this->addon->get_capabilities_settings_page() ) ) {
+			wp_send_json_error();
+		}
+
 		$result = $this->token_verifier->verify(
 			sanitize_text_field( rgpost( 'token' ) ),
 			sanitize_text_field( rgpost( 'secret_key_v3' ) )
@@ -947,12 +953,13 @@ class Plugin_Settings {
 		}
 
 		$keys = array(
-			'site_key_v3'            => defined( 'GF_RECAPTCHA_V3_SITE_KEY' ) ? GF_RECAPTCHA_V3_SITE_KEY : '',
-			'secret_key_v3'          => defined( 'GF_RECAPTCHA_V3_SECRET_KEY' ) ? GF_RECAPTCHA_V3_SECRET_KEY : '',
-			'site_key_v2'            => '',
-			'secret_key_v2'          => '',
-			'site_key_v3_enterprise' => defined( 'GF_RECAPTCHA_V3_SITE_KEY_ENTERPRISE' ) ? GF_RECAPTCHA_V3_SITE_KEY_ENTERPRISE : '',
-			'project_number'         => defined( 'GF_RECAPTCHA_PROJECT_NUMBER' ) ? GF_RECAPTCHA_PROJECT_NUMBER : '',
+			'site_key_v3'                 => defined( 'GF_RECAPTCHA_V3_SITE_KEY' ) ? GF_RECAPTCHA_V3_SITE_KEY : '',
+			'secret_key_v3'               => defined( 'GF_RECAPTCHA_V3_SECRET_KEY' ) ? GF_RECAPTCHA_V3_SECRET_KEY : '',
+			'site_key_v2'                 => '',
+			'secret_key_v2'               => '',
+			'site_key_v3_enterprise'      => defined( 'GF_RECAPTCHA_V3_SITE_KEY_ENTERPRISE' ) ? GF_RECAPTCHA_V3_SITE_KEY_ENTERPRISE : '',
+			'site_key_type_v3_enterprise' => defined( 'GF_RECAPTCHA_V3_SITE_KEY_TYPE_ENTERPRISE' ) ? GF_RECAPTCHA_V3_SITE_KEY_TYPE_ENTERPRISE : '',
+			'project_number'              => defined( 'GF_RECAPTCHA_PROJECT_NUMBER' ) ? GF_RECAPTCHA_PROJECT_NUMBER : '',
 		);
 
 		if ( ! in_array( $key_name, array_keys( $keys ), true ) ) {

@@ -2,26 +2,14 @@
 
 namespace WPML\Core\Component\Translation\Application\Service\TranslationService\Dto;
 
-/**
- * @phpstan-type IgnoredElementDtoArray array{
- *   elementId: int,
- *   elementType: string,
- *   targetLanguageCode: string,
- *   reason: string
- * }
- */
 class IgnoredElementDto {
 
-  /** @var int */
   private $elementId;
 
-  /** @var string */
   private $elementType;
 
-  /** @var string */
   private $targetLanguageCode;
 
-  /** @var string */
   private $reason;
 
 
@@ -58,9 +46,6 @@ class IgnoredElementDto {
   }
 
 
-  /**
-   * @phpstan-return IgnoredElementDtoArray
-   */
   public function toArray(): array {
     return [
       'elementId'          => $this->elementId,

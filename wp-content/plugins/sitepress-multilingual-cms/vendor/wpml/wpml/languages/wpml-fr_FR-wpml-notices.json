@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "Add glossary terms": [
             "Ajouter des termes au glossaire"
@@ -17,10 +17,10 @@
             "Développer"
          ],
          "There's nothing yet in the Glossary": [
-            "Il n'y a encore rien dans le glossaire"
+            "Il n’y a encore rien dans le glossaire"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "Il semble que vous n'utilisez pas encore le glossaire. Le glossaire peut vous aider à :"
+            "Il semble que vous n’utilisez pas encore le glossaire. Le glossaire peut vous aider à :"
          ],
          "Improve the quality of the translation": [
             "Améliorer la qualité de la traduction"

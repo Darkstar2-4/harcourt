@@ -8,25 +8,21 @@ class WPML_Term_Hierarchy_Sync extends WPML_Hierarchy_Sync {
 	protected $element_type_column      = 'taxonomy';
 	protected $element_type_prefix      = 'tax_';
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( &$wpdb ) {
 		parent::__construct( $wpdb );
 
 		$this->elements_table = $wpdb->term_taxonomy;
 	}
 
-	public function is_need_sync( $taxonomy, $ref_lang = false ) {
+	public function is_need_sync( $taxonomy, $ref_lang = false, $term_id = null ) {
 
-		return (bool) $this->get_unsynced_elements( $taxonomy, $ref_lang );
+		return (bool) $this->get_unsynced_elements( $taxonomy, $ref_lang, $term_id );
 	}
 
-	public function sync_element_hierarchy( $element_types, $ref_lang = false ) {
-		/** @var WPML_Term_Filters $wpml_term_filters_general */
+	public function sync_element_hierarchy( $element_types, $ref_lang = false, $term_id = null ) {
 		global $wpml_term_filters_general;
 
-		parent::sync_element_hierarchy( $element_types, $ref_lang );
+		parent::sync_element_hierarchy( $element_types, $ref_lang, $term_id );
 		do_action( 'wpml_sync_term_hierarchy_done' );
 
 		$element_types = (array) $element_types;
@@ -36,11 +32,6 @@ class WPML_Term_Hierarchy_Sync extends WPML_Hierarchy_Sync {
 		}
 	}
 
-	/**
-	 * @param string $element_type
-	 *
-	 * @return bool
-	 */
 	public function is_hierarchical( $element_type ) {
 		return is_taxonomy_hierarchical( $element_type );
 	}

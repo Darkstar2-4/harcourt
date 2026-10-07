@@ -237,6 +237,117 @@ li#wp-admin-bar-otgs-wpml-development, li#wp-admin-bar-otgs-wpml-development:hov
       .otgs-installer-notice.otgs-installer-notice-refund, .notice.otgs-installer-notice.otgs-installer-notice-refund {
         padding: 25px;
         background-image: none; } }
+
+  /* 3-card redesign — only active when the --cards modifier is present */
+  .otgs-installer-notice.otgs-installer-notice-refund--cards, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards {
+    padding: 0;
+    display: block;
+    margin: 0;
+    border: 1px solid #c3c4c7;
+    background: #fff;
+    color: inherit;
+    overflow: hidden; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards:before, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards:before {
+      display: none; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .notice-dismiss:before, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .notice-dismiss:before {
+      color: #666; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 20px 24px;
+      background: #c9471f;
+      color: #fff; }
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header .dashicons, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header .dashicons {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+        margin-top: 3px; }
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header h2, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header h2 {
+        font-size: 1em;
+        font-weight: 600;
+        margin: 0 0 6px;
+        color: #fff; }
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header p, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header p {
+        margin: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.5; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card {
+      display: flex;
+      gap: 14px;
+      padding: 18px 24px;
+      border-top: 1px solid #e5e5e5; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card:first-child, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card:first-child {
+      border-top: none; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-number, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-number {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #dbe9f1;
+      color: #2271b1;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 3px; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body {
+      flex: 1; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body h3, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body h3 {
+      font-size: 1em;
+      font-weight: 600;
+      color: #1d2327;
+      margin: 0 0 6px; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body > p, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body > p {
+      font-size: 13px;
+      color: #50575e;
+      margin: 0 0 12px;
+      max-width: 580px; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body p.description, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body p.description {
+      font-size: 12px;
+      color: #646970;
+      margin-top: 10px; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .installer-error-box, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .installer-error-box {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #fdf3f0;
+      border: 1px solid #f0b8a8;
+      border-left: 3px solid #c9471f;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #50575e;
+      max-width: 520px; }
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .installer-error-box p, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .installer-error-box p {
+        margin: 0;
+        color: inherit; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .js-question p,
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .js-yes-section p,
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .js-no-section p,
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-card-body .js-find-account-section p {
+      color: #50575e; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm {
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: #f6f7f7;
+      border: 1px solid #c3c4c7;
+      border-radius: 3px;
+      max-width: 520px; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm p, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #1d2327; }
+    .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm .button, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-confirm .button {
+      margin-right: 6px; }
+    @media (max-width: 768px) {
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-header {
+        flex-direction: column;
+        gap: 8px; }
+      .otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card, .notice.otgs-installer-notice.otgs-installer-notice-refund--cards .otgs-installer-refund-cards .otgs-installer-refund-card {
+        flex-direction: column;
+        gap: 8px; } }
   .otgs-installer-notice.otgs-installer-notice-expired, .notice.otgs-installer-notice.otgs-installer-notice-expired {
     padding: 35px 30px 20px 115px;
     position: relative;
@@ -438,6 +549,21 @@ li#wp-admin-bar-otgs-wpml-development, li#wp-admin-bar-otgs-wpml-development:hov
     .otgs-installer-notice, .notice.otgs-installer-notice {
       padding: 25px;
       background-image: none; } }
+
+table.otgs_wp_installer_table td.otgsi_register_product_wrap {
+  padding: 0; }
+
+.otgs-installer-repo-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0; }
+  .otgs-installer-repo-header h3 {
+    margin: 0;
+    line-height: 1; }
+  .otgs-installer-repo-header .otgs-installer-repo-logo {
+    flex-shrink: 0;
+    display: block; }
 
 .notice-otgs,
 .notice.notice-otgs {

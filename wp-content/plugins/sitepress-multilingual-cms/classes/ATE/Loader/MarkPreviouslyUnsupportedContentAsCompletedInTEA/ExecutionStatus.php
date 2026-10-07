@@ -12,7 +12,6 @@ class ExecutionStatus {
 
 	const PACKAGES_EXECUTED = 'packages_executed';
 
-	/** @var OptionManager */
 	private $optionManager;
 
 	public function __construct( OptionManager $optionManager ) {

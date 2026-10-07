@@ -57,9 +57,63 @@ jQuery( function ( $ ) {
           postEdit.$no_posts_found_message.hide()
           $assignPostButton.prop( 'disabled', false )
 
+          // wpmldev-6997 — lazy-load the autocomplete suggestions. The legacy
+          // `source: posts` handed the full array (~40k items on sites with
+          // many orphans) to jQuery UI in one go, which built ~40k <li> in a
+          // single synchronous task and froze the tab. We now render `PAGE`
+          // items initially and append another `PAGE` on each scroll-near-end.
+          // Filter remains local (the AJAX response shape is unchanged).
+          var PAGE = 50
           $connect_translations_dialog_selector.autocomplete( {
             minLength: 0,
-            source: posts,
+            delay: 150,
+            source: function ( request, response ) {
+              if ( !posts || !posts.length ) { response( [] ); return }
+              var term = ( request.term || '' ).toLowerCase()
+              var matches
+              if ( term === '' ) {
+                matches = posts
+              } else {
+                matches = []
+                for ( var i = 0; i < posts.length; i++ ) {
+                  // Defensive: skip rows whose label is missing or non-string.
+                  var label = posts[ i ] && posts[ i ].label
+                  if ( typeof label !== 'string' ) { continue }
+                  if ( label.toLowerCase().indexOf( term ) !== -1 ) {
+                    matches.push( posts[ i ] )
+                  }
+                }
+              }
+              // Stash full filtered set so the scroll handler can extend it.
+              $connect_translations_dialog_selector.data( 'lazy-matches', matches )
+              $connect_translations_dialog_selector.data( 'lazy-rendered', Math.min( PAGE, matches.length ) )
+              response( matches.slice( 0, PAGE ) )
+            },
+            open: function () {
+              var $menu = $( this ).autocomplete( 'widget' )
+              if ( !$menu || !$menu.length ) { return }
+              // Make the dropdown scrollable so the scroll event has something to fire on.
+              $menu.css( { 'max-height': '300px', 'overflow-y': 'auto' } )
+              $menu.off( 'scroll.lazyload' ).on( 'scroll.lazyload', function () {
+                var matches  = $connect_translations_dialog_selector.data( 'lazy-matches' ) || []
+                var rendered = $connect_translations_dialog_selector.data( 'lazy-rendered' ) || 0
+                if ( rendered >= matches.length ) { return }
+                var $m = $( this )
+                if ( !$m.length || !$m[ 0 ] ) { return }
+                var nearEnd = $m.scrollTop() + $m.innerHeight() >= $m[ 0 ].scrollHeight - 50
+                if ( !nearEnd ) { return }
+                // Bail safely if the autocomplete instance has been destroyed
+                // between the scroll event and the handler running, or if a
+                // future jQuery UI version renames `_renderItemData`.
+                var ui = $connect_translations_dialog_selector.data( 'ui-autocomplete' )
+                if ( !ui || !ui.menu || typeof ui._renderItemData !== 'function' ) { return }
+                var next = matches.slice( rendered, rendered + PAGE )
+                for ( var j = 0; j < next.length; j++ ) {
+                  ui._renderItemData( ui.menu.element, next[ j ] )
+                }
+                $connect_translations_dialog_selector.data( 'lazy-rendered', rendered + next.length )
+              } )
+            },
             focus: function ( event, ui ) {
               $connect_translations_dialog_selector.val( ui.item.label )
               return false
@@ -70,7 +124,6 @@ jQuery( function ( $ ) {
               return false
             }
           } )
-            .focus()
             .data( 'ui-autocomplete' )._renderItem = function ( ul, item ) {
               return $( '<li>' )
                 .append( jQuery( '<a></a>' ).text( item.label ) )

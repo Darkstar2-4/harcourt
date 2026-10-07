@@ -150,7 +150,7 @@ function getCorrectDefaultFieldId( field ) {
 		return null;
 	}
 
-	if ( field.type === 'checkbox' || field.type === 'radio' || field.inputType === 'checkbox' || field.inputType === 'radio' || ! field.inputs || ! field.inputs.length ) {
+	if ( useFieldId( field ) ) {
 		return field.id;
 	}
 
@@ -163,6 +163,19 @@ function getCorrectDefaultFieldId( field ) {
 	}
 
 	return options[0].id;
+}
+
+/**
+ * Helper to determine if the field ID or the input ID is used as the field option value.
+ *
+ * @since 2.9.18
+ *
+ * @param {object} field The field being rendered.
+ *
+ * @return boolean
+ */
+function useFieldId( field ) {
+	return ! field.inputs || [ 'checkbox', 'email', 'consent', 'radio' ].includes( GetInputType( field ) );
 }
 
 /**
@@ -272,6 +285,7 @@ function getAddressOptions( field, inputId, value ) {
 
 	// True associative arrays (country codes) are handled here.
 	if ( ! Array.isArray( fieldAddressOptions ) ) {
+		const compareLocale = typeof value === 'string' && value.length === 2;
 
 		for ( var locale in fieldAddressOptions ) {
 			var group = fieldAddressOptions[ locale ];
@@ -293,7 +307,7 @@ function getAddressOptions( field, inputId, value ) {
 				config = {
 					label: group,
 					value: locale,
-					selected: locale == value ? 'selected="selected"' : '',
+					selected: ( compareLocale ? locale === value : group === value ) ? 'selected="selected"' : '',
 				}
 				options.push(config);
 			}
@@ -398,6 +412,7 @@ function GFConditionalLogic( fieldId, objectType ) {
 	// State and Flyout data
 	this.fieldId    = fieldId;
 	this.form       = form;
+	this.pointerDownInside = false;
 	this.objectType = objectType;
 	this.els        = this.gatherElements();
 	this.state      = this.getStateForField( fieldId );
@@ -549,7 +564,7 @@ GFConditionalLogic.prototype.renderFieldOptions = function( rule ) {
 			continue;
 		}
 
-		if ( field.inputs && jQuery.inArray( GetInputType( field ), [ 'checkbox', 'email', 'consent' ] ) == -1 && GetInputType( field ) !== 'radio' ) {
+		if ( ! useFieldId( field ) ) {
 			for ( var j = 0; j < field.inputs.length; j++ ) {
 				var input = field.inputs[ j ];
 
@@ -569,7 +584,8 @@ GFConditionalLogic.prototype.renderFieldOptions = function( rule ) {
 			var config = {
 				label: GetLabel( field ),
 				value: field.id,
-				selected: field.id == rule.fieldId ? 'selected="selected"' : '',
+				// Comparing as integers because a getCorrectDefaultFieldId() bug caused some rules based on the consent field to use the input ID instead of the field ID.
+				selected: ( parseInt( field.id, 10 ) === parseInt( rule.fieldId, 10 ) ) ? 'selected="selected"' : '',
 			};
 
 			options.push( config );
@@ -845,10 +861,9 @@ GFConditionalLogic.prototype.gatherElements = function() {
 GFConditionalLogic.prototype.getDefaultRule = function() {
 	var fieldId = GetFirstRuleField();
 	var field   = GetFieldById( fieldId );
-	var fieldId = getCorrectDefaultFieldId( field );
 
 	return {
-		fieldId: fieldId,
+		fieldId: getCorrectDefaultFieldId( field ),
 		operator: 'is',
 		value: '',
 	};
@@ -1239,7 +1254,7 @@ GFConditionalLogic.prototype.handleFlyoutChange = function( e ) {
  * @param {Event} e
  */
 GFConditionalLogic.prototype.handleBodyClick = function( e ) {
-	if ( isValidFlyoutClick( e ) ) {
+	if ( isValidFlyoutClick( e ) || this.pointerDownInside ) {
 		return;
 	}
 
@@ -1273,6 +1288,9 @@ GFConditionalLogic.prototype.addEventListeners = function() {
 	this.els.flyouts[ this.objectType ].addEventListener( 'change', this._handleFlyoutChange );
 	document.body.addEventListener( 'click', this._handleBodyClick );
 	gform.addAction( 'formEditorNullClick', this._handleAccordionClick );
+	this.els.flyouts[ this.objectType ].addEventListener( 'mousedown', ( event ) => {
+		this.pointerDownInside = this.els.flyouts[ this.objectType ].contains( event.target );
+	} );
 }
 
 /**

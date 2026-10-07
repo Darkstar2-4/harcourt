@@ -10,9 +10,6 @@
  */
 namespace WPML\Core\Twig\Util;
 
-/**
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class TemplateDirIterator extends \IteratorIterator
 {
     public function current()

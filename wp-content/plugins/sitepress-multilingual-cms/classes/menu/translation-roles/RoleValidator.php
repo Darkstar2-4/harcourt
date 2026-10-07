@@ -6,22 +6,11 @@ use WPML\FP\Obj;
 
 class RoleValidator {
 
-	/**
-	 * Checks if a specific role is valid.
-	 *
-	 * @param string $roleName
-	 * @return bool
-	 */
 	public static function isValid( $roleName ) {
 		$wp_role = get_role( $roleName );
 		return $wp_role instanceof \WP_Role;
 	}
 
-	/**
-	 * @param string $roleName
-	 *
-	 * @return string|null
-	 */
 	public static function getTheHighestPossibleIfNotValid( $roleName ) {
 		$wp_role = get_role( $roleName );
 		$user    = wp_get_current_user();

@@ -3,7 +3,6 @@
 namespace WPML\MediaTranslation\MediaCollector;
 
 class Collector {
-	/** @var array<string,CollectorBlock> */
 	private $collector_blocks = [];
 
 	public function addCollectorBlock( CollectorBlock $block ) {

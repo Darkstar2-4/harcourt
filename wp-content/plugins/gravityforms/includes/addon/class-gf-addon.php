@@ -63,11 +63,11 @@ abstract class GFAddOn {
 	 */
 	protected $_url;
 	/**
-	 * @var string Title of the plugin to be used on the settings page, form settings and plugins page. Example: 'Gravity Forms MailChimp Add-On'
+	 * @var string Title of the plugin to be used on the settings page, form settings and plugins page. Example: 'Gravity Forms Mailchimp Add-On'
 	 */
 	protected $_title;
 	/**
-	 * @var string Short version of the plugin title to be used on menus and other places where a less verbose string is useful. Example: 'MailChimp'
+	 * @var string Short version of the plugin title to be used on menus and other places where a less verbose string is useful. Example: 'Mailchimp'
 	 */
 	protected $_short_title;
 	/**
@@ -453,6 +453,7 @@ abstract class GFAddOn {
 
 		// enqueues admin scripts
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 10, 0 );
+		add_action( 'enqueue_block_assets', array( $this, 'enqueue_scripts' ), 10, 0 );
 
 		// message enforcing min version of Gravity Forms
 		if ( isset( $this->_min_gravityforms_version ) && RG_CURRENT_PAGE == 'plugins.php' ) {
@@ -908,7 +909,7 @@ abstract class GFAddOn {
 	 * @uses GFAddOn::get_short_title()
 	 * @uses GFAddOn::plugin_settings_title()
 	 * @uses GFCommon::get_base_path()
-	 * @uses RGForms::add_settings_page()
+	 * @uses GFForms::add_settings_page()
 	 */
 	public function failed_requirements_init() {
 
@@ -960,7 +961,7 @@ abstract class GFAddOn {
 	}
 
 	/**
-	 * Override this function to add to add database update scripts or any other code to be executed when the Add-On version changes
+	 * Override this function to add database update scripts or any other code to be executed when the Add-On version changes.
 	 */
 	public function upgrade( $previous_version ) {
 		return;
@@ -1090,7 +1091,12 @@ abstract class GFAddOn {
 			),
 			array(
 				'handle'  => 'gform_gravityforms',
-				'enqueue' => array( array( 'admin_page' => array( 'form_settings' ) ) )
+				'enqueue' => array(
+					array(
+						'admin_page' => array( 'plugin_settings' ),
+						'tab'        => 'recaptcha',
+					),
+				),
 			),
 			array(
 				'handle'  => 'google_charts',
@@ -1104,7 +1110,7 @@ abstract class GFAddOn {
 				'handle'   => 'gaddon_results_js',
 				'src'      => GFAddOn::get_gfaddon_base_url() . "/js/gaddon_results{$min}.js",
 				'version'  => GFCommon::$version,
-				'deps'     => array( 'jquery', 'sack', 'jquery-ui-resizable', 'gform_datepicker_init', 'google_charts', 'gform_field_filter' ),
+				'deps'     => array( 'jquery', 'sack', 'jquery-ui-resizable', 'google_charts', 'gform_field_filter' ),
 				'callback' => array( 'GFResults', 'localize_results_scripts' ),
 				'enqueue'  => array(
 					array( 'admin_page' => array( 'results' ) ),
@@ -4592,6 +4598,7 @@ abstract class GFAddOn {
 	 * Override plugin_page() in order to provide a custom plugin page
 	 */
 	public function plugin_page_container() {
+		GFCommon::gf_root_wrapper_open();
 		?>
 		<div class="wrap">
 			<?php
@@ -4609,7 +4616,8 @@ abstract class GFAddOn {
 			$this->plugin_page();
 			?>
 		</div>
-	<?php
+		<?php
+		GFCommon::gf_root_wrapper_close();
 	}
 
 	/**
@@ -5212,7 +5220,11 @@ abstract class GFAddOn {
 						</div>
 
 						<?php
-						$uninstall_button = '<input type="submit" name="uninstall" value="' . sprintf( esc_attr__( 'Uninstall %s', 'gravityforms' ), $this->get_short_title() ) . '" class="button" onclick="return confirm(\'' . esc_js( $this->uninstall_confirm_message() ) . '\');" onkeypress="return confirm(\'' . esc_js( $this->uninstall_confirm_message() ) . '\');"/>';
+						$uninstall_button = sprintf(
+							'<input type="submit" name="uninstall" value="%1$s" class="button" data-dialog-title="%1$s" data-dialog-confirm="%2$s" />',
+							sprintf( esc_attr__( 'Uninstall %s', 'gravityforms' ), $this->get_short_title() ),
+							esc_attr( $this->uninstall_confirm_message() )
+						);
 						echo $uninstall_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 						?>
 
@@ -5262,13 +5274,13 @@ abstract class GFAddOn {
 					$url  = add_query_arg( array( 'view' => $tab['name'] ) );
 
 					// Get tab icon.
-					$icon_markup = GFCommon::get_icon_markup( $tab );
+					$icon_markup = GFCommon::get_icon_markup( $tab, 'gform-icon--cog' );
 
 					printf(
 						'<a href="%s"%s><span class="icon">%s</span> <span class="label">%s</span></a>',
 						esc_url( $url ),
 						$current_tab === $tab['name'] ? ' class="active"' : '',
-						is_null( $icon_markup ) ? '<i class="gform-icon gform-icon--cog"></i>' : $icon_markup, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						$icon_markup, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 						esc_html( $label )
 					);
 				}
@@ -5522,7 +5534,13 @@ abstract class GFAddOn {
 					</div>
 					<div class="addon-uninstall-button">
 						<input id="addon" name="addon" type="hidden" value="<?php echo $this->get_short_title(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>">
-						<button type="submit" aria-label="<?php printf( esc_html__( 'Uninstall %s', 'gravityforms'), $this->get_short_title() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="uninstall_addon" value="uninstall" class="button uninstall-addon red" onclick="return confirm('<?php echo esc_js( $this->uninstall_confirm_message() ); ?>');" onkeypress="return confirm('<?php echo esc_js( $this->uninstall_confirm_message() ); ?>');">
+						<button type="submit"
+							aria-label="<?php printf( esc_html__( 'Uninstall %s', 'gravityforms' ), esc_attr( $this->get_short_title() ) ); ?>"
+							name="uninstall_addon"
+							value="uninstall"
+							class="button uninstall-addon red"
+							data-dialog-title="<?php printf( esc_attr__( 'Uninstall %s', 'gravityforms' ), esc_attr( $this->get_short_title() ) ); ?>"
+							data-dialog-confirm="<?php echo esc_attr( $this->uninstall_confirm_message() ); ?>">
 							<i class="dashicons dashicons-trash"></i>
 							<?php esc_attr_e( 'Uninstall', 'gravityforms' ); ?>
 						</button>
@@ -5553,8 +5571,14 @@ abstract class GFAddOn {
 					<div class="alert error">
 						<?php echo $this->uninstall_warning_message(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					</div>
-
-					<button type="submit" name="uninstall" value="uninstall" class="button red" onclick="return confirm('<?php echo esc_js( $this->uninstall_confirm_message() ); ?>');" onkeypress="return confirm('<?php echo esc_js( $this->uninstall_confirm_message() ); ?>');"><?php esc_attr_e( 'Uninstall Add-On', 'gravityforms' ); ?></button>
+					<button type="submit"
+						name="uninstall"
+						value="uninstall"
+						class="button red"
+						data-dialog-title="<?php printf( esc_attr__( 'Uninstall %s Add-On', 'gravityforms' ), esc_attr( $this->get_short_title() ) ); ?>"
+						data-dialog-confirm="<?php echo esc_attr( $this->uninstall_confirm_message() ); ?>">
+						<?php esc_attr_e( 'Uninstall Add-On', 'gravityforms' ); ?>
+					</button>
 				</div>
 			</form>
 			<?php
@@ -5603,7 +5627,8 @@ abstract class GFAddOn {
 	}
 
 	public function uninstall_confirm_message() {
-		return sprintf( __( "Warning! ALL %s settings will be deleted. This cannot be undone. 'OK' to delete, 'Cancel' to stop", 'gravityforms' ), __( $this->get_short_title() ) );
+		/* translators: %s: Add-On name */
+		return sprintf( esc_html__( "Warning! ALL %s settings will be deleted. This cannot be undone. 'OK' to delete, 'Cancel' to stop.", 'gravityforms' ), esc_html( $this->get_short_title() ) );
 	}
 	/**
 	 * Not intended to be overridden or called directly by Add-Ons.
@@ -5712,12 +5737,12 @@ abstract class GFAddOn {
 	public function plugin_row( $plugin_name, $plugin_data ) {
 		if ( false === $this->_enable_rg_autoupgrade && ! self::is_gravityforms_supported( $this->_min_gravityforms_version ) ) {
 			$message = $this->plugin_message();
-			self::display_plugin_message( $message, true );
+			self::display_plugin_message( $message, 'error' );
 		}
 
 		if ( self::is_gravityforms_supported( $this->_min_gravityforms_version ) && ! self::is_gravityforms_compatible() ) {
 			$message = $this->compatibility_message();
-			self::display_plugin_message( $message, true );
+			self::display_plugin_message( $message, 'error' );
 		}
 
 		if ( ! $this->_enable_rg_autoupgrade ) {
@@ -5725,6 +5750,37 @@ abstract class GFAddOn {
 		}
 
 		GFForms::maybe_display_update_notification( $plugin_name, $plugin_data, $this->get_slug(), $this->_version );
+
+		// Check for Add-on minimum requirements.
+		$minimum_requirements = isset( $plugin_data['minimum_requirements'] ) && is_array( $plugin_data['minimum_requirements'] )
+				? $plugin_data['minimum_requirements']
+				: array();
+
+		$minimum_requirements_evaluation_result = GFCommon::evaluate_minimum_requirements( $minimum_requirements );
+		if ( $minimum_requirements_evaluation_result['block'] == true ) {
+			$plugin_name = $plugin_data['plugin'] ?? '';
+			if ( $plugin_name !== '' ) {
+				// Remove update notification if minimum requirements are not met.
+				add_filter( 'site_transient_update_plugins', function( $value ) use ( $plugin_name ) {
+					if ( isset( $value->response[ $plugin_name ] ) ) {
+						unset( $value->response[ $plugin_name ] );
+					}
+
+					return $value;
+				});
+			}
+
+			$message = $minimum_requirements_evaluation_result['message'];
+			if ( version_compare( $this->_version, $plugin_data['new_version'], '<' ) ) {
+				$details_url         = self_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . urlencode( $this->_slug ) . '&section=changelog&TB_iframe=true&width=600&height=800' );
+				$message_link_text   = sprintf( esc_html__( 'View version %s details', 'gravityforms' ), $plugin_data['new_version'] );
+				$message_link        = sprintf( '<a href="%s" class="thickbox" title="%s">%s</a>', esc_url( $details_url ), esc_attr( $this->_title ), $message_link_text );
+				$message_new_version = sprintf( esc_html__( 'There is a new version of %s available. %s.', 'gravityforms' ), $this->_title, $message_link );
+				$message             = $message_new_version . ' ' . $message;
+			}
+
+			self::display_plugin_message( $message, 'warning' );
+		}
 	}
 
 	/**
@@ -5752,18 +5808,25 @@ abstract class GFAddOn {
 	}
 
 	/**
-	 * Formats and outs a message for the plugin row.
+	 * Formats and outs a custom message for the plugin row.
 	 *
 	 * Not intended to be overridden or called directly by Add-Ons.
 	 *
-	 * @ignore
+	 * @since Unknown
+	 * @since 2.9.23 Removed $is_error parameter, added $custom_style parameter.
 	 *
-	 * @param      $message
-	 * @param bool $is_error
+	 * @param string $message
+	 * @param string $custom_style
 	 */
-	public static function display_plugin_message( $message, $is_error = false ) {
-		$style = $is_error ? 'style="background-color: #ffebe8;"' : '';
-		echo '</tr><tr class="plugin-update-tr"><td colspan="5" class="plugin-update"><div class="update-message" ' . $style . '>' . $message . '</div></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	public static function display_plugin_message( $message, $custom_style = '' ) {
+		switch ( $custom_style ) {
+			case 'warning':
+				echo '<tr class="plugin-update-tr update active"><td colspan="4" class="plugin-update colspanchange"><div class="update-message notice inline notice-warning notice-alt"><p>' . $message . '</p></div></td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				break;
+			case 'error':
+				echo '<tr class="plugin-update-tr update active"><td colspan="4" class="plugin-update colspanchange"><div class="update-message notice inline notice-error notice-alt"><p>' . $message . '</p></div></td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				break;
+		}
 	}
 
 	//--------------- Logging -------------------------------------------------------------

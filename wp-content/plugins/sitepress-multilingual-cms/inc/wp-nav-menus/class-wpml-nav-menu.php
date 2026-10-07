@@ -6,19 +6,14 @@ class WPML_Nav_Menu {
 	private $current_menu;
 	private $current_lang;
 
-	/** @var  WPML_Term_Translation $term_translations */
 	protected $term_translations;
 
-	/** @var  WPML_Post_Translation $post_translations */
 	protected $post_translations;
 
-	/** @var SitePress $sitepress */
 	protected $sitepress;
 
-	/** @var wpdb $wpdb */
 	public $wpdb;
 
-	/** @var  WPML_Nav_Menu_Actions $nav_menu_actions */
 	public $nav_menu_actions;
 
 	function __construct( SitePress $sitepress, wpdb $wpdb, WPML_Post_Translation $post_translations, WPML_Term_Translation $term_translations ) {
@@ -50,9 +45,6 @@ class WPML_Nav_Menu {
 		add_filter( 'nav_menu_meta_box_object', array( $this, '_enable_sitepress_query_filters' ), 11 );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function must_filter_menus() {
 		global $pagenow;
 
@@ -62,22 +54,18 @@ class WPML_Nav_Menu {
 	}
 
 	function init() {
-		/** @var WPML_Request $wpml_request_handler */
-		/** @var WPML_Language_Resolution $wpml_language_resolution */
 		global $sitepress, $sitepress_settings, $pagenow, $wpml_request_handler, $wpml_language_resolution;
 
 		$this->adjust_current_language_if_required();
 
 		$default_language = $sitepress->get_default_language();
 
-		// add language controls for menus no option but javascript
 		if ( $pagenow === 'nav-menus.php' ) {
 			add_action( 'admin_footer', array( $this, 'nav_menu_language_controls' ), 10 );
 
 			wp_enqueue_script( 'wp_nav_menus', ICL_PLUGIN_URL . '/res/js/wp-nav-menus.js', array( 'jquery' ), ICL_SITEPRESS_SCRIPT_VERSION, true );
 			wp_enqueue_style( 'wp_nav_menus_css', ICL_PLUGIN_URL . '/res/css/wp-nav-menus.css', array(), ICL_SITEPRESS_SCRIPT_VERSION, 'all' );
 
-			// filter posts by language
 			add_action( 'parse_query', array( $this, 'action_parse_query' ) );
 		}
 
@@ -118,12 +106,8 @@ class WPML_Nav_Menu {
 			$this->ajax( $_POST );
 		}
 
-		// for theme locations that are not translated into the current language
-		// reflect status in the theme location navigation switcher
 		add_action( 'admin_footer', array( $this, '_set_custom_status_in_theme_location_switcher' ) );
 
-		// filter menu by language when adjust ids is off
-		// not on ajax calls
 		if ( ! $sitepress_settings['auto_adjust_ids'] && ! defined( 'DOING_AJAX' ) ) {
 			add_filter( 'get_term', array( $sitepress, 'get_term_adjust_id' ), 1, 1 );
 		}
@@ -175,9 +159,6 @@ class WPML_Nav_Menu {
 		wp_send_json_success( $icl_menus_sync->get_links_for_menu_strings_translation() );
 	}
 
-	/**
-	 * @param string $menu_id
-	 */
 	function admin_menu_setup( $menu_id ) {
 		if ( 'WPML' !== $menu_id ) {
 			return;
@@ -193,10 +174,6 @@ class WPML_Nav_Menu {
 		do_action( 'wpml_admin_menu_register_item', $menu );
 	}
 
-	/**
-	 *
-	 * Associates menus without language information with default language
-	 */
 	private function _set_menus_language() {
 		global $wpdb, $sitepress;
 
@@ -240,20 +217,11 @@ class WPML_Nav_Menu {
 	}
 
 	function _get_menu_language( $menu_id ) {
-		/** @var WPML_Term_Translation $wpml_term_translations */
 		global $wpml_term_translations;
 
 		return $menu_id ? $wpml_term_translations->lang_code_by_termid( $menu_id ) : false;
 	}
 
-	/**
-	 *
-	 * Gets first menu in a specific language
-	 * used to override nav_menu_recently_edited when a different language is selected
-	 *
-	 * @param string $lang
-	 * @return int
-	 */
 	function _get_first_menu( $lang ) {
 		global $wpdb;
 		$menu_tt_id = $wpdb->get_var( "SELECT MIN(element_id) FROM {$wpdb->prefix}icl_translations WHERE element_type='tax_nav_menu' AND language_code='" . esc_sql( $lang ) . "'" );
@@ -270,7 +238,6 @@ class WPML_Nav_Menu {
 		$current_language              = $sitepress->get_current_language();
 		$admin_language_cookie         = $wpml_request_handler->get_cookie_lang();
 		if ( ! isset( $_REQUEST['menu'] ) && $nav_menu_recently_edited_lang != $current_language ) {
-			// if no menu is specified and the language is set override nav_menu_recently_edited
 			$nav_menu_selected_id = $this->_get_first_menu( $current_language );
 			if ( $nav_menu_selected_id ) {
 				update_user_option( get_current_user_id(), 'nav_menu_recently_edited', $nav_menu_selected_id );
@@ -280,7 +247,6 @@ class WPML_Nav_Menu {
 		} elseif ( ! isset( $_REQUEST['menu'] ) && ! isset( $_GET['lang'] )
 				&& ( empty( $nav_menu_recently_edited_lang ) || $nav_menu_recently_edited_lang != $admin_language_cookie )
 				&& ( empty( $_POST['action'] ) || $_POST['action'] != 'update' ) ) {
-			// if no menu is specified, no language is set, override nav_menu_recently_edited if its language is different than default
 			$nav_menu_selected_id = $this->_get_first_menu( $current_language );
 			update_user_option( get_current_user_id(), 'nav_menu_recently_edited', $nav_menu_selected_id );
 		} elseif ( isset( $_REQUEST['menu'] ) ) {
@@ -305,11 +271,6 @@ class WPML_Nav_Menu {
 		}
 	}
 
-	/**
-	 * @param bool|int $menu_id
-	 *
-	 * @return array
-	 */
 	function _load_menu( $menu_id = false ) {
 		$menu_id          = $menu_id ? $menu_id : $this->current_menu['id'];
 		$menu_term_object = get_term( $menu_id, 'nav_menu' );
@@ -337,7 +298,6 @@ class WPML_Nav_Menu {
 		$current_lang     = isset( $this->current_menu['language'] ) ? $this->current_menu['language'] : $sitepress->get_current_language();
 		$langsel          = '<br class="clear" />';
 
-		// show translations links if this is not a new element
 		if ( isset( $this->current_menu['id'] ) && $this->current_menu['id'] ) {
 			$langsel .= '<div class="icl_nav_menu_text" style="float:right;">';
 			$langsel .= __( 'Translations:', 'sitepress' );
@@ -377,7 +337,6 @@ class WPML_Nav_Menu {
 
 		}
 
-		// show languages dropdown
 		$langsel .= '<label class="menu-name-label howto"><span>' . __( 'Language', 'sitepress' ) . '</span>';
 		$langsel .= '&nbsp;&nbsp;';
 		$langsel .= '<select name="icl_nav_menu_language" id="icl_menu_language">';
@@ -396,7 +355,6 @@ class WPML_Nav_Menu {
 		$langsel .= '</label>';
 
 		if ( $current_lang !== $default_language ) {
-			// show 'translation of' if this element is not in the default language and there are untranslated elements
 			$langsel     .= '<span id="icl_translation_of_wrap">';
 			$trid_current = ! empty( $this->current_menu['trid'] ) ? $this->current_menu['trid'] : ( isset( $_GET['trid'] ) ? $_GET['trid'] : 0 );
 			$langsel     .= $this->render_translation_of( $current_lang, (int) $trid_current );
@@ -405,7 +363,6 @@ class WPML_Nav_Menu {
 		}
 		$langsel .= '</span>';
 
-		// Add trid to form.
 		if ( $this->current_menu && $this->current_menu['trid'] ) {
 			$langsel .= '<input type="hidden" id="icl_nav_menu_trid" name="icl_nav_menu_trid" value="' . $this->current_menu['trid'] . '" />';
 		}
@@ -418,7 +375,7 @@ class WPML_Nav_Menu {
 					jQuery(document).ready(function () {
 						addLoadEvent(function () {
 							var update_menu_form = jQuery('#update-nav-menu');
-							update_menu_form.find('.publishing-action:first').before('<?php echo addslashes_gpc( $langsel ); ?>');
+							update_menu_form.find('.publishing-action:first').before(<?php echo wp_json_encode( $langsel ); ?>);
 							jQuery('#side-sortables').before('<?php $this->languages_menu(); ?>');
 				<?php if ( $this->current_lang != $default_language ) : ?>
 							jQuery('.nav-tabs .nav-tab').each(function () {
@@ -489,7 +446,6 @@ class WPML_Nav_Menu {
 	}
 
 	private function render_button_language_switcher_settings() {
-		/* @var WPML_Language_Switcher $wpml_language_switcher */
 		global $wpml_language_switcher;
 
 		$output            = '';
@@ -533,7 +489,6 @@ class WPML_Nav_Menu {
 		global $sitepress;
 		$langs = $this->get_menus_by_language();
 
-		// include empty languages
 		foreach ( $sitepress->get_active_languages() as $lang ) {
 			if ( ! isset( $langs[ $lang['code'] ] ) ) {
 				$langs[ $lang['code'] ]                = new stdClass();
@@ -561,13 +516,10 @@ class WPML_Nav_Menu {
 
 	function get_terms_filter( $terms, $taxonomies, $args ) {
 		global $wpdb, $sitepress, $pagenow;
-		// deal with the case of not translated taxonomies
-		// we'll assume that it's called as just a single item
 		if ( ! $sitepress->is_translated_taxonomy( $taxonomies[0] ) && 'nav_menu' !== $taxonomies[0] ) {
 			return $terms;
 		}
 
-		// special case for determining list of menus for updating auto-add option
 		if ( 'nav-menus.php' === $pagenow
 			 && array_key_exists( 'fields', $args )
 			 && array_key_exists( 'action', $_POST )
@@ -585,7 +537,6 @@ class WPML_Nav_Menu {
 			}
 			$el_types = wpml_prepare_in( $txs );
 
-			// get all term_taxonomy_id's
 			$tt = array();
 			foreach ( $terms as $t ) {
 				if ( is_object( $t ) ) {
@@ -597,7 +548,6 @@ class WPML_Nav_Menu {
 				}
 			}
 
-			// filter the ones in the current language
 			$ftt = array();
 			if ( ! empty( $tt ) ) {
 				$ftt = $wpdb->get_col(
@@ -622,13 +572,6 @@ class WPML_Nav_Menu {
 		return array_values( $terms );
 	}
 
-	/**
-	 * Filter posts by language.
-	 *
-	 * @param \WP_Query $q
-	 *
-	 * @return \WP_Query
-	 */
 	public function parse_query( $q ) {
 		if ( ! array_key_exists( 'post_type', $q->query_vars ) ) {
 			return $q;
@@ -638,31 +581,19 @@ class WPML_Nav_Menu {
 			return $q;
 		}
 
-		// Not filtering custom posts that are not translated.
 		if ( $this->sitepress->is_translated_post_type( $q->query_vars['post_type'] ) ) {
 			$q->query_vars['suppress_filters'] = 0;
 		}
 
 		return $q;
 	}
-	/**
-	 * @param \WP_Query $q
-	 *
-	 * @return void
-	 */
 	public function action_parse_query( $q ) {
 		$this->parse_query( $q );
 	}
 
-	/**
-	 * @param mixed $val
-	 *
-	 * @return mixed
-	 */
 	function option_nav_menu_options( $val ) {
 		global $wpdb, $sitepress;
-		// special case of getting menus with auto-add only in a specific language
-		$debug_backtrace = $sitepress->get_backtrace( 5 ); // Ignore objects and limit to first 5 stack frames, since 4 is the highest index we use
+		$debug_backtrace = $sitepress->get_backtrace( 5 );
 
 		if ( isset( $debug_backtrace[4] ) && $debug_backtrace[4]['function'] === '_wp_auto_add_pages_to_menu' && ! empty( $val['auto_add'] ) ) {
 			$post_lang = Sanitize::stringProp( 'icl_post_language', $_POST );
@@ -687,9 +618,6 @@ class WPML_Nav_Menu {
 		return $val;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_duplication_mode() {
 		return isset( $_POST['langs'] );
 	}
@@ -712,7 +640,6 @@ class WPML_Nav_Menu {
 			add_filter( 'theme_mod_nav_menu_locations', array( $this->nav_menu_actions, 'theme_mod_nav_menu_locations' ) );
 		}
 
-		// $args[ "menu" ] can be an object consequently to widget's call
 		if ( is_object( $args['menu'] ) && ( ! empty( $args['menu']->term_id ) ) ) {
 				$args['menu'] = wp_get_nav_menu_object( self::convert_nav_menu_id( $args['menu']->term_id ) );
 		}
@@ -739,15 +666,6 @@ class WPML_Nav_Menu {
 		return $args;
 	}
 
-	/**
-	 * It will fallback to the original if the translation
-	 * does not exist. This is required for nav menus in
-	 * a "widget" context.
-	 *
-	 * @param int $navMenuId
-	 *
-	 * @return int
-	 */
 	private static function convert_nav_menu_id( $navMenuId ) {
 		return wpml_object_id_filter( $navMenuId, 'nav_menu', true );
 	}
@@ -804,7 +722,6 @@ class WPML_Nav_Menu {
 		}
 	}
 
-	// on the nav menus when selecting pages using the pagination filter pages > 2 by language
 	function _enable_sitepress_query_filters( $args ) {
 		if ( isset( $args->_default_query ) ) {
 			$args->_default_query['suppress_filters'] = false;
@@ -837,7 +754,6 @@ class WPML_Nav_Menu {
 
 		foreach ( $menus as $index => $menu ) {
 			$menu_ttid = is_object( $menu ) ? $menu->term_taxonomy_id : $menu;
-			/** @var WPML_Term_Translation $wpml_term_translations */
 			$menu_language = $wpml_term_translations->get_element_lang_code( $menu_ttid );
 			if ( $menu_language != $default_language && $menu_language != null ) {
 				unset( $menus[ $index ] );

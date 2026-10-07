@@ -8,7 +8,6 @@ use WPML\FP\Obj;
 
 class ModuleWithItemsFromConfig extends \WPML_Cornerstone_Module_With_Items {
 
-	/** @var array $fieldDefinitions */
 	private $fieldDefinitions;
 
 	public function __construct( array $config ) {
@@ -16,23 +15,14 @@ class ModuleWithItemsFromConfig extends \WPML_Cornerstone_Module_With_Items {
 		$this->fieldDefinitions = $keyByField( $config );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_title( $field ) {
 		return Obj::path( [ $field, 'type' ], $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_fields() {
 		return array_keys( $this->fieldDefinitions );
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	public function get_editor_type( $field ) {
 		return Obj::path( [ $field, 'editor_type' ], $this->fieldDefinitions );
 	}

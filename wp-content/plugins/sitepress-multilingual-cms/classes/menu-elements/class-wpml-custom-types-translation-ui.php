@@ -2,13 +2,10 @@
 
 class WPML_Custom_Types_Translation_UI {
 
-	/** @var array */
 	private $translation_option_class_names;
 
-	/** @var WPML_Translation_Modes $translation_modes */
 	private $translation_modes;
 
-	/** @var WPML_UI_Unlock_Button $unlock_button_ui */
 	private $unlock_button_ui;
 
 	public function __construct( WPML_Translation_Modes $translation_modes, WPML_UI_Unlock_Button $unlock_button_ui ) {
@@ -70,14 +67,6 @@ class WPML_Custom_Types_Translation_UI {
 		}
 	}
 
-	/**
-	 * @param bool   $unlocked
-	 * @param bool   $disabled
-	 * @param int    $mode
-	 * @param string $content_slug
-	 *
-	 * @return array
-	 */
 	public static function get_disabled_state_for_mode( $unlocked, $disabled, $mode, $content_slug ) {
 		$disabled_state_for_mode                   = array(
 			'state'          => ! $unlocked && $disabled,

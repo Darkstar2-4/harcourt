@@ -3,12 +3,8 @@ require_once dirname( __FILE__ ) . '/wpml-admin-text-functionality.class.php';
 
 class WPML_Admin_Text_Configuration extends WPML_Admin_Text_Functionality {
 
-	/** @var  array $config */
 	private $config;
 
-	/**
-	 * @param string|stdClass $file_or_object
-	 */
 	function __construct( $file_or_object = '' ) {
 		if ( is_object( $file_or_object ) ) {
 			$config             = $file_or_object->config;
@@ -26,7 +22,7 @@ class WPML_Admin_Text_Configuration extends WPML_Admin_Text_Functionality {
 		$admin_text_config = isset( $config['wpml-config']['admin-texts'] ) ? $config['wpml-config']['admin-texts'] : array();
 		$wpml_config_all   = array();
 		if ( isset( $type, $admin_text_context, $admin_text_config['key'] ) ) {
-			if ( isset( $admin_text_config['key']['attr'] ) ) { // single
+			if ( isset( $admin_text_config['key']['attr'] ) ) {
 				$admin_text_config['key']['type']    = $type;
 				$admin_text_config['key']['context'] = $admin_text_context;
 				$wpml_config_all[]                   = $admin_text_config['key'];
@@ -93,13 +89,6 @@ class WPML_Admin_Text_Configuration extends WPML_Admin_Text_Functionality {
 		return $ret;
 	}
 
-	/**
-	 * Creates a regex matcher from a wildcard string name definition
-	 *
-	 * @param string $wildcard
-	 *
-	 * @return string
-	 */
 	private function wildcard_to_matcher( $wildcard ) {
 
 		return '#^' . str_replace( '\*', '.+', preg_quote( $wildcard, '#' ) ) . '$#';
@@ -143,6 +132,10 @@ class WPML_Admin_Text_Configuration extends WPML_Admin_Text_Functionality {
 	}
 
 	private function reformat_array( $option_value ) {
+		if ( is_object( $option_value ) ) {
+			$option_value = get_object_vars( $option_value );
+		}
+
 		$ret = array();
 		if ( is_array( $option_value ) ) {
 			foreach ( $option_value as $key => $value ) {
@@ -156,11 +149,6 @@ class WPML_Admin_Text_Configuration extends WPML_Admin_Text_Functionality {
 		return $ret;
 	}
 
-	/**
-	 * @param string $file_path
-	 *
-	 * @return bool
-	 */
 	private function can_handle_custom_xml( $file_path ) {
 		return is_string( $file_path ) && '' !== $file_path && file_exists( $file_path ) && class_exists( 'WPML_XML_Config_Validate' );
 	}

@@ -11,16 +11,12 @@ class UpdateHandler {
   const ROUTE_ID = 'updates';
   const ROUTE_PATH = '/updates';
 
-  /** @var Endpoint|null */
   private $_endpoint;
 
-  /** @var ApiInterface $api */
   private $api;
 
-  /** @var Repository $repository */
   private $repository;
 
-  /** @var array<int, Update> $updatesToPerform */
   private $updatesToPerform = [];
 
 
@@ -30,7 +26,6 @@ class UpdateHandler {
   }
 
 
-  /** @return Endpoint */
   public function endpoint() {
     if ( $this->_endpoint === null ) {
       $this->_endpoint = new Endpoint( self::ROUTE_ID, self::ROUTE_PATH );
@@ -41,10 +36,6 @@ class UpdateHandler {
   }
 
 
-  /**
-   * @param array<int, Update> $updatesToPerform
-   * @return void
-   */
   public function registerRoute( $updatesToPerform ) {
     $this->updatesToPerform = $updatesToPerform;
 
@@ -56,10 +47,6 @@ class UpdateHandler {
   }
 
 
-  /**
-   * @param array<string, mixed> $requestData
-   * @return void
-   */
   public function handle( $requestData ) {
     if (
       ! isset( $requestData['update'] )
@@ -72,14 +59,10 @@ class UpdateHandler {
   }
 
 
-  /**
-   * @param Update $update
-   * @return void
-   */
   public function doUpdate( $update ) {
     try {
       $update->tryOnlyOnce()
-        ? $this->repository->setUpdateTryOnlyOnceStuck( $update ) // Not stuck yet, but on a timeout the status won't change.
+        ? $this->repository->setUpdateTryOnlyOnceStuck( $update )
         : $this->repository->setUpdateInProgress( $update );
 
       $handler = $update->handler();
@@ -98,7 +81,6 @@ class UpdateHandler {
   }
 
 
-  /** @return bool */
   public function authorisation() {
     return $this->api->validateRequest( $this->endpoint()->capability() );
   }

@@ -8,7 +8,6 @@ use WPML\PHP\Exception\Exception;
 
 class AddColumnWordsToTranslateCount implements UpdateInterface {
 
-  /** @var DatabaseAlterInterface */
   private $db;
 
 

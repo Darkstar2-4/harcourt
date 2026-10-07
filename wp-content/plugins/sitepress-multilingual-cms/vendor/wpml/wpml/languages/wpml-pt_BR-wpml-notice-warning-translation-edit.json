@@ -4,7 +4,7 @@
       "messages": {
          "": {
             "domain": "messages",
-            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "pt_BR"
          },
          "Warning:": [
@@ -14,19 +14,19 @@
             "As edições que você está prestes a fazer serão perdidas"
          ],
          "You are about to edit this translation using %s.": [
-            "Você está prestes a editar esta tradução utilizando %s."
+            "Você está prestes a editar esta tradução usando %s."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "Quaisquer alterações que você fizer serão perdidas na próxima vez que você enviar esta página para tradução."
+            "Quaisquer alterações que você fizer serão perdidas na próxima vez que enviar esta página para tradução."
          ],
          "Go back": [
-            "Retornar"
+            "Voltar"
          ],
          "Edit in Advanced Translation Editor": [
-            "Editar no Editor de Tradução Avançado"
+            "Editar no editor de tradução avançado"
          ],
          "Edit anyway (Not recommended)": [
-            "Editar mesmo assim (Não recomendado)"
+            "Editar mesmo assim (não recomendado)"
          ]
       }
    }

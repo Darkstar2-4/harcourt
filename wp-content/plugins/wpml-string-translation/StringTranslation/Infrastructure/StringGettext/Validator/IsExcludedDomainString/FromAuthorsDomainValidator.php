@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\StringGettext\Validator\IsExcludedDomainS
 class FromAuthorsDomainValidator implements IsExcludedDomainStringValidatorInterface {
 
 	public function validate( string $text, string $domain ): bool {
-		// Special domain used in our WPML_ST_User_Fields class.
 		return $domain === 'Authors';
 	}
 }

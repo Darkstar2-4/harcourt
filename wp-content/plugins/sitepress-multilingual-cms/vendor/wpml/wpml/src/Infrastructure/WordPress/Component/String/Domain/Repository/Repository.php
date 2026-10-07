@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Infrastructure\WordPress\Component\String\Domain\Repository;
 
 use WPML\Core\Port\Persistence\DatabaseWriteInterface;
@@ -12,35 +11,15 @@ use WPML\Core\SharedKernel\Component\String\Domain\StringEntity;
 use WPML\PHP\Exception\InvalidArgumentException;
 use WPML\PHP\Exception\InvalidItemIdException;
 
-/**
- * @phpstan-type StringRow array{
- *   id: int,
- *   language: string,
- *   context: string,
- *   name: string,
- *   value: string,
- *   status: int|string,
- *   wordCount: int|string
- * }
- */
 class Repository implements RepositoryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, StringRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var DatabaseWriteInterface */
   private $dbWriter;
 
 
-  /**
-   * @phpstan-param  QueryHandlerInterface<int, StringRow> $queryHandler
-   *
-   * @param QueryPrepareInterface                          $queryPrepare
-   * @param DatabaseWriteInterface                         $dbWriter
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -52,12 +31,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /**
-   * @param int $stringId
-   *
-   * @return StringEntity
-   * @throws InvalidItemIdException
-   */
   public function get( int $stringId ): StringEntity {
     $sql = "
         SELECT
@@ -105,11 +78,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /**
-   * @param StringRow $rawData
-   *
-   * @return StringEntity
-   */
   private function buildDto( array $rawData ): StringEntity {
     return new StringEntity(
       $rawData['id'],
@@ -137,13 +105,6 @@ class Repository implements RepositoryInterface {
   }
 
 
-  /**
-   * @param int    $stringId
-   * @param string $field
-   * @param mixed  $value
-   *
-   * @throws InvalidArgumentException
-   */
   public function updateField( int $stringId, string $field, $value ) {
     $editableFields = [ 'status', 'word_count' ];
     if ( ! in_array( $field, $editableFields, true ) ) {

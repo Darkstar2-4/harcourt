@@ -8,28 +8,13 @@ use WPML\Core\Port\Persistence\Exception\DatabaseErrorException;
 use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
-/**
- * @phpstan-type TranslationCoverageStatsRow array{
- *   post_type: string,
- *   language_code: string,
- *   translated_original_content_chars_count: int,
- *   translated_original_content_count: int,
- * }
- */
 class TranslationCoverageStatsQuery implements TranslationCoverageStatsQueryInterface {
 
-  /** @phpstan-var  QueryHandlerInterface<int, TranslationCoverageStatsRow> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
 
-  /**
-   * @phpstan-param  QueryHandlerInterface<int, TranslationCoverageStatsRow> $queryHandler
-   *
-   * @param QueryPrepareInterface $queryPrepare
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare
@@ -39,12 +24,6 @@ class TranslationCoverageStatsQuery implements TranslationCoverageStatsQueryInte
   }
 
 
-  /**
-   * @param string $defaultLanguageCode
-   * @param string $postTypeName
-   *
-   * @return TranslationCoverageStats[]
-   */
   public function get( string $defaultLanguageCode, string $postTypeName ): array {
     $sql = "
     SELECT
@@ -57,7 +36,9 @@ class TranslationCoverageStatsQuery implements TranslationCoverageStatsQueryInte
     FROM {$this->queryPrepare->prefix()}icl_languages langs
       LEFT JOIN {$this->queryPrepare->prefix()}icl_translations icl1
         ON langs.code = icl1.language_code
+             AND icl1.source_language_code = %s
              AND icl1.element_type = %s
+             AND icl1.element_id IS NOT NULL
       LEFT JOIN {$this->queryPrepare->prefix()}icl_translations icl2
         ON icl1.trid = icl2.trid
              AND icl2.source_language_code IS NULL
@@ -74,6 +55,7 @@ class TranslationCoverageStatsQuery implements TranslationCoverageStatsQueryInte
 
     $sqlPrepared = $this->queryPrepare->prepare(
       $sql,
+      $defaultLanguageCode,
       'post_' . $postTypeName,
       'post_' . $postTypeName,
       $postTypeName,

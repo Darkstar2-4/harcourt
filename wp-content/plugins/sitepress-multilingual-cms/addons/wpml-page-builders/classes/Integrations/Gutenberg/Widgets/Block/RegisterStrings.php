@@ -14,9 +14,6 @@ class RegisterStrings implements \IWPML_REST_Action, \IWPML_DIC_Action, \WPML\PB
 
 	const AFTER_STRING_CLEANUP = 20;
 
-	/**
-	 * @var \WPML_PB_Factory
-	 */
 	private $pbFactory;
 
 	public function __construct( \WPML_PB_Factory $pbFactory ) {
@@ -53,9 +50,6 @@ class RegisterStrings implements \IWPML_REST_Action, \IWPML_DIC_Action, \WPML\PB
 		}, $blocks );
 	}
 
-	/**
-	 * @param array $packageData
-	 */
 	public function deleteEmptyStringPackage( $packageData ) {
 		if ( isset( $packageData['kind_slug'] ) && Strings::PACKAGE_KIND_SLUG === $packageData['kind_slug'] ) {
 			$package        = $this->pbFactory->get_wpml_package( $packageData );

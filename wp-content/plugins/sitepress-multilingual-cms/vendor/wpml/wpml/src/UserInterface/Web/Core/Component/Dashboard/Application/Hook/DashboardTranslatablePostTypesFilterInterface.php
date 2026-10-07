@@ -7,11 +7,6 @@ use WPML\Core\SharedKernel\Component\Post\Application\Hook\PostTypeFilterInterfa
 interface DashboardTranslatablePostTypesFilterInterface extends PostTypeFilterInterface {
 
 
-  /**
-   * @param array<string, mixed> $postTypes
-   *
-   * @return array<string, mixed>
-   */
   public function filter( array $postTypes );
 
 

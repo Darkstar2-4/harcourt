@@ -9,12 +9,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 trait SearchQueryBuilderTrait {
 
 
-  /**
-   * @param SearchCriteria|SearchPopulatedTypesCriteria $criteria
-   * @param array<string> $targetLanguageCodes
-   *
-   * @return string
-   */
   protected function buildTranslationStatusCondition( $criteria, array $targetLanguageCodes ): string {
     $isNotTranslated = in_array( TranslationStatus::NOT_TRANSLATED, $criteria->getTranslationStatuses() );
     $needsUpdate = in_array( TranslationStatus::NEEDS_UPDATE, $criteria->getTranslationStatuses() );
@@ -28,7 +22,6 @@ trait SearchQueryBuilderTrait {
       $appendConditions = [];
 
       if ( $isNotTranslated ) {
-        // Skip the posts with status 0 (canceled jobs) but already translated.
         $appendConditions[] = sprintf(
           'target_t_%1$s.trid IS NULL',
           $slugTargetLanguageCode
@@ -38,7 +31,6 @@ trait SearchQueryBuilderTrait {
         $appendConditions[] = sprintf( 'target_ts_%s.needs_update = 1', $slugTargetLanguageCode );
       }
       if ( $complete ) {
-        // We want to display posts with canceled jobs (status 0) but already translated.
         $appendConditions[] = sprintf(
           '(target_t_%1$s.element_id IS NOT NULL AND (target_ts_%1$s.status = 0 OR target_ts_%1$s.status IS NULL))',
           $slugTargetLanguageCode
@@ -48,7 +40,6 @@ trait SearchQueryBuilderTrait {
       if ( ! empty( $statuses ) ) {
         $appendConditions[] = sprintf(
           'target_ts_%1$s.status IN %2$s' .
-            // Make sure "needs_update" is 0 for filter "Translation complete".
             ( $complete ? ' AND target_ts_%1$s.needs_update = 0' : '' ),
           $slugTargetLanguageCode,
           '(' . implode( ', ', $statuses ) . ')'
@@ -66,10 +57,6 @@ trait SearchQueryBuilderTrait {
   }
 
 
-  /**
-   * @param SearchCriteria|SearchPopulatedTypesCriteria $criteria
-   * @return array<string>
-   */
   private function getStatusesToQuery( $criteria ) {
     $statuses = [];
     foreach ( $criteria->getTranslationStatuses() as $status ) {
@@ -83,11 +70,6 @@ trait SearchQueryBuilderTrait {
   }
 
 
-  /**
-   * @param string|null $status
-   *
-   * @return string
-   */
   protected function buildPostStatusCondition( $status ): string {
     $statusQuery = "AND p.post_status NOT IN ('auto-draft', 'trash')";
     $statusQuery .= $status ? $this->queryPrepare->prepare( ' AND p.post_status = %s', $status ) : '';

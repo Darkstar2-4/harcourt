@@ -10,7 +10,6 @@ use WPML\PB\Gutenberg\StringsInBlock\Attributes;
 
 class BlockAttributes extends Base {
 
-	/** @var array $attributesToConvert */
 	private $attributesToConvert;
 
 	public function __construct( array $attributesToConvert ) {
@@ -37,13 +36,6 @@ class BlockAttributes extends Base {
 		return $block;
 	}
 
-	/**
-	 * @param array    $attrs
-	 * @param string   $name
-	 * @param callable $getConfig
-	 *
-	 * @return array
-	 */
 	private function convertByName( $attrs, $name, $getConfig ) {
 		if ( isset( $attrs[ $name ] ) ) {
 			$attrs[ $name ] = self::convertIds(
@@ -56,13 +48,6 @@ class BlockAttributes extends Base {
 		return $attrs;
 	}
 
-	/**
-	 * @param array|string|int $attrs
-	 * @param array            $path
-	 * @param callable         $getConfig
-	 *
-	 * @return mixed
-	 */
 	private function convertByPath( $attrs, $path, $getConfig ) {
 		$currentKey  = reset( $path );
 		$nextPath    = Lst::drop( 1, $path );

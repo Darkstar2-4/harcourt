@@ -1,6 +1,5 @@
 <?php
 
-// phpcs:ignore PHPCompatibility.Keywords.ForbiddenNamesAsDeclared.stringFound
 namespace WPML\Core\Component\Translation\Application\String;
 
 use WPML\Core\Component\Translation\Application\String\Query\StringsFromBatchQueryInterface;
@@ -11,7 +10,6 @@ use function WPML\PHP\partition;
 
 class StringBatchToStringsTranslationsMapper {
 
-  /** @var StringsFromBatchQueryInterface */
   private $stringsFromBatchQuery;
 
 
@@ -20,11 +18,6 @@ class StringBatchToStringsTranslationsMapper {
   }
 
 
-  /**
-   * @param Translation[] $translations
-   *
-   * @return Translation[]
-   */
   public function map( array $translations ): array {
     list( $stringBatchTranslations, $otherTranslations ) = partition(
       $translations,
@@ -45,11 +38,6 @@ class StringBatchToStringsTranslationsMapper {
   }
 
 
-  /**
-   * @param Translation $translation
-   *
-   * @return Translation[]
-   */
   private function mapStringBatchTranslationToStringsTranslations( Translation $translation ): array {
     $stringIds = $this->stringsFromBatchQuery->get( $translation->getOriginalElementId() );
 

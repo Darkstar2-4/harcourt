@@ -9,15 +9,10 @@ use WPML\StringTranslation\Application\StringHtml\Command\ProcessFrontendStrings
 
 class ProcessFrontendGettextStringsQueue implements ProcessFrontendGettextStringsQueueInterface {
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var FrontendQueueRepositoryInterface */
 	private $frontendQueueRepository;
 
-	/**
-	 * @var ProcessFrontendStringsObserverInterface[]
-	 */
 	private $observers;
 
 	public function __construct(

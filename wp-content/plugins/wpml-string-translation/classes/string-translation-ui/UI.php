@@ -11,9 +11,6 @@ use WPML\LIB\WP\Hooks as WPHooks;
 
 class UI implements \IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return callable|null
-	 */
 	public function create() {
 		$isAdminTextsPage = isset( $_GET['trop'] );
 
@@ -30,7 +27,6 @@ class UI implements \IWPML_Backend_Action_Loader {
 	}
 
 	public static function localize() {
-		/** @var array $languages */
 		$languages = Languages::withFlags( Languages::getAll() );
 		return [
 			'name' => 'wpml_st_main_ui',

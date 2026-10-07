@@ -12,13 +12,6 @@ use WPML_TM_AMS_ATE_Console_Section_Factory;
 
 class GetParametersForAteDashboard implements IHandler {
 
-	/**
-	 * Returns the ATE dashboard script content.
-	 *
-	 * @param Collection $data
-	 *
-	 * @return Either
-	 */
 	public function run( Collection $data ) {
 		return Right::of( self::getParametersForAteDashboard() );
 	}
@@ -27,7 +20,6 @@ class GetParametersForAteDashboard implements IHandler {
 	private function getParametersForAteDashboard() {
 		$factory = new WPML_TM_AMS_ATE_Console_Section_Factory();
 
-		/** @var WPML_TM_AMS_ATE_Console_Section|null $ateConsoleSection */
 		$ateConsoleSection = $factory->create();
 
 

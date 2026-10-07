@@ -1,15 +1,5 @@
 <?php
-/**
- * Handles remote POST requests when unregistering the sitekey.
- */
 class OTGS_Installer_Site_Key_Remove_Request {
-	/**
-	 * Perform a remote POST request to the repository API.
-	 *
-	 * @param string $url   The API URL.
-	 * @param array  $params The request parameters.
-	 *
-	 */
 	public function run( $url, $params ) {
 		return wp_remote_post( $url, $params );
 	}

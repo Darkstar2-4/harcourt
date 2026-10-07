@@ -12,32 +12,18 @@ class RestApiInitAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'rest_api_init';
 	const ACTION_ARGS = 0;
 
-	/** @var StringSettingsApiController */
 	private $stringSettingsApiController;
 
-	/** @var StringItemsCountApiController */
 	private $stringsItemsCountApiController;
 
-	/** @var StringListApiController */
 	private $stringsListApiController;
 
-	/** @var StringPackageListApiController */
 	private $stringPackageListApiController;
 
-	/** @var StringFiltersApiController */
 	private $stringFiltersApiController;
 
-	/** @var ProcessStringsQueueApiController */
 	private $processStringsQueueApiController;
 
-	/**
-	 * @param StringSettingsApiController $stringSettingsApiController
-	 * @param StringItemsCountApiController $stringItemsCountApiController
-	 * @param StringListApiController     $stringsListApiController
-	 * @param StringPackageListApiController $stringPackageListApiController
-	 * @param StringFiltersApiController  $stringFiltersApiController
-	 * @param ProcessStringsQueueApiController $processStringsQueueApiController
-	 */
 	public function __construct(
 		StringSettingsApiController $stringSettingsApiController,
 		StringItemsCountApiController $stringItemsCountApiController,

@@ -2,21 +2,12 @@
 
 class OTGS_Installer_Products_Parser {
 
-	/**
-	 * @var OTGS_Installer_Logger_Storage
-	 */
 	private $logger;
 
-	/**
-	 * @var WP_Installer_Channels
-	 */
 	private $installerChannels;
 
 	private $product_notices = array();
 
-	/**
-	 * @var array
-	 */
 	private $defaultProducts;
 
 	public function __construct(
@@ -29,14 +20,6 @@ class OTGS_Installer_Products_Parser {
 		$this->defaultProducts   = $productsConfigXml->get_repository_products_default_data();
 	}
 
-	/**
-	 * @param string         $products_url
-	 * @param string         $repository_id
-	 * @param array|WP_Error $response
-	 *
-	 * @return array
-	 * @throws OTGS_Installer_Products_Parsing_Exception
-	 */
 	public function get_products_from_response( $products_url, $repository_id, $response ) {
 		$products = $this->parse_products_response( $products_url, $response );
 		$products = $this->validate_products_plugins( $products_url, $products );
@@ -49,13 +32,6 @@ class OTGS_Installer_Products_Parser {
 		return isset( $this->defaultProducts[ $repository_id ] ) ? $this->defaultProducts[ $repository_id ] : null;
 	}
 
-	/**
-	 * @param string         $products_url
-	 * @param array|WP_Error $response
-	 *
-	 * @return array
-	 * @throws OTGS_Installer_Products_Parsing_Exception
-	 */
 	private function parse_products_response( $products_url, $response ) {
 		$body = wp_remote_retrieve_body( $response );
 		if ( $body ) {
@@ -69,12 +45,6 @@ class OTGS_Installer_Products_Parser {
 		throw OTGS_Installer_Products_Parsing_Exception::createForResponse( $products_url );
 	}
 
-	/**
-	 * @param string $products_url
-	 * @param array $products
-	 *
-	 * @throws OTGS_Installer_Products_Parsing_Exception
-	 */
 	private function validate_products_plugins( $products_url, $products ) {
 		if ( is_array( $products ) ) {
 			foreach ( $products['downloads']['plugins'] as $product_id => $product ) {
@@ -93,20 +63,12 @@ class OTGS_Installer_Products_Parser {
 		return $products;
 	}
 
-	/**
-	 * @param string $products_url
-	 * @param string $product_id
-	 */
 	private function handle_product_parsing_error( $products_url, $product_id ) {
 		$error = sprintf( __( 'Information about versions of %s are invalid. It may be a temporary communication problem, please check for updates again.', 'installer' ), $product_id );
 		$this->store_log( $products_url, $error );
 		$this->product_notices[] = $error;
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $response
-	 */
 	private function store_log( $url, $response ) {
 		$log = new OTGS_Installer_Log();
 		$log->set_request_url( $url )
@@ -116,12 +78,6 @@ class OTGS_Installer_Products_Parser {
 		$this->logger->add( $log );
 	}
 
-	/**
-	 * @param string $repository_id
-	 * @param array $products
-	 *
-	 * @return array
-	 */
 	private function prepare_products_downloads( $repository_id, $products ) {
 		$downloads = $this->installerChannels->filter_downloads_by_channel( $repository_id, $products['downloads'] );
 		$downloads = $this->add_release_notes( $downloads );
@@ -129,11 +85,6 @@ class OTGS_Installer_Products_Parser {
 		return $downloads;
 	}
 
-	/**
-	 * @param array $products_downloads
-	 *
-	 * @return array
-	 */
 	private function add_release_notes( $products_downloads ) {
 		foreach ( $products_downloads as $kind => $downloads ) {
 			foreach ( $downloads as $slug => $download ) {
@@ -154,9 +105,6 @@ class OTGS_Installer_Products_Parser {
 		return $products_downloads;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_product_notices() {
 		return $this->product_notices;
 	}

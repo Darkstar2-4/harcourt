@@ -19,24 +19,14 @@ class ProcessExistingMediaInPosts extends AbstractTaskEndpoint {
 	const DESCRIPTION       = 'Processing media in posts.';
 	const POSTS_PER_REQUEST = 40;
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var PostWithMediaFilesFactory $postWithMediaFilesFactory */
 	private $postWithMediaFilesFactory;
 
-	/** $var UsageOfMediaFilesInPosts $usageOfMediaFilesInPosts */
 	private $usageOfMediaFilesInPosts;
 
 	private $postsPerRequest = self::POSTS_PER_REQUEST;
 
-	/**
-	 * @param \wpdb                     $wpdb
-	 * @param UpdateBackgroundTask      $updateBackgroundTask
-	 * @param BackgroundTaskService     $backgroundTaskService
-	 * @param PostWithMediaFilesFactory $postWithMediaFilesFactory
-	 * @param UsageOfMediaFilesInPosts  $usageOfMediaFilesInPosts
-	 */
 	public function __construct(
 		\wpdb $wpdb,
 		UpdateBackgroundTask $updateBackgroundTask,
@@ -101,11 +91,6 @@ class ProcessExistingMediaInPosts extends AbstractTaskEndpoint {
 		return $allowedTypes;
 	}
 
-	/**
-	 * @param int $page
-	 *
-	 * @return array
-	 */
 	private function getPosts( $page ) {
 		$postTypes = $this->getAllowedPostTypes();
 		if ( count( $postTypes ) === 0 ) {
@@ -128,16 +113,12 @@ class ProcessExistingMediaInPosts extends AbstractTaskEndpoint {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	private function getPostsCount() {
 		$postTypes = $this->getAllowedPostTypes();
 		if ( count( $postTypes ) === 0 ) {
 			return 0;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $this->wpdb->get_var(
 			"SELECT COUNT(DISTINCT(p.ID))
 					FROM {$this->wpdb->posts} AS p
@@ -148,9 +129,6 @@ class ProcessExistingMediaInPosts extends AbstractTaskEndpoint {
 		);
 	}
 
-	/**
-	 * @param array $postIds
-	 */
 	private function processExistingMediaInPosts( array $postIds ) {
 		$batch = [];
 		foreach ( $postIds as $postId ) {
@@ -174,7 +152,6 @@ class ProcessExistingMediaInPosts extends AbstractTaskEndpoint {
 			}
 		}
 
-		// get all posts ids by attachment urls in one query
 		$urlsToPostIds = Attachment::attachmentUrlsToPostIds( $urls );
 		Attachment::addToCache( $urlsToPostIds );
 

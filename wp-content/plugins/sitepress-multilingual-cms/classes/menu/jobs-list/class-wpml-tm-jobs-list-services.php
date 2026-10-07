@@ -1,13 +1,10 @@
 <?php
 
 class WPML_TM_Jobs_List_Services {
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var WPML_TM_Rest_Jobs_Translation_Service */
 	private $service_names;
 
-	/** @var array|null */
 	private $cache;
 
 	public function __construct( WPML_TM_Rest_Jobs_Translation_Service $service_names ) {

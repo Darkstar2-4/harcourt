@@ -3,10 +3,8 @@
 namespace WPML\ST\StringsFilter;
 
 class TranslationReceiver {
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var QueryBuilder $query_builder */
 	private $query_builder;
 
 	public function __construct( \wpdb $wpdb, QueryBuilder $query_builder ) {
@@ -15,12 +13,6 @@ class TranslationReceiver {
 	}
 
 
-	/**
-	 * @param StringEntity $string
-	 * @param string       $language
-	 *
-	 * @return TranslationEntity
-	 */
 	public function get( StringEntity $string, $language ) {
 		$query = $this->query_builder->setLanguage( $language )->filterByString( $string )->build();
 

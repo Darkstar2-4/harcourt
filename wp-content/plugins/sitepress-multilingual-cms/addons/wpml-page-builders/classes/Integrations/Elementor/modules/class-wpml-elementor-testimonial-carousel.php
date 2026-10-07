@@ -1,29 +1,15 @@
 <?php
 
-/**
- * Class WPML_Elementor_Accordion
- */
 class WPML_Elementor_Testimonial_Carousel extends WPML_Elementor_Module_With_Items  {
 
-	/**
-	 * @return string
-	 */
 	public function get_items_field() {
 		return 'slides';
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields() {
 		return array( 'content', 'name', 'title' );
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_title( $field ) {
 		switch( $field ) {
 			case 'content':
@@ -40,11 +26,6 @@ class WPML_Elementor_Testimonial_Carousel extends WPML_Elementor_Module_With_Ite
 		}
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_editor_type( $field ) {
 		switch( $field ) {
 			case 'name':

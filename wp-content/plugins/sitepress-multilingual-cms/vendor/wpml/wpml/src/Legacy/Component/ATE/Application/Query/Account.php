@@ -10,15 +10,14 @@ use WPML\Core\Component\ATE\Application\Query\Dto\CreditInfoDto;
 class Account implements AccountInterface {
 
 
-  /**
-   * @return CreditInfoDto
-   * @throws AccountException
-   */
   public function getCredits(): CreditInfoDto {
     $apiResult = \WPML\TM\API\ATE\Account::getCredits();
 
     $apiResult = $this->handleLegacyResult( $apiResult, __( 'Error getting credits', 'wpml' ) );
     $apiResult = is_array( $apiResult ) ? $apiResult : [];
+    $subscriptionDebt = isset( $apiResult['subscription_debt'] )
+      ? (int) $apiResult['subscription_debt']
+      : 0;
 
     return new CreditInfoDto(
       $apiResult['free_credits_amount'] ?? 0,
@@ -28,7 +27,8 @@ class Account implements AccountInterface {
       $apiResult['total_credits_deposited'] ?? 0,
       $apiResult['total_credits_spent'] ?? 0,
       $apiResult['pay_as_you_go'] ?? false,
-      $apiResult['subscription_max_limit'] ?? null
+      $apiResult['subscription_max_limit'] ?? null,
+      $subscriptionDebt
     );
   }
 
@@ -46,27 +46,13 @@ class Account implements AccountInterface {
   }
 
 
-  /**
-   * @param mixed $apiResult
-   *
-   * @return mixed
-   * @throws AccountException
-   */
   private function handleLegacyResult( $apiResult, string $errorMsg ) {
-    /**
-     * @psalm-suppress MissingClosureReturnType
-     * @psalm-suppress MissingClosureParamType
-     */
     $errorHandler = function ( $error ) use ( $errorMsg ) {
       throw new AccountException(
         $error['error'] ?? $errorMsg
       );
     };
 
-    /**
-     * @psalm-suppress MissingClosureReturnType
-     * @psalm-suppress MissingClosureParamType
-     */
     $identity = function ( array $result ) {
       return $result;
     };

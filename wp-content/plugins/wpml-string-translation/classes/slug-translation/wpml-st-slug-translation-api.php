@@ -2,22 +2,15 @@
 
 class WPML_ST_Slug_Translation_API implements IWPML_Action {
 
-	/**
-	 * The section indexes are hardcoded in `sitepress-multilingual-cms/menu/_custom_types_translation.php`
-	 */
 	const SECTION_INDEX_POST = 7;
 	const SECTION_INDEX_TAX  = 8;
 
-	/** @var WPML_Slug_Translation_Records_Factory $records_factory */
 	private $records_factory;
 
-	/** @var WPML_ST_Slug_Translation_Settings_Factory $settings_factory */
 	private $settings_factory;
 
-	/** @var IWPML_Current_Language $current_language */
 	private $current_language;
 
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 
 	public function __construct(
@@ -53,14 +46,6 @@ class WPML_ST_Slug_Translation_API implements IWPML_Action {
 		add_filter( 'wpml_get_slug_translation_url', array( $this, 'get_slug_translation_url_filter' ), 1, 2 );
 	}
 
-	/**
-	 * @param string      $slug_value
-	 * @param string      $type
-	 * @param string|bool $language
-	 * @param string      $element_type WPML_Slug_Translation_Factory::POST|WPML_Slug_Translation_Factory::TAX
-	 *
-	 * @return string
-	 */
 	public function get_translated_slug_filter(
 		$slug_value,
 		$type,
@@ -80,13 +65,6 @@ class WPML_ST_Slug_Translation_API implements IWPML_Action {
 		return $slug_value;
 	}
 
-	/**
-	 * @param string $languages
-	 * @param string $type
-	 * @param string $element_type WPML_Slug_Translation_Factory::POST|WPML_Slug_Translation_Factory::TAX
-	 *
-	 * @return array
-	 */
 	public function get_slug_translation_languages_filter(
 		$languages,
 		$type,
@@ -95,11 +73,6 @@ class WPML_ST_Slug_Translation_API implements IWPML_Action {
 		return $this->records_factory->create( $element_type )->get_slug_translation_languages( $type );
 	}
 
-	/**
-	 * @param string      $type
-	 * @param string|null $slug_value
-	 * @param string      $element_type WPML_Slug_Translation_Factory::POST|WPML_Slug_Translation_Factory::TAX
-	 */
 	public function activate_slug_translation_action(
 		$type,
 		$slug_value = null,
@@ -125,12 +98,6 @@ class WPML_ST_Slug_Translation_API implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $element_type WPML_Slug_Translation_Factory::POST or WPML_Slug_Translation_Factory::TAX
-	 *
-	 * @return string
-	 */
 	public function get_slug_translation_url_filter( $url, $element_type = WPML_Slug_Translation_Factory::POST ) {
 		$index = self::SECTION_INDEX_POST;
 
@@ -149,13 +116,6 @@ class WPML_ST_Slug_Translation_API implements IWPML_Action {
 		return admin_url( 'admin.php?page=' . $page );
 	}
 
-	/**
-	 * @param bool   $is_translated
-	 * @param string $type
-	 * @param string $element_type WPML_Slug_Translation_Factory::POST or WPML_Slug_Translation_Factory::TAX
-	 *
-	 * @return bool
-	 */
 	public function type_slug_is_translated_filter(
 		$is_translated,
 		$type,

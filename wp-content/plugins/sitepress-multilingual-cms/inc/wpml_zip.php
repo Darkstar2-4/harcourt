@@ -18,68 +18,60 @@
 class wpml_zip {
 	const VERSION = 1.62;
 
-	const ZIP_LOCAL_FILE_HEADER        = "\x50\x4b\x03\x04"; // Local file header signature
-	const ZIP_CENTRAL_FILE_HEADER      = "\x50\x4b\x01\x02"; // Central file header signature
-	const ZIP_END_OF_CENTRAL_DIRECTORY = "\x50\x4b\x05\x06\x00\x00\x00\x00"; // end of Central directory record
+	const ZIP_LOCAL_FILE_HEADER        = "\x50\x4b\x03\x04";
+	const ZIP_CENTRAL_FILE_HEADER      = "\x50\x4b\x01\x02";
+	const ZIP_END_OF_CENTRAL_DIRECTORY = "\x50\x4b\x05\x06\x00\x00\x00\x00";
 
-	const EXT_FILE_ATTR_DIR  = 010173200020;  // Permission 755 drwxr-xr-x = (((S_IFDIR | 0755) << 16) | S_DOS_D);
-	const EXT_FILE_ATTR_FILE = 020151000040; // Permission 644 -rw-r--r-- = (((S_IFREG | 0644) << 16) | S_DOS_A);
+	const EXT_FILE_ATTR_DIR  = 010173200020;
+	const EXT_FILE_ATTR_FILE = 020151000040;
 
-	const ATTR_VERSION_TO_EXTRACT = "\x14\x00"; // Version needed to extract
-	const ATTR_MADE_BY_VERSION    = "\x1E\x03"; // Made By Version
+	const ATTR_VERSION_TO_EXTRACT = "\x14\x00";
+	const ATTR_MADE_BY_VERSION    = "\x1E\x03";
 
-	// UID 1000, GID 0
 	const EXTRA_FIELD_NEW_UNIX_GUID = "\x75\x78\x0B\x00\x01\x04\xE8\x03\x00\x00\x04\x00\x00\x00\x00";
 
-	// Unix file types
-	const S_IFIFO  = 0010000; // named pipe (fifo)
-	const S_IFCHR  = 0020000; // character special
-	const S_IFDIR  = 0040000; // directory
-	const S_IFBLK  = 0060000; // block special
-	const S_IFREG  = 0100000; // regular
-	const S_IFLNK  = 0120000; // symbolic link
-	const S_IFSOCK = 0140000; // socket
+	const S_IFIFO  = 0010000;
+	const S_IFCHR  = 0020000;
+	const S_IFDIR  = 0040000;
+	const S_IFBLK  = 0060000;
+	const S_IFREG  = 0100000;
+	const S_IFLNK  = 0120000;
+	const S_IFSOCK = 0140000;
 
-	// setuid/setgid/sticky bits, the same as for chmod:
 
-	const S_ISUID = 0004000; // set user id on execution
-	const S_ISGID = 0002000; // set group id on execution
-	const S_ISTXT = 0001000; // sticky bit
+	const S_ISUID = 0004000;
+	const S_ISGID = 0002000;
+	const S_ISTXT = 0001000;
 
-	// And of course, the other 12 bits are for the permissions, the same as for chmod:
-	// When addding these up, you can also just write the permissions as a simgle octal number
-	// ie. 0755. The leading 0 specifies octal notation.
-	const S_IRWXU = 0000700; // RWX mask for owner
-	const S_IRUSR = 0000400; // R for owner
-	const S_IWUSR = 0000200; // W for owner
-	const S_IXUSR = 0000100; // X for owner
-	const S_IRWXG = 0000070; // RWX mask for group
-	const S_IRGRP = 0000040; // R for group
-	const S_IWGRP = 0000020; // W for group
-	const S_IXGRP = 0000010; // X for group
-	const S_IRWXO = 0000007; // RWX mask for other
-	const S_IROTH = 0000004; // R for other
-	const S_IWOTH = 0000002; // W for other
-	const S_IXOTH = 0000001; // X for other
-	const S_ISVTX = 0001000; // save swapped text even after use
+	const S_IRWXU = 0000700;
+	const S_IRUSR = 0000400;
+	const S_IWUSR = 0000200;
+	const S_IXUSR = 0000100;
+	const S_IRWXG = 0000070;
+	const S_IRGRP = 0000040;
+	const S_IWGRP = 0000020;
+	const S_IXGRP = 0000010;
+	const S_IRWXO = 0000007;
+	const S_IROTH = 0000004;
+	const S_IWOTH = 0000002;
+	const S_IXOTH = 0000001;
+	const S_ISVTX = 0001000;
 
-	// Filetype, sticky and permissions are added up, and shifted 16 bits left BEFORE adding the DOS flags.
 
-	// DOS file type flags, we really only use the S_DOS_D flag.
 
-	const S_DOS_A = 0000040; // DOS flag for Archive
-	const S_DOS_D = 0000020; // DOS flag for Directory
-	const S_DOS_V = 0000010; // DOS flag for Volume
-	const S_DOS_S = 0000004; // DOS flag for System
-	const S_DOS_H = 0000002; // DOS flag for Hidden
-	const S_DOS_R = 0000001; // DOS flag for Read Only
+	const S_DOS_A = 0000040;
+	const S_DOS_D = 0000020;
+	const S_DOS_V = 0000010;
+	const S_DOS_S = 0000004;
+	const S_DOS_H = 0000002;
+	const S_DOS_R = 0000001;
 
-	private $zipMemoryThreshold = 1048576; // Autocreate tempfile if the zip data exceeds 1048576 bytes (1 MB)
+	private $zipMemoryThreshold = 1048576;
 
 	private $zipData       = null;
 	private $zipFile       = null;
 	private $zipComment    = null;
-	private $cdRec         = array(); // central directory
+	private $cdRec         = array();
 	private $offset        = 0;
 	private $isFinalized   = false;
 	private $addExtraField = true;
@@ -92,18 +84,8 @@ class wpml_zip {
 	private $streamData        = null;
 	private $streamFileLength  = 0;
 	private $streamExtFileAttr = null;
-	/**
-	 * A custom temporary folder, or a callable that returns a custom temporary file.
-	 *
-	 * @var string|callable
-	 */
 	public static $temp = null;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param boolean $useZipFile Write temp zip data to tempFile? Default FALSE
-	 */
 	function __construct( $useZipFile = false ) {
 		if ( $useZipFile ) {
 			$this->zipFile = tmpfile();
@@ -119,12 +101,6 @@ class wpml_zip {
 		$this->zipData = null;
 	}
 
-	/**
-	 * Set Zip archive comment.
-	 *
-	 * @param string $newComment New comment. NULL to clear.
-	 * @return bool $success
-	 */
 	public function setComment( $newComment = null ) {
 		if ( $this->isFinalized ) {
 			return false;
@@ -134,15 +110,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Set zip file to write zip data to.
-	 * This will cause all present and future data written to this class to be written to this file.
-	 * This can be used at any time, even after the Zip Archive have been finalized. Any previous file will be closed.
-	 * Warning: If the given file already exists, it will be overwritten.
-	 *
-	 * @param string $fileName
-	 * @return bool $success
-	 */
 	public function setZipFile( $fileName ) {
 		if ( is_file( $fileName ) ) {
 			unlink( $fileName );
@@ -169,16 +136,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Add an empty directory entry to the zip archive.
-	 * Basically this is only used if an empty directory is added.
-	 *
-	 * @param string $directoryPath Directory Path and name to be added to the archive.
-	 * @param int    $timestamp     (Optional) Timestamp for the added directory, if omitted or set to 0, the current time will be used.
-	 * @param string $fileComment   (Optional) Comment to be added to the archive for this directory. To use fileComment, timestamp must be given.
-	 * @param int    $extFileAttr   (Optional) The external file reference, use generateExtAttr to generate this.
-	 * @return bool $success
-	 */
 	public function addDirectory( $directoryPath, $timestamp = 0, $fileComment = null, $extFileAttr = self::EXT_FILE_ATTR_DIR ) {
 		if ( $this->isFinalized ) {
 			return false;
@@ -193,17 +150,6 @@ class wpml_zip {
 		return false;
 	}
 
-	/**
-	 * Add a file to the archive at the specified location and file name.
-	 *
-	 * @param string $data        File data.
-	 * @param string $filePath    Filepath and name to be used in the archive.
-	 * @param int    $timestamp   (Optional) Timestamp for the added file, if omitted or set to 0, the current time will be used.
-	 * @param string $fileComment (Optional) Comment to be added to the archive for this file. To use fileComment, timestamp must be given.
-	 * @param bool   $compress    (Optional) Compress file, if set to FALSE the file will only be stored. Default TRUE.
-	 * @param int    $extFileAttr (Optional) The external file reference, use generateExtAttr to generate this.
-	 * @return bool $success
-	 */
 	public function addFile( $data, $filePath, $timestamp = 0, $fileComment = null, $compress = true, $extFileAttr = self::EXT_FILE_ATTR_FILE ) {
 		if ( $this->isFinalized ) {
 			return false;
@@ -215,8 +161,8 @@ class wpml_zip {
 		}
 
 		$gzData     = '';
-		$gzType     = "\x08\x00"; // Compression type 8 = deflate
-		$gpFlags    = "\x00\x00"; // General Purpose bit flags for compression type 8 it is: 0=Normal, 1=Maximum, 2=Fast, 3=super fast compression.
+		$gzType     = "\x08\x00";
+		$gpFlags    = "\x00\x00";
 		$dataLength = strlen( $data );
 		$fileCRC32  = pack( 'V', crc32( $data ) );
 
@@ -229,8 +175,7 @@ class wpml_zip {
 			if ( ! $gzTmp ) {
 				return false;
 			}
-			$gzData = substr( $gzTmp, 2 ); // gzcompress adds a 2 byte header and 4 byte CRC we can't use.
-			// The 2 byte header does contain useful data, though in this case the 2 parameters we'd be interrested in will always be 8 for compression type, and 2 for General purpose flag.
+			$gzData = substr( $gzTmp, 2 );
 			$gzLength = strlen( $gzData );
 		} else {
 			$gzLength = $dataLength;
@@ -239,8 +184,8 @@ class wpml_zip {
 		if ( $gzLength >= $dataLength ) {
 			$gzLength = $dataLength;
 			$gzData   = $data;
-			$gzType   = "\x00\x00"; // Compression type 0 = stored
-			$gpFlags  = "\x00\x00"; // Compression type 0 = stored
+			$gzType   = "\x00\x00";
+			$gpFlags  = "\x00\x00";
 		}
 
 		if ( ! is_resource( $this->zipFile ) && ( $this->offset + $gzLength ) > $this->zipMemoryThreshold ) {
@@ -254,16 +199,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Add a file to the archive at the specified location and file name.
-	 *
-	 * @param string $dataFile    File name/path.
-	 * @param string $filePath    Filepath and name to be used in the archive.
-	 * @param int    $timestamp   (Optional) Timestamp for the added file, if omitted or set to 0, the current time will be used.
-	 * @param string $fileComment (Optional) Comment to be added to the archive for this file. To use fileComment, timestamp must be given.
-	 * @param int    $extFileAttr (Optional) The external file reference, use generateExtAttr to generate this.
-	 * @return bool $success
-	 */
 	public function addLargeFile( $dataFile, $filePath, $timestamp = 0, $fileComment = null, $extFileAttr = self::EXT_FILE_ATTR_FILE ) {
 		if ( $this->isFinalized ) {
 			return false;
@@ -286,16 +221,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Create a stream to be used for large entries.
-	 *
-	 * @param string $filePath    Filepath and name to be used in the archive.
-	 * @param int    $timestamp   (Optional) Timestamp for the added file, if omitted or set to 0, the current time will be used.
-	 * @param string $fileComment (Optional) Comment to be added to the archive for this file. To use fileComment, timestamp must be given.
-	 * @param int    $extFileAttr (Optional) The external file reference, use generateExtAttr to generate this.
-	 * @throws Exception Throws an exception in case of errors
-	 * @return bool $success
-	 */
 	public function openStream( $filePath, $timestamp = 0, $fileComment = null, $extFileAttr = self::EXT_FILE_ATTR_FILE ) {
 		if ( ! function_exists( 'sys_get_temp_dir' ) ) {
 			throw new Exception( 'Zip ' . self::VERSION . ' requires PHP version 5.2.1 or above if large files are used.' );
@@ -322,13 +247,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Add data to the open stream.
-	 *
-	 * @param string $data
-	 * @throws Exception Throws an exception in case of errors
-	 * @return mixed length in bytes added or FALSE if the archive is finalized or there are no open stream.
-	 */
 	public function addStreamData( $data ) {
 		if ( $this->isFinalized || strlen( $this->streamFilePath ) == 0 ) {
 			return false;
@@ -343,11 +261,6 @@ class wpml_zip {
 		return $length;
 	}
 
-	/**
-	 * Close the current stream.
-	 *
-	 * @return bool $success
-	 */
 	public function closeStream() {
 		if ( $this->isFinalized || strlen( $this->streamFilePath ) == 0 ) {
 			return false;
@@ -365,7 +278,6 @@ class wpml_zip {
 		$this->streamFileLength  = 0;
 		$this->streamExtFileAttr = null;
 
-		// Windows is a little slow at times, so a millisecond later, we can unlink this.
 		unlink( $this->streamFile );
 
 		$this->streamFile = null;
@@ -426,12 +338,6 @@ class wpml_zip {
 		unlink( $tempzip );
 	}
 
-	/**
-	 * Close the archive.
-	 * A closed archive can no longer have new files added to it.
-	 *
-	 * @return bool $success
-	 */
 	public function finalize() {
 		if ( ! $this->isFinalized ) {
 			if ( isset( $this->streamFilePath ) && strlen( $this->streamFilePath ) > 0 ) {
@@ -459,12 +365,6 @@ class wpml_zip {
 		return false;
 	}
 
-	/**
-	 * Get the zip file contents
-	 * If the zip haven't been finalized yet, this will cause it to become finalized
-	 *
-	 * @return string data
-	 */
 	public function getZipData() {
 		if ( ! $this->isFinalized ) {
 			$this->finalize();
@@ -478,16 +378,6 @@ class wpml_zip {
 		}
 	}
 
-	/**
-	 * Send the archive as a zip download
-	 *
-	 * @param String $fileName The name of the Zip archive, in ISO-8859-1 (or ASCII) encoding, ie. "archive.zip". Optional, defaults to NULL, which means that no ISO-8859-1 encoded file name will be specified.
-	 * @param String $contentType Content mime type. Optional, defaults to "application/zip".
-	 * @param String $utf8FileName The name of the Zip archive, in UTF-8 encoding. Optional, defaults to NULL, which means that no UTF-8 encoded file name will be specified.
-	 * @param bool   $inline Use Content-Disposition with "inline" instead of "attached". Optional, defaults to FALSE.
-	 * @throws Exception Throws an exception in case of errors
-	 * @return bool Always returns true (for backward compatibility).
-	 */
 	function sendZip( $fileName = null, $contentType = 'application/zip', $utf8FileName = null, $inline = false ) {
 		if ( ! $this->isFinalized ) {
 			$this->finalize();
@@ -534,11 +424,6 @@ class wpml_zip {
 		return true;
 	}
 
-	/**
-	 * Return the current size of the archive
-	 *
-	 * @return $size Size of the archive
-	 */
 	public function getArchiveSize() {
 		if ( ! is_resource( $this->zipFile ) ) {
 			return strlen( $this->zipData );
@@ -548,12 +433,6 @@ class wpml_zip {
 		return $filestat['size'];
 	}
 
-	/**
-	 * Calculate the 2 byte dostime used in the zip entries.
-	 *
-	 * @param int $timestamp
-	 * @return 2-byte encoded DOS Date
-	 */
 	private function getDosTime( $timestamp = 0 ) {
 		$timestamp = (int) $timestamp;
 		$oldTZ     = @date_default_timezone_get();
@@ -570,19 +449,6 @@ class wpml_zip {
 		return "\x00\x00\x00\x00";
 	}
 
-	/**
-	 * Build the Zip file structures
-	 *
-	 * @param string       $filePath
-	 * @param string       $fileComment
-	 * @param string|false $gpFlags
-	 * @param string|false $gzType
-	 * @param int          $timestamp
-	 * @param string|false $fileCRC32
-	 * @param int          $gzLength
-	 * @param int          $dataLength
-	 * @param int          $extFileAttr Use self::EXT_FILE_ATTR_FILE for files, self::EXT_FILE_ATTR_DIR for Directories.
-	 */
 	private function buildZipEntry( $filePath, $fileComment, $gpFlags, $gzType, $timestamp, $fileCRC32, $gzLength, $dataLength, $extFileAttr ) {
 		$filePath          = str_replace( '\\', '/', $filePath );
 		$fileCommentLength = ( empty( $fileComment ) ? 0 : strlen( $fileComment ) );
@@ -626,7 +492,7 @@ class wpml_zip {
 				$centralExtraField .= $utfPathExtraField;
 			}
 			if ( $isCommentUTF8 ) {
-				$centralExtraField .= "\x75\x63" // utf8 encoded file comment extra field
+				$centralExtraField .= "\x75\x63"
 					. pack( 'v', ( 5 + strlen( $fileComment ) ) )
 					. "\x01"
 					. pack( 'V', crc32( $fileComment ) )
@@ -635,14 +501,14 @@ class wpml_zip {
 		}
 
 		$header = $gpFlags . $gzType . $dosTime . $fileCRC32
-			. pack( 'VVv', $gzLength, $dataLength, strlen( $filePath ) ); // File name length
+			. pack( 'VVv', $gzLength, $dataLength, strlen( $filePath ) );
 
 		$zipEntry = self::ZIP_LOCAL_FILE_HEADER
 			. self::ATTR_VERSION_TO_EXTRACT
 			. $header
-			. pack( 'v', strlen( $localExtraField ) ) // Extra field length
-			. $filePath // FileName
-			. $localExtraField; // Extra fields
+			. pack( 'v', strlen( $localExtraField ) )
+			. $filePath
+			. $localExtraField;
 
 		$this->zipwrite( $zipEntry );
 
@@ -650,17 +516,17 @@ class wpml_zip {
 			. self::ATTR_MADE_BY_VERSION
 			. ( $dataLength === 0 ? "\x0A\x00" : self::ATTR_VERSION_TO_EXTRACT )
 			. $header
-			. pack( 'v', strlen( $centralExtraField ) ) // Extra field length
-			. pack( 'v', $fileCommentLength ) // File comment length
-			. "\x00\x00" // Disk number start
-			. "\x00\x00" // internal file attributes
-			. pack( 'V', $extFileAttr ) // External file attributes
-			. pack( 'V', $this->offset ) // Relative offset of local header
-			. $filePath // FileName
-			. $centralExtraField; // Extra fields
+			. pack( 'v', strlen( $centralExtraField ) )
+			. pack( 'v', $fileCommentLength )
+			. "\x00\x00"
+			. "\x00\x00"
+			. pack( 'V', $extFileAttr )
+			. pack( 'V', $this->offset )
+			. $filePath
+			. $centralExtraField;
 
 		if ( ! empty( $fileComment ) ) {
-			$cdEntry .= $fileComment; // Comment
+			$cdEntry .= $fileComment;
 		}
 
 		$this->cdRec[] = $cdEntry;
@@ -684,11 +550,6 @@ class wpml_zip {
 		}
 	}
 
-	/**
-	 * Returns the path to a temporary file.
-	 *
-	 * @return string
-	 */
 	private static function getTemporaryFile() {
 		if ( is_callable( self::$temp ) ) {
 			$temporaryFile = @call_user_func( self::$temp );

@@ -9,9 +9,6 @@ class OTGS_Installer_Support_Template {
 	private $logger_storage;
 	private $requirements;
 
-	/**
-	 * @var OTGS_Installer_Instances
-	 */
 	private $instances;
 
 	public function __construct(
@@ -46,9 +43,6 @@ class OTGS_Installer_Support_Template {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_model() {
 		$model = array(
 			'log_entries'  => $this->get_log_entries(),
@@ -91,7 +85,6 @@ class OTGS_Installer_Support_Template {
 						'description' => __( 'Toolset API server', 'installer' )
 					),
 				),
-				/** @phpstan-ignore-next-line  */
 				'nonce'     => wp_nonce_field( OTGS_Installer_Connection_Test_Ajax::ACTION, OTGS_Installer_Connection_Test_Ajax::ACTION, false ),
 			),
 			'requirements' => $this->requirements->get(),
@@ -101,9 +94,6 @@ class OTGS_Installer_Support_Template {
 		return $model;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_log_entries() {
 		$log_entries = array();
 

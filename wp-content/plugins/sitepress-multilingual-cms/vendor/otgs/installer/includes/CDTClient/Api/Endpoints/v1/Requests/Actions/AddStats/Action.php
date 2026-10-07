@@ -11,7 +11,6 @@ class Action {
 
 	const NAME = 'add_stats';
 
-	/** @var Request */
 	private $request;
 
 	public function __construct( Request $request ) {

@@ -5,13 +5,6 @@ namespace OTGS\Installer\CDTClient\Api;
 class Request {
 
 
-	/**
-	 * @param ValidatorInterface $validator
-	 * @param string $url
-	 * @param array $body
-	 *
-	 * @return Response
-	 */
 	public function post( ValidatorInterface $validator, $url, $body ) {
 
 		$validationResult = $validator->validate();

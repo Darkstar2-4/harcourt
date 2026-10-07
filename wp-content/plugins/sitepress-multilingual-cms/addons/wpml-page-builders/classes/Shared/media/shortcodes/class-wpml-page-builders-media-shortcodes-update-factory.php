@@ -2,10 +2,8 @@
 
 class WPML_Page_Builders_Media_Shortcodes_Update_Factory extends WPML_Page_Builders_Media_Update_Factory {
 
-	/** @var WPML_PB_Config_Import_Shortcode WPML_PB_Config_Import_Shortcode */
 	private $page_builder_config_import;
 
-	/** @var WPML_Translation_Element_Factory|null $element_factory */
 	private $element_factory;
 
 	public function __construct( WPML_PB_Config_Import_Shortcode $page_builder_config_import ) {
@@ -27,7 +25,6 @@ class WPML_Page_Builders_Media_Shortcodes_Update_Factory extends WPML_Page_Build
 		);
 	}
 
-	/** @return WPML_Translation_Element_Factory */
 	private function get_element_factory() {
 		global $sitepress;
 

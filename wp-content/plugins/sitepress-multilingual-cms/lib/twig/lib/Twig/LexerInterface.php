@@ -13,24 +13,7 @@ namespace WPML\Core;
 use WPML\Core\Twig\Error\SyntaxError;
 use WPML\Core\Twig\Source;
 use WPML\Core\Twig\TokenStream;
-/**
- * Interface implemented by lexer classes.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- *
- * @deprecated since 1.12 (to be removed in 3.0)
- */
 interface Twig_LexerInterface
 {
-    /**
-     * Tokenizes a source code.
-     *
-     * @param string|Source $code The source code
-     * @param string        $name A unique identifier for the source code
-     *
-     * @return TokenStream
-     *
-     * @throws SyntaxError When the code is syntactically wrong
-     */
     public function tokenize($code, $name = null);
 }

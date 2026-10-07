@@ -8,7 +8,6 @@ class ReviewMode {
   const PUBLISH_AND_REVIEW = 'publish-and-review';
   const PUBLISH_WITHOUT_REVIEW = 'no-review';
 
-  /** @var string */
   private $value;
 
 

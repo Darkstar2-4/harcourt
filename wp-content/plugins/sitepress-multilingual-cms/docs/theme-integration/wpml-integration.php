@@ -1,14 +1,5 @@
 <?php
 
-// HOME URL
-// USAGE: replace references to the blog home url such as:
-// - get_option('home')
-// - bloginfo('home')
-// - bloginfo('url')
-// - get_bloginfo('url')
-// - etc...
-// with wpml_get_home_url()
-// * IMPORTANT: Most themes also add a trailing slash (/) to the URL. This function already includes it, so don't add the slash when using it.
 function wpml_get_home_url() {
 	if ( function_exists( 'icl_get_home_url' ) ) {
 		return icl_get_home_url();
@@ -19,11 +10,6 @@ function wpml_get_home_url() {
 
 
 
-// LANGUAGE SELECTOR
-// USAGE place this on the single.php, page.php, index.php etc... - inside the loop
-// function wpml_content_languages($args)
-// args: skip_missing, before, after
-// defaults: skip_missing = 1, before =  __('This post is also available in: '), after = ''
 function wpml_content_languages( $args = '' ) {
 	$before          = null;
 	$after           = null;
@@ -53,9 +39,6 @@ function wpml_content_languages( $args = '' ) {
 }
 
 
-// LINKS TO SPECIFIC ELEMENTS
-// USAGE
-// args: $element_id, $element_type='post', $link_text='', $optional_parameters=array(), $anchor='', $echoit = true
 function wpml_link_to_element( $element_id, $element_type = 'post', $link_text = '', $optional_parameters = array(), $anchor = '', $echoit = true ) {
 	if ( ! function_exists( 'icl_link_to_element' ) ) {
 		switch ( $element_type ) {
@@ -90,8 +73,6 @@ function wpml_link_to_element( $element_id, $element_type = 'post', $link_text =
 	}
 }
 
-// Languages links to display in the footer
-//
 function wpml_languages_list( $skip_missing = 0, $div_id = 'footer_language_list' ) {
 	if ( function_exists( 'icl_get_languages' ) ) {
 		$languages = icl_get_languages( 'skip_missing=' . intval( $skip_missing ) );

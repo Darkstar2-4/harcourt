@@ -19,19 +19,9 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationEditorType;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-import-type TranslationRow from TranslationRepository
- *
- */
 class TranslationResultMapper {
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return Translation
-   * @throws InvalidArgumentException
-   */
   public function mapRow( array $row ): Translation {
     $job = null;
     if ( $row['job_id'] && $row['batch_id'] && $row['editor'] ) {
@@ -83,11 +73,6 @@ class TranslationResultMapper {
   }
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return TranslationMethodInterface
-   */
   private function mapMethod( array $row ): TranslationMethodInterface {
     if ( $row['automatic'] ) {
       $method = new AutomaticMethod();
@@ -102,12 +87,6 @@ class TranslationResultMapper {
   }
 
 
-  /**
-   * @phpstan-param  TranslationRow $row
-   *
-   * @return TranslationType
-   * @throws InvalidArgumentException
-   */
   private function mapType( array $row ): TranslationType {
     $type = substr(
       $row['element_type'],

@@ -8,13 +8,10 @@ use WPML\UserInterface\Web\Infrastructure\WordPress\Events\Translation\StartUsin
 
 class Events {
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var BackFromATEManualTranslationListener|null */
   private $backFromATEManualTranslationListener;
 
-  /** @var TranslationCreatedInDashboardListener|null */
   private $translationCreatedInDashboardListener;
 
 
@@ -24,11 +21,6 @@ class Events {
   }
 
 
-  /**
-   * @psalm-suppress HookNotFound The hooks can't be found because they are
-   * called using a variable: do_action( $hookName ).
-   * @return void
-   */
   public function register() {
     add_action(
       'wpml_on_back_from_ate_manual_translation',

@@ -8,13 +8,6 @@ class SyDESInstaller extends BaseInstaller
         'theme'  => 'themes/{$name}/',
     );
 
-    /**
-     * Format module name.
-     *
-     * Strip `sydes-` prefix and a trailing '-theme' or '-module' from package name if present.
-     *
-     * {@inerhitDoc}
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] == 'sydes-module') {

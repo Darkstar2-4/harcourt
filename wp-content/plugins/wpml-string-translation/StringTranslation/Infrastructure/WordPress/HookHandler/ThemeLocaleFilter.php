@@ -8,7 +8,6 @@ class ThemeLocaleFilter extends AbstractFilterHookHandler {
 	const FILTER_ARGS = 2;
 	const FILTER_PRIORITY = 0;
 
-	/** @var LoadedTextdomainRepositoryInterface */
 	private $loadedTextdomainRepository;
 
 	public function __construct(

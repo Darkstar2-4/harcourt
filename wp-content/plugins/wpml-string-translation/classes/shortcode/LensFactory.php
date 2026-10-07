@@ -13,12 +13,9 @@ use function WPML\FP\pipe;
 class LensFactory {
 
 	public static function createLensForJobData() {
-		// $get :: array->string[]
 		$get = pipe( Obj::path( [ 'fields' ] ), Lst::pluck( 'data' ) );
 
-		// $set :: string[]->array->array
 		$set = function ( $newValue, $jobData ) {
-			/** @var array $newValue */
 			$newValue = Obj::objOf( 'fields', Fns::map( Obj::objOf( 'data' ), $newValue ) );
 
 			return Obj::replaceRecursive( $newValue, $jobData );
@@ -28,13 +25,10 @@ class LensFactory {
 	}
 
 	public static function createLensForProxyTranslations() {
-		// $getTranslations :: \WPML_TP_Translation_Collection->\WPML_TP_Translation[]
 		$getTranslations = pipe( invoke( 'to_array' ), Obj::prop( 'translations' ) );
 
-		// $get :: \WPML_TP_Translation_Collection->string[]
 		$get = pipe( $getTranslations, Fns::map( Obj::prop( 'target' ) ) );
 
-		// $set :: string[]->\WPML_TP_Translation_Collection->\WPML_TP_Translation_Collection
 		$set = function ( array $translations, \WPML_TP_Translation_Collection $tpTranslations ) use ( $getTranslations ) {
 			$buildNewTranslations = pipe(
 				$getTranslations,
@@ -66,10 +60,8 @@ class LensFactory {
 	}
 
 	public static function createLensForAssignIdInCTE() {
-		// $get :: array->string[]
 		$get = Fns::map( Obj::prop( 'field_data' ) );
 
-		// $set :: string[]->array->array
 		$set = function ( $updatedTranslations, $fields ) {
 			$newValue = Fns::map( Obj::objOf( 'field_data' ), $updatedTranslations );
 

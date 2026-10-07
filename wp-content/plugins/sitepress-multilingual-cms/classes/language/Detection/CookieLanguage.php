@@ -3,26 +3,15 @@
 namespace WPML\Language\Detection;
 
 class CookieLanguage {
-	/** @var \WPML_Cookie */
 	private $cookie;
 
-	/** @var string */
 	private $defaultLanguage;
 
-	/**
-	 * @param  \WPML_Cookie $cookie
-	 * @param  string       $defaultLanguage
-	 */
 	public function __construct( \WPML_Cookie $cookie, $defaultLanguage ) {
 		$this->cookie          = $cookie;
 		$this->defaultLanguage = $defaultLanguage;
 	}
 
-	/**
-	 * @param bool $isBackend
-	 *
-	 * @return string
-	 */
 	public function getAjaxCookieName( $isBackend ) {
 		return $isBackend ? $this->getBackendCookieName() : $this->getFrontendCookieName();
 	}
@@ -83,26 +72,17 @@ class CookieLanguage {
 		do_action( 'wpml_language_cookie_added', $lang_code );
 	}
 
-	/**
-	 * @return bool|string
-	 */
 	public function get_cookie_domain() {
 
 		return defined( 'COOKIE_DOMAIN' ) ? COOKIE_DOMAIN : self::get_server_host_name();
 	}
 
-	/**
-	 * Returns SERVER_NAME, or HTTP_HOST if the first is not available
-	 *
-	 * @return string
-	 */
 	private static function get_server_host_name() {
 		$host = '';
 		if ( isset( $_SERVER['HTTP_HOST'] ) ) {
 			$host = $_SERVER['HTTP_HOST'];
 		} elseif ( isset( $_SERVER['SERVER_NAME'] ) ) {
 			$host = $_SERVER['SERVER_NAME'] . self::get_port();
-			// Removes standard ports 443 (80 should be already omitted in all cases)
 			$host = preg_replace( '@:[443]+([/]?)@', '$1', $host );
 		}
 

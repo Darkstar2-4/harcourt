@@ -14,15 +14,10 @@ namespace WPML\Core\Twig\Node;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
 use WPML\Core\Twig\Node\Expression\AssignNameExpression;
-/**
- * Represents a for node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ForNode extends \WPML\Core\Twig\Node\Node
 {
     protected $loop;
-    public function __construct(\WPML\Core\Twig\Node\Expression\AssignNameExpression $keyTarget, \WPML\Core\Twig\Node\Expression\AssignNameExpression $valueTarget, \WPML\Core\Twig\Node\Expression\AbstractExpression $seq, \WPML\Core\Twig\Node\Expression\AbstractExpression $ifexpr = null, \WPML\Core\Twig_NodeInterface $body, \WPML\Core\Twig_NodeInterface $else = null, $lineno, $tag = null)
+    public function __construct(\WPML\Core\Twig\Node\Expression\AssignNameExpression $keyTarget, \WPML\Core\Twig\Node\Expression\AssignNameExpression $valueTarget, \WPML\Core\Twig\Node\Expression\AbstractExpression $seq, ?\WPML\Core\Twig\Node\Expression\AbstractExpression $ifexpr = null, ?\WPML\Core\Twig_NodeInterface $body = null, ?\WPML\Core\Twig_NodeInterface $else = null, $lineno = 0, $tag = null)
     {
         $body = new \WPML\Core\Twig\Node\Node([$body, $this->loop = new \WPML\Core\Twig\Node\ForLoopNode($lineno, $tag)]);
         if (null !== $ifexpr) {
@@ -54,9 +49,7 @@ class ForNode extends \WPML\Core\Twig\Node\Node
             $compiler->write("if (!\$context['_iterated']) {\n")->indent()->subcompile($this->getNode('else'))->outdent()->write("}\n");
         }
         $compiler->write("\$_parent = \$context['_parent'];\n");
-        // remove some "private" loop variables (needed for nested loops)
         $compiler->write('unset($context[\'_seq\'], $context[\'_iterated\'], $context[\'' . $this->getNode('key_target')->getAttribute('name') . '\'], $context[\'' . $this->getNode('value_target')->getAttribute('name') . '\'], $context[\'_parent\'], $context[\'loop\']);' . "\n");
-        // keep the values set in the inner context for variables defined in the outer context
         $compiler->write("\$context = array_intersect_key(\$context, \$_parent) + \$_parent;\n");
     }
 }

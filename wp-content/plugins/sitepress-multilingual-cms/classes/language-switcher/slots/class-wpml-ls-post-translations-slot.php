@@ -2,9 +2,6 @@
 
 class WPML_LS_Post_Translations_Slot extends WPML_LS_Slot {
 
-	/**
-	 * @return array
-	 */
 	protected function get_allowed_properties() {
 		$allowed_properties = array(
 			'display_before_content' => array( 'type' => 'int', 'force_missing_to' => 0 ),

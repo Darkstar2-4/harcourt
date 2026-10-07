@@ -1,39 +1,14 @@
 <?php
 
 class WPML_Translation_Management_Filters_And_Actions {
-	/**
-	 * @var  SitePress $sitepress
-	 */
 	private $sitepress;
-	/**
-	 * @var \AbsoluteLinks
-	 */
 	private $absolute_links;
-	/**
-	 * @var \WPML_Absolute_To_Permalinks
-	 */
 	private $permalinks_converter;
-	/**
-	 * @var \WPML_Translate_Link_Targets_In_Custom_Fields
-	 */
 	private $translate_links_in_custom_fields;
-	/**
-	 * @var \WPML_Translate_Link_Targets_In_Custom_Fields_Hooks
-	 */
 	private $translate_links_in_custom_fields_hooks;
-	/**
-	 * @var \WPML_Translate_Link_Targets
-	 */
 	private $translate_link_target;
-	/**
-	 * @var \WPML_Translate_Link_Targets_Hooks
-	 */
 	private $translate_link_target_hooks;
 
-	/**
-	 * @param TranslationManagement $tm_instance
-	 * @param \SitePress            $sitepress
-	 */
 	public function __construct( $tm_instance, $sitepress ) {
 		$this->sitepress = $sitepress;
 		$wp_api          = $this->sitepress->get_wp_api();

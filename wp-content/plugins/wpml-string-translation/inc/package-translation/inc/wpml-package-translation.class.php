@@ -10,7 +10,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		add_action( 'wpml_loaded', array( $this, 'loaded' ), $this->load_priority, 1 );
 	}
 
-	function loaded( SitePress $sitepress = null ) {
+	function loaded( ?SitePress $sitepress = null ) {
 		parent::loaded();
 
 		if ( null === $sitepress ) {
@@ -42,20 +42,16 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 			add_action( 'wp_ajax_wpml_delete_packages', array( $this, 'delete_packages_ajax' ) );
 			add_action( 'wp_ajax_wpml_change_package_lang', array( $this, 'change_package_lang_ajax' ) );
 
-			/* Core hooks */
 			add_filter( 'wpml_pt_all_packages', array( $this, 'get_all_packages' ) );
 
-			/* Translation hooks for other plugins to use */
 			add_filter( 'wpml_tm_element_type', array( $this, 'get_element_type' ), 10, 2 );
 			add_filter( 'wpml_tm_dashboard_title_locations', array( $this, 'add_title_db_location' ), 10, 1 );
 
 			add_filter( 'wpml_string_title_from_id', array( $this, 'string_title_from_id_filter' ), 10, 2 );
-			// TODO: deprecated, use the 'wpml_register_string' action
 			add_filter( 'WPML_register_string', array( $this, 'register_string_for_translation' ), 10, 5 );
 
 			add_action( 'wpml_add_string_translation', array( $this, 'add_string_translation_action' ), 10, 7 );
 
-			// TODO: These 3 hooks are deprecated. They are needed for Layouts 1.0. Consider removing them after Layouts 1.2 is released
 			add_filter( 'WPML_get_translated_strings', array( $this, 'get_translated_strings' ), 10, 2 );
 			add_action( 'WPML_set_translated_strings', array( $this, 'set_translated_strings' ), 10, 2 );
 			add_action( 'WPML_show_package_language_ui', array( $this, 'show_language_selector' ), 10, 2 );
@@ -65,7 +61,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 			add_action( 'wpml_show_package_language_ui', array( $this, 'show_language_selector' ), 10, 2 );
 			add_action( 'wpml_show_package_language_admin_bar', array( $this, 'show_admin_bar_language_selector' ), 10, 2 );
 
-			/* WPML hooks */
 			add_filter( 'wpml_active_string_package_kinds', array( $this, 'get_active_string_package_kinds' ) );
 			add_filter( 'wpml_get_translatable_types', array( $this, 'get_translatable_types' ), 10, 1 );
 			add_filter( 'wpml_get_translatable_item', array( $this, 'get_translatable_item' ), 10, 3 );
@@ -79,21 +74,13 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 			add_filter( 'wpml_st_get_string_package', array( $this, 'get_string_package' ), 10, 2 );
 			add_action( 'wpml_save_external', [ $this, 'save_package_translations' ], 10, 3 );
 
-			/* Translation queue hooks */
 			add_filter( 'wpml_tm_external_translation_job_title', array( $this, 'get_post_title' ), 10, 2 );
 
-			/*
-			 TM Hooks */
-			// This is called by \TranslationManagement::send_all_jobs - The hook is dynamically built.
 			add_filter( 'wpml_tm_dashboard_sql', array( $this, 'tm_dashboard_sql_filter' ), 10, 1 );
 
-			/* Translation editor hooks */
 			add_filter( 'wpml_tm_editor_string_name', array( $this, 'get_editor_string_name' ), 10, 2 );
 			add_filter( 'wpml_tm_editor_string_style', array( $this, 'get_editor_string_style' ), 10, 3 );
 
-			/*
-			 API Hooks */
-			// @deprecated @since 3.2 Use 'wpml_delete_package'
 			add_action( 'wpml_delete_package_action', array( $this, 'delete_package_action' ), 10, 2 );
 
 			add_action( 'deleted_post', array( $this, 'remove_post_packages' ) );
@@ -106,7 +93,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 
 	private function add_global_hooks() {
 
-		// TODO: deprecated, use the 'wpml_translate_string' filter
 		add_filter( 'WPML_translate_string', array( $this, 'translate_string' ), 10, 3 );
 		add_filter( 'wpml_translate_string', array( $this, 'translate_string' ), 10, 3 );
 
@@ -118,7 +104,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 
 		add_filter( 'wpml_string_id_from_package', array( $this, 'string_id_from_package_filter' ), 10, 4 );
 
-		/* API Hooks */
 		add_filter( 'wpml_is_external', array( $this, 'is_external' ), 10, 2 );
 	}
 
@@ -128,9 +113,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function passed_dependencies() {
 		return defined( 'ICL_SITEPRESS_VERSION' )
 			   && defined( 'WPML_ST_VERSION' )
@@ -154,7 +136,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		$package = new WPML_Package( $post_id );
 		if ( ! $package ) {
 			return false;
-		} //not ours
+		}
 		if ( isset( $package->edit_link ) ) {
 			$url = $package->edit_link;
 		}
@@ -166,7 +148,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		$package = new WPML_Package( $id );
 		if ( ! $package ) {
 			return $title;
-		} //not ours
+		}
 		if ( isset( $package->title ) ) {
 			$title = $package->title;
 		}
@@ -178,7 +160,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		$package = new WPML_Package( $post_id );
 		if ( ! $package ) {
 			return $link;
-		} //not ours
+		}
 		return $this->build_package_link( $package->view_link, $package->title, $hide_if_missing_link );
 	}
 
@@ -186,7 +168,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		$package = new WPML_Package( $post_id );
 		if ( ! $package ) {
 			return $link;
-		} //not ours
+		}
 		return $this->build_package_link( $package->edit_link, esc_html( $package->title ), $hide_if_missing_link );
 	}
 
@@ -203,10 +185,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		return $link;
 	}
 
-	/**
-	 * @param stdClass|WPML_Package|array|int $package
-	 * @param array<string,mixed>             $args
-	 */
 	function show_language_selector( $package, $args = array() ) {
 		global $wpdb, $sitepress;
 
@@ -214,20 +192,11 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		echo $wpml_pt_meta->get_metabox();
 	}
 
-	/**
-	 * @param stdClass|WPML_Package|array|int $package
-	 * @param array<string,mixed>             $args
-	 */
 	function show_admin_bar_language_selector( $package, $args = array() ) {
 		require WPML_PACKAGE_TRANSLATION_PATH . '/inc/wpml-package-admin-lang-switcher.class.php';
 		$this->admin_lang_switcher = new WPML_Package_Admin_Lang_Switcher( $package, $args );
 	}
 
-	/**
-	 * @param array<string,string> $package_target_languages
-	 *
-	 * @return array<string>
-	 */
 	private function languages_to_csv( $package_target_languages ) {
 		global $sitepress;
 
@@ -251,11 +220,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		return $type;
 	}
 
-	/**
-	 * @param array<string,string> $attributes
-	 *
-	 * @return string
-	 */
 	public function attributes_to_string( $attributes ) {
 		$result = '';
 		foreach ( $attributes as $key => $value ) {
@@ -268,11 +232,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		return $result;
 	}
 
-	/**
-	 * @param string $kind_slug
-	 *
-	 * @return string
-	 */
 	public static function get_package_element_type( $kind_slug ) {
 		if ( is_object( $kind_slug ) ) {
 			$kind_slug = $kind_slug->kind_slug;
@@ -284,53 +243,27 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		return 'package_' . $kind_slug;
 	}
 
-	/**
-	 * @param array<string,string> $package
-	 *
-	 * @return bool
-	 */
 	public function package_has_kind( $package ) {
 		return isset( $package['kind'] ) && $package['kind'];
 	}
 
-	/**
-	 * @param array<string,string> $package
-	 *
-	 * @return bool
-	 */
 	public function package_has_name( $package ) {
 		return isset( $package['name'] ) && $package['name'];
 	}
 
-	/**
-	 * @param array<string,string> $package
-	 *
-	 * @return bool
-	 */
 	public function package_has_title( $package ) {
 		return isset( $package['title'] ) && $package['title'];
 	}
 
-	/**
-	 * @param array<string,string> $package
-	 *
-	 * @return bool
-	 */
 	public function package_has_kind_and_name( $package ) {
 		return $this->package_has_kind( $package ) && $this->package_has_name( $package );
 	}
 
-	/**
-	 * @param string $string_name
-	 *
-	 * @return mixed
-	 */
 	public function sanitize_string_with_underscores( $string_name ) {
 		return preg_replace( '/[ \[\]]+/', '_', $string_name );
 	}
 
 	function new_external_item( $type, $package_item, $get_string_data = false ) {
-		// create a new external item for the Translation Dashboard or for translation jobs
 
 		$package_id = $package_item['ID'];
 
@@ -368,7 +301,7 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 			}
 		}
 
-		return false; // not a package type
+		return false;
 	}
 
 	function _get_package_strings( $package_item ) {
@@ -387,7 +320,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 			$strings[ $string_name ] = $result->value;
 		}
 
-		// Add/update any registered strings
 		if ( isset( $this->registered_strings[ $package_item_id ]['strings'] ) ) {
 			foreach ( $this->registered_strings[ $package_item_id ]['strings'] as $id => $string_data ) {
 				$strings[ $id ] = $string_data['value'];
@@ -533,9 +465,6 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 		return $sql;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_refresh_required() {
 		$refresh_required = get_option( 'wpml-package-translation-refresh-required', 'yes' );
 		return 'yes' === $refresh_required || '1' === $refresh_required;
@@ -552,15 +481,8 @@ class WPML_Package_Translation extends WPML_Package_Helper {
 
 			foreach ( $job->elements as $field ) {
 				if ( $field->field_translate ) {
-					/**
-					 * @param string    $element_type_prefix
-					 * @param \stdClass $field
-					 * @param \stdClass $job
-					 *
-					 * @return string
-					 */
 					$field_context = apply_filters( 'wpml_save_external_package_field_context', $element_type_prefix, $field, $job );
-					$string_id = icl_st_is_registered_string( $field_context, $field->field_type );
+					$string_id     = icl_st_is_registered_string( $field_context, $field->field_type );
 					if ( ! $string_id ) {
 						icl_register_string( $field_context, $field->field_type, $decoder( $field->field_data, $field->field_format ) );
 						$string_id = icl_st_is_registered_string( $field_context, $field->field_type );

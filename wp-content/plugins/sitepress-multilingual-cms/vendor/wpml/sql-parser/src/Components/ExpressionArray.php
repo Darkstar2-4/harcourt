@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Parses a list of expressions delimited by a comma.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,46 +17,19 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class ExpressionArray extends Component
 {
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return Expression[]
-     * @throws \PhpMyAdmin\SqlParser\Exceptions\ParserException
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = array();
 
-        /**
-         * The state of the parser.
-         *
-         * Below are the states of the parser.
-         *
-         *      0 ----------------------[ array ]---------------------> 1
-         *
-         *      1 ------------------------[ , ]------------------------> 0
-         *      1 -----------------------[ else ]----------------------> (END)
-         *
-         * @var int
-         */
         $state = 0;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -71,7 +41,6 @@ class ExpressionArray extends Component
                 && ($token->value !== 'NULL')
                 && ($token->value !== 'CASE')
             ) {
-                // No keyword is expected.
                 break;
             }
 
@@ -121,12 +90,6 @@ class ExpressionArray extends Component
         return $ret;
     }
 
-    /**
-     * @param Expression[] $component the component to be built
-     * @param array        $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         $ret = array();

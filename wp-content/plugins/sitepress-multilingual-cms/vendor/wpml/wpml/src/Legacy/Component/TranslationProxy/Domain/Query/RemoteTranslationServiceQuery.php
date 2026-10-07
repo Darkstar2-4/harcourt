@@ -9,10 +9,8 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\RemoteTranslationSe
 
 class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInterface {
 
-  /** @var \TranslationProxy */
   private $translationProxy;
 
-  /** @var \TranslationProxy_Basket */
   private $translationProxyBasket;
 
 
@@ -25,20 +23,12 @@ class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInte
   }
 
 
-  /** @return \TranslationProxy_Service|\WP_Error|\stdClass|false */
   private function getCurrentLegacy() {
     return $this->translationProxy::get_current_service();
   }
 
 
-  /**
-   * @param bool $forceRefreshExtraFields
-   *
-   * @return RemoteTranslationServiceDomain|null
-   * @throws FetchRemoteTranslationServiceException
-   */
   public function getCurrent( bool $forceRefreshExtraFields = false ) {
-    /** @var \TranslationProxy_Service|\WP_Error|\stdClass|false $currentTranslationService */
     $currentTranslationService = $this->getCurrentLegacy();
 
     if ( is_wp_error( $currentTranslationService ) ) {
@@ -54,7 +44,6 @@ class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInte
     $serviceRequiresAuthentication
       = $this->translationProxy::service_requires_authentication( $currentTranslationService );
 
-    // When the maximumJobsPerBatch is not set or it's 0 this means that we don't need to chunk the translation service jobs separately
     $maximumJobsPerBatch = isset( $currentTranslationService->maximumJobsPerBatch )
                            && $currentTranslationService->maximumJobsPerBatch > 0
       ? $currentTranslationService->maximumJobsPerBatch
@@ -77,7 +66,6 @@ class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInte
       $autoRefreshProjectOptions
     );
 
-    // Try to get the extra fields ONLY if the translation service is authenticated
     if ( $translationServiceDomain->isAuthenticated() ) {
       $translationServiceDomain->setExtraFields( $this->getExtraFields( $forceRefreshExtraFields ) );
     }
@@ -86,11 +74,6 @@ class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInte
   }
 
 
-  /**
-   * @param bool $forceRefreshExtraFields
-   *
-   * @return RemoteTranslationServiceExtraField[]
-   */
   public function getExtraFields( bool $forceRefreshExtraFields = false ): array {
     $localExtraFields = $this->translationProxy::get_extra_fields_local();
 
@@ -123,7 +106,7 @@ class RemoteTranslationServiceQuery implements RemoteTranslationServiceQueryInte
         )
       );
 
-    } catch ( \Throwable $e ) { // Handling any general exception coming from Legacy
+    } catch ( \Throwable $e ) {
       return [];
     }
   }

@@ -9,7 +9,6 @@ class NGetTextWithContextFilter extends AbstractFilterHookHandler implements Aut
 	const FILTER_ARGS = 6;
 	const FILTER_PRIORITY = 9;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct(

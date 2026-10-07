@@ -10,16 +10,14 @@ use WPML\Core\Component\WordsToTranslate\Domain\LastTranslation;
 
 class WordsToTranslate {
 
-  /** @var Diff */
+  private static $freshWordCount = [];
+
   private $diff;
 
-  /** @var Count */
   private $count;
 
-  /** @var PrepareContentLetter */
   private $prepareContentLetter;
 
-  /** @var PrepareContentIdeogram */
   private $prepareContentIdeogram;
 
 
@@ -36,27 +34,37 @@ class WordsToTranslate {
   }
 
 
-  /** @return void */
   public function forLastTranslation( LastTranslation $lastTranslation, Item $original ) {
     $sourceLang = strtolower( $original->getSourceLang() );
     $prepare = $this->prepareContentLetter;
-    $countFactor = 1;
 
-    // Some languages use ideograms - these languages have a different calculation.
+    $lastTranslationOriginalContent = $lastTranslation->getOriginalContent() ?? '';
+    $isFreshTranslation = $lastTranslationOriginalContent === '';
+
+    if ( $isFreshTranslation && isset( self::$freshWordCount[ $original->getId() ] ) ) {
+      $lastTranslation->setWordsToTranslate( self::$freshWordCount[ $original->getId() ] );
+      return;
+    }
+
+    $countFactor = 1;
     if ( isset( Config::LANGS[$sourceLang][Config::KEY_WORDS_PER_IDEOGRAM] ) ) {
       $prepare = $this->prepareContentIdeogram;
       $countFactor = Config::LANGS[$sourceLang][Config::KEY_WORDS_PER_IDEOGRAM];
     }
 
     $diff = $this->diff->diffArrays(
-      $prepare->prepareForDiff( $lastTranslation->getOriginalContent() ?? '' ),
+      $prepare->prepareForDiff( $lastTranslationOriginalContent ),
       $prepare->prepareForDiff( $original->getContent() ?? '' )
     );
 
-    $lastTranslation->setDiffWordsToOriginal( $diff );
-    $lastTranslation->setWordsToTranslate(
-      (int) ( round( $this->count->wordsToTranslate( $diff ) * $countFactor ) )
-    );
+    $count = (int) ( round( $this->count->wordsToTranslate( $diff ) * $countFactor ) );
+
+    if ( $isFreshTranslation ) {
+      self::$freshWordCount[ $original->getId() ] = $count;
+    }
+
+    $lastTranslation->setWordsToTranslate( $count );
+
   }
 
 

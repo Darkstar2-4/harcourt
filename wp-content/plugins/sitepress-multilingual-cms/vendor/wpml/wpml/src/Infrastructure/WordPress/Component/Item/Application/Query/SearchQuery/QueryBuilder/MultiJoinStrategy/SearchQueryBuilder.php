@@ -10,14 +10,11 @@ use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery\Q
 class SearchQueryBuilder implements SearchQueryBuilderInterface {
   use SearchQueryBuilderTrait;
 
-  const WORD_COUNT_META_KEY = '_wpml_word_count';
   const TRANSLATOR_NOTE_META_KEY = '_icl_translator_note';
   const USE_NATIVE_EDITOR_META_KEY = '_wpml_post_translation_editor_native';
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var SortingCriteriaQueryBuilder */
   private $sortingQueryBuilder;
 
   const POST_COLUMNS = "
@@ -53,9 +50,8 @@ class SearchQueryBuilder implements SearchQueryBuilderInterface {
 
     return "
         {$postColumns},
-        IFNULL(meta_wc.meta_value, 0) AS word_count,
         meta_tn.meta_value AS translator_note,
-        meta_ne.meta_value AS use_native_editor        
+        meta_ne.meta_value AS use_native_editor
 		";
   }
 
@@ -65,7 +61,8 @@ class SearchQueryBuilder implements SearchQueryBuilderInterface {
     string $fields,
     bool $withPagination = true
   ): string {
-    $sourceLanguage = $criteria->getSourceLanguageCode();
+    $preparedSourceLanguage = $this->queryPrepare->prepare( '%s', $criteria->getSourceLanguageCode() );
+    $preparedType           = $this->queryPrepare->prepare( '%s', $criteria->getType() );
 
     $targetLanguageCodes = $criteria->getTargetLanguageCodes();
 
@@ -76,27 +73,24 @@ class SearchQueryBuilder implements SearchQueryBuilderInterface {
       INNER JOIN {$this->queryPrepare->prefix()}icl_translations source_t
       ON source_t.element_id = p.ID
         AND source_t.element_type = CONCAT('post_', p.post_type)
-        AND source_t.language_code = '{$sourceLanguage}'
+        AND source_t.language_code = {$preparedSourceLanguage}
       {$this->buildTargetLanguageJoins( $targetLanguageCodes )}
-        
-  
-      LEFT JOIN {$this->queryPrepare->prefix()}postmeta meta_wc
-        ON meta_wc.post_id = p.ID
-        AND meta_wc.meta_key = '" . self::WORD_COUNT_META_KEY . "'
+
+
       LEFT JOIN {$this->queryPrepare->prefix()}postmeta meta_tn
         ON meta_tn.post_id = p.ID
         AND meta_tn.meta_key = '" . self::TRANSLATOR_NOTE_META_KEY . "'
       LEFT JOIN {$this->queryPrepare->prefix()}postmeta meta_ne
         ON meta_ne.post_id = p.ID
-        AND meta_ne.meta_key = '" . self::USE_NATIVE_EDITOR_META_KEY . "'      
-      WHERE p.post_type = '{$criteria->getType()}'
+        AND meta_ne.meta_key = '" . self::USE_NATIVE_EDITOR_META_KEY . "'
+      WHERE p.post_type = {$preparedType}
           {$this->buildPostStatusCondition( $criteria->getPublicationStatus() )}
           {$this->buildPostTitleCondition( $criteria )}
           {$this->buildTaxonomyTermCondition( $criteria )}
           {$this->buildParentCondition( $criteria )}
           {$this->buildTranslationStatusConditionWrapper( $criteria, $targetLanguageCodes )}
           {$this->buildSortingQueryPart( $criteria )}
-    "; // @codingStandardsIgnoreEnd
+    ";
 
     if ( $withPagination ) {
       $sql .= ' ' . $this->buildPagination( $criteria );
@@ -126,12 +120,6 @@ class SearchQueryBuilder implements SearchQueryBuilderInterface {
   }
 
 
-  /**
-   * @param SearchCriteria $criteria
-   * @param array<string>  $targetLanguageCodes
-   *
-   * @return string
-   */
   private function buildTranslationStatusConditionWrapper(
     SearchCriteria $criteria,
     array $targetLanguageCodes
@@ -184,20 +172,16 @@ class SearchQueryBuilder implements SearchQueryBuilderInterface {
   }
 
 
-  /**
-   * @param array<string> $targetLanguageCodes
-   *
-   * @return string
-   */
   private function buildTargetLanguageJoins( array $targetLanguageCodes ): string {
     $joins = [];
     foreach ( $targetLanguageCodes as $languageCode ) {
-      $slugLanguageCode = $this->getLanguageJoinColumName( $languageCode );
+      $slugLanguageCode     = $this->getLanguageJoinColumName( $languageCode );
+      $preparedLanguageCode = $this->queryPrepare->prepare( '%s', $languageCode );
 
       $joins[] = "
         LEFT JOIN {$this->queryPrepare->prefix()}icl_translations target_t_{$slugLanguageCode}
           ON target_t_{$slugLanguageCode}.trid = source_t.trid
-              AND target_t_{$slugLanguageCode}.language_code = '{$languageCode}'
+              AND target_t_{$slugLanguageCode}.language_code = {$preparedLanguageCode}
         LEFT JOIN {$this->queryPrepare->prefix()}icl_translation_status target_ts_{$slugLanguageCode}
           ON target_ts_{$slugLanguageCode}.translation_id = target_t_{$slugLanguageCode}.translation_id
       ";

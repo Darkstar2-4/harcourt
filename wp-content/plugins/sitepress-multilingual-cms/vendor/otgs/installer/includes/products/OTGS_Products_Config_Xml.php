@@ -2,23 +2,12 @@
 
 class OTGS_Products_Config_Xml {
 
-	/**
-	 * @var SimpleXMLElement
-	 */
 	private $repositories_config;
 
-	/**
-	 * @param string $xml_file
-	 */
 	public function __construct( $xml_file ) {
 		$this->repositories_config = $this->load_configuration( $xml_file );
 	}
 
-	/**
-	 * @param $xml_file
-	 *
-	 * @return SimpleXMLElement|null
-	 */
 	private function load_configuration( $xml_file ) {
 		if( ! file_exists( $xml_file )) {
 			return null;
@@ -26,11 +15,6 @@ class OTGS_Products_Config_Xml {
 		return simplexml_load_file( $xml_file );
 	}
 
-	/**
-	 * @param $repository_id
-	 *
-	 * @return string|null
-	 */
 	public function get_repository_products_url( $repository_id ) {
 		foreach ( $this->repositories_config as $repository_config ) {
 			if ( isset( $repository_config->id ) && strval( $repository_config->id ) == $repository_id ) {
@@ -51,9 +35,6 @@ class OTGS_Products_Config_Xml {
 		return $productDefaults;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_products_api_urls() {
 		$urls = [];
 

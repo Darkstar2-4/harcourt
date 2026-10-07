@@ -11,14 +11,6 @@
 namespace WPML\Core\Twig\RuntimeLoader;
 
 use WPML\Core\Psr\Container\ContainerInterface;
-/**
- * Lazily loads Twig runtime implementations from a PSR-11 container.
- *
- * Note that the runtime services MUST use their class names as identifiers.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- * @author Robin Chalas <robin.chalas@gmail.com>
- */
 class ContainerRuntimeLoader implements \WPML\Core\Twig\RuntimeLoader\RuntimeLoaderInterface
 {
     private $container;

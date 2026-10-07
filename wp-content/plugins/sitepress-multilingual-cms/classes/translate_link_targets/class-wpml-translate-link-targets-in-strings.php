@@ -1,15 +1,9 @@
 <?php
 
-/**
- * Class WPML_Translate_Link_Targets_In_Strings
- *
- * @package wpml-tm
- */
 class WPML_Translate_Link_Targets_In_Strings extends WPML_Translate_Link_Targets_In_Content {
 
 	private $option_name = 'wpml_strings_need_links_fixed';
 
-	/* var WPML_WP_API $wp_api */
 	private $wp_api;
 
 	public function __construct( WPML_Translate_Link_Target_Global_State $translate_link_target_global_state, &$wpdb, $wp_api, $pro_translation ) {

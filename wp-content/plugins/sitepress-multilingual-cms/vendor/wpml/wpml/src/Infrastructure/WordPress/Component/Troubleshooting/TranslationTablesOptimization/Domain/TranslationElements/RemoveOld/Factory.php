@@ -11,19 +11,13 @@ use WPML\Core\Port\Persistence\DatabaseSchemaInfoInterface;
 
 class Factory implements RemoveOldFactory {
 
-  /** @var DatabaseSchemaInfoInterface */
   private $databaseSchemaInfo;
 
-  /** @var \wpdb */
   private $wpdb;
 
-  /** @var MigrationStatusService */
   private $migrationStatusService;
 
 
-  /**
-   * @param \wpdb $wpdb
-   */
   public function __construct(
     DatabaseSchemaInfoInterface $databaseSchemaInfo,
     $wpdb,
@@ -50,10 +44,6 @@ class Factory implements RemoveOldFactory {
   }
 
 
-  /**
-   * @return ProcessorInterface<array{rid: int}>
-   * @psalm-suppress ImplementedReturnTypeMismatch
-   */
   public function createProcessor(): ProcessorInterface {
     return new Processor(
       $this->wpdb

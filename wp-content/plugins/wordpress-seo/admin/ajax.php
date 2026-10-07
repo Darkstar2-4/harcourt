@@ -83,9 +83,13 @@ add_action( 'wp_ajax_wpseo_set_ignore', 'wpseo_set_ignore' );
 /**
  * Save an individual SEO title from the Bulk Editor.
  *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
+ *
  * @return void
  */
 function wpseo_save_title() {
+	_deprecated_function( __FUNCTION__, 'Yoast SEO 28.1' );
 	wpseo_save_what( 'title' );
 }
 
@@ -94,9 +98,13 @@ add_action( 'wp_ajax_wpseo_save_title', 'wpseo_save_title' );
 /**
  * Save an individual meta description from the Bulk Editor.
  *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
+ *
  * @return void
  */
 function wpseo_save_description() {
+	_deprecated_function( __FUNCTION__, 'Yoast SEO 28.1' );
 	wpseo_save_what( 'metadesc' );
 }
 
@@ -104,6 +112,9 @@ add_action( 'wp_ajax_wpseo_save_metadesc', 'wpseo_save_description' );
 
 /**
  * Save titles & descriptions.
+ *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
  *
  * @param string $what Type of item to save (title, description).
  *
@@ -134,6 +145,9 @@ function wpseo_save_what( $what ) {
  * Helper function to update a post's meta data, returning relevant information
  * about the information updated and the results or the meta update.
  *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
+ *
  * @param int    $post_id         Post ID.
  * @param string $new_meta_value  New meta value to record.
  * @param string $orig_meta_value Original meta value.
@@ -144,7 +158,7 @@ function wpseo_save_what( $what ) {
  */
 function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_key, $return_key ) {
 
-	$post_id                  = intval( $post_id );
+	$post_id                  = (int) $post_id;
 	$sanitized_new_meta_value = wp_strip_all_tags( $new_meta_value );
 	$orig_meta_value          = wp_strip_all_tags( $orig_meta_value );
 
@@ -171,7 +185,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 		$upsert_results['results'] = sprintf(
 			/* translators: %s expands to post type. */
 			__( 'Post has an invalid Content Type: %s.', 'wordpress-seo' ),
-			$the_post->post_type
+			$the_post->post_type,
 		);
 
 		return $upsert_results;
@@ -183,7 +197,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 		$upsert_results['results'] = sprintf(
 			/* translators: %s expands to post type name. */
 			__( 'You can\'t edit %s.', 'wordpress-seo' ),
-			$post_type_object->label
+			$post_type_object->label,
 		);
 
 		return $upsert_results;
@@ -195,7 +209,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 		$upsert_results['results'] = sprintf(
 			/* translators: %s expands to the name of a post type (plural). */
 			__( 'You can\'t edit %s that aren\'t yours.', 'wordpress-seo' ),
-			$post_type_object->label
+			$post_type_object->label,
 		);
 
 		return $upsert_results;
@@ -219,9 +233,13 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 /**
  * Save all titles sent from the Bulk Editor.
  *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
+ *
  * @return void
  */
 function wpseo_save_all_titles() {
+	_deprecated_function( __FUNCTION__, 'Yoast SEO 28.1' );
 	wpseo_save_all( 'title' );
 }
 
@@ -230,9 +248,13 @@ add_action( 'wp_ajax_wpseo_save_all_titles', 'wpseo_save_all_titles' );
 /**
  * Save all description sent from the Bulk Editor.
  *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
+ *
  * @return void
  */
 function wpseo_save_all_descriptions() {
+	_deprecated_function( __FUNCTION__, 'Yoast SEO 28.1' );
 	wpseo_save_all( 'metadesc' );
 }
 
@@ -240,6 +262,9 @@ add_action( 'wp_ajax_wpseo_save_all_descriptions', 'wpseo_save_all_descriptions'
 
 /**
  * Utility function to save values.
+ *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
  *
  * @param string $what Type of item so save.
  *
@@ -266,6 +291,9 @@ function wpseo_save_all( $what ) {
 
 /**
  * Insert a new value.
+ *
+ * @deprecated 28.1
+ * @codeCoverageIgnore
  *
  * @param string $what      Item type (such as title).
  * @param int    $post_id   Post ID.
@@ -310,12 +338,11 @@ function ajax_get_keyword_usage_and_post_types() {
 
 	wp_die(
 		// phpcs:ignore WordPress.Security.EscapeOutput -- Reason: WPSEO_Utils::format_json_encode is safe.
-		WPSEO_Utils::format_json_encode( $return_object )
+		WPSEO_Utils::format_json_encode( $return_object ),
 	);
 }
 
 add_action( 'wp_ajax_get_focus_keyword_usage_and_post_types', 'ajax_get_keyword_usage_and_post_types' );
-
 
 /**
  * Retrieves the keyword for the keyword doubles of the termpages.
@@ -356,7 +383,7 @@ function ajax_get_term_keyword_usage() {
 
 	wp_die(
 		// phpcs:ignore WordPress.Security.EscapeOutput -- Reason: WPSEO_Utils::format_json_encode is safe.
-		WPSEO_Utils::format_json_encode( $usage )
+		WPSEO_Utils::format_json_encode( $usage ),
 	);
 }
 
@@ -407,6 +434,6 @@ function ajax_get_keyword_usage() {
 
 	wp_die(
 		// phpcs:ignore WordPress.Security.EscapeOutput -- Reason: WPSEO_Utils::format_json_encode is safe.
-		WPSEO_Utils::format_json_encode( WPSEO_Meta::keyword_usage( $keyword, $post_id ) )
+		WPSEO_Utils::format_json_encode( WPSEO_Meta::keyword_usage( $keyword, $post_id ) ),
 	);
 }

@@ -5,10 +5,8 @@ class WPML_TP_Lock_Notice implements IWPML_Action {
 	const NOTICE_GROUP  = 'tp-lock';
 	const NOTICE_LOCKED = 'locked';
 
-	/** @var WPML_TP_Lock $tp_lock */
 	private $tp_lock;
 
-	/** @var WPML_Notices $notices */
 	private $notices;
 
 	public function __construct( WPML_TP_Lock $tp_lock, WPML_Notices $notices ) {

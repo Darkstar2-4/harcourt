@@ -6,16 +6,8 @@ if ( ! class_exists( '_WP_Editors', false ) ) {
 
 class WPML_Translation_Editor extends WPML_WPDB_And_SP_User {
 
-	/**
-	 * @var WPML_Element_Translation_Job $job
-	 */
 	private $job;
 
-	/**
-	 * @param SitePress                    $sitepress
-	 * @param wpdb                         $wpdb
-	 * @param WPML_Element_Translation_Job $job
-	 */
 	public function __construct(
 		&$sitepress,
 		&$wpdb,
@@ -32,9 +24,6 @@ class WPML_Translation_Editor extends WPML_WPDB_And_SP_User {
 		add_filter( 'tiny_mce_before_init', [ $this, 'filter_original_editor_buttons' ], 10, 2 );
 	}
 
-	/**
-	 * Enqueues the JavaScript used by the TM editor.
-	 */
 	public function enqueue_js() {
 		wp_enqueue_script( 'wpml-tm-editor-scripts' );
 		wp_localize_script(
@@ -44,9 +33,6 @@ class WPML_Translation_Editor extends WPML_WPDB_And_SP_User {
 		);
 	}
 
-	/**
-	 * @return string[]
-	 */
 	private function get_translation_editor_strings() {
 
 		$translation_memory_endpoint = apply_filters( 'wpml_st_translation_memory_endpoint', '' );

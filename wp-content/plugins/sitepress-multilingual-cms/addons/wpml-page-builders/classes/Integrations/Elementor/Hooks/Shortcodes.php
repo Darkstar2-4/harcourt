@@ -13,12 +13,6 @@ class Shortcodes implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 			->then( spreadArgs( [ $this, 'removePreviewContent' ] ) );
 	}
 
-	/**
-	 * @param string $content
-	 * @param int    $postId
-	 *
-	 * @return string
-	 */
 	public function removePreviewContent( $content, $postId ) {
 		return \WPML_Elementor_Data_Settings::is_edited_with_elementor( $postId ) ? '' : $content;
 	}

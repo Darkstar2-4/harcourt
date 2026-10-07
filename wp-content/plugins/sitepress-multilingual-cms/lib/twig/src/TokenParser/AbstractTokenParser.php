@@ -11,16 +11,8 @@
 namespace WPML\Core\Twig\TokenParser;
 
 use WPML\Core\Twig\Parser;
-/**
- * Base class for all token parsers.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 abstract class AbstractTokenParser implements \WPML\Core\Twig\TokenParser\TokenParserInterface
 {
-    /**
-     * @var Parser
-     */
     protected $parser;
     public function setParser(\WPML\Core\Twig\Parser $parser)
     {

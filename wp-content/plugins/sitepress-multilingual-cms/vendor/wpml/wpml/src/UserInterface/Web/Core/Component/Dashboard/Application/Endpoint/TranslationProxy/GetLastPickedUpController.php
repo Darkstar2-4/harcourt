@@ -7,7 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetLastPickedUpController implements EndpointInterface {
 
-  /** @var LastPickedUpDateServiceInterface */
   private $lastPickedUpService;
 
 

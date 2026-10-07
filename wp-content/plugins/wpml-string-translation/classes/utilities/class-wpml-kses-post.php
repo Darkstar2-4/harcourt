@@ -1,17 +1,5 @@
 <?php
 
-/**
- * A helper class for wp_kses_post to avoid self-closing tag formatting issues.
- *
- * The wp_kses_post function internally calls wp_kses_attr,
- * which reformats self-closing HTML tags by adding a space before the slash.
- * For example, <br/> becomes <br />, which can break string translations
- * for strings containing such tags.
- *
- * This helper class stores all self-closing tags and their positions
- * in an array. After calling wp_kses_post, it restores the tags
- * to their original format.
- */
 class WPML_Kses_Post {
 	public static function wp_kses_post_preserve_tags_format( $input ) {
 		$original_tags  = self::get_string_tags( $input );

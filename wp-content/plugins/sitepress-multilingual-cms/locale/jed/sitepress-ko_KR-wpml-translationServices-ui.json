@@ -5,22 +5,22 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "ko"
+            "lang": "ko_KR"
          },
          "Connect this site to your %s account": [
-            "%s 계정에 이 사이트 연결"
+            "이 사이트를 %s 계정에 연결"
          ],
          "Error": [
             "오류"
          ],
          "« Use a different Translation Service": [
-            "« 다른 번역 서비스 제공자 사용"
+            "« 다른 번역 서비스 사용"
          ],
          "Authenticate": [
             "인증"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "<link_to_service />을(를) 방문하여 API 토큰을 요청하십시오. 이 토큰은 WPML이 <service_name />에 연결하여 작업을 송수신할 수 있도록 합니다."
+            "API 토큰을 요청하려면 <link_to_service />를 방문하세요. 이 토큰을 통해 WPML은 <service_name />에 연결하여 작업을 보내고 받을 수 있습니다."
          ],
          "Search translation services": [
             "번역 서비스 검색"
@@ -32,10 +32,19 @@
             "설정"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "WPML이 사이트 컨텐츠를 자동 번역하도록 설정된 경우 현재 번역 서비스에 연결할 수 없습니다. 번역 서비스를 이용하려면 <LinkToSettingsPage /> 페이지에서 번역 모드를 변경하십시오."
+            "WPML이 사이트 콘텐츠를 자동으로 번역하도록 설정된 경우 번역 서비스를 연결할 수 없습니다. 번역 서비스를 사용하려면 <LinkToSettingsPage /> 페이지에서 번역 모드를 변경하세요."
+         ],
+         "Sort descending": [
+            "내림차순 정렬"
+         ],
+         "Sort ascending": [
+            "오름차순 정렬"
+         ],
+         "Cancel sorting": [
+            "정렬 취소"
          ],
          "Documentation": [
-            "설명서"
+            "문서"
          ],
          "Activate": [
             "활성화"

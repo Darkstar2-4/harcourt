@@ -5,27 +5,12 @@ namespace WPML\ST\Upgrade\Command;
 use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInterface;
 use WPML\ST\MO\Hooks\PreloadThemeMoFile;
 
-/**
- * Class UpgradeAutoregisteringStrings
- */
 class UpgradeAutoregisteringStrings implements \IWPML_St_Upgrade_Command {
 
-	/**
-	 * @var \wpdb wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var \SitePress $sitepress
-	 */
 	private $sitepress;
 
-	/**
-	 * UpgradeAutoregisteringStrings constructor.
-	 *
-	 * @param \wpdb      $wpdb
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct( \wpdb $wpdb, \SitePress $sitepress ) {
 		$this->wpdb      = $wpdb;
 		$this->sitepress = $sitepress;
@@ -78,9 +63,6 @@ class UpgradeAutoregisteringStrings implements \IWPML_St_Upgrade_Command {
 	public function run_frontend() {
 	}
 
-	/**
-	 * @return string
-	 */
 	public static function get_command_id() {
 		return __CLASS__;
 	}

@@ -7,8 +7,5 @@ use WPML\StringTranslation\Application\StringPackage\Query\Dto\StringPackageWith
 
 interface FindStringPackagesQueryInterface {
 
-	/**
-	 * @return StringPackageWithTranslationStatusDto[]
-	 */
 	public function execute( StringPackageCriteria $criteria );
 }

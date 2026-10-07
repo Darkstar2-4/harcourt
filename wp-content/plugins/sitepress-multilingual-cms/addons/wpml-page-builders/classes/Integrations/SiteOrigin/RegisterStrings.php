@@ -2,7 +2,6 @@
 
 namespace WPML\PB\SiteOrigin;
 
-use WPML\FP\Str;
 use WPML\PB\TranslationJob\Groups;
 use WPML_PB_String;
 
@@ -22,20 +21,11 @@ class RegisterStrings extends \WPML_Page_Builders_Register_Strings {
 		}
 	}
 
-	/**
-	 * @param WPML_PB_String $string
-	 * @param string         $node_id
-	 * @param mixed          $element
-	 * @param array          $package
-	 *
-	 * @return WPML_PB_String
-	 */
-	protected function filter_string_to_register( WPML_PB_String $string, $node_id, $element, $package ) {
+	protected function filter_string_to_register( WPML_PB_String $pbString, $node_id, $element, $package ) {
 		if ( isset( $element['image'] ) ) {
-			$string->set_title( Groups::appendImageIdToGroupLabel( $string->get_title(), (int) $element['image'] ) );
+			$pbString->set_title( Groups::appendImageIdToGroupLabel( $pbString->get_title(), (int) $element['image'] ) );
 		}
 
-		return $string;
+		return $pbString;
 	}
-
 }

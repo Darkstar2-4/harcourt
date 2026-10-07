@@ -5,16 +5,10 @@ use \WPML\TM\Jobs\FieldId;
 class WPML_Translation_Editor_UI {
 	const MAX_ALLOWED_SINGLE_LINE_LENGTH = 50;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
-	/** @var WPDB $wpdb */
 	private $wpdb;
 
-	/** @var array */
 	private $all_translations;
-	/**
-	 * @var WPML_Translation_Editor
-	 */
 	private $editor_object;
 	private $job;
 	private $original_post;
@@ -23,17 +17,12 @@ class WPML_Translation_Editor_UI {
 	private $rtl_translation;
 	private $rtl_translation_attribute;
 	private $is_duplicate = false;
-	/**
-	 * @var TranslationManagement
-	 */
 	private $tm_instance;
 
-	/** @var WPML_Element_Translation_Job|WPML_External_Translation_Job */
 	private $job_instance;
 
 	private $job_factory;
 	private $job_layout;
-	/** @var array */
 	private $fields;
 
 	function __construct( wpdb $wpdb, SitePress $sitepress, TranslationManagement $iclTranslationManagement, WPML_Element_Translation_Job $job_instance, WPML_TM_Job_Action_Factory $job_factory, WPML_TM_Job_Layout $job_layout ) {
@@ -52,18 +41,8 @@ class WPML_Translation_Editor_UI {
 		add_action( 'admin_print_footer_scripts', [ $this, 'force_uncompressed_tinymce' ], 1 );
 	}
 
-	/**
-     * Force using uncompressed version tinymce which solves:
-     * https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-191
-     *
-     * Seams the compressed and uncompressed have some difference, because even WP has a force_uncompressed_tinymce
-     * method, which is triggered whenever a custom theme on TinyMCE is used.
-     *
-	 * @return void
-	 */
     public function force_uncompressed_tinymce() {
         if( ! function_exists( 'wp_scripts' ) || ! function_exists( 'wp_register_tinymce_scripts' ) ) {
-            // WP is below 5.0.
             return;
         }
 
@@ -102,9 +81,6 @@ class WPML_Translation_Editor_UI {
 		<?php
 	}
 
-	/**
-	 * @return array
-	 */
 	private function init_rtl_settings() {
 		$this->rtl_original                  = $this->sitepress->is_rtl( $this->job->source_language_code );
 		$this->rtl_translation               = $this->sitepress->is_rtl( $this->job->language_code );
@@ -115,14 +91,11 @@ class WPML_Translation_Editor_UI {
 	}
 
 	private function init_original_post() {
-		// we do not need the original document of the job here
-		// but the document with the same trid and in the $this->job->source_language_code
 		$this->all_translations = $this->sitepress->get_element_translations( $this->job->trid, $this->job->original_post_type );
 		$this->original_post    = false;
 		foreach ( (array) $this->all_translations as $t ) {
 			if ( $t->language_code === $this->job->source_language_code ) {
 				$this->original_post = $this->tm_instance->get_post( $t->element_id, $this->job->element_type_prefix );
-				// if this fails for some reason use the original doc from which the trid originated
 				break;
 			}
 		}

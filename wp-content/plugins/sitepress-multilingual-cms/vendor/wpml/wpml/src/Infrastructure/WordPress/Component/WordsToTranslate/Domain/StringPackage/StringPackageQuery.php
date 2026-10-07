@@ -1,5 +1,4 @@
 <?php
-// phpcs:ignoreFile Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
 namespace WPML\Infrastructure\WordPress\Component\WordsToTranslate\Domain\StringPackage;
 
 use WPML\Core\Component\WordsToTranslate\Domain\Item;

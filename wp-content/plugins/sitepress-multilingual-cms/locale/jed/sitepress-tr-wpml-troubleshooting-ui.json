@@ -1,0 +1,104 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Preparing...": [
+            "Hazırlanıyor..."
+         ],
+         "All jobs have been cancelled": [
+            "Tüm işler iptal edildi"
+         ],
+         "There is no more jobs to cancel": [
+            "İptal edilecek başka iş yok"
+         ],
+         "The jobs cancellation has failed": [
+            "İşlerin iptali başarısız oldu"
+         ],
+         "Cancel in-progress automatic jobs": [
+            "Devam eden otomatik işleri iptal et"
+         ],
+         "Domain name has been updated": [
+            "Alan adı güncellendi"
+         ],
+         "Domain name update has been failed": [
+            "Alan adı güncellemesi başarısız oldu"
+         ],
+         "Update domain name in language switcher settings": [
+            "Dil değiştirici ayarlarında alan adını güncelle"
+         ],
+         "Disclaimer: MySQL Disk Space": [
+            "Uyarı: MySQL disk alanı"
+         ],
+         "Cleaning and compressing the wp_icl_translate and wp_icl_translation_status tables reduces its data size, but does not automatically free up disk space in MySQL. To reclaim disk space, a table rebuild is required—a risky operation not performed automatically by this tool.": [
+            "wp_icl_translate ve wp_icl_translation_status tablolarını temizlemek ve sıkıştırmak, veri boyutunu azaltır ancak MySQL'de disk alanını otomatik olarak boşaltmaz. Disk alanını geri kazanmak için bir tablo yeniden oluşturma işlemi gerekir; bu, bu araç tarafından otomatik olarak gerçekleştirilmeyen riskli bir işlemdir."
+         ],
+         "Optimize translation tables": [
+            "Çeviri tablolarını optimize et"
+         ],
+         "Previous State Migration": [
+            "Önceki durum geçişi"
+         ],
+         "Translation Elements Migration": [
+            "Çeviri öğeleri geçişi"
+         ],
+         "Processed": [
+            "İşlendi"
+         ],
+         "Error": [
+            "Hata"
+         ],
+         "Success": [
+            "Başarılı"
+         ],
+         "Database tables optimization completed successfully.": [
+            "Veritabanı tabloları optimizasyonu başarıyla tamamlandı."
+         ],
+         "Warning": [
+            "Uyarı"
+         ],
+         "This process is resource-intensive and may take a significant amount of time. It is recommended to run this optimization during periods of low traffic.": [
+            "Bu işlem yoğun kaynak gerektirir ve önemli miktarda zaman alabilir. Bu optimizasyonu düşük trafikli dönemlerde çalıştırmanız önerilir."
+         ],
+         "Database Tables Optimization": [
+            "Veritabanı tabloları optimizasyonu"
+         ],
+         "Refresh license data to recognise license update": [
+            "Lisans güncellemesini tanımak için lisans verilerini yenile"
+         ],
+         "WPML License has been refreshed": [
+            "WPML Lisansı yenilendi"
+         ],
+         "Translate Everything Automatically is not active.": [
+            "Her Şeyi Otomatik Çevir etkin değil."
+         ],
+         "Retry stuck automatic translations": [
+            "Takılı kalan otomatik çevirileri tekrar dene"
+         ],
+         "Resends translation jobs that couldn't be processed due to a temporary issue while Translate Everything Automatically was active.": [
+            "Her Şeyi Otomatik Çevir etkin durumdayken geçici bir sorun nedeniyle işlenemeyen çeviri işlerini yeniden gönderir."
+         ],
+         "Checking for stuck translation jobs...": [
+            "Takılı kalan çeviri işleri kontrol ediliyor..."
+         ],
+         "Processing... %s stuck translation found so far": [
+            "İşleniyor... Şu ana kadar %s takılı çeviri bulundu",
+            "İşleniyor... Şu ana kadar %s takılı çeviri bulundu"
+         ],
+         "Something went wrong while checking for stuck translation jobs. Please <a>contact WPML support</a>.": [
+            "Takılı kalan çeviri işleri kontrol edilirken bir sorun oluştu. Lütfen <a>WPML desteğiyle iletişime geçin</a>."
+         ],
+         "No stuck translation jobs found.": [
+            "Takılı kalan çeviri işi bulunamadı."
+         ],
+         "%s stuck translation job found. WPML will translate it automatically in the background.\nYou can check the progress in the Translation Dashboard.": [
+            "%s takılı çeviri işi bulundu. WPML bunu arka planda otomatik olarak çevirecektir.\nİlerleme durumunu Çeviri Panosundan kontrol edebilirsiniz.",
+            "%s takılı çeviri işi bulundu. WPML bunları arka planda otomatik olarak çevirecektir.\nİlerleme durumunu Çeviri Panosundan kontrol edebilirsiniz."
+         ]
+      }
+   }
+}

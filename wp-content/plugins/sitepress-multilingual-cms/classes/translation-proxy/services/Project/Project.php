@@ -3,24 +3,16 @@
 namespace WPML\TM\TranslationProxy\Services\Project;
 
 class Project {
-	/** @var int */
 	public $id;
 
-	/** @var string */
 	public $accessKey;
 
-	/** @var string */
 	public $tsId;
 
-	/** @var string */
 	public $tsAccessKey;
 
-	/** @var \stdClass */
 	public $extraFields;
 
-	/**
-	 * @return array
-	 */
 	public function toArray() {
 		return [
 			'id'            => $this->id,
@@ -31,11 +23,6 @@ class Project {
 		];
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return Project
-	 */
 	public static function fromArray( array $data ) {
 		$project = new Project();
 

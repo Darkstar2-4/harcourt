@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Media_Attachments_Query
- */
 class WPML_Media_Attachments_Query implements IWPML_Action {
 
 
@@ -14,13 +11,6 @@ class WPML_Media_Attachments_Query implements IWPML_Action {
 		return $this->adjust_attachment_query( $query );
 	}
 
-	/**
-	 * Set `suppress_filters` to false if attachment is displayed.
-	 *
-	 * @param WP_Query $query
-	 *
-	 * @return WP_Query
-	 */
 	public function adjust_attachment_query( $query ) {
 		$should_suppress_filters = ! ( isset( $query->query_vars['force_suppress_filters'] ) && true === $query->query_vars['force_suppress_filters'] );
 		if ( $should_suppress_filters && ! is_admin() ) {

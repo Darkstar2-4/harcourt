@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 namespace WPML\TM\ATE\REST;
 
@@ -23,9 +20,6 @@ use function WPML\Container\make;
 use function WPML\FP\pipe;
 
 class Download extends Base {
-	/**
-	 * @return array
-	 */
 	public function get_routes() {
 		return [
 			[
@@ -38,11 +32,6 @@ class Download extends Base {
 		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	public function get_allowed_capabilities( WP_REST_Request $request ) {
 		return [
 			'manage_options',

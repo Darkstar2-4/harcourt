@@ -29,9 +29,6 @@ class WPML_Meta_Boxes_Post_Edit_Ajax implements IWPML_Action {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function enqueue_scripts( $hook ) {
 		if (
 			in_array( $hook, [ 'post.php', 'post-new.php', 'edit.php' ], true ) ||
@@ -56,11 +53,6 @@ class WPML_Meta_Boxes_Post_Edit_Ajax implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param bool $is_edit_page
-	 *
-	 * @return bool
-	 */
 	public function force_post_edit_when_refreshing_meta_boxes( $is_edit_page ) {
 		return isset( $_POST['action'] ) && self::ACTION_GET_META_BOXES === $_POST['action'] ? true : $is_edit_page;
 	}
@@ -83,10 +75,6 @@ class WPML_Meta_Boxes_Post_Edit_Ajax implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $action
-	 * @return bool
-	 */
 	private function is_valid_request( $action ) {
 		$action = $action ? $action : self::ACTION_GET_META_BOXES;
 		return isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], $action );

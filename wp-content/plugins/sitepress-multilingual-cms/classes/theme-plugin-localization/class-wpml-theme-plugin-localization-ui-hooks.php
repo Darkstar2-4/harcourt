@@ -2,18 +2,10 @@
 
 class WPML_Theme_Plugin_Localization_UI_Hooks {
 
-	/** @var WPML_Theme_Plugin_Localization_UI */
 	private $localization_ui;
 
-	/** @var WPML_Theme_Plugin_Localization_Options_UI */
 	private $options_ui;
 
-	/**
-	 * WPML_Theme_Plugin_Localization_UI_Hooks constructor.
-	 *
-	 * @param WPML_Theme_Plugin_Localization_UI         $localization_ui
-	 * @param WPML_Theme_Plugin_Localization_Options_UI $options_ui
-	 */
 	public function __construct(
 		WPML_Theme_Plugin_Localization_UI $localization_ui,
 		WPML_Theme_Plugin_Localization_Options_UI $options_ui ) {

@@ -2,9 +2,6 @@
 
 use function WPML\Container\make;
 
-/**
- * Class WPML_String_Registration_Factory
- */
 class WPML_String_Registration_Factory {
 
 	private $pb_plugin_name;
@@ -13,9 +10,6 @@ class WPML_String_Registration_Factory {
 		$this->pb_plugin_name = $pb_plugin_name;
 	}
 
-	/**
-	 * @return WPML_PB_String_Registration
-	 */
 	public function create() {
 		global $sitepress;
 

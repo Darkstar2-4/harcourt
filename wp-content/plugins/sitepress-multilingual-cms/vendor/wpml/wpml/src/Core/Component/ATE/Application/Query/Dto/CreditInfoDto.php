@@ -4,45 +4,23 @@ namespace WPML\Core\Component\ATE\Application\Query\Dto;
 
 class CreditInfoDto {
 
-  /**
-   * @var int
-   */
   private $freeCreditsAmount;
 
-  /**
-   * @var bool
-   */
   private $activeSubscription;
 
-  /**
-   * @var int|null
-   */
   private $subscriptionMaxLimit;
 
-  /**
-   * @var int
-   */
   private $subscriptionUsage;
 
-  /**
-   * @var int
-   */
   private $availableBalance;
 
-  /**
-   * @var int
-   */
   private $totalCreditsDeposited;
 
-  /**
-   * @var int
-   */
   private $totalCreditsSpent;
 
-  /**
-   * @var bool
-   */
   private $payAsYouGo;
+
+  private $subscriptionDebt;
 
 
   public function __construct(
@@ -53,7 +31,8 @@ class CreditInfoDto {
     int $totalCreditsDeposited,
     int $totalCreditsSpent,
     bool $payAsYouGo,
-    int $subscriptionMaxLimit = null
+    ?int $subscriptionMaxLimit = null,
+    int $subscriptionDebt = 0
   ) {
     $this->freeCreditsAmount     = $freeCreditsAmount;
     $this->activeSubscription    = $activeSubscription;
@@ -63,6 +42,7 @@ class CreditInfoDto {
     $this->totalCreditsDeposited = $totalCreditsDeposited;
     $this->totalCreditsSpent     = $totalCreditsSpent;
     $this->payAsYouGo            = $payAsYouGo;
+    $this->subscriptionDebt      = $subscriptionDebt;
   }
 
 
@@ -76,9 +56,6 @@ class CreditInfoDto {
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getSubscriptionMaxLimit() {
     return $this->subscriptionMaxLimit;
   }
@@ -106,6 +83,11 @@ class CreditInfoDto {
 
   public function getPayAsYouGo(): bool {
     return $this->payAsYouGo;
+  }
+
+
+  public function getSubscriptionDebt(): int {
+    return $this->subscriptionDebt;
   }
 
 

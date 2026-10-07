@@ -8,13 +8,6 @@ use WPML\PHP\Exception\InvalidItemIdException;
 interface StringPackageQueryInterface {
 
 
-  /**
-   * @param int $id
-   *
-   * @return Item
-   *
-   * @throws InvalidItemIdException
-   */
   public function getById( $id );
 
 

@@ -2,12 +2,6 @@
 
 use WPML\Element\API\Languages;
 class WPML_ST_Slug_Translations {
-	/**
-	 * @param WPML_ST_Slug $slug
-	 * @param bool         $display_as_translated_mode
-	 *
-	 * @return string
-	 */
 	public function get( WPML_ST_Slug $slug, $display_as_translated_mode ) {
 		$slug_translation = $this->get_slug_translation_to_lang( $slug, Languages::getCurrentCode() );
 
@@ -23,12 +17,6 @@ class WPML_ST_Slug_Translations {
 		return $slug_translation ? trim( $slug_translation, '/' ) : '';
 	}
 
-	/**
-	 * @param WPML_ST_Slug $slug
-	 * @param string $lang
-	 *
-	 * @return string|null
-	 */
 	private function get_slug_translation_to_lang( WPML_ST_Slug $slug, $lang ) {
 		if ( $slug->is_translation_complete( $lang ) ) {
 			return $slug->get_value( $lang );

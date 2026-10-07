@@ -26,9 +26,6 @@ class CancelJobs implements IHandler {
 		return Either::of( $toCancel->count() );
 	}
 
-	/**
-	 * @return \WPML_TM_Jobs_Search_Params
-	 */
 	private function getSearchParams() {
 		$searchParams = new \WPML_TM_Jobs_Search_Params();
 		$searchParams->set_status( [ ICL_TM_WAITING_FOR_TRANSLATOR, ICL_TM_IN_PROGRESS ] );

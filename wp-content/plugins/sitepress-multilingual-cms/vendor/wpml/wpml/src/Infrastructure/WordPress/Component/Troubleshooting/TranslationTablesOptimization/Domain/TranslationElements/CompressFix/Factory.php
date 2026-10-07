@@ -13,13 +13,10 @@ use WPML\Infrastructure\WordPress\Component\Troubleshooting\TranslationTablesOpt
 
 class Factory implements CompressFixFactory {
 
-  /** @var DatabaseSchemaInfoInterface */
   private $databaseSchemaInfo;
 
-  /** @var \wpdb */
   private $wpdb;
 
-  /** @var MigrationStatusService */
   private $migrationStatusService;
 
 
@@ -35,8 +32,6 @@ class Factory implements CompressFixFactory {
 
 
   public function createQuery(): QueryInterface {
-    // We can reuse the same query as the regular compression process
-    // since we need to process the same records
     return new Query(
       $this->wpdb
     );
@@ -44,7 +39,6 @@ class Factory implements CompressFixFactory {
 
 
   public function createCompletedRecordsStorage(): CompletedRecordsStorageInterface {
-    // We can reuse the same storage as the regular compression process
     return new CompletedRecordsStorage(
       $this->wpdb,
       $this->databaseSchemaInfo
@@ -52,10 +46,6 @@ class Factory implements CompressFixFactory {
   }
 
 
-  /**
-   * @return ProcessorInterface<object{tid: int, fieldData: string, fieldDataTranslated: string}>
-   * @psalm-suppress ImplementedReturnTypeMismatch
-   */
   public function createProcessor(): ProcessorInterface {
     return new FixDoubleCompressionProcessor(
       $this->wpdb

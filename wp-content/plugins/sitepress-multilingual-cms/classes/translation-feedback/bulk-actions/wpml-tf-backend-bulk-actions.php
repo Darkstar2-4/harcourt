@@ -2,29 +2,14 @@
 
 use WPML\API\Sanitize;
 
-/**
- * Class WPML_TF_Backend_Bulk_Actions
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Bulk_Actions {
 
-	/** @var  WPML_TF_Data_Object_Storage $feedback_storage */
 	private $feedback_storage;
 
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 
-	/** @var  WPML_TF_Backend_Notices $backend_notices */
 	private $backend_notices;
 
-	/**
-	 * WPML_TF_Feedback_List_Bulk_Action_Hooks constructor.
-	 *
-	 * @param WPML_TF_Data_Object_Storage $feedback_storage
-	 * @param WPML_WP_API                 $wp_api
-	 * @param WPML_TF_Backend_Notices     $backend_notices
-	 */
 	public function __construct(
 		WPML_TF_Data_Object_Storage $feedback_storage,
 		WPML_WP_API $wp_api,
@@ -35,9 +20,6 @@ class WPML_TF_Backend_Bulk_Actions {
 		$this->backend_notices  = $backend_notices;
 	}
 
-	/**
-	 * Method bulk_action_callback
-	 */
 	public function process() {
 
 		if ( $this->is_valid_request() && current_user_can( 'manage_options' ) ) {
@@ -78,7 +60,6 @@ class WPML_TF_Backend_Bulk_Actions {
 			$feedback = $this->feedback_storage->get( $feedback_id );
 
 			if ( $feedback ) {
-				/** @var WPML_TF_Feedback $feedback */
 				$feedback->set_status( $new_status );
 				$updated_feedback_ids[] = $this->feedback_storage->persist( $feedback );
 			}
@@ -99,9 +80,6 @@ class WPML_TF_Backend_Bulk_Actions {
 		}
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_valid_request() {
 		$is_valid = false;
 
@@ -123,9 +101,6 @@ class WPML_TF_Backend_Bulk_Actions {
 		return in_array( $action, array( 'pending', 'fixed', 'trash', 'untrash', 'delete' ), true );
 	}
 
-	/**
-	 * Redirect after processing the bulk action
-	 */
 	private function redirect() {
 		$args_to_remove = array( 'feedback_ids', 'bulk_action', 'bulk_action2' );
 		$url            = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );

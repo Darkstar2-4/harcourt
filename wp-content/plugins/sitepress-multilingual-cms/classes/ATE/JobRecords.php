@@ -14,10 +14,8 @@ class JobRecords {
 	const FIELD_ATE_JOB_ID = 'ate_job_id';
 	const FIELD_IS_EDITING = 'is_editing';
 
-	/** @var \wpdb $wpdb */
 	private $wpdb;
 
-	/** @var Collection $jobs */
 	private $jobs;
 
 	public function __construct( \wpdb $wpdb ) {
@@ -25,14 +23,6 @@ class JobRecords {
 		$this->jobs = wpml_collect( [] );
 	}
 
-	/**
-	 * This method will retrieve data from the ATE job ID.
-	 * Beware of the returned data shape which is not standard.
-	 *
-	 * @param int $ateJobId
-	 *
-	 * @return array|null
-	 */
 	public function get_data_from_ate_job_id( $ateJobId ) {
 		$ateJobId = (int) $ateJobId;
 
@@ -45,7 +35,6 @@ class JobRecords {
 		);
 
 		if ( $job ) {
-			/** @var JobRecord $job */
 			return [
 				'wpml_job_id'  => $job->wpmlJobId,
 				'ate_job_data' => [
@@ -57,10 +46,6 @@ class JobRecords {
 		return null;
 	}
 
-	/**
-	 * @param int   $wpmlJobId
-	 * @param array $ateJobData
-	 */
 	public function store( $wpmlJobId, array $ateJobData ) {
 		$ateJobData['job_id'] = (int) $wpmlJobId;
 
@@ -79,9 +64,6 @@ class JobRecords {
 		$this->persist( $job );
 	}
 
-	/**
-	 * @param JobRecord $job
-	 */
 	public function persist( JobRecord $job ) {
 		$this->jobs->put( $job->wpmlJobId, $job );
 
@@ -94,12 +76,6 @@ class JobRecords {
 		);
 	}
 
-	/**
-	 * This method will load in-memory the required jobs.
-	 *
-	 * @param array $wpmlJobIds
-	 * @param array $ateJobIds
-	 */
 	public function warmCache( array $wpmlJobIds, array $ateJobIds = [] ) {
 		$wpmlJobIds = wpml_collect( $wpmlJobIds )->reject( $this->isAlreadyLoaded( 'wpmlJobId' ) )->toArray();
 		$ateJobIds  = wpml_collect( $ateJobIds )->reject( $this->isAlreadyLoaded( 'ateJobId' ) )->toArray();
@@ -134,46 +110,25 @@ class JobRecords {
 		}
 	}
 
-	/**
-	 * @param $idPropertyName
-	 *
-	 * @return \Closure
-	 */
 	private function isAlreadyLoaded( $idPropertyName ) {
 		$loadedIds = $this->jobs->pluck( $idPropertyName )->values()->toArray();
 
 		return Lst::includes( Fns::__, $loadedIds );
 	}
 
-	/**
-	 * @param int $wpmlJobId
-	 *
-	 * @return int
-	 */
 	public function get_ate_job_id( $wpmlJobId ) {
 		return $this->get( $wpmlJobId )->ateJobId;
 	}
 
-	/**
-	 * @param int $wpmlJobId
-	 *
-	 * @return bool
-	 */
 	public function is_editing_job( $wpmlJobId ) {
 		return $this->get( $wpmlJobId )->isEditing();
 	}
 
-	/**
-	 * @param $wpmlJobId
-	 *
-	 * @return JobRecord
-	 */
 	public function get( $wpmlJobId ) {
 		if ( ! $this->jobs->has( $wpmlJobId ) ) {
 			$this->warmCache( [ (int) $wpmlJobId ] );
 		}
 
-		/** @var null|JobRecord $job */
 		$job = $this->jobs->get( $wpmlJobId );
 
 		if ( ! $job || ! $job->ateJobId ) {
@@ -184,12 +139,6 @@ class JobRecords {
 		return $job;
 	}
 
-	/**
-	 * This method will try to recover the job data from ATE server,
-	 * and persist it in the local repository.
-	 *
-	 * @param int $wpmlJobId
-	 */
 	private function restoreJobDataFromATE( $wpmlJobId ) {
 		$data = apply_filters( 'wpml_tm_ate_job_data_fallback', [], $wpmlJobId );
 

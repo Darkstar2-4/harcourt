@@ -8,7 +8,6 @@ class ExtractHtmlStringsFilter extends AbstractFilterHookHandler {
 	const FILTER_NAME = 'wpml_st_extract_html_strings';
 	const FILTER_ARGS = 1;
 
-	/** @var HtmlStringsRepositoryInterface */
 	private $htmlStringsRepository;
 
 	public function __construct(

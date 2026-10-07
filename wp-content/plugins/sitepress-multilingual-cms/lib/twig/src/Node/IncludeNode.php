@@ -13,11 +13,6 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
-/**
- * Represents an include node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class IncludeNode extends \WPML\Core\Twig\Node\Node implements \WPML\Core\Twig\Node\NodeOutputInterface
 {
     public function __construct(

@@ -7,19 +7,10 @@ class ActiveServiceTemplate {
 	const ACTIVE_SERVICE_TEMPLATE = 'active-service.twig';
 	const HOURS_BEFORE_TS_REFRESH = 24;
 
-	/**
-	 * @param  callable         $templateRenderer
-	 * @param  \WPML_TP_Service $active_service
-	 *
-	 * @return string
-	 */
 	public static function render( $templateRenderer, \WPML_TP_Service $active_service ) {
 		return $templateRenderer( self::getModel( $active_service ), self::ACTIVE_SERVICE_TEMPLATE );
 	}
 
-	/**
-	 * @return array
-	 */
 	private static function getModel( \WPML_TP_Service $active_service ) {
 		$model = [
 			'strings'            => [

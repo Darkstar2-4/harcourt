@@ -12,18 +12,12 @@ use WPML\ST\StringsRepository;
 
 class ChangeTranslationPriorityOfStringsInDomain implements IHandler {
 
-	/** @var \SitePress $sitepress */
 	private $sitepress;
 
-	/** @var StringsRepository $stringsRepository */
 	private $stringsRepository;
 
-	/** @var \WPML_Strings_Translation_Priority */
 	private $translationPriority;
 
-	/**
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct(
 		\SitePress                         $sitepress,
 		StringsRepository                  $stringsRepository,

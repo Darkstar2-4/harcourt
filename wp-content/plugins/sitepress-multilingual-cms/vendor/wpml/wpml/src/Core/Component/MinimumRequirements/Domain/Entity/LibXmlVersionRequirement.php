@@ -8,15 +8,9 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 class LibXmlVersionRequirement extends RequirementBase {
   const EXTENSION_NAME = 'libxml';
 
-  /** @var ServerInfoInterface */
   private $serverInfo;
 
 
-  /**
-   * Constructor.
-   *
-   * @param ServerInfoInterface $serverInfo The server info service.
-   */
   public function __construct( ServerInfoInterface $serverInfo ) {
     $this->serverInfo = $serverInfo;
   }

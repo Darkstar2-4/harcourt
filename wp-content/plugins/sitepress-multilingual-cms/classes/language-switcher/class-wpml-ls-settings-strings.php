@@ -13,17 +13,12 @@ class WPML_LS_Settings_Strings {
 		),
 	);
 
-	/* @var WPML_LS_Slot_Factory $slot_factory */
 	private $slot_factory;
 
 	public function __construct( $slot_factory ) {
 		$this->slot_factory = $slot_factory;
 	}
 
-	/**
-	 * @param array $new_settings
-	 * @param array $old_settings
-	 */
 	public function register_all( $new_settings, $old_settings ) {
 		$void_slot = array( 'show' => false );
 
@@ -45,11 +40,6 @@ class WPML_LS_Settings_Strings {
 		}
 	}
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	public function translate_all( $settings ) {
 
 		if ( isset( $settings['sidebars'] ) ) {
@@ -65,10 +55,6 @@ class WPML_LS_Settings_Strings {
 		return $settings;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 * @param WPML_LS_Slot $old_slot
-	 */
 	private function register_slot_strings( WPML_LS_Slot $slot, WPML_LS_Slot $old_slot ) {
 		foreach ( $this->strings_meta as $key => $string_meta ) {
 
@@ -89,11 +75,6 @@ class WPML_LS_Settings_Strings {
 		}
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	private function translate_slot_strings( $slot ) {
 		foreach ( $this->strings_meta as $key => $string_meta ) {
 
@@ -114,12 +95,6 @@ class WPML_LS_Settings_Strings {
 		return $slot;
 	}
 
-	/**
-	 * @param string $key
-	 * @param string $string_value
-	 *
-	 * @return string
-	 */
 	private function get_string_name( $key, $string_value ) {
 		$name = $this->strings_meta[ $key ]['name'];
 

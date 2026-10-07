@@ -7,16 +7,8 @@ use WPML\UserInterface\Web\Core\Component\Notices\PromoteUsingDashboard\Applicat
 
 final class TranslationsFromDashboardService {
 
-  /**
-   * IMPORTANT!
-   * We have to use UserQueryInterface, not TranslatorsQueryInterface.
-   * A user who is NOT translator, but is an admin is still able to click "+" on the post list.
-   *
-   * @var UserQueryInterface
-   */
   private $userQuery;
 
-  /** @var DashboardTranslationsRepositoryInterface */
   private $dashboardTranslationsRepository;
 
 
@@ -29,11 +21,6 @@ final class TranslationsFromDashboardService {
   }
 
 
-  /**
-   * Record a translation created from Translation Dashboard by current translator.
-   *
-   * @return void
-   */
   public function recordTranslator() {
     $translator = $this->userQuery->getCurrent();
     if ( ! $translator ) {

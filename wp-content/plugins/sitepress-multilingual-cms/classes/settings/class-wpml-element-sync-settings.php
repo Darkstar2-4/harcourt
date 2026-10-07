@@ -2,18 +2,12 @@
 
 class WPML_Element_Sync_Settings {
 
-	/** @var array $settings */
 	private $settings;
 
 	public function __construct( array $settings ) {
 		$this->settings = $settings;
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return bool
-	 */
 	public function is_sync( $type ) {
 		return isset( $this->settings[ $type ] ) &&
 			   (

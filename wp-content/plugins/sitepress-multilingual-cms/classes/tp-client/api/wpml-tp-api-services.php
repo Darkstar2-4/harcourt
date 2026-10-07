@@ -2,11 +2,6 @@
 
 use WPML\FP\Fns;
 
-/**
- * Class WPML_TP_API_Services
- *
- * @author OnTheGoSystems
- */
 class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 
 	const ENDPOINT_SERVICES      = '/services.json';
@@ -23,21 +18,14 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 
 	private $endpoint;
 
-	/** @return string */
 	protected function get_endpoint_uri() {
 		return $this->endpoint;
 	}
 
-	/** @return bool */
 	protected function is_authenticated() {
 		return false;
 	}
 
-	/**
-	 * @param bool $reload
-	 *
-	 * @return array
-	 */
 	public function get_all( $reload = false ) {
 		$this->endpoint       = self::ENDPOINT_SERVICES;
 		$translation_services = $reload ? null : $this->get_cached_services();
@@ -54,56 +42,32 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		return apply_filters( 'otgs_translation_get_services', $translation_services ? $translation_services : array() );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function refresh_cache() {
 		update_option( self::CACHED_SERVICES_KEY_TIMESTAMP, strtotime( '-2 day', $this->get_cached_services_timestamp() ) );
 		return (bool) $this->get_all();
 	}
 
-	/**
-	 * @return mixed
-	 */
 	private function get_cached_services() {
 		return get_option( self::CACHED_SERVICES_KEY_DATA );
 	}
 
-	/**
-	 * @return mixed
-	 */
 	private function get_cached_services_timestamp() {
 		return get_option( self::CACHED_SERVICES_KEY_TIMESTAMP );
 	}
 
-	/**
-	 * @param $services
-	 */
 	private function cache_services( $services ) {
 		update_option( self::CACHED_SERVICES_KEY_DATA, $services, 'no' );
 		update_option( self::CACHED_SERVICES_KEY_TIMESTAMP, time() );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function has_cache_services_expired() {
 		return time() >= strtotime( '+1 day', $this->get_cached_services_timestamp() );
 	}
 
-	/**
-	 * @param array $translation_services
-	 *
-	 * @return array
-	 */
 	private function convert_to_tp_services( $translation_services ) {
 		return Fns::map( Fns::constructN( 1, \WPML_TP_Service::class ), $translation_services );
 	}
 
-	/**
-	 * @param bool $partner
-	 * @return array
-	 */
 	public function get_translation_services( $partner = true ) {
 		return array_values(
 			wp_list_filter(
@@ -116,32 +80,17 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_translation_management_systems() {
 		return array_values( wp_list_filter( $this->get_all(), array( self::TRANSLATION_MANAGEMENT_SYSTEM => true ) ) );
 	}
 
-	/**
-	 * @param bool $reload
-	 *
-	 * @return null|WPML_TP_Service
-	 */
 	public function get_active( $reload = false ) {
 		return $this->get_one( $this->tp_client->get_project()->get_translation_service_id(), $reload );
 	}
 
-	/**
-	 * @param int  $service_id
-	 * @param bool $reload
-	 *
-	 * @return null|string
-	 */
 	public function get_name( $service_id, $reload = false ) {
 		$translator_name = null;
 
-		/** @var array $translation_services */
 		$translation_service = $this->get_one( $service_id, $reload );
 
 		if ( null !== $translation_service && isset( $translation_service->name ) ) {
@@ -155,19 +104,12 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		return $this->get_one( $service_id, $reload );
 	}
 
-	/**
-	 * @param int  $translation_service_id
-	 * @param bool $reload
-	 *
-	 * @return null|WPML_TP_Service
-	 */
 	private function get_one( $translation_service_id, $reload = false ) {
 		$translation_service = null;
 		if ( ! $translation_service_id ) {
 			return $translation_service;
 		}
 
-		/** @var array $translation_services */
 		$translation_services = $this->get_all( $reload );
 		$translation_services = wp_list_filter(
 			$translation_services,
@@ -185,11 +127,6 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		return $translation_service;
 	}
 
-	/**
-	 * @param string|int $translation_service_id
-	 *
-	 * @return null|WPML_TP_Service
-	 */
 	private function get_unlisted_service( $translation_service_id ) {
 		$this->endpoint = self::ENDPOINT_SERVICE;
 		$service        = parent::get( array( 'service_id' => $translation_service_id ) );
@@ -201,11 +138,6 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		return null;
 	}
 
-	/**
-	 * @param $service_id
-	 *
-	 * @return array
-	 */
 	public function get_languages_map( $service_id ) {
 		$this->endpoint = self::ENDPOINT_LANGUAGES_MAP;
 
@@ -216,11 +148,6 @@ class WPML_TP_API_Services extends WPML_TP_Abstract_API {
 		return parent::get( $args );
 	}
 
-	/**
-	 * @param $service_id
-	 *
-	 * @return mixed
-	 */
 	public function get_custom_fields( $service_id ) {
 		$this->endpoint = self::ENDPOINT_CUSTOM_FIELDS;
 

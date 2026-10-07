@@ -1,26 +1,14 @@
 <?php
-/**
- * @package    wpml-core
- * @subpackage wpml-core
- */
 
 use WPML\TM\API\Jobs;
 
 if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
-	/**
-	 * Important! Do not remove this class. It is still used inside wpml/wpml package.
-	 *
-	 * TranslationProxy_basket collects all static methods to operate on
-	 * translations basket (cart)
-	 */
 	class TranslationProxy_Basket {
 		private static $messages;
 		private static $dashboard_select;
 
 		private static $basket;
 
-		// The name of the option stored in wp_options table and that
-		// stores all the basket items
 		const ICL_TRANSLATION_JOBS_BASKET = 'icl_translation_jobs_basket';
 		private static $posts_ids;
 		private static $translate_from;
@@ -84,9 +72,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 		}
 
 
-		/**
-		 * @param array $basket
-		 */
 		private static function update_basket_option( $basket ) {
 			update_option( self::ICL_TRANSLATION_JOBS_BASKET, $basket, false );
 		}
@@ -99,14 +84,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 		}
 
-		/**
-		 * Return number of items in translation basket by key
-		 *
-		 * @param string $type
-		 * @param bool   $skip_cache
-		 *
-		 * @return int number of items in translation basket
-		 */
 		public static function get_basket_items_type_count( $type, $skip_cache = false ) {
 
 			$cache_key   = $type;
@@ -139,13 +116,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return $basket_items_number;
 		}
 
-		/**
-		 * Return number of items in translation basket
-		 *
-		 * @param bool $skip_cache
-		 *
-		 * @return int number of items in translation basket
-		 */
 		public static function get_basket_items_count( $skip_cache = false ) {
 
 			$basket_items_number = 0;
@@ -158,9 +128,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return $basket_items_number;
 		}
 
-		/**
-		 * Register notification with number of items in basket and link to basket
-		 */
 		public static function update_basket_notifications() {
 			$positions   = self::get_basket_notification_positions();
 			$basket_link = 'admin.php?page=' . WPML_TM_FOLDER . '/menu/main.php&sm=basket';
@@ -177,13 +144,11 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 				$limit_to_page[] = WPML_ST_FOLDER . '/menu/string-translation.php';
 			}
 
-			// if we have something in the basket
 			if ( self::is_st_page() && $basket_items_count > 0 && ( ! isset( $_GET['clear_basket'] ) || $_GET['clear_basket'] != 1 ) && ( ! isset( $_GET['action'] ) || $_GET['action'] != 'delete' ) ) {
 
 				$text  = __( 'The items you have selected are now in the translation basket &ndash;', 'wpml-translation-management' );
 				$text .= ' ' . sprintf( __( '<a href="%s">Send to translation &raquo;</a>', 'wpml-translation-management' ), $basket_link );
 
-				// translation management pages
 				$message_args = array(
 					'id'               => $positions['tm_dashboard_top'],
 					'text'             => $text,
@@ -241,10 +206,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return defined( 'WPML_ST_FOLDER' ) && array_key_exists( 'page', $_GET ) && false !== strpos( $_GET['page'], WPML_ST_FOLDER );
 		}
 
-		/**
-		 * Displays div with number of items in basket and link to basket
-		 * Removes notification if basket is empty
-		 */
 		public static function display_basket_items_notification() {
 			ICL_AdminNotifier::display_messages( 'translation-basket-notification' );
 		}
@@ -261,16 +222,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return $basket_item['from_lang'] == $source_language && isset( $basket_item['to_langs'][ $target_language ] ) && $basket_item['to_langs'][ $target_language ];
 		}
 
-		/**
-		 * Checks if post with ID $post_id is in the basket for any language
-		 *
-		 * @param int    $post_id
-		 * @param string $element_type
-		 * @param array  $check_in_languages
-		 * @param bool   $original_language_code
-		 *
-		 * @return bool
-		 */
 		public static function anywhere_in_basket( $post_id, $element_type = 'post', $check_in_languages = array(), $original_language_code = false ) {
 			$basket = self::get_basket();
 
@@ -306,15 +257,7 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return isset( self::$basket[ $item_type ] ) && count( self::$basket[ $item_type ] );
 		}
 
-		/**** adding items to basket ****/
 
-		/**
-		 * Serves Translation Dashboard form submission and adds posts to basket
-		 *
-		 * @param array $data data submitted from form
-		 *
-		 * @return boolean
-		 */
 		public static function add_posts_to_basket( $data ) {
 			self::get_basket();
 			global $sitepress;
@@ -322,10 +265,10 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			extract( $data, EXTR_OVERWRITE );
 
 			self::$translation_action = null;
-			if ( isset( $data['tr_action'] ) ) { // adapt new format
+			if ( isset( $data['tr_action'] ) ) {
 				self::$translation_action = $data['tr_action'];
 			}
-			if ( ! isset( $data['tr_action'] ) && isset( $data['translate_to'] ) ) { // adapt new format
+			if ( ! isset( $data['tr_action'] ) && isset( $data['translate_to'] ) ) {
 				$data['tr_action']        = $data['translate_to'];
 				self::$translation_action = $data['tr_action'];
 				unset( $data['translate_to'] );
@@ -333,7 +276,7 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 
 			self::$posts_ids = self::get_elements_ids( $data, 'post' );
 
-			self::$translate_from = $data ['translate_from']; // language of the submitted posts transported by hidden field
+			self::$translate_from = $data ['translate_from'];
 
 			$data_is_valid = self::validate_data( $data );
 
@@ -341,19 +284,13 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 				return false;
 			}
 
-			// check tr_action and do what user decided
 			foreach ( self::$translation_action as $language_code => $status ) {
 
 				$language_name = $sitepress->get_display_language_name( $language_code );
-				// if he decided duplicate or not to translate for this particular language,
-				// try to remove it from wp_options
 
 				$basket_item_type = 'post';
 
 				if ( $status == 2 ) {
-					// iterate posts ids, check if they are in wp_options
-					// if they are set to translate for this particular language
-					// end then remove it
 					foreach ( self::$posts_ids as $id ) {
 						if ( isset( self::$basket[ $basket_item_type ][ $id ]['to_langs'][ $language_code ] ) ) {
 							unset( self::$basket[ $basket_item_type ][ $id ]['to_langs'][ $language_code ] );
@@ -399,7 +336,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 						if ( $send_to_basket ) {
 							self::$basket[ $basket_item_type ][ $id ]['from_lang']                  = self::$translate_from;
 							self::$basket[ $basket_item_type ][ $id ]['to_langs'][ $language_code ] = 1;
-							// set basket language if not already set
 							if ( ! isset( self::$basket['source_language'] ) ) {
 								self::$basket['source_language'] = self::$translate_from;
 							}
@@ -413,33 +349,12 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return true;
 		}
 
-		/**
-		 * Serves WPML > String translation form submission and adds strings to basket
-		 *
-		 * @param array           $string_ids identifiers of strings
-		 * @param       $source_language
-		 * @param array           $target_languages selected target languages
-		 * @return bool
-		 * @todo: [WPML 3.3] move to ST and handle with hooks
-		 */
 		public static function add_strings_to_basket( $string_ids, $source_language, $target_languages ) {
 			global $wpdb, $sitepress;
 
 			self::get_basket();
 
-			/*
-			 structure of cart in get_option:
-			* [posts]
-			*  [element_id]
-			*          [to_langs]
-			*             [language_code]             fr | pl | de ... with value 1
-			* [strings]
-			*  [string_id]
-			*          [to_langs]
-			*             [language_code]
-			*/
 
-			// no post selected ?
 			if ( empty( $string_ids ) ) {
 				self::$messages[] = array(
 					'type' => 'error',
@@ -449,7 +364,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 				return false;
 			}
 
-			// no language selected ?
 			if ( empty( $target_languages ) ) {
 				self::$messages[] = array(
 					'type' => 'error',
@@ -460,10 +374,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 
 			if ( self::get_basket() && self::get_source_language() ) {
-				/*
-				we do not add items that are not in the source language of the current basket
-				we cannot yet set its source language though since update_basket would set the basket
-				to false oso long as we do not have any elements in the basket*/
 				if ( $source_language != self::get_source_language() ) {
 					self::$messages[] = array(
 						'type' => 'update',
@@ -515,7 +425,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 					if ( $send_to_basket ) {
 						self::$basket['string'][ $id ]['from_lang']                    = $source_language;
 						self::$basket['string'][ $id ]['to_langs'][ $target_language ] = 1;
-						// set basket language if not already set
 						if ( ! isset( self::$basket['source_language'] ) ) {
 							self::$basket['source_language'] = $source_language;
 						}
@@ -528,13 +437,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return true;
 		}
 
-		/**
-		 * Serves deletion of items from basket, triggered from WPML TM > Translation
-		 * Jobs
-		 *
-		 * @param array $items Array of items ids, in two separate parts: ['post']
-		 *                     and ['string']
-		 */
 		public static function delete_items_from_basket( $items ) {
 			self::get_basket();
 
@@ -550,13 +452,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			self::update_basket();
 		}
 
-		/**
-		 * Removes one item from basket
-		 *
-		 * @param int    $id            Item ID
-		 * @param string $type          Item type (strings | posts | ...)
-		 * @param bool   $update_option do update_option('icl_translation_jobs_cart' ?
-		 */
 		public static function delete_item_from_basket( $id, $type = 'post', $update_option = true ) {
 			self::get_basket();
 
@@ -578,25 +473,18 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 		}
 
-		// TODO: [WPML 3.3] implement this in the troubleshooting page
 		public static function delete_all_items_from_basket() {
 			self::$basket = [];
 			delete_option( self::ICL_TRANSLATION_JOBS_BASKET );
 			self::update_basket();
 		}
 
-		/**
-		 * @param WPML_TP_Batch|null $batch
-		 */
 		public static function set_batch_data( $batch ) {
 			self::get_basket();
 			self::$basket['batch'] = $batch;
 			self::update_basket();
 		}
 
-		/**
-		 * @return false|null|WPML_TP_Batch
-		 */
 		public static function get_batch_data() {
 			self::get_basket();
 			return isset( self::$basket['batch'] ) ? self::$basket['batch'] : false;
@@ -618,7 +506,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			self::$basket['options'] = $options;
 		}
 
-		/** @return array */
 		public static function get_options() {
 			return isset( self::$basket['options'] ) ? self::$basket['options'] : array();
 		}
@@ -649,7 +536,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			if ( function_exists( 'array_replace_recursive' ) ) {
 				$array = array_replace_recursive( $array, $array1 );
 			} else {
-				// handle the arguments, merge one by one
 				$args  = func_get_args();
 				$array = $args[0];
 				if ( ! is_array( $array ) ) {
@@ -666,12 +552,10 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 
 		private static function recurse( $array, $array1 ) {
 			foreach ( $array1 as $key => $value ) {
-				// create new key in $array, if it is empty or not an array
 				if ( ! isset( $array[ $key ] ) || ( isset( $array[ $key ] ) && ! is_array( $array[ $key ] ) ) ) {
 					$array[ $key ] = array();
 				}
 
-				// overwrite the value in the base array
 				if ( is_array( $value ) ) {
 					$value = self::recurse( $array[ $key ], $value );
 				}
@@ -692,11 +576,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			);
 		}
 
-		/**
-		 * @param $post_id
-		 *
-		 * @return mixed|null|void|WP_Post
-		 */
 		private static function get_post( $post_id ) {
 			if ( is_string( $post_id ) && strcmp( substr( $post_id, 0, strlen( 'external_' ) ), 'external_' ) === 0 ) {
 				$item = apply_filters( 'wpml_get_translatable_item', null, $post_id );
@@ -706,12 +585,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return $item;
 		}
 
-		/**
-		 * @param array       $selected_elements
-		 *
-		 * @param bool|string $type
-		 * @return array[]|int[]
-		 */
 		public static function get_elements_ids( $selected_elements, $type = false ) {
 			$element_ids      = array();
 			$legal_item_types = $type ? array( $type ) : array_keys( self::get_basket_items_types() );
@@ -757,9 +630,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 		}
 
-		/**
-		 * @return bool|array
-		 */
 		public static function get_target_languages() {
 			self::get_basket();
 			self::sync_target_languages();
@@ -767,13 +637,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 		}
 
 
-		/**
-		 * Important! Do not remove this method. It is used inside wpml/wpml project.
-		 *
-		 * Sets target languages for remote service
-		 *
-		 * @param $remote_target_languages
-		 */
 		public static function set_remote_target_languages( $remote_target_languages ) {
 			self::get_basket();
 			self::$basket['remote_target_languages'] = $remote_target_languages;
@@ -781,13 +644,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 		}
 
 
-		/**
-		 * Important! Do not remove this method. It is used inside wpml/wpml project.
-		 *
-		 * Get target languages for remote service
-		 *
-		 * @return array | false
-		 */
 		public static function get_remote_target_languages() {
 			self::get_basket();
 			if ( isset( self::$basket['remote_target_languages'] ) ) {
@@ -797,9 +653,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 		}
 
-		/**
-		 * @return array
-		 */
 		public static function get_basket_notification_positions() {
 			return array(
 				'admin_notice'        => 'basket_status_update',
@@ -858,7 +711,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			}
 
 			$rows = array();
-			/** @var WPML_TP_Extra_Field $field */
 			$field_diplay = new WPML_TP_Extra_Field_Display();
 			foreach ( $extra_fields as $field ) {
 				$rows[] = $field_diplay->render( $field );
@@ -878,18 +730,9 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 			return $html;
 		}
 
-		/**
-		 * @param $data
-		 *
-		 * @return bool
-		 */
 		private static function validate_data( $data ) {
 			$data_is_valid = true;
 			if ( self::get_basket() && self::get_source_language() ) {
-				/*
-				we do not add items that are not in the source language of the current basket
-				we cannot yet set its source language though since update_basket would set the basket
-				to false as long as we do not have any elements in the basket*/
 				if ( self::$translate_from != self::get_source_language() ) {
 					self::$messages[] = array(
 						'type' => 'update',
@@ -905,20 +748,18 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 				}
 			}
 
-			// no language selected ?
 			if ( ! isset( self::$translation_action ) || empty( self::$translation_action ) ) {
 				self::$messages[]       = array(
 					'type' => 'error',
 					'text' => __( 'Please select at least one language to translate into.', 'wpml-translation-management' ),
 				);
-				self::$dashboard_select = $data; // pre fill dashboard
+				self::$dashboard_select = $data;
 				$data_is_valid          = false;
 			}
 
 			if ( $data_is_valid ) {
 				$data_is_valid      = false;
 				$basket_items_types = self::get_basket_items_types();
-				// nothing selected ?
 				foreach ( $basket_items_types as $basket_items_type => $basket_type ) {
 					if ( isset( $data[ $basket_items_type ] ) && $data[ $basket_items_type ] ) {
 						$data_is_valid = true;
@@ -932,7 +773,7 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 					'type' => 'error',
 					'text' => __( 'Please select at least one document to translate.', 'wpml-translation-management' ),
 				);
-				self::$dashboard_select = $data; // pre-populate dashboard
+				self::$dashboard_select = $data;
 				$data_is_valid          = false;
 
 				return $data_is_valid;

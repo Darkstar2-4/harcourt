@@ -1,13 +1,6 @@
 <?php
 
 class OTGS_Products_Bucket_Repository {
-	/**
-	 * @param string $api_url
-	 * @param string $site_key
-	 * @param string $site_url
-	 *
-	 * @return string|null
-	 */
 	public function get_products_bucket_url( $api_url, $site_key, $site_url ) {
 		$args['body'] = [
 			'action'   => 'product_bucket_url',
@@ -25,11 +18,6 @@ class OTGS_Products_Bucket_Repository {
 		return null;
 	}
 
-	/**
-	 * @param array|WP_Error $response
-	 *
-	 * @return stdClass|null
-	 */
 	private function get_response_data( $response ) {
 		if (
 			$response &&

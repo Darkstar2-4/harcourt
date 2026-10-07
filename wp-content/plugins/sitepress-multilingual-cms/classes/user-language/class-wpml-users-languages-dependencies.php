@@ -1,9 +1,5 @@
 <?php
 
-/**
- * @package wpml-core
- * @subpackage wpml-user-language
- */
 class WPML_Users_Languages_Dependencies {
 	public $WPML_User_Language_Switcher_Hooks;
 	private $WPML_User_Language_Switcher_Resources;

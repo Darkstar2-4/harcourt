@@ -113,8 +113,11 @@ WPML_String_Translation.ModalForm.prototype = {
 
     showSaveConfirmMsg: function() {
         var self = this;
-        var html = '<span class="icl_ajx_response" style="position: absolute; right: 100px; bottom: 22px; display: block">' + this.dialog.attr('data-saveConfirmMsg') + '</span>';
-        this.dialog.closest('.wpml-st-modal-form').find('.ui-dialog-buttonset').append(jQuery(html));
+        // The message is plain translated text: insert it as a text node so a
+        // translation containing markup can never become executable DOM.
+        var message = jQuery('<span class="icl_ajx_response" style="position: absolute; right: 100px; bottom: 22px; display: block"></span>');
+        message.text(this.dialog.attr('data-saveConfirmMsg'));
+        this.dialog.closest('.wpml-st-modal-form').find('.ui-dialog-buttonset').append(message);
 
         this.rmConfirmMsgTimeout = setTimeout(function() {
             self.rmConfirmMsg.call(self);

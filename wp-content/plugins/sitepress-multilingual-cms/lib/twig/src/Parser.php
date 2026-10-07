@@ -25,11 +25,6 @@ use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\Node\TextNode;
 use WPML\Core\Twig\NodeVisitor\NodeVisitorInterface;
 use WPML\Core\Twig\TokenParser\TokenParserInterface;
-/**
- * Default parser implementation.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class Parser implements \WPML\Core\Twig_ParserInterface
 {
     protected $stack = [];
@@ -51,9 +46,6 @@ class Parser implements \WPML\Core\Twig_ParserInterface
     {
         $this->env = $env;
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function getEnvironment()
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0.', \E_USER_DEPRECATED);
@@ -63,9 +55,6 @@ class Parser implements \WPML\Core\Twig_ParserInterface
     {
         return \sprintf('__internal_%s', \hash('sha256', __METHOD__ . $this->stream->getSourceContext()->getCode() . $this->varNameSalt++));
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0). Use $parser->getStream()->getSourceContext()->getPath() instead.
-     */
     public function getFilename()
     {
         @\trigger_error(\sprintf('The "%s" method is deprecated since version 1.27 and will be removed in 2.0. Use $parser->getStream()->getSourceContext()->getPath() instead.', __METHOD__), \E_USER_DEPRECATED);
@@ -73,21 +62,16 @@ class Parser implements \WPML\Core\Twig_ParserInterface
     }
     public function parse(\WPML\Core\Twig\TokenStream $stream, $test = null, $dropNeedle = \false)
     {
-        // push all variables into the stack to keep the current state of the parser
-        // using get_object_vars() instead of foreach would lead to https://bugs.php.net/71336
-        // This hack can be removed when min version if PHP 7.0
         $vars = [];
         foreach ($this as $k => $v) {
             $vars[$k] = $v;
         }
         unset($vars['stack'], $vars['env'], $vars['handlers'], $vars['visitors'], $vars['expressionParser'], $vars['reservedMacroNames']);
         $this->stack[] = $vars;
-        // tag handlers
         if (null === $this->handlers) {
             $this->handlers = $this->env->getTokenParsers();
             $this->handlers->setParser($this);
         }
-        // node visitors
         if (null === $this->visitors) {
             $this->visitors = $this->env->getNodeVisitors();
         }
@@ -120,7 +104,6 @@ class Parser implements \WPML\Core\Twig_ParserInterface
         $node = new \WPML\Core\Twig\Node\ModuleNode(new \WPML\Core\Twig\Node\BodyNode([$body]), $this->parent, new \WPML\Core\Twig\Node\Node($this->blocks), new \WPML\Core\Twig\Node\Node($this->macros), new \WPML\Core\Twig\Node\Node($this->traits), $this->embeddedTemplates, $stream->getSourceContext());
         $traverser = new \WPML\Core\Twig\NodeTraverser($this->env, $this->visitors);
         $node = $traverser->traverse($node);
-        // restore previous stack so previous parse() call can resume working
         foreach (\array_pop($this->stack) as $key => $val) {
             $this->{$key} = $val;
         }
@@ -185,17 +168,11 @@ class Parser implements \WPML\Core\Twig_ParserInterface
         }
         return new \WPML\Core\Twig\Node\Node($rv, [], $lineno);
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function addHandler($name, $class)
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0.', \E_USER_DEPRECATED);
         $this->handlers[$name] = $class;
     }
-    /**
-     * @deprecated since 1.27 (to be removed in 2.0)
-     */
     public function addNodeVisitor(\WPML\Core\Twig\NodeVisitor\NodeVisitorInterface $visitor)
     {
         @\trigger_error('The ' . __METHOD__ . ' method is deprecated since version 1.27 and will be removed in 2.0.', \E_USER_DEPRECATED);
@@ -267,7 +244,7 @@ class Parser implements \WPML\Core\Twig_ParserInterface
         $template->setIndex(\mt_rand());
         $this->embeddedTemplates[] = $template;
     }
-    public function addImportedSymbol($type, $alias, $name = null, \WPML\Core\Twig\Node\Expression\AbstractExpression $node = null)
+    public function addImportedSymbol($type, $alias, $name = null, ?\WPML\Core\Twig\Node\Expression\AbstractExpression $node = null)
     {
         $this->importedSymbols[0][$type][$alias] = ['name' => $name, 'node' => $node];
     }
@@ -298,9 +275,6 @@ class Parser implements \WPML\Core\Twig_ParserInterface
     {
         \array_shift($this->importedSymbols);
     }
-    /**
-     * @return ExpressionParser
-     */
     public function getExpressionParser()
     {
         return $this->expressionParser;
@@ -313,34 +287,25 @@ class Parser implements \WPML\Core\Twig_ParserInterface
     {
         $this->parent = $parent;
     }
-    /**
-     * @return TokenStream
-     */
     public function getStream()
     {
         return $this->stream;
     }
-    /**
-     * @return Token
-     */
     public function getCurrentToken()
     {
         return $this->stream->getCurrent();
     }
     protected function filterBodyNodes(\WPML\Core\Twig_NodeInterface $node)
     {
-        // check that the body does not contain non-empty output nodes
         if ($node instanceof \WPML\Core\Twig\Node\TextNode && !\ctype_space($node->getAttribute('data')) || !$node instanceof \WPML\Core\Twig\Node\TextNode && !$node instanceof \WPML\Core\Twig\Node\BlockReferenceNode && $node instanceof \WPML\Core\Twig\Node\NodeOutputInterface) {
             if (\false !== \strpos((string) $node, \chr(0xef) . \chr(0xbb) . \chr(0xbf))) {
                 $t = \substr($node->getAttribute('data'), 3);
                 if ('' === $t || \ctype_space($t)) {
-                    // bypass empty nodes starting with a BOM
                     return;
                 }
             }
             throw new \WPML\Core\Twig\Error\SyntaxError('A template that extends another one cannot include content outside Twig blocks. Did you forget to put the content inside a {% block %} tag?', $node->getTemplateLine(), $this->stream->getSourceContext());
         }
-        // bypass nodes that will "capture" the output
         if ($node instanceof \WPML\Core\Twig\Node\NodeCaptureInterface) {
             return $node;
         }

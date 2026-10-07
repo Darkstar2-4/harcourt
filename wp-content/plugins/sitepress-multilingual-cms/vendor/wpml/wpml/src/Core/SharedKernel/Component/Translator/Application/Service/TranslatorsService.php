@@ -8,7 +8,6 @@ use WPML\Core\SharedKernel\Component\Translator\Domain\Translator;
 
 class TranslatorsService {
 
-  /** @var TranslatorsQueryInterface */
   private $translatorsQuery;
 
 
@@ -17,9 +16,6 @@ class TranslatorsService {
   }
 
 
-  /**
-   * @return TranslatorDto[]
-   */
   public function get(): array {
     return array_map(
       function ( Translator $translator ): TranslatorDto {
@@ -30,11 +26,6 @@ class TranslatorsService {
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @return TranslatorDto|null
-   */
   public function getById( int $id ) {
     $translator = $this->translatorsQuery->getById( $id );
 
@@ -46,9 +37,6 @@ class TranslatorsService {
   }
 
 
-  /**
-   * @return TranslatorDto|null
-   */
   public function getCurrentlyLoggedId() {
     $currentlyLoggedIn = $this->translatorsQuery->getCurrentlyLoggedId();
 

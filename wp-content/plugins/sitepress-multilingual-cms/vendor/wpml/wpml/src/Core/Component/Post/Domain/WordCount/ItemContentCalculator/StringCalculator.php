@@ -10,10 +10,8 @@ use function WPML\PHP\Logger\error;
 
 class StringCalculator {
 
-  /** @var Calculator */
   private $calculator;
 
-  /** @var RepositoryInterface */
   private $stringRepository;
 
 
@@ -23,12 +21,6 @@ class StringCalculator {
   }
 
 
-  /**
-   * @param int $itemId
-   *
-   * @return int
-   * @throws InvalidItemIdException
-   */
   public function calculate( int $itemId ): int {
     $string    = $this->stringRepository->get( $itemId );
     $wordCount = $this->calculator->words( $string->getValue() );

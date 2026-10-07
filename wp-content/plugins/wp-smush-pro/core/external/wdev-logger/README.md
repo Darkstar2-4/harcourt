@@ -59,6 +59,12 @@ $logger->main_module()->error('Log an error for main module');
 //Or
 $logger->error('Log an error');
 
+Or access directly via variable:
+$logger->foo->error('Log an error.');
+$logger->foo->warning('Log a warning');
+$logger->foo->notice('Log a notice');
+$logger->foo->info('Log info');
+
 //Delete log file.
 $logger->foo()->delete();//Delete the log file of module Foo.
 $logger->delete();//Delete log file for the main module.

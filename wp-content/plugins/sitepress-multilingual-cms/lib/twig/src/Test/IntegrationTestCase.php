@@ -21,64 +21,33 @@ use WPML\Core\Twig\Source;
 use WPML\Core\Twig\TwigFilter;
 use WPML\Core\Twig\TwigFunction;
 use WPML\Core\Twig\TwigTest;
-/**
- * Integration test helper.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- * @author Karma Dordrak <drak@zikula.org>
- */
 abstract class IntegrationTestCase extends \WPML\Core\PHPUnit\Framework\TestCase
 {
-    /**
-     * @return string
-     */
     protected abstract function getFixturesDir();
-    /**
-     * @return RuntimeLoaderInterface[]
-     */
     protected function getRuntimeLoaders()
     {
         return [];
     }
-    /**
-     * @return ExtensionInterface[]
-     */
     protected function getExtensions()
     {
         return [];
     }
-    /**
-     * @return TwigFilter[]
-     */
     protected function getTwigFilters()
     {
         return [];
     }
-    /**
-     * @return TwigFunction[]
-     */
     protected function getTwigFunctions()
     {
         return [];
     }
-    /**
-     * @return TwigTest[]
-     */
     protected function getTwigTests()
     {
         return [];
     }
-    /**
-     * @dataProvider getTests
-     */
     public function testIntegration($file, $message, $condition, $templates, $exception, $outputs)
     {
         $this->doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs);
     }
-    /**
-     * @dataProvider getLegacyTests
-     * @group legacy
-     */
     public function testLegacyIntegration($file, $message, $condition, $templates, $exception, $outputs)
     {
         $this->doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs);
@@ -113,7 +82,6 @@ abstract class IntegrationTestCase extends \WPML\Core\PHPUnit\Framework\TestCase
             $tests[] = [\str_replace($fixturesDir . '/', '', $file), $message, $condition, $templates, $exception, $outputs];
         }
         if ($legacyTests && empty($tests)) {
-            // add a dummy test to avoid a PHPUnit message
             return [['not', '-', '', [], '', []]];
         }
         return $tests;

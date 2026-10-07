@@ -9,7 +9,6 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class GetNeedsUpdateCreatedInCteController implements EndpointInterface {
 
-  /** @var NeedsUpdateCreatedInCteQueryInterface */
   private $query;
 
 
@@ -18,12 +17,6 @@ class GetNeedsUpdateCreatedInCteController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed> $requestData
-   *
-   * @return array<string,mixed>
-   * @throws InvalidArgumentException|Exception
-   */
   public function handle( $requestData = null ): array {
     $count = $this->query->get();
 

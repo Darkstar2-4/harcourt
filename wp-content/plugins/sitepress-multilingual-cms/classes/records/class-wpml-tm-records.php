@@ -1,10 +1,8 @@
 <?php
 
 class WPML_TM_Records {
-	/** @var WPDB $wpdb */
 	public $wpdb;
 
-	/** @var array $cache */
 	private $cache = array(
 		'icl_translations' => array(),
 		'status'           => array(),
@@ -12,10 +10,8 @@ class WPML_TM_Records {
 
 	private $preloaded_statuses = null;
 
-	/** @var  WPML_Frontend_Post_Actions | WPML_Admin_Post_Actions $wpml_post_translations */
 	private $wpml_post_translations;
 
-	/** @var WPML_Term_Translation $wpml_term_translations */
 	private $wpml_term_translations;
 
 	public function __construct(
@@ -40,11 +36,6 @@ class WPML_TM_Records {
 		return $this->wpml_term_translations;
 	}
 
-	/**
-	 * @param int $translation_id
-	 *
-	 * @return WPML_TM_ICL_Translation_Status
-	 */
 	public function icl_translation_status_by_translation_id( $translation_id ) {
 
 		if ( ! isset( $this->cache['status'][ $translation_id ] ) ) {
@@ -88,42 +79,21 @@ class WPML_TM_Records {
 		return $data;
 	}
 
-	/**
-	 * @param int $rid
-	 *
-	 * @return WPML_TM_ICL_Translation_Status
-	 */
 	public function icl_translation_status_by_rid( $rid ) {
 
 		return new WPML_TM_ICL_Translation_Status( $this->wpdb, $this, $rid, 'rid' );
 	}
 
-	/**
-	 * @param int $job_id
-	 *
-	 * @return WPML_TM_ICL_Translate_Job
-	 */
 	public function icl_translate_job_by_job_id( $job_id ) {
 
 		return new WPML_TM_ICL_Translate_Job( $this, $job_id );
 	}
 
-	/**
-	 * @param int $translation_id
-	 *
-	 * @return WPML_TM_ICL_Translations
-	 */
 	public function icl_translations_by_translation_id( $translation_id ) {
 
 		return new WPML_TM_ICL_Translations( $this, $translation_id );
 	}
 
-	/**
-	 * @param int    $element_id
-	 * @param string $type_prefix
-	 *
-	 * @return WPML_TM_ICL_Translations
-	 */
 	public function icl_translations_by_element_id_and_type_prefix(
 		$element_id,
 		$type_prefix
@@ -143,12 +113,6 @@ class WPML_TM_Records {
 		return $this->cache['icl_translations'][ $key ];
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $lang
-	 *
-	 * @return WPML_TM_ICL_Translations
-	 */
 	public function icl_translations_by_trid_and_lang( $trid, $lang ) {
 		$key = md5( $trid . $lang );
 		if ( ! isset( $this->cache['icl_translations'][ $key ] ) ) {
@@ -165,11 +129,7 @@ class WPML_TM_Records {
 		return $this->cache['icl_translations'][ $key ];
 	}
 
-	/**
-	 * @param int $trid
-	 *
-	 * @return int[]
-	 */ public function get_element_ids_from_trid( $trid ) {
+ public function get_element_ids_from_trid( $trid ) {
 		return $this->wpdb->get_col(
 			$this->wpdb->prepare(
 				"SELECT element_id

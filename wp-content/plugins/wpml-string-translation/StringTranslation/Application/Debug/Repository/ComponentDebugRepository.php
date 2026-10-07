@@ -14,7 +14,6 @@ class ComponentDebugRepository {
 		if ( ! file_exists( $directory ) ) {
 			mkdir( $directory, 0777, true );
 		}
-//self::$isDebugTraceOn = true;
 		if ( ! self::$isDebugTraceOn ) {
 			return;
 		}

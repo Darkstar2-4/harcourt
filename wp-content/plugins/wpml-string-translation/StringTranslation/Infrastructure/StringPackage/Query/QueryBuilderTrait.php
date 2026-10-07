@@ -11,18 +11,12 @@ trait QueryBuilderTrait {
 		return esc_sql( preg_replace( '/[^a-zA-Z0-9]/', '_', $languageCode ) ?: $languageCode );
 	}
 
-	/**
-	 * @param SearchPopulatedKindsCriteria|StringPackageCriteria $criteria
-	 */
 	private function getSourceLanguageCode( $criteria ): string {
 		return $criteria->getSourceLanguageCode()
 			? $criteria->getSourceLanguageCode()
 			: $this->settingsRepository->getDefaultLanguageCode();
 	}
 
-	/**
-	 * @param SearchPopulatedKindsCriteria|StringPackageCriteria $criteria
-	 */
 	private function getTargetLanguageCodes( $criteria ): array {
 		$languageCodes = $criteria->getTargetLanguageCode() ?
 			[  $criteria->getTargetLanguageCode() ] :
@@ -36,11 +30,6 @@ trait QueryBuilderTrait {
 		);
 	}
 
-	/**
-	 * @param string[] $languageCodes
-	 *
-	 * @return string[]
-	 */
 	private function escapeLanguages( array $languageCodes ): array {
 		return array_map(
 			function ( $languageCode ) {

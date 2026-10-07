@@ -10,17 +10,6 @@ use WPML\FP\Str;
 use WPML\TM\API\Jobs;
 use function WPML\FP\curryN;
 
-/**
- * Class PreviewLink
- *
- * @phpstan-type curried "__CURRIED_PLACEHOLDER__"
- *
- * @package WPML\TM\ATE\Review
- *
- * @method static callable|string get( ...$translationPostId, ...$jobId ) : Curried:: int->int->string
- * @method static callable|string getWithLanguagesParam( ...$languages, ...$translationPostId, ...$jobId ) : Curried:: int->int->string
- * @method static callable|string getByJob( ...$job ) : Curried:: \stdClass->string
- */
 class PreviewLink {
 	use Macroable;
 
@@ -50,57 +39,12 @@ class PreviewLink {
 		) ) );
 	}
 
-	/**
-	 * @param string     $returnUrl
-	 * @param string|int $translationPostId
-	 * @param string|int $jobId
-	 *
-	 * @return string
-	 *
-	 * @phpstan-template V1 of string|curried
-	 * @phpstan-template V2 of string|int|curried
-	 * @phpstan-template V3 of object|int|curried
-	 * @phpstan-template P1 of string
-	 * @phpstan-template P2 of string|int
-	 * @phpstan-template P3 of string|int
-	 * @phpstan-template R of string
-	 *
-	 * @phpstan-param ?V1 $returnUrl
-	 * @phpstan-param ?V2 $translationPostId
-	 * @phpstan-param ?V3 $jobId
-	 *
-	 * @phpstan-return ($a is P1
-	 *  ? ($b is P2
-	 *    ? ($c is P3
-	 *      ? R
-	 *      : callable(P3=):R)
-	 *    : ($c is P3
-	 *      ? callable(P2=):R
-	 *      : callable(P2=,P3=):R)
-	 *  )
-	 *  : ($b is P2
-	 *    ? ($c is P3
-	 *      ? callable(P1=):R
-	 *      : callable(P1=,P3=):R)
-	 *    : ($c is P3
-	 *      ? callable(P1=,P2=):R
-	 *      : callable(P1=,P2=,P3=):R)
-	 *  )
-	 * )
-	 */
 	public static function getWithSpecifiedReturnUrl( $returnUrl = null, $translationPostId = null, $jobId = null ) {
 		$callback = function ( $returnUrl, $translationPostId, $jobId ) {
 			$returnUrl         = (string) $returnUrl;
 			$translationPostId = (int) $translationPostId;
 			$jobId             = (int) $jobId;
 
-			/**
-			 * Returns TRUE if post_type of post is among public post type and FALSE otherwise.
-			 *
-			 * @param $postId
-			 *
-			 * @return bool
-			 */
 			$isPublicPostType = function ( $postId ) {
 				$publicPostTypes = get_post_types( [ 'public' => true ] );
 				$postType        = get_post_type( $postId );
@@ -116,12 +60,7 @@ class PreviewLink {
 				'returnUrl'     => rawurlencode( $returnUrl ),
 			];
 
-			/**
-			 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmltm-4273
-			 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-1366/Translate-Everything-Incorrect-template-when-reviewing-a-translated-page
-			*/
 			if ( !$isPublicPostType( $translationPostId ) ) {
-				// Add 'p' URL parameter only if post type isn't public
 				$args['p'] = $translationPostId;
 			}
 
@@ -134,13 +73,6 @@ class PreviewLink {
 		return call_user_func_array( curryN( 3, $callback ), func_get_args() );
 	}
 
-	/**
-	 * @template A as string|int|curried
-	 *
-	 * @param A $translationPostId
-	 *
-	 * @return (A is curried ? callable : string)
-	 */
 	public static function getNonceName( $translationPostId = null ) {
 		return Str::concat( 'post_preview_', $translationPostId );
 	}

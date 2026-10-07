@@ -2,10 +2,8 @@
 
 abstract class WPML_Ajax_Update_Link_Targets_In_Content extends WPML_WPDB_User implements IWPML_AJAX_Action_Run {
 
-	/** @var WPML_Translate_Link_Targets_In_Content $translate_link_targets */
 	private $translate_link_targets;
 	private $post_data;
-	/** @var  WPML_Translate_Link_Target_Global_State $translate_link_target_global_state */
 	protected $translate_link_target_global_state;
 
 	public function __construct( WPML_Translate_Link_Target_Global_State $translate_link_target_global_state, &$wpdb, $post_data ) {

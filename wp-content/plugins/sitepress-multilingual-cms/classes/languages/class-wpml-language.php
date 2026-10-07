@@ -2,10 +2,8 @@
 
 class WPML_Language {
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var string $code */
 	private $code;
 
 	private $lang_details;

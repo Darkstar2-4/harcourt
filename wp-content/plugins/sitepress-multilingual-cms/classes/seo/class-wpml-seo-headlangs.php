@@ -3,11 +3,6 @@
 class WPML_SEO_HeadLangs {
 	private $sitepress;
 
-	/**
-	 * WPML_SEO_HeadLangs constructor.
-	 *
-	 * @param SitePress                   $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}
@@ -37,9 +32,6 @@ class WPML_SEO_HeadLangs {
 
 	function head_langs() {
 		$languages = $this->sitepress->get_ls_languages( array( 'skip_missing' => true ) );
-		/**
-		 * @since 3.4.0
-		 */
 		$languages = apply_filters( 'wpml_head_langs', $languages );
 
 		if ( $this->must_render( $languages ) ) {
@@ -47,9 +39,6 @@ class WPML_SEO_HeadLangs {
 			$xdefault_href_lang = null;
 
             foreach ( $languages as $lang ) {
-                /**
-                 * @since 3.3.7
-                 */
                 $alternate_hreflang = apply_filters( 'wpml_alternate_hreflang', $lang['url'], $lang['code'] );
 
                 $hreflang_code = $this->get_hreflang_code( $lang );
@@ -144,7 +133,6 @@ class WPML_SEO_HeadLangs {
 		$wpml_queried_object = new WPML_Queried_Object( $this->sitepress );
 
 		$has_languages = is_array( $languages ) && count( $languages ) > 0;
-		// Allow users to add custom post statuses.
 		$post_status = apply_filters( 'wpml_hreflangs_post_status', [ 'publish' ] );
 		if ( $has_languages && ! $this->sitepress->get_wp_api()->is_paged() ) {
 			if ( $wpml_queried_object->has_object() ) {
@@ -178,9 +166,6 @@ class WPML_SEO_HeadLangs {
 		return $must_render;
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_home_front_or_archive_page() {
 		return $this->sitepress->get_wp_api()->is_home()
 		       || $this->sitepress->get_wp_api()->is_front_page()
@@ -188,11 +173,6 @@ class WPML_SEO_HeadLangs {
 		       || is_search();
 	}
 
-	/**
-	 * @param array $lang
-	 *
-	 * @return string
-	 */
 	private function get_hreflang_code( $lang ) {
 		$ordered_keys = [ 'tag', 'default_locale' ];
 

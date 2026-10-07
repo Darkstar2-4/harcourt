@@ -10,11 +10,6 @@
  */
 namespace WPML\Core\Twig\Sandbox;
 
-/**
- * Interface that all security policy classes must implements.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 interface SecurityPolicyInterface
 {
     public function checkSecurity($tags, $filters, $functions);

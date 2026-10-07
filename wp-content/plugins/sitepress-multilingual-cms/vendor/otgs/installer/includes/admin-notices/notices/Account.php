@@ -18,12 +18,6 @@ class Account {
 	const GET_FIRST_INSTALL_TIME = 'get_first_install_time';
 	const DEVELOPMENT_MODE = 'development_mode';
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $initialNotices
-	 *
-	 * @return array
-	 */
 	public static function getCurrentNotices( \WP_Installer $installer, array $initialNotices ) {
 
 		$config = $installer->get_site_key_nags_config();
@@ -43,12 +37,6 @@ class Account {
 
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowNotRegistered( \WP_Installer $installer, array $nag ) {
 		$shouldShow = ! self::isDevelopmentSite( $installer->get_installer_site_url( $nag['repository_id'] ) ) &&
 		              ! $installer->repository_has_subscription( $nag['repository_id'] ) &&
@@ -61,32 +49,14 @@ class Account {
 		return $shouldShow;
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowExpired( \WP_Installer $installer, array $nag ) {
 		return $installer->repository_has_expired_subscription( $nag['repository_id'], 30 * DAY_IN_SECONDS );
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowInGrace( \WP_Installer $installer, array $nag ) {
 		return $installer->repository_has_in_grace_subscription( $nag['repository_id'], 30 * DAY_IN_SECONDS );
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowDevelopmentBanner( \WP_Installer $installer, array $nag ) {
 		$showDevelopmentBanner = $installer->repository_has_development_site_key( $nag['repository_id'] );
 		$isDismissed = Loader::isDismissed( $nag[ 'repository_id' ], Account::DEVELOPMENT_MODE );
@@ -98,7 +68,6 @@ class Account {
 	}
 
 	public static function addWpmlDevelopmentAdminBar() {
-		/** @var \WP_Admin_Bar $wp_admin_bar */
 		global $wp_admin_bar;
 
 		$learnMoreLink = 'https://wpml.org/faq/how-to-remove-the-this-site-is-registered-on-wpml-org-as-a-development-site-notice/?utm_source=plugin&utm_medium=gui&utm_campaign=wpml-core';
@@ -120,12 +89,6 @@ class Account {
 		);
 	}
 
-	/**
-	 * @param \WP_Installer $installer
-	 * @param array $nag
-	 *
-	 * @return bool
-	 */
 	public static function shouldShowRefunded( \WP_Installer $installer, array $nag ) {
 		return $installer->repository_has_refunded_subscription( $nag['repository_id'] );
 	}

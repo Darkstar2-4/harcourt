@@ -9,11 +9,6 @@ class DisableWpLanguageSwitcher implements \IWPML_Frontend_Action, \IWPML_Backen
 		add_filter( 'logout_redirect', [ $this, 'removeWPLangFromRedirectUrl' ], 10, 2 );
 	}
 
-	/**
-	 * @param string $redirect_to
-	 * @param string $requested_redirect_to
-	 * @return string
-	 */
 	public function removeWPLangFromRedirectUrl( $redirect_to, $requested_redirect_to ) {
 		if ( '' !== $requested_redirect_to ) {
 			return $redirect_to;

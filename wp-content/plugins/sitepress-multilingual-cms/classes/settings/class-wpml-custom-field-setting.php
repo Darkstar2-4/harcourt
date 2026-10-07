@@ -6,31 +6,17 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 
 	const SETTINGS_INDEX_TRANSLATE_IDS = 'translate_ids';
 
-	/** @var string $index */
 	private $index;
 
-	/**
-	 * WPML_Custom_Field_Setting constructor.
-	 *
-	 * @param TranslationManagement $tm_instance
-	 * @param string                $index
-	 */
 	public function __construct( &$tm_instance, $index ) {
 		parent::__construct( $tm_instance );
 		$this->index = $index;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_index() {
 		return $this->index;
 	}
 
-	/**
-	 * @return bool true if the custom field setting is given by a setting in
-	 *              a wpml-config.xml
-	 */
 	public function is_read_only() {
 
 		return in_array(
@@ -40,18 +26,12 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 		);
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function is_unlocked() {
 
 		return isset( $this->tm_instance->settings[ $this->get_unlocked_setting_index() ][ $this->index ] ) &&
 			 (bool) $this->tm_instance->settings[ $this->get_unlocked_setting_index() ][ $this->index ];
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function excluded() {
 
 		return in_array( $this->index, $this->get_excluded_keys() ) ||
@@ -122,7 +102,6 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 
 	public function set_translate_link_target( $state, $sub_fields ) {
 		if ( isset( $sub_fields['value'] ) ) {
-			// it's a single sub field
 			$sub_fields = array( $sub_fields );
 		}
 		$this->tm_instance->settings[ $this->get_array_setting_index( 'translate_link_target' ) ][ $this->index ] = array(
@@ -135,11 +114,6 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 		unset( $this->tm_instance->settings[ $this->get_array_setting_index( self::SETTINGS_INDEX_TRANSLATE_IDS ) ][ $this->index ] );
 	}
 
-	/**
-	 * @param string $type "post-ids" or "taxonomy-ids".
-	 * @param string $slug e.g. "page", "category", ...
-	 * @param string $path The path to the field nested value, eg. 'subkey_1>subkey_1_1>...', supports '*' wildcards. Empty means that the field itself holds the translatable IDs.
-	 */
 	public function set_field_translatable_ids( $type, $slug, $path = '' ) {
 		$settings_index       = $this->get_array_setting_index( self::SETTINGS_INDEX_TRANSLATE_IDS );
 		$field_index          = $this->tm_instance->settings[ $settings_index ][ $this->index ] ?? [];
@@ -192,9 +166,6 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 		return isset( $this->tm_instance->settings[ $setting ][ $this->index ] ) ? $this->tm_instance->settings[ $setting ][ $this->index ] : '';
 	}
 
-	/**
-	 * @param array $whitelist
-	 */
 	public function set_attributes_whitelist( $whitelist ) {
 		if ( ! is_array( $whitelist ) ) {
 			throw new InvalidArgumentException( '$whitelist should be an array.' );
@@ -211,45 +182,21 @@ abstract class WPML_Custom_Field_Setting extends WPML_TM_User {
 		$this->tm_instance->settings[ $this->get_state_array_setting_index() ][ $this->index ] = $state;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_array_setting_index( $index ) {
 		return $this->get_setting_prefix() . $index;
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function get_state_array_setting_index();
 
 	abstract protected function get_unlocked_setting_index();
 
-	/**
-	 * @return  string[]
-	 */
 	abstract protected function get_excluded_keys();
 
-	/**
-	 * @return string
-	 */
 	abstract protected function get_setting_prefix();
 
-	/**
-	 * @return string
-	 */
 	public function get_html_disabled() {
 		$isDisabled = $this->is_read_only() && ! $this->is_unlocked();
 
-		/**
-		 * This filter hook give the ability to disable the HTML radio buttons
-		 * for the custom field preference.
-		 *
-		 * @since 4.6.0
-		 *
-		 * @param bool                      $isDisabled
-		 * @param WPML_Custom_Field_Setting $instance
-		 */
 		return apply_filters( 'wpml_custom_field_setting_is_html_disabled', $isDisabled, $this )
 			? 'disabled="disabled"'
 			: '';

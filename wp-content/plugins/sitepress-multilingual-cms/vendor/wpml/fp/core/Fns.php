@@ -4,127 +4,12 @@ namespace WPML\FP;
 
 use WPML\Collect\Support\Traits\Macroable;
 
-/**
- * @method static callable always( ...$a ) Curried :: a → ( * → a )
- *
- * Returns a function that always returns the given value.
- *
- * ```php
- * $t = Fns::always( 'Tee' );
- * $t(); //=> 'Tee'
- * ```
- *
- * @method static callable converge( ...$convergingFn, ...$branchingFns ) - Curried :: ( ( x1, x2, … ) → z ) → [( ( a, b, … ) → x1 ), ( ( a, b, … ) → x2 ), …] → ( a → b → … → z )
- *
- * Accepts a converging function and a list of branching functions and returns a new function. The arity of the new function is the same as the arity of the longest branching function. When invoked, this new function is applied to some arguments, and each branching function is applied to those same arguments. The results of each branching function are passed as arguments to the converging function to produce the return value.
- *
- * ```php
- * $divide = curryN( 2, function ( $num, $dom ) { return $num / $dom; } );
- * $sum    = function ( Collection $collection ) { return $collection->sum(); };
- * $length = function ( Collection $collection ) { return $collection->count(); };
- *
- * $average = Fns::converge( $divide, [ $sum, $length ] );
- * $this->assertEquals( 4, $average( wpml_collect( [ 1, 2, 3, 4, 5, 6, 7 ] ) ) );
- * ```
- *
- * @method static callable|mixed map( ...$fn, ...$target ) - Curried :: ( a→b )→f a→f b
- *
- * Takes a function and a *functor*, applies the function to each of the functor's values, and returns a functor of the same shape.
- *
- * And array is considered a *functor*
- *
- * Dispatches to the *map* method of the second argument, if present
- *
- * @method static callable|mixed each ( ...$fn, ...$target ) - Curried :: ( a→b )→f a→f b
- * @method static callable|mixed identity( mixed ...$data ) - Curried :: a->a
- * @method static callable|mixed tap( callable  ...$fn, mixed ...$data ) - Curried :: fn->data->data
- * @method static callable|mixed reduce( ...$fn, ...$initial, ...$target ) - Curried :: ( ( a, b ) → a ) → a → [b] → a
- * @method static callable|mixed reduceRight( ...$fn, ...$initial, ...$target ) - Curried :: ( ( a, b ) → a ) → a → [b] → a
- *
- * Takes a function, an initial value and an array and returns the result.
- *
- * The function receives two values, the accumulator and the current value, and should return a result.
- *
- * The array values are passed to the function in the reverse order.
- *
- * ```php
- * $numbers = [ 1, 2, 3, 4, 5, 8, 19 ];
- *
- * $append = function( $acc, $val ) {
- *    $acc[] = $val;
- *    return $acc;
- * };
- *
- * $reducer = Fns::reduceRight( $append, [] );
- * $result = $reducer( $numbers ); // [ 19, 8, 5, 4, 3, 2, 1 ]
- *
- * // Works on collections too.
- * $result = $reducer( wpml_collect( $numbers ) ); // [ 19, 8, 5, 4, 3, 2, 1 ]
- * ```
- *
- * @method static callable|mixed filter( ...$predicate, ...$target ) - Curried :: ( a → bool ) → [a] → [a]
- * @method static callable|mixed reject( ...$predicate, ...$target ) - Curried :: ( a → bool ) → [a] → [a]
- * @method static callable|mixed value( mixed ...$data ) - Curried :: a|( *→a ) → a
- * @method static callable|object constructN( ...$argCount, ...$className ) - Curried :: int → string → object
- * @method static callable|int ascend( ...$fn, ...$a, ...$b ) - Curried :: ( a → b ) → a → a → int
- * @method static callable|int descend( ...$fn, ...$a, ...$b ) - Curried :: ( a → b ) → a → a → int
- * @method static callable useWith( ...$fn, ...$transformations ) - Curried :: ( ( x1, x2, … ) → z ) → [( a → x1 ), ( b → x2 ), …] → ( a → b → … → z )
- * @method static callable nthArg( ...$n ) - Curried :: int → *… → *
- * @method static callable|mixed either( ...$f, ...$g, ...$e ) - Curried:: ( a → b ) → ( b → c ) → Either a b → c
- * @method static callable|mixed maybe( ...$v, ...$f, ...$m ) - Curried:: b → ( a → b ) → Maybe a → b
- * @method static callable|bool isRight( ...$e ) - Curried:: e → bool
- * @method static callable|bool isLeft( ...$e ) - Curried:: e → bool
- * @method static callable|bool isJust( ...$m ) - Curried:: e → bool
- * @method static callable|bool isNothing( ...$m ) - Curried:: e → bool
- * @method static callable|mixed T( ...$_ ) - Curried :: _ → bool
- * @method static callable|mixed F( ...$_ ) - Curried :: _ → bool
- * @method static callable|Maybe safe( ...$fn ) - Curried :: ( a → b ) → ( a → Maybe b )
- * @method static callable|object make( ...$className ) - Curried :: string → object
- * @method static callable|object makeN( ...$argCount, ...$className ) - Curried :: int → string → object
- * @method static callable unary( ...$fn ) - Curried:: ( * → b ) → ( a → b )
- * @method static callable|mixed memorizeWith( ...$cacheKeyFn, ...$fn ) - Curried :: ( *… → String ) → ( *… → a ) → ( *… → a )
- * @method static callable|mixed memorize( ...$fn ) - Curried :: ( *… → a ) → ( *… → a )
- * @method static callable|mixed once( ...$fn ) - Curried :: ( *… → a ) → ( *… → a )
- * @method static callable|mixed withNamedLock( ...$name, ...$returnFn, ...$fn ) - Curried :: String → ( *… → String ) → ( *… → a ) → ( *… → a )
- *
- * Creates a new function that is *locked* so that it wont be called recursively. Multiple functions can use the same lock so they are blocked from calling each other recursively
- *
- * ```php
- *      $lockName = 'my-lock';
- *      $addOne = Fns::withNamedLock(
- *          $lockName,
- *          Fns::identity(),
- *          function ( $x ) use ( &$addOne ) { return $addOne( $x + 1 ); }
- *      );
- *
- *      $this->assertEquals( 13, $addOne( 12 ), 'Should not recurse' );
- *
- *      $addTwo = Fns::withNamedLock(
- *          $lockName,
- *          Fns::identity(),
- *          function ( $x ) use ( $addOne ) { return pipe( $addOne, $addOne) ( $x ); }
- *      );
- *
- *      $this->assertEquals( 10, $addTwo( 10 ), 'Should return 10 because $addOne is locked by the same name as $addTwo' );
- * ```
- *
- * @method static callable|mixed withoutRecursion( ...$returnFn, ...$fn ) - Curried :: ( *… → String ) → ( *… → a ) → ( *… → a )
- * @method static callable|mixed liftA2( ...$fn, ...$monadA, ...$monadB ) - Curried :: ( a → b → c ) → m a → m b → m c
- * @method static callable|mixed liftA3( ...$fn, ...$monadA, ...$monadB, ...$monadC ) - Curried :: ( a → b → c → d ) → m a → m b → m c → m d
- * @method static callable|mixed liftN( ...$n, ...$fn, ...$monad ) - Curried :: Number->( ( * ) → a ) → ( *m ) → m a
- *
- * @method static callable|mixed until( ...$predicate, ...$fns ) - Curried :: ( b → bool ) → [( a → b )] → a → b
- *
- */
 class Fns {
 
 	use Macroable;
 
 	const __ = '__CURRIED_PLACEHOLDER__';
 
-	/**
-	 * @return void
-	 */
 	public static function init() {
 		self::macro( 'always', function ( $value ) {
 			return function () use ( $value ) { return $value; };
@@ -398,21 +283,10 @@ class Fns {
 		} ) );
 	}
 
-	/**
-	 * @return \Closure
-	 */
 	public static function noop() {
 		return function () { };
 	}
 
-	/**
-	 * Curried function that transforms a Maybe into an Either.
-	 *
-	 * @param mixed|null $or
-	 * @param Maybe|null $maybe
-	 *
-	 * @return callable|Either
-	 */
 	public static function maybeToEither( $or = null, $maybe = null ) {
 		$toEither = function ( $or, Maybe $maybe ) {
 			return self::isJust( $maybe ) ? Either::right( $maybe->getOrElse( null ) ) : Either::left( $or );

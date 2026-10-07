@@ -6,7 +6,6 @@ use WPML\Core\Component\Translation\Application\Repository\SettingsRepository;
 
 class AtePreferencesLoader {
 
-  /** @var SettingsRepository */
   private $translationSettingsRepository;
 
 
@@ -15,15 +14,6 @@ class AtePreferencesLoader {
   }
 
 
-  /**
-   * @return array{
-   *   reviewMode: string|null,
-   *   shouldTranslateAutomaticallyDrafts: bool,
-   *   isAteEnabled: bool,
-   *   useAteForOldTranslationsCreatedWithCte: bool,
-   *   isTranslateEverythingEnabled: bool
-   * }
-   */
   public function get(): array {
     $settings   = $this->translationSettingsRepository->getSettings();
     $reviewMode = $settings->getReviewMode();

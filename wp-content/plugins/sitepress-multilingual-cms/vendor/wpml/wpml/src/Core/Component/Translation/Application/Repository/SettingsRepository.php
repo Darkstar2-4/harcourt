@@ -7,7 +7,8 @@ use WPML\Core\Component\Translation\Domain\Settings\Settings;
 use WPML\Core\Component\Translation\Domain\Settings\TranslateAutomaticallyPerPostType;
 use WPML\Core\Component\Translation\Domain\Settings\TranslateEverything;
 use WPML\Core\Port\Persistence\OptionsInterface;
-use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationEditorSetting;
+use WPML\Core\SharedKernel\Component\Setting\Application\Query\TranslationEditorQueryInterface;
+use WPML\Core\SharedKernel\Component\Setting\Domain\TranslationEditorSetting;
 
 class SettingsRepository {
 
@@ -16,20 +17,20 @@ class SettingsRepository {
 
   const AUTOMATIC_PER_POST_TYPE = 'WPML(post-type)';
 
-  /** @var OptionsInterface */
   private $options;
 
+  private $settingTranslationEditorQuery;
 
-  public function __construct( OptionsInterface $options ) {
+
+  public function __construct(
+    OptionsInterface $options,
+    TranslationEditorQueryInterface $settingTranslationEditorService
+  ) {
     $this->options = $options;
+    $this->settingTranslationEditorQuery = $settingTranslationEditorService;
   }
 
 
-  /**
-   * @param ReviewMode $reviewOption
-   *
-   * @return void
-   */
   public function saveReviewMode( ReviewMode $reviewOption ) {
     $setupOptions = $this->getOptions( self::SETUP_OPTIONS );
 
@@ -45,9 +46,6 @@ class SettingsRepository {
   public function getSettings(): Settings {
     $rawSetupOptions = $this->getOptions( self::SETUP_OPTIONS );
 
-    /**
-     * @var array<string, array<string, bool>> $rawAutomaticPerPostTypeOptions
-     */
     $rawAutomaticPerPostTypeOptions = $this->getOptions( self::AUTOMATIC_PER_POST_TYPE );
 
     $reviewMode = isset( $rawSetupOptions['review-mode'] ) && is_string( $rawSetupOptions['review-mode'] ) ?
@@ -75,11 +73,6 @@ class SettingsRepository {
   }
 
 
-  /**
-   * @param bool $flag
-   *
-   * @return void
-   */
   public function saveShouldTranslateAutomaticallyDrafts( bool $flag ) {
     $setupOptions = $this->getOptions( self::SETUP_OPTIONS );
 
@@ -92,47 +85,11 @@ class SettingsRepository {
   }
 
 
-  /**
-   * @return TranslationEditorSetting|null
-   */
   private function getTranslationEditorSetting() {
-    /**
-     * @var array{
-     *   translation-management?: array{
-     *     doc_translation_method?: string,
-     *     post_translation_editor_native_for_post_type?: array<string, bool>|mixed,
-     *     post_translation_editor_native?: bool|mixed
-     *   }
-     * } $rawSitepressOptions
-     */
-    $rawSitepressOptions = $this->getOptions( self::SITEPRESS_OPTIONS );
-
-    if ( ! isset( $rawSitepressOptions['translation-management']['doc_translation_method'] ) ) {
-      return null;
-    }
-
-    $editorSettings = new TranslationEditorSetting(
-      $this->getMappedTranslationEditorType(
-        $rawSitepressOptions['translation-management']['doc_translation_method']
-      ),
-      $rawSitepressOptions['translation-management']['post_translation_editor_native'] ?? false,
-      $rawSitepressOptions['translation-management']['post_translation_editor_native_for_post_type'] ?? []
-    );
-
-    if ( $editorSettings->getValue() === TranslationEditorSetting::ATE ) {
-      $optionValue = $this->options->get( 'wpml-old-jobs-editor' );
-      $editorSettings->setUseAteForOldTranslationsCreatedWithCte( $optionValue === 'ate' );
-    }
-
-    return $editorSettings;
+    return $this->settingTranslationEditorQuery->getTranslationEditorSetting();
   }
 
 
-  /**
-   * @param mixed[] $rawSetupOptions
-   *
-   * @return TranslateEverything
-   */
   private function getTranslateEverythingSettings( array $rawSetupOptions ): TranslateEverything {
     $isTranslateEverythingEnabled = isset( $rawSetupOptions['translate-everything'] ) ?
       (bool) $rawSetupOptions['translate-everything'] :
@@ -148,7 +105,6 @@ class SettingsRepository {
       isset( $rawSetupOptions['translate-everything-posts'] ) &&
       $this->isValidStringArrayMap( $rawSetupOptions['translate-everything-posts'] )
     ) {
-      /** @var array<string, string[]> $completedPosts */
       $completedPosts = $this->prepareForJsonEncode( $rawSetupOptions['translate-everything-posts'] );
       $translateEverything->setCompletedPosts( $completedPosts );
     }
@@ -156,7 +112,6 @@ class SettingsRepository {
       isset( $rawSetupOptions['translate-everything-packages'] ) &&
       $this->isValidStringArrayMap( $rawSetupOptions['translate-everything-packages'] )
     ) {
-      /** @var array<string, string[]> $completedPackages */
       $completedPackages = $this->prepareForJsonEncode( $rawSetupOptions['translate-everything-packages'] );
       $translateEverything->setCompletedPackages( $completedPackages );
     }
@@ -164,7 +119,6 @@ class SettingsRepository {
       isset( $rawSetupOptions['translate-everything-strings'] ) &&
       $this->isValidCompletedStrings( $rawSetupOptions['translate-everything-strings'] )
     ) {
-      /** @var string[] $completedStrings */
       $completedStrings = $this->prepareForJsonEncode( $rawSetupOptions['translate-everything-strings'], true );
       $translateEverything->setCompletedStrings( $completedStrings );
     }
@@ -173,13 +127,6 @@ class SettingsRepository {
   }
 
 
-  /**
-   * Validates that the provided data is an array with string keys and array of string values.
-   *
-   * @param mixed $data
-   *
-   * @return bool
-   */
   private function isValidStringArrayMap( $data ): bool {
     if ( ! is_array( $data ) ) {
       return false;
@@ -201,13 +148,6 @@ class SettingsRepository {
   }
 
 
-  /**
-   * Validates that the provided completed strings data is an array of strings.
-   *
-   * @param mixed $completedStrings
-   *
-   * @return bool
-   */
   private function isValidCompletedStrings( $completedStrings ): bool {
     if ( ! is_array( $completedStrings ) ) {
       return false;
@@ -223,30 +163,14 @@ class SettingsRepository {
   }
 
 
-  /**
-   * We delete the option because translate everything will always translate all post types.,
-   * and the option isn't needed anymore.
-   *
-   * @return void
-   */
   public function deleteAutomaticPerPostTypeOption() {
     $this->options->delete( self::AUTOMATIC_PER_POST_TYPE );
   }
 
 
-  /**
-   * @param Settings $settings
-   *
-   * @return void
-   */
   public function saveSettings( Settings $settings ) {
     $reviewMode = $settings->getReviewMode();
 
-    /**
-     * There are other values inside the setup options that are not used in the new code.
-     * I have to preserve them while updating the settings.
-     * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmldev-3464/TM-rvmp-Switching-TE-on-off-removes-settings-from-WPMLSetup.
-     */
     $currentData = $this->options->get( self::SETUP_OPTIONS );
     $data        = array_merge(
       is_array( $currentData ) ? $currentData : [],
@@ -267,21 +191,9 @@ class SettingsRepository {
   }
 
 
-  /**
-   * @param Settings $settings
-   *
-   * @return void
-   */
   private function maybeSaveTranslationEditor( Settings $settings ) {
     $editor = $settings->getTranslationEditor();
     if ( $editor ) {
-      /**
-       * @var array{
-       *   translation-management?: array{
-       *     doc_translation_method?: string
-       *   }
-       * } $rawSitepressOptions
-       */
       $rawSitepressOptions = $this->getOptions( self::SITEPRESS_OPTIONS );
 
       if (
@@ -296,9 +208,6 @@ class SettingsRepository {
   }
 
 
-  /**
-   * @return array<string, mixed>
-   */
   private function getOptions( string $optionsKey ): array {
     $option = $this->options->get( $optionsKey );
 
@@ -306,26 +215,6 @@ class SettingsRepository {
   }
 
 
-  private function getMappedTranslationEditorType( string $databaseValue ): string {
-    $translationEditorValues = [
-      'ATE' => TranslationEditorSetting::ATE,
-      '0'   => TranslationEditorSetting::MANUAL,
-      '1'   => TranslationEditorSetting::CLASSIC,
-      '2'   => TranslationEditorSetting::PRO,
-    ];
-
-    return $translationEditorValues[ $databaseValue ];
-  }
-
-
-  /**
-   * Reset numeric keys to a sequential order to prevent `json_encode` from encoding them as strings.
-   *
-   * @param array<int|string, string|array<int,string>> $completedItems
-   * @param bool  $resetKeysForParentArray
-   *
-   * @return array<int|string, string|array<int,string>>
-   */
   private function prepareForJsonEncode( array $completedItems, bool $resetKeysForParentArray = false ): array {
     if ( $resetKeysForParentArray ) {
       return array_values( $completedItems );

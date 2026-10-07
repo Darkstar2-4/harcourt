@@ -2,22 +2,14 @@
 
 namespace WPML\Core\Component\MinimumRequirements\Domain\Entity;
 
-use WPML\Core\SharedKernel\Component\Server\Domain\RestApiStatusInterface;
+use WPML\Core\SharedKernel\Component\Server\Domain\CheckRestIsEnabledInterface;
 
 class RestEnabledRequirement extends RequirementBase {
 
-  /**
-   * @var RestApiStatusInterface
-   */
   private $restApiStatus;
 
 
-  /**
-   * Constructor
-   *
-   * @param RestApiStatusInterface $restApiService
-   */
-  public function __construct( RestApiStatusInterface $restApiService ) {
+  public function __construct( CheckRestIsEnabledInterface $restApiService ) {
     $this->restApiStatus = $restApiService;
   }
 
@@ -47,12 +39,44 @@ class RestEnabledRequirement extends RequirementBase {
         'type'    => 'alert',
         'message' => sprintf(
           __(
-            'Ensure the REST API endpoint %s '
-            .
-            'is reachable and that the WordPress REST API is enabled.',
+            'The REST API test endpoint %s is not responding correctly.',
             'wpml'
           ),
-          '<strong>' . $endpoint . '</strong> '
+          '<strong>' . $endpoint . '</strong>'
+        ),
+      ],
+      [
+        'type'    => 'p',
+        'message' => __(
+          '<strong>Common causes:</strong>',
+          'wpml'
+        ),
+      ],
+      [
+        'type'    => 'p',
+        'message' => __(
+          '• A security or firewall plugin is blocking REST API requests<br>'
+          .
+          '• The REST API has been disabled via the <code>rest_enabled</code> filter<br>'
+          .
+          '• Server configuration (Apache/Nginx) is interfering with query parameters<br>'
+          .
+          '• Custom rewrite rules are conflicting with WordPress routing',
+          'wpml'
+        ),
+      ],
+      [
+        'type'    => 'alert',
+        'message' => sprintf(
+          __(
+            '<strong>Troubleshooting:</strong> Try accessing %s directly in your browser. '
+            .
+            'It should return a JSON response with <code>"status":"valid"</code>'.
+            ' and <code>"get_parameters":"valid"</code>.',
+            'wpml'
+          ),
+          '<a href="'.  $endpoint . '" target="_blank">'
+          . __( 'the test endpoint', 'wpml' ) . '</a>'
         ),
       ]
     ];

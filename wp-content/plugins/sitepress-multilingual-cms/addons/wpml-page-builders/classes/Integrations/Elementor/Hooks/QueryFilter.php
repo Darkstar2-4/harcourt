@@ -13,20 +13,10 @@ use function WPML\FP\spreadArgs;
 
 class QueryFilter implements \IWPML_Frontend_Action, \IWPML_DIC_Action {
 
-	/**
-	 * @var \SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * @var \WPML_Term_Translation
-	 */
 	private $wpmlTermTranslation;
 
-	/**
-	 * @param \SitePress             $sitepress
-	 * @param \WPML_Term_Translation $wpmlTermTranslation
-	 */
 	public function __construct( \SitePress $sitepress, \WPML_Term_Translation $wpmlTermTranslation ) {
 		$this->sitepress           = $sitepress;
 		$this->wpmlTermTranslation = $wpmlTermTranslation;
@@ -37,37 +27,30 @@ class QueryFilter implements \IWPML_Frontend_Action, \IWPML_DIC_Action {
 			->then( spreadArgs( Fns::withoutRecursion( Fns::identity(), [ $this, 'translateQueryIds' ] ) ) );
 	}
 
-	/**
-	 * @param mixed  $value
-	 * @param int    $object_id
-	 * @param string $meta_key
-	 * @param bool   $single
-	 *
-	 * @return mixed
-	 */
 	public function translateQueryIds( $value, $object_id, $meta_key, $single ) {
 		if ( WPML_Elementor_Data_Settings::META_KEY_DATA === $meta_key && $single ) {
 			return Maybe::of( get_post_meta( $object_id, WPML_Elementor_Data_Settings::META_KEY_DATA, true ) )
-				->map( function ( $data ) {
-					return DataConvert::unserialize( $data, false );
-				} )
-				->map( function( $data ) {
-					return $this->recursivelyTranslateQueryIds( $data ); }
+				->map(
+					function ( $data ) {
+						return DataConvert::unserialize( $data, false );
+					}
 				)
-				->map( function ( $data ) {
-					return DataConvert::serialize( $data, false );
-				} )
+				->map(
+					function ( $data ) {
+						return $this->recursivelyTranslateQueryIds( $data );
+					}
+				)
+				->map(
+					function ( $data ) {
+						return DataConvert::serialize( $data, false );
+					}
+				)
 				->getOrElse( $value );
 		}
 
 		return $value;
 	}
 
-	/**
-	 * @param array|object|mixed $data
-	 *
-	 * @return array|object|mixed
-	 */
 	private function recursivelyTranslateQueryIds( $data ) {
 		if ( is_array( $data ) ) {
 			foreach ( $data as $key => $value ) {
@@ -77,25 +60,57 @@ class QueryFilter implements \IWPML_Frontend_Action, \IWPML_DIC_Action {
 			if ( ! empty( $data->elements ) ) {
 				$data->elements = $this->recursivelyTranslateQueryIds( $data->elements );
 			}
-			if ( ! empty( $data->settings->post_query_include_term_ids ) ) {
-				$data->settings->post_query_include_term_ids = $this->convertTermTaxonomyIds( $data->settings->post_query_include_term_ids );
+
+			$data = $this->translateSettingsIds( $data );
+		}
+
+		return $data;
+	}
+
+	private function translateSettingsIds( $data ) {
+		if ( empty( $data->settings ) ) {
+			return $data;
+		}
+
+		$termIdProperties = $this->getTermIdProperties();
+		foreach ( $termIdProperties as $property ) {
+			if ( ! empty( $data->settings->$property ) ) {
+				$data->settings->$property = $this->convertTermTaxonomyIds( $data->settings->$property );
 			}
-			if ( ! empty( $data->settings->post_query_exclude_term_ids ) ) {
-				$data->settings->post_query_exclude_term_ids = $this->convertTermTaxonomyIds( $data->settings->post_query_exclude_term_ids );
-			}
-			if ( ! empty( $data->settings->post_query_posts_ids ) ) {
-				$data->settings->post_query_posts_ids = Ids::convert( $data->settings->post_query_posts_ids, Ids::ANY_POST );
+		}
+
+		$postIdProperties = $this->getPostIdProperties();
+		foreach ( $postIdProperties as $property ) {
+			if ( ! empty( $data->settings->$property ) ) {
+				$data->settings->$property = Ids::convert( $data->settings->$property, Ids::ANY_POST );
 			}
 		}
 
 		return $data;
 	}
 
-	/**
-	 * @param int[] $ids
-	 *
-	 * @return int[]
-	 */
+	private function getTermIdProperties() {
+		$properties = [
+			'post_query_include_term_ids',
+			'post_query_exclude_term_ids',
+			'product_query_include_term_ids',
+			'product_query_exclude_term_ids',
+			'query_include_term_ids',
+			'query_exclude_term_ids',
+		];
+
+		return apply_filters( 'wpml_pb_elementor_query_term_id_properties', $properties );
+	}
+
+	private function getPostIdProperties() {
+		$properties = [
+			'post_query_posts_ids',
+			'query_posts_ids',
+		];
+
+		return apply_filters( 'wpml_pb_elementor_query_post_id_properties', $properties );
+	}
+
 	private function convertTermTaxonomyIds( $ids ) {
 		$currentLanguage = $this->sitepress->get_current_language();
 

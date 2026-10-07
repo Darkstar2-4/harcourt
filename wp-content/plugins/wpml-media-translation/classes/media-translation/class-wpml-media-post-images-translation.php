@@ -157,6 +157,9 @@ class WPML_Media_Post_Images_Translation implements IWPML_Action {
 					array( '%s' ),
 					array( '%d' )
 				);
+
+				clean_post_cache( $post->ID );
+
 			}
 		} elseif ( $this->is_updated_from_media_translation_menu() ) {
 			do_action( 'wpml_pb_resave_post_translation', $post_element );

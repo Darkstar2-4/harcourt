@@ -2,41 +2,22 @@
 
 use WPML\API\Sanitize;
 
-/**
- * Class WPML_TF_Backend_Feedback_List_View
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Feedback_List_View {
 
 	const TEMPLATE_FOLDER = '/templates/translation-feedback/backend/';
 	const TEMPLATE_NAME   = 'feedback-list-page.twig';
 	const ITEMS_PER_PAGE  = 20;
 
-	/** @var IWPML_Template_Service $template_service */
 	private $template_service;
 
-	/** @var WPML_TF_Feedback_Query $feedback_query */
 	private $feedback_query;
 
-	/** @var WPML_Admin_Pagination $pagination */
 	private $pagination;
 
-	/** @var WPML_Admin_Table_Sort $table_sort */
 	private $table_sort;
 
-	/** @var WPML_TF_Feedback_Page_Filter $page_filter */
 	private $page_filter;
 
-	/**
-	 * WPML_TF_Backend_Feedback_List_View constructor.
-	 *
-	 * @param IWPML_Template_Service       $template_service
-	 * @param WPML_TF_Feedback_Query       $feedback_query
-	 * @param WPML_Admin_Pagination        $pagination
-	 * @param WPML_Admin_Table_Sort        $table_sort
-	 * @param WPML_TF_Feedback_Page_Filter $page_filter
-	 */
 	public function __construct(
 		IWPML_Template_Service $template_service,
 		WPML_TF_Feedback_Query $feedback_query,
@@ -51,7 +32,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		$this->page_filter      = $page_filter;
 	}
 
-	/** @return string */
 	public function render_page() {
 		$args                = $this->parse_request_args();
 		$feedback_collection = $this->feedback_query->get( $args );
@@ -74,7 +54,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		return $this->template_service->show( $model, self::TEMPLATE_NAME );
 	}
 
-	/** @return array */
 	private function parse_request_args() {
 		$args = array(
 			'paged'          => 1,
@@ -103,7 +82,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		return $args;
 	}
 
-	/** @return array */
 	private function get_strings() {
 		$strings = array(
 			'page_title'    => __( 'Translation Feedback', 'sitepress' ),
@@ -149,7 +127,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		return $strings;
 	}
 
-	/** @return array */
 	private function get_columns() {
 		$this->table_sort->set_primary_column( 'feedback' );
 
@@ -177,11 +154,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		);
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	private function get_pagination( array $args ) {
 		$this->pagination->set_total_items( $this->feedback_query->get_filtered_items_count() );
 		$this->pagination->set_items_per_page( $args['items_per_page'] );
@@ -201,7 +173,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		);
 	}
 
-	/** @return array */
 	private function get_page_filters() {
 		$this->page_filter->populate_counters_and_labels();
 
@@ -212,7 +183,6 @@ class WPML_TF_Backend_Feedback_List_View {
 		);
 	}
 
-	/** @return array */
 	private function get_current_query() {
 		return array(
 			'filters' => $this->page_filter->get_current_filters(),

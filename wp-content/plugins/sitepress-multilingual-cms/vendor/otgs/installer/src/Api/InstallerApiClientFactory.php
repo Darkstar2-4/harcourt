@@ -9,21 +9,14 @@ use OTGS_Installer_Plugin_Factory;
 use OTGS_Installer_Plugin_Finder;
 
 class InstallerApiClientFactory {
-	/**
-	 * @param array $installerSettings
-	 * @param string $repositoryId
-	 * @param string $repositoryApiUrl
-	 *
-	 * @return InstallerApiClient
-	 */
-	public static function create( OTGS_Installer_Logger_Storage $loggerStorage, $installerSettings, $repositoryId, $repositoryApiUrl ) {
+	public static function create( OTGS_Installer_Logger_Storage $loggerStorage, $repositoryId, $repositoryApiUrl ) {
 		$client = new Client\Client( new \WP_Http(), $repositoryApiUrl );
 
-		$siteUrl              = new SiteUrl( $installerSettings['repositories'] );
+		$siteUrl              = new SiteUrl();
 		$subscriptionEndpoint = new SubscriptionEndpoint(
 			$repositoryId,
 			$siteUrl,
-			new OTGS_Installer_Plugin_Finder( new OTGS_Installer_Plugin_Factory(), $installerSettings['repositories'] )
+			new OTGS_Installer_Plugin_Finder( new OTGS_Installer_Plugin_Factory() )
 		);
 
 		$productBucketUrlEndpoint = new ProductBucketUrlEndpoint(

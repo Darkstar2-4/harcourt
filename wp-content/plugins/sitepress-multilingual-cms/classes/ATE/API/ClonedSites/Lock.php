@@ -4,13 +4,13 @@
 namespace WPML\TM\ATE\ClonedSites;
 
 use WPML\FP\Obj;
+use WPML\API\Settings;
 use WPML\TM\ATE\API\FingerprintGenerator;
 use function WPML\Container\make;
 
 class Lock {
 	const CLONED_SITE_OPTION = 'otgs_wpml_tm_ate_cloned_site_lock';
 
-	/** @var FingerprintGenerator */
 	private static $fingerprint_generator;
 
 	public function lock( $lockData ) {
@@ -28,30 +28,33 @@ class Lock {
 		}
 	}
 
-	/**
-	 * @return array{urlCurrentlyRegisteredInAMS: string, urlUsedToMakeRequest: string, siteMoved: bool}
-	 */
 	public function getLockData() {
 		$option = get_option( self::CLONED_SITE_OPTION, [] );
-
-		$urlUsedToMakeRequest = Obj::propOr(
-			'',
-			'wp_url',
-			is_string( $option['received_fingerprint'] ) ? json_decode( $option['received_fingerprint'] ) : $option['received_fingerprint']
-		);
-
-		$urlCurrentlyRegisteredInAMS = Obj::pathOr( '', [ 'stored_fingerprint', 'wp_url' ], $option );
+		$urls   = $this->extractUrls( $option );
 
 		return [
-			'urlCurrentlyRegisteredInAMS' => $urlCurrentlyRegisteredInAMS,
-			'urlUsedToMakeRequest'        => $urlUsedToMakeRequest,
+			'urlCurrentlyRegisteredInAMS' => $urls['old_url'],
+			'urlUsedToMakeRequest'        => $urls['new_url'],
 			'identicalUrlBeforeMovement'  => Obj::propOr( false, 'identical_url_before_movement', $option ),
 		];
 	}
 
-	/**
-	 * @return string
-	 */
+	public function extractUrls( array $data ) {
+		$oldUrl = Obj::pathOr( '', [ 'stored_fingerprint', 'wp_url' ], $data );
+
+		$receivedFingerprint = isset( $data['received_fingerprint'] ) ? $data['received_fingerprint'] : [];
+		$newUrl = Obj::propOr(
+			'',
+			'wp_url',
+			is_string( $receivedFingerprint ) ? json_decode( $receivedFingerprint ) : $receivedFingerprint
+		);
+
+		return [
+			'old_url' => $oldUrl,
+			'new_url' => $newUrl,
+		];
+	}
+
 	public function getUrlRegisteredInAMS() {
 		$lockData = $this->getLockData();
 
@@ -65,11 +68,23 @@ class Lock {
 	}
 
 	public function unlock() {
+		$lockData = $this->getLockData();
+
+		if ( $lockData['urlCurrentlyRegisteredInAMS'] && $lockData['urlUsedToMakeRequest'] ) {
+			Settings::setAndSave( 'migrated_site',
+				[
+					'old_url' => $lockData['urlCurrentlyRegisteredInAMS'],
+					'new_url' => $lockData['urlUsedToMakeRequest'],
+				]
+			);
+		}
+
 		static::doUnlock();
 	}
 
 	private static function doUnlock() {
 		delete_option( self::CLONED_SITE_OPTION );
+		AliasDomainResetFlag::clear();
 	}
 
 	public static function isLocked() {
@@ -78,11 +93,9 @@ class Lock {
 		if ( $option && isset( $option['stored_fingerprint'] ) && isset( $option['stored_fingerprint']['wp_url'] ) ) {
 			$stored_url = $option['stored_fingerprint']['wp_url'];
 
-			// Use FingerprintGenerator to get current URL.
 			$current_url = self::getFingerPrintGenerator()->getClonedSiteUrl();
 
 			if ( $stored_url === $current_url ) {
-				// URLs match - this is the original site, so we should unlock it.
 				static::doUnlock();
 				return false;
 			}

@@ -11,17 +11,11 @@ use WPML\TM\API\ATE\LanguageMappings;
 
 abstract class AbstractUntranslatedElements implements UntranslatedElementsInterface {
 
-	/**
-	 * @var \wpdb
-	 */
 	protected $wpdb;
 
-	/**
-	 * @var \WPML_TM_Old_Jobs_Editor
-	 */
 	private $oldJobsEditor;
 
-	public function __construct( \wpdb $wpdb, \WPML_TM_Old_Jobs_Editor $oldJobsEditor = null ) {
+	public function __construct( \wpdb $wpdb, ?\WPML_TM_Old_Jobs_Editor $oldJobsEditor = null ) {
 		$this->wpdb = $wpdb;
 
 		if ( $oldJobsEditor ) {
@@ -35,29 +29,18 @@ abstract class AbstractUntranslatedElements implements UntranslatedElementsInter
 		return 15;
 	}
 
-	/**
-	 * @param bool $cached
-	 *
-	 * @return string[]
-	 */
 	public function getEligibleLanguageCodes( bool $cached = false ): array {
 		$mapper = $cached ? CachedLanguageMappings::class : LanguageMappings::class;
 
 		return $mapper::geCodesEligibleForAutomaticTranslations();
 	}
 
-	/**
-	 * @param bool $cached
-	 *
-	 * @return bool
-	 */
 	public function isEverythingProcessed( $cached = false ) {
 		$completed = $this->getCompleted();
 		$languages = $this->getEligibleLanguageCodes( $cached );
 
 		foreach ( $this->getTypes() as $type ) {
 			$completedLanguages = $completed[ $type ] ?? [];
-			/** @var string[] $remainingLanguages */
 			$remainingLanguages = Lst::diff( $languages, $completedLanguages );
 			if ( count( $remainingLanguages ) > 0 ) {
 				return false;
@@ -67,15 +50,8 @@ abstract class AbstractUntranslatedElements implements UntranslatedElementsInter
 		return true;
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return void
-	 */
 	public function markTypeAsCompleted( string $type ) {
 		$completed = $this->getCompleted();
-		// It is important to get ALL secondary, not only eligible ones.
-		// See the explanation in the interface.
 		$languages          = Languages::getSecondaryCodes();
 		$completed[ $type ] = array_merge( $completed[ $type ] ?? [], $languages );
 
@@ -122,37 +98,17 @@ abstract class AbstractUntranslatedElements implements UntranslatedElementsInter
 		$this->setCompleted( $completed );
 	}
 
-	/**
-	 * @return array<{>string: string[]> For example: { 'post': ['fr', 'de'], 'page': ['fr', 'de'] }
-	 */
 	abstract protected function getCompleted(): array;
 
-	/**
-	 * @param array<string: string[]> $completed
-	 *
-	 * @return void
-	 */
 	abstract protected function setCompleted( array $completed );
 
-	/**
-	 * @return string[] for example ['post', 'page']
-	 */
 	abstract protected function getTypes(): array;
 
-	/**
-	 * We should exclude from TEA those needs update translations which were originally created using CTE editor
-	 * and a user chose to keep CTE editor for them in WPML > Settings.
-	 * @see wpmldev-3871
-	 *
-	 * @return string
-	 */
 	protected function buildOldEditorCondition(): string {
 		$oldEditorCondition = '';
 
 		if ( $this->oldJobsEditor->editorForTranslationsPreviouslyCreatedUsingCTE() === \WPML_TM_Editors::WPML ) {
 			$editor = \WPML_TM_Editors::WPML;
-			// Run the subquery checking only if the current job has "needs_update" status.
-			// It is important due to performance reasons.
 			$oldEditorCondition = "AND (
 				translation_status.needs_update = 0 OR IFNULL(
 					(

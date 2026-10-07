@@ -4,18 +4,8 @@ namespace WPML\MediaTranslation;
 
 class MediaField {
 
-	/**
-	 * Regular expression to match media fields.
-	 */
 	const REGEX_MEDIA_FIELD = '#^media_(\d+)_(\w+)$#';
 
-	/**
-	 * Extract the field ID from a field string.
-	 *
-	 * @param string $field The field string to process.
-	 *
-	 * @return string The extracted field ID.
-	 */
 	public function getFieldId( $field ) {
 		$field_regex = '/^(.*?)__cf(\d+)$/';
 

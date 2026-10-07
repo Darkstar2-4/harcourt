@@ -2,22 +2,12 @@
 
 class WPML_LS_Inline_Styles {
 
-	/* @var WPML_LS_Templates $templates */
 	private $templates;
 
-	/* @var WPML_LS_Settings $settings */
 	private $settings;
 
-	/* @var WPML_LS_Model_Build $model_build */
 	private $model_build;
 
-	/**
-	 * WPML_Language_Switcher_Render_Assets constructor.
-	 *
-	 * @param WPML_LS_Templates   $templates
-	 * @param WPML_LS_Settings    $settings
-	 * @param WPML_LS_Model_Build $model_build
-	 */
 	public function __construct( $templates, $settings, $model_build ) {
 		$this->templates   = $templates;
 		$this->settings    = $settings;
@@ -28,11 +18,6 @@ class WPML_LS_Inline_Styles {
 		add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts_action' ), 20 );
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	private function get_slot_color_picker_css( $slot ) {
 		$css = '';
 
@@ -45,11 +30,6 @@ class WPML_LS_Inline_Styles {
 		return $this->sanitize_css( $css );
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	private function get_slot_color_picker_css_for_menus( $slot ) {
 		$css             = '';
 		$prefix          = '.' . $this->model_build->get_css_prefix();
@@ -91,7 +71,6 @@ class WPML_LS_Inline_Styles {
 			$css .= '}';
 		}
 
-		// Override parent menu styles for hierarchical menus
 		if ( $slot->get( 'is_hierarchical' ) ) {
 
 			if ( $slot->get( 'background_other_normal' ) || $slot->get( 'font_other_normal' ) ) {
@@ -116,11 +95,6 @@ class WPML_LS_Inline_Styles {
 		return $css;
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 *
-	 * @return string
-	 */
 	private function get_slot_color_picker_css_for_widgets_and_statics( $slot ) {
 		$css           = '';
 		$prefix        = '.' . $this->model_build->get_css_prefix();
@@ -169,18 +143,12 @@ class WPML_LS_Inline_Styles {
 		return $css;
 	}
 
-	/**
-	 * @param array $slots
-	 *
-	 * @return string
-	 */
 	public function get_slots_inline_styles( $slots ) {
 		$all_styles = '';
 
 		if ( $this->settings->can_load_styles() ) {
 
 			foreach ( $slots as $slot ) {
-				/* @var WPML_LS_Slot $slot */
 				$css = $this->get_slot_color_picker_css( $slot );
 
 				if ( $css ) {
@@ -193,9 +161,6 @@ class WPML_LS_Inline_Styles {
 		return $all_styles;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_additional_style() {
 		$additional_css = $this->settings->get_setting( 'additional_css' );
 		if ($additional_css) {
@@ -221,7 +186,6 @@ class WPML_LS_Inline_Styles {
 			$first_valid_handler = $this->get_first_valid_style_handler( $active_slots );
 
 			foreach ( $active_slots as $slot ) {
-				/* @var WPML_LS_Slot $slot */
 				$css = $this->get_slot_color_picker_css( $slot );
 
 				if ( empty( $css ) ) {
@@ -251,16 +215,10 @@ class WPML_LS_Inline_Styles {
 		}
 	}
 
-	/**
-	 * @param array $active_slots
-	 *
-	 * @return bool|mixed|null|string
-	 */
 	private function get_first_valid_style_handler( $active_slots ) {
 		$first_handler = null;
 
 		foreach ( $active_slots as $slot ) {
-			/* @var WPML_LS_Slot $slot */
 			$template = $this->templates->get_template( $slot->template() );
 			$handler  = $template->get_inline_style_handler();
 
@@ -278,7 +236,6 @@ class WPML_LS_Inline_Styles {
 			$active_slots = $this->settings->get_active_slots();
 
 			foreach ( $active_slots as $slot ) {
-				/* @var WPML_LS_Slot $slot */
 				$css = $this->get_slot_color_picker_css( $slot );
 				echo $this->get_raw_inline_style_tag( $slot, $css );
 			}
@@ -287,22 +244,11 @@ class WPML_LS_Inline_Styles {
 		}
 	}
 
-	/**
-	 * @param WPML_LS_Slot $slot
-	 * @param string       $css
-	 *
-	 * @return string
-	 */
 	private function get_raw_inline_style_tag( $slot, $css ) {
 		$style_id = 'wpml-ls-inline-styles-' . $slot->group() . '-' . $slot->slug();
 		return '<style type="text/css" id="' . $style_id . '">' . $css . '</style>' . PHP_EOL;
 	}
 
-	/**
-	 * @param string $css
-	 *
-	 * @return string
-	 */
 	private function sanitize_css( $css ) {
 		$css = wp_strip_all_tags( $css );
 		$css = preg_replace( '/\s+/S', ' ', trim( $css ) );

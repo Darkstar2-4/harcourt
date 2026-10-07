@@ -1,29 +1,15 @@
 <?php
 
-/**
- * Class WPML_Elementor_Icon_List
- */
 class WPML_Elementor_Icon_List extends WPML_Elementor_Module_With_Items {
 
-	/**
-	 * @return string
-	 */
 	public function get_items_field() {
 		return 'icon_list';
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields() {
 		return array( 'text', 'link' => array( 'url' ) );
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_title( $field ) {
 		switch( $field ) {
 			case 'text':
@@ -37,11 +23,6 @@ class WPML_Elementor_Icon_List extends WPML_Elementor_Module_With_Items {
 		}
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_editor_type( $field ) {
 		switch( $field ) {
 			case 'text':

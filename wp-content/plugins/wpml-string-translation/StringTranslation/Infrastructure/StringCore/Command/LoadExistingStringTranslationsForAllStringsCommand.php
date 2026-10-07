@@ -14,13 +14,10 @@ class LoadExistingStringTranslationsForAllStringsCommand implements LoadExisting
 
 	const BATCH_SIZE = 1000;
 
-	/** @var LoadExistingStringTranslationsCommandInterface */
 	private $loadExistingStringTranslationsCommand;
 
-	/** @var FindAllStringsQueryInterface */
 	private $findAllStringsQuery;
 
-	/** @var FindAllStringsCountQueryInterface */
 	private $findAllStringsCountQuery;
 
 	public function __construct(
@@ -62,9 +59,6 @@ class LoadExistingStringTranslationsForAllStringsCommand implements LoadExisting
 		}
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	private function createStrings( array $strings ) {
 		return array_map(
 			function( $string ) {

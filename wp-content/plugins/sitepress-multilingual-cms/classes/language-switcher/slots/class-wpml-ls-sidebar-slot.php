@@ -2,16 +2,10 @@
 
 class WPML_LS_Sidebar_Slot extends WPML_LS_Slot {
 
-	/**
-	 * @return bool
-	 */
 	public function is_enabled() {
 		return true;
 	}
 
-	/**
-	 * @return array
-	 */
 	protected function get_allowed_properties() {
 		$allowed_properties = array(
 			'widget_title' => array(

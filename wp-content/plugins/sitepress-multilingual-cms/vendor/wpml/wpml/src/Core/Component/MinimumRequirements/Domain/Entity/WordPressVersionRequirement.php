@@ -7,15 +7,9 @@ use WPML\Core\SharedKernel\Component\Server\Domain\ServerInfoInterface;
 
 class WordPressVersionRequirement extends RequirementBase {
 
-  /** @var ServerInfoInterface */
   private $serverInfo;
 
 
-  /**
-   * Constructor.
-   *
-   * @param ServerInfoInterface $serverInfo The server info service.
-   */
   public function __construct( ServerInfoInterface $serverInfo ) {
     $this->serverInfo = $serverInfo;
   }

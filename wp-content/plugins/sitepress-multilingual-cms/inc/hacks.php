@@ -1,5 +1,4 @@
 <?php
-// using this file to handle particular situations that would involve more ellaborate solutions
 
 add_action( 'init', 'icl_load_hacks' );
 

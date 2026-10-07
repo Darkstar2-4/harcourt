@@ -13,11 +13,6 @@ class WPML_String_Translation_Table {
 	private $additional_columns_to_render;
 	private $strings_in_page;
 
-	/**
-	 * WPML_String_Translation_Table constructor.
-	 *
-	 * @param array<string> $strings
-	 */
 	public function __construct( $strings ) {
 		global $sitepress;
 
@@ -247,11 +242,6 @@ class WPML_String_Translation_Table {
 		return $string;
 	}
 
-	/**
-	 * @param array $string
-	 *
-	 * @return string html for the checkbox and the table cell it resides in
-	 */
 	private function render_checkbox_cell( $string ) {
 		$class = 'icl_st_row_cb' . ( ! empty( $string['string_package_id'] ) ? ' icl_st_row_package' : '' ) . ' js-icl-st-row-cb';
 
@@ -298,12 +288,6 @@ class WPML_String_Translation_Table {
             </a>';
 	}
 
-	/**
-	 * @param string $action
-	 * @param int    $string_id
-	 *
-	 * @return string
-	 */
 	private function get_thickbox_url( $action, $string_id ) {
 		return add_query_arg(
 			array(
@@ -323,9 +307,6 @@ class WPML_String_Translation_Table {
 		return preg_replace( '#^((.+)( - ))?([a-z0-9]{32})$#', '$2', $str );
 	}
 
-	/**
-	 * @param array<string,string|int> $string
-	 */
 	public function updateColumnsForString( $string ) {
 		if (
 			! $this->additional_columns_to_render->contains( 'context' )

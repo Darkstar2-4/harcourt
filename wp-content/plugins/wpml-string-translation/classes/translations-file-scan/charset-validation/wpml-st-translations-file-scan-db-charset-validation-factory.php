@@ -2,7 +2,6 @@
 
 class WPML_ST_Translations_File_Scan_Db_Charset_Filter_Factory {
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( wpdb $wpdb ) {

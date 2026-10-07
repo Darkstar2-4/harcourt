@@ -7,7 +7,6 @@ use WPML\StringTranslation\Application\StringCore\Query\Criteria\SearchCriteria;
 
 class FindAllStringsCountQueryBuilder extends QueryBuilder {
 
-	/** @var SettingsRepository */
 	protected $settingsRepository;
 
 	public function __construct(
@@ -16,13 +15,6 @@ class FindAllStringsCountQueryBuilder extends QueryBuilder {
 		$this->settingsRepository = $settingsRepository;
 	}
 
-	/**
-	 * @codingStandardsIgnoreStart
-	 *
-	 * @param SearchCriteria $criteria
-	 *
-	 * @return string
-	 */
 	public function build( SearchCriteria $criteria ) {
 		$sql = "
             SELECT COUNT(*)

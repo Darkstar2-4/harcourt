@@ -40,9 +40,6 @@ class DomainsBackendEditor implements \IWPML_Backend_Action {
 		<?php
 	}
 
-	/**
-	 * @return bool
-	 */
 	private static function isPostEditor() {
 		global $pagenow;
 
@@ -50,17 +47,10 @@ class DomainsBackendEditor implements \IWPML_Backend_Action {
 			&& self::getPostId();
 	}
 
-	/**
-	 * @return int
-	 */
 	private static function getPostId() {
-		/* phpcs:ignore WordPress.CSRF.NonceVerification.NoNonceVerification */
 		return (int) Obj::prop( 'post', $_GET );
 	}
 
-	/**
-	 * @return string|null
-	 */
 	private static function getDomainByCurrentPostLanguage() {
 		$postDetails = apply_filters( 'wpml_post_language_details', null, self::getPostId() );
 		$language    = Obj::prop( 'language_code', $postDetails );

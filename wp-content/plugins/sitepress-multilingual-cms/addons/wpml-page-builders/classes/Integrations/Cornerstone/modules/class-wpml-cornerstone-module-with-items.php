@@ -1,45 +1,19 @@
 <?php
 
-/**
- * Class WPML_Cornerstone_Module_With_Items
- */
 abstract class WPML_Cornerstone_Module_With_Items implements IWPML_Page_Builders_Module {
 
 	const ITEMS_FIELD = WPML_Cornerstone_Translatable_Nodes::SETTINGS_FIELD;
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	abstract protected function get_title( $field );
 
-	/** @return array */
 	abstract protected function get_fields();
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	abstract protected function get_editor_type( $field );
 
-	/**
-	 * @param array $settings
-	 *
-	 * @return array
-	 */
 	protected function get_items( $settings ) {
 		return $settings[ self::ITEMS_FIELD ];
 	}
 
-	/**
-	 * @param string|int $node_id
-	 * @param array $settings
-	 * @param WPML_PB_String[] $strings
-	 *
-	 * @return WPML_PB_String[]
-	 */
 	public function get( $node_id, $settings, $strings ) {
 		foreach ( $this->get_items( $settings ) as $item ) {
 			foreach ( $this->get_fields() as $field ) {
@@ -66,13 +40,6 @@ abstract class WPML_Cornerstone_Module_With_Items implements IWPML_Page_Builders
 		return $strings;
 	}
 
-	/**
-	 * @param string|int $node_id
-	 * @param array $settings
-	 * @param WPML_PB_String $string
-	 *
-	 * @return array
-	 */
 	public function update( $node_id, $settings, WPML_PB_String $string ) {
 		foreach ( $this->get_items( $settings ) as $key => $item ) {
 			foreach ( $this->get_fields() as $field ) {

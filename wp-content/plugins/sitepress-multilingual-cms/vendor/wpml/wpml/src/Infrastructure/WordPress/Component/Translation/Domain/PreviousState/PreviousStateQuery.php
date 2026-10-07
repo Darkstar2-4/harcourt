@@ -10,36 +10,15 @@ use WPML\Core\Port\Persistence\QueryHandlerInterface;
 use WPML\Core\Port\Persistence\QueryPrepareInterface;
 use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationStatus;
 
-/**
- *
- * @phpstan-type PreviousStateData array{
- *    status?: string,
- *    translator_id?: int|string,
- *    needs_update?: bool|int,
- *    md5?: string,
- *    translation_service?: string,
- *    timestamp?: string,
- *    links_fixed?: bool|int
- * }
- */
 class PreviousStateQuery implements PreviousStateQueryInterface {
 
-  /** @phpstan-var QueryHandlerInterface<int, string|null> $queryHandler */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface $queryPrepare */
   private $queryPrepare;
 
-  /** @var DataCompressInterface */
   private $dataCompress;
 
 
-  /**
-   * @phpstan-param QueryHandlerInterface<int, string|null> $queryHandler
-   *
-   * @param QueryPrepareInterface                           $queryPrepare
-   * @param DataCompressInterface                           $dataCompress
-   */
   public function __construct(
     QueryHandlerInterface $queryHandler,
     QueryPrepareInterface $queryPrepare,
@@ -51,13 +30,6 @@ class PreviousStateQuery implements PreviousStateQueryInterface {
   }
 
 
-  /**
-   * Get previous state by job ID
-   *
-   * @param int $jobId
-   *
-   * @return PreviousState|null
-   */
   public function getByJobId( int $jobId ) {
     $query = "
             SELECT ts._prevstate
@@ -80,13 +52,6 @@ class PreviousStateQuery implements PreviousStateQueryInterface {
   }
 
 
-  /**
-   * Get previous state by RID
-   *
-   * @param int $rid
-   *
-   * @return PreviousState|null
-   */
   public function getByRID( int $rid ) {
     $query = "
             SELECT _prevstate
@@ -107,13 +72,6 @@ class PreviousStateQuery implements PreviousStateQueryInterface {
   }
 
 
-  /**
-   * Get previous state by translation ID
-   *
-   * @param int $translationId
-   *
-   * @return PreviousState|null
-   */
   public function getByTranslationId( int $translationId ) {
     $query = "
             SELECT _prevstate
@@ -134,13 +92,6 @@ class PreviousStateQuery implements PreviousStateQueryInterface {
   }
 
 
-  /**
-   * Creates a PreviousState from serialized data
-   *
-   * @param string|null $compressedData
-   *
-   * @return PreviousState|null
-   */
   private function createDomainFromSerializedData( $compressedData ) {
     if ( ! $compressedData ) {
       return null;
@@ -165,21 +116,6 @@ class PreviousStateQuery implements PreviousStateQueryInterface {
   }
 
 
-  /**
-   * Ensures all required fields are present with default values
-   *
-   * @phpstan-param PreviousStateData $data
-   *
-   * @return array{
-   *    status: string,
-   *    translator_id: int,
-   *    needs_update: bool,
-   *    md5: string,
-   *    translation_service: string,
-   *    timestamp: string,
-   *    links_fixed: bool
-   * }
-   */
   private function getDataWithDefaults( array $data ): array {
     return [
       'status'              => $data['status'] ?? '',

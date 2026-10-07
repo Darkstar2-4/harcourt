@@ -5,10 +5,8 @@ namespace WPML\ST;
 use WPML\FP\Fns;
 
 class StringsRepository {
-	/** @var \SitePress $sitepress */
 	private $sitepress;
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct( \SitePress $sitepress, \wpdb $wpdb ) {
@@ -16,30 +14,14 @@ class StringsRepository {
 		$this->wpdb      = $wpdb;
 	}
 
-	/**
-	 * @param string[] $langs
-	 *
-	 * @return string
-	 */
 	private function getLanguagesSql( $langs = [] ) {
 		return ' AND language IN (' . wpml_prepare_in( $langs, '%s' ) . ')';
 	}
 
-	/**
-	 * @param string[] $notPriorities
-	 *
-	 * @return string
-	 */
 	private function getNotPrioritiesSql( $notPriorities = [] ) {
 		return ' AND translation_priority NOT IN (' . wpml_prepare_in( $notPriorities, '%s' ) . ')';
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string   $extraSql
-	 *
-	 * @return int
-	 */
 	private function execGetCountInDomains( $domains = [], $extraSql = '' ) {
 		if ( ! $domains ) {
 			return 0;
@@ -55,42 +37,18 @@ class StringsRepository {
 		);
 	}
 
-	/**
-	 * @param string[] $domains
-	 *
-	 * @return int
-	 */
 	public function getCountInDomains( $domains = [] ) {
 		return $this->execGetCountInDomains( $domains );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string[] $langs
-	 *
-	 * @return int
-	 */
 	public function getCountInDomainsByLangs( $domains = [], $langs = [] ) {
 		return $this->execGetCountInDomains( $domains, $this->getLanguagesSql( $langs ) );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string[] $notPriorities
-	 *
-	 * @return int
-	 */
 	public function getCountInDomainsByNotPriorities( $domains = [], $notPriorities = [] ) {
 		return $this->execGetCountInDomains( $domains, $this->getNotPrioritiesSql( $notPriorities ) );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param int      $limit
-	 * @param string   $extraSql
-	 *
-	 * @return array
-	 */
 	private function execGetFromDomains( $domains = [], $limit = 20, $extraSql = '' ) {
 		if ( ! $domains ) {
 			return [];
@@ -105,44 +63,18 @@ class StringsRepository {
 		);
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param int      $limit
-	 *
-	 * @return array
-	 */
 	public function getFromDomains( $domains = [], $limit = 20 ) {
 		return $this->execGetFromDomains( $domains, $limit );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string[] $langs
-	 * @param int      $limit
-	 *
-	 * @return array
-	 */
 	public function getStringIdFromDomainsByLangs( $domains = [], $langs = [], $limit = 20 ) {
 		return $this->execGetFromDomains( $domains, $limit, $this->getLanguagesSql( $langs ) );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string[] $notPriorities
-	 * @param int      $limit
-	 *
-	 * @return array
-	 */
 	public function getStringIdsFromDomainsWithExcludedPriorities( $domains = [], $notPriorities = [], $limit = 20 ) {
 		return $this->execGetFromDomains( $domains, $limit, $this->getNotPrioritiesSql( $notPriorities ) );
 	}
 
-	/**
-	 * @param string[] $domains
-	 * @param string[] $ignoreLangs
-	 *
-	 * @return array
-	 */
 	public function getLanguagesUsedInDomains( $domains = [], $ignoreLangs = [] ) {
 		if ( ! $domains ) {
 			return [];

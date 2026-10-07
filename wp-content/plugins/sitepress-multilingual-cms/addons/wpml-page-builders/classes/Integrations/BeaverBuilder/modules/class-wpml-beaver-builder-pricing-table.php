@@ -2,41 +2,22 @@
 class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_Items {
 
 
-	/**
-	 * @param object $settings
-	 *
-	 * @return array
-	 */
 	public function &get_items( $settings ) {
 		return $settings->pricing_columns;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_fields() {
 		return [ 'title', 'button_text', 'button_url', 'price', 'duration', 'ribbon_text' ];
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_billing_fields() {
 		return [ 'billing_option_1', 'billing_option_2' ];
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_extended_features_fields() {
 		return [ 'description', 'tooltip' ];
 	}
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_title( $field ) {
 		switch ( $field ) {
 			case 'title':
@@ -76,11 +57,6 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 	}
 
 
-	/**
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	protected function get_editor_type( $field ) {
 		switch ( $field ) {
 			case 'title':
@@ -102,24 +78,10 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		}
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param mixed  $value
-	 * @param string $field
-	 *
-	 * @return string
-	 */
 	private function get_string_name( $node_id, $value, $field ) {
 		return md5( $value . '-' . $field . '-' . $node_id );
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param object $settings
-	 * @param array  $strings
-	 *
-	 * @return array
-	 */
 	public function get( $node_id, $settings, $strings ) {
 		$strings = parent::get( $node_id, $settings, $strings );
 
@@ -129,13 +91,6 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		return $strings;
 	}
 
-	/**
-	 * @param string $node_id
-	 * @param object $settings
-	 * @param array  $strings
-	 *
-	 * @return array
-	 */
 	private function add_billing_fields( $strings, $node_id, $settings ) {
 
 		foreach ( $this->get_billing_fields() as $billing_field ) {
@@ -154,14 +109,6 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		return $strings;
 	}
 
-	/**
-	 *
-	 * @param array  $strings
-	 * @param string $node_id
-	 * @param object $settings
-	 *
-	 * @return array
-	 */
 	private function add_extended_features_fields( $strings, $node_id, $settings ) {
 		if ( ! isset( $settings->pricing_columns ) || ! is_array( $settings->pricing_columns ) ) {
 			return $strings;
@@ -191,21 +138,11 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		return $strings;
 	}
 
-	/**
-	 * @param object $column
-	 *
-	 * @return bool
-	 */
 	private function contain_valid_extended_features( $column ) {
 		return isset( $column->extended_features )
 		&& ( is_array( $column->extended_features ) || is_object( $column->extended_features ) );
 	}
 
-	/**
-	 * @param string         $node_id
-	 * @param object         $settings
-	 * @param WPML_PB_String $string
-	 */
 	public function update( $node_id, $settings, WPML_PB_String $string ) {
 		parent::update( $node_id, $settings, $string );
 
@@ -215,11 +152,6 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		return null;
 	}
 
-	/**
-	 * @param string         $node_id
-	 * @param object|mixed   $settings
-	 * @param WPML_PB_String $string
-	 */
 	private function update_billing_fields( $node_id, $settings, $string ) {
 		if ( ! is_object( $settings ) ) {
 			return;
@@ -236,11 +168,6 @@ class WPML_Beaver_Builder_Pricing_Table extends WPML_Beaver_Builder_Module_With_
 		}
 	}
 
-	/**
-	 * @param string         $node_id
-	 * @param object         $settings
-	 * @param WPML_PB_String $string
-	 */
 	private function update_extended_features_fields( $node_id, $settings, $string ) {
 		if ( ! is_array( $settings->pricing_columns ) ) {
 			return;

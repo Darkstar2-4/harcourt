@@ -9,16 +9,12 @@ class WPML_TM_Word_Count_Queue_Items_Requested_Types implements IWPML_TM_Word_Co
 	const STEP_POSTS               = 3;
 	const STEP_COMPLETED           = 4;
 
-	/** @var WPML_TM_Word_Count_Records $records */
 	private $records;
 
-	/** @var array $requested_types to be processed */
 	private $requested_types;
 
-	/** @var string $step */
 	private $step;
 
-	/** @var array|null $items */
 	private $items = array(
 		'string'  => array(),
 		'package' => array(),
@@ -29,9 +25,6 @@ class WPML_TM_Word_Count_Queue_Items_Requested_Types implements IWPML_TM_Word_Co
 		$this->records = $records;
 	}
 
-	/**
-	 * @return array|null a tuple containing the element id and type or null if queue is empty
-	 */
 	public function get_next() {
 		$this->init_queue();
 
@@ -127,10 +120,6 @@ class WPML_TM_Word_Count_Queue_Items_Requested_Types implements IWPML_TM_Word_Co
 		}
 	}
 
-	/**
-	 * @param int    $id
-	 * @param string $type
-	 */
 	public function remove( $id, $type ) {
 		if ( isset( $this->items[ $type ][ $id ] ) ) {
 			unset( $this->items[ $type ][ $id ] );
@@ -139,14 +128,12 @@ class WPML_TM_Word_Count_Queue_Items_Requested_Types implements IWPML_TM_Word_Co
 		$this->maybe_move_to_next_step();
 	}
 
-	/** @return bool */
 	private function has_items() {
 		return ! empty( $this->items['string'] )
 			   || ! empty( $this->items['package'] )
 			   || ! empty( $this->items['post'] );
 	}
 
-	/** @return bool */
 	public function is_completed() {
 		return $this->step === self::STEP_COMPLETED;
 	}

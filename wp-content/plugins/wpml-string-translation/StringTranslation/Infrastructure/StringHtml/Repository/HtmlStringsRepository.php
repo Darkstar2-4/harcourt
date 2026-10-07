@@ -9,10 +9,8 @@ use WPML\StringTranslation\Application\StringHtml\Repository\HtmlStringsFromScri
 
 class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 
-	/** @var HtmlStringsFromScriptTagRepositoryInterface */
 	private $htmlStringsFromScriptTagRepository;
 
-	/** @var IsExcludedHtmlStringValidatorInterface */
 	private $isExcludedHtmlStringValidator;
 
 	public function __construct(
@@ -26,7 +24,11 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 	private function loadHtml( string $html ) {
 		$dom = new \DOMDocument();
 		$dom->encoding = 'utf-8';
-		// Hiding warnings for invalid html.
+
+		if ( trim( $html ) === '' ) {
+			return $dom;
+		}
+
 		$prevErrors = libxml_use_internal_errors(true);
 		$dom->loadHTML( $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOWARNING );
 		$errors = libxml_get_errors();
@@ -62,7 +64,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 
 	private function isNodeTextValid( string $nodeText ): bool {
 		$length = strlen( $nodeText );
-		// If text length exceeds 1000 chars it is page builder content or some css/javascript code, we should ignore it.
 		return $length <= 1000 && $length > 0;
 	}
 
@@ -85,7 +86,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 
 		$dataAttrs = $xpath->query( "//@*[starts-with(name(), 'data-')]" );
 		foreach ( $dataAttrs as $dataAttr ) {
-			// Ids contain random values and are not strings for translation, we should skip them for performance reasons.
 			if ( in_array( 'id', explode( '-', $dataAttr->name ) ) ) {
 				continue;
 			}
@@ -125,14 +125,9 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 		return [ $tokens, $textNodes ];
 	}
 
-	/**
-	 * @return string[]
-	 */
 	private function getTextFromParentNodes( array $textNodes ): array {
 		$parentTextTokens = [];
 		foreach ( $textNodes as $textNode ) {
-			// Handling cases like <div><span>Required fields are marked <span class="required">*</span></span></div>.
-			// Example: for '*' text node we need to access parent(span) and its parent(div) and read the full text contents.
 			$text = $textNode->parentNode->parentNode->textContent;
 			if ( in_array( $textNode->nodeName, [ 'html', 'head', 'body' ] ) ) {
 				continue;
@@ -146,7 +141,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 
 			$wordsCount = count( explode( ' ', $text ) );
 
-			// Avoiding false detections here when gettext string consists only from 1 word. They are rare on 2+ words.
 			if ( ! in_array( $text, $parentTextTokens ) && $wordsCount > 1 ) {
 				$parentTextTokens[] = $text;
 			}
@@ -155,9 +149,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 		return $parentTextTokens;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	private function getAllTextTokensFromHtmlWithTextFromParentNode( \DOMXPath $xpath ): array {
 		list( $textTokens, $textNodes ) = $this->getAllTextTokensFromHtml( $xpath );
 		$parentTextTokens = $this->getTextFromParentNodes( $textNodes );
@@ -169,8 +160,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 	}
 
 	private function readAllRawGettextStringsFromHtmlScriptTags( \DOMDocument $dom, string $html ): array {
-		// We cannot read here with xpath - script tags contain code from the JS template engines and some html will be broken.
-		// (For example some elements will miss closing tags).
 		$pattern = '/<script.*?type="text\/(?:html|template)".*?>([\s\S]*?)<\/script>/i';
 		preg_match_all( $pattern, $html, $matches );
 		$scriptHtmls = [];
@@ -237,9 +226,6 @@ class HtmlStringsRepository implements HtmlStringsRepositoryInterface {
 		return $this->readAllRawGettextStringsFromHtml( $dom, $html );
 	}
 
-	/**
-	 * @return string[]
-	 */
 	public function getAllStringsFromHtml( string $html ): array {
 		$htmlStrings = [];
 

@@ -13,17 +13,6 @@ namespace WPML\Core\Twig\Node;
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
 use WPML\Core\Twig\Node\Expression\FilterExpression;
-/**
- * Adds a check for the __toString() method when the variable is an object and the sandbox is activated.
- *
- * When there is a simple Print statement, like {{ article }},
- * and if the sandbox is enabled, we need to check that the __toString()
- * method is allowed if 'article' is an object.
- *
- * Not used anymore, to be deprecated in 2.x and removed in 3.0
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SandboxedPrintNode extends \WPML\Core\Twig\Node\PrintNode
 {
     public function compile(\WPML\Core\Twig\Compiler $compiler)
@@ -36,13 +25,6 @@ class SandboxedPrintNode extends \WPML\Core\Twig\Node\PrintNode
             $compiler->write('$this->env->getExtension(\'\\WPML\\Core\\Twig\\Extension\\SandboxExtension\')->ensureToStringAllowed(')->subcompile($expr)->raw(");\n");
         }
     }
-    /**
-     * Removes node filters.
-     *
-     * This is mostly needed when another visitor adds filters (like the escaper one).
-     *
-     * @return Node
-     */
     protected function removeNodeFilter(\WPML\Core\Twig\Node\Node $node)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\FilterExpression) {

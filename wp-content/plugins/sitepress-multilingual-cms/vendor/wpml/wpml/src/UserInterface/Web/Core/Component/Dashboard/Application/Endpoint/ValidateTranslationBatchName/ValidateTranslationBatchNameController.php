@@ -6,14 +6,8 @@ use WPML\Core\Component\Translation\Application\Service\TranslationBatchService\
 use WPML\Core\Port\Endpoint\EndpointInterface;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @phpstan-type ValidateBatchNameRequestParams array{
- * batchName?: string|null
- * }
- */
 class ValidateTranslationBatchNameController implements EndpointInterface {
 
-  /** @var BatchNamePreparer */
   private $batchNamePreparer;
 
 
@@ -22,13 +16,6 @@ class ValidateTranslationBatchNameController implements EndpointInterface {
   }
 
 
-  /**
-   * @phpstan-param  ValidateBatchNameRequestParams $requestData
-   *
-   * @phpstan-return array{batchName: string}
-   * @throws InvalidArgumentException
-   * @psalm-suppress MoreSpecificImplementedParamType
-   */
   public function handle( $requestData = null ): array {
     $batchName = $requestData['batchName'] ?? '';
 

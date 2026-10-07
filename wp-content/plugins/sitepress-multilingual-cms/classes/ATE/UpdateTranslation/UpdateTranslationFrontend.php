@@ -53,11 +53,6 @@ class UpdateTranslationFrontend implements \IWPML_Frontend_Action, \IWPML_Backen
 		);
 	}
 
-	/**
-	 * Checks if the current request should be handled by this class.
-	 *
-	 * @return bool
-	 */
 	private function shouldHandleRequest() {
 		global $wpml_translation_job_factory;
 		$isAteEnabled = ! is_null( $wpml_translation_job_factory );
@@ -68,12 +63,6 @@ class UpdateTranslationFrontend implements \IWPML_Frontend_Action, \IWPML_Backen
 			&& ! Obj::prop( 'back', $_GET );
 	}
 
-	/**
-	 * Get the job id from the current post.
-	 *
-	 * @param \WP_Post $post
-	 * @return int|null
-	 */
 	private function getJobIdFromCurrentPost( $post ) {
 		global $sitepress, $wpml_translation_job_factory;
 
@@ -84,11 +73,6 @@ class UpdateTranslationFrontend implements \IWPML_Frontend_Action, \IWPML_Backen
 		return $jobId;
 	}
 
-	/**
-	 * Get the current post object.
-	 *
-	 * @return \WP_Post|null
-	 */
 	private function getPostCurrentPostObject() {
 		$post_id = get_queried_object_id();
 		if ( ! $post_id ) {
@@ -112,13 +96,6 @@ class UpdateTranslationFrontend implements \IWPML_Frontend_Action, \IWPML_Backen
         ';
 	}
 
-	/**
-	 * Get the data for the translation post on the frontend.
-	 *
-	 * @param $jobId
-	 * @param $post
-	 * @return array
-	 */
 	public function getTranslationFrontendData( $jobId, $post ) {
 		$job = Jobs::get( $jobId );
 		if ( ! $job ) {
@@ -141,14 +118,6 @@ class UpdateTranslationFrontend implements \IWPML_Frontend_Action, \IWPML_Backen
 		];
 	}
 
-	/**
-	 * Returns completed status based on key 'complete_no_changes' in $params.
-	 * Returns NOT_COMPLETED if 'complete_no_changes' is not set.
-	 *
-	 * @param array $params
-	 *
-	 * @return string
-	 */
 	public function isCompletedInATE( $params ) {
 		$completedInATE = pipe(
 			Obj::prop( 'complete_no_changes' ),

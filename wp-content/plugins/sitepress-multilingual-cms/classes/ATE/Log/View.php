@@ -6,7 +6,6 @@ use WPML\Collect\Support\Collection;
 
 class View {
 
-	/** @var Collection $logs */
 	private $logs;
 
 	public function __construct( Collection $logs ) {

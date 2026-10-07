@@ -12,12 +12,8 @@ class CustomFieldChangeDetector implements \IWPML_Backend_Action, \IWPML_DIC_Act
 	const PREVIOUS_SETTING = 'previous-custom-fields-to-translate';
 	const DETECTED_SETTING = 'detected-custom-fields-to-translate';
 
-	/** @var BackgroundTaskService */
 	private $backgroundTaskService;
 
-	/**
-	 * @param BackgroundTaskService $backgroundTaskService
-	 */
 	public function __construct( BackgroundTaskService $backgroundTaskService ) {
 		$this->backgroundTaskService = $backgroundTaskService;
 	}
@@ -73,16 +69,11 @@ class CustomFieldChangeDetector implements \IWPML_Backend_Action, \IWPML_DIC_Act
 		if ( count( $newFields ) > 0 ) {
 			$newFields = array_unique( $newFields );
 
-			/** @var ProcessNewTranslatableFields $backroundTaskEndpoint */
 			$backroundTaskEndpoint = make( ProcessNewTranslatableFields::class );
 
 			$payload = wpml_collect( [ 'newFields' => $newFields ] );
 
 			if ( $backroundTaskEndpoint->getTotalRecords( $payload ) ) {
-				// We could do some optimization to avoid running again after consecutive changes on same field.
-				// But currently, it's more consistent to enqueue a new task every time, since there may be cases
-				// when the user is running a task affecting some custom field for long time, and wants to update again
-				// and ghet the posts re-processed.
 				$this->backgroundTaskService->add( $backroundTaskEndpoint, $payload );
 			}
 

@@ -5,22 +5,11 @@ use WPML\FP\Obj;
 
 class WPML_TM_API {
 
-	/** @var TranslationManagement */
 	private $TranslationManagement;
 
-	/** @var WPML_TM_Blog_Translators $blog_translators */
 	private $blog_translators;
-	/**
-	 * @var mixed[]
-	 */
 	private $translation_statuses;
 
-	/**
-	 * WPML_TM_API constructor.
-	 *
-	 * @param WPML_TM_Blog_Translators $blog_translators
-	 * @param TranslationManagement    $TranslationManagement
-	 */
 	public function __construct( &$blog_translators, &$TranslationManagement ) {
 		$this->blog_translators      = &$blog_translators;
 		$this->TranslationManagement = &$TranslationManagement;
@@ -47,13 +36,6 @@ class WPML_TM_API {
 		add_action( 'wpml_edit_translator', array( $this, 'edit_translator_action' ), 10, 2 );
 	}
 
-	/**
-	 * @param bool        $default
-	 * @param int|WP_User $user
-	 * @param array       $args
-	 *
-	 * @return bool
-	 */
 	public function is_translator_filter( $default, $user, $args ) {
 		$result  = $default;
 		$user_id = $this->get_user_id( $user );
@@ -71,10 +53,6 @@ class WPML_TM_API {
 		}
 	}
 
-	/**
-	 * @param int   $user_id
-	 * @param array $language_pairs
-	 */
 	private function edit_translator( $user_id, $language_pairs ) {
 		global $wpdb;
 
@@ -102,11 +80,6 @@ class WPML_TM_API {
 		return $result;
 	}
 
-	/**
-	 * @param $user
-	 *
-	 * @return int
-	 */
 	private function get_user_id( $user ) {
 		$user_id = $user;
 

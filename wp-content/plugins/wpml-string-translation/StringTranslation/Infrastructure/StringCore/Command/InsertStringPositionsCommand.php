@@ -13,9 +13,6 @@ class InsertStringPositionsCommand extends BulkActionBaseCommand implements Inse
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param StringPosition[] $positions
-	 */
 	public function run( array $positions ) {
 		foreach ( array_chunk( $positions, $this->chunk_size ) as $chunk ) {
 			$query = "INSERT INTO {$this->wpdb->prefix}icl_string_positions "
@@ -27,11 +24,6 @@ class InsertStringPositionsCommand extends BulkActionBaseCommand implements Inse
 		}
 	}
 
-	/**
-	 * @param StringPosition $position
-	 *
-	 * @return string
-	 */
 	private function buildStringPositionRow( StringPosition $position ) {
 		return $this->wpdb->prepare(
 			'(%s, %d, %s)',

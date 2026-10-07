@@ -4,56 +4,29 @@ namespace WPML\Core\SharedKernel\Component\TranslationProxy\Domain;
 
 class RemoteTranslationServiceDomain {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $name;
 
-  /** @var bool */
   private $requiresAuthentication;
 
-  /** @var string */
   private $description;
 
-  /** @var string */
   private $url;
 
-  /** @var string */
   private $logoUrl;
 
-  /** @var mixed[] */
   private $customFields;
 
-  /** @var mixed[] */
   private $customFieldsData;
 
-  /** @var RemoteTranslationServiceExtraField[] */
   private $extraFields;
 
-  /** @var bool */
   private $autoRefreshProjectOptions;
 
-  /**
-   * When the maximumJobsPerBatch is not set or it's 0 this means that., we don't need to chunk the translation service jobs separately
-   * @var int | null
-   */
   private $maximumJobsPerBatch;
 
 
-  /**
-   * @param int $id
-   * @param string $name
-   * @param bool $requiresAuthentication
-   * @param string $description
-   * @param string $url
-   * @param string $logoUrl
-   * @param mixed[] $customFields
-   * @param mixed[] $customFieldsData
-   * @param RemoteTranslationServiceExtraField[] $extraFields
-   * @param int | null $maximumJobsPerBatch
-   * @param bool $autoRefreshProjectOptions
-   */
   public function __construct(
     int $id,
     string $name,
@@ -64,7 +37,7 @@ class RemoteTranslationServiceDomain {
     array $customFields,
     array $customFieldsData,
     array $extraFields,
-    int $maximumJobsPerBatch = null,
+    ?int $maximumJobsPerBatch = null,
     bool $autoRefreshProjectOptions = false
   ) {
     $this->id                     = $id;
@@ -111,17 +84,11 @@ class RemoteTranslationServiceDomain {
   }
 
 
-  /**
-   * @return mixed[]
-   */
   public function getCustomFields(): array {
     return $this->customFields;
   }
 
 
-  /**
-   * @return mixed[]
-   */
   public function getCustomFieldsData(): array {
     return $this->customFieldsData;
   }
@@ -136,27 +103,16 @@ class RemoteTranslationServiceDomain {
   }
 
 
-  /**
-   * @param RemoteTranslationServiceExtraField[] $extraFields
-   *
-   * @return void
-   */
   public function setExtraFields( array $extraFields ) {
     $this->extraFields = $extraFields;
   }
 
 
-  /**
-   * @return RemoteTranslationServiceExtraField[]
-   */
   public function getExtraFields(): array {
     return $this->extraFields;
   }
 
 
-  /**
-   * @return int | null
-   */
   public function getMaximumJobsPerBatch() {
     return $this->maximumJobsPerBatch;
   }
@@ -167,29 +123,12 @@ class RemoteTranslationServiceDomain {
   }
 
 
-  /**
-   * @return array{
-   *   id: int,
-   *   name: string,
-   *   url: string,
-   *   isAuthenticated: bool,
-   *   maximumJobsPerBatch: int|null,
-   *   extraFields: array<array{
-   *   type: string,
-   *   label: string,
-   *   name: string,
-   *   items: ExtraFieldItems|null
-   * }>,
-   *   autoRefreshProjectOptions: bool
-   * }
-   */
   public function toArray(): array {
     return [
       'id'                  => $this->getId(),
       'name'                => $this->getName(),
       'url'                 => $this->getUrl(),
       'isAuthenticated'     => $this->isAuthenticated(),
-      // If maximumJobsPerBatch is NULL this means that we're not going to chunk translation service jobs separately
       'maximumJobsPerBatch' => $this->getMaximumJobsPerBatch(),
       'extraFields'         => array_map(
         function ( $field ) {

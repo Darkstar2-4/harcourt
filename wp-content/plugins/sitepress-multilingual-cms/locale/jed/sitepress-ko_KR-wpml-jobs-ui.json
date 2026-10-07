@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=1; plural=0;",
-            "lang": "ko"
+            "lang": "ko_KR"
          },
          "Start batch sync": [
             "일괄 동기화 시작"
@@ -14,7 +14,7 @@
             "작업 취소"
          ],
          "Continue reviewing": [
-            "계속 검토하기"
+            "계속 검토"
          ],
          "Start downloading XLIFF file": [
             "XLIFF 파일 다운로드 시작"
@@ -23,7 +23,7 @@
             "편집"
          ],
          "Get translation": [
-            "번역 받기"
+            "번역 가져오기"
          ],
          "Resign": [
             "사임"
@@ -35,7 +35,7 @@
             "번역"
          ],
          "Take and Translate": [
-            "가져와서 번역하기"
+            "가져와서 번역"
          ],
          "View": [
             "보기"
@@ -47,13 +47,13 @@
             "번역을 초안으로 유지"
          ],
          "Never mind. I want to review these translations.": [
-            "괜찮습니다. 이 번역들을 검토하고 싶습니다."
+            "괜찮습니다. 이 번역을 검토하고 싶습니다."
          ],
          "Cancel": [
             "취소"
          ],
          "This will remove the selected jobs from the Translations Queue without publishing them. What would you like to do with the translations?": [
-            "이 작업은 선택된 작업들을 게시하지 않고 번역 대기열에서 제거할 것입니다. 번역물을 어떻게 처리하시겠습니까?"
+            "이렇게 하면 선택한 작업이 게시되지 않고 번역 대기열에서 제거됩니다. 번역을 어떻게 하시겠습니까?"
          ],
          "Cancel Translation Review": [
             "번역 검토 취소"
@@ -65,10 +65,10 @@
             "적용"
          ],
          "Actions applied to multiple translation jobs can take a few seconds. Please do not leave the page.": [
-            "여러 번역 작업에 적용된 작업은 몇 초가 걸릴 수 있습니다. 페이지를 떠나지 마세요."
+            "여러 번역 작업에 적용되는 작업은 몇 초가 걸릴 수 있습니다. 페이지를 떠나지 마십시오."
          ],
          "Actions applied to multiple translation jobs can take a few minutes. Please do not leave the page.": [
-            "여러 번역 작업에 적용된 작업은 몇 분이 걸릴 수 있습니다. 페이지를 떠나지 마세요."
+            "여러 번역 작업에 적용되는 작업은 몇 분이 걸릴 수 있습니다. 페이지를 떠나지 마십시오."
          ],
          "Select translator": [
             "번역가 선택"
@@ -86,13 +86,13 @@
             "진행 중"
          ],
          "Translation ready to download": [
-            "다운로드 준비된 번역"
+            "번역 다운로드 준비 완료"
          ],
          "Completed": [
             "완료됨"
          ],
          "%s are immediately published because they don't support draft mode.": [
-            "%s은(는) 초안 모드를 지원하지 않기 때문에 즉시 게시됩니다."
+            "%s은 초안 모드를 지원하지 않으므로 즉시 게시됩니다."
          ],
          "Published — Pending review": [
             "게시됨 — 검토 대기 중"
@@ -128,7 +128,7 @@
             "TP ID: %d"
          ],
          "Reset": [
-            "초기화"
+            "재설정"
          ],
          "Filter": [
             "필터"
@@ -146,7 +146,7 @@
             "언어 (%s)"
          ],
          "Batch name (%s)": [
-            "배치 이름 (%s)"
+            "일괄 이름 (%s)"
          ],
          "Status (%s)": [
             "상태 (%s)"
@@ -155,7 +155,7 @@
             "번역자 (%s)"
          ],
          "Sent date (%s)": [
-            "전송 날짜 (%s)"
+            "보낸 날짜 (%s)"
          ],
          "Deadline (%s)": [
             "마감일 (%s)"
@@ -197,25 +197,25 @@
             "정렬 취소"
          ],
          "The bulk action is running...": [
-            "일괄 작업 실행 중..."
+            "일괄 작업이 실행 중입니다..."
          ],
          "Export all jobs to XLIFF 1.0": [
-            "모든 작업을 XLIFF 1.0으로 내보내기."
+            "모든 작업을 XLIFF 1.0으로 내보내기"
          ],
          "Export all filtered jobs to XLIFF 1.0": [
-            "필터링된 모든 작업을 XLIFF 1.0으로 내보내기."
+            "필터링된 모든 작업을 XLIFF 1.0으로 내보내기"
          ],
          "Export all jobs to XLIFF 1.1": [
-            "모든 작업을 XLIFF 1.1로 내보내기."
+            "모든 작업을 XLIFF 1.1으로 내보내기"
          ],
          "Export all filtered jobs to XLIFF 1.1": [
-            "필터링된 모든 작업을 XLIFF 1.1로 내보내기."
+            "필터링된 모든 작업을 XLIFF 1.1으로 내보내기"
          ],
          "Export all jobs to XLIFF 1.2": [
-            "모든 작업을 XLIFF 1.2로 내보내기."
+            "모든 작업을 XLIFF 1.2로 내보내기"
          ],
          "Export all filtered jobs to XLIFF 1.2": [
-            "필터링된 모든 작업을 XLIFF 1.2로 내보내기."
+            "필터링된 모든 작업을 XLIFF 1.2로 내보내기"
          ],
          "Export": [
             "내보내기"
@@ -239,10 +239,10 @@
             "작업"
          ],
          "Batch name": [
-            "배치 이름"
+            "일괄 이름"
          ],
          "Filter by %s": [
-            "%s로 필터링"
+            "%s별 필터"
          ],
          "Title": [
             "제목"
@@ -257,31 +257,31 @@
             "번역 검토 취소"
          ],
          "Export to XLIFF %s": [
-            "XLIFF %s로 내보내기"
+            "XLIFF %s으로 내보내기"
          ],
          "Get translations": [
-            "번역 받기"
+            "번역 가져오기"
          ],
          "This action does not apply to any of the selected translation jobs": [
-            "이 작업은 선택된 번역 작업 중 어느 것에도 적용되지 않습니다"
+            "이 작업은 선택한 번역 작업에 적용되지 않습니다."
          ],
          "Translations have been downloaded": [
-            "번역이 다운로드되었습니다"
+            "번역이 다운로드되었습니다."
          ],
          "Translation has been downloaded": [
-            "번역이 다운로드되었습니다"
+            "번역이 다운로드되었습니다."
          ],
          "Translations could not be downloaded": [
-            "번역을 다운로드할 수 없습니다"
+            "번역을 다운로드할 수 없습니다."
          ],
          "Translation could not be downloaded": [
-            "번역을 다운로드할 수 없습니다"
+            "번역을 다운로드할 수 없습니다."
          ],
          "Approving translations reviews failed!": [
             "번역 검토 승인에 실패했습니다!"
          ],
          "Failed approving translations for the following posts: ": [
-            "다음 게시물의 번역 승인에 실패했습니다: "
+            "다음 게시물에 대한 번역 승인에 실패했습니다: "
          ],
          "Translations reviews approved successfully!": [
             "번역 검토가 성공적으로 승인되었습니다!"
@@ -290,37 +290,37 @@
             "번역 검토를 승인할 유효한 작업이 선택되지 않았습니다!"
          ],
          "The translator has been assigned to the job": [
-            "번역가가 작업에 할당되었습니다"
+            "번역가가 작업에 할당되었습니다."
          ],
          "The translator could not be assigned to the job": [
-            "번역가를 작업에 할당할 수 없습니다"
+            "번역가를 작업에 할당할 수 없습니다."
          ],
          "The jobs have been cancelled": [
-            "작업이 취소되었습니다"
+            "작업이 취소되었습니다."
          ],
          "The job has been cancelled": [
-            "작업이 취소되었습니다"
+            "작업이 취소되었습니다."
          ],
          "The jobs could not be cancelled": [
-            "작업을 취소할 수 없습니다"
+            "작업을 취소할 수 없습니다."
          ],
          "The job could not be cancelled": [
-            "작업을 취소할 수 없습니다"
+            "작업을 취소할 수 없습니다."
          ],
          "Translation reviews have been canceled": [
-            "번역 검토가 취소되었습니다"
+            "번역 검토가 취소되었습니다."
          ],
          "Translation review has been canceled": [
-            "번역 검토가 취소되었습니다"
+            "번역 검토가 취소되었습니다."
          ],
          "Translation reviews could not be canceled": [
-            "번역 검토를 취소할 수 없습니다"
+            "번역 검토를 취소할 수 없습니다."
          ],
          "Translation review could not be canceled": [
-            "번역 검토를 취소할 수 없습니다"
+            "번역 검토를 취소할 수 없습니다."
          ],
          "Sent on": [
-            "전송일"
+            "보낸 날짜"
          ],
          "Deadline": [
             "마감일"
@@ -344,64 +344,64 @@
             "번역자"
          ],
          "Download XLIFF file couldn't be finished": [
-            "XLIFF 파일 다운로드를 완료할 수 없습니다"
+            "XLIFF 파일 다운로드를 완료할 수 없습니다."
          ],
          "Could not load jobs for export": [
-            "내보내기 위한 작업을 불러올 수 없습니다"
+            "내보낼 작업을 로드할 수 없습니다."
          ],
          "The export to XLIFF failed": [
-            "XLIFF로 내보내기에 실패했습니다"
+            "XLIFF로 내보내기 실패"
          ],
          "Imported %d jobs": [
-            "%d 작업을 가져왔습니다"
+            "%d개 작업 가져옴"
          ],
          "Imported one job": [
-            "하나의 작업을 가져왔습니다"
+            "하나의 작업 가져옴"
          ],
          "Could not import any job": [
-            "어떤 작업도 가져올 수 없습니다"
+            "어떤 작업도 가져올 수 없습니다."
          ],
          "Import failed!": [
-            "가져오기에 실패했습니다!"
+            "가져오기 실패!"
          ],
          "Loading translations queue": [
-            "번역 대기열 불러오는 중"
+            "번역 대기열 로드 중"
          ],
          "Loading translation jobs": [
-            "번역 작업 불러오는 중"
+            "번역 작업 로드 중"
          ],
          "Jobs could not be loaded": [
-            "작업을 불러올 수 없습니다"
+            "작업을 로드할 수 없습니다."
          ],
          "Specify some jobs to resign": [
-            "사임할 작업을 지정하세요"
+            "사임할 작업을 지정하십시오."
          ],
          "We could not resign jobs: %s": [
-            "다음 작업을 사임할 수 없습니다: %s"
+            "작업을 사임할 수 없습니다: %s"
          ],
          "Resigned from jobs": [
-            "직장에서 사직함"
+            "작업에서 사임했습니다."
          ],
          "Resigned from job": [
-            "직장에서 사직함"
+            "작업에서 사임했습니다."
          ],
          "Failed to resign from jobs": [
-            "직장에서 사직하지 못함"
+            "작업에서 사임하는 데 실패했습니다."
          ],
          "The Advanced Editor jobs synchronization has failed": [
-            "고급 편집기 작업 동기화에 실패함"
+            "고급 편집기 작업 동기화에 실패했습니다."
          ],
          "Synchronization with the Professional Translation service has failed": [
-            "전문 번역 서비스와의 동기화에 실패함"
+            "전문 번역 서비스와의 동기화에 실패했습니다."
          ],
          "%d translation has been downloaded": [
-            "%d 번역이 다운로드되었습니다"
+            "%d개의 번역이 다운로드되었습니다."
          ],
          "Batch sync finished successfully!": [
-            "일괄 동기화가 성공적으로 완료됨!"
+            "일괄 동기화가 성공적으로 완료되었습니다!"
          ],
          "Batch sync couldn't be finished": [
-            "일괄 동기화를 완료할 수 없음"
+            "일괄 동기화를 완료할 수 없습니다."
          ]
       }
    }

@@ -13,14 +13,14 @@ use WP_Error;
 use WP_Smush;
 
 class Media_Item extends Smush_File {
-	const ANIMATED_META_KEY = 'wp-smush-animated';
-	const TRANSPARENT_META_KEY = 'wp-smush-transparent';
-	const IGNORED_META_KEY = 'wp-smush-ignore-bulk';
+	private static $animated_meta_key = 'wp-smush-animated';
+	private static $transparent_meta_key = 'wp-smush-transparent';
+	private static $ignored_meta_key = 'wp-smush-ignore-bulk';
 
-	const SIZE_KEY_SCALED = 'wp_scaled';
-	const SIZE_KEY_FULL = 'full';
-	const BACKUP_SIZES_META_KEY = '_wp_attachment_backup_sizes';
-	const DEFAULT_BACKUP_KEY = 'smush-full';
+	private static $size_key_scaled = 'wp_scaled';
+	private static $size_key_full = 'full';
+	private static $backup_sizes_meta_key = '_wp_attachment_backup_sizes';
+	private static $default_backup_key = 'smush-full';
 
 	private $id;
 	/**
@@ -30,7 +30,7 @@ class Media_Item extends Smush_File {
 	/**
 	 * @var string
 	 */
-	private $edit_link;
+	private $edit_url;
 	/**
 	 * @var string
 	 */
@@ -137,12 +137,36 @@ class Media_Item extends Smush_File {
 		$this->id = $id;
 
 		$this->set_settings( Settings::get_instance() );
-		$size_limit = WP_Smush::is_pro()
-			? WP_SMUSH_PREMIUM_MAX_BYTES
-			: WP_SMUSH_MAX_BYTES;
-		$this->set_size_limit( $size_limit );
 		$this->array_utils = new Array_Utils();
 		$this->fs          = new File_System();
+	}
+
+	public static function get_animated_meta_key() {
+		return self::$animated_meta_key;
+	}
+
+	public static function get_size_key_scaled() {
+		return self::$size_key_scaled;
+	}
+
+	public static function get_default_backup_key() {
+		return self::$default_backup_key;
+	}
+
+	public static function get_ignored_meta_key() {
+		return self::$ignored_meta_key;
+	}
+
+	public static function get_backup_sizes_meta_key() {
+		return self::$backup_sizes_meta_key;
+	}
+
+	public static function get_size_key_full() {
+		return self::$size_key_full;
+	}
+
+	public static function get_transparent_meta_key() {
+		return self::$transparent_meta_key;
 	}
 
 	public function size_limit_exceeded() {
@@ -170,6 +194,9 @@ class Media_Item extends Smush_File {
 	}
 
 	public function get_size_limit() {
+		if ( is_null( $this->size_limit ) ) {
+			$this->size_limit = Settings::get_instance()->get_file_size_limit();
+		}
 		return $this->size_limit;
 	}
 
@@ -246,15 +273,15 @@ class Media_Item extends Smush_File {
 	 * TODO: use this instead of Helper::get_image_media_link
 	 * @return string
 	 */
-	public function get_edit_link() {
-		if ( is_null( $this->edit_link ) ) {
-			$this->edit_link = $this->prepare_edit_link();
+	public function get_edit_url() {
+		if ( is_null( $this->edit_url ) ) {
+			$this->edit_url = $this->prepare_edit_url();
 		}
 
-		return $this->edit_link;
+		return $this->edit_url;
 	}
 
-	private function prepare_edit_link() {
+	private function prepare_edit_url() {
 		$mode     = get_user_option( 'media_library_mode' );
 		$image_id = $this->get_id();
 		if ( 'grid' === $mode ) {
@@ -264,6 +291,13 @@ class Media_Item extends Smush_File {
 		}
 
 		return $edit_link;
+	}
+
+	public function get_edit_link() {
+		$name = $this->get_full_or_scaled_size()->get_file_name();
+		$url = $this->get_edit_url();
+
+		return "<a href='$url'>$name</a>";
 	}
 
 	/**
@@ -319,11 +353,11 @@ class Media_Item extends Smush_File {
 	}
 
 	public function has_scaled_size() {
-		return $this->has_size( self::SIZE_KEY_SCALED );
+		return $this->has_size( self::$size_key_scaled );
 	}
 
 	public function has_full_size() {
-		return $this->has_size( self::SIZE_KEY_FULL );
+		return $this->has_size( self::$size_key_full );
 	}
 
 	/**
@@ -336,11 +370,11 @@ class Media_Item extends Smush_File {
 	}
 
 	public function get_scaled_size() {
-		return $this->get_size( self::SIZE_KEY_SCALED );
+		return $this->get_size( self::$size_key_scaled );
 	}
 
 	public function get_full_size() {
-		return $this->get_size( self::SIZE_KEY_FULL );
+		return $this->get_size( self::$size_key_full );
 	}
 
 	public function get_sizes() {
@@ -376,12 +410,12 @@ class Media_Item extends Smush_File {
 
 		$scaled_size = $this->prepare_scaled_size();
 		if ( $scaled_size ) {
-			$media_item_sizes[ self::SIZE_KEY_SCALED ] = $scaled_size;
+			$media_item_sizes[ self::$size_key_scaled ] = $scaled_size;
 		}
 
 		$full_size = $this->prepare_full_size();
 		if ( $full_size ) {
-			$media_item_sizes[ self::SIZE_KEY_FULL ] = $full_size;
+			$media_item_sizes[ self::$size_key_full ] = $full_size;
 		}
 
 		return $media_item_sizes;
@@ -392,7 +426,7 @@ class Media_Item extends Smush_File {
 		if ( $file && $this->separate_original_image_path_exists() ) {
 			$wp_size_metadata = $this->attachment_metadata_as_size_metadata( $file );
 
-			return $this->initialize_size( self::SIZE_KEY_SCALED, $wp_size_metadata );
+			return $this->initialize_size( self::$size_key_scaled, $wp_size_metadata );
 		}
 
 		return null;
@@ -417,7 +451,7 @@ class Media_Item extends Smush_File {
 				return null;
 			}
 
-			return $this->initialize_size( self::SIZE_KEY_FULL, array(
+			return $this->initialize_size( self::$size_key_full, array(
 				'file'      => $this->file_name_from_path( $original_image_file ),
 				'width'     => $image_size[0],
 				'height'    => $image_size[1],
@@ -428,7 +462,7 @@ class Media_Item extends Smush_File {
 			$main_file        = $this->get_attached_file();
 			$wp_size_metadata = $this->attachment_metadata_as_size_metadata( $main_file );
 
-			return $this->initialize_size( self::SIZE_KEY_FULL, $wp_size_metadata );
+			return $this->initialize_size( self::$size_key_full, $wp_size_metadata );
 		}
 	}
 
@@ -529,27 +563,27 @@ class Media_Item extends Smush_File {
 	}
 
 	private function prepare_ignored() {
-		return (boolean) $this->get_post_meta( self::IGNORED_META_KEY );
+		return (bool) $this->get_post_meta( self::$ignored_meta_key );
 	}
 
 	public function set_ignored( $ignored ) {
 		$this->ignored = $ignored;
 
-		$this->set_outdated( self::IGNORED_META_KEY );
+		$this->set_outdated( self::$ignored_meta_key );
 	}
 
 	/**
 	 * @return void
 	 */
 	private function update_ignored_meta() {
-		if ( ! $this->is_outdated( self::IGNORED_META_KEY ) ) {
+		if ( ! $this->is_outdated( self::$ignored_meta_key ) ) {
 			return;
 		}
 
 		if ( $this->is_ignored() ) {
-			update_post_meta( $this->get_id(), self::IGNORED_META_KEY, true );
+			update_post_meta( $this->get_id(), self::$ignored_meta_key, true );
 		} else {
-			delete_post_meta( $this->get_id(), self::IGNORED_META_KEY );
+			delete_post_meta( $this->get_id(), self::$ignored_meta_key );
 		}
 	}
 
@@ -569,7 +603,7 @@ class Media_Item extends Smush_File {
 		}
 
 		if ( is_null( $this->animated ) ) {
-			$this->animated = (bool) $this->get_post_meta( self::ANIMATED_META_KEY );
+			$this->animated = (bool) $this->get_post_meta( self::$animated_meta_key );
 		}
 
 		return $this->animated;
@@ -586,7 +620,7 @@ class Media_Item extends Smush_File {
 		}
 
 		$this->animated = (bool) $animated;
-		$this->set_outdated( self::ANIMATED_META_KEY );
+		$this->set_outdated( self::$animated_meta_key );
 
 		return true;
 	}
@@ -595,13 +629,13 @@ class Media_Item extends Smush_File {
 	 * @return void
 	 */
 	private function update_animated_meta() {
-		if ( $this->is_outdated( self::ANIMATED_META_KEY ) ) {
-			update_post_meta( $this->get_id(), self::ANIMATED_META_KEY, $this->is_animated() ? 1 : 0 );
+		if ( $this->is_outdated( self::$animated_meta_key ) ) {
+			update_post_meta( $this->get_id(), self::$animated_meta_key, $this->is_animated() ? 1 : 0 );
 		}
 	}
 
 	public function animated_meta_exists() {
-		$animated_meta_value = $this->get_post_meta( self::ANIMATED_META_KEY );
+		$animated_meta_value = $this->get_post_meta( self::$animated_meta_key );
 
 		// Post meta default is empty string so a bool means there is a row in the meta table
 		return is_numeric( $animated_meta_value );
@@ -616,7 +650,7 @@ class Media_Item extends Smush_File {
 		}
 
 		if ( is_null( $this->transparent ) ) {
-			$this->transparent = (bool) $this->get_post_meta( self::TRANSPARENT_META_KEY );
+			$this->transparent = (bool) $this->get_post_meta( self::$transparent_meta_key );
 		}
 
 		return $this->transparent;
@@ -628,7 +662,7 @@ class Media_Item extends Smush_File {
 		}
 
 		$this->transparent = (bool) $transparent;
-		$this->set_outdated( self::TRANSPARENT_META_KEY );
+		$this->set_outdated( self::$transparent_meta_key );
 
 		return true;
 	}
@@ -640,18 +674,18 @@ class Media_Item extends Smush_File {
 		if ( ! $this->is_png() ) {
 			// Maybe the mime type has changed, and we should delete the transparent meta value added when the mime type was PNG
 			if ( $this->transparent_meta_exists() ) {
-				delete_post_meta( $this->get_id(), self::TRANSPARENT_META_KEY );
+				delete_post_meta( $this->get_id(), self::$transparent_meta_key );
 			}
 		} else {
-			if ( $this->is_outdated( self::TRANSPARENT_META_KEY ) ) {
+			if ( $this->is_outdated( self::$transparent_meta_key ) ) {
 				// Unlike most other meta values we will not delete the meta because even a false value is useful: it tells us we have checked transparency before.
-				update_post_meta( $this->get_id(), self::TRANSPARENT_META_KEY, $this->is_transparent() ? 1 : 0 );
+				update_post_meta( $this->get_id(), self::$transparent_meta_key, $this->is_transparent() ? 1 : 0 );
 			}
 		}
 	}
 
 	public function transparent_meta_exists() {
-		$transparent_meta_value = $this->get_post_meta( self::TRANSPARENT_META_KEY );
+		$transparent_meta_value = $this->get_post_meta( self::$transparent_meta_key );
 
 		// Post meta default is empty string so a bool means there is a row in the meta table
 		return is_numeric( $transparent_meta_value );
@@ -794,13 +828,13 @@ class Media_Item extends Smush_File {
 			$errors->add(
 				'file_not_found',
 				/* translators: %s: The missing file name */
-				sprintf( esc_html__( 'Skipped (%s), File not found.', 'wp-smushit' ), basename( $original_file ) )
+				sprintf( esc_html__( 'Skipped (%s). File not found.', 'wp-smushit' ), basename( $original_file ) )
 			);
 		} elseif ( ! $this->files_exist() ) {
 			$errors->add(
 				'file_not_found',
 				/* translators: %s: The missing file name */
-				sprintf( esc_html__( 'Skipped (%s), File not found.', 'wp-smushit' ), $this->get_missing_file_name() )
+				sprintf( esc_html__( 'Skipped (%s). File not found.', 'wp-smushit' ), $this->get_missing_file_name() )
 			);
 		}
 
@@ -808,7 +842,7 @@ class Media_Item extends Smush_File {
 			$errors->add(
 				'size_limit',
 				/* translators: 1: Exceeded size limit file name, 2: Image size limit */
-				sprintf( esc_html__( 'Skipped (%1$s), file size limit of %2$s exceeded', 'wp-smushit' ), $this->get_file_name_exceeding_limit(), $this->get_human_size_limit() )
+				sprintf( esc_html__( 'Skipped (%1$s). File size limit of %2$s exceeded', 'wp-smushit' ), $this->get_file_name_exceeding_limit(), $this->get_human_size_limit() )
 			);
 		}
 
@@ -924,7 +958,7 @@ class Media_Item extends Smush_File {
 	/**
 	 * @return false|string
 	 */
-	private function get_attached_file() {
+	public function get_attached_file() {
 		if ( is_null( $this->attached_file ) ) {
 			$this->attached_file = get_attached_file( $this->get_id() );
 		}
@@ -944,18 +978,28 @@ class Media_Item extends Smush_File {
 	}
 
 	private function make_attachment_meta() {
-		$sizes = array();
-		foreach ( $this->get_sizes() as $size_key => $size ) {
-			if ( $size_key === self::SIZE_KEY_FULL || $size_key === self::SIZE_KEY_SCALED ) {
+		$wp_metadata    = $this->get_wp_metadata();
+		$original_sizes = isset( $wp_metadata['sizes'] ) ? $wp_metadata['sizes'] : array();
+		$sizes          = $original_sizes;
+		foreach ( $original_sizes as $size_key => $size_data ) {
+			if ( $size_key === self::$size_key_full || $size_key === self::$size_key_scaled ) {
 				continue;
 			}
 
-			$sizes[ $size_key ] = array(
-				'file'      => $size->get_file_name(),
-				'width'     => $size->get_width(),
-				'height'    => $size->get_height(),
-				'mime-type' => $size->get_mime_type(),
-				'filesize'  => $size->get_filesize(),
+			$size = $this->get_size( $size_key );
+			if ( ! $size ) {
+				continue;
+			}
+
+			$sizes[ $size_key ] = array_merge(
+				$size_data,
+				array(
+					'file'      => $size->get_file_name(),
+					'width'     => $size->get_width(),
+					'height'    => $size->get_height(),
+					'mime-type' => $size->get_mime_type(),
+					'filesize'  => $size->get_filesize(),
+				)
 			);
 		}
 
@@ -974,7 +1018,7 @@ class Media_Item extends Smush_File {
 			$new_meta['original_image'] = $this->get_full_size()->get_file_name();
 		}
 
-		return array_merge( $this->get_wp_metadata(), $new_meta );
+		return array_merge( $wp_metadata, $new_meta );
 	}
 
 	private function arrays_same( $array1, $array2 ) {
@@ -1016,20 +1060,20 @@ class Media_Item extends Smush_File {
 	private function set_backup_sizes( $backup_sizes ) {
 		$this->backup_sizes = $backup_sizes;
 
-		$this->set_outdated( self::BACKUP_SIZES_META_KEY );
+		$this->set_outdated( self::$backup_sizes_meta_key );
 	}
 
 	/**
 	 * @return void
 	 */
 	private function update_backup_sizes() {
-		if ( ! $this->is_outdated( self::BACKUP_SIZES_META_KEY ) ) {
+		if ( ! $this->is_outdated( self::$backup_sizes_meta_key ) ) {
 			return;
 		}
 
 		$updated_backup_sizes_meta = $this->make_backup_sizes_meta();
 		if ( ! $this->arrays_same( $this->get_backup_sizes_meta(), $updated_backup_sizes_meta ) ) {
-			update_post_meta( $this->get_id(), self::BACKUP_SIZES_META_KEY, $updated_backup_sizes_meta );
+			update_post_meta( $this->get_id(), self::$backup_sizes_meta_key, $updated_backup_sizes_meta );
 		}
 	}
 
@@ -1050,7 +1094,7 @@ class Media_Item extends Smush_File {
 	 * @return Backup_Size|null
 	 */
 	public function get_default_backup_size() {
-		return $this->get_backup_size( self::DEFAULT_BACKUP_KEY );
+		return $this->get_backup_size( self::$default_backup_key );
 	}
 
 	/**
@@ -1061,7 +1105,10 @@ class Media_Item extends Smush_File {
 	 *
 	 * @return void
 	 */
-	public function add_backup_size( $file_name, $width, $height, $key = self::DEFAULT_BACKUP_KEY ) {
+	public function add_backup_size( $file_name, $width, $height, $key = null ) {
+		if ( is_null( $key ) ) {
+			$key = self::$default_backup_key;
+		}
 		$backup_sizes         = $this->get_backup_sizes();
 		$dir                  = $this->get_dir();
 		$backup_size          = ( new Backup_Size( $dir ) )->set_file( $file_name )
@@ -1081,7 +1128,7 @@ class Media_Item extends Smush_File {
 	 * @return array|mixed
 	 */
 	private function get_backup_sizes_meta() {
-		$backup_sizes_meta = $this->get_post_meta( self::BACKUP_SIZES_META_KEY );
+		$backup_sizes_meta = $this->get_post_meta( self::$backup_sizes_meta_key );
 
 		return empty( $backup_sizes_meta ) ? array() : $backup_sizes_meta;
 	}
@@ -1096,7 +1143,7 @@ class Media_Item extends Smush_File {
 	}
 
 	public function remove_default_backup_size() {
-		$this->remove_backup_size( self::DEFAULT_BACKUP_KEY );
+		$this->remove_backup_size( self::$default_backup_key );
 	}
 
 	public function remove_backup_size( $key ) {
@@ -1106,7 +1153,7 @@ class Media_Item extends Smush_File {
 		}
 		$this->set_backup_sizes( $backup_sizes );
 
-		$this->set_outdated( self::BACKUP_SIZES_META_KEY );
+		$this->set_outdated( self::$backup_sizes_meta_key );
 	}
 
 	public function get_scaled_or_full_size() {
@@ -1154,10 +1201,6 @@ class Media_Item extends Smush_File {
 	}
 
 	public function can_be_restored() {
-		if ( ! $this->plugin_settings->is_backup_active() ) {
-			return false;
-		}
-
 		// Note that we don't check if file exists because the file might be on a remote server e.g. s3
 		return ! empty( $this->get_default_backup_size() );
 	}

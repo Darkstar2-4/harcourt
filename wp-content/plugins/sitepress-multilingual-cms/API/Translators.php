@@ -7,9 +7,6 @@ use WPML\FP\Obj;
 use WPML\LIB\WP\User;
 
 class Translators {
-	/**
-	 * @return \WPML_Translator
-	 */
 	public static function getCurrent() {
 		$translator = wpml_load_core_tm()->get_current_translator();
 

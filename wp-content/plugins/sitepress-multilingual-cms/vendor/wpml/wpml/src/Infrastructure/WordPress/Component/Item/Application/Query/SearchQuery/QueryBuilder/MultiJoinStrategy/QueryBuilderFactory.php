@@ -7,10 +7,8 @@ use WPML\Infrastructure\WordPress\Component\Item\Application\Query\SearchQuery\Q
 
 class QueryBuilderFactory {
 
-  /** @var SearchQueryBuilder */
   private $searchQueryBuilder;
 
-  /** @var SearchPopulatedTypesQueryBuilder */
   private $searchPopulatedTypesQueryBuilder;
 
 

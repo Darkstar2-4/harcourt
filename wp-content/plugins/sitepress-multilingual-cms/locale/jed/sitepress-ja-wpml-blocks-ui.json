@@ -8,19 +8,19 @@
             "lang": "ja"
          },
          "Advanced": [
-            "詳細"
+            "高度"
          ],
          "HTML anchor": [
-            "HTML アンカー"
+            "HTMLアンカー"
          ],
          "Add a shortcut to this block when loading the page using the “#anchor” URL.": [
-            "「#anchor」URL を使用してページを読み込む際に、このブロックへのショートカットを追加します。"
+            "「#anchor」URLを使用してページを読み込む際に、このブロックへのショートカットを追加します。"
          ],
          "Additional CSS class(es)": [
-            "追加 CSS クラス (複数可)"
+            "追加CSSクラス"
          ],
          "Separate multiple classes with spaces.": [
-            "複数クラスの場合は、スペースで区切ります。"
+            "複数のクラスはスペースで区切ります。"
          ],
          "Color": [
             "色"
@@ -32,22 +32,22 @@
             "%"
          ],
          "Dimensions": [
-            "ディメンション"
+            "寸法"
          ],
          "BLOCK": [
-            "Block"
+            "ブロック"
          ],
          "Block margin": [
-            "ブロック マージン"
+            "ブロックマージン"
          ],
          "Block padding": [
-            "ブロック パディング"
+            "ブロックパディング"
          ],
          "LANGUAGE": [
             "言語"
          ],
          "Language spacing": [
-            "言語スペーシング"
+            "言語間隔"
          ],
          "Language padding": [
             "言語パディング"
@@ -56,13 +56,13 @@
             "表示"
          ],
          "Show flag": [
-            "フラグを表示する"
+            "フラグを表示"
          ],
          "Show language name": [
-            "言語名を表示する"
+            "言語名を表示"
          ],
          "Display language name in": [
-            "言語名を表示:"
+            "言語名を表示する"
          ],
          "Style": [
             "スタイル"
@@ -77,28 +77,40 @@
             "高さ"
          ],
          "Spacing": [
-            "スペーシング"
+            "間隔"
+         ],
+         "Switch to %s": [
+            "%sに切り替える"
+         ],
+         "Available languages": [
+            "利用可能な言語"
          ],
          "Allow wrapping to multiple lines": [
-            "複数行への折り返しを許可する"
+            "複数行への折り返しを許可"
          ],
          "Open on click": [
             "クリックで開く"
          ],
          "Show arrow": [
-            "矢印を表示する"
+            "矢印を表示"
          ],
          "Layout": [
             "レイアウト"
          ],
          "Justification": [
-            "ジャスティフィケーション"
+            "配置"
          ],
          "Orientation": [
-            "オリエンテーション"
+            "向き"
+         ],
+         "Language Switcher": [
+            "言語スイッチャー"
+         ],
+         "Language switcher, press tab to navigate to other languages": [
+            "言語スイッチャー、タブを押して他の言語に移動"
          ],
          "Typography": [
-            "タイポグラフィー"
+            "タイポグラフィ"
          ],
          "Background": [
             "背景"
@@ -107,31 +119,31 @@
             "言語テキスト"
          ],
          "Language Background": [
-            "言語バックグラウンド"
+            "言語背景"
          ],
          "Current language text": [
             "現在の言語テキスト"
          ],
          "Current language background": [
-            "現在の言語バックグラウンド"
+            "現在の言語背景"
          ],
          "Full name": [
-            "氏名"
+            "フルネーム"
          ],
          "Code": [
             "コード"
          ],
          "Justify items left": [
-            "アイテムを左寄せにする"
+            "項目を左揃え"
          ],
          "Justify items center": [
-            "アイテムを中央寄せする"
+            "項目を中央揃え"
          ],
          "Justify items right": [
-            "アイテムを右寄せにする"
+            "項目を右揃え"
          ],
          "Justify items space between": [
-            "アイテムを両端揃えにする"
+            "項目を均等に配置"
          ],
          "Horizontal": [
             "水平"
@@ -140,7 +152,7 @@
             "垂直"
          ],
          "Normal": [
-            "通常"
+            "標準"
          ],
          "Medium": [
             "中"
@@ -166,14 +178,11 @@
          "Displays the WPML Language Switcher.": [
             "WPML言語スイッチャーを表示します。"
          ],
-         "Language Switcher": [
-            "言語スイッチャー"
-         ],
          "displays the WPML Language Switcher": [
-            "wPML言語スイッチャーを表示します"
+            "WPML言語スイッチャーを表示します"
          ],
          "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this block</a>.": [
-            "WPML言語スイッチャーを表示します。<br/>このブロックの<a>翻訳方法を学ぶ</a>。"
+            "WPML言語スイッチャーを表示します。<br/> <a>このブロックを翻訳する方法</a>を学ぶ。"
          ],
          "Navigation Language Switcher": [
             "ナビゲーション言語スイッチャー"

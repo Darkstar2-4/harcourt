@@ -5,13 +5,8 @@ class WPML_Translation_Batch extends WPML_Abstract_Job_Collection {
 	private $name = false;
 	private $id   = false;
 	private $url  = false;
-	/** @var WPML_Translation_Job[] $job_objects  */
 	private $job_objects = array();
 
-	/**
-	 * @param wpdb $wpdb
-	 * @param int  $batch_id
-	 */
 	public function __construct( &$wpdb, $batch_id = 0 ) {
 		parent::__construct( $wpdb );
 		$this->id   = $batch_id > 0 ? $batch_id : $this->retrieve_generic_batch_id();
@@ -71,58 +66,10 @@ class WPML_Translation_Batch extends WPML_Abstract_Job_Collection {
 		);
 	}
 
-	/**
-	 * Cancels all translation jobs in this batch
-	 */
-	public function cancel_all_jobs() {
-		/**
-		 * @var wpdb                    $wpdb
-		 * @var TranslationManagement   $iclTranslationManagement
-		 * @var WPML_String_Translation $WPML_String_Translation
-		 */
-		global $wpdb, $iclTranslationManagement, $WPML_String_Translation;
-
-		$translation_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT translation_id
-                 FROM {$wpdb->prefix}icl_translation_status
-                 WHERE batch_id = %d",
-				$this->id
-			)
-		);
-		foreach ( $translation_ids as $translation_id ) {
-			$iclTranslationManagement->cancel_translation_request( $translation_id );
-		}
-
-		$string_translation_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT id FROM {$wpdb->prefix}icl_string_translations WHERE batch_id = %d",
-				$this->id
-			)
-		);
-		foreach ( $string_translation_ids as $st_trans_id ) {
-			$rid = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT MAX(rid)
-                     FROM {$wpdb->prefix}icl_string_status
-                     WHERE string_translation_id = %d",
-					$st_trans_id
-				)
-			);
-			if ( $rid ) {
-				$WPML_String_Translation->cancel_remote_translation( $rid );
-			}
-		}
-	}
-
-	// todo: [WPML 3.2.1] This method and other similar methods can likely be removed
 	public function get_last_update() {
 		return TranslationManagement::get_batch_last_update( $this->id );
 	}
 
-	/**
-	 * @param WPML_Translation_Job $job
-	 */
 	public function add_job( $job ) {
 		$this->job_objects[ $job->get_id() ] = $job;
 	}

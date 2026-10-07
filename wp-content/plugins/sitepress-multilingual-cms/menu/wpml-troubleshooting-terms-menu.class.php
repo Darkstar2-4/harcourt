@@ -4,10 +4,6 @@ use WPML\API\Sanitize;
 
 class WPML_Troubleshooting_Terms_Menu {
 
-	/**
-	 * Displays the admin notice informing about terms in the old format, using the language suffix.
-	 * The notice is displayed until it is either dismissed or the update button is pressed.
-	 */
 	public static function display_terms_with_suffix_admin_notice() {
 		global $sitepress;
 		if ( ! $sitepress->get_setting( 'taxonomy_names_checked' ) ) {
@@ -25,15 +21,9 @@ class WPML_Troubleshooting_Terms_Menu {
 			$sitepress->set_setting( 'taxonomy_names_checked', true, true );
 		}
 
-		// TODO: [WPML 3.3] the ICL_AdminNotifier class got improved and we should not call \ICL_AdminNotifier::displayMessages to display an admin notice
 		ICL_AdminNotifier::displayMessages( 'terms-suffix' );
 	}
 
-	/**
-	 * Returns the HTML for the display of all terms with a language suffix in the troubleshooting menu.
-	 *
-	 * @return string
-	 */
 	public static function display_terms_with_suffix() {
 
 		$terms_to_display = WPML_Terms_Translations::get_all_terms_with_language_suffix();
@@ -72,12 +62,6 @@ class WPML_Troubleshooting_Terms_Menu {
 		return $output;
 	}
 
-	/**
-	 * @param string $term_name
-	 * Strips a term off all language suffixes in the form @<lang_code> on it.
-	 *
-	 * @return string
-	 */
 	public static function strip_language_suffix( $term_name ) {
 		global $wpdb;
 
@@ -103,9 +87,6 @@ class WPML_Troubleshooting_Terms_Menu {
 		return $new_name;
 	}
 
-	/**
-	 * Ajax handler for the troubleshoot page. Updates the term name on those terms given via the Ajax action.
-	 */
 	public static function wpml_update_term_names_troubleshoot() {
 		global $wpdb;
 		ICL_AdminNotifier::removeMessage( 'termssuffixnotice' );

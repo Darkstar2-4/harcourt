@@ -12,12 +12,6 @@ class WordCount implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 		add_filter( 'wpml_words_count_post_content', [ $this, 'getStringPackageContent' ], 10, 2 );
 	}
 
-	/**
-	 * @param string $postContent
-	 * @param int    $postId
-	 *
-	 * @return string
-	 */
 	public function getStringPackageContent( $postContent, $postId ) {
 		if ( $this->contentHasSiteOriginBlock( $postContent ) ) {
 			$packages = apply_filters( 'wpml_st_get_post_string_packages', [], $postId );
@@ -30,11 +24,6 @@ class WordCount implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 		return $postContent;
 	}
 
-	/**
-	 * @param string $content
-	 *
-	 * @return bool
-	 */
 	private function contentHasSiteOriginBlock( $content ) {
 		return Str::includes( '<!-- wp:siteorigin-panels/layout-block', $content );
 	}

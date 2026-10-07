@@ -7,17 +7,17 @@
             "plural_forms": "nplurals=2; plural=(n != 1);",
             "lang": "el"
          },
+         "All": [
+            "Όλα"
+         ],
          "To display this Custom HTML block in a specific language, first place it inside a Group block.": [
-            "Για να εμφανίσετε αυτό το μπλοκ Προσαρμοσμένης HTML σε συγκεκριμένη γλώσσα, τοποθετήστε το πρώτα μέσα σε ένα μπλοκ Ομάδας."
+            "Για να εμφανίσετε αυτό το προσαρμοσμένο μπλοκ HTML σε μια συγκεκριμένη γλώσσα, τοποθετήστε το πρώτα μέσα σε ένα μπλοκ Ομάδας."
          ],
          "Place inside Group block": [
             "Τοποθέτηση μέσα σε μπλοκ Ομάδας"
          ],
-         "All": [
-            "Όλα"
-         ],
          "Display on language": [
-            "Προβολή σε γλώσσα"
+            "Εμφάνιση ανά γλώσσα"
          ]
       }
    }

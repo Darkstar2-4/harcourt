@@ -8,27 +8,14 @@ class WPML_TM_ICL_Translations extends WPML_TM_Record_User {
 
 	private $related = array();
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	private $translation_id = 0;
 
-	/** @var  WPML_Frontend_Post_Actions | WPML_Admin_Post_Actions $post_translations */
 	private $post_translations;
 
-	/** @var WPML_Term_Translation $term_translations */
 	private $term_translations;
 
-	/**
-	 * WPML_TM_ICL_Translations constructor.
-	 *
-	 * @throws InvalidArgumentException if given data does not correspond to a
-	 * record in icl_translations
-	 *
-	 * @param WPML_TM_Records $tm_records
-	 * @param int|array       $id
-	 * @param string          $type translation id, trid_lang or id_prefix for now
-	 */
 	public function __construct( &$tm_records, $id, $type = 'translation_id' ) {
 		$this->wpdb              = $tm_records->wpdb();
 		$this->post_translations = $tm_records->get_post_translations();
@@ -68,9 +55,6 @@ class WPML_TM_ICL_Translations extends WPML_TM_Record_User {
 		);
 	}
 
-	/**
-	 * @return WPML_TM_ICL_Translations[]
-	 */
 	public function translations() {
 		if ( false === (bool) $this->related ) {
 			$trid = $this->trid();
@@ -106,39 +90,24 @@ class WPML_TM_ICL_Translations extends WPML_TM_Record_User {
 		return $result;
 	}
 
-	/**
-	 * @return null|int
-	 */
 	public function trid() {
 		return $this->select_by( 'get_trid_from_translation_id', 'trid' );
 	}
 
-	/**
-	 * @return int
-	 */
 	public function translation_id() {
 
 		return $this->translation_id;
 	}
 
-	/**
-	 * @return null|int
-	 */
 	public function element_id() {
 		return $this->select_by( 'get_element_from_translation_id', 'element_id' );
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function language_code() {
 
 		return $this->select_field( 'language_code' );
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function source_language_code() {
 
 		$lang = $this->post_translations->get_source_lang_from_translation_id( $this->translation_id );
@@ -147,10 +116,6 @@ class WPML_TM_ICL_Translations extends WPML_TM_Record_User {
 		return $lang;
 	}
 
-	/**
-	 *
-	 * @return $this
-	 */
 	public function delete() {
 		$this->tm_records
 			->icl_translation_status_by_translation_id( $this->translation_id )

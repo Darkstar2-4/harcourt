@@ -5,30 +5,19 @@ class WPML_ST_Bulk_Strings_Insert_Exception extends Exception {
 }
 
 class WPML_ST_Bulk_Strings_Insert {
-	/** @var wpdb */
 	private $wpdb;
 
-	/** @var int<1,max>  */
 	private $chunk_size = 1000;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @param int $chunk_size
-	 */
 	public function set_chunk_size( $chunk_size ) {
 		$this->chunk_size = $chunk_size;
 	}
 
 
-	/**
-	 * @param WPML_ST_Models_String[] $strings
-	 */
 	public function insert_strings( array $strings ) {
 		foreach ( array_chunk( $strings, $this->chunk_size ) as $chunk ) {
 
@@ -46,9 +35,6 @@ class WPML_ST_Bulk_Strings_Insert {
 		}
 	}
 
-	/**
-	 * @param WPML_ST_Models_String_Translation[] $translations
-	 */
 	public function insert_string_translations( array $translations ) {
 		foreach ( array_chunk( $translations, $this->chunk_size ) as $chunk ) {
 			$query = "INSERT IGNORE INTO {$this->wpdb->prefix}icl_string_translations "
@@ -67,11 +53,6 @@ class WPML_ST_Bulk_Strings_Insert {
 		}
 	}
 
-	/**
-	 * @param WPML_ST_Models_String $string
-	 *
-	 * @return string
-	 */
 	private function build_string_row( WPML_ST_Models_String $string ) {
 		return $this->wpdb->prepare(
 			'(%s, %s, %s, %s, %s, %s, %d)',
@@ -85,11 +66,6 @@ class WPML_ST_Bulk_Strings_Insert {
 		);
 	}
 
-	/**
-	 * @param WPML_ST_Models_String_Translation $translation
-	 *
-	 * @return string
-	 */
 	private function build_translation_row( WPML_ST_Models_String_Translation $translation ) {
 		return $this->wpdb->prepare(
 			'(%d, %s, %d, %s)',

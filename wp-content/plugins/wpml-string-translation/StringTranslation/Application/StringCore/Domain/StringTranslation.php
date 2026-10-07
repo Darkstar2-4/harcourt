@@ -4,35 +4,27 @@ namespace WPML\StringTranslation\Application\StringCore\Domain;
 
 class StringTranslation {
 
-	/** @var StringItem|null */
 	private $string;
 
-	/** @var string */
 	private $language;
 
-	/** @var string */
 	private $value;
 
-	/**
-	 * @param StringItem|null $string
-	 * @param string          $language
-	 * @param string          $value
-	 */
 	public function __construct(
-		StringItem $string = null,
-		string     $language,
-		string     $value
+		string $language,
+		string $value,
+		?StringItem $string = null
 	) {
 		$this->setString( $string );
 		$this->setLanguage( $language );
 		$this->setValue( $value );
 	}
 
-	public function setString( StringItem $string ) {
+	public function setString( ?StringItem $string ) {
 		$this->string = $string;
 	}
 
-	public function getString(): StringItem {
+	public function getString(): ?StringItem {
 		return $this->string;
 	}
 
@@ -52,3 +44,4 @@ class StringTranslation {
 		$this->value = $value;
 	}
 }
+

@@ -3,11 +3,6 @@
 use WPML\FP\Lst;
 use WPML\FP\Relation;
 
-/**
- * Fetch the wpml config files for known plugins and themes
- *
- * @package wpml-core
- */
 class WPML_Config_Update {
 
 	const CONFIG_KEY_GLOBAL_NOTICES        = 'global-wpml-notices';
@@ -16,45 +11,24 @@ class WPML_Config_Update {
 		'timeout' => 45,
 	];
 
-	/** @var bool */
 	private $has_errors;
 	private $log;
-	/** @var  SitePress $sitepress */
 	protected $sitepress;
 
-	/**
-	 * @var WP_Http $http
-	 */
 	private $http;
 
-	/**
-	 * @var WPML_Active_Plugin_Provider
-	 */
 	private $active_plugin_provider;
 
-	/**
-	 * WPML_Config_Update constructor.
-	 *
-	 * @param SitePress     $sitepress
-	 * @param WP_Http       $http
-	 * @param WPML_Log|null $log
-	 */
-	public function __construct( $sitepress, $http, WPML_Log $log = null ) {
+	public function __construct( $sitepress, $http, ?WPML_Log $log = null ) {
 		$this->sitepress = $sitepress;
 		$this->http      = $http;
 		$this->log       = $log;
 	}
 
-	/**
-	 * @param WPML_Active_Plugin_Provider $active_plugin_provider
-	 */
 	public function set_active_plugin_provider( WPML_Active_Plugin_Provider $active_plugin_provider ) {
 		$this->active_plugin_provider = $active_plugin_provider;
 	}
 
-	/**
-	 * @return WPML_Active_Plugin_Provider
-	 */
 	public function get_active_plugin_provider() {
 		if ( null === $this->active_plugin_provider ) {
 
@@ -170,10 +144,6 @@ class WPML_Config_Update {
 
 					update_option( 'wpml_config_files_arr', $config_files, false );
 
-					/**
-					 * Fetch and save/update the remote XML notices.
-					 * To keep DB entries light, we'll store it in a dedicated option.
-					 */
 					$remote_notices_config_index = Lst::find( Relation::propEq( 'name', self::CONFIG_KEY_GLOBAL_NOTICES ), $global );
 
 					if ( $remote_notices_config_index ) {
@@ -202,12 +172,6 @@ class WPML_Config_Update {
 		return ! $this->has_errors;
 	}
 
-	/**
-	 * @param string $path
-	 * @param string $component_name
-	 *
-	 * @return string|null
-	 */
 	private function fetch_config_file_content( $path, $component_name ) {
 		$response = $this->http->get( ICL_REMOTE_WPML_CONFIG_FILES_INDEX . $path, self::HTTP_REQUEST_ARGS );
 
@@ -220,11 +184,6 @@ class WPML_Config_Update {
 		return null;
 	}
 
-	/**
-	 * @param array|WP_Error $response
-	 *
-	 * @return bool
-	 */
 	private function is_a_valid_remote_response( $response ) {
 		return $response && ! is_wp_error( $response ) && ! $this->is_http_error( $response );
 	}
@@ -238,12 +197,6 @@ class WPML_Config_Update {
 					|| '' === trim( $response['body'] ) );
 	}
 
-	/**
-	 * @param string|array|WP_Error $response
-	 * @param string                $request_type
-	 * @param ?string               $component
-	 * @param array|stdClass|null   $extra_data
-	 */
 	private function log_response( $response, $request_type = 'unknown', $component = null, $extra_data = null ) {
 		if ( ! $this->log ) {
 			return;
@@ -252,7 +205,6 @@ class WPML_Config_Update {
 		$message_type = 'message';
 
 		if ( ! defined( 'JSON_PRETTY_PRINT' ) ) {
-			// Fallback -> Introduced in PHP 5.4.0
 			define( 'JSON_PRETTY_PRINT', 128 );
 		}
 

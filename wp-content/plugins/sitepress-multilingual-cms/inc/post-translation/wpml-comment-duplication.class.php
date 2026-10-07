@@ -57,7 +57,6 @@ class WPML_Comment_Duplication{
 
 			add_action ( 'wp_insert_comment', array( $iclTranslationManagement, 'duplication_insert_comment' ), 100 );
 			update_comment_meta ( $dup_comment_id, '_icl_duplicate_of', $original_cid );
-			// comment meta
 			$meta = $wpdb->get_results (
 				$wpdb->prepare (
 					"SELECT meta_key, meta_value FROM {$wpdb->commentmeta} WHERE comment_id=%d",

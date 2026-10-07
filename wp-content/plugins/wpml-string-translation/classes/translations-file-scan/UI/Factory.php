@@ -17,14 +17,9 @@ class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Deferred_Action_Lo
 	const OPTION_GROUP                        = 'ST-MO';
 	const IGNORE_WPML_VERSION                 = 'ignore-wpml-version';
 
-	/**
-	 * @return callable|null
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public function create() {
 		if (
-			current_user_can( 'manage_options' ) &&
-			function_exists( 'wpml_is_rest_enabled' ) && wpml_is_rest_enabled()
+			current_user_can( 'manage_options' )
 		) {
 			global $sitepress;
 			$wp_api = $sitepress->get_wp_api();
@@ -56,20 +51,11 @@ class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Deferred_Action_Lo
 	}
 
 
-	/**
-	 * @return bool
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function isDismissed() {
 		return make( OptionManager::class )->get( self::OPTION_GROUP, 'pregen-dismissed', false );
 	}
 
-	/**
-	 * @return Collection
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	private function getFilesToImport() {
-		/** @var WPML_ST_Translations_File_Dictionary $file_dictionary */
 		$file_dictionary = make(
 			WPML_ST_Translations_File_Dictionary::class,
 			[ 'storage' => WPML_ST_Translations_File_Dictionary_Storage_Table::class ]
@@ -80,16 +66,10 @@ class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Deferred_Action_Lo
 		return InstalledComponents::filter( wpml_collect( $file_dictionary->get_not_imported_files() ) );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private static function isPreGenerationRequired() {
 		return self::shouldIgnoreWpmlVersion() || self::wpmlStartVersionBeforeMOFlow();
 	}
 
-	/**
-	 * @return bool
-	 */
 	private static function wpmlStartVersionBeforeMOFlow() {
 		return version_compare(
 			get_option( \WPML_Installation::WPML_START_VERSION_KEY, '0.0.0' ),
@@ -98,17 +78,10 @@ class Factory implements \IWPML_Backend_Action_Loader, \IWPML_Deferred_Action_Lo
 		);
 	}
 
-	/**
-	 * @return int
-	 * @throws \WPML\Auryn\InjectionException
-	 */
 	public static function getDomainsToPreGenerateCount() {
 		return self::isPreGenerationRequired() ? make( ProcessFactory::class )->create()->getPagesCount() : 0;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function shouldIgnoreWpmlVersion() {
 		return make( OptionManager::class )->get( self::OPTION_GROUP, self::IGNORE_WPML_VERSION, false );
 	}

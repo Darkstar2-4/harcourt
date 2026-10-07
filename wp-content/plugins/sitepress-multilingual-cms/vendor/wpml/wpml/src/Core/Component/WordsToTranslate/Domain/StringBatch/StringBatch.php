@@ -6,17 +6,9 @@ use WPML\Core\Component\WordsToTranslate\Domain\Item;
 
 class StringBatch extends Item {
 
-  /** @var Item[] */
   private $strings;
 
 
-  /**
-   * StringBatch constructor.
-   *
-   * @param int    $id
-   * @param string $sourceLang
-   * @param Item[] $strings
-   */
   public function __construct(
     $id,
     $sourceLang,
@@ -27,17 +19,11 @@ class StringBatch extends Item {
   }
 
 
-  /** @return Item[] */
   public function getStrings() {
     return $this->strings;
   }
 
 
-  /**
-   * @param ?string $langCode
-   *
-   * @return int
-   */
   public function getWordsToTranslate( $langCode = null ) {
     $wordsToTranslate = 0;
 

@@ -6,16 +6,10 @@ use WPML\StringTranslation\Application\StringCore\Domain\StringItem;
 
 class GettextStringsByUrl {
 
-	/** @var StringItem[] */
 	private $strings;
 
-	/** string $requestUrl */
 	private $requestUrl;
 
-	/**
-	 * @param StringItem[] $strings
-	 * @param string       $requestUrl
-	 */
 	public function __construct(
 		array  $strings,
 		string $requestUrl
@@ -24,9 +18,6 @@ class GettextStringsByUrl {
 		$this->requestUrl = $requestUrl;
 	}
 
-	/**
-	 * @return StringItem[]
-	 */
 	public function getStrings(): array {
 		return $this->strings;
 	}

@@ -10,7 +10,6 @@ use WPML\Legacy\Component\WordsToTranslate\Domain\JobPackageTrait;
 class JobQuery implements JobQueryInterface {
   use JobPackageTrait;
 
-  /** @var array<int, mixed> */
   private $jobPackages = [];
 
 
@@ -28,12 +27,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * @param Item $stringPackage
-   * @param string|null $lang
-   *
-   * @return mixed
-   */
   private function getJobPackage( Item $stringPackage, $lang = null ) {
     $package = isset( $this->jobPackages[ $stringPackage->getId() ] )
       ? $this->jobPackages[ $stringPackage->getId() ]
@@ -44,7 +37,6 @@ class JobQuery implements JobQueryInterface {
       $this->wpmlElementTranslationPackage()
           ->do_action_before_creating_translation_package( $wpmlPackage );
 
-      /** @var array<string, string>|false $package */
       $package = $this->wpmlElementTranslationPackage()
           ->create_translation_package( $wpmlPackage, true ) ?: false;
 
@@ -77,11 +69,6 @@ class JobQuery implements JobQueryInterface {
   }
 
 
-  /**
-   * @param int $id
-   *
-   * @return mixed
-   */
   private function getElement( $id ) {
     $tm = $GLOBALS['iclTranslationManagement'] ?? null;
 

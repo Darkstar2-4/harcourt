@@ -15,32 +15,21 @@ use WPML\Core\Port\Persistence\QueryPrepareInterface;
 
 class Factory implements PreviousStateFactory {
 
-  /** @var DatabaseSchemaInfoInterface */
   private $databaseSchemaInfo;
 
-  /** @var QueryHandlerInterface<int, array{translationId: int, previousState: string}[]> */
   private $queryHandler;
 
-  /** @var QueryPrepareInterface */
   private $queryPrepare;
 
-  /** @var PreviousStateRepositoryInterface */
   private $repository;
 
-  /** @var DataCompressInterface */
   private $dataCompress;
 
-  /** @var \wpdb */
   private $wpdb;
 
-  /** @var MigrationStatusService  */
   private $migrationStatusService;
 
 
-  /**
-   * @param QueryHandlerInterface<int, array{translationId: int, previousState: string}[]> $queryHandler
-   * @param \wpdb $wpdb
-   */
   public function __construct(
     DatabaseSchemaInfoInterface $databaseSchemaInfo,
     QueryHandlerInterface $queryHandler,
@@ -76,10 +65,6 @@ class Factory implements PreviousStateFactory {
   }
 
 
-  /**
-   * @return ProcessorInterface<array{translationId: int, previousState: string}>
-   * @psalm-suppress ImplementedReturnTypeMismatch
-   */
   public function createProcessor(): ProcessorInterface {
     return new Processor(
       $this->repository,

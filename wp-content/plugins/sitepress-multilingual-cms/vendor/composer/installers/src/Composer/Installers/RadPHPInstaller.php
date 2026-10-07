@@ -7,9 +7,6 @@ class RadPHPInstaller extends BaseInstaller
         'bundle' => 'src/{$name}/'
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         $nameParts = explode('/', $vars['name']);

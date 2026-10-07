@@ -19,7 +19,6 @@ use function WPML\FP\spreadArgs;
 
 class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX_Action {
 
-	/** @var string[] */
 	private static $excluded_from_review = [ 'st-batch', 'package' ];
 
 	public function add_hooks() {
@@ -30,11 +29,6 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 		}
 	}
 
-	/**
-	 * It sets "review_status" to "NEEDS_REVIEW" when the job is completed and it should be reviewed.
-	 *
-	 * @return void
-	 */
 	private static function addJobStatusHook() {
 		$applyReviewStatus = function ( $status, $job ) {
 			if (
@@ -54,11 +48,6 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 		     ->then( spreadArgs( $applyReviewStatus ) );
 	}
 
-	/**
-	 * It sets the post status to "draft" when a new post is created and it should be reviewed.
-	 *
-	 * @return void
-	 */
 	private static function addTranslationCompleteHook() {
 		$isHoldToReviewMode = Fns::always( Option::getReviewMode() === 'before-publish' );
 
@@ -73,7 +62,6 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 			Obj::prop( 'post_modified' )
 		] );
 
-		/** @var callable $isNotNull */
 		$isNotNull = Logic::isNotNull();
 
 		$setPostStatus = pipe(
@@ -91,13 +79,6 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 		     ->then( spreadArgs( $setPostStatus ) );
 	}
 
-	/**
-	 * It ensures that a draft post remains as draft after edition.
-     *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-8512
-	 *
-	 * @return void
-	 */
 	private static function addTranslationPreSaveHook() {
 		$keepDraftPostsDraftIfNeedsReview = function ( $postArr, $job ) {
 			if (
@@ -114,11 +95,6 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 		     ->then( spreadArgs( $keepDraftPostsDraftIfNeedsReview ) );
 	}
 
-	/**
-	 * @param $job
-	 *
-	 * @return bool
-	 */
 	private static function shouldBeReviewed( $job ) {
 		$isAutomatic = Obj::prop( 'automatic', $job );
 		if ( ! $isAutomatic ) {
@@ -146,26 +122,13 @@ class ApplyJob implements \IWPML_Backend_Action, \IWPML_REST_Action, \IWPML_AJAX
 			return true;
 		}
 
-		// Only set to review if it's a new job (not older than 60 seconds) and not
-		// a retranslation like it happens for glossary updates or formality changes.
-		// A 60 seconds timeframe is needed as the job is marked as completed before
-		// this shouldBeReviewed function is called.
 		return time() - strtotime( $job->completed_date ) < 60;
 
 	}
 
-	/**
-	 * @param object $job
-	 *
-	 * @return bool
-	 */
 	private static function excludeElementTypes( $job ): bool {
-		/** @var string $elementType e.g "post_post", "post_page", "post_attachment", "post_nav_menu_item", "package_gravityforms", "st-batch_strings" */
 		$elementType =Obj::prop( 'original_post_type', $job );
 
-		/**
-		 * We exclude packages here because they are handled in a separate class: PackageJob.
-		 */
 		if ( Str::startsWith( 'st-batch', $elementType ) || Str::startsWith( 'package', $elementType ) ) {
 			return true;
 		}

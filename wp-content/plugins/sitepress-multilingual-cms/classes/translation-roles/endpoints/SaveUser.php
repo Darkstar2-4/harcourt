@@ -18,11 +18,6 @@ use function WPML\FP\partial;
 
 abstract class SaveUser implements IHandler {
 
-	/**
-	 * @param Collection $data
-	 *
-	 * @return Left|Right
-	 */
 	protected static function getUser( Collection $data ) {
 		$createNew = partial( [ self::class, 'createNewWpUser' ],  $data );
 
@@ -31,11 +26,6 @@ abstract class SaveUser implements IHandler {
 		             ->bichain( $createNew, Either::of() );
 	}
 
-	/**
-	 * @param Collection $data
-	 *
-	 * @return Left|Right
-	 */
 	public static function createNewWpUser( Collection $data ) {
 		$get       = Obj::prop( Fns::__, $data->get( 'user' ) );
 		$firstName = $get( 'first' );

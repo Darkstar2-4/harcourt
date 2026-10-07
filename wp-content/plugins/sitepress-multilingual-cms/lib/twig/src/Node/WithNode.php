@@ -11,14 +11,9 @@
 namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
-/**
- * Represents a nested "with" scope.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class WithNode extends \WPML\Core\Twig\Node\Node
 {
-    public function __construct(\WPML\Core\Twig\Node\Node $body, \WPML\Core\Twig\Node\Node $variables = null, $only = \false, $lineno, $tag = null)
+    public function __construct(\WPML\Core\Twig\Node\Node $body, ?\WPML\Core\Twig\Node\Node $variables = null, $only = \false, $lineno, $tag = null)
     {
         $nodes = ['body' => $body];
         if (null !== $variables) {

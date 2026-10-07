@@ -12,13 +12,6 @@ abstract class BaseInstaller
     protected $package;
     protected $io;
 
-    /**
-     * Initializes base installer.
-     *
-     * @param PackageInterface $package
-     * @param Composer         $composer
-     * @param IOInterface      $io
-     */
     public function __construct(PackageInterface $package = null, Composer $composer = null, IOInterface $io = null)
     {
         $this->composer = $composer;
@@ -26,13 +19,6 @@ abstract class BaseInstaller
         $this->io = $io;
     }
 
-    /**
-     * Return the install path based on package type.
-     *
-     * @param  PackageInterface $package
-     * @param  string           $frameworkType
-     * @return string
-     */
     public function getInstallPath(PackageInterface $package, $frameworkType = '')
     {
         $type = $this->package->getType();
@@ -71,34 +57,16 @@ abstract class BaseInstaller
         return $this->templatePath($locations[$packageType], $availableVars);
     }
 
-    /**
-     * For an installer to override to modify the vars per installer.
-     *
-     * @param  array<string, string> $vars This will normally receive array{name: string, vendor: string, type: string}
-     * @return array<string, string>
-     */
     public function inflectPackageVars($vars)
     {
         return $vars;
     }
 
-    /**
-     * Gets the installer's locations
-     *
-     * @return array<string, string> map of package types => install path
-     */
     public function getLocations()
     {
         return $this->locations;
     }
 
-    /**
-     * Replace vars in a path
-     *
-     * @param  string                $path
-     * @param  array<string, string> $vars
-     * @return string
-     */
     protected function templatePath($path, array $vars = array())
     {
         if (strpos($path, '{') !== false) {
@@ -114,15 +82,6 @@ abstract class BaseInstaller
         return $path;
     }
 
-    /**
-     * Search through a passed paths array for a custom install path.
-     *
-     * @param  array  $paths
-     * @param  string $name
-     * @param  string $type
-     * @param  string $vendor = NULL
-     * @return string|false
-     */
     protected function mapCustomInstallPaths(array $paths, $name, $type, $vendor = NULL)
     {
         foreach ($paths as $path => $names) {

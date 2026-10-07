@@ -11,13 +11,10 @@ class QueryBuilderResolver {
 
 	const MAX_LANGUAGES_FOR_MULTI_JOIN_STRATEGY = 29;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var ManyLanguagesFactory */
 	private $manyLanguagesFactory;
 
-	/** @var MultiJoinFactory */
 	private $multiJoinFactory;
 
 	public function __construct(

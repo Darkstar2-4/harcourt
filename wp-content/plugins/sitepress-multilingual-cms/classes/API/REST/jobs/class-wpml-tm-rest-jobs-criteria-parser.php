@@ -8,11 +8,6 @@ use WPML\LIB\WP\User;
 use WPML\TM\API\Translators;
 
 class WPML_TM_Rest_Jobs_Criteria_Parser {
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WPML_TM_Jobs_Search_Params
-	 */
 	public function build_criteria( WP_REST_Request $request ) {
 		$params = new WPML_TM_Jobs_Search_Params();
 
@@ -24,12 +19,6 @@ class WPML_TM_Rest_Jobs_Criteria_Parser {
 		return $params;
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WPML_TM_Jobs_Search_Params
-	 */
 	private function set_scope( WPML_TM_Jobs_Search_Params $params, WP_REST_Request $request ) {
 		$scope = $request->get_param( 'scope' );
 		if ( WPML_TM_Jobs_Search_Params::is_valid_scope( $scope ) ) {
@@ -39,12 +28,6 @@ class WPML_TM_Rest_Jobs_Criteria_Parser {
 		return $params;
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WPML_TM_Jobs_Search_Params
-	 */
 	private function set_pagination( WPML_TM_Jobs_Search_Params $params, WP_REST_Request $request ) {
 		$limit = (int) $request->get_param( 'limit' );
 		if ( $limit > 0 ) {
@@ -110,12 +93,6 @@ class WPML_TM_Rest_Jobs_Criteria_Parser {
 		if ( $request->get_param( 'pageName' ) === \WPML_TM_Jobs_List_Script_Data::TRANSLATION_QUEUE_PAGE ) {
 			global $wpdb;
 
-			/**
-			 * On Translation Queue page, in general, you should only see the jobs assigned to you or unassigned.
-			 * Although, we want to make an exception for automatic jobs which require review. Those jobs shall not have assigned translator,
-			 * but due to some old bugs, a user can have corrupted data in the database. We want him to be able to see them even if due to the bug,
-			 * they are assigned to somebody else.
-			 */
 			$translatorCond = "(
 				(translate_job.translator_id = %d OR translate_job.translator_id = 0 OR translate_job.translator_id IS NULL) 
 				OR (automatic = 1 OR review_status = 'NEEDS_REVIEW') 
@@ -135,9 +112,6 @@ class WPML_TM_Rest_Jobs_Criteria_Parser {
 		return $params;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function buildLanguagePairsCriteria() {
 		$translator = Translators::getCurrent();
 
@@ -173,11 +147,6 @@ class WPML_TM_Rest_Jobs_Criteria_Parser {
 		return $params;
 	}
 
-	/**
-	 * @param array $request_param
-	 *
-	 * @return WPML_TM_Jobs_Sorting_Param[]
-	 */
 	private function build_sorting_params( array $request_param ) {
 		return \wpml_collect( $request_param )->map(
 			function ( $direction, $column ) {

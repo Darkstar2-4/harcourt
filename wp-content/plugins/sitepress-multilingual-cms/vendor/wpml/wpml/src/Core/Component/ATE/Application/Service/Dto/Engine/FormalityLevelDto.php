@@ -7,7 +7,6 @@ class FormalityLevelDto {
   const LEVEL_LESS = 'less';
   const LEVEL_DEFAULT = 'default';
 
-  /** @var 'more'|'less'|'default' */
   private $value;
 
 
@@ -15,14 +14,10 @@ class FormalityLevelDto {
     if ( ! self::isValid( $value ) ) {
       $value = self::LEVEL_DEFAULT;
     }
-    /** @var 'more'|'less'|'default' $value */
     $this->value = $value;
   }
 
 
-  /**
-   * @return 'more'|'less'|'default'
-   */
   public function getValue(): string {
     return $this->value;
   }

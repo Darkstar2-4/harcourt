@@ -1,10 +1,5 @@
 <?php
 
-/**
- * Class WPML_Lang_Domains_Box
- *
- * Displays the table holding the language domains on languages.php
- */
 class WPML_Lang_Domains_Box extends WPML_SP_User {
 
 	public function render() {
@@ -113,13 +108,6 @@ class WPML_Lang_Domains_Box extends WPML_SP_User {
 		return ob_get_clean();
 	}
 
-	/**
-	 * @param string   $code
-	 * @param string   $default_home
-	 * @param string[] $language_domains
-	 *
-	 * @return string
-	 */
 	private function get_language_domain( $code, $default_home, $language_domains ) {
 		$home_schema = wpml_parse_url( $default_home, PHP_URL_SCHEME ) . '://';
 		$home_path   = wpml_parse_url( $default_home, PHP_URL_PATH );

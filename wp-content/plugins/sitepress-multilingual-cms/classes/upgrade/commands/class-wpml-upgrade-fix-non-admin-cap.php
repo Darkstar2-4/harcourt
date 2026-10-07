@@ -4,9 +4,6 @@ class WPML_Upgrade_Fix_Non_Admin_With_Admin_Cap implements IWPML_Upgrade_Command
 
 	private $results = array();
 
-	/**
-	 * @return bool|void
-	 */
 	public function run_admin() {
 		$user = new WP_User( 'admin' );
 
@@ -20,23 +17,14 @@ class WPML_Upgrade_Fix_Non_Admin_With_Admin_Cap implements IWPML_Upgrade_Command
 		return true;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_ajax() {
 		return false;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_frontend() {
 		return false;
 	}
 
-	/**
-	 * @return null
-	 */
 	public function get_results() {
 		return $this->results;
 	}

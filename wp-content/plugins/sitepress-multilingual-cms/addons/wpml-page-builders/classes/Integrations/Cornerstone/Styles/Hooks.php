@@ -12,15 +12,8 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 	const META_KEY_OLD = '_cs_generated_styles';
 	const META_KEY_V6 = '_cs_generated_tss';
 
-	/** @var callable $shouldInvalidateStyle */
 	private $shouldInvalidateStyles;
 
-	/**
-	 * Hooks constructor.
-	 *
-	 * @param \WPML_PB_Last_Translation_Edit_Mode $lastEditMode
-	 * @param \WPML_Cornerstone_Data_Settings     $dataSettings
-	 */
 	public function __construct(
 		\WPML_PB_Last_Translation_Edit_Mode $lastEditMode,
 		\WPML_Cornerstone_Data_Settings $dataSettings
@@ -33,9 +26,6 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		add_action( 'save_post', [ $this, 'invalidateStylesInTranslation' ] );
 	}
 
-	/**
-	 * @param int $postId
-	 */
 	public function invalidateStylesInTranslation( $postId ) {
 		Maybe::of( $postId )
 			->filter( $this->shouldInvalidateStyles )

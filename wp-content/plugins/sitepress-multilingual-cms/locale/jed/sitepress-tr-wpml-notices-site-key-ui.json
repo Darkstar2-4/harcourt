@@ -1,0 +1,42 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Get a key for this site": [
+            "Bu site için bir anahtar alın"
+         ],
+         "Site key:": [
+            "Site anahtarı:"
+         ],
+         "Enter your site key here": [
+            "Site anahtarınızı buraya girin"
+         ],
+         "Registering...": [
+            "Kaydediliyor..."
+         ],
+         "Register": [
+            "Kaydol"
+         ],
+         "A New Site Key Is Required": [
+            "Yeni bir site anahtarı gerekiyor"
+         ],
+         "To continue using WPML features like automatic translation and plugin updates, please register your site again. Don’t worry, your existing content and translations are safe.": [
+            "Otomatik çeviri ve eklenti güncellemeleri gibi WPML özelliklerini kullanmaya devam etmek için lütfen sitenizi tekrar kaydedin. Endişelenmeyin, mevcut içeriğiniz ve çevirileriniz güvende."
+         ],
+         "Site key registered successfully!": [
+            "Site anahtarı başarıyla kaydedildi!"
+         ],
+         "Page will reload in %d seconds...": [
+            "Sayfa %d saniye içinde yeniden yüklenecek..."
+         ],
+         "Registration failed. Please try again.": [
+            "Kayıt başarısız oldu. Lütfen tekrar deneyin."
+         ]
+      }
+   }
+}

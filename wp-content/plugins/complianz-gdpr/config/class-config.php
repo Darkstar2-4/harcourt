@@ -101,13 +101,14 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 		 */
 		private $thirdparty_socialmedia = array(
 			'facebook'  => 'Facebook',
-			'twitter'   => 'Twitter',
+			'twitter'   => 'X (Formerly Twitter)',
 			'linkedin'  => 'LinkedIn',
 			'whatsapp'  => 'WhatsApp',
 			'instagram' => 'Instagram',
 			'tiktok'    => 'TikTok',
 			'disqus'    => 'Disqus',
 			'pinterest' => 'Pinterest',
+			'snapchat'  => 'Snapchat',
 		);
 
 		/**
@@ -133,13 +134,19 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				'platform.linkedin.com',
 				'addthis_widget.js',
 				'linkedin.com/embed/feed',
+				'linkedin.com',
+				'snap.licdn.com',
+				'insight.min.js',
 			),
 			'twitter'   => array(
 				'super-socializer',
 				'sumoSiteId',
 				'addthis_widget.js',
 				'platform.twitter.com',
+				'platform.x.com',
 				'twitter-widgets.js',
+				'ads-twitter.com',
+				'uwt.js',
 			),
 			'facebook'  => array(
 				'fbq',
@@ -163,6 +170,7 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				'instawidget.net/js/instawidget.js',
 				'instagram.com',
 			),
+			'snapchat'  => array( 'snapchat.com' ),
 		);
 
 		/**
@@ -849,13 +857,19 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				'col'     => 'Colorado (CPA)',
 				'con'     => 'Connecticut (CTDPA)',
 				'del'     => 'Delaware (PDPA)',
+				'ind'     => 'Indiana (ICDPA)',
 				'iow'     => 'Iowa (CDPA)',
+				'ken'     => 'Kentucky (KCDPA)',
+				'mar'     => 'Maryland (MODPA)',
+				'min'     => 'Minnesota (MCDPA)',
 				'mon'     => 'Montana (MCDPA)',
 				'neb'     => 'Nebraska (DPA)',
 				'nev'     => 'Nevada (NRS 603A)',
 				'new_ham' => 'New Hampshire (DPA)',
 				'new_jer' => 'New Jersey (DPL)',
 				'ore'     => 'Oregon (OCPA)',
+				'rho'     => 'Rhode Island (DTPPA)',
+				'ten'     => 'Tennessee (TIPA)',
 				'tex'     => 'Texas (TDPSA)',
 				'uta'     => 'Utah (UCPA)',
 				'vir'     => 'Virginia (CDPA)',
@@ -1198,7 +1212,7 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				'6' => 'It is necessary to protect the life or physical safety of a person',
 			);
 
-			if ( cmplz_has_region( 'br' ) && ! cmplz_multiple_regions() ) {
+			if ( cmplz_has_region( 'br' ) ) {
 				$brazil_specific_bases = array(
 					'7'  => 'It is necessary to carry out studies by a research body, ensuring, whenever possible, the anonymization of personal data',
 					'8'  => 'It is necessary for the regular exercise of rights in judicial, administrative or arbitration proceedings',
@@ -1206,7 +1220,7 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 					'10' => 'It is necessary for credit protection',
 				);
 
-				$this->lawful_bases = array_merge( $base_lawful_bases, $brazil_specific_bases );
+				$this->lawful_bases = $base_lawful_bases + $brazil_specific_bases;
 			} else {
 				$this->lawful_bases = $base_lawful_bases;
 			}
@@ -1233,8 +1247,9 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				'soundcloud'       => 'SoundCloud',
 				'spotify'          => 'Spotify',
 				'ted'              => 'Ted',
-				'twitter'          => 'Twitter',
+				'twitter'          => 'X (Formerly Twitter)',
 				'tiktok'           => 'Tik Tok',
+				'snapchat'         => 'Snapchat',
 			);
 			$this->placeholders = $placeholders;
 		}
@@ -1423,7 +1438,9 @@ if ( ! class_exists( 'cmplz_config' ) ) {
 				),
 				'us'  => array(
 					'cookie-statement'  => array(
-						'title'             => 'Opt-out preferences',
+						// Title reflects the consent model: opt-in (California opt-in enabled) reads as a
+						// Cookie Policy; the default US opt-out model keeps the DNSMPI "Opt-out preferences" title.
+						'title'             => cmplz_get_option( 'us_california_optin' ) === 'yes' ? 'Cookie Policy (US)' : 'Opt-out preferences',
 						'public'            => true,
 						'document_elements' => '',
 						'condition'         => array(

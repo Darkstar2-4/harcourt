@@ -6,7 +6,6 @@ use WPML\StringTranslation\Application\StringGettext\Service\GettextStringsServi
 
 class StringsService {
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct(

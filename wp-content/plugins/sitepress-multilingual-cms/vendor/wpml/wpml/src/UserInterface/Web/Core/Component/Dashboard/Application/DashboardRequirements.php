@@ -9,10 +9,8 @@ class DashboardRequirements implements PageRequirementsInterface {
 
   const SETUP_OPTIONS = 'WPML(setup)';
 
-  /** @var ?bool */
   private $tmAllowed;
 
-  /** @var OptionsInterface */
   private $options;
 
 

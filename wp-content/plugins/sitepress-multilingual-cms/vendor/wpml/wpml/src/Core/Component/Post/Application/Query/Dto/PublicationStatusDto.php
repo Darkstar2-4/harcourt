@@ -5,17 +5,11 @@ namespace WPML\Core\Component\Post\Application\Query\Dto;
 use WPML\PHP\ConstructableFromArrayInterface;
 use WPML\PHP\ConstructableFromArrayTrait;
 
-/**
- * @implements ConstructableFromArrayInterface<PublicationStatusDto>
- */
 final class PublicationStatusDto implements ConstructableFromArrayInterface {
-  /** @use ConstructableFromArrayTrait<PublicationStatusDto> */
   use ConstructableFromArrayTrait;
 
-  /** @var string */
   private $id;
 
-  /** @var string */
   private $label;
 
 
@@ -35,9 +29,6 @@ final class PublicationStatusDto implements ConstructableFromArrayInterface {
   }
 
 
-  /**
-   * @return array{ id: string, label: string }
-   */
   public function toArray() {
     return [
       'id' => $this->id,

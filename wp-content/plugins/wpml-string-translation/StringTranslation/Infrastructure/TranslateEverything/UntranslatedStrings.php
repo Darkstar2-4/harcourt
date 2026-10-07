@@ -15,26 +15,15 @@ use WPML\TM\API\ATE\LanguageMappings;
 use WPML\TM\ATE\TranslateEverything\UntranslatedElementsInterface;
 use WPML\TM\AutomaticTranslation\Actions\Actions;
 
-/**
- * It handles sending strings to translation in Translate Everything process.
- *
- * !Important note: we include only English strings in the Translate Everything process.
- */
 class UntranslatedStrings implements UntranslatedElementsInterface {
 
 	const ENGLISH_SOURCE_LANGUAGE = 'en';
 
-	/**
-	 * @var \wpdb
-	 */
 	private $wpdb;
 
-	/**
-	 * @var StringBatchRepositoryInterface
-	 */
 	private $stringBatchRepository;
 
-	public function __construct( StringBatchRepositoryInterface $stringBatchRepository, \wpdb $wpdb = null ) {
+	public function __construct( StringBatchRepositoryInterface $stringBatchRepository, ?\wpdb $wpdb = null ) {
 		$this->stringBatchRepository = $stringBatchRepository;
 
 		if ( ! $wpdb ) {
@@ -43,12 +32,6 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @return {
-	 *   0: string,
-	 *   1: string[]
-	 * } 0: type, 1: languageCodes
-	 */
 	public function getTypeWithLanguagesToProcess() {
 		$completed             = $this->getCompleted();
 		$notCompletedLanguages = array_diff( $this->getEligibleLanguageCodes(), $completed );
@@ -56,24 +39,11 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 		return [ 'string', $notCompletedLanguages ];
 	}
 
-	/**
-	 * @param string[] $languages Language codes
-	 * @param string   $type
-	 * @param int      $queueSize
-	 *
-	 * @return {
-	 *   0: int
-	 *   1: string
-	 * }[] For example [ [element_id1, language_code1], [element_id1, language_code2], ... ]
-	 */
 	public function getElementsToProcess( $languages, $type, $queueSize ) {
-		$languageSelect    = array_map(
-			function ( $languageCode ) {
-				return "SELECT '{$languageCode}' AS code";
-			},
-			$languages
+		$languageSelect    = implode(
+			' UNION ALL ',
+			array_fill( 0, count( $languages ), 'SELECT %s AS code' )
 		);
-		$languageSelect    = implode( ' UNION ALL ', $languageSelect );
 		$languageCrossJoin = "
 			CROSS JOIN (
 				$languageSelect	
@@ -98,13 +68,16 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 			LIMIT %d
 		";
 
-		$sql = $this->wpdb->prepare( 
-			$sql, 
-			[ 
-				ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_FRONTEND, 
-				self::ENGLISH_SOURCE_LANGUAGE,
-				$queueSize 
-			] 
+		$sql = $this->wpdb->prepare(
+			$sql,
+			array_merge(
+				array_values( $languages ),
+				[
+					ICL_STRING_TRANSLATION_STRING_TRACKING_TYPE_FRONTEND,
+					self::ENGLISH_SOURCE_LANGUAGE,
+					$queueSize,
+				]
+			)
 		);
 
 		$rowset = $this->wpdb->get_results( $sql, ARRAY_N );
@@ -117,20 +90,7 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 		);
 	}
 
-	/**
-	 * @param Actions $actions
-	 * @param array   $elements [ [element_id1, language_code1], [element_id1, language_code2], ... ]
-	 * @param string  $type (not used for strings)
-	 *
-	 * @return {
-	 *  elementId: int,
-	 *  lang: string,
-	 *  elementType: string,
-	 *  jobId: int,
-	 * }[] For example [[elementId: 14, lang: fr, elementType: post, jobId: 123], ...]
-	 */
 	public function createTranslationJobs( Actions $actions, array $elements, $type ) {
-		/** Like: {fr: [1,2,3], 'de': [5,6],...} */
 		$stringsGroupedByLanguages = \wpml_collect( $elements )
 			->groupBy( 1 )
 			->map( Lst::pluck( 0 ) )
@@ -184,20 +144,16 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 
 		$targetLanguages = $this->maybeAppendDefaultLanguage( $languageMapper, $targetLanguages );
 
-		// filter out source language as it's the hardcoded source language
 		$targetLanguages = $this->removeEnglishFromTargetLanguages( $targetLanguages );
 
 		return $targetLanguages;
 	}
 
-	/**
-	 * @return string[]
-	 */
 	private function getTargetLanguages(): array {
 		$targetLanguages = Languages::getSecondaryCodes();
 
 		if ( Languages::getDefaultCode() !== self::ENGLISH_SOURCE_LANGUAGE ) {
-			$primary   = [ Languages::getDefaultCode() ];
+			$primary         = [ Languages::getDefaultCode() ];
 			$targetLanguages = array_merge( $targetLanguages, $primary );
 		}
 
@@ -206,12 +162,6 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 		return $targetLanguages;
 	}
 
-	/**
-	 * @param string $type It's irrelevant for strings
-	 * @param array  $languages
-	 *
-	 * @return void
-	 */
 	public function markTypeAsCompleted( string $type ) {
 		$this->setCompleted( $this->getTargetLanguages() );
 	}
@@ -236,41 +186,25 @@ class UntranslatedStrings implements UntranslatedElementsInterface {
 		$this->setCompleted( $completed );
 	}
 
-	/**
-	 * @return string[] For example ['fr', 'de']
-	 */
 	private function getCompleted() {
 		return Option::getTranslateEverythingCompletedStrings();
 	}
 
-	/**
-	 * @param string[] $completed For example ['fr', 'de']
-	 *
-	 * @return void
-	 */
 	private function setCompleted( array $completed ) {
 		Option::setTranslateEverythingCompletedStrings( $completed );
 	}
 
-	/**
-	 * @param array $targetLanguages
-	 *
-	 * @return array
-	 */
 	private function removeEnglishFromTargetLanguages( array $targetLanguages ): array {
-		$targetLanguages = array_filter( $targetLanguages, function ( $languageCode ) {
-			return $languageCode !== self::ENGLISH_SOURCE_LANGUAGE;
-		} );
+		$targetLanguages = array_filter(
+			$targetLanguages,
+			function ( $languageCode ) {
+				return $languageCode !== self::ENGLISH_SOURCE_LANGUAGE;
+			}
+		);
 
 		return $targetLanguages;
 	}
 
-	/**
-	 * @param string $languageMapper
-	 * @param array $targetLanguages
-	 *
-	 * @return array
-	 */
 	private function maybeAppendDefaultLanguage( string $languageMapper, array $targetLanguages ): array {
 		if ( Languages::getDefaultCode() !== self::ENGLISH_SOURCE_LANGUAGE && $languageMapper::doesDefaultLanguageSupportAutomaticTranslations() ) {
 			$targetLanguages[] = Languages::getDefaultCode();

@@ -9,10 +9,6 @@ use function WPML\Container\make;
 
 
 function wpml_load_request_handler( $is_admin, $active_language_codes, $default_language ) {
-	/**
-	 * @var WPML_Request $wpml_request_handler
-	 * @var WPML_URL_Converter $wpml_url_converter
-	 */
 	global $wpml_request_handler, $wpml_url_converter;
 
 	$cookieLanguage       = new CookieLanguage( new WPML_Cookie(), $default_language );

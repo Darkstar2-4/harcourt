@@ -5,7 +5,6 @@ function wpml_st_pos_scan_store_results( $string, $domain, $context, $file, $lin
 	static $strings = array();
 
 	$key = md5( $domain . $context . $string );
-	//avoid duplicates
 	if ( isset( $strings[ $key ] ) ) {
 		return false;
 	}
@@ -19,7 +18,6 @@ function wpml_st_pos_scan_store_results( $string, $domain, $context, $file, $lin
 		$__wpml_st_po_file_content .= '# ' . @trim( $file[ $line ] ) . PHP_EOL;
 	}
 
-	//$__wpml_st_po_file_content .= 'msgid "'.str_replace('"', '\"', $string).'"' . PHP_EOL;
 	$__wpml_st_po_file_content .= PHP_EOL;
 	if ( $context ) {
 		$__wpml_st_po_file_content .= 'msgctxt "' . addslashes( $context ) . '"' . PHP_EOL;

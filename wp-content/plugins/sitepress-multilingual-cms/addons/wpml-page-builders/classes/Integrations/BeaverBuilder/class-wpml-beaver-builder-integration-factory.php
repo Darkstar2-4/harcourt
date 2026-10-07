@@ -17,7 +17,6 @@ class WPML_Beaver_Builder_Integration_Factory {
 				\WPML\PB\BeaverBuilder\Hooks\Cache::class,
 				\WPML\PB\BeaverBuilder\Hooks\TranslationGuiLabels::class,
 
-				// BeaverThemer.
 				\WPML\PB\BeaverBuilder\BeaverThemer\HooksFactory::class,
 			)
 		);

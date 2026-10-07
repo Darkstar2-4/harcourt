@@ -19,13 +19,10 @@ use WPML\StringTranslation\Infrastructure\StringGettext\Repository\FrontendQueue
 
 class Factory {
 
-	/** @var Injector */
 	private $injector;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var array */
 	private $instances = [];
 
 	public function __construct(

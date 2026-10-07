@@ -2,24 +2,12 @@
 
 namespace WPML\PB;
 
-/**
- * We had a first project of WPML Page Builders abandoned
- * some years before (last version v1.1.3), when we included the code inside ST,
- * and then in Core as composer package.
- *
- * This old plugin contains outdated code and we cannot afford
- * to have it running in parallel while the new version is also
- * embedded in Core.
- */
 class OldPlugin {
 
-	/**
-	 * @return bool
-	 */
 	public static function handle() {
 		if (
 			defined( 'WPML_PAGE_BUILDERS_VERSION' )
-			&& version_compare( constant( 'WPML_PAGE_BUILDERS_VERSION' ), '2', '<' ) // @phpstan-ignore-line
+			&& version_compare( constant( 'WPML_PAGE_BUILDERS_VERSION' ), '2', '<' )
 		) {
 			deactivate_plugins( 'wpml-page-builders/plugin.php' );
 			self::addNotice();

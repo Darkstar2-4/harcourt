@@ -2,7 +2,6 @@
 
 class WPML_Absolute_Url_Persisted_Filters implements IWPML_Action {
 
-	/** @var WPML_Absolute_Url_Persisted $url_persisted */
 	private $url_persisted;
 
 	public function __construct( WPML_Absolute_Url_Persisted $url_persisted ) {
@@ -19,11 +18,6 @@ class WPML_Absolute_Url_Persisted_Filters implements IWPML_Action {
 		add_filter( 'rewrite_rules_array', [ $this, 'reset' ] );
 	}
 
-	/**
-	 * @param mixed $data
-	 *
-	 * @return array
-	 */
 	public function reset( $data = null ) {
 		$this->url_persisted->reset();
 		return $data;

@@ -2,9 +2,6 @@
 class WPML_TranslationProxy_Com_Log {
 	private static $wrapped_class;
 
-	/**
-	 * @return WPML_TranslationProxy_Communication_Log
-	 */
 	private static function get_wrapped_class_instance() {
 		if ( null === self::$wrapped_class ) {
 			global $sitepress;
@@ -46,20 +43,10 @@ class WPML_TranslationProxy_Com_Log {
 		return self::get_wrapped_class_instance()->is_logging_enabled();
 	}
 
-	/**
-	 * @param string|array|stdClass $params
-	 *
-	 * @return array|stdClass
-	 */
 	public static function sanitize_data( $params ) {
 		return self::get_wrapped_class_instance()->sanitize_data( $params );
 	}
 
-	/**
-	 * @param $url
-	 *
-	 * @return mixed
-	 */
 	public static function sanitize_url( $url ) {
 		return self::get_wrapped_class_instance()->sanitize_url( $url );
 	}

@@ -1,30 +1,13 @@
 <?php
 
-/**
- * Use this class as parent class for translatable elements in WPML,
- * to have a common approach for retrieving and setting translation information.
- *
- * @author OnTheGo Systems
- */
 abstract class WPML_Translation_Element extends WPML_SP_User {
-	/** @var int */
 	protected $id;
 
-	/** @var stdClass */
 	private $languages_details;
-	/** @var array */
 	private $element_translations;
-	/** @var WPML_WP_Cache */
 	protected $wpml_cache;
 
-	/**
-	 * WPML_Translation_Element constructor.
-	 *
-	 * @param int           $id
-	 * @param SitePress     $sitepress
-	 * @param WPML_WP_Cache $wpml_cache
-	 */
-	public function __construct( $id, SitePress $sitepress, WPML_WP_Cache $wpml_cache = null ) {
+	public function __construct( $id, SitePress $sitepress, ?WPML_WP_Cache $wpml_cache = null ) {
 		if ( ! is_numeric( $id ) || $id <= 0 ) {
 			throw new InvalidArgumentException( 'Argument ID must be numeric and greater than 0.' );
 		}
@@ -37,9 +20,6 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $this->id;
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function get_source_language_code() {
 		$source_language_code = null;
 		if ( $this->get_language_details() ) {
@@ -49,10 +29,6 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $source_language_code;
 	}
 
-	/**
-	 * @return stdClass
-	 * @throws \UnexpectedValueException
-	 */
 	protected function get_language_details() {
 		$this->init_language_details();
 		return $this->languages_details;
@@ -64,22 +40,10 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 
 	abstract function get_wpml_element_type();
 
-	/**
-	 * @param bool $skip_cache
-	 *
-	 * @return array
-	 */
 	private function get_element_translations( $skip_cache = false ) {
 		return $this->sitepress->get_element_translations( $this->get_trid(), $this->get_wpml_element_type(), false, false, $skip_cache );
 	}
 
-	/**
-	 * @param string $language_code
-	 * @param bool   $skip_cache
-	 *
-	 * @return WPML_Translation_Element|null
-	 * @throws \InvalidArgumentException
-	 */
 	public function get_translation( $language_code, $skip_cache = false ) {
 		if ( ! $language_code ) {
 			throw new InvalidArgumentException( 'Argument $language_code must be a non empty string.' );
@@ -94,18 +58,10 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $translation;
 	}
 
-	/**
-	 * @return WPML_Translation_Element[]
-	 */
 	public function get_translations() {
 		return $this->maybe_init_translations();
 	}
 
-	/**
-	 * @param bool $skip_cache
-	 *
-	 * @return WPML_Translation_Element[]
-	 */
 	public function maybe_init_translations( $skip_cache = false ) {
 		if ( ! $this->element_translations ) {
 			$this->element_translations = array();
@@ -126,9 +82,6 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $this->element_translations;
 	}
 
-	/**
-	 * @return false|int
-	 */
 	public function get_trid() {
 		$trid = false;
 		if ( $this->get_language_details() ) {
@@ -138,9 +91,6 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $trid;
 	}
 
-	/**
-	 * @return string|WP_Error
-	 */
 	function get_wp_element_type() {
 		$element = $this->get_wp_object();
 		if ( is_wp_error( $element ) ) {
@@ -153,28 +103,12 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $this->get_type( $element );
 	}
 
-	/**
-	 * @return mixed|WP_Error
-	 */
 	abstract function get_wp_object();
 
-	/**
-	 * @param mixed $element
-	 *
-	 * @return string
-	 */
 	abstract function get_type( $element = null );
 
-	/**
-	 * @param null|object $element_data null, or a standard object containing at least the `translation_id`, `language_code`, `element_id`, `source_language_code`, `element_type`, and `original` properties.
-	 *
-	 * @return WPML_Translation_Element
-	 */
 	abstract function get_new_instance( $element_data );
 
-	/**
-	 * @return null|WPML_Translation_Element
-	 */
 	public function get_source_element() {
 		$this->maybe_init_translations();
 
@@ -187,18 +121,10 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		return $source_element;
 	}
 
-	/**
-	 * Determines whether the current element language is the root source element.
-	 *
-	 * @return bool
-	 */
 	public function is_root_source()  {
 		return null !== $this->get_source_language_code() && $this->get_source_language_code() === $this->get_language_code();
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function get_language_code() {
 		$language_code = null;
 		if ( $this->get_language_details() ) {
@@ -220,7 +146,6 @@ abstract class WPML_Translation_Element extends WPML_SP_User {
 		$this->wpml_cache->flush_group_cache();
 	}
 
-	/** @return bool */
 	public function is_in_default_language() {
 		return $this->get_language_code() === $this->sitepress->get_default_language();
 	}

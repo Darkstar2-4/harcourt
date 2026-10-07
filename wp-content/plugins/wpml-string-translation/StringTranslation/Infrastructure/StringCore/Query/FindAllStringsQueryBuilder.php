@@ -8,7 +8,6 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 
 class FindAllStringsQueryBuilder extends QueryBuilder {
 
-	/** @var SettingsRepository */
 	protected $settingsRepository;
 
 	public function __construct(
@@ -17,14 +16,6 @@ class FindAllStringsQueryBuilder extends QueryBuilder {
 		$this->settingsRepository = $settingsRepository;
 	}
 
-	/**
-	 * @codingStandardsIgnoreStart
-	 *
-	 * @param SearchCriteria $criteria
-	 * @param SearchSelectCriteria $selectCriteria
-	 *
-	 * @return string
-	 */
 	public function build( SearchCriteria $criteria, SearchSelectCriteria $selectCriteria ) {
 		$sql = "
             SELECT {$this->getSelectColumns( $selectCriteria )}

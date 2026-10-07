@@ -1,22 +1,4 @@
 <?php
-// This is sample of data that mapper returns formatted data same as it.
-//		return Either::of( [
-//			'translators'   => [
-//               [
-//					'user' => [
-//						'id'            => 1,
-//						'first'   		=> 'Translator',
-//						'last'   		=> 'First',
-//						'email'         => 'translator3@ytest.com',
-//						'userName'      => 'translator',
-//						'wpRole'        => 'author',
-//					],
-//					'languagePairs' => [
-//						'en' => [ 'ar', 'bs'],
-//					],
-//				],
-//            ]
-//		] );
 
 namespace WPML\ICLToATEMigration\Endpoints\Translators;
 
@@ -25,24 +7,10 @@ use WPML\FP\Fns;
 
 class GetFromICLResponseMapper {
 
-	/**
-	 * Returns formatted data of translators.
-	 *
-	 * @param array $records
-	 *
-	 * @return callable|\WPML\FP\Right
-	 */
 	public static function map( $records ) {
 		return Either::of( [ 'translators' => Fns::map( [ self::class, 'constructUserData' ], $records ) ] );
 	}
 
-	/**
-	 * Formats translator data
-	 *
-	 * @param object $record
-	 *
-	 * @return array
-	 */
 	public static function constructUserData( $record ) {
 		$user = get_user_by( 'email', $record->email );
 
@@ -59,13 +27,6 @@ class GetFromICLResponseMapper {
 		];
 	}
 
-	/**
-	 * Formats translator language pairs data
-	 *
-	 * @param array $langPairs
-	 *
-	 * @return array
-	 */
 	public static function constructUserLanguagePairs( $langPairs ) {
 		$constructedLangPairs = [];
 

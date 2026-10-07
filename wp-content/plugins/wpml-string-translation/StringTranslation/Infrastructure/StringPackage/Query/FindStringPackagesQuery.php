@@ -9,22 +9,16 @@ use WPML\StringTranslation\Infrastructure\Translation\TranslationStatusesParser;
 
 class FindStringPackagesQuery implements FindStringPackagesQueryInterface {
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var TranslationStatusesParser */
 	private $translationStatusesParser;
 
-	/** @var QueryBuilderResolver */
 	private $queryBuilderResolver;
 
-	/** @var TranslationsQuery */
 	private $translationsQuery;
 
-	/** @var JobsQuery */
 	private $jobsQuery;
 
 	public function __construct(
@@ -42,11 +36,6 @@ class FindStringPackagesQuery implements FindStringPackagesQueryInterface {
 		$this->jobsQuery = $jobsQuery;
 	}
 
-	/**
-	 * @param StringPackageCriteria $criteria
-	 *
-	 * @return StringPackageWithTranslationStatusDto[]
-	 */
 	public function execute( StringPackageCriteria $criteria ) {
 		$query = $this->queryBuilderResolver->resolveFindStringPackagesQueryBuilder()->build( $criteria );
 

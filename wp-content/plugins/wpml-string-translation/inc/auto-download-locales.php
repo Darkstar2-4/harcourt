@@ -7,20 +7,13 @@ class WPML_ST_MO_Downloader {
 	private $settings;
 	private $xml;
 	private $translation_files = array();
-	/**
-	 * @var array<array<string>>
-	 */
 	private $lang_map;
-	/**
-	 * @var array<array<string>>
-	 */
 	private $lang_map_rev;
 
 
 	function __construct() {
 		global $wp_version;
 
-		// requires Sitepress
 		if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ICL_PLUGIN_INACTIVE ) {
 			return;
 		}
@@ -33,7 +26,6 @@ class WPML_ST_MO_Downloader {
 			try {
 				$this->updates_check( array( 'trigger' => 'wp-update' ) );
 			} catch ( Exception $e ) {
-				// do nothing - this is automated request for updates
 			}
 		}
 
@@ -51,7 +43,6 @@ class WPML_ST_MO_Downloader {
 	function set_lang_map_from_csv() {
 		$fh = fopen( WPML_ST_PATH . '/inc/lang-map.csv', 'r' );
 		if ( ! $fh ) {
-			//@todo: test if frontend needs msg
 			return;
 		}
 		while ( list($locale, $code) = fgetcsv( $fh ) ) {
@@ -108,7 +99,6 @@ class WPML_ST_MO_Downloader {
 
 		try {
 			$updates = $this->updates_check();
-			// filter only core( & admin)
 			$updates_core = array();
 			if ( array_key_exists( 'languages', $updates ) && ! empty( $updates['languages'] ) ) {
 				foreach ( $updates['languages'] as $k => $v ) {
@@ -246,7 +236,6 @@ class WPML_ST_MO_Downloader {
 
 			$project_names = array();
 			foreach ( $projects[0] as $project_name => $data ) {
-				// subprojects
 				if ( empty( $data->versions ) ) {
 					$subprojects = $this->xml->xpath( $language . '/' . $locale . '/' . $project_name );
 					if ( ! empty( $subprojects ) ) {
@@ -261,9 +250,7 @@ class WPML_ST_MO_Downloader {
 
 			if ( ! empty( $project_names ) ) {
 				foreach ( $project_names as $project_name ) {
-					// try to get the corresponding version
 					$locv_path = $this->xml->xpath( "{$language}/{$locale}/{$project_name}/versions/version[@number=\"" . $wpversion . '"]' );
-					// try to get the dev recent version
 					if ( empty( $locv_path ) ) {
 						$locv_path = $this->xml->xpath( "{$language}/{$locale}/{$project_name}/versions/version[@number=\"dev\"]" );
 					}
@@ -333,9 +320,7 @@ class WPML_ST_MO_Downloader {
 
 				$mo          = new MO();
 
-				// @see wpmldev-1856
 				$pomo_reader = new POMO_StringReader( $response['body'] );
-				/** @phpstan-ignore-next-line */
 				$mo->import_from_reader( $pomo_reader );
 				$data            = $wpdb->get_results(
 					$wpdb->prepare(

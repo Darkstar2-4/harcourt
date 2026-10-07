@@ -7,7 +7,6 @@ use WPML\Core\SharedKernel\Component\Translator\Application\Service\TranslatorsS
 
 class GetTranslatorByIdController implements EndpointInterface {
 
-  /** @var TranslatorsService */
   private $translatorsService;
 
 
@@ -16,13 +15,7 @@ class GetTranslatorByIdController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string, mixed> $requestData
-   *
-   * @return array<string, mixed>
-   */
   public function handle( $requestData = null ): array {
-    /** @var int $translatorId */
     $translatorId = $requestData['translatorId'] ?? null;
 
     if ( ! $translatorId ) {

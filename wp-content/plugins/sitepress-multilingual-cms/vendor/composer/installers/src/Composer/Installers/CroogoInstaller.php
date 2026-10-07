@@ -8,9 +8,6 @@ class CroogoInstaller extends BaseInstaller
         'theme' => 'View/Themed/{$name}/',
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         $vars['name'] = strtolower(str_replace(array('-', '_'), ' ', $vars['name']));

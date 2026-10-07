@@ -7,9 +7,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class EnableAteController implements EndpointInterface {
 
-  /**
-   * @var SettingsService
-   */
   private $settingsService;
 
 
@@ -18,11 +15,6 @@ class EnableAteController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed>|null $requestData
-   *
-   * @return array|mixed[]
-   */
   public function handle( $requestData = null ): array {
     $this->settingsService->enableATE();
 

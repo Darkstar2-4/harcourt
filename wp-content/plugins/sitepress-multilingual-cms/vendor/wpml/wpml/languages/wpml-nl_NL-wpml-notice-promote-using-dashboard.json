@@ -5,28 +5,28 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Dissmiss Notice": [
-            "Melding wegdoen"
+            "Melding sluiten"
          ],
          "Streamline your site's translation using WPML's Translation Dashboard": [
-            "Stroomlijn de vertaling van je site met WPML's Vertaaldashboard"
+            "Stroomlijn de vertaling van uw site met het vertaalbeheer van WPML"
          ],
          "Translate pages, posts, products and strings from one place": [
-            "Vertaal pagina's, berichten, producten en strings vanuit één plek"
+            "Vertaal pagina's, berichten, producten en strings vanaf één plek"
          ],
          "Bulk automatic translation": [
-            "Bulk automatische vertaling"
+            "Automatische bulkvertaling"
          ],
          "Translate everything automatically": [
             "Vertaal alles automatisch"
          ],
          "Go to the Translation Dashboard": [
-            "Ga naar het vertaaldashboard"
+            "Ga naar het vertaalbeheer"
          ],
          "Learn More": [
-            "Meer weten"
+            "Meer informatie"
          ]
       }
    }

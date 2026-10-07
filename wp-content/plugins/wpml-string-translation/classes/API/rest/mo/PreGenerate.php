@@ -8,10 +8,8 @@ use WPML\ST\MO\Generate\Process\ProcessFactory;
 use WPML\ST\MO\Scan\UI\Factory;
 
 class PreGenerate extends \WPML\ST\Rest\Base {
-	/** @var Manager */
 	private $manager;
 
-	/** @var ProcessFactory */
 	private $processFactory;
 
 	public function __construct(
@@ -25,9 +23,6 @@ class PreGenerate extends \WPML\ST\Rest\Base {
 	}
 
 
-	/**
-	 * @return array
-	 */
 	function get_routes() {
 		return [
 			[

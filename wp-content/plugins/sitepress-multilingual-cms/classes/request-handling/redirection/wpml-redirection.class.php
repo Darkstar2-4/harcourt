@@ -2,17 +2,10 @@
 
 abstract class WPML_Redirection extends WPML_URL_Converter_User {
 
-	/** @var  WPML_Request $request_handler */
 	protected $request_handler;
 
-	/** @var WPML_Language_Resolution $lang_resolution */
 	protected $lang_resolution;
 
-	/**
-	 * @param WPML_URL_Converter       $url_converter
-	 * @param WPML_Request             $request_handler
-	 * @param WPML_Language_Resolution $lang_resolution
-	 */
 	function __construct( &$url_converter, &$request_handler, &$lang_resolution ) {
 		parent::__construct( $url_converter );
 		$this->request_handler = $request_handler;

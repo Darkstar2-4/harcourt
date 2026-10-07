@@ -12,23 +12,13 @@ namespace WPML\Core\Twig\Loader;
 
 use WPML\Core\Twig\Error\LoaderError;
 use WPML\Core\Twig\Source;
-/**
- * Loads template from the filesystem.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class FilesystemLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\Core\Twig\Loader\ExistsLoaderInterface, \WPML\Core\Twig\Loader\SourceContextLoaderInterface
 {
-    /** Identifier of the main namespace. */
     const MAIN_NAMESPACE = '__main__';
     protected $paths = [];
     protected $cache = [];
     protected $errorCache = [];
     private $rootPath;
-    /**
-     * @param string|array $paths    A path or an array of paths where to look for templates
-     * @param string|null  $rootPath The root path common to all relative paths (null for getcwd())
-     */
     public function __construct($paths = [], $rootPath = null)
     {
         $this->rootPath = (null === $rootPath ? \getcwd() : $rootPath) . \DIRECTORY_SEPARATOR;
@@ -39,34 +29,14 @@ class FilesystemLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\
             $this->setPaths($paths);
         }
     }
-    /**
-     * Returns the paths to the templates.
-     *
-     * @param string $namespace A path namespace
-     *
-     * @return array The array of paths where to look for templates
-     */
     public function getPaths($namespace = self::MAIN_NAMESPACE)
     {
         return isset($this->paths[$namespace]) ? $this->paths[$namespace] : [];
     }
-    /**
-     * Returns the path namespaces.
-     *
-     * The main namespace is always defined.
-     *
-     * @return array The array of defined namespaces
-     */
     public function getNamespaces()
     {
         return \array_keys($this->paths);
     }
-    /**
-     * Sets the paths where templates are stored.
-     *
-     * @param string|array $paths     A path or an array of paths where to look for templates
-     * @param string       $namespace A path namespace
-     */
     public function setPaths($paths, $namespace = self::MAIN_NAMESPACE)
     {
         if (!\is_array($paths)) {
@@ -77,17 +47,8 @@ class FilesystemLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\
             $this->addPath($path, $namespace);
         }
     }
-    /**
-     * Adds a path where templates are stored.
-     *
-     * @param string $path      A path where to look for templates
-     * @param string $namespace A path namespace
-     *
-     * @throws LoaderError
-     */
     public function addPath($path, $namespace = self::MAIN_NAMESPACE)
     {
-        // invalidate the cache
         $this->cache = $this->errorCache = [];
         $checkPath = $this->isAbsolutePath($path) ? $path : $this->rootPath . $path;
         if (!\is_dir($checkPath)) {
@@ -95,17 +56,8 @@ class FilesystemLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\
         }
         $this->paths[$namespace][] = \rtrim($path, '/\\');
     }
-    /**
-     * Prepends a path where templates are stored.
-     *
-     * @param string $path      A path where to look for templates
-     * @param string $namespace A path namespace
-     *
-     * @throws LoaderError
-     */
     public function prependPath($path, $namespace = self::MAIN_NAMESPACE)
     {
-        // invalidate the cache
         $this->cache = $this->errorCache = [];
         $checkPath = $this->isAbsolutePath($path) ? $path : $this->rootPath . $path;
         if (!\is_dir($checkPath)) {
@@ -159,19 +111,11 @@ class FilesystemLoader implements \WPML\Core\Twig\Loader\LoaderInterface, \WPML\
     }
     public function isFresh($name, $time)
     {
-        // false support to be removed in 3.0
         if (null === ($path = $this->findTemplate($name)) || \false === $path) {
             return \false;
         }
         return \filemtime($path) < $time;
     }
-    /**
-     * Checks if the template can be found.
-     *
-     * @param string $name The template name
-     *
-     * @return string|false|null The template name or false/null
-     */
     protected function findTemplate($name)
     {
         $throw = \func_num_args() > 1 ? \func_get_arg(1) : \true;

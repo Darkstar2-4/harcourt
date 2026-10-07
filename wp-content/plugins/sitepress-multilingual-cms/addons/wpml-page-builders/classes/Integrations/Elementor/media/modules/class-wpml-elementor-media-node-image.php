@@ -2,13 +2,6 @@
 
 class WPML_Elementor_Media_Node_Image extends WPML_Elementor_Media_Node {
 
-	/**
-	 * @param array  $settings
-	 * @param string $target_lang
-	 * @param string $source_lang
-	 *
-	 * @return array
-	 */
 	public function translate( $settings, $target_lang, $source_lang ) {
 		$settings = $this->translate_image_property( $settings, 'image', $target_lang, $source_lang );
 		$settings = $this->translate_image_property( $settings, '_background_image', $target_lang, $source_lang );
@@ -17,7 +10,6 @@ class WPML_Elementor_Media_Node_Image extends WPML_Elementor_Media_Node {
 		if ( ! isset( $settings['caption'] ) && isset( $settings['image']['id'] ) ) {
 			$image_data = wp_prepare_attachment_for_js( $settings['image']['id'] );
 
-			// @phpstan-ignore-next-line
 			if ( is_array( $image_data ) && isset( $image_data['caption'] ) ) {
 				$settings['caption'] = $image_data['caption'];
 			}

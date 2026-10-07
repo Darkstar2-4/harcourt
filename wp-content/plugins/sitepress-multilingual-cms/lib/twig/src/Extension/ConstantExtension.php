@@ -28,7 +28,6 @@ class ConstantExtension extends \WPML\Core\Twig\Extension\AbstractExtension {
 			'NONCE_SALT',
 		];
 
-		// Use foreach+strpos instead of in_array to not miss patterns like \AUTH_KEY.
 		foreach ( $protected_constants as $protected_constant ) {
 			if ( strpos( $constant, $protected_constant ) !== false ) {
 				return '***';

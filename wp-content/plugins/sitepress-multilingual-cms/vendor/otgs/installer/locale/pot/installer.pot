@@ -7,7 +7,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-07-21T14:15:01+00:00\n"
+"POT-Creation-Date: 2026-01-22T11:52:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: installer\n"
@@ -117,8 +117,8 @@ msgid "Ignore and don't ask me again"
 msgstr ""
 
 #: includes/admin-notices/notices/Texts.php:147
-#: includes/class-wp-installer.php:525
-#: includes/upgrade/AutoUpgrade.php:114
+#: includes/class-wp-installer.php:501
+#: includes/upgrade/AutoUpgrade.php:115
 #: templates/repository-register.php:49
 msgid "Register"
 msgstr ""
@@ -156,25 +156,25 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
-#: includes/class-installer-dependencies.php:98
+#: includes/class-installer-dependencies.php:99
 msgid ""
 "Downloading is not possible. WordPress cannot create required folders because of the\n"
 "                                        256 characters limitation of the current Windows environment."
 msgstr ""
 
-#: includes/class-installer-dependencies.php:257
+#: includes/class-installer-dependencies.php:264
 msgid "Return to the updates page"
 msgstr ""
 
-#: includes/class-installer-dependencies.php:293
+#: includes/class-installer-dependencies.php:300
 msgid "OTGS Installer"
 msgstr ""
 
-#: includes/class-installer-dependencies.php:298
+#: includes/class-installer-dependencies.php:305
 msgid "%s, responsible for receiving automated updates for WPML and Toolset, requires the following PHP component(s) in order to function:"
 msgstr ""
 
-#: includes/class-installer-dependencies.php:305
+#: includes/class-installer-dependencies.php:312
 msgid "Learn more: %s"
 msgstr ""
 
@@ -256,115 +256,115 @@ msgstr ""
 msgid "Privacy and data usage policy"
 msgstr ""
 
-#: includes/class-wp-installer-channels.php:40
+#: includes/class-wp-installer-channels.php:42
 msgid "Development"
 msgstr ""
 
-#: includes/class-wp-installer-channels.php:42
+#: includes/class-wp-installer-channels.php:44
 msgid "Beta"
 msgstr ""
 
-#: includes/class-wp-installer-channels.php:44
+#: includes/class-wp-installer-channels.php:46
 msgid "Production"
 msgstr ""
 
-#: includes/class-wp-installer.php:190
+#: includes/class-wp-installer.php:188
 msgid "Installing %s"
 msgstr ""
 
-#: includes/class-wp-installer.php:191
+#: includes/class-wp-installer.php:189
 msgid "Updating %s"
 msgstr ""
 
-#: includes/class-wp-installer.php:192
+#: includes/class-wp-installer.php:190
 msgid "Activating %s"
 msgstr ""
 
-#: includes/class-wp-installer.php:358
-#: includes/class-wp-installer.php:359
-#: includes/class-wp-installer.php:1127
+#: includes/class-wp-installer.php:355
+#: includes/class-wp-installer.php:356
+#: includes/class-wp-installer.php:1046
 msgid "Installer"
 msgstr ""
 
-#: includes/class-wp-installer.php:513
+#: includes/class-wp-installer.php:489
 msgid "Upgrade"
 msgstr ""
 
-#: includes/class-wp-installer.php:519
+#: includes/class-wp-installer.php:495
 msgid "Registered"
 msgstr ""
 
-#: includes/class-wp-installer.php:701
+#: includes/class-wp-installer.php:677
 msgid ""
 "You are using an invalid site key defined as the constant %s (most likely in wp-config.php).\n"
-"                                                Please remove it or use the correct value in order to be able to register correctly."
+"\t\t\t\t\t\t\t\t\t\t\tPlease remove it or use the correct value in order to be able to register correctly."
 msgstr ""
 
-#: includes/class-wp-installer.php:827
+#: includes/class-wp-installer.php:748
 msgid "Commercial"
 msgstr ""
 
-#: includes/class-wp-installer.php:1017
+#: includes/class-wp-installer.php:939
 msgid "Installer cannot display the products information because the automatic updating for %s was explicitly disabled with the configuration below (usually in wp-config.php):"
 msgstr ""
 
-#: includes/class-wp-installer.php:1019
+#: includes/class-wp-installer.php:941
 msgid "In order to see the products information, please run the %smanual updates check%s to initialize the products list or (temporarily) remove the above code."
 msgstr ""
 
-#: includes/class-wp-installer.php:1047
+#: includes/class-wp-installer.php:969
 msgid "Installer cannot contact our updates server to get information about the available products and check for new versions. If you are seeing this message for the first time, you can ignore it, as it may be a temporary communication problem. If the problem persists and your WordPress admin is slowing down, you can disable automated version checks. Add the following line to your wp-config.php file:"
 msgstr ""
 
-#: includes/class-wp-installer.php:1074
-#: includes/class-wp-installer.php:1078
+#: includes/class-wp-installer.php:994
+#: includes/class-wp-installer.php:998
 msgid "Information about new versions is invalid. It may be a temporary communication problem, please check for updates again."
 msgstr ""
 
-#: includes/class-wp-installer.php:1118
+#: includes/class-wp-installer.php:1037
 msgid "Sorry, you are not allowed to manage Installer for this site."
 msgstr ""
 
-#: includes/class-wp-installer.php:1157
+#: includes/class-wp-installer.php:1076
 msgid "No repositories defined."
 msgstr ""
 
-#: includes/class-wp-installer.php:1379
+#: includes/class-wp-installer.php:1298
 msgid "We have preselected the plugins your site needs to be fully multilingual."
 msgstr ""
 
-#: includes/class-wp-installer.php:1615
-#: includes/site-key/class-otgs-installer-site-key-ajax.php:71
+#: includes/class-wp-installer.php:1538
+#: includes/site-key/class-otgs-installer-site-key-ajax.php:74
 msgid "Invalid site key for the current site."
 msgstr ""
 
-#: includes/class-wp-installer.php:1616
-#: includes/site-key/class-otgs-installer-site-key-ajax.php:71
+#: includes/class-wp-installer.php:1539
+#: includes/site-key/class-otgs-installer-site-key-ajax.php:74
 msgid "Please note that the site key is case sensitive."
 msgstr ""
 
-#: includes/class-wp-installer.php:1621
+#: includes/class-wp-installer.php:1544
 msgid "%s cannot access %s to register. Try again to see if it's a temporary problem. If the problem continues, make sure that this site has access to the Internet."
 msgstr ""
 
-#: includes/class-wp-installer.php:2262
+#: includes/class-wp-installer.php:2195
 msgid "Connection failed! Please refresh the page and try again. (%s)"
 msgstr ""
 
-#: includes/class-wp-installer.php:2265
+#: includes/class-wp-installer.php:2198
 msgid "Your subscription appears to no longer be valid. Please try to register again using a valid site key."
 msgstr ""
 
-#: includes/class-wp-installer.php:2894
-#: includes/class-wp-installer.php:2956
+#: includes/class-wp-installer.php:2831
+#: includes/class-wp-installer.php:2893
 msgid "%s cannot update because your site's registration is not valid. Please %sregister %s%s again for this site first."
 msgstr ""
 
-#: includes/class-wp-installer.php:2979
+#: includes/class-wp-installer.php:2916
 msgid "Update Plugin"
 msgstr ""
 
-#: includes/class-wp-installer.php:2980
+#: includes/class-wp-installer.php:2917
 msgid "Return to the plugins page"
 msgstr ""
 
@@ -388,11 +388,11 @@ msgstr ""
 msgid "Invalid request!"
 msgstr ""
 
-#: includes/site-key/class-otgs-installer-site-key-ajax.php:123
+#: includes/site-key/class-otgs-installer-site-key-ajax.php:129
 msgid "Invalid site key for the current site. If the error persists, try to un-register first and then register again with the same site key."
 msgstr ""
 
-#: includes/site-key/class-otgs-installer-site-key-ajax.php:177
+#: includes/site-key/class-otgs-installer-site-key-ajax.php:183
 msgid "%s cannot access %s to register. Try again to see if it's a temporary problem. If the problem continues, make sure that this site has access to the Internet. You can still use the plugin without registration, but you will not receive automated updates."
 msgstr ""
 
@@ -475,7 +475,7 @@ msgstr ""
 msgid "Toolset API server"
 msgstr ""
 
-#: includes/upgrade/AutoUpgrade.php:115
+#: includes/upgrade/AutoUpgrade.php:116
 msgid " to use auto-updates"
 msgstr ""
 

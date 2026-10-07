@@ -6,52 +6,29 @@ use WPML\PHP\ConstructableFromArrayInterface;
 use WPML\PHP\ConstructableFromArrayTrait;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @implements ConstructableFromArrayInterface<PostWithTranslationStatusDto>
- */
 final class PostWithTranslationStatusDto
   implements ConstructableFromArrayInterface {
-  /** @use ConstructableFromArrayTrait<PostWithTranslationStatusDto> */
   use ConstructableFromArrayTrait;
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $title;
 
-  /** @var string */
   private $status;
 
-  /** @var string */
   private $createdAt;
 
-  /** @var string */
   private $postType;
 
-  /** @var array<string, TranslationStatusDto> */
   private $translationStatuses;
 
-  /** @var int|null */
   private $wordCount;
 
-  /** @var string|null */
   private $translatorNote;
 
-  /** @var bool|null */
   private $usingNativeEditor;
 
 
-  /**
-   * @param int                                 $id
-   * @param string                              $title
-   * @param string                              $status
-   * @param string                              $createdAt
-   * @param array<string, TranslationStatusDto|array<string, mixed>> $translationStatuses
-   * @param int|null                            $wordCount
-   * @param string|null                         $translatorNote
-   * @param string                              $usingNativeEditor 'yes' | 'no' | ''
-   */
   public function __construct(
     int $id,
     string $title,
@@ -59,8 +36,8 @@ final class PostWithTranslationStatusDto
     string $createdAt,
     string $postType,
     array $translationStatuses,
-    int $wordCount = null,
-    string $translatorNote = null,
+    ?int $wordCount = null,
+    ?string $translatorNote = null,
     string $usingNativeEditor = ''
   ) {
     $translationStatuses = array_map(
@@ -120,41 +97,26 @@ final class PostWithTranslationStatusDto
   }
 
 
-  /** @return array<string, TranslationStatusDto> */
   public function getTranslationStatuses(): array {
     return $this->translationStatuses;
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getWordCount() {
     return $this->wordCount;
   }
 
 
-  /**
-   * @return string|null
-   */
   public function getTranslatorNote() {
     return $this->translatorNote;
   }
 
 
-  /**
-   * @return bool|null
-   */
   public function getUsingNativeEditor() {
     return $this->usingNativeEditor;
   }
 
 
-  /**
-   * @param string $dbValue
-   *
-   * @return bool|null
-   */
   private function mapNativeEditorValue( string $dbValue ) {
     if ( empty( $dbValue ) ) {
       return null;

@@ -1,7 +1,6 @@
 <?php
 
 class WPML_TM_Translation_Status {
-	/** @var WPML_TM_Records $tm_records */
 	protected $tm_records;
 
 	private $element_id_cache;
@@ -26,7 +25,6 @@ class WPML_TM_Translation_Status {
 		}
 
 		$getNewStatus = function ( $trid, $target_lang_code ) {
-			/** @var WPML_TM_Element_Translations $wpml_tm_element_translations */
 			$wpml_tm_element_translations = wpml_tm_load_element_translations();
 
 			$element_ids         = array_filter( $this->get_element_ids( $trid ) );
@@ -59,9 +57,9 @@ class WPML_TM_Translation_Status {
 
 	public function reload() {
 		$this->element_id_cache = array();
-		\WPML\LIB\WP\Cache::flushGroup( WPML_ELEMENT_TRANSLATIONS_CACHE_GROUP );
+		\WPML\LIB\WP\Cache::flushGroup( WPML_ELEMENT_TRANSLATIONS_CACHE_GROUP, true );
 		$oldCache = new WPML_WP_Cache( WPML_ELEMENT_TRANSLATIONS_CACHE_GROUP );
-		$oldCache->flush_group_cache();
+		$oldCache->flush_group_cache( true );
 	}
 
 	public function is_in_active_job(
@@ -74,6 +72,10 @@ class WPML_TM_Translation_Status {
 			$element_id,
 			$element_type_prefix
 		)->translations();
+		if ( null === $target_lang_code ) {
+			return false;
+		}
+
 		if ( ! isset( $translations[ $target_lang_code ] ) ) {
 
 			return false;
@@ -102,6 +104,10 @@ class WPML_TM_Translation_Status {
 	}
 
 	private function is_in_basket( $element_id, $lang, $element_type_prefix ) {
+		if ( null === $lang ) {
+			return false;
+		}
+
 		return TranslationProxy_Basket::anywhere_in_basket(
 			$element_id,
 			$element_type_prefix,

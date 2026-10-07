@@ -37,11 +37,17 @@ document.addEventListener( 'DOMContentLoaded', function() {
 		);
 		xhr.onload = () => {
 			if (notice) {
-				notice.querySelector('button.notice-dismiss').dispatchEvent(new MouseEvent('click', {
-					view: window,
-					bubbles: true,
-					cancelable: true
-				}));
+				// Trigger WordPress notice dismissal.
+				const noticeDismissButton = notice.querySelector('button.notice-dismiss');
+				if (noticeDismissButton) {
+					noticeDismissButton.dispatchEvent(new MouseEvent('click', {
+						view: window,
+						bubbles: true,
+						cancelable: true
+					}));
+				} else {
+					notice.style.display = 'none';
+				}
 			}
 		};
 		xhr.send();
@@ -110,4 +116,11 @@ document.addEventListener( 'DOMContentLoaded', function() {
 	}
 
 	handleHeaderNotice();
+
+	// Open the upgrade submenu link in a new tab.
+	const upgradeLink = document.querySelector( '#toplevel_page_smush ul.wp-submenu li:last-child a[href*="wpmudev.com"]' );
+	if ( upgradeLink ) {
+		upgradeLink.target = '_blank';
+		upgradeLink.rel = 'noopener noreferrer';
+	}
 });

@@ -14,13 +14,13 @@
             "Αυτό το περιεχόμενο μεταφράζεται αυτόματα. Εάν θέλετε να κάνετε κάτι διαφορετικό με αυτό, ακυρώστε πρώτα τις εργασίες μετάφρασης."
          ],
          "Connecting to WPML’s Advanced Translation Editor": [
-            "Σύνδεση με τον Προηγμένο Επεξεργαστή Μετάφρασης του WPML"
+            "Σύνδεση με το πρόγραμμα επεξεργασίας προηγμένης μετάφρασης του WPML"
          ],
          "Try again": [
-            "Δοκιμάστε ξανά"
+            "Προσπαθήστε ξανά"
          ],
          "You don't have the rights to review this language": [
-            "Δεν έχετε τα δικαιώματα για να αναθεωρήσετε αυτή τη γλώσσα"
+            "Δεν έχετε τα δικαιώματα για να ελέγξετε αυτήν τη γλώσσα"
          ],
          "translations": [
             "μεταφράσεις"
@@ -29,7 +29,7 @@
             "απομένουν στην ουρά"
          ],
          "Translation on hold": [
-            "Μετάφραση σε αναμονή"
+            "Η μετάφραση σε αναμονή"
          ],
          "No translations in the queue": [
             "Δεν υπάρχουν μεταφράσεις στην ουρά"
@@ -43,39 +43,56 @@
          "less than 1 min remaining": [
             "λιγότερο από 1 λεπτό απομένει"
          ],
+         "%d translation waiting for review": [
+            "%d μετάφραση σε αναμονή για έλεγχο",
+            "%d μεταφράσεις σε αναμονή για έλεγχο"
+         ],
+         "Translate Everything Automatically has unresolved jobs": [
+            "Η αυτόματη μετάφραση όλων έχει ανεπίλυτες εργασίες"
+         ],
+         "Automatic translation has unresolved jobs": [
+            "Η αυτόματη μετάφραση έχει ανεπίλυτες εργασίες"
+         ],
+         "%d job couldn't be completed. Go to Translation Dashboard to review and resolve.": [
+            "Η εργασία %d δεν μπόρεσε να ολοκληρωθεί. Μεταβείτε στον Πίνακα Ελέγχου Μεταφράσεων για έλεγχο και επίλυση.",
+            "Οι εργασίες %d δεν μπόρεσαν να ολοκληρωθούν. Μεταβείτε στον Πίνακα Ελέγχου Μεταφράσεων για έλεγχο και επίλυση."
+         ],
          "Automatic translation status": [
             "Κατάσταση αυτόματης μετάφρασης"
          ],
          "Translate Everything Automatically": [
-            "Αυτόματη Μετάφραση Όλων"
+            "Μετάφραση όλων αυτόματα"
          ],
          "Translate Everything Automatically is active": [
-            "Η Αυτόματη Μετάφραση Όλων είναι ενεργή"
+            "Η αυτόματη μετάφραση όλων είναι ενεργή"
          ],
-         "Translate Everything Automatically is paused": [
-            "Η Αυτόματη Μετάφραση Όλων έχει τεθεί σε παύση"
+         "Translate Everything Automatically is paused — payment required": [
+            "Η αυτόματη μετάφραση όλων είναι σε παύση — απαιτείται πληρωμή"
          ],
-         "Translate Everything Automatically is stopped": [
-            "Η Αυτόματη Μετάφραση Όλων έχει σταματήσει"
+         "Automatic translation is paused — payment required": [
+            "Η αυτόματη μετάφραση είναι σε παύση — απαιτείται πληρωμή"
          ],
-         "Out of Credits for Automatic Translation": [
-            "Εξαντλήθηκαν οι Μονάδες για Αυτόματη Μετάφραση"
+         "We couldn’t process your payment. Click “Pay now” to complete the transaction and resume automatic translation.": [
+            "Δεν ήταν δυνατή η επεξεργασία της πληρωμής σας. Κάντε κλικ στο “Πληρωμή τώρα” για να ολοκληρώσετε τη συναλλαγή και να συνεχίσετε την αυτόματη μετάφραση."
          ],
-         "You have <b>1</b> prepaid translation credit in your wpml.org account. Assign these credits to your site to start using automatic translation": [
-            "Έχετε <b>1</b> προπληρωμένη μονάδα μετάφρασης στον λογαριασμό σας στο wpml.org. Αναθέστε αυτές τις μονάδες στον ιστότοπό σας για να ξεκινήσετε τη χρήση αυτόματης μετάφρασης",
-            "Έχετε <b>%s</b> προπληρωμένες μονάδες μετάφρασης στον λογαριασμό σας στο wpml.org. Αναθέστε αυτές τις μονάδες στον ιστότοπό σας για να ξεκινήσετε τη χρήση αυτόματης μετάφρασης"
+         "Translate Everything automatically is paused - not enough credits": [
+            "Η αυτόματη μετάφραση όλων είναι σε παύση - δεν υπάρχουν αρκετές πιστώσεις"
+         ],
+         "Automatic translation is paused — not enough credits": [
+            "Η αυτόματη μετάφραση είναι σε παύση — δεν υπάρχουν αρκετές πιστώσεις"
+         ],
+         "Translation will resume automatically once you assign more credits.": [
+            "Η μετάφραση θα συνεχιστεί αυτόματα μόλις εκχωρήσετε περισσότερες πιστώσεις."
+         ],
+         "You have %s prepaid translation credit in your WPML account. Assign these credits to this site to resume automatic translation": [
+            "Έχετε %s προπληρωμένη πίστωση μετάφρασης στον λογαριασμό σας στο WPML. Εκχωρήστε αυτές τις πιστώσεις σε αυτόν τον ιστότοπο για να συνεχίσετε την αυτόματη μετάφραση",
+            "Έχετε %s προπληρωμένες πιστώσεις μετάφρασης στον λογαριασμό σας στο WPML. Εκχωρήστε αυτές τις πιστώσεις σε αυτόν τον ιστότοπο για να συνεχίσετε την αυτόματη μετάφραση"
          ],
          "Preparing content for translation": [
             "Προετοιμασία περιεχομένου για μετάφραση"
          ],
          "Preparing more content for translation": [
             "Προετοιμασία περισσότερου περιεχομένου για μετάφραση"
-         ],
-         "An error occured, fix it to continue.": [
-            "Παρουσιάστηκε ένα σφάλμα, διορθώστε το για να συνεχίσετε."
-         ],
-         "There is an issue with automatic translation that needs your attention. Fix it to continue.": [
-            "Υπάρχει ένα πρόβλημα με την αυτόματη μετάφραση που χρειάζεται την προσοχή σας. Διορθώστε το για να συνεχίσετε."
          ],
          "Your default language, %s, must be mapped to a supported language in order to use automatic translation.": [
             "Η προεπιλεγμένη γλώσσα σας, %s, πρέπει να αντιστοιχιστεί σε μια υποστηριζόμενη γλώσσα για να χρησιμοποιήσετε την αυτόματη μετάφραση."
@@ -85,59 +102,67 @@
             "Οι ακόλουθες γλώσσες στον ιστότοπό σας πρέπει να αντιστοιχιστούν σε μια υποστηριζόμενη γλώσσα για να χρησιμοποιήσετε την αυτόματη μετάφραση: %s"
          ],
          "Content in those languages: %s, cannot be automatically translated unless you map them to a language that's different from the default.": [
-            "Το περιεχόμενο σε αυτές τις γλώσσες: %s, δεν μπορεί να μεταφραστεί αυτόματα εκτός αν τις αντιστοιχίσετε σε μια γλώσσα διαφορετική από την προεπιλεγμένη."
-         ],
-         "%d translation waiting for review": [
-            "%d μετάφραση αναμένει αναθεώρηση",
-            "%d μεταφράσεις αναμένουν αναθεώρηση"
+            "Το περιεχόμενο σε αυτές τις γλώσσες: %s, δεν μπορεί να μεταφραστεί αυτόματα, εκτός εάν τις αντιστοιχίσετε σε μια γλώσσα που είναι διαφορετική από την προεπιλεγμένη."
          ],
          "Account credits used": [
-            "Χρησιμοποιημένες μονάδες λογαριασμού"
+            "Πιστώσεις λογαριασμού που χρησιμοποιήθηκαν"
          ],
          "Once you’ve used all your prepaid credits, we’ll invoice you for any additional credits you use after the end of the month": [
-            "Αφού χρησιμοποιήσετε όλες τις προπληρωμένες μονάδες σας, θα σας τιμολογήσουμε για τυχόν επιπλέον μονάδες που χρησιμοποιείτε μετά το τέλος του μήνα"
+            "Μόλις χρησιμοποιήσετε όλες τις προπληρωμένες πιστώσεις σας, θα σας τιμολογήσουμε για τυχόν επιπλέον πιστώσεις που θα χρησιμοποιήσετε μετά το τέλος του μήνα"
          ],
          "Payment limit:": [
             "Όριο πληρωμής:"
          ],
          "%s credits": [
-            "%s μονάδες"
+            "%s πιστώσεις"
          ],
          "Credits used:": [
-            "Χρησιμοποιημένες μονάδες:"
+            "Πιστώσεις που χρησιμοποιήθηκαν:"
          ],
          "Credits left:": [
-            "Εναπομείνασες μονάδες:"
+            "Πιστώσεις που απομένουν:"
          ],
          "The number of credit you will receive an invoice for at the end of the month. View your pay-as-you-go details in your site’s automatic translation settings.": [
-            "Ο αριθμός των μονάδων για τις οποίες θα λάβετε τιμολόγιο στο τέλος του μήνα. Δείτε τις λεπτομέρειες πληρωμής-ανά-χρήση στις ρυθμίσεις αυτόματης μετάφρασης του ιστοτόπου σας."
+            "Ο αριθμός των πιστώσεων για τις οποίες θα λάβετε τιμολόγιο στο τέλος του μήνα. Δείτε τις λεπτομέρειες pay-as-you-go στις ρυθμίσεις αυτόματης μετάφρασης του ιστότοπού σας."
          ],
          "Calculating": [
             "Υπολογισμός"
          ],
          "Remaining prepaid credits that are assigned to this site on WPML.org.": [
-            "Εναπομείνασες προπληρωμένες μονάδες που έχουν ανατεθεί σε αυτόν τον ιστότοπο στο WPML.org."
+            "Υπολειπόμενες προπληρωμένες πιστώσεις που έχουν εκχωρηθεί σε αυτόν τον ιστότοπο στο WPML.org."
          ],
          "Prepaid credits left": [
-            "Εναπομείνασες προπληρωμένες μονάδες"
+            "Προπληρωμένες πιστώσεις που απομένουν"
          ],
          "Pay-as-you-go credits used": [
-            "Χρησιμοποιημένες μονάδες πληρωμής-ανά-χρήση"
+            "Πιστώσεις pay-as-you-go που χρησιμοποιήθηκαν"
          ],
          "Your site doesn't meet WPML's minimum requirements": [
             "Ο ιστότοπός σας δεν πληροί τις ελάχιστες απαιτήσεις του WPML"
          ],
          "Fix it": [
-            "Διόρθωση"
+            "Διορθώστε το"
          ],
          "Stop": [
             "Διακοπή"
          ],
-         "Assign credits now": [
-            "Ανάθεση μονάδων τώρα"
+         "Pay now": [
+            "Πληρωμή τώρα"
+         ],
+         "Get more credits": [
+            "Αποκτήστε περισσότερες πιστώσεις"
+         ],
+         "Assign credits": [
+            "Εκχωρήστε πιστώσεις"
+         ],
+         "Go to Translation Jobs": [
+            "Μετάβαση στις εργασίες μετάφρασης"
          ],
          "Resume": [
             "Συνέχιση"
+         ],
+         "This translation couldn't be completed due to an unexpected error. Please try resending it.": [
+            "Αυτή η μετάφραση δεν μπόρεσε να ολοκληρωθεί λόγω απροσδόκητου σφάλματος. Παρακαλούμε δοκιμάστε να την ξαναστείλετε."
          ],
          "Refreshing translation status": [
             "Ανανέωση κατάστασης μετάφρασης"
@@ -146,7 +171,7 @@
             "Διαβάστε περισσότερα για το πώς να μεταφράσετε το περιεχόμενό σας στον <a>Οδηγό Έναρξης</a>"
          ],
          "Let's Start Translating!": [
-            "Ας Ξεκινήσουμε τη Μετάφραση!"
+            "Ας ξεκινήσουμε τη μετάφραση!"
          ],
          "Choose your content from the Translation Dashboard below and create your first translation job!": [
             "Επιλέξτε το περιεχόμενό σας από τον Πίνακα Ελέγχου Μετάφρασης παρακάτω και δημιουργήστε την πρώτη σας εργασία μετάφρασης!"
@@ -155,7 +180,7 @@
             "Αλλάξτε τις <a>ρυθμίσεις αυτόματης μετάφρασης</a> (οι εργασίες μετάφρασης σε εξέλιξη θα ολοκληρωθούν με τις τρέχουσες ρυθμίσεις)."
          ],
          "Read more about translating your site automatically.": [
-            "Διαβάστε περισσότερα για την αυτόματη μετάφραση του ιστοτόπου σας."
+            "Διαβάστε περισσότερα για την αυτόματη μετάφραση του ιστότοπού σας."
          ],
          "Your site is being automatically translated!": [
             "Ο ιστότοπός σας μεταφράζεται αυτόματα!"
@@ -164,7 +189,7 @@
             "Υπολογισμός..."
          ],
          "Do not close WP admin!": [
-            "Μην κλείσετε το διαχειριστικό περιβάλλον του WP!"
+            "Μην κλείσετε το WP admin!"
          ],
          "The number of translations": [
             "Ο αριθμός των μεταφράσεων"

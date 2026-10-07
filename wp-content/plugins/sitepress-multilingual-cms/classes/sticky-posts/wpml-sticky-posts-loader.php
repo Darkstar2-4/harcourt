@@ -1,12 +1,8 @@
 <?php
 
 class WPML_Sticky_Posts_Loader {
-	/** @var SitePress */
 	private $sitepress;
 	
-	/**
-	 * @param SitePress $sitepress
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress = $sitepress;
 	}

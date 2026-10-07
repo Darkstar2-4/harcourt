@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "Please wait, applying translation..": [
-            "Veuillez patienter, application de la traduction en cours..."
+            "Veuillez patienter, la traduction est en cours d’application..."
          ],
          "There was an error in applying translation.": [
-            "Une erreur s'est produite lors de l'application de la traduction."
+            "Une erreur est survenue lors de l’application de la traduction."
          ],
          "Someone is already reviewing this translation. Please try again later.": [
-            "Quelqu'un est déjà en train de réviser cette traduction. Veuillez réessayer plus tard."
+            "Quelqu’un est déjà en train de réviser cette traduction. Veuillez réessayer plus tard."
          ]
       }
    }

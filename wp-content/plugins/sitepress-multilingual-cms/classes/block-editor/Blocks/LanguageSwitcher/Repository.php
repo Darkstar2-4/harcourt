@@ -7,21 +7,17 @@ use WPML\FP\Obj;
 
 class Repository {
 
-	/** @var \WPML_LS_Model_Build */
 	private $languageSwitcherModelBuilder;
 
 	public function __construct(
 		\SitePress $sitepress,
-		\WPML_LS_Dependencies_Factory $dependencies = null
+		?\WPML_LS_Dependencies_Factory $dependencies = null
 	) {
 		$dependencies = $dependencies ?: new \WPML_LS_Dependencies_Factory( $sitepress, \WPML_Language_Switcher::parameters() );
 
 		$this->languageSwitcherModelBuilder = new \WPML_LS_Model_Build( $dependencies->settings(), $sitepress, 'wpml-ls-' );
 	}
 
-	/**
-	 * @return LanguageSwitcher
-	 */
 	public function getCurrentLanguageSwitcher( ) {
 		$model = $this->languageSwitcherModelBuilder->get( new \WPML_LS_Slot( [
 			'display_link_for_current_lang' => true,

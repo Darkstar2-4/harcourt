@@ -1,22 +1,12 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Notices
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Notices {
 
 	const GROUP        = 'wpml_tf_backend_notices';
 	const BULK_UPDATED = 'bulk_updated';
 
-	/** @var  WPML_Notices $admin_notices */
 	private $admin_notices;
 
-	/**
-	 * @param array $updated_feedback_ids
-	 * @parem string
-	 */
 	public function add_bulk_updated_notice( array $updated_feedback_ids, $action ) {
 		$count_feedback = count( $updated_feedback_ids );
 
@@ -44,23 +34,14 @@ class WPML_TF_Backend_Notices {
 		$this->get_admin_notices()->add_notice( $new_notice );
 	}
 
-	/**
-	 * Add action to remove updated notice after display
-	 */
 	public function remove_bulk_updated_notice_after_display() {
 		add_action( 'admin_notices', array( $this, 'remove_bulk_updated_notice' ), PHP_INT_MAX );
 	}
 
-	/**
-	 * Remove bulk_updated notice
-	 */
 	public function remove_bulk_updated_notice() {
 		$this->get_admin_notices()->remove_notice( self::GROUP, self::BULK_UPDATED );
 	}
 
-	/**
-	 * @return WPML_Notices
-	 */
 	private function get_admin_notices() {
 		if ( ! $this->admin_notices ) {
 			$this->admin_notices = wpml_get_admin_notices();

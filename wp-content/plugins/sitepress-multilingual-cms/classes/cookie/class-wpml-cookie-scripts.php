@@ -1,26 +1,11 @@
 <?php
 
-/**
- * Class WPML_Cookie_Scripts
- */
 class WPML_Cookie_Scripts {
 
-	/**
-	 * @var string
-	 */
 	private $language_cookie_name;
 
-	/**
-	 * @var string
-	 */
 	private $current_language;
 
-	/**
-	 * WPML_Cookie_Scripts constructor.
-	 *
-	 * @param string $language_cookie_name
-	 * @param string $current_language
-	 */
 	public function __construct( $language_cookie_name, $current_language ) {
 		$this->language_cookie_name = $language_cookie_name;
 		$this->current_language     = $current_language;

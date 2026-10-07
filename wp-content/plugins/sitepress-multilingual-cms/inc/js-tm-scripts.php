@@ -1,13 +1,6 @@
 <?php
 
-/**
- * Registers TM scripts that they are being used from WPML plugin
- * Hooked to `admin_enqueue_scripts` and 'wp_enqueue_scripts'
- */
 if ( ! \WPML\Plugins::isTMActive() && defined( 'WPML_TM_URL' ) ) {
-	/**
-	 * Registers scripts so that they can be reused throughout WPML plugins
-	 */
 	function wpml_tm_register_js_scripts() {
 		if ( \WPML\Setup\Option::isTMAllowed() ) {
 			wp_register_script(

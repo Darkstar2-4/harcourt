@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 
 namespace WPML\ST\MO\JustInTime;
 

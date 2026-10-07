@@ -2,36 +2,14 @@
 
 use WPML\TM\ATE\ClonedSites\Lock;
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_MCS_ATE extends WPML_Twig_Template_Loader {
-	/**
-	 * @var WPML_TM_ATE_Authentication
-	 */
 	private $authentication;
 	private $authentication_data;
-	/**
-	 * @var WPML_TM_ATE_AMS_Endpoints
-	 */
 	private $endpoints;
-	/**
-	 * @var WPML_TM_MCS_ATE_Strings
-	 */
 	private $strings;
 
 	private $model = array();
 
-	/**
-	 *
-	 * /**
-	 * WPML_TM_MCS_ATE constructor.
-	 *
-	 * @param WPML_TM_ATE_Authentication $authentication
-	 * @param WPML_TM_ATE_AMS_Endpoints  $endpoints
-	 *
-	 * @param WPML_TM_MCS_ATE_Strings    $strings
-	 */
 	public function __construct(
 		WPML_TM_ATE_Authentication $authentication,
 		WPML_TM_ATE_AMS_Endpoints $endpoints,
@@ -61,9 +39,6 @@ class WPML_TM_MCS_ATE extends WPML_Twig_Template_Loader {
 		];
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_template_path() {
 		return WPML_TM_PATH . '/templates/ATE';
 	}
@@ -73,11 +48,6 @@ class WPML_TM_MCS_ATE extends WPML_Twig_Template_Loader {
 		add_action( 'wpml_tm_mcs_troubleshooting', [ $this, 'renderTroubleshooting' ] );
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	public function get_model( array $args = array() ) {
 		if ( array_key_exists( 'wizard', $args ) ) {
 			$this->model['strings']['error_help'] = esc_html__( 'You can continue the Translation Management configuration later by going to WPML -> Settings -> Translation Editor.', 'wpml-translation-management' );
@@ -100,22 +70,15 @@ class WPML_TM_MCS_ATE extends WPML_Twig_Template_Loader {
 	}
 
 	private function has_translators() {
-		/** @var TranslationManagement $iclTranslationManagement */
 		global $iclTranslationManagement;
 
 		return $iclTranslationManagement->has_translators();
 	}
 
-	/**
-	 * @return mixed
-	 */
 	private function get_status_button_text() {
 		return $this->strings->get_current_status_attribute( 'button' );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_script_data() {
 		return array(
 			'hasTranslators' => $this->has_translators(),

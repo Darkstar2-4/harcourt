@@ -11,55 +11,52 @@ class WPML_ST_Translations_File_Registration {
 	const PATH_PATTERN_SEARCH_JSON  = '#(DOMAIN_PLACEHOLDER)([a-z]+)([_A-Z]*)(-[-_a-z0-9]+)\.json$#i';
 	const PATH_PATTERN_REPLACE_JSON = '${1}%s${4}.json';
 
-	/** @var WPML_ST_Translations_File_Dictionary */
 	private $file_dictionary;
 
-	/** @var WPML_File */
 	private $wpml_file;
 
-	/** @var WPML_ST_Translations_File_Component_Details */
 	private $components_find;
 
-	/** @var array */
 	private $active_languages;
 
-	/** @var array */
 	private $cache = array();
 
-	/** @var callable - string->string */
 	private $getWPLocale;
 
-	/**
-	 * @param WPML_ST_Translations_File_Dictionary        $file_dictionary
-	 * @param WPML_File                                   $wpml_file
-	 * @param WPML_ST_Translations_File_Component_Details $components_find
-	 * @param array                                       $active_languages
-	 */
+	private $is_on_frontend_page;
+
+	private $is_on_admin_page;
+
+	private $is_on_theme_and_localization_page;
+
 	public function __construct(
 		WPML_ST_Translations_File_Dictionary $file_dictionary,
 		WPML_File $wpml_file,
 		WPML_ST_Translations_File_Component_Details $components_find,
-		array $active_languages
+		array $active_languages,
+		$is_on_frontend_page = false,
+		$is_on_admin_page = false,
+		$is_on_theme_and_localization_page = false
 	) {
-		$this->file_dictionary  = $file_dictionary;
-		$this->wpml_file        = $wpml_file;
-		$this->components_find  = $components_find;
-		$this->active_languages = $active_languages;
-		$this->getWPLocale      = Fns::memorize( Languages::getWPLocale() );
+		$this->file_dictionary                   = $file_dictionary;
+		$this->wpml_file                         = $wpml_file;
+		$this->components_find                   = $components_find;
+		$this->active_languages                  = $active_languages;
+		$this->getWPLocale                       = Fns::memorize( Languages::getWPLocale() );
+		$this->is_on_frontend_page               = $is_on_frontend_page;
+		$this->is_on_admin_page                  = $is_on_admin_page;
+		$this->is_on_theme_and_localization_page = $is_on_theme_and_localization_page;
 	}
 
 	public function add_hooks() {
-		add_filter( 'override_load_textdomain', array( $this, 'cached_save_mo_file_info' ), 11, 3 );
-		add_filter( 'pre_load_script_translations', array( $this, 'add_json_translations_to_import_queue' ), 10, 4 );
+		if ( $this->is_on_frontend_page || $this->is_on_theme_and_localization_page ) {
+			add_filter( 'override_load_textdomain', array( $this, 'cached_save_mo_file_info' ), 11, 3 );
+			add_filter( 'pre_load_script_translations', array( $this, 'add_json_translations_to_import_queue' ), 10, 4 );
+		}
+
+		add_filter( 'load_script_translation_file', array( $this, 'load_script_translation_file' ), PHP_INT_MAX, 3 );
 	}
 
-	/**
-	 * @param bool   $override
-	 * @param string $domain
-	 * @param string $mo_file_path
-	 *
-	 * @return bool
-	 */
 	public function cached_save_mo_file_info( $override, $domain, $mo_file_path ) {
 		if ( ! isset( $this->cache[ $mo_file_path ] ) ) {
 			$this->cache[ $mo_file_path ] = $this->save_file_info( $domain, $domain, $mo_file_path );
@@ -68,14 +65,12 @@ class WPML_ST_Translations_File_Registration {
 		return $override;
 	}
 
-	/**
-	 * @param string|false $translations translations in the JED format
-	 * @param string|false $file
-	 * @param string       $handle
-	 * @param string       $original_domain
-	 *
-	 * @return string|false
-	 */
+	public function load_script_translation_file( $file, $handle, $original_domain ) {
+		$this->add_json_translations_to_import_queue( false, $file, $handle, $original_domain );
+
+		return $file;
+	}
+
 	public function add_json_translations_to_import_queue( $translations, $file, $handle, $original_domain ) {
 		if ( $file && ! isset( $this->cache[ $file ] ) ) {
 			$registration_domain  = WPML_ST_JED_Domain::get( $original_domain, $handle );
@@ -85,13 +80,6 @@ class WPML_ST_Translations_File_Registration {
 		return $translations;
 	}
 
-	/**
-	 * @param string $original_domain
-	 * @param string $registration_domain which can be composed with the script-handle for JED files
-	 * @param string $file_path
-	 *
-	 * @return true
-	 */
 	private function save_file_info( $original_domain, $registration_domain, $file_path ) {
 		try {
 			$file_path_pattern = $this->get_file_path_pattern( $file_path, $original_domain );
@@ -101,19 +89,12 @@ class WPML_ST_Translations_File_Registration {
 				$this->register_single_file( $registration_domain, $file_path_in_lang );
 			}
 		} catch ( Exception $e ) {
-
+			;
 		}
 
 		return true;
 	}
 
-	/**
-	 * @param string $file_path
-	 * @param string $original_domain
-	 *
-	 * @return string|null
-	 * @throws InvalidArgumentException
-	 */
 	private function get_file_path_pattern( $file_path, $original_domain ) {
 		$pathinfo  = pathinfo( $file_path );
 		$file_type = isset( $pathinfo['extension'] ) ? $pathinfo['extension'] : null;
@@ -131,10 +112,6 @@ class WPML_ST_Translations_File_Registration {
 		throw new RuntimeException( 'The "' . $file_type . '" file type is not supported for registration' );
 	}
 
-	/**
-	 * @param string $registration_domain
-	 * @param string $file_path
-	 */
 	private function register_single_file( $registration_domain, $file_path ) {
 		if (
 			! $this->wpml_file->file_exists( $file_path ) ||

@@ -7,22 +7,16 @@ use WPML\Core\Component\Translation\Domain\TranslationMethod\TranslationMethodIn
 
 class Job {
 
-  /** @var int */
   private $id;
 
-  /** @var int */
   private $batchId;
 
-  /** @var TranslationMethodInterface */
   private $translationMethod;
 
-  /** @var int|null */
   private $translatorId;
 
-  /** @var EditorInterface */
   private $editor;
 
-  /** @var bool */
   private $isCompleted;
 
 
@@ -32,7 +26,7 @@ class Job {
     TranslationMethodInterface $translationMethod,
     EditorInterface $editor,
     bool $isCompleted,
-    int $translatorId = null
+    ?int $translatorId = null
   ) {
     $this->id                = $id;
     $this->batchId           = $batchId;
@@ -58,9 +52,6 @@ class Job {
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getTranslatorId() {
     return $this->translatorId;
   }

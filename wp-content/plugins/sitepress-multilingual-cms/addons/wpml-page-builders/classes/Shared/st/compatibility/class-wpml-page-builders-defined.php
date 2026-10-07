@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Page_Builders_Defined
- */
 class WPML_Page_Builders_Defined {
 
 	private $settings;
@@ -28,11 +25,6 @@ class WPML_Page_Builders_Defined {
 		}
 	}
 
-	/**
-	 * @param array $components
-	 *
-	 * @return array
-	 */
 	public function add_components( $components ) {
 		if ( isset( $components['page-builders'] ) ) {
 			foreach (
@@ -83,9 +75,6 @@ class WPML_Page_Builders_Defined {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_settings() {
 		return $this->settings;
 	}

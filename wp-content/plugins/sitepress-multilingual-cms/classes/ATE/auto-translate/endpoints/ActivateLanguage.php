@@ -13,7 +13,6 @@ use WPML\TM\ATE\TranslateEverything;
 
 class ActivateLanguage {
 
-	/** @var TranslateEverything */
 	private $translateEverything;
 
 	public function __construct( TranslateEverything $translateEverything ) {
@@ -27,7 +26,7 @@ class ActivateLanguage {
 
 		if ( $translateExistingContent ) {
 			$doesSupportAutomaticTranslations = function ( $code ) {
-				$languageDetails = [ $code => [ 'code' => $code ] ]; // we need to build an input acceptable by LanguageMappings::withCanBeTranslatedAutomatically
+				$languageDetails = [ $code => [ 'code' => $code ] ];
 				$languageDetails = LanguageMappings::withCanBeTranslatedAutomatically( $languageDetails );
 
 				return Obj::pathOr( false, [ $code, 'can_be_translated_automatically' ], $languageDetails );
@@ -39,14 +38,8 @@ class ActivateLanguage {
 
 			$this->translateEverything->markLanguagesAsUncompleted( $newLanguagesWhichCanBeAutoTranslated );
 
-			// those languages which cannot be auto-translated should be added to the completed list
-			// to avoid accidental triggering Translate Everything for them when a user changes mapping or translation engines,
-			// a∂nd they will become eligible for auto-translation.
 			$this->translateEverything->markLanguagesAsCompleted( $newLanguagesWhichCannotBeAutoTranslated );
 		} else {
-			/**
-			 * If a user has chosen not to translate existing content, we should mark all languages as completed regardless of whether they can be auto-translated or not.
-			 */
 			$this->translateEverything->markLanguagesAsCompleted( $newLanguages );
 		}
 

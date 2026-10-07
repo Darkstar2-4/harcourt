@@ -2,18 +2,11 @@
 
 abstract class WPML_TM_Word_Count_Background_Process extends WP_Background_Process {
 
-	/** @var IWPML_TM_Word_Count_Queue_Items $queue */
 	protected $queue;
 
-	/** @var IWPML_TM_Word_Count_Set[] $setters */
 	private $setters;
 
-	/**
-	 * @param IWPML_TM_Word_Count_Queue_Items $queue
-	 * @param IWPML_TM_Word_Count_Set[]       $setters
-	 */
 	public function __construct( IWPML_TM_Word_Count_Queue_Items $queue, array $setters ) {
-		/** We need to set the prefix and the identifier before constructing the parent class `WP_Async_Request` */
 		$this->prefix = WPML_TM_Word_Count_Background_Process_Factory::PREFIX;
 		$this->action = WPML_TM_Word_Count_Background_Process_Factory::ACTION_REQUESTED_TYPES;
 
@@ -23,9 +16,6 @@ abstract class WPML_TM_Word_Count_Background_Process extends WP_Background_Proce
 		$this->setters = $setters;
 	}
 
-	/**
-	 * This abstract method is not implemented because we override the `handle` method.
-	 */
 	protected function task( $item ) {}
 
 	protected function handle() {

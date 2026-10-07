@@ -14,14 +14,8 @@ class WPML_TM_Emails_Settings {
 	const JOB_LIMITS_15           = 15;
 	const JOB_LIMITS_20           = 20;
 
-	/**
-	 * @var IWPML_Template_Service
-	 */
 	private $template_service;
 
-	/**
-	 * @var array
-	 */
 	private $tm;
 
 	public function __construct( IWPML_Template_Service $template_service, TranslationManagement $tm ) {
@@ -43,9 +37,9 @@ class WPML_TM_Emails_Settings {
 			'strings'  => array(
 				'section_title_translator' => __( 'Notification emails to translators', 'wpml-translation-management' ),
 				'label_new_job'            => __( 'Notify translators when new jobs are waiting for them', 'wpml-translation-management' ),
-				'label_job_limits'         => __( 'Limit number of jobs included in the email to', 'wpml-translation-management' ),
+				'label_job_limits'         => __( 'Limit number of jobs included in the email to', 'sitepress' ),
 				'label_include_xliff'      => __( 'Include XLIFF files in the notification emails', 'wpml-translation-management' ),
-				'label_resigned_job'       => __( 'Notify translators when jobs are removed from their queue', 'wpml-translation-management' ),
+				'label_resigned_job'       => __( 'Notify translators when jobs are removed from their queue', 'sitepress' ),
 				'section_title_manager'    => __( 'Notification emails to the translation manager', 'wpml-translation-management' ),
 				'label_completed_job'      => esc_html__( 'Notify the translation manager when jobs are completed %s', 'wpml-translation-management' ),
 				'label_overdue_job'        => esc_html__( 'Notify the translation manager when jobs are late by %s days', 'wpml-translation-management' ),
@@ -91,7 +85,7 @@ class WPML_TM_Emails_Settings {
 				'job_limits' => array(
 					'options' => array(
 						array(
-							'label'   => __( 'Send all', 'wpml-translation-management' ),
+							'label'   => __( 'Send all', 'sitepress' ),
 							'value'   => self::JOB_LIMITS_ALL,
 							'checked' => selected( self::JOB_LIMITS_ALL, $this->tm->settings['notification'][ self::JOB_LIMITS ], false ),
 						),

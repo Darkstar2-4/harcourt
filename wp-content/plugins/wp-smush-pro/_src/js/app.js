@@ -30,23 +30,19 @@ if ( ! String.prototype.includes ) {
 	};
 }
 
-require( './modules/helpers' );
-require( './modules/admin' );
-require( './modules/admin-common' );
+// require( './modules/helpers' );
+// require( './modules/admin' );
+// require( './modules/admin-common' );
 require( './modules/bulk-smush' );
-require( './modules/nextgen-bulk' );
-require( './modules/background-process' );
-require( './common/media-library-scanner' );
-require( './modules/media-library-scanner-on-bulk-smush' );
-require( './modules/media-library-scanner-on-dashboard' );
-require( './modules/onboarding' );
-require( './modules/directory-smush' );
-require( './smush/cdn' );
-require( './smush/webp' );
-require( './smush/avif' );
-require( './smush/lazy-load' );
-require( './modules/bulk-restore' );
-require( './smush/settings' );
+// require( './common/media-library-scanner' );
+// require( './modules/media-library-scanner-on-bulk-smush' );
+// require( './modules/media-library-scanner-on-dashboard' );
+// require( './modules/onboarding' );
+// require( './modules/onboarding-free' );
+// require( './modules/directory-smush' );
+// require( './smush/lazy-load' );
+// require( './modules/bulk-restore' );
+// require( './smush/settings' );
 require( './smush/product-analytics' );
 
 /**
@@ -60,4 +56,4 @@ require( './smush/product-analytics' );
  *
  * TODO: should this be moved out in a separate file like common.scss?
  */
-require( './modules/notice' );
+// require( './modules/notice' );

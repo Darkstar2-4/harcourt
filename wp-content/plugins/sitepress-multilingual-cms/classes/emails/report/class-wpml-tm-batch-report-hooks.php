@@ -1,26 +1,11 @@
 <?php
 
-/**
- * Class WPML_TM_Notification_Batch_Hooks
- */
 class WPML_TM_Batch_Report_Hooks {
 
-	/**
-	 * @var WPML_TM_Batch_Report
-	 */
 	private $batch_report;
 
-	/**
-	 * @var WPML_TM_Batch_Report_Email_Process
-	 */
 	private $email_process;
 
-	/**
-	 * WPML_TM_Batch_Report_Hooks constructor.
-	 *
-	 * @param WPML_TM_Batch_Report $batch_report
-	 * @param WPML_TM_Batch_Report_Email_Process $email_process
-	 */
 	public function __construct(
 		WPML_TM_Batch_Report $batch_report,
 		WPML_TM_Batch_Report_Email_Process $email_process
@@ -44,9 +29,6 @@ class WPML_TM_Batch_Report_Hooks {
 		}
 	}
 
-	/**
-	 * @param WPML_Translation_Job $job
-	 */
 	public function set_job_with_delay( $job ) {
 		if ( $job instanceof WPML_Translation_Job ) {
 			$this->batch_report->set_job_with_delay( $job );

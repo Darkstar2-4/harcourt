@@ -4,11 +4,7 @@ namespace WPML\UrlHandling;
 
 class WPLoginUrlConverterFactory implements \IWPML_Frontend_Action_Loader, \IWPML_Backend_Action_Loader {
 
-	/**
-	 * @return array
-	 */
 	public function create() {
-		/** @var \WPML_URL_Converter $wpml_url_converter */
 		global $wpml_url_converter, $sitepress;
 
 		$rules = new WPLoginUrlConverterRules();

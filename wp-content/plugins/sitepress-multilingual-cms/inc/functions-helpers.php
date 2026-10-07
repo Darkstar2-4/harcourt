@@ -6,14 +6,6 @@ if ( ! function_exists( 'object_to_array' ) ) {
 }
 
 if ( ! function_exists( 'wpml_get_admin_url' ) ) {
-	/**
-	 * A more helpful version of `admin_url`
-	 * Is not called it `wpml_admin_url` because there is already a class with the same name
-	 *
-	 * @param array $args
-	 *
-	 * @return string
-	 */
 	function wpml_get_admin_url( array $args = array() ) {
 		if ( ! $args ) {
 			return admin_url();

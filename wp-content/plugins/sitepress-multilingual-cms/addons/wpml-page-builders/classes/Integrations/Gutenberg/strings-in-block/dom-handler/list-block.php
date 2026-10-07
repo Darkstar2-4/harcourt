@@ -4,12 +4,6 @@ namespace WPML\PB\Gutenberg\StringsInBlock\DOMHandler;
 
 class ListBlock extends DOMHandle {
 
-	/**
-	 * @param \DOMNode $element
-	 * @param string   $context
-	 *
-	 * @return string
-	 */
 	protected function getInnerHTMLFromChildNodes( \DOMNode $element, $context ) {
 		$innerHTML  = "";
 		$is_partial = self::INNER_HTML_PARTIAL === $context;
@@ -30,10 +24,6 @@ class ListBlock extends DOMHandle {
 		return $innerHTML;
 	}
 
-	/**
-	 * @param \DOMNode $clone
-	 * @param \DOMNode $element
-	 */
 	protected function appendExtraChildNodes( \DOMNode $clone, \DOMNode $element ) {
 		$child_list = $this->getChildList( $element );
 
@@ -42,11 +32,6 @@ class ListBlock extends DOMHandle {
 		}
 	}
 
-	/**
-	 * @param \DOMNode $node
-	 *
-	 * @return \DOMNode|null
-	 */
 	private function getChildList( \DOMNode $node ) {
 		foreach ( $node->childNodes as $child_node ) {
 			if ( $this->isListNode( $child_node ) ) {
@@ -57,11 +42,6 @@ class ListBlock extends DOMHandle {
 		return null;
 	}
 
-	/**
-	 * @param \DOMNode $node
-	 *
-	 * @return bool
-	 */
 	private function isListNode( \DOMNode $node ) {
 		return isset( $node->tagName ) && in_array( $node->tagName, [ 'ul', 'ol' ], true );
 	}

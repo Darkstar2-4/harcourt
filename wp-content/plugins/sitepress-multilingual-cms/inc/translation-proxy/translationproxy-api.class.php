@@ -1,11 +1,6 @@
 <?php
-/**
- * @package    wpml-core
- * @subpackage wpml-core
- */
 
 if( class_exists( 'TranslationProxy_Api' ) ) {
-	// Workaround for UnitTests.
 	return;
 }
 
@@ -78,16 +73,8 @@ class TranslationProxy_Api {
 }
 
 if ( ! function_exists( 'gzdecode' ) ) {
-	/**
-	 * Inflates a string enriched with gzip headers. Counterpart to gzencode().
-	 * Extracted from upgradephp
-	 * http://include-once.org/p/upgradephp/
-	 *
-	 * officially available by default in php @since 5.4.
-	 */
 	function gzdecode( $gzdata, $maxlen = null ) {
 
-		// -- decode header
 		$len = strlen( $gzdata );
 		if ( $len < 20 ) {
 			return;
@@ -113,20 +100,17 @@ if ( ! function_exists( 'gzdecode' ) ) {
 
 		list( $CRC32, $ISIZE ) = array_values( $head );
 
-		// -- check gzip stream identifier
 		if ( $ID != 0x1f8b ) {
 			trigger_error( 'gzdecode: not in gzip format', E_USER_WARNING );
 
 			return;
 		}
-		// -- check for deflate algorithm
 		if ( $CM != 8 ) {
 			trigger_error( 'gzdecode: cannot decode anything but deflated streams', E_USER_WARNING );
 
 			return;
 		}
 
-		// -- start of data, skip bonus fields
 		$s = 10;
 		if ( $FLG & $FEXTRA ) {
 			$s += $XFL;
@@ -138,20 +122,18 @@ if ( ! function_exists( 'gzdecode' ) ) {
 			$s = strpos( $gzdata, "\000", $s ) + 1;
 		}
 		if ( $FLG & $FHCRC ) {
-			$s += 2; // cannot check
+			$s += 2;
 		}
 
-		// -- get data, uncompress
 		$gzdata = substr( $gzdata, $s, $len - $s );
 		if ( $maxlen ) {
 			$gzdata = gzinflate( $gzdata, $maxlen );
 
-			return ( $gzdata ); // no checks(?!)
+			return ( $gzdata );
 		} else {
 			$gzdata = gzinflate( $gzdata );
 		}
 
-		// -- check+fin
 		$chk = crc32( (string) $gzdata );
 		if ( $CRC32 != $chk ) {
 			trigger_error( "gzdecode: checksum failed (real$chk != comp$CRC32)", E_USER_WARNING );

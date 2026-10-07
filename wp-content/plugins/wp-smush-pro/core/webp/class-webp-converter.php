@@ -2,29 +2,27 @@
 
 namespace Smush\Core\Webp;
 
-use Smush\Core\Settings;
-use Smush\Core\Smush\Smush_Request_Guzzle_Multiple;
-use Smush\Core\Smush\Smush_Request_WP_Sequential;
 use Smush\Core\Smush\Smusher;
+use Smush\Core\Smush\Smusher_Options;
 
 class Webp_Converter extends Smusher {
 	/**
 	 * @var Webp_Helper
 	 */
 	private $webp_helper;
-	/**
-	 * @var Settings
-	 */
-	private $settings;
 
-	public function __construct() {
-		parent::__construct();
+	public function __construct( $options ) {
+		$original_extra_headers = $options->get_extra_headers() ?? array();
+		$new_extra_headers      = array_merge(
+			$original_extra_headers,
+			array( 'webp' => 'true' )
+		);
+
+		$options->set_extra_headers( $new_extra_headers );
+
+		parent::__construct( $options );
 
 		$this->webp_helper = new Webp_Helper();
-		$this->settings    = Settings::get_instance();
-
-		$this->set_request_multiple( new Smush_Request_Guzzle_Multiple( $this->settings->streaming_enabled(), array( 'webp' => 'true' ) ) );
-		$this->set_request_sequential( new Smush_Request_WP_Sequential( $this->settings->streaming_enabled(), array( 'webp' => 'true' ) ) );
 	}
 
 	protected function save_smushed_image_file( $file_path, $image ) {

@@ -1,45 +1,19 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_XLIFF {
-	/** @var DOMElement */
 	private $body;
-	/** @var DOMDocument */
 	private $dom;
-	/** @var DOMDocumentType */
 	private $dtd;
-	/** @var DOMElement */
 	private $file;
-	/** @var DOMElement */
 	private $file_header;
-	/** @var DOMElement */
 	private $file_reference;
-	/** @var DOMElement */
 	private $phase_group;
-	/** @var DOMElement */
 	private $root;
-	/** @var array */
 	private $trans_units;
-	/** @var string */
 	private $xliff_version;
 
-	/**
-	 * A custom schema to recognize the tool:source-language-domain and tool:target-language-domain attributes in the <file> tag
-	 * without invalidating the XLIFF file.
-	 *
-	 * @var string
-	 */
 	const XLIFF_CUSTOM_ATTRIBUTES_NAMESPACE = 'https://cdn.wpml.org/xliff/custom-attributes.xsd';
 
-	/**
-	 * WPML_TM_XLIFF constructor.
-	 *
-	 * @param string $xliff_version
-	 * @param string $xml_version
-	 * @param string $xml_encoding
-	 */
 	public function __construct( $xliff_version = '1.2', $xml_version = '1.0', $xml_encoding = 'utf-8' ) {
 		$this->dom = new DOMDocument( $xml_version, $xml_encoding );
 
@@ -51,11 +25,6 @@ class WPML_TM_XLIFF {
 		$this->xliff_version = $xliff_version;
 	}
 
-	/**
-	 * @param array $attributes
-	 *
-	 * @return $this
-	 */
 	public function setFileAttributes( $attributes ) {
 		foreach ( $attributes as $name => $value ) {
 			$this->file->setAttribute( $name, is_null( $value ) ? '' : $value );
@@ -64,11 +33,6 @@ class WPML_TM_XLIFF {
 		return $this;
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return $this
-	 */
 	public function setPhaseGroup( array $args ) {
 		if ( $args ) {
 			$phase_items = array();
@@ -102,11 +66,6 @@ class WPML_TM_XLIFF {
 		return $this;
 	}
 
-	/**
-	 * @param array $references
-	 *
-	 * @return $this
-	 */
 	public function setReferences( array $references ) {
 		if ( $references ) {
 			foreach ( $references as $name => $value ) {
@@ -127,17 +86,8 @@ class WPML_TM_XLIFF {
 		return $this;
 	}
 
-	// phpcs:disable WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
 
-	/**
-	 * Set translation units for xliff.
-	 *
-	 * @param array $trans_units Translation units.
-	 *
-	 * @return $this
-	 */
 	public function setTranslationUnits( $trans_units ) {
-		// phpcs:enable
 		if ( $trans_units ) {
 			foreach ( $trans_units as $trans_unit ) {
 				$trans_unit_element = $this->dom->createElement( 'trans-unit' );
@@ -151,9 +101,7 @@ class WPML_TM_XLIFF {
 
 				if ( ! empty( $trans_unit['note']['content'] ) ) {
 					$note = $this->dom->createElement( 'note' );
-					// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					$note->nodeValue = 'wrap_tag:' . $trans_unit['note']['content'];
-					// phpcs:enable
 					$trans_unit_element->appendChild( $note );
 				}
 
@@ -172,11 +120,6 @@ class WPML_TM_XLIFF {
 		return $this;
 	}
 
-	/**
-	 * @param string     $type
-	 * @param array      $trans_unit
-	 * @param DOMElement $trans_unit_element
-	 */
 	private function appendData( $type, $trans_unit, $trans_unit_element ) {
 		if ( array_key_exists( $type, $trans_unit ) ) {
 			$source       = $this->dom->createElement( $type );
@@ -197,14 +140,6 @@ class WPML_TM_XLIFF {
 		}
 	}
 
-	/**
-	 * Validate content.
-	 *
-	 * @param string $datatype Type of content data.
-	 * @param string $content Content.
-	 *
-	 * @return string
-	 */
 	private function validate( $datatype, $content ) {
 		if ( 'html' === $datatype ) {
 			$validator = new WPML_TM_Validate_HTML();

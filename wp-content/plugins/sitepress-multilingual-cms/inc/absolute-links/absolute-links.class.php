@@ -5,16 +5,12 @@ use WPML\FP\Lst;
 use WPML\FP\Str;
 
 class AbsoluteLinks {
-	/** @var array */
 	public $custom_post_query_vars = [];
 
-	/** @var array */
 	public $taxonomies_query_vars = [];
 
-	/** @var array */
 	private $active_languages;
 
-	/** @var bool $query_vars_initialized */
 	private $query_vars_initialized = false;
 
 	public function init_query_vars() {
@@ -24,7 +20,6 @@ class AbsoluteLinks {
 			return;
 		}
 
-		// Custom posts query vars.
 		foreach ( $wp_post_types as $k => $v ) {
 			if ( 'post' === $k || 'page' === $k ) {
 				continue;
@@ -33,7 +28,6 @@ class AbsoluteLinks {
 				$this->custom_post_query_vars[ $k ] = $v->query_var;
 			}
 		}
-		// Taxonomies query vars.
 		foreach ( $wp_taxonomies as $k => $v ) {
 			if ( 'category' === $k ) {
 				continue;
@@ -50,54 +44,31 @@ class AbsoluteLinks {
 		$this->query_vars_initialized = true;
 	}
 
-	/**
-	 * AbsoluteLinks only converts links in the html href="" attribute.
-	 * See private function get_links( $text ).
-	 *
-	 * @param string $text
-	 *
-	 * @return bool
-     */
 	public static function has_href_attribute( $text ) {
 		if ( is_null( $text ) ) {
 			return false;
 		}
 
-		// > 1 because if the $text starts with a link there must be at least
-		// '<a' before the ' href=', otherwise it's not a link.
 		return strpos( $text, ' href=' ) > 1;
 	}
 
-	/**
-	 * Check if there are href links outside blocks.
-	 *
-	 * @param string $text
-	 */
 	public static function has_href_attribute_outside_blocks( $text ) {
-		// Do the very light check first.
 		if ( ! self::has_href_attribute( $text ) ) {
 			return false;
 		}
 
-		// There are href links... check if they are inside blocks.
-		// A block always starts with <!-- so we can do a light check first.
 		if ( strpos( $text, '<!-- ' ) === false ) {
-			// No blocks at all, so the links are outside blocks.
 			return true;
 		}
 
-		// There are blocks, so we need to check if the links are inside them.
-		// Replace all blocks with a placeholder.
 		$block_protector     = new \WPML\AbsoluteLinks\BlockProtector();
 		$text_without_blocks = $block_protector->protect( $text );
 
-		// Return result of having an href outside blocks.
 		return self::has_href_attribute( $text_without_blocks );
 	}
 
-	public function _process_generic_text( $source_text, &$alp_broken_links, $ignore_blocks = true, CollectorInterface $collector = null ) {
+	public function _process_generic_text( $source_text, &$alp_broken_links, $ignore_blocks = true, ?CollectorInterface $collector = null ) {
 		if ( ! self::has_href_attribute( $source_text ) ) {
-			// Abort as early as possible if there are no links in the text.
 			return $source_text;
 		}
 
@@ -132,19 +103,15 @@ class AbsoluteLinks {
 			$block_protector = new \WPML\AbsoluteLinks\BlockProtector();
 			$text = $block_protector->protect( $source_text );
 
-			// Do another check for href attribute after blocks were "erased".
 			if ( ! self::has_href_attribute( $source_text ) ) {
-				// Set the cache, so the next time the block protector will not be called.
 				WPML_Non_Persistent_Cache::set( $cache_key, $source_text, $cache_group );
 
-				// No links to handle, return the original text.
 				return $source_text;
 			}
 		} else {
 			$text = $source_text;
 		}
 
-		// We need to loop over each language so we create sticky links for all languages.
 		$this->active_languages = array_keys( $sitepress->get_active_languages() );
 		$current_language       = empty( $filtered_icl_post_language ) ? $current_language : $filtered_icl_post_language;
 		if ( ! empty( $current_language ) ) {
@@ -164,7 +131,7 @@ class AbsoluteLinks {
 
 			$home_url = $sitepress->language_url( $test_language );
 
-			if ( 3 === $sitepress_settings['language_negotiation_type'] ) {
+			if ( WPML_LANGUAGE_NEGOTIATION_TYPE_PARAMETER === (int) $sitepress_settings['language_negotiation_type'] ) {
 				$home_url = preg_replace( '#\?lang=([a-z-]+)#i', '', $home_url );
 			}
 			$home_url = str_replace( '?', '\?', $home_url );
@@ -173,11 +140,14 @@ class AbsoluteLinks {
 				$home_url = $this->get_home_url_with_no_lang_directory( $home_url );
 			}
 
-			$int1 = preg_match_all( '@<a([^>]*)href="((' . rtrim( $home_url, '/' ) . ')?/([^"^>^\[^\]]+))"([^>]*)>@i', $text, $alp_matches1 );
-			$int2 = preg_match_all( '@<a([^>]*)href=\'((' . rtrim( $home_url, '/' ) . ')?/([^\'^>^\[^\]]+))\'([^>]*)>@i', $text, $alp_matches2 );
+			$site_domain    = $this->get_url_without_scheme( $home_url );
+			$domain_pattern = WPML_Same_Site_Url_Normalizer::get_domain_regex_pattern( $site_domain );
+
+			$int1 = preg_match_all( '@<a([^>]*)href="((https?://' . $domain_pattern . ')?/([^"^>^\[^\]]+))"([^>]*)>@i', $text, $alp_matches1 );
+			$int2 = preg_match_all( '@<a([^>]*)href=\'((https?://' . $domain_pattern . ')?/([^\'^>^\[^\]]+))\'([^>]*)>@i', $text, $alp_matches2 );
 
 			$alp_matches = [];
-			for ( $i = 0; $i < 6; $i ++ ) {
+			for ( $i = 0; $i < 6; $i++ ) {
 				$alp_matches[ $i ] = array_merge( (array) $alp_matches1[ $i ], (array) $alp_matches2[ $i ] );
 			}
 
@@ -186,7 +156,7 @@ class AbsoluteLinks {
 				$url_parts         = wp_parse_url( $this->get_home_url_with_no_lang_directory() );
 				$url_parts['path'] = isset( $url_parts['path'] ) ? $url_parts['path'] : '';
 				foreach ( $alp_matches[4] as $k => $dir_path ) {
-					if ( 0 === strpos( $dir_path, WP_CONTENT_DIR ) ) {
+					if ( $this->is_content_directory_path( $dir_path ) ) {
 						continue;
 					}
 
@@ -199,7 +169,6 @@ class AbsoluteLinks {
 					if ( isset( $req_uri_array[1] ) ) {
 						$req_uri_params = $req_uri_array[1];
 					}
-					// Separate anchor.
 					$req_uri_array = explode( '#', $req_uri );
 					$req_uri       = $req_uri_array[0];
 
@@ -231,7 +200,6 @@ class AbsoluteLinks {
 					if ( ! empty( $pathinfo ) && ! preg_match( '|^.*' . $wp_rewrite->index . '$|', $pathinfo ) ) {
 						$request = $pathinfo;
 					} else {
-						// If the request uri is the index, blank it out so that we don't try to match it against a rule.
 						if ( $req_uri === $wp_rewrite->index ) {
 							$req_uri = '';
 						}
@@ -247,23 +215,19 @@ class AbsoluteLinks {
 					$permalink_query_vars = [];
 
 					foreach ( (array) $rewrite as $match => $query ) {
-						// If the requesting file is the anchor of the match, prepend it to the path info.
 						if ( ( ! empty( $req_uri ) ) && ( strpos( $match, $req_uri ) === 0 ) && ( $req_uri !== $request ) ) {
 							$request_match = $req_uri . '/' . $request;
 						}
 
 						if ( preg_match( "#^$match#", $request_match, $matches ) || preg_match( "#^$match#", urldecode( $request_match ), $matches ) ) {
-							// Got a match.
 
-							// Trim the query of everything up to the '?'.
 							$query = preg_replace( '!^.+\?!', '', $query );
 
-							// Substitute the substring matches into the query.
 							$query = addslashes( WP_MatchesMapRegex::apply( $query, $matches ) );
 
-							// Parse the query.
 							parse_str( $query, $permalink_query_vars );
 
+							$permalink_query_vars = apply_filters( 'wpml_absolute_links_permalink_query_vars', $permalink_query_vars, $query, $test_language );
 							break;
 						}
 					}
@@ -272,9 +236,9 @@ class AbsoluteLinks {
 					$category_name = false;
 					$tax_name      = false;
 
-					if ( isset( $permalink_query_vars['page'] ) && ! empty( $permalink_query_vars['page'] ) ) { // Case /%WPtag%/%post_id%/.
+					if ( isset( $permalink_query_vars['page'] ) && ! empty( $permalink_query_vars['page'] ) ) {
 						list( $post_type, $post_name ) = $this->get_post_type_and_name_from_post_id( $permalink_query_vars['page'] );
-					} elseif ( isset( $permalink_query_vars['p'] ) && ! empty( $permalink_query_vars['p'] ) ) { // Case or /archives/%post_id.
+					} elseif ( isset( $permalink_query_vars['p'] ) && ! empty( $permalink_query_vars['p'] ) ) {
 						list( $post_type, $post_name ) = $this->get_post_type_and_name_from_post_id( $permalink_query_vars['p'] );
 					} elseif ( isset( $permalink_query_vars['pagename'] ) ) {
 						$get_page_by_path = new WPML_Get_Page_By_Path( $wpdb, $sitepress, new WPML_Debug_BackTrace( null, 7 ) );
@@ -283,7 +247,6 @@ class AbsoluteLinks {
 						$permalink_query_vars['pagename'] = $this->maybe_extract_page_name( $permalink_query_vars['pagename'], $sitepress_settings, $wp_rewrite );
 						$page_by_path                     = $get_page_by_path->get( $permalink_query_vars['pagename'], $test_language );
 
-						// Try one more time with the original page name, for the hierarchical case.
 						if ( ! $page_by_path ) {
 							$page_by_path = $get_page_by_path->get( $original_page_name, $test_language );
 						}
@@ -321,7 +284,7 @@ class AbsoluteLinks {
 						$get_page_by_path = new WPML_Get_Page_By_Path( $wpdb, $sitepress, new WPML_Debug_BackTrace( null, 7 ) );
 						$p                = $get_page_by_path->get( $post_name, $test_language, OBJECT, $post_type );
 
-						if ( empty( $p ) ) { // Fail safe.
+						if ( empty( $p ) ) {
 							$switchLang = new WPML_Temporary_Switch_Language( $sitepress, $test_language );
 							remove_filter( 'url_to_postid', array( $sitepress, 'url_to_postid' ) );
 							$post_id = url_to_postid( $home_path . '/' . $post_name );
@@ -342,7 +305,7 @@ class AbsoluteLinks {
 									$sitepress_settings['language_negotiation_type'],
 									$lang,
 									$dir_path,
-									$home_url,
+									$site_domain,
 									$anchor_output
 								);
 							} elseif ( ! $this->is_pagination_in_post( $dir_path, $post_name ) ) {
@@ -356,7 +319,7 @@ class AbsoluteLinks {
 									$sitepress_settings['language_negotiation_type'],
 									$lang,
 									$dir_path,
-									$home_url,
+									$site_domain,
 									$url_parts,
 									$req_uri_params,
 									$anchor_output
@@ -402,7 +365,7 @@ class AbsoluteLinks {
 								$sitepress_settings['language_negotiation_type'],
 								$lang,
 								$dir_path,
-								$home_url,
+								$site_domain,
 								$url_parts,
 								$req_uri_params,
 								$anchor_output
@@ -438,7 +401,7 @@ class AbsoluteLinks {
 							$sitepress_settings['language_negotiation_type'],
 							$lang,
 							$dir_path,
-							$home_url,
+							$site_domain,
 							$url_parts,
 							$req_uri_params,
 							$anchor_output
@@ -451,11 +414,18 @@ class AbsoluteLinks {
 				}
 
 				$tx_qvs   = ! empty( $this->taxonomies_query_vars ) && is_array( $this->taxonomies_query_vars ) ? '|' . join( '|', $this->taxonomies_query_vars ) : '';
-				$post_qvs = ! empty( $this->custom_posts_query_vars ) && is_array( $this->custom_posts_query_vars ) ? '|' . join( '|', $this->custom_posts_query_vars ) : '';
-				$int      = preg_match_all( '@href=[\'"](' . rtrim( get_home_url(), '/' ) . '/?\?(p|page_id' . $tx_qvs . $post_qvs . ')=([0-9a-z-]+)(#.+)?)[\'"]@i', $text, $matches2 );
+				$post_qvs = ! empty( $this->custom_post_query_vars ) && is_array( $this->custom_post_query_vars ) 
+					? '|' . join( '|', $this->custom_post_query_vars ) 
+					: '';
+				$home_domain         = $this->get_url_without_scheme( get_home_url() );
+				$home_domain_pattern = WPML_Same_Site_Url_Normalizer::get_domain_regex_pattern( $home_domain );
+				$int = preg_match_all(
+					'@href=[\'"](https?://' . $home_domain_pattern . '/?\?(p|page_id' . $tx_qvs . $post_qvs . ')=([0-9a-z-]+)(#.+)?)[\'"]@i',
+					$text, $matches2
+				);
 				if ( $int ) {
 					$url_parts = wp_parse_url( rtrim( get_home_url(), '/' ) . '/' );
-					$text      = preg_replace( '@href=[\'"](' . rtrim( get_home_url(), '/' ) . '/?\?(p|page_id' . $tx_qvs . $post_qvs . ')=([0-9a-z-]+)(#.+)?)[\'"]@i', 'href="/' . ltrim( $url_parts['path'], '/' ) . '?$2=$3$4"', $text );
+					$text      = preg_replace( '@href=[\'"](https?://' . $home_domain_pattern . '/?\?(p|page_id' . $tx_qvs . $post_qvs . ')=([0-9a-z-]+)(#.+)?)[\'"]@i', 'href="/' . ltrim( $url_parts['path'], '/' ) . '?$2=$3$4"', $text );
 				}
 			}
 		}
@@ -480,7 +450,6 @@ class AbsoluteLinks {
 		}
 
 		if ( WPML_LANGUAGE_NEGOTIATION_TYPE_DIRECTORY === (int) $sitepress_settings['language_negotiation_type'] ) {
-			// Strip lang directory from end if it's there.
 			$exp  = explode( '/', $home_url );
 			$lang = end( $exp );
 
@@ -494,6 +463,12 @@ class AbsoluteLinks {
 
 	private function does_lang_exist( $lang ) {
 		return in_array( $lang, $this->active_languages, true );
+	}
+
+	private function is_content_directory_path( $path ) {
+		$wp_content_path = wp_parse_url( WP_CONTENT_URL, PHP_URL_PATH );
+
+		return $wp_content_path && 0 === strpos( '/' . $path, $wp_content_path );
 	}
 
 	public function _get_ids_and_post_types( $name ) {
@@ -520,7 +495,6 @@ class AbsoluteLinks {
 
 		if ( ! isset( $wp_rewrite ) ) {
 			require_once ABSPATH . WPINC . '/rewrite.php';
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$wp_rewrite = new WP_Rewrite();
 		}
 
@@ -589,7 +563,6 @@ class AbsoluteLinks {
 		WPML_Non_Persistent_Cache::set( $cache_key, $final_rules, $cache_group );
 
 		return $final_rules;
-
 	}
 
 	private function get_regex_replacement(
@@ -599,7 +572,7 @@ class AbsoluteLinks {
 		$lang_negotiation,
 		$lang,
 		$dir_path,
-		$home_url,
+		$site_domain,
 		$url_parts,
 		$req_uri_params,
 		$anchor_output
@@ -612,9 +585,11 @@ class AbsoluteLinks {
 		} else {
 			$langprefix = '';
 		}
-		$perm_url = '(' . rtrim( $home_url, '/' ) . ')?' . $langprefix . '/' . str_replace( '?', '\?', $dir_path );
-		$regk     = '@href=[\'"](' . self::escapePlusSign( $perm_url ) . ')[\'"]@i';
-		$regv     = 'href="/' . ltrim( $url_parts['path'], '/' ) . '?' . $type . '=' . $type_id;
+		$domain_pattern = WPML_Same_Site_Url_Normalizer::get_domain_regex_pattern( $site_domain );
+		$perm_url  = '(https?://' . $domain_pattern . ')?';
+		$perm_url .= $langprefix . '/' . str_replace( '?', '\?', $dir_path );
+		$regk      = '@href=[\'"](' . self::escapePlusSign( $perm_url ) . ')[\'"]@i';
+		$regv      = 'href="/' . ltrim( $url_parts['path'], '/' ) . '?' . $type . '=' . $type_id;
 		if ( '' !== $req_uri_params ) {
 			$regv .= '&' . $req_uri_params;
 		}
@@ -625,20 +600,6 @@ class AbsoluteLinks {
 		return $def_url;
 	}
 
-	/**
-	 * Split parent/child term slug and get only the last part.
-	 *
-	 * @see https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-7036
-	 *
-	 * If $typeId is a child term of some taxonomy, then it comes here as `parent/child'
-	 * in next stages WordPress will use it in url like `?category=parent/child` and will try to resolve
-	 * what category has slug `parent/child'. WordPress must actually try to find just `child` so the code
-	 * below gets only last part of slash containing $typeId
-	 *
-	 * @param string $typeId Type slug.
-	 *
-	 * @return string
-	 */
 	private function maybeStripParentTerm( $typeId ) {
 		return Lst::nth( -1, Str::split( '/', $typeId ) );
 	}
@@ -649,7 +610,7 @@ class AbsoluteLinks {
 		$lang_negotiation,
 		$lang,
 		$dir_path,
-		$home_url,
+		$site_domain,
 		$anchor_output
 	) {
 		if ( WPML_LANGUAGE_NEGOTIATION_TYPE_DIRECTORY === (int) $lang_negotiation && $lang ) {
@@ -657,20 +618,17 @@ class AbsoluteLinks {
 		} else {
 			$langprefix = '';
 		}
-		$perm_url = '(' . rtrim( $home_url, '/' ) . ')?' . $langprefix . '/' . str_replace( '?', '\?', $dir_path );
-		$regk     = '@href=["\'](' . self::escapePlusSign( $perm_url ) . ')["\']@i';
-		$regv     = 'href="' . $offsite_url . $anchor_output . '"';
+		$domain_pattern = WPML_Same_Site_Url_Normalizer::get_domain_regex_pattern( $site_domain );
+		$perm_url  = '(https?://' . $domain_pattern . ')?';
+		$perm_url .= $langprefix . '/' . str_replace( '?', '\?', $dir_path );
+		$regk      = '@href=["\'](' . self::escapePlusSign( $perm_url ) . ')["\']@i';
+		$regv      = 'href="' . $offsite_url . $anchor_output . '"';
 
 		$def_url[ $regk ] = $regv;
 
 		return $def_url;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	private static function escapePlusSign( $url ) {
 		return str_replace( '+', '\+', $url );
 	}
@@ -737,13 +695,17 @@ class AbsoluteLinks {
 		$sitepress->switch_lang( $current_language );
 
 		if ( $post_content !== $post->post_content ) {
-			$wpdb->update( $wpdb->posts, [ 'post_content' => $post_content ], [ 'ID' => $post_id ] );
+			$updated = $wpdb->update( $wpdb->posts, [ 'post_content' => $post_content ], [ 'ID' => $post_id ] );
+
+			if ( false !== $updated ) {
+				clean_post_cache( $post_id );
+			}
 		}
 
 		update_post_meta( $post_id, '_alp_processed', time() );
 	}
 
-	public function convert_text( $text, $ignore_blocks = true, CollectorInterface $collector = null ) {
+	public function convert_text( $text, $ignore_blocks = true, ?CollectorInterface $collector = null ) {
 		$alp_broken_links = [];
 
 		return $this->_process_generic_text( $text, $alp_broken_links, $ignore_blocks, $collector );
@@ -765,43 +727,27 @@ class AbsoluteLinks {
 	}
 
 	public function is_home( $url ) {
-		return untrailingslashit( get_home_url() ) === untrailingslashit( $url );
+		if ( preg_match( '/^https?:\/\//', $url ) !== 1 ) {
+			return false;
+		}
+
+		$exact_match = $this->get_url_without_scheme( get_home_url() ) === $this->get_url_without_scheme( $url );
+		if ( $exact_match ) {
+			return true;
+		}
+		return WPML_Same_Site_Url_Normalizer::is_home_url( $url );
 	}
 
-	/**
-	 * Check if the link is the pagination inside the post.
-	 *
-	 * @param string $url
-	 * @param string $post_name
-	 *
-	 * @return bool
-	 */
 	private function is_pagination_in_post( $url, $post_name ) {
 		$is_pagination_url_in_post = false !== mb_strpos( $url, $post_name . '/page/' );
 
-		/**
-		 * Check if the given URL is the pagination inside the post.
-		 *
-		 * @param bool $is_pagination_url_in_post
-		 * @param string $url
-		 * @param string $post_name
-		 */
 		return apply_filters( 'wpml_is_pagination_url_in_post', $is_pagination_url_in_post, $url, $post_name );
 	}
 
 	private function maybe_extract_page_name( $page_name, $sitepress_settings, $wp_rewrite ) {
-		/**
-		 * Get the page name (slug) from the given page name:
-		 *  - test/post-slug
-		 *  - 2025/06/post-slug
-		 *  - post-slug/2025/06
-		 *  - post-slug/category/2025/06
-		 */
 		if ( strpos( $page_name, '/' ) !== false ) {
 			$page_name_elements = explode( '/', $page_name );
 
-			// Get the position of %postname% or %post_id% tag from the permalink structure
-			// then get the page name from the page name elements based on the position.
 			$permalink_structure          = trim( $wp_rewrite->permalink_structure, '/' );
 			$permalink_structure_elements = explode( '/', $permalink_structure );
 
@@ -823,9 +769,6 @@ class AbsoluteLinks {
 			}
 		}
 
-		/**
-		 * Use a filter hook if the user uses a custom rewrite structure.
-		 */
 		return apply_filters( 'wpml_maybe_extract_page_name', $page_name, $sitepress_settings, $wp_rewrite );
 	}
 
@@ -835,5 +778,9 @@ class AbsoluteLinks {
 			$wpdb->prepare( "SELECT post_type, post_name FROM {$wpdb->posts} WHERE id=%d", $post_id ),
 			ARRAY_N
 		);
+	}
+
+	private function get_url_without_scheme( string $url ): string {
+		return rtrim( preg_replace( '/^https?:\/\//', '', $url ), '/' );
 	}
 }

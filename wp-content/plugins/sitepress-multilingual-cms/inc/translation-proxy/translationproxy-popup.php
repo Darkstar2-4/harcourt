@@ -7,7 +7,6 @@ $target         = filter_input( INPUT_GET, 'target', FILTER_SANITIZE_FULL_SPECIA
 $auto_resize    = filter_input( INPUT_GET, 'auto_resize', FILTER_VALIDATE_BOOLEAN | FILTER_NULL_ON_FAILURE  );
 $unload_cb      = filter_input( INPUT_GET, 'unload_cb', FILTER_SANITIZE_FULL_SPECIAL_CHARS | FILTER_NULL_ON_FAILURE  );
 
-// Adding a translator
 if ( preg_match( '|^@select-translators;([^;]+);([^;]+)@|', $target, $matches ) ) {
 	$source_language = $matches[1];
 	$target_language = $matches[2];

@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "sv"
+            "lang": "sv_SE"
          },
          "Your site now meets WPML's minimum requirements": [
             "Din webbplats uppfyller nu WPML:s minimikrav"
          ],
          "Start WPML Setup": [
-            "Starta WPML-konfigurationen"
+            "Starta WPML-installation"
          ],
          "Need Help?": [
             "Behöver du hjälp?"
@@ -20,16 +20,16 @@
             "Kontakta vårt supportteam"
          ],
          " and we'll guide you through it step by step.": [
-            " så guidar vi dig genom processen steg för steg."
+            " så guidar vi dig steg för steg."
          ],
          "Your site doesn't meet WPML's minimum requirements": [
             "Din webbplats uppfyller inte WPML:s minimikrav"
          ],
          "Ensure your site runs smoothly with WPML by meeting these simple minimum requirements.": [
-            "Säkerställ att din webbplats fungerar smidigt med WPML genom att uppfylla dessa enkla minimikrav."
+            "Se till att din webbplats fungerar smidigt med WPML genom att uppfylla dessa enkla minimikrav."
          ],
          "Re-check Now": [
-            "Kontrollera igen"
+            "Kontrollera igen nu"
          ],
          "Skip for now": [
             "Hoppa över för nu"

@@ -1,9 +1,4 @@
 <?php
-/**
- * WPML_Upgrade_Loader class file.
- *
- * @package WPML
- */
 
 use WPML\Upgrade\Commands\AddContextIndexToStrings;
 use WPML\Upgrade\Commands\AddStatusIndexToStringTranslations;
@@ -25,58 +20,23 @@ use WPML\Upgrade\Commands\RemoveTmWcmlPromotionNotice;
 use WPML\TM\Upgrade\Commands\SetCorrectTranslateEverythingState;
 use WPML\TM\Upgrade\Commands\MigrateTranslateEverythingCompletedOption;
 use WPML\TM\Upgrade\Commands\EnableHandleMediaAutoOptionForNewInstalls;
+use WPML\TM\Upgrade\Commands\CreateUnsolvableJobsTable;
+use WPML\TM\Upgrade\Commands\ValidateAliasDomain;
 
-/**
- * Class WPML_Upgrade_Loader
- */
 class WPML_Upgrade_Loader implements IWPML_Action {
 
 	const TRANSIENT_UPGRADE_IN_PROGRESS = 'wpml_core_update_in_progress';
 
-	/**
-	 * SitePress instance.
-	 *
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * Upgrade Schema instance.
-	 *
-	 * @var WPML_Upgrade_Schema
-	 */
 	private $upgrade_schema;
 
-	/**
-	 * Settings Helper instance.
-	 *
-	 * @var WPML_Settings_Helper
-	 */
 	private $settings;
 
-	/**
-	 * Upgrade Command Factory instance.
-	 *
-	 * @var WPML_Upgrade_Command_Factory
-	 */
 	private $factory;
 
-	/**
-	 * Notices instance.
-	 *
-	 * @var WPML_Notices
-	 */
 	private $notices;
 
-	/**
-	 * WPML_Upgrade_Loader constructor.
-	 *
-	 * @param SitePress                    $sitepress        SitePress instance.
-	 * @param WPML_Upgrade_Schema          $upgrade_schema   Upgrade schema instance.
-	 * @param WPML_Settings_Helper         $settings         Settings Helper instance.
-	 * @param WPML_Notices                 $wpml_notices     Notices instance.
-	 * @param WPML_Upgrade_Command_Factory $factory          Upgrade Command Factory instance.
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		WPML_Upgrade_Schema $upgrade_schema,
@@ -91,18 +51,12 @@ class WPML_Upgrade_Loader implements IWPML_Action {
 		$this->factory        = $factory;
 	}
 
-	/**
-	 * Add hooks.
-	 */
 	public function add_hooks() {
 		add_action( 'wpml_loaded', array( $this, 'wpml_upgrade' ) );
 		register_activation_hook( WPML_PLUGIN_PATH . '/' . WPML_PLUGIN_FILE, array( $this, 'wpml_upgrade' ) );
 
 	}
 
-	/**
-	 * Upgrade WPML plugin.
-	 */
 	public function wpml_upgrade() {
 		if ( get_transient( self::TRANSIENT_UPGRADE_IN_PROGRESS ) ) {
 			return;
@@ -144,12 +98,13 @@ class WPML_Upgrade_Loader implements IWPML_Action {
 			$this->factory->create_command_definition( AddAteSyncCountToTranslationJob::class, [ $this->upgrade_schema ], [ 'admin', 'ajax' ] ),
 			$this->factory->create_command_definition( 'WPML_TM_Add_TP_ID_Column_To_Translation_Status', [ $this->upgrade_schema ], array( 'admin', 'ajax', 'front-end' ) ),
 			$this->factory->create_command_definition( 'WPML_TM_Add_TP_Revision_And_TS_Status_Columns_To_Translation_Status', [ $this->upgrade_schema ], array( 'admin', 'ajax', 'front-end' ) ),
-			$this->factory->create_command_definition( 'WPML_TM_Add_TP_Revision_And_TS_Status_Columns_To_Core_Status', [ $this->upgrade_schema ], array( 'admin', 'ajax', 'front-end' ) ),
 			$this->factory->create_command_definition( RemoveEndpointsOption::class, [], [ 'admin', 'ajax', 'front-end' ] ),
 			$this->factory->create_command_definition( RemoveTmWcmlPromotionNotice::class, [], [ 'admin' ] ),
 			$this->factory->create_command_definition( SetCorrectTranslateEverythingState::class, [], [ 'admin' ] ),
 			$this->factory->create_command_definition( MigrateTranslateEverythingCompletedOption::class, [], [ 'admin' ] ),
 			$this->factory->create_command_definition( EnableHandleMediaAutoOptionForNewInstalls::class, [], [ 'admin' ] ),
+			$this->factory->create_command_definition( CreateUnsolvableJobsTable::class, [ $this->upgrade_schema ], [ 'admin' ] ),
+			$this->factory->create_command_definition( ValidateAliasDomain::class, [], [ 'admin' ] ),
 		];
 
 		$upgrade = new WPML_Upgrade( $commands, $this->sitepress, $this->factory );

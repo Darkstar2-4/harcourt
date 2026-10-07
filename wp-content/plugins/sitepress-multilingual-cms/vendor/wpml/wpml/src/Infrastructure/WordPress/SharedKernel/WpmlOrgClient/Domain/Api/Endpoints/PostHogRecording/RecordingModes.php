@@ -10,9 +10,6 @@ class RecordingModes {
   const FORCE_DISABLE = 'force_disable';
 
 
-  /**
-   * @return string[]
-   */
   public static function getAll(): array {
     return [
       self::DEFAULT,

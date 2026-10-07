@@ -16,15 +16,10 @@ abstract class Manager {
 
 	const SUB_DIRECTORY = 'wpml';
 
-	/** @var StringsRetrieve $strings */
 	protected $strings;
-	/** @var WPML_Language_Records $language_records */
 	protected $language_records;
-	/** @var Builder $builder */
 	protected $builder;
-	/** @var WPML_ST_Translations_File_Dictionary $file_dictionary */
 	protected $file_dictionary;
-	/** @var Domains $domains */
 	protected $domains;
 
 	public function __construct(
@@ -41,15 +36,10 @@ abstract class Manager {
 		$this->domains          = $domains;
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $locale
-	 */
 	public function remove( $domain, $locale ) {
 		$filepath = $this->getFilepath( $domain, $locale );
 		$this->filesystem->delete( $filepath );
 
-		// Delete the translation file .l10n.php along with the .mo file.
 		if ( 'mo' === $this->getFileExtension() ) {
 			$php_filepath = substr( $filepath, 0, -3 ) . '.l10n.php';
 			if ( $this->filesystem->is_file( $php_filepath ) && $this->filesystem->is_readable( $php_filepath ) ) {
@@ -101,15 +91,6 @@ abstract class Manager {
 		$this->filesystem->put_contents( $filepath, $content, $chmod );
 	}
 
-	/**
-	 * Builds and saves the .MO file.
-	 * Returns false if file doesn't exist, file path otherwise.
-	 *
-	 * @param string $domain
-	 * @param string $locale
-	 *
-	 * @return false|string
-	 */
 	public function add( $domain, $locale ) {
 		if ( ! $this->maybeCreateSubdir() ) {
 			return false;
@@ -130,12 +111,6 @@ abstract class Manager {
 		return $this->write( $domain, $locale, $file_content );
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $locale
-	 *
-	 * @return string|null
-	 */
 	public function get( $domain, $locale ) {
 		$filepath = $this->getFilepath( $domain, $locale );
 
@@ -146,29 +121,15 @@ abstract class Manager {
 		return null;
 	}
 
-	/**
-	 * @param string $domain
-	 * @param string $locale
-	 *
-	 * @return string
-	 */
 	public function getFilepath( $domain, $locale ) {
-		// Some domains for JS translations can contain '/' - like 'woocommerce-wc-blocks-cart-blocks/order-summary-heading-frontend-chunk'.
-		// In such case file with custom JS translations will not be created in '/wp-content/languages/wpml' directory.
 		$domain = str_replace( '/', '-', $domain );
 		return $this->getSubdir() . '/' . strtolower( $domain ) . '-' . $locale . '.' . $this->getFileExtension();
 	}
 
-	/**
-	 * @param string $domain
-	 *
-	 * @return bool
-	 */
 	public function handles( $domain ) {
 		return $this->getDomains()->contains( $domain );
 	}
 
-	/** @return string */
 	public static function getSubdir() {
 		$subdir = WP_LANG_DIR . '/' . self::SUB_DIRECTORY;
 
@@ -180,18 +141,9 @@ abstract class Manager {
 		return $subdir;
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function getFileExtension();
 
-	/**
-	 * @return bool
-	 */
 	abstract public function isPartialFile();
 
-	/**
-	 * @return Collection
-	 */
 	abstract protected function getDomains();
 }

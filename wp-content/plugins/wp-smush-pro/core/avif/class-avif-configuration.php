@@ -6,7 +6,7 @@ use Smush\Core\Settings;
 use Smush\Core\Next_Gen\Next_Gen_Configuration_Interface;
 
 class Avif_Configuration implements Next_Gen_Configuration_Interface {
-	const FORMAT_KEY = 'avif';
+	private static $format_key = 'avif';
 
 	/**
 	 * @var Settings
@@ -27,8 +27,8 @@ class Avif_Configuration implements Next_Gen_Configuration_Interface {
 		return __( 'AVIF', 'wp-smushit' );
 	}
 
-	public function get_format_key() {
-		return self::FORMAT_KEY;
+	public static function get_format_key() {
+		return self::$format_key;
 	}
 
 	public function is_activated() {

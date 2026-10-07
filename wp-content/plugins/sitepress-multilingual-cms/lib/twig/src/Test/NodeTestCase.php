@@ -18,14 +18,11 @@ use WPML\Core\Twig\Node\Node;
 abstract class NodeTestCase extends \WPML\Core\PHPUnit\Framework\TestCase
 {
     public abstract function getTests();
-    /**
-     * @dataProvider getTests
-     */
     public function testCompile($node, $source, $environment = null, $isPattern = \false)
     {
         $this->assertNodeCompilation($source, $node, $environment, $isPattern);
     }
-    public function assertNodeCompilation($source, \WPML\Core\Twig\Node\Node $node, \WPML\Core\Twig\Environment $environment = null, $isPattern = \false)
+    public function assertNodeCompilation($source, \WPML\Core\Twig\Node\Node $node, ?\WPML\Core\Twig\Environment $environment = null, $isPattern = \false)
     {
         $compiler = $this->getCompiler($environment);
         $compiler->compile($node);
@@ -35,7 +32,7 @@ abstract class NodeTestCase extends \WPML\Core\PHPUnit\Framework\TestCase
             $this->assertEquals($source, \trim($compiler->getSource()));
         }
     }
-    protected function getCompiler(\WPML\Core\Twig\Environment $environment = null)
+    protected function getCompiler(?\WPML\Core\Twig\Environment $environment = null)
     {
         return new \WPML\Core\Twig\Compiler(null === $environment ? $this->getEnvironment() : $environment);
     }

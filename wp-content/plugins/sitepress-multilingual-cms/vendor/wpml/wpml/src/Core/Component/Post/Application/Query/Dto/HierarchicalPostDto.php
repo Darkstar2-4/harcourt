@@ -4,13 +4,10 @@ namespace WPML\Core\Component\Post\Application\Query\Dto;
 
 class HierarchicalPostDto {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $title;
 
-  /** @var int */
   private $parentId;
 
 

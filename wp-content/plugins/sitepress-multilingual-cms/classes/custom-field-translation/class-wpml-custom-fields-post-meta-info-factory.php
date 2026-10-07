@@ -1,7 +1,4 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_Custom_Fields_Post_Meta_Info_Factory implements IWPML_AJAX_Action_Loader, IWPML_Backend_Action_Loader {
 
 	public function create() {

@@ -3,31 +3,14 @@
 use WPML\FP\Str;
 
 class WPML_URL_Converter_Lang_Param_Helper {
-	/**
-	 * @var array
-	 */
 	private static $cache = array();
 
-	/**
-	 * @var array
-	 */
 	private $active_languages;
 
-	/**
-	 * @param array $active_languages
-	 */
 	public function __construct( array $active_languages ) {
 		$this->active_languages = $active_languages;
 	}
 
-	/**
-	 *
-	 * @param string $url
-	 * @param bool   $only_admin If set to true only language parameters on Admin Screen URLs will be recognized. The
-	 *                           function will return null for non-Admin Screens.
-	 *
-	 * @return null|string Language code
-	 */
 	public function lang_by_param( $url, $only_admin = true ) {
 		if ( isset( self::$cache[ $url ] ) ) {
 			return self::$cache[ $url ];
@@ -40,12 +23,6 @@ class WPML_URL_Converter_Lang_Param_Helper {
 		return $lang;
 	}
 
-	/**
-	 * @param string $url
-	 * @param bool   $only_admin
-	 *
-	 * @return string|null
-	 */
 	private function extract_lang_param_from_url( $url, $only_admin ) {
 		$url             = wpml_strip_subdir_from_url( $url );
 		$url_query_parts = wpml_parse_url( $url );
@@ -56,7 +33,9 @@ class WPML_URL_Converter_Lang_Param_Helper {
 		};
 		$getWpLang       = function( $vars ) {
 			$wp_lang = explode( '_', $vars['wp_lang'] );
-			return ( count( $wp_lang ) > 0 ) ? strtolower( $wp_lang[0] ) : null;
+			$wp_lang = ( count( $wp_lang ) > 0 ) ? strtolower( $wp_lang[0] ) : null;
+
+			return in_array( $wp_lang, $this->active_languages, true ) ? $wp_lang : null;
 		};
 
 		if ( null !== $url_query ) {
@@ -64,12 +43,10 @@ class WPML_URL_Converter_Lang_Param_Helper {
 			if ( $this->can_retrieve_lang_from_query( $only_admin, $vars ) ) {
 				return $vars['lang'];
 			} else if ( $isLoginPage( $vars ) ) {
-				// Handling case when Language URL format is 'Language name added as a parameter'.
 				return $getWpLang( $vars );
 			}
 		}
 
-		// Handling case when Language URL format is 'Different languages in directories'.
 		if ( is_array( $url_query_parts ) && isset( $url_query_parts['query'] ) && is_string( $url_query_parts['query'] ) ) {
 			parse_str( $url_query_parts['query'], $vars );
 			if ( $isLoginPage( $vars ) ) {
@@ -80,12 +57,6 @@ class WPML_URL_Converter_Lang_Param_Helper {
 		return null;
 	}
 
-	/**
-	 * @param bool  $only_admin
-	 * @param array $url_query_parts
-	 *
-	 * @return bool
-	 */
 	private function has_query_part( $only_admin, $url_query_parts ) {
 		if ( ! isset( $url_query_parts['query'] ) ) {
 			return false;
@@ -106,12 +77,6 @@ class WPML_URL_Converter_Lang_Param_Helper {
 		return true;
 	}
 
-	/**
-	 * @param bool  $only_admin
-	 * @param array $vars
-	 *
-	 * @return bool
-	 */
 	private function can_retrieve_lang_from_query( $only_admin, $vars ) {
 		if ( ! isset( $vars['lang'] ) ) {
 			return false;

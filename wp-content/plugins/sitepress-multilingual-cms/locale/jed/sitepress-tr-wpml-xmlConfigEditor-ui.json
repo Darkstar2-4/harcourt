@@ -1,0 +1,33 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "The wpml-config.xml file in the root folder of your theme and plugins tells WPML which content is translatable. You can override these settings with your own custom settings by adding them below.": [
+            "Temanızın ve eklentilerinizin kök klasöründeki wpml-config.xml dosyası, WPML'ye hangi içeriğin çevrilebilir olduğunu bildirir. Bu ayarları aşağıya kendi özel ayarlarınızı ekleyerek geçersiz kılabilirsiniz."
+         ],
+         "Read more about language configuration files.": [
+            "Dil yapılandırma dosyaları hakkında daha fazla bilgi edinin."
+         ],
+         "Save": [
+            "Kaydet"
+         ],
+         "Error": [
+            "Hata"
+         ],
+         "Shortcuts": [
+            "Kısayollar"
+         ],
+         "Fold/Unfold code": [
+            "Kodu Katla/Aç"
+         ],
+         "Auto format": [
+            "Otomatik biçimlendirme"
+         ]
+      }
+   }
+}

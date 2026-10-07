@@ -10,9 +10,6 @@ class OTGS_Installer_Source {
 		$this->file_system = $file_system;
 	}
 
-	/**
-	 * @return array|null
-	 */
 	public function get() {
 		return file_exists( $this->installer->plugin_path() ) ? json_decode( (string) $this->file_system->get_contents( $this->installer->plugin_path() ) ) : null;
 	}

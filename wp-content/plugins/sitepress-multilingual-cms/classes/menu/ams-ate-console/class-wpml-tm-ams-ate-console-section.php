@@ -3,16 +3,6 @@
 use WPML\API\Sanitize;
 use WPML\ATE\Proxies\ProxyInterceptorLoader;
 
-/**
- * It handles the TM section responsible for displaying the AMS/ATE console.
- *
- * This class takes care of the following:
- * - enqueuing the external script which holds the React APP
- * - adding the ID to the enqueued script (as it's required by the React APP)
- * - adding an inline script to initialize the React APP
- *
- * @author OnTheGo Systems
- */
 class WPML_TM_AMS_ATE_Console_Section extends WPML_TM_AMS_Translation_Abstract_Console_Section implements IWPML_TM_Admin_Section {
 	const ATE_APP_ID = 'eate_widget';
 	const ATE_DASHBOARD_ID = 'eate_dashboard';
@@ -22,18 +12,14 @@ class WPML_TM_AMS_ATE_Console_Section extends WPML_TM_AMS_Translation_Abstract_C
 	const SLUG = 'ate-ams';
 
 
-	/**
-	 * Returns the caption to display in the section.
-	 *
-	 * @return string
-	 */
 	public function get_caption() {
-		return __( 'Translation Tools', 'sitepress' );
+		return __( 'Payments & Maintenance', 'sitepress' );
 	}
 
-	/**
-	 * Outputs the content of the section.
-	 */
+	public function get_description() {
+		return '<p class="wpml-tab-description">' . __( 'Balance, invoices and tools', 'sitepress' ) . '</p>';
+	}
+
 	public function render() {
 		$supportUrl  = 'https://wpml.org/forums/forum/english-support/?utm_source=plugin&utm_medium=gui&utm_campaign=wpmltm';
 		$supportLink = '<a target="_blank" rel="nofollow" href="' . esc_url( $supportUrl ) . '">'
@@ -65,17 +51,11 @@ class WPML_TM_AMS_ATE_Console_Section extends WPML_TM_AMS_Translation_Abstract_C
 		<?php
 	}
 
-	/**
-	 * This method is hooked to the `admin_enqueue_scripts` action.
-	 *
-	 * @param string $hook The current page.
-	 */
 	public function admin_enqueue_scripts( $hook ) {
 		if ( $this->proxyInterceptorLoader->shouldEnableProxy() ) {
 			$this->proxyInterceptorLoader->enable();
 		}
 
-		// call parent class admin_enqueue_scripts method
 		$this->admin_enqueue_tab_scripts();
 
 		if ( is_admin() ) {
@@ -86,11 +66,6 @@ class WPML_TM_AMS_ATE_Console_Section extends WPML_TM_AMS_Translation_Abstract_C
 
 
 
-	/**
-	 * It returns true if the current page and tab are the ATE Console.
-	 *
-	 * @return bool
-	 */
 	protected function is_tab() {
 		$sm   = Sanitize::stringProp( 'sm', $_GET );
 		$page = Sanitize::stringProp( 'page', $_GET );

@@ -17,9 +17,6 @@ use WPML\Setup\Option;
 
 class StatusBar {
 
-	/**
-	 * @return void
-	 */
 	public static function add_hooks() {
 		if ( User::canManageTranslations() ) {
 			Hooks::onAction( 'admin_bar_menu', 999 )

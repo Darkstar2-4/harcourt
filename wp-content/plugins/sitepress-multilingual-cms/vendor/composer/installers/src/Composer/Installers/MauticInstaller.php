@@ -21,19 +21,11 @@ class MauticInstaller extends BaseInstaller
         return $this->toCamelCase($this->package->getPrettyName());
     }
 
-    /**
-     * @param string $packageName
-     *
-     * @return string
-     */
     private function toCamelCase($packageName)
     {
         return str_replace(' ', '', ucwords(str_replace('-', ' ', basename($packageName))));
     }
 
-    /**
-     * Format package name of mautic-plugins to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
 

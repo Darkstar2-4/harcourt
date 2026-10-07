@@ -1,16 +1,10 @@
 <?php
 
-/**
- * Class WPML_API_Hook_Links
- *
- * This class provides various links by hooks
- */
 class WPML_API_Hook_Links implements IWPML_Action {
 
 	const POST_TRANSLATION_SETTINGS_PRIORITY = 10;
 	const LINK_TO_TRANSLATION_PRIORITY       = 9;
 
-	/** @var WPML_Post_Status_Display_Factory */
 	private $post_status_display_factory;
 
 	public function __construct(

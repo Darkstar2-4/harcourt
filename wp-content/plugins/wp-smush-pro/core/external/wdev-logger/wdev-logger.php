@@ -27,6 +27,11 @@
  * ));
  * $logger->foo()->error('Log an error into foo module');//[...DATE...] Error: Log an error into foo module. (uploads/specific/log_dir/foo-log.php)
  * $logger->foo()->warning('...a warning...'); $logger->foo()->notice('...a notice...'); $logger->foo()->info('..info...');
+ *
+ * OR:
+ * $logger->foo->error('Log an error into foo module');//[...DATE...] Error: Log an error into foo module. (uploads/specific/log_dir/foo-log.php)
+ * $logger->foo->warning('...a warning...'); $logger->foo()->notice('...a notice...'); $logger->foo()->info('..info...');
+ *
  * # Global module: $logger->error('Log an error into the main log file');...(uploads/your_plugin_name/index-debug.log).
  */
 
@@ -228,15 +233,52 @@ if ( ! class_exists( 'WDEV_Logger' ) ) {
 		 * $logger->your_module_1()->notice('A notice.');
 		 * $logger->your_module_2()->delete();//delete the log file.
 		 *
+		 * Returns a WDEV_Logger_Module proxy so that stored references
+		 * (e.g. $this->logger = Helper::logger()->resize()) always route to
+		 * the correct module regardless of shared singleton state.
+		 *
 		 * @param string $name Method name.
 		 * @param array  $arguments Arguments.
+		 * @return WDEV_Logger_Module
 		 */
 		public function __call( $name, $arguments ) {
+			if ( $this->set_current_module( $name ) ) {
+				return new WDEV_Logger_Module( $this, $name );
+			}
+
+			if ( $this->enabling_debug_log_mode() ) {
+				error_log( sprintf( 'Module "%1$s" does not exists, list of registered modules are ["%2$s"]. Continue with global module "%3$s".', $name, join( '", "', array_keys( $this->modules ) ), $this->option['global_module'] ) );//phpcs:ignore
+			}
+			return new WDEV_Logger_Module( $this, $this->option['global_module'] );
+		}
+
+		/**
+		 * Force-activate a module and unlock so the next log call uses it.
+		 * Called by WDEV_Logger_Module before delegating every method.
+		 *
+		 * @param string $module Module slug.
+		 */
+		public function force_module( $module ) {
+			$this->set_current_module( $module );
+			$this->un_lock = true;
+		}
+
+		/**
+		 * Set the current module and we can use this to call some actions.
+		 * e.g.
+		 * $logger->your_module_1->error('An error.');
+		 * $logger->your_module_1->notice('A notice.');
+		 * $logger->your_module_2->delete();//delete the log file.
+		 *
+		 * @param string $name Module name.
+		 */
+		public function __get( $name ) {
 			if ( $this->set_current_module( $name ) ) {
 				$this->un_lock = true;
 			} elseif ( $this->enabling_debug_log_mode() ) {
 				error_log( sprintf( 'Module "%1$s" does not exists, list of registered modules are ["%2$s"]. Continue with global module "%3$s".', $name, join( '", "', array_keys( $this->modules ) ), $this->option['global_module'] ) );//phpcs:ignore
 			}
+
 			return $this;
 		}
 
@@ -1069,21 +1111,23 @@ if ( ! class_exists( 'WDEV_Logger' ) ) {
 			$checking_debug_log_level = $can_do;
 			if ( $type && is_string( $type ) ) {
 				$type = strtolower( $type );
+				// Each level includes all more-severe levels (standard syslog semantics).
+				// LOG_ERR(3) < LOG_WARNING(4) < LOG_NOTICE(5) < LOG_INFO(6) < LOG_DEBUG(7)
 				switch ( $level ) {
 					case LOG_DEBUG:
-						$can_do = 'error' === $type || 'warning' === $type || 'notice' === $type;
+						$can_do = in_array( $type, array( 'error', 'warning', 'notice', 'info', 'debug' ), true );
+						break;
+					case LOG_INFO:
+						$can_do = in_array( $type, array( 'error', 'warning', 'notice', 'info' ), true );
+						break;
+					case LOG_NOTICE:
+						$can_do = in_array( $type, array( 'error', 'warning', 'notice' ), true );
+						break;
+					case LOG_WARNING:
+						$can_do = in_array( $type, array( 'error', 'warning' ), true );
 						break;
 					case LOG_ERR:
 						$can_do = 'error' === $type;
-						break;
-					case LOG_WARNING:
-						$can_do = 'warning' === $type;
-						break;
-					case LOG_NOTICE:
-						$can_do = 'notice' === $type;
-						break;
-					case LOG_INFO:
-						$can_do = 'info' === $type;
 						break;
 					case self::WPMUDEV_DEBUG_LEVEL:
 						$can_do = true;
@@ -1451,6 +1495,56 @@ if ( ! class_exists( 'WDEV_Logger' ) ) {
 			}
 			$this->modules[ $module_slug ] = $this->parse_module_option( $module_slug, $module_option );
 			return true;
+		}
+	}
+}
+
+if ( ! class_exists( 'WDEV_Logger_Module' ) ) {
+	/**
+	 * Per-module proxy returned by WDEV_Logger::__call().
+	 *
+	 * Storing this object (e.g. $this->logger = Helper::logger()->resize())
+	 * is safe: every method call forces the correct module on the shared
+	 * WDEV_Logger singleton before delegating, so concurrent or interleaved
+	 * log calls from other modules never corrupt the routing.
+	 */
+	class WDEV_Logger_Module {
+
+		/**
+		 * The shared logger instance.
+		 *
+		 * @var WDEV_Logger
+		 */
+		private $logger;
+
+		/**
+		 * The module slug this proxy is bound to.
+		 *
+		 * @var string
+		 */
+		private $module;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param WDEV_Logger $logger Shared logger instance.
+		 * @param string      $module Module slug.
+		 */
+		public function __construct( $logger, $module ) {
+			$this->logger = $logger;
+			$this->module = $module;
+		}
+
+		/**
+		 * Force the bound module active, then delegate to the logger.
+		 *
+		 * @param string $name      Method name.
+		 * @param array  $arguments Method arguments.
+		 * @return mixed
+		 */
+		public function __call( $name, $arguments ) {
+			$this->logger->force_module( $this->module );
+			return call_user_func_array( array( $this->logger, $name ), $arguments );
 		}
 	}
 }

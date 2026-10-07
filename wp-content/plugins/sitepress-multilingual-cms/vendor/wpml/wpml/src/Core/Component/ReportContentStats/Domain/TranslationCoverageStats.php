@@ -4,16 +4,12 @@ namespace WPML\Core\Component\ReportContentStats\Domain;
 
 class TranslationCoverageStats {
 
-  /** @var string */
   private $postType;
 
-  /** @var string */
   private $languageCode;
 
-  /** @var int */
   private $translatedOriginalContentCharsCount;
 
-  /** @var int */
   private $translatedOriginalContentCount;
 
 

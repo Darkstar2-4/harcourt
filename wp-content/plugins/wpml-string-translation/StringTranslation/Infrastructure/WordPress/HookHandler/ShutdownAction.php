@@ -7,10 +7,8 @@ use WPML\StringTranslation\Application\Setting\Repository\SettingsRepositoryInte
 class ShutdownAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'shutdown';
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(

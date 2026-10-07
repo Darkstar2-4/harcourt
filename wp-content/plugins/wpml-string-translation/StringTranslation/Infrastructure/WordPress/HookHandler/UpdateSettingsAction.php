@@ -8,10 +8,8 @@ class UpdateSettingsAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_update_settings';
 	const ACTION_ARGS = 3;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
-	/** @var UrlRepositoryInterface */
 	private $urlRepository;
 
 	public function __construct(

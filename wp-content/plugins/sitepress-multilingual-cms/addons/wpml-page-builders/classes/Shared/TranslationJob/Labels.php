@@ -4,18 +4,7 @@ namespace WPML\PB\TranslationJob;
 
 class Labels {
 
-	/**
-	 * @param string $string
-	 * @param bool   $keepNumerics
-	 *
-	 * @return string
-	 */
 	public static function convertToHuman( $string, $keepNumerics = false ) {
-		/**
-		 * Regexp patterns to remove for generating the human readable label.
-		 *
-		 * @param string[] $patterns
-		 */
 		$stripPatterns = apply_filters(
 			'wpml_pb_strip_patterns_from_labels',
 			[

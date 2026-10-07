@@ -4,7 +4,6 @@ namespace WPML\StringTranslation\Infrastructure\StringGettext\Command;
 
 class ParseStringTextAndPlaceholders {
 
-	/** @var ParsePlaceholders */
 	private $parsePlaceholders;
 
 	public function __construct(

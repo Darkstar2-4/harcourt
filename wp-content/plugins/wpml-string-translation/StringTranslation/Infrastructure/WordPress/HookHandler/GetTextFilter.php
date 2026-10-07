@@ -9,7 +9,6 @@ class GetTextFilter extends AbstractFilterHookHandler implements AutoregisterHoo
 	const FILTER_ARGS = 3;
 	const FILTER_PRIORITY = 10;
 
-	/** @var GettextStringsService */
 	private $gettextStringsService;
 
 	public function __construct(
@@ -33,7 +32,6 @@ class GetTextFilter extends AbstractFilterHookHandler implements AutoregisterHoo
 		return $translation;
 	}
 
-	// Used to simulate gettext call from plugin from tests.
 	public static function callTranslateFromPlugin( $text, $domain ) {
 		__( $text, $domain );
 	}

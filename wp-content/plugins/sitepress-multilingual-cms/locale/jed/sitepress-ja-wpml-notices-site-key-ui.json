@@ -11,10 +11,10 @@
             "このサイトのキーを取得"
          ],
          "Site key:": [
-            "サイトキー："
+            "サイトキー:"
          ],
          "Enter your site key here": [
-            "サイトキーをここに入力してください"
+            "ここにサイトキーを入力"
          ],
          "Registering...": [
             "登録中..."
@@ -26,13 +26,13 @@
             "新しいサイトキーが必要です"
          ],
          "To continue using WPML features like automatic translation and plugin updates, please register your site again. Don’t worry, your existing content and translations are safe.": [
-            "WPMLの自動翻訳やプラグインの更新などの機能を引き続き使用するには、サイトを再度登録してください。既存のコンテンツや翻訳は安全です。ご心配なく。"
+            "自動翻訳やプラグインの更新など、WPMLの機能を引き続き使用するには、サイトを再度登録してください。ご安心ください。既存のコンテンツと翻訳は安全です。"
          ],
          "Site key registered successfully!": [
             "サイトキーが正常に登録されました！"
          ],
          "Page will reload in %d seconds...": [
-            "%d秒後にページが再読み込みされます..."
+            "%d 秒後にページがリロードされます..."
          ],
          "Registration failed. Please try again.": [
             "登録に失敗しました。もう一度お試しください。"

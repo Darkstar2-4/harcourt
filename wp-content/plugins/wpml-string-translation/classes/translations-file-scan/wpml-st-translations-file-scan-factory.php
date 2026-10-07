@@ -35,31 +35,22 @@ class WPML_ST_Translations_File_Scan_Factory {
 		return method_exists( $wpml_file, 'get_relative_path' );
 	}
 
-	/**
-	 * @return array
-	 */
 	public function create_hooks() {
 		$st_upgrade = WPML\Container\make( 'WPML_ST_Upgrade' );
+
 		if ( ! $st_upgrade->has_command_been_executed( 'WPML_ST_Upgrade_MO_Scanning' ) ) {
 			return [];
 		}
 
 		$load = [
-			// Listener of 'wpml_st_translations_file_post_import' hook.
-			'stats-update' => $this->get_stats_update(),
+			'stats-update'         => $this->get_stats_update(),
 			'string-status-update' => $this->get_string_status_update(),
 		];
 
 		if (
 			current_user_can( 'manage_options' )
-			&& ( ! is_admin() || $this->isThemeAndLocalizationPage() )
 		) {
-			// Only register / update .mo files when the user is an admin.
-			// NOTE: it's tending to only load this on the Themen and Plugins
-			// localization page, but some .mo files are only loaded on the
-			// frontend (plugins which separating frontend and backend strings).
-			$load['mo-file-registration'] =
-				$this->store_translation_files_info_on_db();
+			$load['mo-file-registration'] = $this->store_translation_files_info_on_db();
 		}
 
 		return $load;
@@ -73,9 +64,6 @@ class WPML_ST_Translations_File_Scan_Factory {
 			->is_core_page( 'theme-localization.php' );
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Queue
-	 */
 	public function create_queue() {
 		if ( ! $this->queue ) {
 			global $wpdb;
@@ -95,9 +83,6 @@ class WPML_ST_Translations_File_Scan_Factory {
 		return $this->queue;
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Scan_Storage
-	 */
 	private function create_storage() {
 		if ( ! $this->storage ) {
 			global $wpdb;
@@ -108,14 +93,10 @@ class WPML_ST_Translations_File_Scan_Factory {
 		return $this->storage;
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Dictionary
-	 */
 	private function create_dictionary() {
 		if ( ! $this->dictionary ) {
 			global $sitepress;
 
-			/** @var WPML_ST_Translations_File_Dictionary_Storage_Table $table_storage */
 			$table_storage = make( WPML_ST_Translations_File_Dictionary_Storage_Table::class );
 
 			$st_upgrade = new WPML_ST_Upgrade( $sitepress );
@@ -129,9 +110,6 @@ class WPML_ST_Translations_File_Scan_Factory {
 		return $this->dictionary;
 	}
 
-	/**
-	 * @return int
-	 */
 	private function get_scan_limit() {
 		$limit = WPML_ST_Translations_File_Queue::DEFAULT_LIMIT;
 		if ( defined( 'WPML_ST_MO_SCANNING_LIMIT' ) ) {
@@ -164,21 +142,22 @@ class WPML_ST_Translations_File_Scan_Factory {
 		return $this->wpml_file;
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Registration
-	 */
 	private function store_translation_files_info_on_db() {
+		$is_on_frontend_page               = ! is_admin();
+		$is_on_admin_page                  = is_admin();
+		$is_on_theme_and_localization_page = $this->isThemeAndLocalizationPage();
+
 		return new WPML_ST_Translations_File_Registration(
 			$this->create_dictionary(),
 			$this->get_wpml_file(),
 			$this->get_aggregate_find_component(),
-			$this->get_sitepress()->get_active_languages()
+			$this->get_sitepress()->get_active_languages(),
+			$is_on_frontend_page,
+			$is_on_admin_page,
+			$is_on_theme_and_localization_page
 		);
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Component_Stats_Update_Hooks
-	 */
 	private function get_stats_update() {
 		global $wpdb;
 
@@ -187,9 +166,6 @@ class WPML_ST_Translations_File_Scan_Factory {
 		);
 	}
 
-	/**
-	 * @return WPML_ST_Translations_File_Component_Details
-	 */
 	private function get_aggregate_find_component() {
 		if ( null === $this->find_aggregate ) {
 			$debug_backtrace = new WPML_Debug_BackTrace();
@@ -203,9 +179,6 @@ class WPML_ST_Translations_File_Scan_Factory {
 
 		return $this->find_aggregate;
 	}
-	/**
-	 * @return WPML_ST_Translations_File_String_Status_Update
-	 */
 	private function get_string_status_update() {
 		global  $wpdb;
 		$num_of_secondary_languages = count( $this->get_sitepress()->get_active_languages() ) - 1;

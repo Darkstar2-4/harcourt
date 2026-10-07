@@ -9,7 +9,6 @@ use WPML\PB\Gutenberg\StringsInBlock\HTML;
 
 class TagAttributes extends Base {
 
-	/** @var array $attributesToConvert */
 	private $attributesToConvert;
 
 	public function __construct( array $attributesToConvert ) {
@@ -30,7 +29,6 @@ class TagAttributes extends Base {
 			}
 
 			foreach ( $nodes as $node ) {
-				/** @var \DOMNode $node */
 				$ids = self::convertIds( $node->nodeValue, $getConfig( 'slug' ), $getConfig( 'type' ) );
 				$blockObject = \WPML_Gutenberg_Integration::sanitize_block( $block );
 				$block = (array) $domHandler->applyStringTranslations( $blockObject, $node, $ids, null );

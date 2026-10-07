@@ -12,21 +12,11 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\ConstantExpression;
-/**
- * Represents a set node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class SetNode extends \WPML\Core\Twig\Node\Node implements \WPML\Core\Twig\Node\NodeCaptureInterface
 {
     public function __construct($capture, \WPML\Core\Twig_NodeInterface $names, \WPML\Core\Twig_NodeInterface $values, $lineno, $tag = null)
     {
         parent::__construct(['names' => $names, 'values' => $values], ['capture' => $capture, 'safe' => \false], $lineno, $tag);
-        /*
-         * Optimizes the node when capture is used for a large block of text.
-         *
-         * {% set foo %}foo{% endset %} is compiled to $context['foo'] = new Twig\Markup("foo");
-         */
         if ($this->getAttribute('capture')) {
             $this->setAttribute('safe', \true);
             $values = $this->getNode('values');

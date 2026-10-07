@@ -3,12 +3,6 @@
 namespace WPML\TM\Menu\TranslationServices;
 
 class ServiceMapper {
-	/**
-	 * @param \WPML_TP_Service $service
-	 * @param callable         $getActiveServiceId
-	 *
-	 * @return array
-	 */
 	public static function map( \WPML_TP_Service $service, $getActiveServiceId ) {
 		$isActive = $service->get_id() === $getActiveServiceId();
 		if ( $isActive ) {

@@ -6,11 +6,5 @@ use WPML\StringTranslation\Application\Translation\Query\Dto\TranslationDetailsD
 
 interface FindTranslationDetailsQueryInterface {
 
-	/**
-	 * @param int[]    $stringIds
-	 * @param string[] $languageCodes
-	 *
-	 * @return TranslationDetailsDto[]
-	 */
 	public function execute( array $stringIds, array $languageCodes ): array;
 }

@@ -6,10 +6,8 @@ use WPML\Core\Component\ATE\Application\Service\Dto\Engine\FormalityLevelDto;
 
 class FormalitySettingDto {
 
-  /** @var string */
   private $languageCode;
 
-  /** @var FormalityLevelDto */
   private $currentLevel;
 
 

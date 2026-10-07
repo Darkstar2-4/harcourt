@@ -1,23 +1,12 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_ICL_Client {
 	private $error;
-	/** @var WP_Http $http */
 	private $http;
-	/** @var WPML_WP_API $wp_api */
 	private $wp_api;
 	private $method = 'GET';
 	private $post_data;
 
-	/**
-	 * WPML_ICL_Client constructor.
-	 *
-	 * @param WP_Http     $http
-	 * @param WPML_WP_API $wp_api
-	 */
 	public function __construct( $http, $wp_api ) {
 		$this->http   = $http;
 		$this->wp_api = $wp_api;
@@ -58,9 +47,6 @@ class WPML_ICL_Client {
 		return $this->error;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_debug_data() {
 		$debug_vars = array(
 			'debug_cms'    => 'WordPress',
@@ -71,11 +57,6 @@ class WPML_ICL_Client {
 		return $debug_vars;
 	}
 
-	/**
-	 * @param string $request_url
-	 *
-	 * @return mixed|string
-	 */
 	private function get_adjusted_request_url( $request_url ) {
 		$request_url = str_replace( ' ', '%20', $request_url );
 
@@ -92,9 +73,6 @@ class WPML_ICL_Client {
 		}
 	}
 
-	/**
-	 * @param string $method
-	 */
 	public function set_method( $method ) {
 		$this->method = $method;
 	}

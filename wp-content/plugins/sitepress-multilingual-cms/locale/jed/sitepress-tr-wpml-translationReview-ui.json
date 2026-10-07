@@ -1,0 +1,57 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Accepted": [
+            "Kabul Edildi"
+         ],
+         "Approved!": [
+            "Onaylandı!"
+         ],
+         "Loading the next translation for review...": [
+            "İncelemek için bir sonraki çeviri yükleniyor..."
+         ],
+         "Back": [
+            "Geri"
+         ],
+         "Turn off to not automatically load the next translation after finishing this review.": [
+            "Bu incelemeyi bitirdikten sonra bir sonraki çevirinin otomatik olarak yüklenmemesi için kapatın."
+         ],
+         "Turn on to automatically load the next translation after finishing this  .": [
+            "Bu incelemeyi bitirdikten sonra bir sonraki çevirinin otomatik olarak yüklenmesi için açın."
+         ],
+         "Edit": [
+            "Düzenle"
+         ],
+         "Edit translation": [
+            "Çeviriyi düzenle"
+         ],
+         "Next review": [
+            "Sonraki inceleme"
+         ],
+         "Publish this translation": [
+            "Bu çeviriyi yayınla"
+         ],
+         "Accept this translation": [
+            "Bu çeviriyi kabul et"
+         ],
+         "Published!": [
+            "Yayınlandı!"
+         ],
+         "Please wait, applying translation..": [
+            "Lütfen bekleyin, çeviri uygulanıyor..."
+         ],
+         "There was an error in applying translation.": [
+            "Çeviri uygulanırken bir hata oluştu."
+         ],
+         "Someone is already reviewing this translation. Please try again later.": [
+            "Bu çeviriyi zaten başka biri inceliyor. Lütfen daha sonra tekrar deneyin."
+         ]
+      }
+   }
+}

@@ -12,9 +12,6 @@ use function WPML\Container\make;
 class GetTranslatorRecords implements IHandler {
 
 
-	/**
-	 * @inheritDoc
-	 */
 	public function run( Collection $data ) {
 		$translators = make( \WPML_Translator_Records::class )->get_users_with_capability();
 

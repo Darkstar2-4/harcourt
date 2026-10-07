@@ -4,7 +4,6 @@ class WPML_TM_AMS_Translator_Activation_Records {
 
 	const USER_META = 'ate_activated';
 
-	/** @var WPML_WP_User_Factory $user_factory */
 	private $user_factory;
 
 	public function __construct( WPML_WP_User_Factory $user_factory ) {

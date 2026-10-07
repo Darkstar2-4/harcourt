@@ -6,7 +6,6 @@ class WPML_Core_Version_Check {
 
 		$is_ok = false;
 
-		/** @var array $bundle */
 		$bundle = json_decode( file_get_contents( $package_file_path ), true );
 		if ( defined( 'ICL_SITEPRESS_VERSION' ) && is_array( $bundle ) ) {
 			$core_version_stripped = ICL_SITEPRESS_VERSION;

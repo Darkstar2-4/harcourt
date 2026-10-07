@@ -16,10 +16,8 @@ class AutoRegisterStringsNotice {
 			$noticeId             = 'AutoRegisterStringsNotice';
 
 			if ( $autoRegisterDisabled ) {
-				// If Auto Register Strings is disabled, create or update a notice.
 				$stPath = $wp_api->constant( 'WPML_ST_FOLDER' ) . '/menu/string-translation';
 
-				// Check if we are on Admin Texts Translation page (query string trop=1 is present), Display the absolute link.
 				$linkHref   = ! empty( $_GET['trop'] )
 					? admin_url( 'admin.php?page=' . $stPath . '.php#dashboard_wpml_st_autoregister' )
 					: '#dashboard_wpml_st_autoregister';
@@ -32,7 +30,6 @@ class AutoRegisterStringsNotice {
 				$notice->set_restrict_to_screen_ids( [ $stPath ] );
 				$notices->add_notice( $notice );
 			} elseif ( ! $autoRegisterDisabled && ! is_null( $notices->get_notice( $noticeId ) ) ) {
-				// If Auto Register Strings is enabled but notice exist, remove it.
 				$notices->remove_notice( $notices::DEFAULT_GROUP, $noticeId );
 			}
 		}

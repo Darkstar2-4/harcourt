@@ -7,12 +7,7 @@ class DashboardTranslatablePostTypesFilter implements DashboardTranslatablePostT
   const NAME = 'wpml_tm_dashboard_translatable_types';
 
 
-  /**
-   * @param array<string, mixed> $postTypes
-   * @return array<string, mixed>
-   */
   public function filter( array $postTypes ) {
-    // We manually remove 'media' section.
     if ( isset( $postTypes['attachment'] ) ) {
       unset( $postTypes['attachment'] );
     }

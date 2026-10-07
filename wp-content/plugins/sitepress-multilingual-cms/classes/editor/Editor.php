@@ -29,34 +29,16 @@ class Editor {
 	const ATE_EDITOR_URL_COULD_NOT_BE_FETCHED = 102;
 	const ATE_IS_NOT_ACTIVE = 103;
 
-	/** @var CloneJobs */
 	private $clone_jobs;
 
-	/** @var Manual */
 	private $manualJobs;
 
-	/**
-	 * Editor constructor.
-	 *
-	 * @param CloneJobs $clone_jobs
-	 * @param Manual $manualJobs
-	 */
 	public function __construct( CloneJobs $clone_jobs, Manual $manualJobs ) {
 		$this->clone_jobs = $clone_jobs;
 		$this->manualJobs = $manualJobs;
 	}
 
-	/**
-	 * @param array $params
-	 *
-	 * @return array
-	 */
 	public function open( $params ) {
-		/**
-		 * @param \WPML_Element_Translation_Job $jobObject
-		 *
-		 * @return bool
-		 */
 		$shouldOpenCTE = function ( $jobObject ) use ( $params ) {
 			if ( ! \WPML_TM_ATE_Status::is_enabled() ) {
 				return true;
@@ -64,10 +46,6 @@ class Editor {
 
 			$previousJob = $this->previousJob( $params, $jobObject );
 
-			/**
-			 * If job object isn't translated and previous job exists this means that a new job is created and post needs update
-			 * So we check if it should stick to WPML translation editor
-			 */
 			if ( ! $jobObject->get_basic_data_property( 'translated' ) && $previousJob ) {
 				return wpml_tm_load_old_jobs_editor()->shouldStickToWPMLEditor( $jobObject->get_id(), $previousJob );
 			}
@@ -76,13 +54,6 @@ class Editor {
 			       wpml_tm_load_old_jobs_editor()->get_current_editor( $jobObject->get_id() ) === \WPML_TM_Editors::WPML;
 		};
 
-		/**
-		 * It maybe needed when a job was translated via the Translation Proxy before and now, we want to open it in the editor.
-		 *
-		 * @param \WPML_Element_Translation_Job $jobObject
-		 *
-		 * @return \WPML_Element_Translation_Job
-		 */
 		$maybeUpdateTranslationServiceColumn = function ( $jobObject ) {
 			if ( $jobObject->get_translation_service() !== 'local' ) {
 				$jobObject->set_basic_data_property( 'translation_service', 'local' );
@@ -108,12 +79,6 @@ class Editor {
 		             ->getOrElse( [ 'editor' => \WPML_TM_Editors::NONE, 'jobObject' => null ] );
 	}
 
-	/**
-	 * @param array                         $params
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return array
-	 */
 	private function tryToDisplayATE( $params = null, $jobObject = null ) {
 		$fn = curryN( 2, function ( $params, $jobObject ) {
 			$handleNotActiveATE = Logic::ifElse(
@@ -122,13 +87,6 @@ class Editor {
 				pipe( $this->handleATEJobCreationError( $params, self::ATE_IS_NOT_ACTIVE ), Either::left() )
 			);
 
-			/**
-			 * Create a new ATE job when somebody clicks the "pencil" icon to edit existing translation.
-			 *
-			 * @param \WPML_Element_Translation_Job $jobObject
-			 *
-			 * @return Either<\WPML_Element_Translation_Job>
-			 */
 			$cloneCompletedATEJob = function ( $jobObject ) use ( $params ) {
 				if ( $this->isValidATEJob( $jobObject ) && (int) $jobObject->get_status_value() === ICL_TM_COMPLETE ) {
 					$sentFrom = isset( $params['preview'] ) ? Jobs::SENT_FROM_REVIEW : Jobs::SENT_MANUALLY;
@@ -140,32 +98,19 @@ class Editor {
 				return Either::of( $jobObject );
 			};
 
-			/**
-			 * @param \WPML_Element_Translation_Job $jobObject
-			 *
-			 * @return callable|Left|Right
-			 */
 			$handleMissingATEJob = function ( $jobObject ) use ( $params ) {
-				// ATE editor is already set. All fine, we can proceed.
 				if ( $this->isValidATEJob( $jobObject ) ) {
 					return Either::of( $jobObject );
 				}
 
-				/**
-				 * The new job has been created because either there was no translation at all or translation was "needs update".
-				 * The ATE job could not be created inside WPML_TM_ATE_Jobs_Actions::added_translation_jobs ,and we have to return the error message.
-				 */
+				if ( $jobObject->get_basic_data_property( 'editor' ) === \WPML_TM_Editors::WPML ) {
+					return $this->createATECounterpartForExistingWPMLJob( $params, $jobObject );
+				}
+
 				if ( ! $jobObject->get_basic_data_property( 'translated' ) && $this->previousJob( $params, $jobObject ) ) {
 					return Either::left( $this->handleATEJobCreationError( $params, self::ATE_JOB_COULD_NOT_BE_CREATED, $jobObject ) );
 				}
 
-				/**
-				 *  It creates a corresponding job in ATE for already existing WPML job in such situations:
-				 *  1. Previously job was created in CTE, but a user selected the setting to translate existing CTE jobs in ATE
-				 *  2. The job used to be handled by the Translation Proxy or the native WP editor
-				 *  3. ATE job could not be created before and user clicked "Retry" button
-				 *  4. Job was sent via basket and ATE job could not be created
-				 */
 				return $this->createATECounterpartForExistingWPMLJob( $params, $jobObject );
 			};
 
@@ -182,11 +127,6 @@ class Editor {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return array
-	 */
 	private function displayCTE( $jobObject = null ) {
 		$fn = curryN( 1, function ( $jobObject ) {
 			wpml_tm_load_old_jobs_editor()->set( $jobObject->get_id(), \WPML_TM_Editors::WPML );
@@ -197,11 +137,6 @@ class Editor {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * @param array $dataOfTranslationCreatedInNativeEditorViaConnection
-	 *
-	 * @return array
-	 */
 	private function displayWPNative( array $dataOfTranslationCreatedInNativeEditorViaConnection ) {
 		$url = 'post.php?' . http_build_query(
 				[
@@ -216,26 +151,12 @@ class Editor {
 		return [ 'editor' => \WPML_TM_Editors::WP, 'jobObject' => null, 'url' => $url ];
 	}
 
-	/**
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return void
-	 */
 	private function maybeSetReviewStatus( $jobObject ) {
 		if ( Relation::propEq( 'review_status', ReviewStatus::NEEDS_REVIEW, $jobObject->to_array() ) ) {
 			Jobs::setReviewStatus( $jobObject->get_id(), SetupOption::shouldBeReviewed() ? ReviewStatus::EDITING : null );
 		}
 	}
 
-	/**
-	 * It returns an url to place where a user should be redirected. The url contains a job id and error's code.
-	 *
-	 * @param array                         $params
-	 * @param int                           $code
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return array
-	 */
 	private function handleATEJobCreationError( $params = null, $code = null, $jobObject = null ) {
 		$fn = curryN( 3, function ( $params, $code, $jobObject ) {
 			ATERetry::incrementCount( $jobObject->get_id() );
@@ -258,37 +179,11 @@ class Editor {
 		return call_user_func_array( $fn, func_get_args() );
 	}
 
-	/**
-	 * It asserts a job's editor.
-	 *
-	 * @param string                        $editor
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return bool
-	 */
 	private function isJobEditorEqualTo( $editor, $jobObject ) {
 		return $jobObject->get_basic_data_property( 'editor' ) === $editor;
 	}
 
-	/**
-	 * It checks if we have a previous job in _icl_translate_job DB table and returns it if exists or returns false otherwise.
-	 * It happens when none translation for a specific language has existed so far or when a translation has been "needs update".
-	 *
-	 * @param array $params
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return object|bool
-	 */
 	private function previousJob( $params, $jobObject ) {
-		/**
-		 * If we get previous job ID passed in $params (like how it happens when updating translation from posts list).,
-		 * then we can compare it with the job_id coming from $jobObject
-		 *
-		 * Otherwise, if we're getting same job_id inside $params and $jobObject (like how it happens when updating translation from translations queue).,
-		 * then we get the previous job ID and compare it with the job_id coming from $jobObject, if they are not equal we return the previous job object, or we return false otherwise.
-		 *
-		 * @see wpmldev-541
-		 */
 
 		$jobObjectJobId = (int) $jobObject->get_id();
 		$jobIdInParams  = (int) Obj::prop( 'job_id', $params );
@@ -302,12 +197,6 @@ class Editor {
 		return $previousJob && (int) $previousJob->job_id !== $jobObjectJobId ? $previousJob : false;
 	}
 
-	/**
-	 * @param array                         $params
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return callable|Left<array>|Right<\WPML_Element_Translation_Job>
-	 */
 	private function createATECounterpartForExistingWPMLJob( $params, $jobObject ) {
 		if ( $this->clone_jobs->cloneWPMLJob( $jobObject->get_id() ) ) {
 			ATERetry::reset( $jobObject->get_id() );
@@ -319,15 +208,6 @@ class Editor {
 		return Either::left( $this->handleATEJobCreationError( $params, self::ATE_JOB_COULD_NOT_BE_CREATED, $jobObject ) );
 	}
 
-	/**
-	 * At this stage, we know that a corresponding job in ATE is created and we should open ATE editor.
-	 * We are trying to do that.
-	 *
-	 * @param array                         $params
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return false|mixed
-	 */
 	private function openATE( $params = null, $jobObject = null ) {
 		$fn = curryN( 2, function ( $params, $jobObject ) {
 			$this->maybeSetReviewStatus( $jobObject );
@@ -350,9 +230,6 @@ class Editor {
 
 
 
-	/**
-	 * @return string
-	 */
 	private function getReturnUrl( $params ) {
 		$return_url = '';
 
@@ -390,18 +267,12 @@ class Editor {
 		unset( $parameters['complete'] );
 
 		if ( $returnLanguage ) {
-			// We need the lang parameter to display the post list in the language which was used before ATE.
 			$parameters['lang'] = $returnLanguage;
 		}
 
 		return http_build_query( $parameters );
 	}
 
-	/**
-	 * @param \WPML_Element_Translation_Job $jobObject
-	 *
-	 * @return bool
-	 */
 	private function isValidATEJob( \WPML_Element_Translation_Job $jobObject ) {
 		return $this->isJobEditorEqualTo( \WPML_TM_Editors::ATE, $jobObject ) &&
 		       (int) $jobObject->get_basic_data_property( 'editor_job_id' ) > 0;

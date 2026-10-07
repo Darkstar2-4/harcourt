@@ -10,15 +10,10 @@
  */
 namespace WPML\Core\Twig\Sandbox;
 
-/**
- * Exception thrown when a not allowed filter is used in a template.
- *
- * @author Martin Hasoň <martin.hason@gmail.com>
- */
 class SecurityNotAllowedFilterError extends \WPML\Core\Twig\Sandbox\SecurityError
 {
     private $filterName;
-    public function __construct($message, $functionName, $lineno = -1, $filename = null, \Exception $previous = null)
+    public function __construct($message, $functionName, $lineno = -1, $filename = null, ?\Exception $previous = null)
     {
         parent::__construct($message, $lineno, $filename, $previous);
         $this->filterName = $functionName;

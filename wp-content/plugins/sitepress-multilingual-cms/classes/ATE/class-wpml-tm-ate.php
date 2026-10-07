@@ -1,18 +1,9 @@
 <?php
-/**
- * @author OnTheGo Systems
- */
 class WPML_TM_ATE {
 	const SITE_ID_SCOPE = 'ate';
 
 	private $translation_method_ate_enabled;
-	/**
-	 * @var WPML_TM_ATE_API
-	 */
 	private $tm_ate_api;
-	/**
-	 * @var WPML_TM_ATE_Jobs
-	 */
 	private $tm_ate_jobs;
 
 	public function is_translation_method_ate_enabled() {
@@ -28,12 +19,6 @@ class WPML_TM_ATE {
 		return $this->translation_method_ate_enabled;
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $language
-	 *
-	 * @return bool
-	 */
 	public function is_translation_ready_for_post( $trid, $language ) {
 
 		$translation_status_id = $this->get_translation_status_id_for_post( $trid, $language );
@@ -41,12 +26,6 @@ class WPML_TM_ATE {
 		return $translation_status_id && ! in_array( $translation_status_id, array( WPML_TM_ATE_Job::ATE_JOB_CREATED, WPML_TM_ATE_Job::ATE_JOB_IN_PROGRESS ), true );
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $language
-	 *
-	 * @return int|bool
-	 */
 	public function get_translation_status_id_for_post( $trid, $language ) {
 
 		$status_id = false;
@@ -60,12 +39,6 @@ class WPML_TM_ATE {
 		return $status_id;
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $language
-	 *
-	 * @return array|WP_Error
-	 */
 	public function get_job_data_for_post( $trid, $language ) {
 
 		$tm_ate_api  = $this->get_tm_ate_api();
@@ -85,9 +58,6 @@ class WPML_TM_ATE {
 		return isset( $ate_job->$ate_job_id ) ? $ate_job->$ate_job_id : $ate_job;
 	}
 
-	/**
-	 * @return WPML_TM_ATE_API
-	 */
 	private function get_tm_ate_api() {
 		if ( null === $this->tm_ate_api ) {
 			$ams_ate_factories = wpml_tm_ams_ate_factories();
@@ -97,9 +67,6 @@ class WPML_TM_ATE {
 		return $this->tm_ate_api;
 	}
 
-	/**
-	 * @return WPML_TM_ATE_Jobs
-	 */
 	private function get_tm_ate_jobs() {
 
 		if ( null === $this->tm_ate_jobs ) {

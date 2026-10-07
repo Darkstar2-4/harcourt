@@ -5,22 +5,22 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "he"
+            "lang": "he_IL"
          },
          "Add glossary terms": [
-            "הוסף מונחים למילון"
+            "הוסף מונחים למונחון"
          ],
          "Minimize": [
-            "כווץ"
+            "מזער"
          ],
          "Expand": [
             "הרחב"
          ],
          "There's nothing yet in the Glossary": [
-            "אין עדיין מונחים במילון"
+            "אין עדיין מונחים במונחון"
          ],
          "Looks like you're not yet using the glossary. Glossary can help you:": [
-            "נראה שעדיין לא השתמשת במילון. המילון יכול לעזור לך:"
+            "נראה שאתה עדיין לא משתמש במונחון. מונחון יכול לעזור לך:"
          ],
          "Improve the quality of the translation": [
             "לשפר את איכות התרגום"
@@ -32,18 +32,17 @@
             "להפחית עלויות תרגום"
          ],
          "Improve SEO in translation languages": [
-            "לשפר SEO בשפות התרגום"
+            "לשפר את ה-SEO בשפות מתורגמות"
          ],
          "How to Use the Glossary for Accurate Translations": [
-            "כיצד להשתמש במילון לתרגומים מדויקים"
+            "כיצד להשתמש במונחון לתרגומים מדויקים"
          ],
          "%d item in the <a>Glossary</a>": [
-            "%d פריט ב<a>מילון</a>",
-            "%d items in the <a>Glossary</a>",
-            "%d פריטים ב<a>מילון</a>"
+            "%d פריט ב<a>מונחון</a>",
+            "%d פריטים ב<a>מונחון</a>"
          ],
          "Dismiss": [
-            "סגור"
+            "התעלם"
          ]
       }
    }

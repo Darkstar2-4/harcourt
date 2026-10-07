@@ -6,7 +6,6 @@ use WPML\Core\Component\Communication\Domain\DismissedNoticesStorageInterface;
 
 class DismissedNoticesQuery {
 
-  /** @var DismissedNoticesStorageInterface */
   private $storage;
 
 
@@ -15,11 +14,6 @@ class DismissedNoticesQuery {
   }
 
 
-  /**
-   * @param string[] $noticeIdsToCheck
-   *
-   * @return string[]
-   */
   public function getDismissed( array $noticeIdsToCheck = [] ): array {
     $dismissed = $this->storage->getGlobal();
 
@@ -31,12 +25,6 @@ class DismissedNoticesQuery {
   }
 
 
-  /**
-   * @param int      $userId
-   * @param string[] $noticeIdsToCheck
-   *
-   * @return string[]
-   */
   public function getDismissedByUser( int $userId, array $noticeIdsToCheck = [] ): array {
     $dismissed = $this->storage->getPerUser( $userId );
 

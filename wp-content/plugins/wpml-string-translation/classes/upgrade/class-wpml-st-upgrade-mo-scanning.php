@@ -1,12 +1,8 @@
 <?php
 
 class WPML_ST_Upgrade_MO_Scanning implements IWPML_St_Upgrade_Command {
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/**
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
@@ -20,8 +16,6 @@ class WPML_ST_Upgrade_MO_Scanning implements IWPML_St_Upgrade_Command {
 		$table_name = $this->wpdb->prefix . 'icl_mo_files_domains';
 		$this->wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
 
-		//@todo needs proper testing
-		/** @var string $sql */
 		$sql = $this->wpdb->prepare(
 			"
 				CREATE TABLE `{$this->wpdb->prefix}icl_mo_files_domains` (
@@ -49,7 +43,6 @@ class WPML_ST_Upgrade_MO_Scanning implements IWPML_St_Upgrade_Command {
 		$result = true;
 
 		$table_name = $this->wpdb->prefix . 'icl_string_translations';
-		/** @var array $results */
 		$results = $this->wpdb->get_results( "SHOW COLUMNS FROM `{$table_name}` LIKE 'mo_string'" );
 		if ( 0 === count( $results ) ) {
 			$sql = "
@@ -75,9 +68,6 @@ class WPML_ST_Upgrade_MO_Scanning implements IWPML_St_Upgrade_Command {
 		return __CLASS__ . '_4' ;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_charset_collate() {
 		$charset_collate = '';
 		if ( method_exists( $this->wpdb, 'has_cap' ) && $this->wpdb->has_cap( 'collation' ) ) {

@@ -24,11 +24,6 @@ use WPML\Core\Twig\Node\ModuleNode;
 use WPML\Core\Twig\Node\Node;
 use WPML\Core\Twig\Node\PrintNode;
 use WPML\Core\Twig\NodeTraverser;
-/**
- * @final
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class EscaperNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
 {
     protected $statusStack = [];
@@ -88,7 +83,6 @@ class EscaperNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
     }
     private function unwrapConditional(\WPML\Core\Twig\Node\Expression\ConditionalExpression $expression, \WPML\Core\Twig\Environment $env, $type)
     {
-        // convert "echo a ? b : c" to "a ? echo b : echo c" recursively
         $expr2 = $expression->getNode('expr2');
         if ($expr2 instanceof \WPML\Core\Twig\Node\Expression\ConditionalExpression && $this->shouldUnwrapConditional($expr2, $env, $type)) {
             $expr2 = $this->unwrapConditional($expr2, $env, $type);

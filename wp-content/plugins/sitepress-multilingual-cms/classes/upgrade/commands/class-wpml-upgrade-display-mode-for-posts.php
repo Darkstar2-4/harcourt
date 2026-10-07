@@ -4,13 +4,10 @@ class WPML_Upgrade_Display_Mode_For_Posts implements IWPML_Upgrade_Command {
 
 	const DISPLAY_MODE_SETTING = 'show_untranslated_blog_posts';
 
-	/** @var SitePress */
 	private $sitepress;
 
-	/** @var WPML_Settings_Helper */
 	private $settings;
 
-	/** @var WPML_Notices */
 	private $wpml_notices;
 
 	public function __construct( array $args ) {
@@ -19,9 +16,6 @@ class WPML_Upgrade_Display_Mode_For_Posts implements IWPML_Upgrade_Command {
 		$this->wpml_notices = $args[2];
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_admin() {
 
 		if ( $this->sitepress->get_setting( self::DISPLAY_MODE_SETTING ) ) {
@@ -40,9 +34,6 @@ class WPML_Upgrade_Display_Mode_For_Posts implements IWPML_Upgrade_Command {
 		$this->wpml_notices->add_notice( $notice );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_ajax() {
 		if ( isset( $_POST['mode'] ) ) {
 			if ( 'translate' === $_POST['mode'] ) {
@@ -64,16 +55,10 @@ class WPML_Upgrade_Display_Mode_For_Posts implements IWPML_Upgrade_Command {
 		return false;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function run_frontend() {
 		return false;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_results() {
 		return array();
 	}

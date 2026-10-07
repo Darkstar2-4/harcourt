@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Registers scripts so that they can be reused throughout WPML plugins
- * Hooked to `admin_enqueue_scripts`
- */
 function wpml_register_js_scripts() {
 	wp_register_script( 'wpml-underscore-template-compiler',
 		ICL_PLUGIN_URL . '/res/js/shared/wpml-template-compiler.js',

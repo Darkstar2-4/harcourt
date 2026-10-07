@@ -6,10 +6,8 @@ use WPML\ST\TranslationFile\Sync\FileSync;
 
 class Sync implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC_Action {
 
-	/** @var FileSync */
 	private $fileSync;
 
-	/** @var callable */
 	private $useFileSynchronization;
 
 	public function __construct( FileSync $fileSync, callable $useFileSynchronization ) {
@@ -34,13 +32,6 @@ class Sync implements \IWPML_Frontend_Action, \IWPML_Backend_Action, \IWPML_DIC_
 		}
 	}
 
-	/**
-	 * @param  bool  $override
-	 * @param  string  $domain
-	 * @param  string  $moFile
-	 *
-	 * @return bool
-	 */
 	public function syncCustomMoFileOnLoadTextDomain( $override, $domain, $moFile ) {
 		$this->fileSync->sync( $moFile, $domain );
 

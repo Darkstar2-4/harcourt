@@ -2,17 +2,8 @@
 
 use WPML\API\Sanitize;
 
-/**
- * Class WPML_Admin_Post_Actions
- *
- * @package    wpml-core
- * @subpackage post-translation
- */
 class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 
-	/**
-	 * @depecated since 4.6.5 You should use constants from WPML\Media\Option
-	 */
 	const DUPLICATE_MEDIA_META_KEY = \WPML\Media\Option::DUPLICATE_MEDIA_KEY;
 	const DUPLICATE_FEATURED_META_KEY = \WPML\Media\Option::DUPLICATE_FEATURED_KEY;
 	const DUPLICATE_MEDIA_GLOBAL_KEY = 'duplicate_media';
@@ -29,12 +20,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		}
 	}
 
-	/**
-	 * @param int    $post_id
-	 * @param string $post_status
-	 *
-	 * @return null|int
-	 */
 	function get_save_post_trid( $post_id, $post_status ) {
 		$trid = $this->get_element_trid( $post_id );
 
@@ -49,10 +34,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		return $trid;
 	}
 
-	/**
-	 * @param int     $post_id
-	 * @param WP_Post $post
-	 */
 	public function save_post_actions( $post_id, $post ) {
 		global $sitepress;
 
@@ -61,7 +42,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 			$post = get_post( $post_id );
 		}
 
-		// exceptions
 		$http_referer = $this->get_http_referer();
 		if ( ! $this->has_save_post_action( $post ) && ! $http_referer->is_rest_request_called_from_post_edit_page() ) {
 			return;
@@ -111,8 +91,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 			$source_language = $language_code;
 		} else {
 			$trid = isset( $trid ) && $trid ? $trid : $this->get_save_post_trid( $post_id, $post->post_status );
-			// after getting the right trid set the source language from it by referring to the root translation
-			// of this trid, in case no proper source language has been set yet
 			$source_language = isset( $source_language )
 				? $source_language : $this->get_save_post_source_lang( $trid, $language_code, $default_language );
 		}
@@ -127,10 +105,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		}
 	}
 
-	/**
-	 * @param int         $post_id
-	 * @param string|null $source_language
-	 */
 	private function save_media_options( $post_id, $source_language  ) {
 
 		if ( $this->has_post_media_options_metabox() ) {
@@ -164,12 +138,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		return true;
 	}
 
-	/**
-	 * @param integer   $post_id
-	 * @param SitePress $sitepress
-	 *
-	 * @return null|string
-	 */
 	public function get_save_post_lang( $post_id, $sitepress ) {
 		$language_code = null;
 		if ( isset( $_POST['post_ID'] ) && (int) $_POST['post_ID'] === (int) $post_id ) {
@@ -188,10 +156,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		return $language_code ? $language_code : parent::get_save_post_lang( $post_id, $sitepress );
 	}
 
-	/**
-	 * @param array $post_vars
-	 * @return bool
-	 */
 	private function is_inline_action( $post_vars ) {
 
 		return isset( $post_vars[ 'action' ] )
@@ -202,13 +166,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		            && $_GET[ 'action' ] == 'untrash' );
 	}
 
-	/**
-	 * @param int    $trid
-	 * @param string $language_code
-	 * @param string $default_language
-	 *
-	 * @return null|string
-	 */
 	protected function get_save_post_source_lang( $trid, $language_code, $default_language ) {
 		$source_language = filter_input ( INPUT_GET, 'source_lang', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$source_language = $source_language ? $source_language : $this->get_source_language_from_referer();
@@ -219,11 +176,6 @@ class WPML_Admin_Post_Actions extends WPML_Post_Translation {
 		return $source_language;
 	}
 
-	/**
-	 * Gets the source_language $_GET parameter from the HTTP_REFERER
-	 *
-	 * @return string|bool
-	 */
 	private function get_source_language_from_referer() {
 		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) {
 			return false;

@@ -8,9 +8,6 @@ use function WPML\FP\compose;
 
 class PremiumAddonsButton {
 
-	/**
-	 * @return array
-	 */
 	public static function get() {
 		$isButton = Relation::propEq( 'widgetType', 'premium-addon-button' );
 

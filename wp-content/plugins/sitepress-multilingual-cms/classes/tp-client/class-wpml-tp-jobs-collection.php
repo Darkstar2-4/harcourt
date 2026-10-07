@@ -20,9 +20,6 @@ class WPML_TP_Jobs_Collection {
 		$this->batch_factory = $batch_factory;
 	}
 
-	/**
-	 * @return WPML_TP_Job[]
-	 */
 	public function get_all() {
 		$jobs_obj = array();
 		if ( ! $this->jobs ) {
@@ -35,11 +32,6 @@ class WPML_TP_Jobs_Collection {
 		return $this->jobs;
 	}
 
-	/**
-	 * @param WPML_Translation_Job $job
-	 *
-	 * @return bool
-	 */
 	public function is_job_canceled( WPML_Translation_Job $job ) {
 		$canceled = false;
 		$batch    = $this->batch_factory->create( $job->get_batch_id() );

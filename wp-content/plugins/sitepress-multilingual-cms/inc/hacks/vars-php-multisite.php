@@ -1,7 +1,6 @@
 <?php
 			global $PHP_SELF;
 if ( is_admin() ) {
-	// wp-admin pages are checked more carefully
 	if ( is_network_admin() ) {
 		preg_match( '#/wp-admin/network/?(.*?)$#i', $PHP_SELF, $self_matches );
 	} elseif ( is_user_admin() ) {
@@ -18,7 +17,7 @@ if ( is_admin() ) {
 		preg_match( '#(.*?)(/|$)#', $pagenow, $self_matches );
 		$pagenow = strtolower( $self_matches[1] );
 		if ( '.php' !== substr( $pagenow, -4, 4 ) ) {
-			$pagenow .= '.php'; // for Options +Multiviews: /wp-admin/themes/index.php (themes.php is queried)
+			$pagenow .= '.php';
 		}
 	}
 } else {

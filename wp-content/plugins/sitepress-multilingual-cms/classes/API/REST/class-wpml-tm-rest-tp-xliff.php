@@ -3,10 +3,8 @@
 use WPML\LIB\WP\User;
 
 class WPML_TM_REST_TP_XLIFF extends WPML_REST_Base {
-	/** @var WPML_TP_Translations_Repository */
 	private $translation_repository;
 
-	/** @var WPML_TM_Rest_Download_File */
 	private $download_file;
 
 	public function __construct(
@@ -45,11 +43,6 @@ class WPML_TM_REST_TP_XLIFF extends WPML_REST_Base {
 		);
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array|string|WP_Error
-	 */
 	public function get_job_translations_from_tp( WP_REST_Request $request ) {
 		try {
 			if ( $request->get_param( 'json' ) ) {
@@ -65,11 +58,6 @@ class WPML_TM_REST_TP_XLIFF extends WPML_REST_Base {
 		}
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return string
-	 */
 	private function download_job_translation( WP_REST_Request $request ) {
 		try {
 			$content = $this->translation_repository->get_job_translations(

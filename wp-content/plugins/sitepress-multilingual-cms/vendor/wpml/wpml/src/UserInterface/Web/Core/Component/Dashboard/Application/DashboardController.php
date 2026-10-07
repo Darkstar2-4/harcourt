@@ -1,5 +1,4 @@
 <?php
-/** @codingStandardsIgnoreFile */
 
 namespace WPML\UserInterface\Web\Core\Component\Dashboard\Application;
 
@@ -16,6 +15,7 @@ use WPML\Core\Component\TranslationProxy\Application\Service\TranslationProxySer
 use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\Query\FetchRemoteTranslationServiceException;
 use WPML\Core\SharedKernel\Component\Translator\Application\Service\Dto\TranslatorDto;
 use WPML\Core\Port\Persistence\Exception\DatabaseErrorException;
+use WPML\Core\Port\PluginInterface;
 use WPML\Core\SharedKernel\Component\Language\Application\Query\Dto\LanguageDto;
 use WPML\Core\SharedKernel\Component\Language\Application\Query\LanguagesQueryInterface;
 use WPML\Core\SharedKernel\Component\Post\Application\Query\Dto\PostTypeDto;
@@ -34,88 +34,51 @@ use WPML\UserInterface\Web\Core\Port\Script\ScriptPrerequisitesInterface;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Page;
 use WPML\UserInterface\Web\Infrastructure\WordPress\Endpoint\StringItemEndpointData;
 
-/**
- * @phpstan-type RemoteTranslationServiceData array{
- *   id: int,
- *   name: string,
- *   isAuthenticated: bool,
- *   extraFields: array<
- *   array{
- *   type: string,
- *   label: string,
- *   name: string,
- *   items: \WPML\Core\SharedKernel\Component\TranslationProxy\Domain\ExtraFieldItems|null
- * }
- * > | null
- * }
- *
- * @phpstan-import-type ItemSectionData from \WPML\UserInterface\Web\Core\Component\Dashboard\Application\ViewModel\ItemSection
- */
 class DashboardController implements
   PageRenderInterface,
   PageConfigUserInterface,
   ScriptPrerequisitesInterface,
   ScriptDataProviderInterface {
 
-  /** @var DashboardTabsInterface */
   private $dashboardTabs;
 
-  /** @var DashboardTranslatableTypesQueryInterface */
   private $translatableItems;
 
-  /** @var JobQueryInterface */
   private $jobQuery;
 
-  /** @var PublicationStatusQueryInterface */
   private $publicationStatusQuery;
 
-  /** @var DashboardItemSectionsFilterInterface */
   private $dashboardItemSectionsFilter;
 
-  /** @var DashboardPublicationStatusFilterInterface */
   private $dashboardPublicationStatusFilter;
 
-  /** @var TranslatorsService */
   private $translatorsService;
 
-  /** @var StringItemEndpointData */
   private $stringItemEndpointData;
 
-  /** @var GetTranslationBatchDefaultName */
   private $getTranslationBatchDefaultName;
 
-  /** @var SettingsRepository */
   private $translationSettingsRepository;
 
-  /** @var RemoteTranslationService */
   private $remoteTranslationServiceService;
 
-  /** @var LastPickedUpDateServiceInterface */
   private $lastPickedUpDateService;
 
-  /** @var RemoteJobsQueryInterface */
   private $remoteJobsQuery;
 
-  /** @var TranslationProxyServiceInterface */
   private $translationProxyService;
 
-  /** @var UserQueryInterface */
   private $userQuery;
 
-  /** @var LanguagePreferencesLoader */
   private $languagePreferencesLoader;
 
-  /**
-   * @var Page
-   * @psalm-suppress PropertyNotSetInConstructor
-   */
   private $page;
 
-  /** @var TranslationBatchesQueryInterface */
   private $translationBatchesQuery;
 
-  /** @var WebsiteContextQueryInterface */
   private $websiteContextQuery;
+
+  private $plugin;
 
   public function __construct(
     DashboardTabsInterface $dashboardTabs,
@@ -135,7 +98,8 @@ class DashboardController implements
     UserQueryInterface $userQuery,
     LanguagePreferencesLoader $languagePreferencesLoader,
     TranslationBatchesQueryInterface $translationBatchesQuery,
-    WebsiteContextQueryInterface $websiteContextQuery
+    WebsiteContextQueryInterface $websiteContextQuery,
+    PluginInterface $plugin
   ) {
     $this->dashboardTabs                    = $dashboardTabs;
     $this->translatableItems                = $translatableItems;
@@ -154,7 +118,8 @@ class DashboardController implements
     $this->userQuery                        = $userQuery;
     $this->languagePreferencesLoader        = $languagePreferencesLoader;
     $this->translationBatchesQuery          = $translationBatchesQuery;
-    $this->websiteContextQuery               = $websiteContextQuery;
+    $this->websiteContextQuery              = $websiteContextQuery;
+    $this->plugin                           = $plugin;
   }
 
 
@@ -163,10 +128,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @phpstan-return RemoteTranslationServiceData | null
-   * @return array|null
-   */
   private function getRemoteTranslationServiceData() {
     try {
       $remoteTranslationService = $this->remoteTranslationServiceService->getCurrent();
@@ -182,11 +143,9 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return array<string, string>
-   */
   private function getDashboardUrls(): array {
     return [
+      'amsBaseUrl'                      => $this->plugin->getAMSHost(),
       'translatorspage'                 => admin_url( 'admin.php?page=tm/menu/main.php&sm=translators' ),
       'jobs'                            => admin_url( 'admin.php?page=tm/menu/main.php&sm=jobs' ),
       'translationqueue'                => admin_url( 'admin.php?page=tm/menu/translations-queue.php' ),
@@ -197,15 +156,13 @@ class DashboardController implements
       'stringTranslationPage'           => admin_url( 'admin.php?page=wpml-string-translation%2Fmenu%2Fstring-translation.php' ),
       'languageEditorPage'              => admin_url( 'admin.php?page=sitepress-multilingual-cms%2Fmenu%2Flanguages.php&trop=1' ),
       'glossaryPage'                    => admin_url( 'admin.php?page=tm%2Fmenu%2Fmain.php&sm=ate-ams&settings=glossary' ),
+      'connectedSites'                  => admin_url( 'admin.php?page=tm%2Fmenu%2Fmain.php&sm=ate-ams&settings=connected_sites' ),
       'translationProxyUrl'             => $this->translationProxyService->getTPUrl(),
       'translationEngine'               => admin_url( 'admin.php?page=tm%2Fmenu%2Fsettings#automatic-translations-section' ),
     ];
   }
 
 
-  /**
-   * @return ItemSectionData[]
-   */
   private function getTranslatableItems(): array {
     $translatableItems = array_map( function ( PostTypeDto $itemType ): ItemSection {
       return ItemSection::createFromPostType( $itemType );
@@ -222,9 +179,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return PublicationStatusDto[]
-   */
   private function getFilteredPublicationStatuses(): array {
     return $this->dashboardPublicationStatusFilter->filterByDto(
       $this->publicationStatusQuery->getNotInternalStatuses()
@@ -232,12 +186,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return array<array{
-   *   id: string,
-   *   label: string
-   * }>
-   */
   private function getPublicationStatuses(): array {
     $filteredPublicationStatuses = $this->getFilteredPublicationStatuses();
 
@@ -247,16 +195,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return array<array{
-   *   id: int,
-   *   name: string,
-   *   languagePairs: array<array{
-   *   from: string,
-   *   to: string[]
-   * }>
-   * }>
-   */
   private function getTranslators(): array {
     return array_map(
       function ( TranslatorDto $translatorDto ) {
@@ -267,16 +205,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return array{
-   *   id: int,
-   *   name:string,
-   *   languagePairs: array<array{
-   *   from: string,
-   *   to: string[]
-   * }>
-   * }|null
-   */
   private function getCurrentlyLoggedInTranslator() {
     $currentlyLoggedInTranslator = $this->translatorsService->getCurrentlyLoggedId();
 
@@ -284,9 +212,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return string|null
-   */
   private function getReviewOption() {
     $reviewOption = $this->translationSettingsRepository
       ->getSettings()
@@ -296,9 +221,6 @@ class DashboardController implements
   }
 
 
-  /**
-   * @return ItemSectionData[]
-   */
   private function getStringsSections(): array {
     if ( ! $this->stringItemEndpointData->isStPluginActive() ) {
       return [];
@@ -322,10 +244,6 @@ class DashboardController implements
     return ! array_key_exists( 'sm', $_GET ) || $_GET['sm'] === 'dashboard';
   }
 
-  /**
-   * @return array<string, mixed>
-   * @throws DatabaseErrorException
-   */
   public function initialScriptData(): array {
     $currentUser               = $this->userQuery->getCurrent();
     $currentTranslationService = $this->getRemoteTranslationServiceData();
@@ -352,7 +270,6 @@ class DashboardController implements
     $languageData = $this->languagePreferencesLoader->get();
 
     $otherData = [
-      // Returns the currently logged-in user data or NULL if user is logged out
       'currentUser' => $currentUser ? $currentUser->toArray() : null,
 
       'legacyResourceUrl' => WPML_TM_URL ?? '',
@@ -376,8 +293,6 @@ class DashboardController implements
       'isContextPresent'                       => $this->websiteContextQuery->isContextPresent(),
       'publicationStatuses'                    => $this->getPublicationStatuses(),
       'translators'                            => $this->getTranslators(),
-      // returns the currently logged-in user data ONLY if he's a translator (has language pairs)
-      // and returns NULL otherwise even if the user is logged-in
       'currentlyLoggedInTranslator'            => $this->getCurrentlyLoggedInTranslator(),
       'translationBatchDefaultName'            => $this->getTranslationBatchDefaultName->handle()['value'],
       'reviewTranslationOption'                => $this->getReviewOption(),
@@ -401,7 +316,7 @@ class DashboardController implements
   }
 
   public function render() {
-    echo '<div class="wrap">'; // WordPress page wrap.
+    echo '<div class="wrap">';
     echo $this->page->title() ? '<h1>' . $this->page->title() . '</h1>' : '';
     $this->renderNotices();
     echo $this->dashboardTabs->wrapTabsAroundContent(
@@ -415,11 +330,7 @@ class DashboardController implements
     $this->page = $page;
   }
 
-  /**
-   * @return void
-   */
   private function renderNotices() {
-    // render only on main dashboard page
     $smParameter = htmlspecialchars( (string) ( filter_input( INPUT_GET, 'sm' ) ?: '' ) );
 
     if ( empty( $smParameter ) || $smParameter === 'dashboard' ) {
@@ -428,16 +339,10 @@ class DashboardController implements
   }
 
 
-  /**
-   * @param ItemSectionData[] $itemSections
-   *
-   * @return string[]|null
-   */
   private function getPopulatedItemSections( array $itemSections ) {
     $itemSectionsArgs      = filter_input( INPUT_GET, 'sections', FILTER_SANITIZE_SPECIAL_CHARS );
     $populatedItemSections = explode( ',', $itemSectionsArgs ?: '' );
 
-    // Filter out those populated sections that are not in the list of available sections.
     $sectionIds = array_map( function ( $itemSection ) {
       return $itemSection['id'];
     }, $itemSections );
@@ -450,13 +355,7 @@ class DashboardController implements
   }
 
 
-  /**
-   * @param ItemSectionData[] $itemSections
-   *
-   * @return string
-   */
   private function getPredefinedStringDomain( array $itemSections ): string {
-    // we shouldn't look for predefinedStringDomain if we don't have the strings section displayed
     if ( ! in_array( 'string', $this->getPopulatedItemSections( $itemSections ) ?: [] ) ) {
       return '';
     }

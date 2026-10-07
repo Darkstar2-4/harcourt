@@ -8,10 +8,8 @@ use WPML\PHP\Exception\InvalidArgumentException;
 
 class TranslatorNoteService {
 
-  /** @var TranslatorNoteRepositoryInterface */
   private $postTranslatorNoteRepo;
 
-  /** @var TranslatorNoteRepositoryInterface */
   private $stringPackageTranslatorNoteRepo;
 
 
@@ -24,11 +22,6 @@ class TranslatorNoteService {
   }
 
 
-  /**
-   * @param SaveTranslatorNoteCommand $command
-   * @return bool
-   * @throws InvalidArgumentException
-   */
   public function saveTranslatorNote( SaveTranslatorNoteCommand $command ) {
     $saveResult = false;
 

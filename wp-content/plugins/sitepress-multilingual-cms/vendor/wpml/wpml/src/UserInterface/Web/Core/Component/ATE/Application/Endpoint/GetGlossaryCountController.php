@@ -8,7 +8,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetGlossaryCountController implements EndpointInterface {
 
-  /** @var GlossaryInterface */
   private $glossaryQuery;
 
 

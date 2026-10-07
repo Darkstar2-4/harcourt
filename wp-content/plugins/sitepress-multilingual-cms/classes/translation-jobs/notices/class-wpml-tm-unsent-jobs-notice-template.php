@@ -1,42 +1,21 @@
 <?php
 
-/**
- * Class WPML_TM_Unsent_Jobs_Notice_Template
- */
 class WPML_TM_Unsent_Jobs_Notice_Template {
 
 	const TEMPLATE_FILE = 'jobs-not-notified.twig';
 
-	/**
-	 * @var WPML_Twig_Template
-	 */
 	private $template_service;
 
-	/**
-	 * WPML_TM_Unsent_Jobs_Notice_Template constructor.
-	 *
-	 * @param IWPML_Template_Service $template_service
-	 */
 	public function __construct( IWPML_Template_Service $template_service ) {
 		$this->template_service = $template_service;
 	}
 
-	/**
-	 * @param array $jobs
-	 *
-	 * @return string
-	 */
 	public function get_notice_body( $jobs ) {
 		$model = $this->get_notice_model( $jobs );
 
 		return $this->template_service->show( $model, self::TEMPLATE_FILE );
 	}
 
-	/**
-	 * @param array $jobs
-	 *
-	 * @return array
-	 */
 	private function get_notice_model( $jobs ) {
 		$translators_tab = 'admin.php?page=' . WPML_TM_FOLDER . '/menu/main.php&sm=translators';
 		$jobs_formatted  = $this->get_formatted_jobs( $jobs );
@@ -56,11 +35,6 @@ class WPML_TM_Unsent_Jobs_Notice_Template {
 		return $model;
 	}
 
-	/**
-	 * @param array $jobs
-	 *
-	 * @return array
-	 */
 	private function get_formatted_jobs( $jobs ) {
 		$jobs_formatted = array();
 		foreach ( $jobs as $job ) {

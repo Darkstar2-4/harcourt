@@ -9,13 +9,6 @@ class TastyIgniterInstaller extends BaseInstaller
         'theme' => 'themes/{$name}/',
     );
 
-    /**
-     * Format package name.
-     *
-     * Cut off leading 'ti-ext-' or 'ti-theme-' if present.
-     * Strip vendor name of characters that is not alphanumeric or an underscore
-     *
-     */
     public function inflectPackageVars($vars)
     {
         if ($vars['type'] === 'tastyigniter-extension') {

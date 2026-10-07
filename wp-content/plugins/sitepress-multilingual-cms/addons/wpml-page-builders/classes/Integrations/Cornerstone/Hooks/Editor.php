@@ -29,14 +29,7 @@ class Editor implements \IWPML_Frontend_Action {
 			->then( [ $this, 'maybeDisplayModalPageBuilderWarning' ] );
 	}
 
-	/**
-	 * @return int|null
-	 */
 	private static function getEditedId() {
-		/**
-		 * @see \Cornerstone_Routing::process_params
-		 * $decodeCornerstoneData :: string -> array
-		 */
 		$decodeCornerstoneData = function( $data ) {
 			$request = Obj::prop( 'request', $data );
 
@@ -58,9 +51,6 @@ class Editor implements \IWPML_Frontend_Action {
 			->getOrElse( null );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function maybeDisplayModalPageBuilderWarning() {
 		if ( is_user_logged_in() && get_the_ID() ) {
 			do_action( 'wpml_maybe_display_modal_page_builder_warning', get_the_ID(), 'Cornerstone' );

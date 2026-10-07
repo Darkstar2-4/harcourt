@@ -1,15 +1,15 @@
 <?php
 
 use WPML\ST\Gettext\AutoRegisterSettings;
+use WPML\ST\StringsScanning\JS\SettingsHooks as JSScanSettingsHooks;
 use function WPML\Container\make;
 use WPML\UIPage;
 
-/** @var WPML_String_Translation $WPML_String_Translation */
 global $sitepress, $WPML_String_Translation, $wpdb, $wp_query;
 
 $string_settings = $WPML_String_Translation->get_strings_settings();
 
-if ( ( ! isset( $sitepress_settings['existing_content_language_verified'] ) || ! $sitepress_settings['existing_content_language_verified'] ) /*|| 2 > count($sitepress->get_active_languages())*/ ) {
+if ( ( ! isset( $sitepress_settings['existing_content_language_verified'] ) || ! $sitepress_settings['existing_content_language_verified'] )   ) {
 	return;
 }
 
@@ -34,7 +34,6 @@ if ( preg_match(
 } else {
 	$status_filter = filter_input( INPUT_GET, 'status', FILTER_SANITIZE_NUMBER_INT, FILTER_NULL_ON_FAILURE );
 }
-// $status_filter  = $status_filter !== false ? (int) $status_filter : null;
 $context_filter = filter_input( INPUT_GET, 'context', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
 $search_filter      = filter_input( INPUT_GET, 'search', FILTER_SANITIZE_SPECIAL_CHARS );
@@ -84,7 +83,6 @@ function _icl_string_translation_rtl_textarea( $language ) {
 
 $po_importer = apply_filters( 'wpml_st_get_po_importer', null );
 
-/** @var WPML_PO_Import_Strings $wpml_po_import_strings */
 $wpml_po_import_strings = WPML\Container\make( WPML_PO_Import_Strings::class );
 
 wp_enqueue_script( 'wpml-tooltip', WPML_ST_URL . '/res/js/tooltip.js', array( 'wp-pointer', 'jquery' ), WPML_ST_VERSION );
@@ -156,34 +154,9 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 			</tfoot>
 			<tbody>
 				<?php
-				$k = -1;
-				foreach ( $po_importer->get_strings() as $str ) :
-					$k++;
-					?>
-					<tr>
-						<td><input class="icl_st_row_cb js-icl-st-row-cb" type="checkbox" name="icl_strings_selected[]"
-							<?php
-							if ( $str['exists'] || $use_po_translations !== true ) :
-								?>
-								checked="checked"<?php endif; ?> value="<?php echo $k; ?>" /></td>
-						<td>
-							<input type="text" name="icl_strings[]" value="<?php echo esc_attr( $str['string'] ); ?>" readonly="readonly" style="width:100%;" size="100" />
-							<?php if ( $use_po_translations === true ) : ?>
-							<input type="text" name="icl_translations[]" value="<?php echo esc_attr( $str['translation'] ); ?>" readonly="readonly" style="width:100%;
-																						   <?php
-																							if ( $str['fuzzy'] ) :
-																								?>
- ;background-color:#ffecec<?php endif; ?>" size="100" />
-							<input type="hidden" name="icl_fuzzy[]" value="<?php echo $str['fuzzy']; ?>" />
-							<input type="hidden" name="icl_name[]" value="<?php echo $str['name']; ?>" />
-							<input type="hidden" name="icl_context[]" value="<?php echo $str['context']; ?>" />
-							<?php endif; ?>
-							<?php if ( $str['name'] != md5( $str['string'] ) ) : ?>
-								<i><?php printf( esc_html__( 'Name: %s', 'wpml-string-translation' ), $str['name'] ); ?></i><br/>
-							<?php endif ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
+				$po_import_review_table = new WPML_PO_Import_Review_Table();
+				$po_import_review_table->render( $po_importer->get_strings(), $use_po_translations );
+				?>
 			</tbody>
 		</table>
 		<a name="add_po_strings_confirm"></a>
@@ -325,11 +298,13 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 							</div>
 							<div class="inside wpml-st-translate-user-fields">
 								<?php
-									/** @var AutoRegisterSettings $auto_register_settings */
 									$auto_register_settings = WPML\Container\make( AutoRegisterSettings::class );
 								?>
 								<p class="link-wrap">
 									<a href="admin.php?page=<?php echo WPML_PLUGIN_FOLDER; ?>/menu/theme-localization.php" class="external-link"><?php esc_html_e( 'Strings in the theme and plugins', 'wpml-string-translation' ); ?></a>
+								</p>
+								<p class="link-wrap">
+									<a href="<?php echo JSScanSettingsHooks::getSettingsURL(); ?>" class="external-link"><?php esc_html_e( 'Strings in JavaScript files', 'wpml-string-translation' ); ?></a>
 								</p>
 								<p class="link-wrap">
 									<a
@@ -497,8 +472,6 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 					</div>
 					<?php
 			} else {
-				/** @var array|null $icl_translation_filter */
-				/** @var string $page_links */
 				$page_links = paginate_links(
 					array(
 						'base'      => add_query_arg( 'paged', '%#%' ),
@@ -572,7 +545,7 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 			<div></div>
 		<?php }?>
 
-		<?php if ( current_user_can( 'manage_options' ) || current_user_can( 'manage_translations' ) ) :  // the rest is only for admins or translation mangagers, not for editors ?>
+		<?php if ( current_user_can( 'manage_options' ) || current_user_can( 'manage_translations' ) ) :   ?>
 
 		<div class="icl-st-bulk-actions">
 			<input type="hidden" id="_icl_nonce_dstr"
@@ -621,7 +594,6 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 						<!-- manage_options / Auto register untranslated strings -->
 						<div id="dashboard_wpml_st_autoregister" class="postbox wpml-st-auto-register-strings closed">
 							<?php
-							/** @var AutoRegisterSettings $auto_register_settings */
 							$auto_register_settings = WPML\Container\make( AutoRegisterSettings::class );
 							?>
 							<div class="hndle-wrap clear">
@@ -698,7 +670,7 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 											<?php echo $auto_register_settings->getIsTypeDisabled() ? 'disabled="disabled"' : ""; ?>
 											/>
 											<span <?php echo $auto_register_settings->getIsTypeDisabled() ? 'class="wpml-disabled-text"' : ""; ?>>
-												<?php echo __('Also register strings from the website\'s back-end', 'sitepress'); ?>
+												<?php echo __('Also register strings from the website\'s back-end', 'wpml-string-translation'); ?>
 											</span>
 										</label>
 									</div>
@@ -767,7 +739,6 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 											<?php
 											foreach ( $active_languages as $lang ) {
 												if ( $lang['code'] === 'en' ) {
-													// We need English to be on top and always there even if not active.
 													continue;
 												}
 												?>
@@ -866,7 +837,6 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 												<?php
 												$poExportTranslationLangs = $active_languages;
 												if ( isset( $poExportTranslationLangs['en'] ) ) {
-													// Push English at last.
 													$temp = $poExportTranslationLangs['en'];
 													unset( $poExportTranslationLangs['en'] );
 													$poExportTranslationLangs['en'] = $temp;
@@ -928,7 +898,7 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 										<input type="button"
 											   class="button-secondary wpml-button base-btn wpml-button--outlined"
 											   id="wpml-language-of-domains-link"
-											   value="<?php echo __( "Set the language of text-domains", "sitepress" ); ?>"
+											   value="<?php echo __( "Set the language of text-domains", "wpml-string-translation" ); ?>"
 										/>
 									</p>
 								</div>
@@ -1133,7 +1103,7 @@ wp_enqueue_style( 'wpml-tooltip', WPML_ST_URL . '/res/css/tooltip/tooltip.css', 
 		</p>
 	</div>
 
-	<?php endif; // if(current_user_can('manage_options') ?>
+	<?php endif;  ?>
 	<?php endif; ?>
 	<?php do_action( 'icl_menu_footer' ); ?>
 </div>

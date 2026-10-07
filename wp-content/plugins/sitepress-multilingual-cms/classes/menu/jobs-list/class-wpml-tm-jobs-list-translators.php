@@ -7,12 +7,8 @@ use function \WPML\FP\flip;
 use function \WPML\FP\curryN;
 
 class WPML_TM_Jobs_List_Translators {
-	/** @var WPML_Translator_Records */
 	private $translator_records;
 
-	/**
-	 * @param WPML_Translator_Records $translator_records
-	 */
 	public function __construct( WPML_Translator_Records $translator_records ) {
 		$this->translator_records = $translator_records;
 	}
@@ -33,7 +29,6 @@ class WPML_TM_Jobs_List_Translators {
 	}
 
 	private function getLanguagePairs( $translator ) {
-		/** @var callable $isValidLanguage */
 		$isValidLanguage       = Lst::includes( Fns::__,  Lst::pluck( 'code', Languages::getAll() ) );
 		$sourceIsValidLanguage = flip( $isValidLanguage );
 		$getValidTargets       = Fns::filter( $isValidLanguage );

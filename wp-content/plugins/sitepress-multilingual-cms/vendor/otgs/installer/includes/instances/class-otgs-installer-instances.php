@@ -4,9 +4,6 @@ class OTGS_Installer_Instances {
 
 	private $instances;
 
-	/**
-	 * @var OTGS_Installer_Instance[]
-	 */
 	private $instances_obj = array();
 
 	public function __construct( $instances ) {

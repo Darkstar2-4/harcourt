@@ -2,24 +2,12 @@
 
 class WPML_TM_Jobs_Summary_Report {
 
-	/**
-	 * @var WPML_Translation_Jobs_Collection
-	 */
 	private $jobs_collection;
 
-	/**
-	 * @var array
-	 */
 	private $jobs = array();
 
-	/**
-	 * @var string
-	 */
 	private $type;
 
-	/**
-	 * @var WPML_Translation_Element_Factory
-	 */
 	private $element_factory;
 
 	public function __construct(
@@ -43,13 +31,18 @@ class WPML_TM_Jobs_Summary_Report {
 
 		foreach ( $jobs as $job ) {
 			$completed_date = $job instanceof WPML_Post_Translation_Job || $job instanceof WPML_Element_Translation_Job ? $job->get_completed_date() : '';
-			$out_of_period  = strtotime( $completed_date ) < strtotime( '-' . WPML_TM_Jobs_Summary::WEEKLY_SCHEDULE );
+
+			if ( ! $completed_date ) {
+				continue;
+			}
+
+			$out_of_period = strtotime( $completed_date ) < strtotime( '-' . WPML_TM_Jobs_Summary::WEEKLY_SCHEDULE );
 
 			if ( WPML_TM_Jobs_Summary::DAILY_REPORT === $this->type ) {
 				$out_of_period = strtotime( $completed_date ) < strtotime( '-' . WPML_TM_Jobs_Summary::DAILY_SCHEDULE );
 			}
 
-			if ( ! $completed_date || $out_of_period ) {
+			if ( $out_of_period ) {
 				continue;
 			}
 
@@ -118,11 +111,6 @@ class WPML_TM_Jobs_Summary_Report {
 		}
 	}
 
-	/**
-	 * @param WPML_Element_Translation_Job $job
-	 *
-	 * @return string
-	 */
 	private function get_translator_name( WPML_Element_Translation_Job $job ) {
 		$translator_name = $job->get_translation_service() ?
 			TranslationProxy::get_service_name( $job->get_translation_service() ) :
@@ -136,9 +124,6 @@ class WPML_TM_Jobs_Summary_Report {
 		return $translator_name;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_jobs() {
 		return $this->jobs;
 	}

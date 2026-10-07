@@ -8,9 +8,6 @@ class HuradInstaller extends BaseInstaller
         'theme' => 'plugins/{$name}/',
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         $nameParts = explode('/', $vars['name']);

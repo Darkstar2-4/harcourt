@@ -6,13 +6,6 @@ class WPML_TM_Translated_Field {
 	private $translation;
 	private $finished_state;
 
-	/**
-	 * WPML_TM_Translated_Field constructor.
-	 *
-	 * @param string $original
-	 * @param string $translation
-	 * @param bool   $finished_state
-	 */
 
 	public function __construct( $original, $translation, $finished_state ) {
 		$this->original       = $original;

@@ -2,10 +2,6 @@
 
 class WPML_TM_Word_Count_Records_Factory {
 
-	/**
-	 * @return \WPML_TM_Word_Count_Records
-	 * @throws \Auryn\InjectionException
-	 */
 	public function create() {
 		return \WPML\Container\make(
 			'\WPML_TM_Word_Count_Records',

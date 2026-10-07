@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Class WPML_Taxonomy_Translation_UI
- */
 class WPML_Taxonomy_Translation_UI {
 
 	private $sitepress;
@@ -10,21 +7,11 @@ class WPML_Taxonomy_Translation_UI {
 	private $tax_selector;
 	private $screen_options;
 
-	/**
-	 * WPML_Taxonomy_Translation constructor.
-	 *
-	 * @param SitePress                      $sitepress
-	 * @param string                         $taxonomy if given renders a specific taxonomy,
-	 *                                                 otherwise renders a placeholder
-	 * @param bool[]                         $args array with possible indices:
-	 *                                             'taxonomy_selector' => bool .. whether or not to show the taxonomy selector
-	 * @param WPML_UI_Screen_Options_Factory $screen_options_factory
-	 */
 	public function __construct(
 		SitePress $sitepress,
 		$taxonomy = '',
 		array $args = array(),
-		WPML_UI_Screen_Options_Factory $screen_options_factory = null
+		?WPML_UI_Screen_Options_Factory $screen_options_factory = null
 	) {
 		$this->sitepress    = $sitepress;
 		$this->tax_selector = isset( $args['taxonomy_selector'] ) ? $args['taxonomy_selector'] : true;
@@ -48,10 +35,6 @@ class WPML_Taxonomy_Translation_UI {
 		}
 	}
 
-	/**
-	 * Echos the HTML that serves as an entry point for the taxonomy translation
-	 * screen and enqueues necessary js.
-	 */
 	public function render() {
 		WPML_Taxonomy_Translation_Table_Display::enqueue_taxonomy_table_resources( $this->sitepress );
 		$output = '<div class="wrap">';
@@ -74,9 +57,6 @@ class WPML_Taxonomy_Translation_UI {
 		echo $output . '</div>';
 	}
 
-	/**
-	 * @return int
-	 */
 	private function get_items_per_page() {
 		$items_per_page = 10;
 		if ( $this->screen_options ) {
@@ -86,9 +66,6 @@ class WPML_Taxonomy_Translation_UI {
 		return $items_per_page;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_help_text() {
 		/* translators: this is the title of a documentation page used to terminate the sentence "is not possible to ..."  */
 		$translate_base_taxonomy_slug_link_title = esc_html__(

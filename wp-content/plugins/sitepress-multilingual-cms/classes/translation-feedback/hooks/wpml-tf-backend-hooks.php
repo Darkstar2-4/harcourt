@@ -1,38 +1,19 @@
 <?php
 
-/**
- * Class WPML_TF_Backend_Hooks
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Backend_Hooks implements IWPML_Action {
 
 	const PAGE_HOOK = 'wpml-translation-feedback-list';
 
-	/** @var WPML_TF_Backend_Bulk_Actions_Factory  */
 	private $bulk_actions_factory;
 
-	/** @var WPML_TF_Backend_Feedback_List_View_Factory feedback_list_view_factory */
 	private $feedback_list_view_factory;
 
-	/** @var  WPML_TF_Backend_Styles $backend_styles */
 	private $backend_styles;
 
-	/** @var WPML_TF_Backend_Scripts */
 	private $backend_scripts;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
-	/**
-	 * WPML_TF_Backend_Hooks constructor.
-	 *
-	 * @param WPML_TF_Backend_Bulk_Actions_Factory       $bulk_actions_factory
-	 * @param WPML_TF_Backend_Feedback_List_View_Factory $feedback_list_view_factory
-	 * @param WPML_TF_Backend_Styles                     $backend_styles
-	 * @param WPML_TF_Backend_Scripts                    $backend_scripts
-	 * @param wpdb                                       $wpdb
-	 */
 	public function __construct(
 		WPML_TF_Backend_Bulk_Actions_Factory $bulk_actions_factory,
 		WPML_TF_Backend_Feedback_List_View_Factory $feedback_list_view_factory,
@@ -47,9 +28,6 @@ class WPML_TF_Backend_Hooks implements IWPML_Action {
 		$this->wpdb                       = $wpdb;
 	}
 
-	/**
-	 * method add_hooks
-	 */
 	public function add_hooks() {
 		add_action( 'wpml_admin_menu_configure', array( $this, 'add_translation_feedback_list_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts_action' ) );
@@ -57,11 +35,6 @@ class WPML_TF_Backend_Hooks implements IWPML_Action {
 		add_filter( 'posts_where', array( $this, 'maybe_exclude_rating_only_status' ), 10, 2 );
 	}
 
-	/**
-	 * Define translation feedback list menu and callback
-	 *
-	 * @param string $menu_id
-	 */
 	public function add_translation_feedback_list_menu( $menu_id ) {
 		if ( 'WPML' !== $menu_id ) {
 			return;
@@ -89,17 +62,11 @@ class WPML_TF_Backend_Hooks implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * Callback to display the feedback list page
-	 */
 	public function translation_feedback_list_display() {
 		$view = $this->feedback_list_view_factory->create();
 		echo $view->render_page();
 	}
 
-	/**
-	 * @param string $hook
-	 */
 	public function admin_enqueue_scripts_action( $hook ) {
 		if ( $this->is_page_hook( $hook ) ) {
 			$this->backend_styles->enqueue();
@@ -116,21 +83,10 @@ class WPML_TF_Backend_Hooks implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $hook
-	 *
-	 * @return bool
-	 */
 	private function is_page_hook( $hook ) {
 		return strpos( $hook, self::PAGE_HOOK ) !== false;
 	}
 
-	/**
-	 * @param string   $where
-	 * @param WP_Query $query
-	 *
-	 * @return string
-	 */
 	public function maybe_exclude_rating_only_status( $where, $query ) {
 		if ( isset( $query->query_vars['exclude_tf_rating_only'] ) && $query->query_vars['exclude_tf_rating_only'] ) {
 			$where .= " AND {$this->wpdb->posts}.post_status <> 'rating_only'";

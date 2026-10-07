@@ -8,11 +8,6 @@ class WPML_Page_Builders_Page_Built {
 		$this->config = $config;
 	}
 
-	/**
-	 * @param WP_Post $post
-	 *
-	 * @return bool
-	 */
 	public function is_page_builder_page( WP_Post $post ) {
 		$result      = false;
 		$config_data = $this->config->get();

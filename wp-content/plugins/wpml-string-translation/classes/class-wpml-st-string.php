@@ -1,49 +1,28 @@
 <?php
 
-/**
- * WPML_ST_String class
- *
- * Low level access to string in Database
- *
- * NOTE: Don't use this class to process a large amount of strings as it doesn't
- * do any caching, etc.
- */
 class WPML_ST_String {
 
 	protected $wpdb;
 
 	private $string_id;
 
-	/** @var  string $language */
 	private $language;
 
-	/** @var  int $status */
 	private $status;
 
-	/** @var array|null */
 	private $string_properties;
 
-	/**
-	 * @param int  $string_id
-	 * @param wpdb $wpdb
-	 */
 	public function __construct( $string_id, wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 
 		$this->string_id = $string_id;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function string_id() {
 
 		return $this->string_id;
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function get_language() {
 		$this->language = $this->language
 			? $this->language
@@ -54,17 +33,11 @@ class WPML_ST_String {
 		return $this->language;
 	}
 
-	/**
-	 * @return string
-	 */
 
 	public function get_value() {
 		return $this->wpdb->get_var( 'SELECT value ' . $this->from_where_snippet() . ' LIMIT 1' );
 	}
 
-	/**
-	 * @return int
-	 */
 	public function get_status() {
 
 		$this->status = $this->status !== null
@@ -76,23 +49,19 @@ class WPML_ST_String {
 		return $this->status;
 	}
 
-	/**
-	 * @param string $language
-	 */
 	public function set_language( $language ) {
 		if ( $language !== $this->get_language() ) {
 			$this->language = $language;
 			$this->set_property( 'language', $language );
 			$this->update_status();
+
+			$key = md5( $this->get_context() . '_' . $this->get_name() );
+			wp_cache_delete( $key, 'wpml-string-translation' );
 		}
 	}
 
-	/**
-	 * @return stdClass[]
-	 */
 	public function get_translation_statuses() {
 
-		/** @var array<\stdClass> $statuses */
 		$statuses = $this->wpdb->get_results( 'SELECT language, status, mo_string ' . $this->from_where_snippet( true ) );
 		foreach ( $statuses as &$status ) {
 			if ( ! empty( $status->mo_string ) ) {
@@ -109,18 +78,9 @@ class WPML_ST_String {
 		return $this->wpdb->get_results( 'SELECT * ' . $this->from_where_snippet( true ) );
 	}
 
-	/**
-	 * For a bulk update of all strings:
-	 *
-	 * @see WPML_ST_Bulk_Update_Strings_Status::run
-	 */
 	public function update_status() {
 		global $sitepress;
 
-		/**
-		 * If the translation has a `mo_string`, the status of this
-		 * translation will be set to `WPML_TM_COMPLETE`
-		 */
 		$st = $this->get_translation_statuses();
 
 		if ( $st ) {
@@ -134,7 +94,6 @@ class WPML_ST_String {
 
 			$active_languages = $sitepress->get_active_languages();
 
-			// If has no translation or all translations are not translated
 			if ( empty( $translations ) || max( $translations ) == ICL_TM_NOT_TRANSLATED ) {
 				$status = ICL_TM_NOT_TRANSLATED;
 			} elseif ( in_array( ICL_TM_WAITING_FOR_TRANSLATOR, $translations ) ) {
@@ -168,11 +127,6 @@ class WPML_ST_String {
 	}
 
 
-	/**
-	 * @param int[] $translations
-	 *
-	 * @return bool
-	 */
 	private function areAllTranslationsComplete( array $translations ) {
 		foreach ( $translations as $translation ) {
 			if ( $translation != ICL_TM_COMPLETE ) {
@@ -184,35 +138,17 @@ class WPML_ST_String {
 	}
 
 
-	/**
-	 * @param array  $translations
-	 * @param array  $active_languages
-	 * @param string $string_language
-	 *
-	 * @return bool
-	 */
 	private function has_less_translations_than_secondary_languages( array $translations, array $active_languages, $string_language ) {
 		$active_lang_codes            = array_keys( $active_languages );
 		$translations_in_active_langs = array_intersect( $active_lang_codes, array_keys( $translations ) );
 		return count( $translations_in_active_langs ) < count( $active_languages ) - intval( in_array( $string_language, $active_lang_codes, true ) );
 	}
 
-	/**
-	 * @param string           $language
-	 * @param string|null|bool $value
-	 * @param int|bool|false   $status
-	 * @param int|null         $translator_id
-	 * @param string|int|null  $translation_service
-	 * @param int|null         $batch_id
-	 *
-	 * @return bool|int id of the translation
-	 */
 	public function set_translation( $language, $value = null, $status = false, $translator_id = null, $translation_service = null, $batch_id = null ) {
 		if ( ! $this->exists() ) {
 			return false;
 		}
 
-		/** @var \stdClass $res */
 		$res = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				'SELECT id, value, status
@@ -280,12 +216,8 @@ class WPML_ST_String {
 			$st_id = $this->wpdb->insert_id;
 		}
 
-		/** @var $ICL_Pro_Translation WPML_Pro_Translation */
 		global $ICL_Pro_Translation;
 		if ( $ICL_Pro_Translation ) {
-			// Early stage link fixing in string translations.
-			// Keeping this for 3rd party page-builders compatibilty. Some of
-			// them do not use the post_content field to store the post content.
 			$ICL_Pro_Translation->fix_links_to_translated_content(
 				$st_id,
 				$language,
@@ -298,11 +230,10 @@ class WPML_ST_String {
 		}
 
 		icl_update_string_status( $this->string_id );
-		/**
-		 * @deprecated Use wpml_st_add_string_translation instead
-		 */
 		do_action( 'icl_st_add_string_translation', $st_id );
-		do_action( 'wpml_st_add_string_translation', $st_id );
+		do_action( 'wpml_st_add_string_translation', $st_id, $translation_data, $language, $this->string_id );
+
+		$this->flush_cache();
 
 		return $st_id;
 	}
@@ -311,32 +242,16 @@ class WPML_ST_String {
 		$this->set_property( 'location', $location );
 	}
 
-	/**
-	 * Set string wrap tag.
-	 * Used for SEO significance, can contain values as h1 ... h6, etc.
-	 *
-	 * @param string $wrap_tag Wrap tag.
-	 */
 	public function set_wrap_tag( $wrap_tag ) {
 		$this->set_property( 'wrap_tag', $wrap_tag );
 	}
 
-	/**
-	 * @param string $property
-	 * @param mixed  $value
-	 */
 	protected function set_property( $property, $value ) {
 		$this->wpdb->update( $this->wpdb->prefix . 'icl_strings', array( $property => $value ), array( 'id' => $this->string_id ) );
 
-		// Action called after string is updated.
 		do_action( 'wpml_st_string_updated' );
 	}
 
-	/**
-	 * @param bool $translations sets whether to use original or translations table
-	 *
-	 * @return string
-	 */
 	protected function from_where_snippet( $translations = false ) {
 
 		if ( $translations ) {
@@ -356,17 +271,14 @@ class WPML_ST_String {
 		return $this->wpdb->get_var( $sql ) > 0;
 	}
 
-	/** @return string|null */
 	public function get_context() {
 		return $this->get_string_properties()->context;
 	}
 
-	/** @return string|null */
 	public function get_gettext_context() {
 		return $this->get_string_properties()->gettext_context;
 	}
 
-	/** @return string|null */
 	public function get_name() {
 		return $this->get_string_properties()->name;
 	}
@@ -386,19 +298,43 @@ class WPML_ST_String {
 		return $this->string_properties;
 	}
 
-	/**
-	 * @param string $translation_string
-	 * @return string
-	 */
 	public function normalize_line_breaks( $translation_string ) {
 		$original_string = $this->get_value();
-		/**
-		 * If the original string has \r\n character, replace \n with \r\n in the translation string to display line break in emails, HTTP requests and some text-based protocols.
-		 */
 		if ( is_string( $original_string ) && strpos( $original_string, "\r\n" ) !== false ) {
 			$translation_string = preg_replace( '/(?<!\r)\n/', "\r\n", $translation_string );
 		}
 
 		return $translation_string;
+	}
+
+	private function flush_cache() {
+		$this->maybe_flush_slug_translation_cache();
+	}
+
+
+	private function maybe_flush_slug_translation_cache() {
+		$string_name = $this->get_name();
+
+		if ( ! $string_name ) {
+			return;
+		}
+
+		$factory = new WPML_Slug_Translation_Records_Factory();
+
+		if ( strpos( $string_name, 'URL slug:' ) !== false ) {
+			$factory->create( WPML_Slug_Translation_Factory::POST )->flush_cache();
+		}
+
+		if ( strpos( $string_name, 'tax slug' ) !== false ) {
+			$factory->create( WPML_Slug_Translation_Factory::TAX )->flush_cache();
+
+			if ( function_exists( 'wp_cache_supports' )
+				&& wp_cache_supports( 'flush_group' )
+			) {
+				wp_cache_flush_group( WPML_ST_Term_Link_Filter::CACHE_GROUP );
+
+				wp_cache_flush_group( WPML_Tax_Permalink_Filters::CACHE_GROUP );
+			}
+		}
 	}
 }

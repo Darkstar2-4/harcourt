@@ -2,13 +2,10 @@
 
 class WPML_TM_Jobs_Deadline_Estimate_AJAX_Action implements IWPML_Action {
 
-	/** @var WPML_TM_Jobs_Deadline_Estimate $deadline_estimate */
 	private $deadline_estimate;
 
-	/** @var array $translation_basket */
 	private $translation_basket;
 
-	/** @var array $post_data */
 	private $post_data;
 
 	public function __construct(
@@ -52,14 +49,6 @@ class WPML_TM_Jobs_Deadline_Estimate_AJAX_Action implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * The translator data for a remote service will be like "ts-7" with 7 the ID of the remote service
-	 * For a local translator, the translation data will be the ID
-	 *
-	 * @param string $translator_data
-	 *
-	 * @return array
-	 */
 	private function parse_translator_data( $translator_data ) {
 		$translator_id = $translator_data;
 		$service       = 'local';

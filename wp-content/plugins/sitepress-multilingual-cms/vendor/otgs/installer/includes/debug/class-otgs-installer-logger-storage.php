@@ -23,9 +23,6 @@ class OTGS_Installer_Logger_Storage {
 		$this->log_factory = $log_factory;
 	}
 
-	/**
-	 * @return array|OTGS_Installer_Log[]
-	 */
 	public function get() {
 		if ( ! $this->log_entries ) {
 			$this->log_entries = get_option( self::OPTION_KEY );
@@ -44,11 +41,6 @@ class OTGS_Installer_Logger_Storage {
 		$this->log_entries = $log_entries_arr;
 	}
 
-	/**
-	 * @param array $log_entries
-	 *
-	 * @return array
-	 */
 	private function convert_to_object( $log_entries ) {
 		$log_converted = array();
 
@@ -65,11 +57,6 @@ class OTGS_Installer_Logger_Storage {
 		return $log_converted;
 	}
 
-	/**
-	 * @param OTGS_Installer_Log[] $log_entries
-	 *
-	 * @return array
-	 */
 	private function convert_to_array( $log_entries ) {
 		$log_converted = array();
 

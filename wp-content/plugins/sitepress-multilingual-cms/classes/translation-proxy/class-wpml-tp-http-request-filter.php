@@ -2,9 +2,6 @@
 
 class WPML_TP_HTTP_Request_Filter {
 
-	/**
-	 * @return array filtered response
-	 */
 	public function build_request_context( array $request ) {
 		if ( ! $this->contains_resource( $request ) ) {
 			$request['headers'] = 'Content-type: application/json';
@@ -22,13 +19,6 @@ class WPML_TP_HTTP_Request_Filter {
 		return $request;
 	}
 
-	/**
-	 * Checks if a request contains a file resource handle
-	 *
-	 * @param array $request_snippet
-	 *
-	 * @return bool
-	 */
 	private function contains_resource( array $request_snippet ) {
 		foreach ( $request_snippet as $part ) {
 			if ( is_resource( $part ) === true || ( is_array( $part ) && $this->contains_resource( $part ) ) ) {

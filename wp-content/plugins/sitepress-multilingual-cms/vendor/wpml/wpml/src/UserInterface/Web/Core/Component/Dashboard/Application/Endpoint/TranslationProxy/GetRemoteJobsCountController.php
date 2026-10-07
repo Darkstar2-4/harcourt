@@ -9,10 +9,8 @@ use WPML\Core\SharedKernel\Component\TranslationProxy\Domain\Query\FetchRemoteTr
 
 class GetRemoteJobsCountController implements EndpointInterface {
 
-  /** @var RemoteTranslationService */
   private $remoteTranslationServiceService;
 
-  /** @var RemoteJobsQueryInterface */
   private $remoteJobsQuery;
 
 
@@ -25,12 +23,6 @@ class GetRemoteJobsCountController implements EndpointInterface {
   }
 
 
-  /**
-   * @param array<string,mixed>|null $requestData
-   *
-   * @return array<string, int>
-   * @throws FetchRemoteTranslationServiceException
-   */
   public function handle( $requestData = null ): array {
     $currentTranslationService = $this->remoteTranslationServiceService->getCurrent();
 

@@ -4,24 +4,12 @@ class WPML_TM_Jobs_Summary_Report_View extends WPML_TM_Email_View {
 
 	const WEEKLY_SUMMARY_TEMPLATE = 'notification/summary/summary.twig';
 
-	/**
-	 * @var array
-	 */
 	private $jobs;
 
-	/**
-	 * @var int
-	 */
 	private $manager_id;
 
-	/**
-	 * @var string
-	 */
 	private $summary_text;
 
-	/**
-	 * @return string
-	 */
 	public function get_report_content() {
 		$model   = $this->get_model();
 		$content = $this->render_header( $model['username'] );
@@ -31,9 +19,6 @@ class WPML_TM_Jobs_Summary_Report_View extends WPML_TM_Email_View {
 		return $content;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_model() {
 		return array(
 			'username'          => get_userdata( $this->manager_id )->display_name,
@@ -73,33 +58,18 @@ class WPML_TM_Jobs_Summary_Report_View extends WPML_TM_Email_View {
 		);
 	}
 
-	/**
-	 * @param array $jobs
-	 *
-	 * @return $this
-	 */
 	public function set_jobs( $jobs ) {
 		$this->jobs = $jobs;
 
 		return $this;
 	}
 
-	/**
-	 * @param int $manager_id
-	 *
-	 * @return $this
-	 */
 	public function set_manager_id( $manager_id ) {
 		$this->manager_id = $manager_id;
 
 		return $this;
 	}
 
-	/**
-	 * @param string $summary_text
-	 *
-	 * @return $this
-	 */
 	public function set_summary_text( $summary_text ) {
 		$this->summary_text = $summary_text;
 

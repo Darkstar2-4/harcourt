@@ -8,7 +8,6 @@ class WpmlResetPluginsBeforeAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_reset_plugins_before';
 	const ACTION_ARGS = 0;
 
-	/** @var ClearAllStoragesCommandInterface */
 	private $clearAllStorages;
 
 	public function __construct(

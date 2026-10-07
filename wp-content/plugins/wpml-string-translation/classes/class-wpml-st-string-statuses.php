@@ -1,10 +1,5 @@
 <?php
 
-/**
- * WPML_ST_String_Statuses class
- *
- * Get the translation status text for the given status
- */
 
 class WPML_ST_String_Statuses {
 

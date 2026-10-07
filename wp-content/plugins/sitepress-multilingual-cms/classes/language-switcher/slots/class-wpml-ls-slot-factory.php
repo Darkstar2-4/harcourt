@@ -2,11 +2,6 @@
 
 class WPML_LS_Slot_Factory {
 
-	/**
-	 * @param array|WPML_LS_Slot $args
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	public function get_slot( $args ) {
 
 		if ( is_array( $args ) ) {
@@ -47,11 +42,6 @@ class WPML_LS_Slot_Factory {
 		return $slot;
 	}
 
-	/**
-	 * @param string $slot_group
-	 *
-	 * @return array
-	 */
 	public function get_default_slot_arguments( $slot_group ) {
 		$args = array(
 			'slot_group'                    => $slot_group,
@@ -70,21 +60,11 @@ class WPML_LS_Slot_Factory {
 		return $args;
 	}
 
-	/**
-	 * @param string $slot_group
-	 *
-	 * @return WPML_LS_Slot
-	 */
 	public function get_default_slot( $slot_group ) {
 		$slot_args = $this->get_default_slot_arguments( $slot_group );
 		return $this->get_slot( $slot_args );
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return string|null
-	 */
 	public function get_core_templates( $slug ) {
 		$parameters = WPML_Language_Switcher::parameters();
 		$templates  = isset( $parameters['core_templates'] ) ? $parameters['core_templates'] : array();

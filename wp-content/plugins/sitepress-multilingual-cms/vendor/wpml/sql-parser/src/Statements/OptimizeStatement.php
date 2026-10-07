@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `OPTIMIZE` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -21,11 +18,6 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class OptimizeStatement extends Statement
 {
-    /**
-     * Options of this statement.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'TABLE' => 1,
 
@@ -33,10 +25,5 @@ class OptimizeStatement extends Statement
         'LOCAL' => 3
     );
 
-    /**
-     * Optimized tables.
-     *
-     * @var Expression[]
-     */
     public $tables;
 }

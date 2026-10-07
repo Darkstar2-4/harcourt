@@ -8,32 +8,19 @@ use WPML\PHP\Exception\RuntimeException;
 
 class Update {
 
-  /** @var int $id */
   private $id;
 
-  /** @var class-string<UpdateInterface> $handlerClassName */
   private $handlerClassName;
 
-  /**
-   * @var callable|null $createHandler
-   * @psalm-var callable(): UpdateInterface|null
-   */
   private $createHandler;
 
-  /** @var UpdateInterface|null $handler */
   private $handler;
 
-  /** @var bool $tryOnlyOnce */
   private $tryOnlyOnce = false;
 
-  /** @var bool $lazyLoad */
   private $lazyLoad = false;
 
 
-  /**
-   * @param int $id
-   * @param class-string<UpdateInterface> $handlerClassName
-   */
   public function __construct( $id, $handlerClassName ) {
     $this->id = $id;
     $this->handlerClassName = $handlerClassName;
@@ -45,27 +32,16 @@ class Update {
   }
 
 
-  /** @return class-string<UpdateInterface> */
   public function handlerClassName() {
     return $this->handlerClassName;
   }
 
 
-  /**
-   * @param callable $createHandler
-   * @psalm-param callable(): UpdateInterface $createHandler
-   *
-   * @return void
-   */
   public function setCreateHandler( $createHandler ) {
     $this->createHandler = $createHandler;
   }
 
 
-  /**
-   * @return UpdateInterface
-   * @throws RuntimeException
-   */
   public function handler() {
     if ( ! $this->handler ) {
       if ( ! $this->createHandler ) {
@@ -84,7 +60,6 @@ class Update {
   }
 
 
-  /** @return void */
   public function setTryOnlyOnce( bool $tryOnlyOnce ) {
     $this->tryOnlyOnce = $tryOnlyOnce;
   }
@@ -95,7 +70,6 @@ class Update {
   }
 
 
-  /** @return void */
   public function setLazyLoad( bool $lazyLoad ) {
     $this->lazyLoad = $lazyLoad;
   }

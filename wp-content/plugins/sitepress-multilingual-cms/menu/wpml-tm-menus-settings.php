@@ -7,10 +7,8 @@ use WPML\LIB\WP\User;
 
 class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 
-	/** @var WPML_Translate_Link_Targets_UI $translate_link_targets_ui */
 	private $translate_link_targets_ui;
 
-	/** @var bool $end_user_feature_enabled */
 	private $end_user_feature_enabled;
 
 	private $mcsetup_sections = array();
@@ -20,10 +18,6 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 	}
 
 	private function init_navigation_links() {
-		/**
-		 * @var SitePress             $sitepress
-		 * @var TranslationManagement $iclTranslationManagement
-		 */
 		global $sitepress, $iclTranslationManagement;
 		$is_admin = current_user_can( 'manage_options' );
 
@@ -77,8 +71,7 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 			if ( ! empty( $iclTranslationManagement->admin_texts_to_translate ) && function_exists( 'icl_register_string' ) ) {
 				$this->mcsetup_sections['ml-content-setup-sec-9'] = esc_html__( 'Admin Strings to Translate', 'wpml-translation-management' );
 			}
-			// Add the Reporting to wpml.org section
-			$this->mcsetup_sections['ml-content-setup-sec-reporting'] = esc_html__( 'Get a proactive support', 'wpml-translation-management' );
+			$this->mcsetup_sections['ml-content-setup-sec-reporting'] = esc_html__( 'Get a proactive support', 'sitepress' );
 		}
 
 		$this->get_translate_link_targets_ui()->add_hooks();
@@ -131,11 +124,6 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 	}
 
 	public function build_content_mcs() {
-		/**
-		 * included by menu translation-management.php
-		 *
-		 * @var TranslationManagement $iclTranslationManagement
-		 */
 		global $sitepress, $sitepress_settings, $iclTranslationManagement;
 
 		$translate_link_targets = new WPML_Translate_Link_Target_Global_State( $sitepress );
@@ -485,6 +473,22 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 										?>
 									</label>
 								</li>
+                                <li>
+									<label><input class="wpml-radio-native" type="radio" name="icl_translated_document_page_url"
+										value="force-generate"
+											<?php
+											if ( 'force-generate' === $sitepress_settings['translated_document_page_url'] ) :
+
+												?>
+												checked="checked"<?php endif; ?> />
+										<?php
+										echo esc_html__(
+											'Always auto-generate from title and overwrite any existing slug',
+											'sitepress'
+										)
+										?>
+									</label>
+								</li>
 								<li>
 									<label><input class="wpml-radio-native" type="radio" name="icl_translated_document_page_url" value="translate"
 											<?php
@@ -745,7 +749,7 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 			?>
 			<div class="wpml-section wpml-section-wpml-theme-and-plugins-reporting" id="ml-content-setup-sec-reporting">
 				<div class="wpml-section-header">
-					<h3><?php esc_html_e( 'Get a proactive support', 'wpml-translation-management' ); ?></h3>
+					<h3><?php esc_html_e( 'Get a proactive support', 'sitepress' ); ?></h3>
 				</div>
 				<div class="wpml-section-content">
 					<?php
@@ -767,12 +771,12 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 					$compatibility_reports_after_setup_args['sharing_data_details_url'] = "https://wpml.org/documentation/privacy-policy-and-gdpr-compliance/optional-data-sharing/?utm_source=plugin&utm_medium=gui&utm_campaign=wpml-settings";
 
 					$compatibility_reports_after_setup_args['custom_radio_label_yes'] = esc_html__(
-						'YES, send this information to wpml.org to improve my site’s maintenance and support',
-						'wpml-translation-management'
+						'Yes, send this information to wpml.org to improve my site’s maintenance and support',
+						'sitepress'
 					);
 					$compatibility_reports_after_setup_args['custom_radio_label_no']  = esc_html__(
 						'No, don\'t send this information and skip maintenance alerts',
-						'wpml-translation-management'
+						'sitepress'
 					);
 
 					do_action( 'otgs_installer_render_local_components_setting', $compatibility_reports_after_setup_args );
@@ -849,23 +853,16 @@ class WPML_TM_Menus_Settings extends WPML_TM_Menus {
 		}
 	}
 
-	/** @return bool */
 	private function should_show_mcsetup_section( $anchor ) {
 		return array_key_exists( $anchor, $this->mcsetup_sections );
 	}
 
-	/** @return WPML_Translate_Link_Targets_UI */
 	private function get_translate_link_targets_ui() {
-		/**
-		 * @var SitePress $sitepress
-		 * @var wpdb      $wpdb
-		 * @var           $ICL_Pro_Translation
-		 */
 		global $sitepress, $wpdb, $ICL_Pro_Translation;
 
 		if ( ! $this->translate_link_targets_ui ) {
 			$this->translate_link_targets_ui = new WPML_Translate_Link_Targets_UI(
-				__( 'Update internal links', 'wpml-translation-management' ),
+				__( 'Update internal links', 'sitepress' ),
 				$wpdb,
 				$sitepress,
 				$ICL_Pro_Translation

@@ -9,7 +9,6 @@ if(empty($args['repository']) || empty($args['package']) || empty($args['product
 $product = false;
 foreach($this->settings['repositories'][$repository_id]['data']['packages'] as $package_idx => $package){
 
-    //pre 1.3 backwardds compatibility
     if(!isset($package['id'])){
         $package['id'] = sanitize_title_with_dashes($package['name']);
     }
@@ -139,7 +138,6 @@ if( isset( $args[ 'name' ] ) ):
 
 <?php endif; ?>
 <?php
-// compatibility for installer 1.1
 elseif( isset( $args[ 'support_link' ] ) ): ?>
     <p><?php echo $args[ 'support_link' ]; ?></p>
 <?php endif; ?>

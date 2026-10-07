@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 abstract class WPML_Privacy_Content implements IWPML_Action {
 
 	public function add_hooks() {
@@ -23,13 +20,7 @@ abstract class WPML_Privacy_Content implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function get_plugin_name();
 
-	/**
-	 * @return string|array a single or an array of strings (plain text or HTML). Array items will be wrapped by a paragraph tag.
-	 */
 	abstract protected function get_privacy_policy();
 }

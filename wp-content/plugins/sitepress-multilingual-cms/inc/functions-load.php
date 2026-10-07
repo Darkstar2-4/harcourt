@@ -1,9 +1,4 @@
 <?php
-/**
- * @global \WPML_Term_Translation $wpml_language_resolution
- * @global \WPML_Slug_Filter      $wpml_slug_filter
- * @global \WPML_Term_Translation $wpml_term_translations
- */
 
 use WPML\FP\Obj;
 use WPML\LIB\WP\WPDB as WpWPDB;
@@ -16,11 +11,6 @@ function wpml_is_setup_complete() {
 	return is_array( $settings ) && Obj::prop( 'setup_complete', $settings );
 }
 
-/**
- * Loads global variables providing functionality that is used throughout the plugin.
- *
- * @param null|bool $is_admin If set to `null` it will read from `is_admin()`
- */
 function load_essential_globals( $is_admin = null ) {
 	global $wpml_language_resolution, $wpml_term_translations, $wpdb;
 
@@ -45,12 +35,7 @@ function load_essential_globals( $is_admin = null ) {
 				) === false
 				) {
 
-				// The plugin has just be reactivated.
 
-				// reset ajx_health_flag
-				// set the just_reactivated flag so any posts created while
-				// WPML was not activate will get the default language
-				// https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlcore-1924
 				$settings['ajx_health_checked'] = 0;
 				$settings['just_reactivated']   = 1;
 				update_option( 'icl_sitepress_settings', $settings );
@@ -116,10 +101,6 @@ function wpml_load_query_filter( $installed ) {
 }
 
 function load_wpml_url_converter( $settings, $domain_validation, $default_lang_code ) {
-	/**
-	 * @var WPML_URL_Converter $wpml_url_converter
-	 * @var WPML_Language_Resolution $wpml_language_resolution
-	 */
 	global $wpml_url_converter, $wpml_language_resolution;
 
 	$url_type              = isset( $settings['language_negotiation_type'] ) ? $settings['language_negotiation_type'] : false;
@@ -133,13 +114,6 @@ function load_wpml_url_converter( $settings, $domain_validation, $default_lang_c
 	return $wpml_url_converter;
 }
 
-/**
- * @param string             $req_uri
- * @param WPML_URL_Converter $wpml_url_converter
- * @param bool               $directory
- *
- * @return string
- */
 function wpml_validate_host( $req_uri, $wpml_url_converter, $directory = true ) {
 	if ( $directory === true ) {
 		$req_uri_parts = array_filter( explode( '/', $req_uri ) );
@@ -157,17 +131,7 @@ function wpml_validate_host( $req_uri, $wpml_url_converter, $directory = true ) 
 	return '<!--' . esc_url( untrailingslashit( trailingslashit( $wpml_url_converter->get_abs_home() ) . $lang_slug ) ) . '-->';
 }
 
-/**
- * Checks if a given taxonomy is currently translated
- *
- * @param string $taxonomy name/slug of a taxonomy.
- * @return bool true if the taxonomy is currently set to being translatable in WPML
- */
 function is_taxonomy_translated( $taxonomy ) {
-	// nav_menu is currently set to 'Not Translatable', but it should be treated as translatable
-	// when going through this function.
-	// Setting nav_menu as translatable will break the functionality of On The Fly Menu Translation and 
-	// Menu listing in WPML > Languages. 
 	return in_array( $taxonomy, array( 'nav_menu' ), true )
 			|| in_array(
 				$taxonomy,
@@ -175,12 +139,6 @@ function is_taxonomy_translated( $taxonomy ) {
 			);
 }
 
-/**
- * Checks if a given post_type is currently translated
- *
- * @param string $post_type name/slug of a post_type
- * @return bool true if the post_type is currently set to being translatable in WPML
- */
 function is_post_type_translated( $post_type ) {
 
 	return 'nav_menu_item' === $post_type ||
@@ -210,19 +168,12 @@ function maybe_load_translated_tax_screen() {
 	}
 }
 
-/**
- * @param bool $override
- *
- * @return array
- */
 function wpml_reload_active_languages_setting( $override = false ) {
 	global $wpdb, $sitepress_settings;
 
 	if ( true === (bool) $sitepress_settings
 		 && ( $override || wpml_is_setup_complete() )
 	) {
-		// This won't output any MySQL error if `icl_languages` is missing on the
-		// current site, and it will return an empty array in that case.
 		$active_languages = WpWPDB::withoutError( function() use ( $wpdb ) {
 			return $wpdb->get_col( "
 				SELECT code
@@ -240,11 +191,6 @@ function wpml_reload_active_languages_setting( $override = false ) {
 	return (array) $active_languages;
 }
 
-/**
- * Returns and if necessary instantiates an instance of the WPML_Installation Class
- *
- * @return \WPML_Installation
- */
 function wpml_get_setup_instance() {
 	global $wpml_installation, $wpdb, $sitepress;
 
@@ -278,9 +224,6 @@ function wpml_get_create_post_helper() {
 	return new WPML_Create_Post_Helper( $sitepress );
 }
 
-/**
- * @return \TranslationManagement
- */
 function wpml_load_core_tm() {
 	global $iclTranslationManagement;
 
@@ -338,9 +281,6 @@ function wpml_maybe_setup_post_edit() {
 	}
 }
 
-/**
- * @return \WPML_Frontend_Tax_Filters
- */
 function wpml_load_frontend_tax_filters() {
 	global $wpml_term_filters;
 
@@ -352,9 +292,6 @@ function wpml_load_frontend_tax_filters() {
 	return $wpml_term_filters;
 }
 
-/**
- * @return \WPML_Settings_Helper
- */
 function wpml_load_settings_helper() {
 	global $wpml_settings_helper, $sitepress, $wpml_post_translations;
 
@@ -372,9 +309,6 @@ function wpml_get_term_translation_util() {
 	return new WPML_Term_Translation_Utils( $sitepress );
 }
 
-/**
- * @return \WPML_Term_Filters
- */
 function wpml_load_term_filters() {
 	global $wpml_term_filters_general, $sitepress, $wpdb;
 
@@ -399,9 +333,6 @@ function wpml_show_user_options() {
 	echo $user_options_menu->render();
 }
 
-/**
- * @return \WPML_Upgrade_Command_Factory
- */
 function wpml_get_upgrade_command_factory() {
 	static $factory;
 	if ( ! $factory ) {
@@ -422,14 +353,6 @@ function wpml_get_upgrade_schema() {
 	return $instance;
 }
 
-/**
- * @param string      $class_name   A class implementing \IWPML_Upgrade_Command.
- * @param array       $dependencies An array of dependencies passed to the `$class_name`'s constructor.
- * @param array       $scopes       An array of scope values. Accepted values are: `\WPML_Upgrade::SCOPE_ADMIN`, `\WPML_Upgrade::SCOPE_AJAX`, and `\WPML_Upgrade::SCOPE_FRONT_END`.
- * @param string|null $method       The method to call to run the upgrade (otherwise, it calls the "run" method),
- *
- * @return \WPML_Upgrade_Command_Definition
- */
 function wpml_create_upgrade_command_definition( $class_name, array $dependencies, array $scopes, $method = null ) {
 	return wpml_get_upgrade_command_factory()->create_command_definition( $class_name, $dependencies, $scopes, $method );
 }
@@ -439,5 +362,4 @@ if ( is_admin() ) {
 }
 
 
-// TM
 require_once 'functions-load-tm.php';

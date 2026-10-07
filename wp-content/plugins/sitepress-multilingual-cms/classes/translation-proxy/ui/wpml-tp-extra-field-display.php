@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_TP_Extra_Field_Display {
 	private $fields_with_items = array( 'select', 'radio', 'checkbox' );
 
-	/**
-	 * WPML_TP_Extra_Field_Display constructor.
-	 */
 	public function __construct() {
 	}
 
@@ -55,11 +49,6 @@ class WPML_TP_Extra_Field_Display {
 		return '';
 	}
 
-	/**
-	 * @param $field
-	 *
-	 * @return bool
-	 */
 	private function must_render( $field ) {
 		$must_render = isset( $field->type ) && $field->type;
 

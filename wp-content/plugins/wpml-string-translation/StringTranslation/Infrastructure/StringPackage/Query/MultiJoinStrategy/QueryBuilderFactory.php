@@ -7,10 +7,8 @@ use WPML\StringTranslation\Application\StringPackage\Query\FindStringPackagesQue
 
 class QueryBuilderFactory {
 
-	/** @var FindStringPackagesQueryBuilder */
 	private $findStringPackagesQueryBuilder;
 
-	/** @var SearchPopulatedKindsQueryBuilder */
 	private $searchPopulatedKindsQueryBuilder;
 
 	public function __construct(

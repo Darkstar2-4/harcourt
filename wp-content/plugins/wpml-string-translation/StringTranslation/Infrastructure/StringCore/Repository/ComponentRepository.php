@@ -9,13 +9,10 @@ use WPML\StringTranslation\Application\StringCore\Domain\StringItem;
 class ComponentRepository implements ComponentRepositoryInterface {
 	const PLUGIN_METADATA_TRANSLATION = 'plugin metadata';
 
-	/** @var LoadedTextdomainRepositoryInterface */
 	private $loadedTextdomainRepository;
 
-	/** @var array */
 	private $cache = [];
 
-	/** @var string */
 	private $activeThemeId;
 
 	public function __construct(
@@ -25,13 +22,7 @@ class ComponentRepository implements ComponentRepositoryInterface {
 		$this->activeThemeId              = $this->getThemeId();
 	}
 
-	/**
-	 * @return array {id: string, type: int}
-	 */
-	public function getComponentIdAndType( string $text, string $domain, string $context = null ): array {
-		// Some themes like 'Divi' create special integrations for woocommerce plugin template parts in the theme source codes.
-		// We should detect those strings as coming from woocommerce plugin too, as they are related to plugin and not theme itself.
-		// Also, otherwise we will incorrectly set all next strings coming from woocommerce plugin as coming from theme(because of the cache).
+	public function getComponentIdAndType( string $text, string $domain, ?string $context = null ): array {
 		if ( $domain === 'woocommerce' ) {
 			$id   = 'woocommerce';
 			$type = StringItem::COMPONENT_TYPE_PLUGIN;
@@ -46,8 +37,6 @@ class ComponentRepository implements ComponentRepositoryInterface {
 			return $this->cache[ $domain ];
 		}
 
-		// Will detect built-in themes like 'twentytwentyfour'.
-		// 'default' value is set up in integration tests.
 		if ( $domain === $this->activeThemeId && $this->activeThemeId !== 'default' ) {
 			$id         = $this->activeThemeId;
 			$type       = StringItem::COMPONENT_TYPE_THEME;
@@ -66,7 +55,7 @@ class ComponentRepository implements ComponentRepositoryInterface {
 		];
 	}
 
-	private function getCmpIdAndTypeData( string $text, string $domain, string $context = null ): array {
+	private function getCmpIdAndTypeData( string $text, string $domain, ?string $context = null ): array {
 		list( $id, $type ) = $this->getCmpIdAndType( $text, $domain, $context );
 		$addToCache        = ! $this->isPluginMetadataTranslation( $id );
 
@@ -77,7 +66,7 @@ class ComponentRepository implements ComponentRepositoryInterface {
 		];
 	}
 
-	private function getCmpIdAndType( string $text, string $domain, string $context = null ): array {
+	private function getCmpIdAndType( string $text, string $domain, ?string $context = null ): array {
 		$id   = 'WordPress';
 		$type = StringItem::COMPONENT_TYPE_CORE;
 
@@ -128,9 +117,9 @@ class ComponentRepository implements ComponentRepositoryInterface {
 			$fn = $item['function'];
 
  			if (
-				'translate' === $fn || 
-				'translate_plural' === $fn || 
-				'translate_with_gettext_context' === $fn 
+				'translate' === $fn ||
+				'translate_plural' === $fn ||
+				'translate_with_gettext_context' === $fn
 			) {
 				$gettextIndex = $i;
 				break;
@@ -175,15 +164,11 @@ class ComponentRepository implements ComponentRepositoryInterface {
 		return [ $file, $fn ];
 	}
 
-	// This method checks if we have detected that we are currently checking the case when plugin metadata is translated.
-	// We set $filepath to special self::PLUGIN_METADATA_TRANSLATION key in that case.
-	// That happens after initial check in isLoadingAndTranslatingPluginMetadataNotFromPluginItself function.
-	// Please check comment to that function where all edge case is explained.
 	private function isPluginMetadataTranslation( string $filepath ): bool {
 		return $filepath === self::PLUGIN_METADATA_TRANSLATION;
 	}
 
-	private function isPlugin( string $filepath = null, string $fn = null ): bool {
+	private function isPlugin( ?string $filepath = null, ?string $fn = null ): bool {
 		if ( is_null( $filepath ) ) {
 			return false;
 		}
@@ -197,7 +182,7 @@ class ComponentRepository implements ComponentRepositoryInterface {
 		return ( $isPluginFnCallFromTests || strpos( $filepath, 'wp-content/plugins' ) !== false );
 	}
 
-	private function isTheme( string $filepath = null, string $fn = null ): bool {
+	private function isTheme( ?string $filepath = null, ?string $fn = null ): bool {
 		if ( is_null( $filepath ) ) {
 			return false;
 		}
@@ -208,17 +193,12 @@ class ComponentRepository implements ComponentRepositoryInterface {
 			$fn === 'register_block_core_template_part'
 		);
 	}
-
-	// Call with plugin textdomain can happen when we are loading plugin metadata from other plugin.
-	// In such case we cannot determine real plugin name by reading the trace, because other plugin path will be used instead.
-	// Like for 'ntechdev-devtools' textdomain and plugin we expect find in trace '.../wp-content/plugins/ntechdev-devtools/...' but it will not exist.
-	// Instead we will have just a call for WP Core -> get_plugin_data -> _get_plugin_data_markup_translate -> translate calls.
-	// In ST we will have calls from sitepress/.../wpml-lib-dependencies/.../class-wpml-dependencies.php -> add_installed_plugin -> get_plugin_data(...).
-	private function isLoadingAndTranslatingPluginMetadataNotFromPluginItself( string $function = null ): bool {
+	
+	private function isLoadingAndTranslatingPluginMetadataNotFromPluginItself( ?string $function = null ): bool {
 		return ( is_null( $function ) ) ? false : ( $function === '_get_plugin_data_markup_translate' );
 	}
 
-	private function getPluginId( string $filepath, string $fn = null ): string {
+	private function getPluginId( string $filepath, ?string $fn = null ): string {
 		if ( $this->isPluginMetadataTranslation( $filepath ) ) {
 			return $filepath;
 		}

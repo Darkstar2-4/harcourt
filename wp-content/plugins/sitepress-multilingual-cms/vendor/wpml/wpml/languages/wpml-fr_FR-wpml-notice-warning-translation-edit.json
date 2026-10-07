@@ -5,16 +5,16 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n > 1);",
-            "lang": "fr"
+            "lang": "fr_FR"
          },
          "Warning:": [
-            "Avertissement :"
+            "Attention :"
          ],
          "Edits you're about to make will be lost": [
-            "Les modifications que vous êtes sur le point d'effectuer seront perdues"
+            "Les modifications que vous êtes sur le point d’apporter seront perdues"
          ],
          "You are about to edit this translation using %s.": [
-            "Vous êtes sur le point de modifier cette traduction en utilisant %s."
+            "Vous êtes sur le point de modifier cette traduction à l’aide de %s."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
             "Toutes les modifications que vous apporterez seront perdues la prochaine fois que vous enverrez cette page pour traduction."
@@ -23,10 +23,10 @@
             "Retourner"
          ],
          "Edit in Advanced Translation Editor": [
-            "Modifier dans l'éditeur de traduction avancé"
+            "Modifier dans l’éditeur de traduction avancé"
          ],
          "Edit anyway (Not recommended)": [
-            "Modifier quand même (Non recommandé)"
+            "Modifier quand même (non recommandé)"
          ]
       }
    }

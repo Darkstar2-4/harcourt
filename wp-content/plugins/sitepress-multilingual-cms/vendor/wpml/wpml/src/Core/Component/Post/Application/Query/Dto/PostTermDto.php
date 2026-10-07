@@ -4,10 +4,8 @@ namespace WPML\Core\Component\Post\Application\Query\Dto;
 
 class PostTermDto {
 
-  /** @var int */
   private $id;
 
-  /** @var string */
   private $name;
 
 

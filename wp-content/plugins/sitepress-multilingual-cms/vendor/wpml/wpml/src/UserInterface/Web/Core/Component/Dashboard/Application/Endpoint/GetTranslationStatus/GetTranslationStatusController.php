@@ -9,7 +9,6 @@ use WPML\Core\Port\Endpoint\EndpointInterface;
 
 class GetTranslationStatusController implements EndpointInterface {
 
-  /** @var TranslationStatusQueryInterface */
   private $translationStatusQuery;
 
 
@@ -18,17 +17,11 @@ class GetTranslationStatusController implements EndpointInterface {
   }
 
 
-  /**
-   * @psalm-suppress MoreSpecificImplementedParamType
-   * @psalm-suppress PossiblyNullReference
-   *
-   * @param int[] $requestData jobIds
-   *
-   * @return array<array{itemId: int, type: string, targetLanguage: string, status: int, reviewStatus: string|null}>
-   */
   public function handle( $requestData = null ): array {
-    $jobIds       = array_map( 'intval', $requestData ?: [] );
-    $translations = $this->translationStatusQuery->getByJobIds( $jobIds, true );
+    $data = is_array( $requestData ) ? $requestData : [];
+    $jobIds = array_filter( $data, 'is_numeric' );
+    $jobIds = array_map( 'intval', array_values( $jobIds ) );
+    $translations  = $this->translationStatusQuery->getByJobIds( $jobIds, true );
 
     return array_map(
       function ( TranslationStatusDto $translation ) {

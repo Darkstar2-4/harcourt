@@ -9,16 +9,12 @@ use WPML\StringTranslation\Application\StringCore\Query\FindByDomainValueAndCont
 
 class FindByDomainValueAndContextQuery implements FindByDomainValueAndContextQueryInterface {
 
-	/** @var \wpdb */
 	private $wpdb;
 
 	public function __construct( $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * @return StringItem[]
-	 */
 	public function execute( DomainValueAndContextCriteria $criteria ): array {
 		$strings = $criteria->getStringsToSearch();
 		$fields  = $criteria->getFieldsToHydrate();
@@ -48,9 +44,6 @@ class FindByDomainValueAndContextQuery implements FindByDomainValueAndContextQue
 		return $strings;
 	}
 
-	/**
-	 * @param StringItem[] $strings
-	 */
 	private function findStringsDataByDomainValueAndContext(
 		array $allStrings,
 		bool $fetchId,
@@ -141,7 +134,10 @@ class FindByDomainValueAndContextQuery implements FindByDomainValueAndContextQue
 
 		$stringById = [];
 		foreach ( $strings as $string ) {
-			$stringById[ $string->getId() ] = $string;
+			$id = $string->getId();
+			if ( null !== $id ) {
+				$stringById[ $id ] = $string;
+			}
 		}
 
 		foreach ( $res as $row ) {
@@ -164,9 +160,6 @@ class FindByDomainValueAndContextQuery implements FindByDomainValueAndContextQue
 				}
 			}
 
-			// String can call this hydration method with some position objects setup, for example coming from autoregistration callbacks.
-			// In such case we want to diff between new positions and already registered positions in the database, so we need to
-			// set database id in case the position record with specified kind and url for the string already exists.
 			if ( is_object( $existingPosition ) ) {
 				$existingPosition->setId( $row['id'] );
 			} else {

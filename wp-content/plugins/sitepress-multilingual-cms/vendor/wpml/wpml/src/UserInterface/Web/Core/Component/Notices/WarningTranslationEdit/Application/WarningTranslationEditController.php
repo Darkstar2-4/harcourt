@@ -10,10 +10,8 @@ use WPML\UserInterface\Web\Core\SharedKernel\Config\Style;
 class WarningTranslationEditController implements EventListenerInterface {
   const SCRIPT_HANDLE = 'wpml_warning_translation_edit';
 
-  /** @var TranslationEditorInterface */
   private $translationEditor;
 
-  /** @var AssetInterface $asset */
   private $asset;
 
 
@@ -26,13 +24,6 @@ class WarningTranslationEditController implements EventListenerInterface {
   }
 
 
-  /**
-   * @param int           $postId
-   * @param string        $pageBuilderName
-   * @param array<string> $args
-   *
-   * @return void
-   */
   public function maybeShowPageBuilderWarning( $postId, $pageBuilderName, $args = [] ) {
     $defaultArgs = [
       'iframeModeQuerySelector' => ''
@@ -42,18 +33,11 @@ class WarningTranslationEditController implements EventListenerInterface {
 
     $translationEditorUrl = $this->translationEditor->getTranslationEditorLink( $postId );
     if ( $translationEditorUrl ) {
-        /** @phpstan-ignore-next-line */
         $this->enqueueAssets( $pageBuilderName, $translationEditorUrl, $args );
     }
   }
 
 
-  /**
-   * @param string $pageBuilderName
-   * @param string $translationEditorUrl
-   * @param array{iframeModeQuerySelector: string} $args $args
-   * @return void
-   */
   private function enqueueAssets( $pageBuilderName, $translationEditorUrl, $args ) {
     $script_m = new Script( 'wpml-modules' );
     $script_m->setSrc( 'public/js/node-modules.js' );

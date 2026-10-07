@@ -8,27 +8,16 @@ use function \WPML\FP\System\sanitizeString;
 use function \WPML\FP\pipe;
 use function \WPML\FP\curryN;
 
-/**
- * @method static int get_batch_id_from_name( string $basket_name )
- */
 class WPML_Translation_Basket {
 
 	use Macroable;
 
-	/** @var wpdb $wpdb */
 	private $wpdb;
 
 	public function __construct( \wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
-	/**
-	 * Returns an array representation of the current translation basket
-	 *
-	 * @param bool|false $force if true reloads the baskets contents from the database
-	 *
-	 * @return array
-	 */
 	function get_basket( $force = false ) {
 		$basket = TranslationProxy_Basket::get_basket( $force );
 		$basket = $basket ? $basket : array();
@@ -36,9 +25,6 @@ class WPML_Translation_Basket {
 		return $basket;
 	}
 
-	/**
-	 * @return bool|TranslationProxy_Project
-	 */
 	public function get_project() {
 
 		return TranslationProxy::get_current_project();
@@ -49,41 +35,21 @@ class WPML_Translation_Basket {
 		return TranslationProxy_Basket::get_basket_items_types();
 	}
 
-	/**
-	 * Returns a batch instance by basket- or batch-name
-	 *
-	 * @param string $basket_name
-	 *
-	 * @return WPML_Translation_Batch
-	 */
 	function get_basket_batch( $basket_name ) {
 
 		return new WPML_Translation_Batch( $this->wpdb, self::get_batch_id_from_name( $basket_name ) );
 	}
 
-	/**
-	 * Sets the remote target languages before committing the basket to a translation service.
-	 *
-	 * @param array $remote_languages
-	 */
 	function set_remote_target_languages( $remote_languages ) {
 
 		TranslationProxy_Basket::set_remote_target_languages( $remote_languages );
 	}
 
-	/**
-	 * Removes all items from the current translation basket.
-	 */
 	function delete_all_items() {
 
 		TranslationProxy_Basket::delete_all_items_from_basket();
 	}
 
-	/**
-	 * Returns the name of the current translation basket.
-	 *
-	 * @return bool|string
-	 */
 	function get_name() {
 
 		return TranslationProxy_Basket::get_basket_name();
@@ -98,17 +64,10 @@ class WPML_Translation_Basket {
 		TranslationProxy_Basket::set_options( $batch_options );
 	}
 
-	/** @return array */
 	function get_options() {
 		return TranslationProxy_Basket::get_options();
 	}
 
-	/**
-	 * @param string $basket_name
-	 * @param int    $basket_name_max_length
-	 *
-	 * @return array
-	 */
 	function check_basket_name( $basket_name, $basket_name_max_length ) {
 
 		$result      = array(
@@ -148,14 +107,6 @@ class WPML_Translation_Basket {
 		return $result;
 	}
 
-	/**
-	 * Returns a unique name derived from an input name for a Translation Proxy Basket
-	 *
-	 * @param string   $name
-	 * @param bool|int $max_length
-	 *
-	 * @return bool|string
-	 */
 	function get_unique_basket_name( $name, $max_length ) {
 		$basket_name_array = explode( '|', $name );
 		$name              = count( $basket_name_array ) === 1
@@ -181,40 +132,24 @@ class WPML_Translation_Basket {
 		return $name;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_source_language() {
 
 		return TranslationProxy_Basket::get_source_language();
 	}
 
-	/**
-	 * @param int $package_id
-	 */
 	public function remove_package( $package_id ) {
 		TranslationProxy_Basket::delete_item_from_basket( $package_id, 'package' );
 	}
 
-	/**
-	 * @param int    $id
-	 * @param string $kind
-	 */
 	public function remove_item( $id, $kind ) {
 		TranslationProxy_Basket::delete_item_from_basket( $id, $kind );
 	}
 
-	/**
-	 * Merge the basket portion with the saved basket
-	 *
-	 * @param array $basket_portion
-	 */
 	public function update_basket( $basket_portion = array() ) {
 		TranslationProxy_Basket::update_basket( $basket_portion );
 	}
 
 	private function sanitize_basket_name( $basket_name, $max_length ) {
-		// input basket name is separated by pipes so we explode it
 		$to_trim = mb_strlen( $basket_name ) - $max_length;
 		if ( $to_trim <= 0 ) {
 			return $basket_name;
@@ -227,11 +162,9 @@ class WPML_Translation_Basket {
 			return mb_substr( $basket_name, $max_length - 1 );
 		}
 
-		// first we trim the middle part holding the "WPML"
 		if ( $wpml_flag ) {
 			list( $basket_name_array, $to_trim ) = $this->shorten_basket_name( $basket_name_array, 1, $to_trim );
 		}
-		// then trim the site name first, if that's not enough move the array index and also trim the language
 		for ( $i = 0; $i <= 1; $i ++ ) {
 			if ( $to_trim > 0 ) {
 				list( $basket_name_array, $to_trim ) = $this->shorten_basket_name( $basket_name_array, 0, $to_trim );
@@ -251,7 +184,7 @@ class WPML_Translation_Basket {
 			$name_array           = array_filter( $name_array );
 			$to_trim              = 0;
 		} else {
-			$to_trim = $to_trim - mb_strlen( $name_array [ $index ] ) - 1; // subtract one here since we lose a downstroke
+			$to_trim = $to_trim - mb_strlen( $name_array [ $index ] ) - 1;
 			unset( $name_array [ $index ] );
 		}
 
@@ -260,13 +193,6 @@ class WPML_Translation_Basket {
 
 }
 
-/**
- * Returns the batch id for a given basket or batch name
- *
- * @param string $basket_name
- *
- * @return int|bool
- */
 WPML_Translation_Basket::macro(
 	'get_batch_id_from_name',
 	curryN(

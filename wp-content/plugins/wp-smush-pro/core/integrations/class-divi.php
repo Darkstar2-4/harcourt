@@ -20,7 +20,32 @@ class Divi extends Controller {
 	 * Constructor to initialize the Divi integration.
 	 */
 	public function __construct() {
-		$this->register_action( 'et_builder_modules_loaded', array( $this, 'handle_divi_image_sizes_hook' ) );
+		// Delay hook registration until Divi is fully available.
+		$this->register_action( 'after_setup_theme', array( $this, 'register_hooks' ) );
+	}
+
+	/**
+	 * Register Divi-specific hooks.
+	 *
+	 * - Always register Divi 4 hook
+	 * - Register Divi 5 hook only when active
+	 *
+	 * @return void
+	 */
+	public function register_hooks() {
+		// Divi 5 support.
+		if ( function_exists( 'et_builder_d5_enabled' ) && et_builder_d5_enabled() ) {
+			$this->register_action(
+				'divi_module_library_modules_dependency_tree',
+				array( $this, 'handle_divi_image_sizes_hook' )
+			);
+		}
+
+		// Divi 4 (and fallback).
+		$this->register_action(
+			'et_builder_modules_loaded',
+			array( $this, 'handle_divi_image_sizes_hook' )
+		);
 	}
 
 	/**

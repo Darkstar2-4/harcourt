@@ -25,13 +25,6 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 		return $items;
 	}
 
-	/**
-	 * @param \WPML_Package $package
-	 * @param \stdClass     $translation
-	 * @param string        $lang
-	 *
-	 * @return \WPML_Package
-	 */
 	private function set_translation_status( $package, $translation, $lang ) {
 		global $wpdb;
 
@@ -105,16 +98,8 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 	}
 
 	private function duplicate_package( $package_id ) {
-		// TODO: [WPML 3.3] duplication to be done
-		// $this->make_duplicate( $package_id, $language_code );
 	}
 
-	/**
-	 * @param int    $translation_action
-	 * @param string $source_language
-	 *
-	 * @return bool
-	 */
 	private function validate_basket_package_item( $translation_action, $source_language ) {
 		ICL_AdminNotifier::remove_message( 'the_basket_items_notification' );
 
@@ -182,27 +167,15 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 		$package    = $this->package;
 		$package_id = $package->ID;
 
-		// iterate posts ids, check if they are in wp_options
-		// if they are set to translate for this particular language
-		// end then remove it
-		// check if we have this post in wp_options
-		// end remove
 		if ( isset( $basket['package'][ $package_id ]['to_langs'][ $target_language ] ) ) {
 			unset( $basket['package'][ $package_id ]['to_langs'][ $target_language ] );
 			TranslationProxy_Basket::update_basket( $basket );
 		}
-		// if user want to duplicate this post, lets do this
 		if ( $translation_action == 2 ) {
 			$this->duplicate_package( $package_id );
 		}
 	}
 
-	/**
-	 * @param string $source_language
-	 * @param string $target_language
-	 *
-	 * @throws WPML_Package_Exception
-	 */
 	public function send_package_to_basket( $source_language, $target_language ) {
 		global $sitepress, $iclTranslationManagement;
 
@@ -213,7 +186,6 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 
 		$send_to_basket = true;
 		$package_helper = new WPML_Package_Helper();
-		/** @var WPML_Package $post */
 		$post           = $package_helper->get_translatable_item( null, $package_id );
 
 		$post_title   = esc_html( $post->title );
@@ -228,7 +200,6 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 		if ( $send_to_basket ) {
 			$basket['package'][ $package_id ]['from_lang']                    = $source_language;
 			$basket['package'][ $package_id ]['to_langs'][ $target_language ] = 1;
-			// set basket language if not already set
 			if ( ! isset( $basket['source_language'] ) ) {
 				$basket['source_language'] = $source_language;
 			}
@@ -236,13 +207,6 @@ class WPML_Package_TM extends WPML_Package_TM_Jobs {
 		TranslationProxy_Basket::update_basket( $basket );
 	}
 
-	/**
-	 * @param \stdClass $job_details
-	 * @param string    $post_title
-	 * @param string    $language_name
-	 *
-	 * @return bool
-	 */
 	private function validate_package_status( $job_details, $post_title, $language_name ) {
 		$send_to_basket = true;
 		$message_args   = array();

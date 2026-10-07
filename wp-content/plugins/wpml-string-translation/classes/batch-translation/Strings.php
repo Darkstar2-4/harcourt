@@ -6,12 +6,6 @@ use WPML\Collect\Support\Traits\Macroable;
 use WPML\FP\Fns;
 use function WPML\FP\curryN;
 
-/**
- * Class Strings
- *
- * @package WPML\ST\Batch\Translation
- * @method static callable|object get( ...$getBatchRecord, ...$getString, ...$item, ...$id, ...$type )
- */
 class Strings {
 
 	use Macroable;

@@ -1,19 +1,7 @@
 <?php
 
-/**
- * Class WPML_TF_Settings_Read
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Settings_Read extends WPML_TF_Settings_Handler {
 
-	/**
-	 * @param string $settings_class
-	 *
-	 * @return IWPML_TF_Settings
-	 *
-	 * @throws InvalidArgumentException
-	 */
 	public function get( $settings_class ) {
 		if ( ! class_exists( $settings_class ) ) {
 			throw new InvalidArgumentException( $settings_class . ' does not exist.' );
@@ -25,7 +13,6 @@ class WPML_TF_Settings_Read extends WPML_TF_Settings_Handler {
 
 		$settings_properties = get_option( $this->get_option_name( $settings_class ) );
 
-		/** @var IWPML_TF_Settings $settings */
 		$settings = new $settings_class();
 
 		if ( is_array( $settings_properties ) ) {
@@ -35,12 +22,6 @@ class WPML_TF_Settings_Read extends WPML_TF_Settings_Handler {
 		return $settings;
 	}
 
-	/**
-	 * @param IWPML_TF_Settings $settings
-	 * @param array             $settings_properties
-	 *
-	 * @throws BadMethodCallException
-	 */
 	private function set_properties( IWPML_TF_Settings $settings, array $settings_properties ) {
 		foreach ( $settings->get_properties() as $property_name => $property_value ) {
 

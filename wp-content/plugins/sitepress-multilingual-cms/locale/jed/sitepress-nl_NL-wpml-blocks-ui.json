@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "nl"
+            "lang": "nl_NL"
          },
          "Advanced": [
             "Geavanceerd"
          ],
          "HTML anchor": [
-            "HTML anker"
+            "HTML-anker"
          ],
          "Add a shortcut to this block when loading the page using the “#anchor” URL.": [
-            "Voeg een snelkoppeling aan dit blok toe bij het laden van de pagina met de \"#anchor\" URL."
+            "Voeg een snelkoppeling toe aan dit blok bij het laden van de pagina met de URL “#anchor”."
          ],
          "Additional CSS class(es)": [
-            "Toegevoegde CSS klasse(n)"
+            "Extra CSS-klasse(n)"
          ],
          "Separate multiple classes with spaces.": [
             "Scheid meerdere klassen met spaties."
@@ -35,13 +35,13 @@
             "Afmetingen"
          ],
          "BLOCK": [
-            "Block"
+            "BLOK"
          ],
          "Block margin": [
             "Blokmarge"
          ],
          "Block padding": [
-            "Blokvulling"
+            "Blokopvulling"
          ],
          "LANGUAGE": [
             "TAAL"
@@ -50,10 +50,10 @@
             "Taalafstand"
          ],
          "Language padding": [
-            "Taal opvulling"
+            "Taalopvulling"
          ],
          "Display": [
-            "Weergeven"
+            "Weergave"
          ],
          "Show flag": [
             "Vlag tonen"
@@ -68,7 +68,7 @@
             "Stijl"
          ],
          "Flag settings": [
-            "Vlag instellingen"
+            "Vlaginstellingen"
          ],
          "Width": [
             "Breedte"
@@ -77,16 +77,22 @@
             "Hoogte"
          ],
          "Spacing": [
-            "Spatiëring"
+            "Afstand"
+         ],
+         "Switch to %s": [
+            "Schakel over naar %s"
+         ],
+         "Available languages": [
+            "Beschikbare talen"
          ],
          "Allow wrapping to multiple lines": [
-            "Terugloop naar meerdere regels toestaan"
+            "Meerdere regels toestaan"
          ],
          "Open on click": [
-            "Openen bij klik"
+            "Openen bij klikken"
          ],
          "Show arrow": [
-            "Pijl weergeven"
+            "Pijl tonen"
          ],
          "Layout": [
             "Lay-out"
@@ -96,6 +102,12 @@
          ],
          "Orientation": [
             "Oriëntatie"
+         ],
+         "Language Switcher": [
+            "Taalschakelaar"
+         ],
+         "Language switcher, press tab to navigate to other languages": [
+            "Taalschakelaar, druk op tab om naar andere talen te navigeren"
          ],
          "Typography": [
             "Typografie"
@@ -110,10 +122,10 @@
             "Taalachtergrond"
          ],
          "Current language text": [
-            "Huidige taaltekst"
+            "Tekst huidige taal"
          ],
          "Current language background": [
-            "Huidige taalachtergrond"
+            "Achtergrond huidige taal"
          ],
          "Full name": [
             "Volledige naam"
@@ -131,7 +143,7 @@
             "Items rechts uitlijnen"
          ],
          "Justify items space between": [
-            "Items gelijkmatig verdelen"
+            "Items verdelen met ruimte ertussen"
          ],
          "Horizontal": [
             "Horizontaal"
@@ -143,13 +155,13 @@
             "Normaal"
          ],
          "Medium": [
-            "Medium"
+            "Gemiddeld"
          ],
          "Large": [
             "Groot"
          ],
          "X-Large": [
-            "Extra groot"
+            "X-groot"
          ],
          "Ab": [
             "Ab"
@@ -164,19 +176,16 @@
             "Klein"
          ],
          "Displays the WPML Language Switcher.": [
-            "Toont de WPML Taalwisselaar."
-         ],
-         "Language Switcher": [
-            "Taalwisselaar"
+            "Toont de WPML-taalschakelaar."
          ],
          "displays the WPML Language Switcher": [
-            "toont de WPML Taalwisselaar"
+            "toont de WPML-taalschakelaar"
          ],
          "Displays the WPML Language Switcher. <br/> Learn <a>how to translate this block</a>.": [
-            "Toont de WPML Taalwisselaar. <br/> Leer <a>hoe u dit blok kunt vertalen</a>."
+            "Toont de WPML-taalschakelaar. <br/> Leer <a>hoe u dit blok vertaalt</a>."
          ],
          "Navigation Language Switcher": [
-            "Navigatie Taalwisselaar"
+            "Navigatietaalschakelaar"
          ],
          "Reset all": [
             "Alles resetten"

@@ -2,7 +2,6 @@
 
 class WPML_ST_Initialize {
 
-	/** @var array */
 	private $config;
 
 	public function __construct( array $config = [] ) {
@@ -35,7 +34,6 @@ class WPML_ST_Initialize {
 	}
 
 	private function loadEarlyHooks() {
-		/** @var \WPML\ST\TranslationFile\Hooks $hooks */
 		$hooks = \WPML\Container\make( \WPML\ST\TranslationFile\Hooks::class );
 		$hooks->install();
 	}

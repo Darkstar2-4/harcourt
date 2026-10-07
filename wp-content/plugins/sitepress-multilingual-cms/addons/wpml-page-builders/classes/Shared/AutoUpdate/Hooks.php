@@ -17,16 +17,12 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 
 	const HASH_SEP = '-';
 
-	/** @var \WPML_PB_Integration $pbIntegration */
 	private $pbIntegration;
 
-	/** @var \WPML_Translation_Element_Factory $elementFactory */
 	private $elementFactory;
 
-	/** @var \WPML_Page_Builders_Page_Built $pageBuilt */
 	private $pageBuilt;
 
-	/** @var array $translationStatusesUpdaters */
 	private $translationStatusesUpdaters = [];
 
 	public function __construct(
@@ -51,26 +47,12 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		return defined( 'WPML_TM_VERSION' );
 	}
 
-	/**
-	 * @param bool     $isDelegated
-	 * @param int      $originalPostId
-	 * @param callable $statusesUpdater
-	 *
-	 * @return bool
-	 */
 	public function enqueueTranslationStatusUpdate( $isDelegated, $originalPostId, $statusesUpdater ) {
 		$this->translationStatusesUpdaters[ $originalPostId ] = $statusesUpdater;
 		return true;
 	}
 
-	/**
-	 * @param string   $content
-	 * @param \WP_Post $post
-	 *
-	 * @return string
-	 */
 	public function getMd5ContentFromPackageStrings( $content, $post ) {
-		// $joinPackageStringHashes :: \WPML_Package → string
 		$joinPackageStringHashes = pipe(
 			invoke( 'get_package_strings' )->with( true ),
 			Lst::pluck( 'value' ),
@@ -81,24 +63,15 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		return Maybe::of( $post->ID )
 			->map( [ self::class, 'getPackages' ] )
 			->map( Fns::map( $joinPackageStringHashes ) )
-			->filter()
 			->map( Lst::join( self::HASH_SEP ) )
+			->filter()
 			->getOrElse( $content );
 	}
 
-	/**
-	 * @param int $postId
-	 *
-	 * @return \WPML_Package[]
-	 */
 	public static function getPackages( $postId ) {
 		return apply_filters( 'wpml_st_get_post_string_packages', [], $postId );
 	}
 
-	/**
-	 * We need to update translation statuses after string registration
-	 * to make sure we build the content hash with the new strings.
-	 */
 	public function afterRegisterAllStringsInShutdown() {
 		if ( $this->translationStatusesUpdaters ) {
 			do_action( 'wpml_cache_clear' );
@@ -112,31 +85,20 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 		}
 	}
 
-	/**
-	 * @param int $postId
-	 */
 	private function resaveTranslations( $postId ) {
 		if ( ! $this->isPageBuilder( $postId ) ) {
 			return;
 		}
 
-		// $ifOriginal :: \WPML_Post_Element → bool
 		$ifOriginal = pipe( invoke( 'get_source_language_code' ), Logic::not() );
 
-		// $ifCompleted :: \WPML_Post_Element → bool
 		$ifCompleted = pipe( [ TranslationStatus::class, 'get' ], Relation::equals( ICL_TM_COMPLETE ) );
 
-		// $resaveElement :: \WPML_Post_Element → null
 		$resaveElement = Fns::unary( partialRight( [ $this->pbIntegration, 'resave_post_translation_in_shutdown' ], false ) );
 
-		$callAction = function( \WPML_Post_Element $post ) {
+		$callAction = function ( \WPML_Post_Element $post ) {
 			$postId = $post->get_element_id();
 
-			/**
-			 * Triggered when translations are auto-updated for a page builder post.
-			 *
-			 * @param int $postId
-			 */
 			do_action( 'wpml_pb_translations_auto_updated', $postId );
 		};
 
@@ -147,13 +109,8 @@ class Hooks implements \IWPML_Backend_Action, \IWPML_Frontend_Action, \IWPML_DIC
 			->each( $callAction );
 	}
 
-	/**
-	 * @param int $postId
-	 *
-	 * @return bool
-	 */
 	private function isPageBuilder( $postId ) {
-		$isPbPostWithoutStrings = function( $postId ) {
+		$isPbPostWithoutStrings = function ( $postId ) {
 			$post = get_post( $postId );
 
 			return $post instanceof \WP_Post

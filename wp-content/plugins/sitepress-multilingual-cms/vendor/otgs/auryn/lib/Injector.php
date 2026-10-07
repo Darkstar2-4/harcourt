@@ -48,7 +48,7 @@ class Injector
     private $delegates = array();
     private $inProgressMakes = array();
 
-    public function __construct(Reflector $reflector = null)
+    public function __construct(?Reflector $reflector = null)
     {
         $this->reflector = $reflector ?: new CachingReflector;
     }
@@ -58,13 +58,6 @@ class Injector
         $this->inProgressMakes = array();
     }
 
-    /**
-     * Define instantiation directives for the specified class
-     *
-     * @param string $name The class (or alias) whose constructor arguments we wish to define
-     * @param array $args An array mapping parameter names to values/instructions
-     * @return self
-     */
     public function define($name, array $args)
     {
         list(, $normalizedName) = $this->resolveAlias($name);
@@ -73,16 +66,6 @@ class Injector
         return $this;
     }
 
-    /**
-     * Assign a global default value for all parameters named $paramName
-     *
-     * Global parameter definitions are only used for parameters with no typehint, pre-defined or
-     * call-time definition.
-     *
-     * @param string $paramName The parameter name for which this value applies
-     * @param mixed $value The value to inject for this parameter name
-     * @return self
-     */
     public function defineParam($paramName, $value)
     {
         $this->paramDefinitions[$paramName] = $value;
@@ -90,16 +73,6 @@ class Injector
         return $this;
     }
 
-    /**
-     * Define an alias for all occurrences of a given typehint
-     *
-     * Use this method to specify implementation classes for interface and abstract class typehints.
-     *
-     * @param string $original The typehint to replace
-     * @param string $alias The implementation name
-     * @throws ConfigException if any argument is empty or not a string
-     * @return self
-     */
     public function alias($original, $alias)
     {
         if (empty($original) || !is_string($original)) {
@@ -144,13 +117,6 @@ class Injector
         return ltrim(strtolower($className), '\\');
     }
 
-    /**
-     * Share the specified class/instance across the Injector context
-     *
-     * @param mixed $nameOrInstance The class or object to share
-     * @throws ConfigException if $nameOrInstance is not a string or an object
-     * @return self
-     */
     public function share($nameOrInstance)
     {
         if (is_string($nameOrInstance)) {
@@ -194,7 +160,6 @@ class Injector
     {
         $normalizedName = $this->normalizeName(get_class($obj));
         if (isset($this->aliases[$normalizedName])) {
-            // You cannot share an instance of a class name that is already aliased
             throw new ConfigException(
                 sprintf(
                     self::M_ALIASED_CANNOT_SHARE,
@@ -207,18 +172,6 @@ class Injector
         $this->shares[$normalizedName] = $obj;
     }
 
-    /**
-     * Register a prepare callable to modify/prepare objects of type $name after instantiation
-     *
-     * Any callable or provisionable invokable may be specified. Preparers are passed two
-     * arguments: the instantiated object to be mutated and the current Injector instance.
-     *
-     * @param string $name
-     * @param mixed $callableOrMethodStr Any callable or provisionable invokable method
-     * @throws InjectionException if $callableOrMethodStr is not a callable.
-     *                            See https://github.com/rdlowrey/auryn#injecting-for-execution
-     * @return self
-     */
     public function prepare($name, $callableOrMethodStr)
     {
         if ($this->isExecutable($callableOrMethodStr) === false) {
@@ -249,14 +202,6 @@ class Injector
         return false;
     }
 
-    /**
-     * Delegate the creation of $name instances to the specified callable
-     *
-     * @param string $name
-     * @param mixed $callableOrMethodStr Any callable or provisionable invokable method
-     * @throws ConfigException if $callableOrMethodStr is not a callable.
-     * @return self
-     */
     public function delegate($name, $callableOrMethodStr)
     {
         if ($this->isExecutable($callableOrMethodStr) === false) {
@@ -283,15 +228,6 @@ class Injector
         return $this;
     }
 
-    /**
-     * Retrieve stored data for the specified definition type
-     *
-     * Exposes introspection of existing binds/delegates/shares/etc for decoration and composition.
-     *
-     * @param string $nameFilter An optional class name filter
-     * @param int $typeFilter A bitmask of Injector::* type constant flags
-     * @return array
-     */
     public function inspect($nameFilter = null, $typeFilter = null)
     {
         $result = array();
@@ -329,14 +265,6 @@ class Injector
         }
     }
 
-    /**
-     * Instantiate/provision a class instance
-     *
-     * @param string $name
-     * @param array $args
-     * @throws InjectionException if a cyclic gets detected when provisioning
-     * @return mixed
-     */
     public function make($name, array $args = array())
     {
         list($className, $normalizedClass) = $this->resolveAlias($name);
@@ -354,9 +282,6 @@ class Injector
 
         $this->inProgressMakes[$normalizedClass] = count($this->inProgressMakes);
 
-        // isset() is used specifically here because classes may be marked as "shared" before an
-        // instance is stored. In these cases the class is "shared," but it has a null value and
-        // instantiation is needed.
         if (isset($this->shares[$normalizedClass])) {
             unset($this->inProgressMakes[$normalizedClass]);
 
@@ -444,11 +369,10 @@ class Injector
         return new $className;
     }
 
-    private function provisionFuncArgs(\ReflectionFunctionAbstract $reflFunc, array $definition, array $reflParams = null, $className = null)
+    private function provisionFuncArgs(\ReflectionFunctionAbstract $reflFunc, array $definition, ?array $reflParams = null, $className = null)
     {
         $args = array();
 
-        // @TODO store this in ReflectionStorage
         if (!isset($reflParams)) {
             $reflParams = $reflFunc->getParameters();
         }
@@ -457,26 +381,19 @@ class Injector
             $name = $reflParam->name;
 
             if (isset($definition[$i]) || array_key_exists($i, $definition)) {
-                // indexed arguments take precedence over named parameters
                 $arg = $definition[$i];
             } elseif (isset($definition[$name]) || array_key_exists($name, $definition)) {
-                // interpret the param as a class name to be instantiated
                 $arg = $this->make($definition[$name]);
             } elseif (($prefix = self::A_RAW . $name) && (isset($definition[$prefix]) || array_key_exists($prefix, $definition))) {
-                // interpret the param as a raw value to be injected
                 $arg = $definition[$prefix];
             } elseif (($prefix = self::A_DELEGATE . $name) && isset($definition[$prefix])) {
-                // interpret the param as an invokable delegate
                 $arg = $this->buildArgFromDelegate($name, $definition[$prefix]);
             } elseif (($prefix = self::A_DEFINE . $name) && isset($definition[$prefix])) {
-                // interpret the param as a class definition
                 $arg = $this->buildArgFromParamDefineArr($definition[$prefix]);
             } elseif (!$arg = $this->buildArgFromTypeHint($reflFunc, $reflParam)) {
                 $arg = $this->buildArgFromReflParam($reflParam, $className);
 
                 if ($arg === null && PHP_VERSION_ID >= 50600 && $reflParam->isVariadic()) {
-                    // buildArgFromReflParam might return null in case the parameter is optional
-                    // in case of variadics, the parameter is optional, but null might not be allowed
                     continue;
                 }
             }
@@ -492,14 +409,12 @@ class Injector
         if (!is_array($definition)) {
             throw new InjectionException(
                 $this->inProgressMakes
-                // @TODO Add message
             );
         }
 
         if (!isset($definition[0], $definition[1])) {
             throw new InjectionException(
                 $this->inProgressMakes
-                // @TODO Add message
             );
         }
 
@@ -530,7 +445,6 @@ class Injector
             $obj = null;
         } elseif ($reflParam->isDefaultValueAvailable()) {
             $normalizedName = $this->normalizeName($typeHint);
-            // Injector has been told explicitly how to make this type
             if (isset($this->aliases[$normalizedName]) ||
                 isset($this->delegates[$normalizedName]) ||
                 isset($this->shares[$normalizedName])) {
@@ -552,9 +466,6 @@ class Injector
         } elseif ($reflParam->isDefaultValueAvailable()) {
             $arg = $reflParam->getDefaultValue();
         } elseif ($reflParam->isOptional()) {
-            // This branch is required to work around PHP bugs where a parameter is optional
-            // but has no default value available through reflection. Specifically, PDO exhibits
-            // this behavior.
             $arg = null;
         } else {
             $reflFunc = $reflParam->getDeclaringFunction();
@@ -624,14 +535,6 @@ class Injector
         return $obj;
     }
 
-    /**
-     * Invoke the specified callable or class::method string, provisioning dependencies along the way
-     *
-     * @param mixed $callableOrMethodStr A valid PHP callable or a provisionable ClassName::methodName string
-     * @param array $args Optional array specifying params with which to invoke the provisioned callable
-     * @throws \Auryn\InjectionException
-     * @return mixed Returns the invocation result returned from calling the generated executable
-     */
     public function execute($callableOrMethodStr, array $args = array())
     {
         list($reflFunc, $invocationObj) = $this->buildExecutableStruct($callableOrMethodStr);
@@ -641,12 +544,6 @@ class Injector
         return call_user_func_array(array($executable, '__invoke'), $args);
     }
 
-    /**
-     * Provision an Executable instance from any valid callable or class::method string
-     *
-     * @param mixed $callableOrMethodStr A valid PHP callable or a provisionable ClassName::methodName string
-     * @return \Auryn\Executable
-     */
     public function buildExecutable($callableOrMethodStr)
     {
         try {
@@ -728,9 +625,6 @@ class Injector
         }
 
         $instance = $this->make($className);
-        // If the class was delegated, the instance may not be of the type
-        // $class but some other type. We need to get the reflection on the
-        // actual class to be able to call the method correctly.
         $reflectionMethod = $this->reflector->getMethod($instance, $method);
 
         return array($reflectionMethod, $instance);

@@ -13,21 +13,10 @@ class WPML_PB_Handle_Post_Body implements IWPML_Backend_Action, IWPML_Frontend_A
 		add_action( 'wpml_pb_finished_adding_string_translations', array( $this, 'copy' ), 10, 3 );
 	}
 
-	/**
-	 * @param int $translate
-	 * @param WP_Post $post
-	 *
-	 * @return int
-	 */
 	public function should_translate( $translate, WP_Post $post ) {
 		return $this->page_builders_built->is_page_builder_page( $post ) ? 0 : $translate;
 	}
 
-	/**
-	 * @param int $new_post_id
-	 * @param int $original_post_id
-	 * @param array $fields
-	 */
 	public function copy( $new_post_id, $original_post_id, array $fields ) {
 		$original_post = get_post( $original_post_id );
 		if ( $original_post && $this->page_builders_built->is_page_builder_page( $original_post ) && ! $this->job_has_packages( $fields ) ) {
@@ -36,11 +25,6 @@ class WPML_PB_Handle_Post_Body implements IWPML_Backend_Action, IWPML_Frontend_A
 		}
 	}
 
-	/**
-	 * @param array $fields
-	 *
-	 * @return bool
-	 */
 	private function job_has_packages( array $fields ) {
 		foreach ( $fields as $key => $field ) {
 			if ( 0 === strpos( $key, 'package' ) ) {

@@ -3,13 +3,6 @@
 namespace WPML\ST\DB\Mappers;
 
 class Update {
-	/**
-	 * @param  callable $getStringById
-	 * @param  int      $stringId
-	 * @param  string   $domain
-	 *
-	 * @return bool
-	 */
 	public static function moveStringToDomain( callable $getStringById, $stringId, $domain ) {
 		global $wpdb;
 
@@ -24,10 +17,6 @@ class Update {
 		return false;
 	}
 
-	/**
-	 * @param string $oldDomain
-	 * @param string $newDomain
-	 */
 	public static function moveAllStringsToNewDomain( $oldDomain, $newDomain ) {
 		global $wpdb;
 

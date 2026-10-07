@@ -8,9 +8,6 @@ class Shortcode {
 
 	private $context;
 	private $name;
-	/**
-	 * @var \wpdb
-	 */
 	private $wpdb;
 
 	public function __construct( \wpdb $wpdb ) {
@@ -21,22 +18,13 @@ class Shortcode {
 		add_shortcode( 'wpml-string', [ $this, 'render' ] );
 	}
 
-	/**
-	 * @param array  $attributes
-	 * @param string $value
-	 *
-	 * @return string
-	 */
 	function render( $attributes, $value ) {
 		$this->parse_attributes( $attributes, $value );
 		$this->maybe_register_string( $value );
 
-		return do_shortcode( icl_t( $this->context, $this->name, $value ) );
+		return do_shortcode( wp_kses_post( icl_t( $this->context, $this->name, $value ) ) );
 	}
 
-	/**
-	 * @param string $value
-	 */
 	private function maybe_register_string( $value ) {
 		$string = $this->get_registered_string();
 		if ( ! $string || $string->value !== $value ) {
@@ -44,10 +32,6 @@ class Shortcode {
 		}
 	}
 
-	/**
-	 * @param array  $attributes
-	 * @param string $value
-	 */
 	private function parse_attributes( $attributes, $value ) {
 		$pairs = array(
 			'context' => self::STRING_DOMAIN,
@@ -60,9 +44,6 @@ class Shortcode {
 		$this->name    = $attributes['name'];
 	}
 
-	/**
-	 * @return \stdClass
-	 */
 	private function get_registered_string() {
 		$strings = $this->get_strings_registered_in_context();
 		if ( $strings && array_key_exists( $this->name, $strings ) ) {
@@ -72,9 +53,6 @@ class Shortcode {
 		return null;
 	}
 
-	/**
-	 * @return \stdClass[]
-	 */
 	private function get_strings_registered_in_context() {
 		$cache_key   = $this->context;
 		$cache_group = 'wpml-string-shortcode';

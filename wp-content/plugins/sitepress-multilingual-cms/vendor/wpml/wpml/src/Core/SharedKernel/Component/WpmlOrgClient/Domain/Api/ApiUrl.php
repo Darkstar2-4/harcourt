@@ -9,7 +9,6 @@ class ApiUrl {
 
   public function get(): string {
     return defined( 'OTGS_INSTALLER_WPML_API_URL' ) ?
-      /** @phpstan-ignore-next-line  */
       constant( 'OTGS_INSTALLER_WPML_API_URL' ) :
       self::API_URL;
   }

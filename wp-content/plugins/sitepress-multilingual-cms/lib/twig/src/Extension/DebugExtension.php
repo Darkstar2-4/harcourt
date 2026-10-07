@@ -11,14 +11,10 @@
 namespace WPML\Core\Twig\Extension;
 
 use WPML\Core\Twig\TwigFunction;
-/**
- * @final
- */
 class DebugExtension extends \WPML\Core\Twig\Extension\AbstractExtension
 {
     public function getFunctions()
     {
-        // dump is safe if var_dump is overridden by xdebug
         $isDumpOutputHtmlSafe = \extension_loaded('xdebug') && (\false === \ini_get('xdebug.overload_var_dump') || \ini_get('xdebug.overload_var_dump')) && (\false === \ini_get('html_errors') || \ini_get('html_errors')) || 'cli' === \PHP_SAPI;
         return [new \WPML\Core\Twig\TwigFunction('dump', '\WPML\Core\twig_var_dump', ['is_safe' => $isDumpOutputHtmlSafe ? ['html'] : [], 'needs_context' => \true, 'needs_environment' => \true, 'is_variadic' => \true])];
     }

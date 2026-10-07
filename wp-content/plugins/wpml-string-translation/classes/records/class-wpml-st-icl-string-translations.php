@@ -7,13 +7,6 @@ class WPML_ST_ICL_String_Translations extends WPML_WPDB_User {
 	private $lang_code;
 	private $id;
 
-	/**
-	 * WPML_ST_ICL_String_Translations constructor.
-	 *
-	 * @param wpdb   $wpdb
-	 * @param int    $string_id
-	 * @param string $lang_code
-	 */
 	public function __construct( &$wpdb, $string_id, $lang_code ) {
 		parent::__construct( $wpdb );
 		$string_id = (int) $string_id;
@@ -28,9 +21,6 @@ class WPML_ST_ICL_String_Translations extends WPML_WPDB_User {
 		}
 	}
 
-	/**
-	 * @return int|string
-	 */
 	public function translator_id() {
 
 		return $this->wpdb->get_var(
@@ -43,9 +33,6 @@ class WPML_ST_ICL_String_Translations extends WPML_WPDB_User {
 		);
 	}
 
-	/**
-	 * @return string
-	 */
 	public function value() {
 
 		return $this->wpdb->get_var(
@@ -58,9 +45,6 @@ class WPML_ST_ICL_String_Translations extends WPML_WPDB_User {
 		);
 	}
 
-	/**
-	 * @return int
-	 */
 	public function id() {
 
 		return (int) ( $this->id

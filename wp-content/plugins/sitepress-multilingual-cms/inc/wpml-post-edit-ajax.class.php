@@ -1,20 +1,13 @@
 <?php
 
 use WPML\API\Sanitize;
+use WPML\Core\Component\PostHog\Application\Service\Event\EventInstanceService;
 
 class WPML_Post_Edit_Ajax {
 	const AJAX_ACTION_SWITCH_POST_LANGUAGE = 'wpml_switch_post_language';
 
-	/**
-	 * For test purposes
-	 *
-	 * @var WPML_Custom_Field_Setting_Factory
-	 */
 	public static $post_custom_field_settings;
 
-	/**
-	 * Ajax handler for adding a term via Ajax.
-	 */
 	public static function wpml_save_term_action() {
 		global $sitepress;
 
@@ -38,18 +31,6 @@ class WPML_Post_Edit_Ajax {
 		$sitepress->get_wp_api()->wp_send_json_success( $new_term_object );
 	}
 
-	/**
-	 * @param \SitePress           $sitepress
-	 * @param ?string|false        $lang
-	 * @param ?string|false        $taxonomy
-	 * @param ?string|false        $slug
-	 * @param ?string|false        $name
-	 * @param ?int|false           $trid
-	 * @param ?string              $description
-	 * @param ?array<string,mixed> $meta_data
-	 *
-	 * @return \WP_Term|false
-	 */
 	public static function save_term_ajax( $sitepress, $lang, $taxonomy, $slug, $name, $trid, $description, $meta_data ) {
 		$new_term_object = false;
 
@@ -76,12 +57,7 @@ class WPML_Post_Edit_Ajax {
 			$switch_lang->restore_lang();
 
 			if ( $res && isset( $res[ 'term_taxonomy_id' ] ) ) {
-				/* res holds the term taxonomy id, we return the whole term objects to the ajax call */
 				$switch_lang = new WPML_Temporary_Switch_Language( $sitepress, $lang );
-				/**
-				 * @var \WP_Term|\stdClass $new_term_object A few lines below, we are adding properties that WP_Term does not have.
-				 *                                          We should probably improve this code and use a specialized object instead.
-				 */
 				$new_term_object = get_term_by( 'term_taxonomy_id', (int) $res['term_taxonomy_id'], $taxonomy );
 				$switch_lang->restore_lang();
 
@@ -93,22 +69,19 @@ class WPML_Post_Edit_Ajax {
 				}
 
 				WPML_Terms_Translations::icl_save_term_translation_action( $taxonomy, $res );
+
+				self::capture_taxonomy_term_translation_event( $sitepress, $taxonomy, $lang, $trid, $res, $name, $slug, $description );
+
+				$term_hierarchy_sync = wpml_get_hierarchy_sync_helper( 'term' );
+				if ( is_taxonomy_hierarchical( $taxonomy ) && $term_hierarchy_sync->is_need_sync( $taxonomy, false, $res['term_id'] ) ) {
+					$term_hierarchy_sync->sync_element_hierarchy( $taxonomy, false, $res['term_id'] );
+				}
 			}
 		}
 
 		return $new_term_object;
 	}
 
-	/**
-	 * Gets the content of a post, its excerpt as well as its title and returns it as an array
-	 *
-	 * @param string $content_type
-	 * @param string $excerpt_type
-	 * @param int    $trid
-	 * @param string $lang
-	 *
-	 * @return array containing all the fields information
-	 */
 	public static function copy_from_original_fields( $content_type, $excerpt_type, $trid, $lang ) {
 		global $wpdb;
 		$post_id = $wpdb->get_var(
@@ -123,17 +96,16 @@ class WPML_Post_Edit_Ajax {
 
 		$fields_contents = array();
 		if ( ! empty( $post ) ) {
-			foreach ( $fields_to_copy as $editor_key => $editor_field ) { //loops over the three fields to be inserted into the array
-				if ( $editor_key === 'content' || $editor_key === 'excerpt' ) { //
+			foreach ( $fields_to_copy as $editor_key => $editor_field ) {
+				if ( $editor_key === 'content' || $editor_key === 'excerpt' ) {
 					$editor_var = 'rich';
 					if ( $editor_key === 'content' ) {
-						$editor_var = $content_type; //these variables are supplied by a javascript call in scripts.js icl_copy_from_original(lang, trid)
+						$editor_var = $content_type;
 					} elseif ( $editor_key === 'excerpt' ) {
 						$editor_var = $excerpt_type;
 					}
 
 					if ( function_exists( 'format_for_editor' ) ) {
-						// WordPress 4.3 uses format_for_editor
 						$html_pre = $post->$editor_field;
 						if($editor_var == 'rich') {
 							$html_pre = convert_chars( $html_pre );
@@ -141,7 +113,6 @@ class WPML_Post_Edit_Ajax {
 						}
 						$html_pre = format_for_editor( $html_pre, $editor_var );
 					} else {
-						// Backwards compatible for WordPress < 4.3
 						if ( $editor_var === 'rich' ) {
 							$html_pre = wp_richedit_pre( $post->$editor_field );
 						} else {
@@ -166,13 +137,6 @@ class WPML_Post_Edit_Ajax {
 		return $fields_contents;
 	}
 
-	/**
-	 * Gets the content of a custom posts custom field , its excerpt as well as its title and returns it as an array
-	 *
-	 * @param \WP_Post $post
-	 *
-	 * @return array<string,string|array<string,string>>
-	 */
 	public static function copy_from_original_custom_fields( $post ) {
 
 		$elements                 = array();
@@ -186,10 +150,6 @@ class WPML_Post_Edit_Ajax {
 		return $elements;
 	}
 
-	/**
-	 * @param WP_Post $post
-	 * @return array
-	 */
 	private static function copy_meta_values_from_original ($post) {
 		global $wpdb;
 
@@ -210,9 +170,6 @@ class WPML_Post_Edit_Ajax {
 		return $wpdb->get_results( $wpdb->prepare( $sql, $post->ID ), ARRAY_A );
 	}
 
-	/**
-	 * Ajax handler for switching the language of a post.
-	 */
 	public static function wpml_switch_post_language() {
 		global $sitepress, $wpdb;
 
@@ -235,13 +192,14 @@ class WPML_Post_Edit_Ajax {
 
 		if ( $post_id && $to ) {
 
+			if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+				wp_send_json_error( __( 'You are not allowed to edit this post.', 'sitepress' ), 403 );
+			}
+
 			$post_type      = get_post_type( $post_id );
 			$wpml_post_type = 'post_' . $post_type;
 			$trid           = $sitepress->get_element_trid( $post_id, $wpml_post_type );
 
-			/* Check if a translation in that language already exists with a different post id.
-			 * If so, then don't perform this action.
-			 */
 
 			$query_for_existing_translation = $wpdb->prepare( "	SELECT translation_id, element_id
 																FROM {$wpdb->prefix}icl_translations
@@ -255,7 +213,6 @@ class WPML_Post_Edit_Ajax {
 				$result = false;
 			} else {
 				$sitepress->set_element_language_details( $post_id, $wpml_post_type, $trid, $to );
-				// Synchronize the posts terms languages. Do not create automatic translations though.
 				WPML_Terms_Translations::sync_post_terms_language( $post_id );
 				require_once WPML_PLUGIN_PATH . '/inc/cache.php';
 				icl_cache_clear( $post_type . 's_per_language', true );
@@ -280,13 +237,6 @@ class WPML_Post_Edit_Ajax {
 		wp_send_json_success( $sitepress->get_default_language() );
 	}
 
-	/**
-	 * @param array $term
-	 * @param array $meta_data
-	 * @param bool  $is_new_term
-	 *
-	 * @return bool
-	 */
 	private static function add_term_metadata( $term, $meta_data, $is_new_term ) {
 		global $sitepress;
 
@@ -304,18 +254,45 @@ class WPML_Post_Edit_Ajax {
 		return true;
 	}
 
-	/**
-	 * Safe unserialization for term metadata should not allow to unserialize classes.
-	 *
-	 * @param string $data
-	 * @return mixed
-	 */
 	private static function safe_maybe_unserialize( $data ) {
-		if ( is_serialized( $data ) ) { // Don't attempt to unserialize data that wasn't serialized going in.
+		if ( is_serialized( $data ) ) {
 			return @unserialize( trim( $data ), [ 'allowed_classes' => false ] );
 		}
 
 		return $data;
+	}
+
+	private static function capture_taxonomy_term_translation_event( $sitepress, $taxonomy, $lang, $trid, $res, $name, $slug, $description ) {
+
+		if ( ! \WPML\PostHog\State\PostHogState::isEnabled() ) {
+			return;
+		}
+
+		$source_language = $sitepress->get_source_language_by_trid( $trid );
+
+		$original_term_tax_id = (int) $sitepress->get_original_element_id_by_trid( $trid );
+		$original_term = $original_term_tax_id ?
+			get_term_by( 'term_taxonomy_id', $original_term_tax_id, $taxonomy, OBJECT, 'no' ) :
+			false;
+
+		$event_props = array(
+			'taxonomy'             => $taxonomy,
+			'target_language'      => $lang,
+			'source_language'      => $source_language,
+			'term_id'              => $res['term_id'],
+			'term_taxonomy_id'     => $res['term_taxonomy_id'],
+			'is_hierarchical'      => is_taxonomy_hierarchical( $taxonomy ),
+			'original_term_name'   => $original_term ? $original_term->name : '',
+			'original_term_slug'   => $original_term ? $original_term->slug : '',
+			'original_term_desc'   => $original_term ? $original_term->description : '',
+			'translated_term_name' => $name,
+			'translated_term_slug' => $slug,
+			'translated_term_desc' => $description,
+		);
+
+		\WPML\PostHog\Event\CaptureEvent::capture(
+			( new EventInstanceService() )->getTaxonomyTermTranslationSavedEvent( $event_props )
+		);
 	}
 
 }

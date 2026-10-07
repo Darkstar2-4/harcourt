@@ -5,7 +5,7 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-            "lang": "pl"
+            "lang": "pl_PL"
          },
          "Connect this site to your %s account": [
             "Połącz tę witrynę ze swoim kontem %s"
@@ -20,10 +20,10 @@
             "Uwierzytelnij"
          ],
          "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
-            "Odwiedź <link_to_service />, aby poprosić o token API. Ten token pozwala WPML połączyć się z <service_name />, aby wysyłać i odbierać zadania."
+            "Odwiedź <link_to_service />, aby poprosić o token API. Ten token umożliwia WPML połączenie z <service_name /> w celu wysyłania i odbierania zadań."
          ],
          "Search translation services": [
-            "Szukaj usług tłumaczeniowych"
+            "Wyszukaj usługi tłumaczeniowe"
          ],
          "Search": [
             "Szukaj"
@@ -32,7 +32,16 @@
             "Ustawienia"
          ],
          "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
-            "Obecnie nie jest możliwe połączenie usługi tłumaczeniowej, gdy WPML jest ustawiony na automatyczne tłumaczenie treści witryny. Aby skorzystać z usługi tłumaczeniowej, proszę zmienić tryb tłumaczenia na stronie <LinkToSettingsPage />."
+            "Obecnie nie można połączyć usługi tłumaczeniowej, gdy WPML jest ustawiony na automatyczne tłumaczenie zawartości witryny. Aby skorzystać z usługi tłumaczeniowej, zmień tryb tłumaczenia na stronie <LinkToSettingsPage />."
+         ],
+         "Sort descending": [
+            "Sortuj malejąco"
+         ],
+         "Sort ascending": [
+            "Sortuj rosnąco"
+         ],
+         "Cancel sorting": [
+            "Anuluj sortowanie"
          ],
          "Documentation": [
             "Dokumentacja"

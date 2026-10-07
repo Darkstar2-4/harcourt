@@ -11,20 +11,10 @@ class Attachment {
 
 	private static $withOutSizeRegEx = '/-\d+[Xx]\d+\./';
 
-	/**
-	 * @param string $urlWithMaybeSize
-	 *
-	 * @return string
-	 */
 	private static function removeSizeFromUrl( $urlWithMaybeSize ) {
 		return Str::pregReplace( self::$withOutSizeRegEx, '.', $urlWithMaybeSize );
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return string
-	 */
 	public static function extractSrcFromAttributes( $data ) {
 		if ( ! array_key_exists( 'attributes', $data ) || ! is_array( $data['attributes'] ) || ! array_key_exists( 'src', $data['attributes'] ) ) {
 			return '';
@@ -39,12 +29,6 @@ class Attachment {
 		return self::removeSizeFromUrl( $src );
 	}
 
-	/**
-	 * @param string      $url
-	 * @param string|null $urlWithoutSize
-	 *
-	 * @return int|null The found post ID, or null on failure.
-	 */
 	public static function idFromUrlCache( $url, $urlWithoutSize = null ) {
 		if ( array_key_exists( $url, self::$cache ) ) {
 			return self::$cache[ $url ];
@@ -61,11 +45,6 @@ class Attachment {
 		return null;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return int|null The found post ID, or null on failure.
-	 */
 	public static function idFromUrl( $url ) {
 		$urlWithoutSize = self::removeSizeFromUrl( $url );
 		$maybeId        = self::idFromUrlCache( $url, $urlWithoutSize );
@@ -100,11 +79,6 @@ class Attachment {
 		return null;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return int The found post ID, or 0 on failure.
-	 */
 	public static function idByGuid( $url ) {
 		if ( array_key_exists( $url , self::$cache ) ) {
 			return self::$cache[$url];
@@ -150,11 +124,6 @@ class Attachment {
 		return self::mapUrlsToPostIds( $results, $urls, $pathes, $urlsToPathes, $pathesToUrls );
 	}
 
-	/**
-	 * @param array $urls
-	 *
-	 * @return array
-	 */
 	public static function getPathesFromUrls( $urls ) {
 		$urlsToPathes = [];
 		$pathesToUrls = [];
@@ -202,11 +171,6 @@ class Attachment {
 		return $urlsToPostIds;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public static function urlToPath( $url ) {
 		$dir  = wp_get_upload_dir();
 		$path = $url;

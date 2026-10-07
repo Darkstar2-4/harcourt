@@ -20,9 +20,6 @@ use WPML_TM_ATE_Job;
 use function WPML\Container\make;
 
 class Sync extends Base {
-	/**
-	 * @return array
-	 */
 	public function get_routes() {
 		return [
 			[
@@ -41,11 +38,6 @@ class Sync extends Base {
 		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 */
 	public function get_allowed_capabilities( WP_REST_Request $request ) {
 		return [
 			'manage_options',
@@ -54,12 +46,6 @@ class Sync extends Base {
 		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 *
-	 * @return array
-	 * @throws \Auryn\InjectionException
-	 */
 	public function sync( WP_REST_Request $request ) {
 		$args                    = new Arguments();
 		$args->ateToken          = $request->get_param( 'ateToken' );
@@ -81,16 +67,6 @@ class Sync extends Base {
 		return (array) $result;
 	}
 
-	/**
-	 * The job was already completed, but for some reason it got into a
-	 * different status afterwards. WPML confirms a complete translation
-	 * to ATE and then ATE set the job status to "Delivered". So, it's safe
-	 * at this point to set the job status to "Completed".
-	 *
-	 * See wpmldev-2801.
-	 *
-	 * @param array $jobs
-	 */
 	private function fallback_to_unstuck_completed_jobs( &$jobs ) {
 		if ( ! is_array( $jobs ) ) {
 			return;

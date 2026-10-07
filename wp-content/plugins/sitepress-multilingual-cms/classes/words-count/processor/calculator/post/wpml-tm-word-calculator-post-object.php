@@ -2,10 +2,8 @@
 
 class WPML_TM_Word_Calculator_Post_Object implements IWPML_TM_Word_Calculator_Post {
 
-	/** @var WPML_TM_Word_Calculator $calculator */
 	private $calculator;
 
-	/** @var WPML_TM_Word_Calculator_Post_Packages $packages_calculator */
 	private $packages_calculator;
 
 	public function __construct(
@@ -16,12 +14,6 @@ class WPML_TM_Word_Calculator_Post_Object implements IWPML_TM_Word_Calculator_Po
 		$this->packages_calculator = $packages_calculator;
 	}
 
-	/**
-	 * @param WPML_Post_Element $post_element
-	 * @param string            $lang
-	 *
-	 * @return int
-	 */
 	public function count_words( WPML_Post_Element $post_element, $lang = null ) {
 		$words       = 0;
 		$wp_post     = $post_element->get_wp_object();

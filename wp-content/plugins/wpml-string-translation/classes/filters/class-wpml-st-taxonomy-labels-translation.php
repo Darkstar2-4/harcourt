@@ -5,16 +5,12 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 	const NONCE_TAXONOMY_TRANSLATION = 'wpml_taxonomy_translation_nonce';
 	const PRIORITY_GET_LABEL         = 10;
 
-	/** @var WPML_ST_Taxonomy_Strings $taxonomy_strings */
 	private $taxonomy_strings;
 
-	/** @var WPML_ST_Tax_Slug_Translation_Settings $slug_translation_settings */
 	private $slug_translation_settings;
 
-	/** @var WPML_Super_Globals_Validation $super_globals */
 	private $super_globals;
 
-	/** @var array $active_languages */
 	private $active_languages;
 
 	public function __construct(
@@ -36,14 +32,6 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 		add_action( 'wp_ajax_wpml_tt_change_tax_strings_language', array( $this, 'change_taxonomy_strings_language' ) );
 	}
 
-	/**
-	 * @param string $translation
-	 * @param string $text
-	 * @param string $gettext_context
-	 * @param string $domain
-	 *
-	 * @return mixed
-	 */
 	public function block_translation_and_init_strings( $translation, $text, $gettext_context, $domain ) {
 		if ( WPML_ST_Taxonomy_Strings::CONTEXT_GENERAL === $gettext_context
 			 || WPML_ST_Taxonomy_Strings::CONTEXT_SINGULAR === $gettext_context
@@ -51,20 +39,12 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 			$this->taxonomy_strings->create_string_if_not_exist( $text, $gettext_context, $domain );
 			$this->taxonomy_strings->add_to_translated_with_gettext_context( $text, $domain );
 
-			// We need to return the original string here so the rest of
-			// the label translation UI works.
 			return $text;
 		}
 
 		return $translation;
 	}
 
-	/**
-	 * @param false  $false
-	 * @param string $taxonomy
-	 *
-	 * @return array|null
-	 */
 	public function get_label_translations( $false, $taxonomy ) {
 		list( $general, $singular, $slug ) = $this->taxonomy_strings->get_taxonomy_strings( $taxonomy );
 
@@ -106,11 +86,6 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 		return $data;
 	}
 
-	/**
-	 * @param WPML_ST_String $string
-	 *
-	 * @return array
-	 */
 	private function get_translations( WPML_ST_String $string ) {
 		$translations = array();
 
@@ -121,12 +96,6 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 		return $translations;
 	}
 
-	/**
-	 * @param string $lang
-	 * @param array  $translations
-	 *
-	 * @return string|null
-	 */
 	private function get_translation_value( $lang, array $translations ) {
 		$value = null;
 
@@ -142,13 +111,18 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 	}
 
 	public function save_label_translations() {
+		if ( ! current_user_can( 'wpml_manage_taxonomy_translation' ) ) {
+			wp_send_json_error( __( 'not allowed', 'wpml-string-translation' ) );
+			return;
+		}
+
 		if ( ! $this->check_nonce() ) {
 			return;
 		}
 
 		$general_translation  = $this->get_string_var_from_post( 'plural' );
 		$singular_translation = $this->get_string_var_from_post( 'singular' );
-		$slug_translation     = $this->get_string_var_from_post( 'slug' );
+		$slug_translation     = $this->get_string_var_from_post( 'slug', FILTER_UNSAFE_RAW );
 		$taxonomy_name        = $this->get_string_var_from_post( 'taxonomy' );
 		$language             = $this->get_string_var_from_post( 'taxonomy_language_code' );
 
@@ -194,6 +168,11 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 	}
 
 	public function change_taxonomy_strings_language() {
+		if ( ! current_user_can( 'wpml_manage_taxonomy_translation' ) ) {
+			wp_send_json_error( __( 'not allowed', 'wpml-string-translation' ) );
+			return;
+		}
+
 		if ( ! $this->check_nonce() ) {
 			return;
 		}
@@ -215,13 +194,8 @@ class WPML_ST_Taxonomy_Labels_Translation implements IWPML_Action {
 		wp_send_json_success();
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return false|string
-	 */
-	private function get_string_var_from_post( $key ) {
-		$value = $this->super_globals->post( $key );
+	private function get_string_var_from_post( $key, $filter = FILTER_SANITIZE_FULL_SPECIAL_CHARS, $options = null ) {
+		$value = $this->super_globals->post( $key, $filter, $options );
 		return null !== $value ? sanitize_text_field( $value ) : false;
 	}
 

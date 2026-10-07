@@ -8,7 +8,6 @@ use WPML\PHP\Exception\Exception;
 
 class AddIndexForReviewStatus implements UpdateInterface {
 
-  /** @var DatabaseAlterInterface */
   private $db;
 
 

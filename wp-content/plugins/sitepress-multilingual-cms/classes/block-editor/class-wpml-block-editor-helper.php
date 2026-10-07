@@ -1,16 +1,7 @@
 <?php
 
-/**
- * Class WPML_Block_Editor_Helper
- */
 class WPML_Block_Editor_Helper {
 
-	/**
-	 * Check if Block Editor is active.
-	 * Must only be used after plugins_loaded action is fired.
-	 *
-	 * @return bool
-	 */
 	public static function is_active() {
 
 		if ( function_exists( 'classicpress_version' ) ) {
@@ -36,22 +27,11 @@ class WPML_Block_Editor_Helper {
 	}
 
 
-	/**
-	 * Check if it is admin page to edit any type of post with Block Editor.
-	 * Must be used not earlier than plugins_loaded action fired.
-	 *
-	 * @return bool
-	 */
 	public static function is_edit_post() {
 		$current_screen = get_current_screen();
 		return $current_screen && 'post' === $current_screen->base && self::is_active() && self::is_block_editor( $current_screen );
 	}
 
-	/**
-	 * Check if Classic Editor plugin is active.
-	 *
-	 * @return bool
-	 */
 	public static function is_classic_editor_plugin_active() {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';

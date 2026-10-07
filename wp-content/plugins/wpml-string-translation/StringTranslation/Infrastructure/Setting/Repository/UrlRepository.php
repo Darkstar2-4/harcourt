@@ -7,39 +7,26 @@ use WPML\StringTranslation\Application\Setting\Repository\UrlRepositoryInterface
 
 class UrlRepository implements UrlRepositoryInterface {
 
-	/** @var \SitePress */
 	private $sitepress;
 
-	/** @var null|boolean */
 	private $isToAdminPanelRequest;
 
-	/** @var null|boolean */
 	private $isFrontendRequest;
 
-	/** @var null|boolean */
 	private $isRestRequestFromAdminPanel;
 
-	/** @var null|boolean */
 	private $isRestRequestFromFrontend;
 
-	/** @var null|boolean */
 	private $isAjaxRequestFromFrontend;
 
-	/** @var null|boolean */
 	private $isAjaxRequestFromAdminPanel;
 
-	/** @var null|boolean */
 	private $requestIsAjax;
 
-	/** @var null|boolean */
 	private $requestIsRest;
 
-	/** @var null|boolean */
 	private $requestRefererUrl;
 
-	/**
-	 * @param \SitePress $sitepress
-	 */
 	public function __construct(
 		$sitepress
 	) {
@@ -79,9 +66,6 @@ class UrlRepository implements UrlRepositoryInterface {
 		return md5( $prefix . explode( '?', $requestUrl )[0] );
 	}
 
-	/**
-	 * Catches if current url is admin url like /wp-admin/admin.php or /wp-admin/admin-ajax.php.
-	 */
 	public function isToAdminPanelRequest(): bool {
 		if ( ! is_null( $this->isToAdminPanelRequest ) ) {
 			return $this->isToAdminPanelRequest;
@@ -162,7 +146,6 @@ class UrlRepository implements UrlRepositoryInterface {
 
 	public function getClientFrontendRequestUrl(): string {
 		$url = $this->getRequestUrl();
-		// In case of Ajax/Rest requests the real url we want to track is on which the string was rendered.
 		$refUrl = $this->getRequestRefererUrl();
 
 		if ( $this->getRequestIsAjax() ) {

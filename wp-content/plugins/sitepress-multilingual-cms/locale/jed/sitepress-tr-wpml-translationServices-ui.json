@@ -1,0 +1,63 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Connect this site to your %s account": [
+            "Bu siteyi %s hesabınıza bağlayın"
+         ],
+         "Error": [
+            "Hata"
+         ],
+         "« Use a different Translation Service": [
+            "« Farklı bir Çeviri Hizmeti kullanın"
+         ],
+         "Authenticate": [
+            "Kimlik Doğrula"
+         ],
+         "Visit <link_to_service /> to request an API Token. This token allows WPML to connect to <service_name /> to send and receive jobs.": [
+            "API Anahtarı talep etmek için <link_to_service /> adresini ziyaret edin. Bu anahtar, WPML'in işleri gönderip alması için <service_name /> ile bağlantı kurmasını sağlar."
+         ],
+         "Search translation services": [
+            "Çeviri hizmetlerini ara"
+         ],
+         "Search": [
+            "Ara"
+         ],
+         "Settings": [
+            "Ayarlar"
+         ],
+         "It’s not currently possible to connect a translation service when WPML is set to translate your site’s content automatically. To use a translation service, please change your translation mode on the <LinkToSettingsPage /> page.": [
+            "WPML sitenizin içeriğini otomatik olarak çevirecek şekilde ayarlandığında bir çeviri hizmeti bağlamak şu anda mümkün değildir. Bir çeviri hizmeti kullanmak için lütfen <LinkToSettingsPage /> sayfasındaki çeviri modunuzu değiştirin."
+         ],
+         "Sort descending": [
+            "Azalan sırala"
+         ],
+         "Sort ascending": [
+            "Artan sırala"
+         ],
+         "Cancel sorting": [
+            "Sıralamayı iptal et"
+         ],
+         "Documentation": [
+            "Belgeler"
+         ],
+         "Activate": [
+            "Etkinleştir"
+         ],
+         "Name": [
+            "Ad"
+         ],
+         "Description": [
+            "Açıklama"
+         ],
+         "Ranking": [
+            "Sıralama"
+         ]
+      }
+   }
+}

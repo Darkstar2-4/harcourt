@@ -12,13 +12,10 @@ use WPML\UserInterface\Web\Infrastructure\WordPress\Events\Item\WordCount\OnStri
 
 class Events {
 
-  /** @var DicInterface */
   private $dic;
 
-  /** @var OnStringRegisteredInPackageListener */
   private $onStringRegisteredInPackageListener;
 
-  /** @var OnPostSavedListener */
   private $onPostSavedListener;
 
 
@@ -28,9 +25,6 @@ class Events {
   }
 
 
-  /**
-   * @return void
-   */
   public function register() {
     add_filter(
       'wpml_word_count_calculate_package',

@@ -192,10 +192,10 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		// Intercepting callback requests.
 		add_action( 'parse_request', array( $this, 'maybe_process_callback' ) );
 
+        // Setting up check_status cron if this payment add-on supports it.
 		if ( $this->payment_method_is_overridden( 'check_status' ) ) {
 			$this->setup_cron();
 		}
-
 	}
 
 	/**
@@ -228,9 +228,31 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		add_filter( 'gform_is_delayed_pre_process_feed', array( $this, 'maybe_delay_feed_processing' ), 20, 4 );
 
-		// Maybe support payment status in conditional logic.
-		add_filter( 'gform_entry_meta_conditional_logic_confirmations', array( $this, 'maybe_add_payment_status_to_meta' ), 10, 2 );
-		add_filter( 'gform_entry_meta_pre_evaluate_conditional_logic', array( $this, 'maybe_add_payment_status_to_meta' ), 10, 2 );
+		// Maybe support payment status in Confirmation conditional logic.
+		add_filter( 'gform_entry_meta_conditional_logic_confirmations', function( $entry_meta, $form ) {
+            return $this->maybe_add_payment_status_to_meta( $entry_meta, $form, 'confirmation' );
+        }, 10, 2 );
+
+		// Maybe support payment status in Feed conditional logic.
+		add_filter( 'gform_entry_meta_pre_render_feed_settings', function( $entry_meta, $form ) {
+            return $this->maybe_add_payment_status_to_meta( $entry_meta, $form, 'feed' );
+        }, 10, 2 );
+
+
+		add_filter( 'gform_entry_meta_pre_evaluate_conditional_logic', function( $entry_meta, $form ) {
+            return $this->maybe_add_payment_status_to_meta( $entry_meta, $form, 'pre_evaluate' );
+        }, 10, 2 );
+
+        // Trigger payment status change when payment_status is updated via gform_update_payment_status or gform_post_update_entry.
+		add_action( "gform_update_payment_status", function( $entry_id, $property_value, $previous_value ) {
+            $this->payment_status_changed( $entry_id, $previous_value );
+		}, 10, 3 );
+
+		add_action( 'gform_post_update_entry', function( $entry, $original_entry ) {
+            if ( rgar( $entry, 'payment_status' ) !== rgar( $original_entry, 'payment_status' ) ) {
+                $this->payment_status_changed( $entry['id'], rgar( $original_entry, 'payment_status' ) );
+            }
+		} , 10, 2 );
 	}
 
 	/**
@@ -258,7 +280,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		add_filter( 'gform_currencies', array( $this, 'supported_currencies' ) );
 
-		add_filter( 'gform_delete_lead', array( $this, 'entry_deleted' ) );
+		add_filter( 'gform_delete_entry', array( $this, 'entry_deleted' ) );
 		add_action( 'gform_before_delete_field', array( $this, 'before_delete_field' ), 10, 2 );
 
 		if ( GFForms::get_page_query_arg() == 'gf_entries' ) {
@@ -288,7 +310,8 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		parent::init_ajax();
 
 		add_action( 'wp_ajax_gaddon_cancel_subscription', array( $this, 'ajax_cancel_subscription' ) );
-	}
+        add_action( 'gform_before_delete_field', array( $this, 'before_delete_field' ), 10, 2 );
+    }
 
 	/**
 	 * Runs the setup of the payment add-on.
@@ -344,7 +367,6 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	 *
 	 * @uses GFFormsModel::dbDelta()
 	 * @uses GFPaymentAddOn::$_supports_callbacks
-	 * @uses GFForms::drop_index()
 	 *
 	 * @global $wpdb
 	 * @param null $previous_versions Not used.
@@ -443,6 +465,45 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		return (bool) rgars( $payment_feed, 'meta/delay_' . $slug );
 	}
 
+    /**
+     * Reprocess feeds and triggers gform_post_payment_status_change hook when the payment status changes.
+     *
+     * @since 2.9.20
+     *
+     * @param int    $entry_id        The entry ID whose payment status has changed.
+     * @param string $previous_status The previous payment status.
+     *
+     * return void
+     */
+    public function payment_status_changed( $entry_id, $previous_status ) {
+
+        // If this is not a payment gateway who submitted the entry, do nothing.
+	    if ( ! $this->is_payment_gateway( $entry_id ) ) {
+            return;
+        }
+
+	    // Getting entry.
+	    $entry = GFAPI::get_entry( $entry_id );
+
+	    // Reprocess feeds that are configured with Payment Status conditional logic.
+	    $this->reprocess_feeds( $entry );
+
+        if ( has_filter( 'gform_post_payment_status_change' ) ) {
+            $this->log_debug( __METHOD__ . '(): Executing functions hooked to gform_post_payment_status_change.' );
+
+            /**
+             * Fired every time the entry payment status changes.
+             *
+             * @since 2.9.20
+             * @since 2.9.29 Added the $previous_status parameter.
+             *
+             * @param array  $entry           The entry whose payment status has changed.
+             * @param string $previous_status The previous status of the entry before the change.
+             */
+            do_action( 'gform_post_payment_status_change', $entry, $previous_status );
+        }
+    }
+
 	/**
 	 * Triggers processing of delayed feeds for other add-ons.
 	 *
@@ -507,6 +568,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 				$frontend_feeds[ $key ]['billingCycle_length']                = rgar( $feed_meta, 'billingCycle_length' );
 				$frontend_feeds[ $key ]['billingCycle_unit']                  = rgar( $feed_meta, 'billingCycle_unit' );
 				$frontend_feeds[ $key ]['setupFee_enabled']                   = rgar( $feed_meta, 'setupFee_enabled' );
+				$frontend_feeds[ $key ]['setupFee_product']                   = rgar( $feed_meta, 'setupFee_product' );
 				$frontend_feeds[ $key ]['trial_enabled']                      = rgar( $feed_meta, 'trial_enabled' );
 				$frontend_feeds[ $key ]['trialPeriod']                        = rgar( $feed_meta, 'trialPeriod' );
 				$frontend_feeds[ $key ]['paymentAmount']                      = rgar( $feed_meta, 'paymentAmount' );
@@ -627,18 +689,19 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		return $this->validation( $validation_result );
 	}
 
-	/**
+    /**
 	 * Handle the entry meta conditional logic confirmations. Adds support for the payment_status entry field to the confirmation condition logic setting.
 	 *
 	 * @since 2.9.1
-	 *
+	 * @since 2.9.19 Added the $context param.
+     *
 	 * @param array $entry_meta      The entry meta.
 	 * @param array $form            The form object.
-	 * @param int   $confirmation_id The confirmation ID.
+     * @param string $context       The context indicating where the payment statuses will be used. Possible values: confirmation, feed, pre_evaluate.
 	 *
 	 * @return array Returns the entry meta, with the payment_status field added to it.
 	 */
-	public function maybe_add_payment_status_to_meta( $entry_meta, $form ) {
+	public function maybe_add_payment_status_to_meta( $entry_meta, $form, $context = '' ) {
 
 		// Get the payment statuses supported by this add-on. Emtpy array means this add-on does not support payment status conditional logic.
 		$payment_statuses = $this->get_conditional_logic_payment_statuses( $form );
@@ -685,14 +748,17 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	 *    'Processing' => __( 'Processing', 'gravityforms' ),
 	 * );
 	 *
-	 * @since 2.9.1
+	 * @since 2.9.19
 	 *
-	 * @param array $form The form object.
+	 * @param array  $form    The form object.
 	 *
 	 * @return array Return an array with the payment statuses that can be used in conditional logic. Return an empty array to disable this feature.
 	 */
 	public function get_conditional_logic_payment_statuses( $form ) {
-		return array();
+		$all_statuses = GFCommon::get_entry_payment_statuses();
+        $all_statuses['Active']    = esc_html__( 'Active Subscription', 'gravityforms' );
+        $all_statuses['Cancelled'] = esc_html__( 'Cancelled Subscription', 'gravityforms' );
+        return $all_statuses;
 	}
 
 	/**
@@ -2296,16 +2362,6 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		GFAPI::update_entry_property( $entry['id'], 'payment_status', 'Failed' );
 		$this->add_note( $entry['id'], $action['note'], 'error' );
 
-		// keep 'gform_subscription_payment_failed' for backward compatability
-		/**
-		 * @deprecated Use gform_post_fail_subscription_payment now.
-		 * @remove-in 3.0
-		 */
-		do_action( 'gform_subscription_payment_failed', $entry, $action['subscription_id'] );
-		if ( has_filter( 'gform_subscription_payment_failed' ) ) {
-			trigger_error( 'gform_subscription_payment_failed is deprecated and will be removed in version 3.0. Use gform_post_fail_subscription_payment.', E_USER_DEPRECATED );
-			$this->log_debug( __METHOD__ . '(): Executing functions hooked to gform_subscription_payment_failed.' );
-		}
 		/**
 		 * Fires after a subscription payment has failed
 		 *
@@ -2451,6 +2507,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			$this->log_debug( __METHOD__ . '(): Executing functions hooked to gform_post_payment_action.' );
 		}
 
+        // Send notifications for payment events.
 		$form             = GFAPI::get_form( $entry['form_id'] );
 		$supported_events = $this->supported_notification_events( $form );
 		if ( ! empty( $supported_events ) ) {
@@ -2461,6 +2518,65 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		}
 	}
 
+    /**
+     * Reprocesses feeds that are configured with Payment Status conditional logic.
+     *
+     * @since 2.9.20
+     *
+     * @param array $entry The entry object.
+     * @param array $form  The form object.
+     */
+    public function reprocess_feeds( $entry ) {
+
+        // Filter out feeds that are not configured with Payment Status conditional logic.
+        add_filter( 'gform_addon_pre_process_feeds', array( $this, 'get_feeds_to_reprocess' ), 10, 3 );
+
+	    // Reprocessing feeds.
+        GFAPI::maybe_process_feeds( $entry, GFAPI::get_form( $entry['form_id'] ), '', false, true );
+
+        // Make sure to remove the filter so that it doesn't affect other feed processing.
+        remove_filter( 'gform_addon_pre_process_feeds', array( $this, 'get_feeds_to_reprocess' ) );
+    }
+
+    /**
+     * Filters out feeds that are not configured with Payment Status conditional logic.
+     *
+     * @since 2.9.20
+     *
+     * @param array $feeds The feeds to be processed.
+     * @param array $entry The entry currently being processed.
+     * @param array $form  The form currently being processed.
+     *
+     * @return array The filtered feeds that are configured with Payment Status conditional logic.
+     */
+    public function get_feeds_to_reprocess( $feeds, $entry, $form ) {
+
+        // If there are no feeds or feeds is not an array, return it as is.
+        if ( ! is_array( $feeds ) ) {
+            return $feeds;
+        }
+
+        // Filtering feeds to only include those with Payment Status conditional logic.
+        $payment_status_feeds = array_filter( $feeds, function( $feed ) {
+		    $rules   = rgars( $feed, 'meta/feed_condition_conditional_logic_object/conditionalLogic/rules' );
+            $enabled = rgars( $feed, 'meta/feed_condition_conditional_logic' );
+
+            if ( ! $enabled || empty( $rules ) ) {
+			    return false;
+		    }
+
+		    foreach ( $rules as $rule ) {
+			    if ( rgar( $rule, 'fieldId' ) === 'payment_status' ) {
+				    return true;
+			    }
+		    }
+
+		    return false;
+	    });
+
+        // Reindexing and returning the feeds array.
+        return array_values( $payment_status_feeds );
+    }
 
 	// -------- Cron --------------------
 	public function setup_cron() {
@@ -2472,13 +2588,9 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		if ( ! wp_next_scheduled( $cron_name ) ) {
 			wp_schedule_event( time(), 'hourly', $cron_name );
 		}
-
-
 	}
 
-	public function check_status() {
-
-	}
+	public function check_status() {}
 
 	//--------- List Columns ------------
 	public function feed_list_columns() {
@@ -3051,6 +3163,9 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			),
 			'vAxis'  => array(
 				'title' => $sales_data['vAxis_title'],
+			),
+			'tooltip' => array(
+				'isHtml' => true,
 			)
 		);
 
@@ -3214,39 +3329,41 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		$offset           = $page_size * ( $current_page - 1 );
 		$entry_table_name = self::get_entry_table_name();
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sql = $wpdb->prepare(
-			" SELECT SQL_CALC_FOUND_ROWS {$select}, leads.orders, leads.subscriptions, transaction.refunds, transaction.recurring_payments, transaction.revenue
-                                FROM (
-                                  SELECT  {$select_inner1},
-                                          sum( if(transaction_type = 1,1,0) ) as orders,
-                                          sum( if(transaction_type = 2,1,0) ) as subscriptions
-                                  FROM {$entry_table_name} l
-                                  WHERE l.status='active' AND form_id=%d {$lead_date_filter} {$payment_method_filter}
-                                  GROUP BY {$group_by}
-                                ) AS leads
-
-                                RIGHT OUTER JOIN(
-                                  SELECT  {$select_inner2},
-                                          sum( if(t.transaction_type = 'refund', abs(t.amount) * -1, t.amount) ) as revenue,
-                                          sum( if(t.transaction_type = 'refund', 1, 0) ) as refunds,
-                                          sum( if(t.transaction_type = 'payment' AND t.is_recurring = 1, 1, 0) ) as recurring_payments
-                                  FROM {$wpdb->prefix}gf_addon_payment_transaction t
-                                  INNER JOIN {$entry_table_name} l ON l.id = t.lead_id
-                                  WHERE l.status='active' AND l.form_id=%d {$lead_date_filter} {$transaction_date_filter} {$payment_method_filter}
-                                  GROUP BY {$group_by}
-
-                                ) AS transaction on {$join}
-                                ORDER BY {$order_by}
-                                LIMIT $page_size OFFSET $offset
-                                ", $form_id, $form_id
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		
+		$query_from = " FROM (
+							SELECT  {$select_inner1},
+									sum( if(transaction_type = 1,1,0) ) as orders,
+									sum( if(transaction_type = 2,1,0) ) as subscriptions
+							FROM {$entry_table_name} l
+							WHERE l.status='active' AND form_id=%d {$lead_date_filter} {$payment_method_filter}
+							GROUP BY {$group_by}
+						) AS leads
+
+						RIGHT OUTER JOIN(
+							SELECT  {$select_inner2},
+									sum( if(t.transaction_type = 'refund', abs(t.amount) * -1, t.amount) ) as revenue,
+									sum( if(t.transaction_type = 'refund', 1, 0) ) as refunds,
+									sum( if(t.transaction_type = 'payment' AND t.is_recurring = 1, 1, 0) ) as recurring_payments
+							FROM {$wpdb->prefix}gf_addon_payment_transaction t
+							INNER JOIN {$entry_table_name} l ON l.id = t.lead_id
+							WHERE l.status='active' AND l.form_id=%d {$lead_date_filter} {$transaction_date_filter} {$payment_method_filter}
+							GROUP BY {$group_by}
+
+						) AS transaction on {$join}";
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$sql = $wpdb->prepare(
+			" SELECT {$select}, leads.orders, leads.subscriptions, transaction.refunds, transaction.recurring_payments, transaction.revenue
+						{$query_from}
+					 ORDER BY {$order_by}
+					 LIMIT $page_size OFFSET $offset", 
+					 $form_id, $form_id
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+
 		GFCommon::log_debug( "sales sql: {$sql}" );
 
-		$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
-
+		$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( isset( $search['start_date'] ) || isset( $search['end_date'] ) ) {
 			foreach ( $results as &$result ) {
@@ -3260,7 +3377,9 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 			}
 
-			$data['row_count'] = $wpdb->get_var( 'SELECT FOUND_ROWS()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$count_sql = $wpdb->prepare( "SELECT COUNT(*) {$query_from}", $form_id, $form_id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, , WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+
+			$data['row_count'] = (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$data['page_size'] = $page_size;
 
 			$data['rows'] = $results;
@@ -3883,8 +4002,11 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			?>
 			<input id="cancelsub" type="button" name="cancelsub"
 			       value="<?php esc_html_e( 'Cancel Subscription', 'gravityforms' ) ?>" class="button"
-			       onclick="cancel_subscription(<?php echo absint( $entry['id'] ); ?>);"
-			       onkeypress="cancel_subscription(<?php echo absint( $entry['id'] ); ?>);"/>
+				   data-dialog-title="<?php esc_attr_e( 'Cancel Subscription', 'gravityforms' ); ?>"
+				   data-dialog-confirm="<?php echo esc_attr( __( "Warning! This subscription will be canceled. This cannot be undone. 'OK' to cancel subscription, 'Cancel' to stop.", 'gravityforms' ) ); ?>"
+				   data-dialog-callback="gaddon_cancel_subscription_confirmed"
+				   data-entry-id="<?php echo absint( $entry['id'] ); ?>"
+			/>
 			<img src="<?php echo esc_url( GFCommon::get_base_url() ); ?>/images/spinner.svg" id="subscription_cancel_spinner"
 			     style="display: none;"/>
 
@@ -3897,7 +4019,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	}
 
 	/**
-	 * Target of gform_delete_lead hook. Deletes all transactions and callbacks when an entry is deleted.
+	 * Target of gform_delete_entry hook. Deletes all transactions and callbacks when an entry is deleted.
 	 *
 	 * @param $entry_id . ID of entry that is being deleted
 	 */

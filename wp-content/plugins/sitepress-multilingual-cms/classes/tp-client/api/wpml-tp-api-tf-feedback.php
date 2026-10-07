@@ -1,34 +1,20 @@
 <?php
 
-/**
- * Class WPML_TP_API_TF_Feedback
- *
- * @author OnTheGoSystems
- */
 class WPML_TP_API_TF_Feedback extends WPML_TP_Abstract_API {
 
 	const URI_SEND       = '/batches/{batch_id}/jobs/{original_file_id}/feedbacks';
 	const URI_GET_STATUS = '/feedbacks/{feedback_id}';
 
-	/** @var string $endpoint_uri */
 	private $endpoint_uri;
 
-	/** @return string */
 	protected function get_endpoint_uri() {
 		return $this->endpoint_uri;
 	}
 
-	/** @return bool */
 	protected function is_authenticated() {
 		return true;
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 * @param array            $args
-	 *
-	 * @return int|false
-	 */
 	public function send( WPML_TF_Feedback $feedback, array $args ) {
 		$previous_sent_feedback_id = $feedback->get_tp_responses()->get_feedback_id();
 
@@ -65,11 +51,6 @@ class WPML_TP_API_TF_Feedback extends WPML_TP_Abstract_API {
 		return $ret;
 	}
 
-	/**
-	 * @param WPML_TF_Feedback $feedback
-	 *
-	 * @return false[string
-	 */
 	public function status( WPML_TF_Feedback $feedback ) {
 		$this->endpoint_uri = self::URI_GET_STATUS;
 		$status             = false;

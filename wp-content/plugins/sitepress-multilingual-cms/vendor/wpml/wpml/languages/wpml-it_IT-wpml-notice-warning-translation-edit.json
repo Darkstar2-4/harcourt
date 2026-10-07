@@ -5,19 +5,19 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "it"
+            "lang": "it_IT"
          },
          "Warning:": [
             "Attenzione:"
          ],
          "Edits you're about to make will be lost": [
-            "Le modifiche che stai per fare andranno perse"
+            "Le modifiche che stai per apportare andranno perse"
          ],
          "You are about to edit this translation using %s.": [
             "Stai per modificare questa traduzione usando %s."
          ],
          "Any changes you make will be lost the next time you send this page for translation.": [
-            "Qualsiasi modifica che farai andrà persa la prossima volta che invierai questa pagina per la traduzione."
+            "Qualsiasi modifica apportata andrà persa la prossima volta che invierai questa pagina per la traduzione."
          ],
          "Go back": [
             "Torna indietro"
@@ -26,7 +26,7 @@
             "Modifica nell'editor di traduzione avanzato"
          ],
          "Edit anyway (Not recommended)": [
-            "Modifica comunque (Sconsigliato)"
+            "Modifica comunque (sconsigliato)"
          ]
       }
    }

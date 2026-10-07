@@ -17,7 +17,6 @@ class Styles implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 		'_wpb_post_custom_css',
 	];
 
-	/** @var WPML_Custom_Field_Setting_Factory $metaSettingFactory */
 	private $metaSettingFactory;
 
 	public function __construct( WPML_Custom_Field_Setting_Factory $metaSettingFactory ) {
@@ -29,17 +28,11 @@ class Styles implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 		add_action( 'init', [ $this, 'adjustMetaSetting' ] );
 	}
 
-	/**
-	 * @param int $postId
-	 */
 	public function copyCssFromOriginal( $postId ) {
-		// $ifUsingTranslationEditor :: int -> bool
 		$ifUsingTranslationEditor = [ WPML_PB_Last_Translation_Edit_Mode::class, 'is_translation_editor' ];
 
-		// $ifUsingWpBakery :: int -> bool
 		$ifUsingWpBakery = partialRight( 'get_post_meta', '_wpb_vc_js_status', true );
 
-		// $copyCss:: int -> void
 		$copyCss = function( $originalPostId ) use ( $postId ) {
 			wpml_collect( self::META_CUSTOM_CSS )->map( function( $key ) use ( $postId, $originalPostId ) {
 				$css = get_post_meta( $originalPostId, $key, true );
@@ -56,16 +49,6 @@ class Styles implements \IWPML_Frontend_Action, \IWPML_Backend_Action {
 			->map( $copyCss );
 	}
 
-	/**
-	 * As a general rule, we will copy the CSS meta field only once, so
-	 * it will work fine and independently if the translation is done
-	 * with the native WP editor. Otherwise, we will programmatically
-	 * copy the CSS meta to the translation.
-	 *
-	 * This adjustment code is required since we are changing the original
-	 * setting from "copy" to "copy_once" (it will also be updated on the
-	 * remote config file).
-	 */
 	public function adjustMetaSetting() {
 		wpml_collect( self::META_CUSTOM_CSS )->map( function( $key ) {
 			$metaSetting = $this->metaSettingFactory->post_meta_setting( $key );

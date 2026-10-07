@@ -7,7 +7,6 @@ use WPML\Core\Component\ReportContentStats\Domain\Repository\LastSentRepositoryI
 
 class LastSentService {
 
-  /** @var LastSentRepositoryInterface */
   private $lastSentRepository;
 
 
@@ -18,9 +17,6 @@ class LastSentService {
   }
 
 
-  /**
-   * @return int|null
-   */
   public function get() {
     return $this->lastSentRepository->get();
   }
@@ -33,11 +29,6 @@ class LastSentService {
   }
 
 
-  /**
-   * @param int $lastSent
-   *
-   * @return void
-   */
   public function update( int $lastSent ) {
     $this->lastSentRepository->update( $lastSent );
   }

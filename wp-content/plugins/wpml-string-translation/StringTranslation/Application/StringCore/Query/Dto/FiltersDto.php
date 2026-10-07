@@ -4,10 +4,8 @@ namespace WPML\StringTranslation\Application\StringCore\Query\Dto;
 
 class FiltersDto {
 
-	/** @var string[] */
 	private $domains;
 
-	/** @var string[] */
 	private $translationPriorities;
 
 	public function __construct(

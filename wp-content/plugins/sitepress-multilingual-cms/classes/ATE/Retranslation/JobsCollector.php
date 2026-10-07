@@ -5,12 +5,8 @@ namespace WPML\TM\ATE\Retranslation;
 use WPML\FP\Obj;
 use WPML\TM\ATE\Retranslation\JobsCollector\ATEResponse;
 
-/**
- * The class calls ATE endpoint to get list of the jobs that have to be re-translated.
- */
 class JobsCollector {
 
-	/** @var \WPML_TM_ATE_API */
 	private $ateAPI;
 
 	public function __construct( \WPML_TM_ATE_API $ateAPI ) {

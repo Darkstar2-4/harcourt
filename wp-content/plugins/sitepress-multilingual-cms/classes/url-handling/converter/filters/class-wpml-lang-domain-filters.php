@@ -7,12 +7,6 @@ class WPML_Lang_Domain_Filters {
 	private $debug_backtrace;
 	private $domains = array();
 
-	/**
-	 * WPML_Lang_Domain_Filters constructor.
-	 *
-	 * @param \WPML_URL_Converter $wpml_url_converter
-	 * @param \WPML_WP_API $wpml_wp_api
-	 */
 	public function __construct(
 		WPML_URL_Converter $wpml_url_converter,
 		WPML_WP_API $wpml_wp_api,
@@ -36,20 +30,10 @@ class WPML_Lang_Domain_Filters {
 		add_filter( 'login_redirect', array( $this, 'convert_url' ), 1, 1 );
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function convert_url( $url ) {
 		return $this->wpml_url_converter->convert_url( $url );
 	}
 
-	/**
-	 * @param array $upload_dir
-	 *
-	 * @return array
-	 */
 	public function upload_dir_filter_callback( $upload_dir ) {
 		$convertWithMatchingTrailingSlash = function ( $url ) {
 			$hasTrailingSlash = '/' === substr( $url, -1 );
@@ -64,11 +48,6 @@ class WPML_Lang_Domain_Filters {
 		return $upload_dir;
 	}
 
-	/**
-	 * @param string $url
-	 *
-	 * @return string
-	 */
 	public function siteurl_callback( $url ) {
 		$getting_network_site_url = $this->debug_backtrace->is_function_in_call_stack( 'get_admin_url' ) && is_multisite();
 
@@ -86,9 +65,6 @@ class WPML_Lang_Domain_Filters {
 		return $url;
 	}
 
-	/**
-	 * @return string
-	 */
 	private function get_host_from_HTTP_HOST() {
 		$host = $_SERVER['HTTP_HOST'];
 
@@ -100,11 +76,6 @@ class WPML_Lang_Domain_Filters {
 		return $this->is_host_valid( $host ) ? $host : null;
 	}
 
-	/**
-	 * @param string $host
-	 *
-	 * @return bool
-	 */
 	private function is_host_valid( $host ) {
 		$valid = false;
 
@@ -118,9 +89,6 @@ class WPML_Lang_Domain_Filters {
 		return $valid;
 	}
 
-	/**
-	 * @return array
-	 */
 	private function get_domains() {
 		if ( ! $this->domains ) {
 			$this->domains   = wpml_get_setting( 'language_domains' );
@@ -131,12 +99,6 @@ class WPML_Lang_Domain_Filters {
 		return $this->domains;
 	}
 
-	/**
-	 * @param string $url
-	 * @param string $path
-	 *
-	 * @return string
-	 */
 	public function admin_url_filter( $url, $path ) {
 		if ( ( strpos( $url, 'http://' ) === 0
 			   || strpos( $url, 'https://' ) === 0 )
@@ -150,13 +112,6 @@ class WPML_Lang_Domain_Filters {
 		return $url;
 	}
 
-	/**
-	 * Convert logout url only for front-end.
-	 *
-	 * @param string $logout_url
-	 *
-	 * @return string
-	 */
 	public function convert_logout_url( $logout_url ) {
 		if ( $this->wpml_wp_api->is_front_end() ) {
 			$logout_url = $this->wpml_url_converter->convert_url( $logout_url );

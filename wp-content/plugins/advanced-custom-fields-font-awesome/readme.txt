@@ -1,10 +1,11 @@
 
 === Advanced Custom Fields: Font Awesome Field ===
-Contributors: mattkeys
+Contributors: justinkruit, mattkeys
 Tags: Advanced Custom Fields, ACF, Font Awesome, FontAwesome
-Requires at least: 3.5
-Tested up to: 6.7
-Stable tag: 4.1.2
+Requires at least: 6.5
+Tested up to: 7.1
+Stable tag: 6.2.0
+Requires PHP: 5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,21 +13,21 @@ Adds a new 'Font Awesome Icon' field to the popular Advanced Custom Fields plugi
 
 == Description ==
 
-Add a [Font Awesome](http://fontawesome.io/) icon field type to Advanced Custom Fields.
+Add a [Font Awesome](http://fontawesome.com/) icon field type to Advanced Custom Fields.
 
 * Specify which FontAwesome icon sets to use (Solid, Regular, Light, Thin, Duotone, Duotone Sharp, Brands, and Custom Upload Icons) (Some features only available with FontAwesome 5.x or 6.x icons)
 * Create your own custom filtered list of FontAwesome icons to use with your fields. Use different custom icon sets with different fields
 * Returns Icon Element, Icon Class, Icon Unicode, or an Object including the element, class, unicode value, and SVG data (if applicable)
 * Optionally enqueues Font Awesome in footer where needed (when a FontAwesome field is being used on the page))
-* Integrates with the [FontAwesome GraphQL](https://fontawesome.com/v6.0/docs/apis/graphql/get-started) for loading your [FontAwesome Kits](https://fontawesome.com/v6.0/docs/web/setup/use-kit), searching for icons, and loading the latest version of FontAwesome
+* Integrates with the [FontAwesome GraphQL](https://docs.fontawesome.com/apis/graphql) for loading your [FontAwesome Kits](https://docs.fontawesome.com/web/setup/use-kit), searching for icons, and loading the latest version of FontAwesome
 
-Note: It is recommended to let this plugin enqueue the latest version of Font Awesome on your front-end; or include the latest version yourself using your [FontAwesome Kit](https://fontawesome.com/v6.0/docs/web/setup/use-kit); so that available icons in the admin area will be displayed properly on your sites front-end.
+Note: It is recommended to let this plugin enqueue the latest version of Font Awesome on your front-end; or include the latest version yourself using your [FontAwesome Kit](https://docs.fontawesome.com/web/setup/use-kit); so that available icons in the admin area will be displayed properly on your sites front-end.
 
 = Compatibility =
 
 This ACF field type is compatible with:
 * ACF 5.7+
-* FontAwesome 4.x and 5.x and 6.x fonts
+* FontAwesome 4.x, 5.x, 6.x and 7.x fonts
 
 == Installation ==
 
@@ -83,7 +84,65 @@ This notification message is filterable so you can customize it to better repres
 1. Set a default icon, and choose how you want icon data to be returned.
 2. Searchable list of all icons, including large live preview
 
+== Frequently Asked Questions ==
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the Advanced Custom Fields: Font Awesome Field plugin through the [Patchstack Vulnerability Disclosure  Program](https://patchstack.com/database/vdp/d5028112-9b80-4292-b5da-bc0e3c1cac0d). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Changelog ==
+
+= 6.2.0 =
+* New: When using a FontAwesome Kit, icon search and the icon showcase now only show icons and styles that are actually included in your kit, instead of the full FontAwesome library.
+
+= 6.1.4 =
+* Security: Replaced the FontAwesome API query validator with a server-built request.
+* Bugfix: FontAwesome 5.x icon search results were being grouped under the wrong icon style, causing only Brand icons to appear correctly.
+* Added: FontAwesome 5.x icon search now also matches against FontAwesome's icon search terms/aliases (e.g. searching "test" now finds the "vial" icon), not just icon names.
+
+= 6.1.3 =
+* Security: Further hardened the FontAwesome API query feature.
+
+= 6.1.2 =
+* Security: Hardened the FontAwesome API query feature against unauthorized use.
+
+= 6.1.1 =
+* Added: Support for new FontAwesome 7.3.0 Pro+ icon families: Pixel, Mosaic, Vellum, Slab Duo, and Slab Press Duo.
+
+= 6.0.4 =
+* Bugfix: Made z-index of the icon chooser popup higher to avoid conflicts with with ACF block sidebar.
+
+= 6.0.3 =
+* Added: FA icon when picking a new field.
+* Bugfix: Be able to clear default icon selection.
+
+= 6.0.2 =
+* Bugfix: Fixed issue when no icon family was selected.
+    
+= 6.0.1 =
+* Bugfix: Fixed issue with new icon chooser not allowing option to be cleared when allow null option was enabled.
+
+= 6.0.0 =
+* New FontAwesome 7.x icon picker powered by the official FontAwesome Icon Chooser web component for a richer icon selection experience.
+* Deprecated the "Icon Set Builder" feature for FontAwesome 7.x users. The Icon Set Builder continues to work as before for FontAwesome 4.x, 5.x, and 6.x users.
+* Added support for the new FontAwesome "Graphite" family of icons.
+* Updated "Requires at least" compatibility: FontAwesome 7.x features require WordPress 6.5+ for script module support.
+
+= 5.0.2 =
+**Note: The next bigger update will have changes to the way icons are being selected when using FontAwesome 7.x to utilize new and future features from FontAwesome. Unfortunately this means we will be deprecating the “Icon Set Builder” feature to better align this plugin with the FontAwesome ecosystem. This change will only effect users using FontAwesome 7.x icons. The Icon Set Builder will continue to work as it has with previous versions of FontAwesome. We welcome your feedback on this change.**
+
+* Bugfix: Added custom kit icons to Font Awesome 7.x icon set loading.
+* Security: Sanitizing and escaping more outputs.
+
+= 5.0.1 =
+**Note: The next update will have changes to the way icons are being selected when using FontAwesome 7.x to utilize new and future features from FontAwesome. Unfortunately this means we will be deprecating the “Icon Set Builder” feature to better align this plugin with the FontAwesome ecosystem. This change will only effect users using FontAwesome 7.x icons. The Icon Set Builder will continue to work as it has with previous versions of FontAwesome. We welcome your feedback on this change.**
+
+* Bugfix: Latest FA version will be properly checked and updated when saving settings.
+* Bugfix: Field was not loading correctly when used within ACF block which used blockVersion 3.
+
+= 5.0.0 =
+* Added support for FontAwesome 7.x icons and new Icon Styles
+* Updated FontAwesome GraphQL API integration to support FontAwesome 7.x icons and kits
+* Because of the long list of Icon Sets when editing the field, the checkboxes have been replaced with a select2 multi-select field.
 
 = 4.1.2 =
 * Bugfix plugin textdomain can load too early if ACF fields are used before WordPress 'init'

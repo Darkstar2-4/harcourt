@@ -12,11 +12,6 @@ namespace WPML\Core\Twig\Node;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Expression\AbstractExpression;
-/**
- * Represents a do node.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class DoNode extends \WPML\Core\Twig\Node\Node
 {
     public function __construct(\WPML\Core\Twig\Node\Expression\AbstractExpression $expr, $lineno, $tag = null)

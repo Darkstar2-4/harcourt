@@ -1,17 +1,13 @@
 <?php
 
-/**
- * Class WPML_TF_Feedback_Post_Convert
- *
- * @author OnTheGoSystems
- */
 class WPML_TF_Feedback_Post_Convert extends WPML_TF_Data_Object_Post_Convert {
 
 	const POST_TYPE = 'wpml_tf_feedback';
 
-	/**
-	 * @return array
-	 */
+	public function get_post_type() {
+		return self::POST_TYPE;
+	}
+
 	public function get_post_fields() {
 		return array(
 			'id'           => 'ID',
@@ -21,9 +17,6 @@ class WPML_TF_Feedback_Post_Convert extends WPML_TF_Data_Object_Post_Convert {
 		);
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_meta_fields() {
 		return array(
 			'rating',
@@ -39,18 +32,11 @@ class WPML_TF_Feedback_Post_Convert extends WPML_TF_Data_Object_Post_Convert {
 		);
 	}
 
-	/**
-	 * @param IWPML_TF_Data_Object $feedback
-	 *
-	 * @return array
-	 * @throws Exception
-	 */
 	public function to_post_data( IWPML_TF_Data_Object $feedback ) {
 		if( ! $feedback instanceof WPML_TF_Feedback ) {
 			throw new Exception( 'The $feedback argument must be an instance of WPML_TF_Feedback' );
 		}
 
-		/** @var WPML_TF_Feedback $feedback */
 		$post               = new stdClass();
 		$post->ID           = $feedback->get_id();
 		$post->post_date    = $feedback->get_date_created();
@@ -75,11 +61,6 @@ class WPML_TF_Feedback_Post_Convert extends WPML_TF_Data_Object_Post_Convert {
 		);
 	}
 
-	/**
-	 * @param array $post_data
-	 *
-	 * @return WPML_TF_Feedback
-	 */
 	public function to_object( array $post_data ) {
 		$feedback_data = $this->build_object_data_for_constructor( $post_data );
 		$feedback_factory = new WPML_TF_Feedback_Factory();

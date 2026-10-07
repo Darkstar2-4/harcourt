@@ -15,11 +15,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		return get_post( $this->get_original_element_id() );
 	}
 
-	/**
-	 * @param bool|false $original
-	 *
-	 * @return string
-	 */
 	public function get_url( $original = false ) {
 		$url        = null;
 		$element_id = null;
@@ -35,16 +30,10 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		return apply_filters( 'wpml_element_translation_job_url', $url, $original, $element_id, $this->get_original_document() );
 	}
 
-	/**
-	 * It checks that the post type is translatable.
-	 *
-	 * @return bool
-	 */
 	function is_translatable_post_type() {
 		$post_type = $this->get_post_type();
 
 		if ( $post_type ) {
-			/** @var SitePress $sitepress */
 			global $sitepress;
 			if ( $sitepress ) {
 				$post_types = array_keys( $sitepress->get_translatable_documents() );
@@ -90,7 +79,7 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 				if ( $field_data ) {
 					$wpdb->update( $wpdb->prefix . 'icl_translate',
 						array(
-							'field_data_translated' => FieldCompression::compress( $field_data ),
+							'field_data_translated' => FieldCompression::compressAndTrack( $field_data, true, $job_id ),
 							'field_finished'        => 1
 						),
 						array( 'tid' => $element->tid )
@@ -102,7 +91,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 	}
 
 	function save_terms_to_post() {
-		/** @var SitePress $sitepress */
 		global $sitepress, $wpdb;
 
 		$lang_code = $this->get_language_code();
@@ -137,9 +125,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		$this->set_translated_term_values( $delete );
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_title() {
 		$title = $this->get_title_from_db();
 
@@ -153,9 +138,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 			? $original_post->post_title : $this->original_del_text;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_type_title() {
 		$post_type = $this->get_post_type();
 		if ( ! $post_type ) {
@@ -166,9 +148,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		return $post_type->labels->singular_name;
 	}
 
-	/**
-	 * @return string|false
-	 */
 	public function get_post_type() {
 		$original_post = $this->get_original_document();
 
@@ -204,7 +183,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 
 		$results = $wpdb->get_results( $query_for_terms_in_job );
 
-		// Decompress field_data_translated in each row
 		foreach ( $results as $result ) {
 			$result->field_data_translated = FieldCompression::decompress( $result->field_data_translated, true );
 		}
@@ -212,11 +190,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		return $results;
 	}
 
-	/**
-	 * Retrieves an array of all terms associated with a post. This array is indexed by indexes of the for {t_}{term_taxonomy_id}.
-	 *
-	 * @return array
-	 */
 	protected function get_term_field_array_for_post() {
 		global $wpdb;
 
@@ -262,8 +235,8 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		foreach ( $term_values as $term ) {
 			if ( $delete ) {
 				$conditions = [
-					"field_type LIKE 'tfield-%-{$term->original_term_id}'",  // Term fields
-					"field_type LIKE 'tfield-%-{$term->original_term_id}\_%'", // Term fields as array
+					"field_type LIKE 'tfield-%-{$term->original_term_id}'",
+					"field_type LIKE 'tfield-%-{$term->original_term_id}\_%'",
 					"field_type = 't_{$term->original_term_id}'",
 					"field_type = 'tdesc_{$term->original_term_id}'",
 				];
@@ -274,12 +247,12 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 			} else {
 				$wpdb->update(
 					$translate_table,
-					[ 'field_data_translated' => FieldCompression::compress( $term->name, false ), 'field_finished' => 1 ],
+					[ 'field_data_translated' => FieldCompression::compressAndTrack( $term->name, false, $job_id ), 'field_finished' => 1 ],
 					[ 'field_type' => 't_' . $term->original_term_id, 'job_id' => $job_id ]
 				);
 				$wpdb->update(
 					$translate_table,
-					[ 'field_data_translated' => FieldCompression::compress( $term->description, false ), 'field_finished' => 1 ],
+					[ 'field_data_translated' => FieldCompression::compressAndTrack( $term->description, false, $job_id ), 'field_finished' => 1 ],
 					[ 'field_type' => 'tdesc_' . $term->original_term_id, 'job_id' => $job_id ]
 				);
 
@@ -287,7 +260,7 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 				foreach ( $meta_values as $meta ) {
 					$wpdb->update(
 						$translate_table,
-						[ 'field_finished' => 1, 'field_data_translated' => FieldCompression::compress( $meta->meta_value, false )  ],
+						[ 'field_finished' => 1, 'field_data_translated' => FieldCompression::compressAndTrack( $meta->meta_value, false, $job_id )  ],
 						[ 'job_id' => $job_id, 'field_type' => 'tfield-' . $meta->meta_key . '-' . $term->original_term_id ]
 					);
 				}
@@ -295,11 +268,6 @@ class WPML_Post_Translation_Job extends WPML_Element_Translation_Job {
 		}
 	}
 
-	/**
-	 * @param array $args
-	 *
-	 * @return array
-	 */
 	protected function filter_is_translator_args( array $args ) {
 		return Obj::assoc( 'post_id', $this->get_original_element_id(), $args );
 	}

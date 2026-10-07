@@ -168,6 +168,18 @@ msgstr "Verifica di sicurezza fallita"
 msgid "Too many attempts. Please try again later."
 msgstr "Troppi tentativi. Riprova più tardi."
 
+#: Main.php
+msgid "You haven't visited settings yet."
+msgstr "Non hai ancora visitato le impostazioni."
+
+#: Main.php
+msgid "Please check your settings"
+msgstr "Controlla le tue impostazioni"
+
+#: Main.php
+msgid "for optimal configuration and opt in for security updates, tips and occasional offers."
+msgstr "per una configurazione ottimale e iscriviti per ricevere aggiornamenti di sicurezza, consigli e offerte occasionali."
+
 #: Classes/Advert.php
 msgid "Premium Plugin Advertisement"
 msgstr "Pubblicità del plugin Premium"

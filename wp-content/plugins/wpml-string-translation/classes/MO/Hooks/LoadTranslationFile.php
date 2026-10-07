@@ -42,12 +42,6 @@ class LoadTranslationFile
 	}
 
 
-	/**
-	 * @param string $domain
-	 * @param string $locale
-	 * @param bool $disableVersionCheck
-	 * @return null|string
-	 */
 	public static function getDefaultWordPressTranslationPath( $domain, $locale, $disableVersionCheck = false ) {
 		if ( ! $disableVersionCheck && ! WordPress::versionCompare('>', '6.6.999') ) {
 			return null;
@@ -94,12 +88,6 @@ class LoadTranslationFile
 	}
 
 
-	/**
-	 * @param "plugins"|"themes" $prefix
-	 * @param string $domain
-	 * @param string $locale
-	 * @return string|null
-	 */
 	private static function checkTranslationsFolder( $prefix, $domain, $locale ) {
 		$defaultLegacyPath = WP_LANG_DIR . "/$prefix/$domain-$locale.mo";
 		if ( file_exists( $defaultLegacyPath ) ) {

@@ -2,22 +2,16 @@
 
 class WPML_ST_String_Dependencies_Node {
 
-	/** @var WPML_ST_String_Dependencies_Node|null $parent */
 	private $parent;
 
-	/** @var WPML_ST_String_Dependencies_Node[] $children */
 	private $children = array();
 
-	/** @var bool $iteration_completed */
 	private $iteration_completed = false;
 
-	/** @var int|null $id */
 	private $id;
 
-	/** @var string|null $type */
 	private $type;
 
-	/** @var bool|null $needs_refresh */
 	private $needs_refresh;
 
 	public function __construct( $id = null, $type = null ) {
@@ -68,17 +62,11 @@ class WPML_ST_String_Dependencies_Node {
 		}
 	}
 
-	/**
-	 * Iteration DFS in post-order
-	 *
-	 * @return WPML_ST_String_Dependencies_Node
-	 */
 	public function get_next() {
 		if ( $this->children ) {
 			$first_child = reset( $this->children );
 
 			if ( $first_child ) {
-				/** @var WPML_ST_String_Dependencies_Node $first_child */
 				return $first_child->get_next();
 			}
 		}
@@ -90,14 +78,6 @@ class WPML_ST_String_Dependencies_Node {
 		return $this;
 	}
 
-	/**
-	 * Search DFS in pre-order
-	 *
-	 * @param int    $id
-	 * @param string $type
-	 *
-	 * @return false|WPML_ST_String_Dependencies_Node
-	 */
 	public function search( $id, $type ) {
 		if ( $this->id === $id && $this->type === $type ) {
 			return $this;
@@ -121,9 +101,6 @@ class WPML_ST_String_Dependencies_Node {
 		return $this->iteration_completed;
 	}
 
-	/**
-	 * @return string|stdClass
-	 */
 	public function to_json() {
 		$object = new stdClass();
 
@@ -146,9 +123,6 @@ class WPML_ST_String_Dependencies_Node {
 		return $object;
 	}
 
-	/**
-	 * @param string|self $object
-	 */
 	public function from_json( $object ) {
 		if ( is_string( $object ) ) {
 			$object = json_decode( $object );

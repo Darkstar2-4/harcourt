@@ -10,15 +10,12 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 
 	private $menu_items_cache;
 
-	/**
-	 * @param SitePress               $sitepress
-	 * @param wpdb                    $wpdb
-	 * @param WPML_Post_Translation   $post_translations
-	 * @param WPML_Terms_Translations $term_translations
-	 */
+	private $synced_page_menu_item_trids_cache;
+
 	function __construct( &$sitepress, &$wpdb, &$post_translations, &$term_translations ) {
 		parent::__construct( $sitepress, $wpdb, $post_translations, $term_translations );
-		$this->menu_items_cache = array();
+		$this->menu_items_cache                  = array();
+		$this->synced_page_menu_item_trids_cache = array();
 	}
 
 	function get_menu_items( $menu_id, $translations = true ) {
@@ -106,12 +103,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		return $menus;
 	}
 
-	/**
-	 * @param \stdClass $item
-	 * @param int       $menu_id
-	 *
-	 * @return array
-	 */
 	function get_menu_item_translations( $item, $menu_id ) {
 		$languages         = array_keys( $this->sitepress->get_active_languages() );
 		$item_translations = $this->post_translations->get_element_translations( $item->ID );
@@ -234,19 +225,19 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		return $translations;
 	}
 
-	/**
-	 * Synchronises a page menu item's translations' trids according to the trids of the pages they link to.
-	 *
-	 * @param object $menu_item
-	 *
-	 * @return int number of affected menu item translations
-	 */
 	function sync_page_menu_item_trids( $menu_item ) {
+		$disable_trids_cache = defined( 'WPML_DISABLE_MENU_SYNC_TRIDS_CACHE' )
+			&& WPML_DISABLE_MENU_SYNC_TRIDS_CACHE;
+
+		$menu_item_id = is_object( $menu_item ) && isset( $menu_item->ID ) ? (int) $menu_item->ID : 0;
+		if ( ! $disable_trids_cache && isset( $this->synced_page_menu_item_trids_cache[ $menu_item_id ] ) ) {
+			return 0;
+		}
+
 		$changed = 0;
 		if ( $menu_item->object_type === 'post_type' ) {
 			$translations = $this->post_translations->get_element_translations( $menu_item->ID );
 			if ( (bool) $translations === true ) {
-				get_post_meta( $menu_item->menu_item_parent, '_menu_item_object_id', true );
 				$orphans = $this->wpdb->get_results(
 					$this->get_page_orphan_sql(
 						array_keys( $translations ),
@@ -268,15 +259,11 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 			}
 		}
 
+		$this->synced_page_menu_item_trids_cache[ $menu_item_id ] = true;
+
 		return $changed;
 	}
 
-	/**
-	 * @param  int  $menu_id
-	 * @param bool $include_original
-	 *
-	 * @return bool|array
-	 */
 	function get_menu_translations( $menu_id, $include_original = false ) {
 		$languages    = array_keys( $this->sitepress->get_active_languages() );
 		$translations = array();
@@ -285,7 +272,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 				$menu_translated_id = $this->term_translations->term_id_in( $menu_id, $lang_code );
 				$menu_data          = array();
 				if ( $menu_translated_id ) {
-					/** @var \stdClass $menu_object */
 					$menu_object  = $this->wpdb->get_row(
 						$this->wpdb->prepare(
 							"
@@ -321,12 +307,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		return $menu ? $menu->name : false;
 	}
 
-	/**
-	 * @param int          $menu_id
-	 * @param string|false $language_code
-	 *
-	 * @return bool
-	 */
 	protected function get_translated_menu( $menu_id, $language_code = false ) {
 		$language_code = $language_code ? $language_code : $this->sitepress->get_default_language();
 		$menus         = $this->get_menu_translations( $menu_id, true );
@@ -334,18 +314,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		return isset( $menus[ $language_code ] ) ? $menus[ $language_code ] : false;
 	}
 
-	/**
-	 * We need to register the string first in the default language
-	 * to avoid it being "auto-registered" in English
-	 *
-	 * @param string           $menu_name
-	 * @param WP_Post|stdClass $item
-	 * @param string           $lang
-	 * @param bool             $has_label_translation
-	 * @param bool             $has_url_translation
-	 *
-	 * @return array
-	 */
 	protected function icl_t_menu_item( $menu_name, $item, $lang, &$has_label_translation, &$has_url_translation ) {
 		$default_lang = $this->sitepress->get_default_language();
 		$label        = $item->post_title;
@@ -391,12 +359,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		return array( $label, $url );
 	}
 
-	/**
-	 * @param object $item
-	 * @param string $lang_code
-	 *
-	 * @return int
-	 */
 	private function is_parent_not_translated( $item, $lang_code ) {
 
 		if ( $item->menu_item_parent > 0 ) {
@@ -417,36 +379,41 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 	private function get_page_orphan_sql( $existing_languages, $menu_item_id ) {
 		$wpdb = &$this->wpdb;
 
+		$existing_languages_in_clause = wpml_prepare_in( $existing_languages );
+
 		return $wpdb->prepare(
 			"SELECT it.element_id, it.language_code
-			FROM {$wpdb->prefix}icl_translations it
-			JOIN {$wpdb->posts} pt
-				ON pt.ID = it.element_id
-					AND pt.post_type = 'nav_menu_item'
-					AND it.element_type = 'post_nav_menu_item'
-					AND it.language_code NOT IN (" . wpml_prepare_in( $existing_languages ) . ")
-			JOIN {$wpdb->prefix}icl_translations io
-				ON io.element_id = %d
-					AND io.element_type = 'post_nav_menu_item'
-					AND io.trid != it.trid
-			JOIN {$wpdb->posts} po
-				ON po.ID = io.element_id
-					AND po.post_type = 'nav_menu_item'
-			JOIN {$wpdb->postmeta} mo
-				ON mo.post_id = po.ID
-					AND mo.meta_key = '_menu_item_object_id'
-			JOIN {$wpdb->postmeta} mt
-				ON mt.post_id = pt.ID
-					AND mt.meta_key = '_menu_item_object_id'
-			JOIN {$wpdb->prefix}icl_translations page_t
-				ON mt.meta_value = page_t.element_id
-					AND page_t.element_type = 'post_page'
-			JOIN {$wpdb->prefix}icl_translations page_o
-				ON mo.meta_value = page_o.element_id
-					AND page_o.trid = page_t.trid
-			WHERE ( SELECT COUNT(count.element_id)
-					FROM {$wpdb->prefix}icl_translations count
-					WHERE count.trid = it.trid ) = 1",
+        FROM {$wpdb->prefix}icl_translations it
+        JOIN {$wpdb->posts} pt
+            ON pt.ID = it.element_id
+            AND pt.post_type = 'nav_menu_item'
+            AND it.element_type = 'post_nav_menu_item'
+            AND it.language_code NOT IN ($existing_languages_in_clause)
+        JOIN {$wpdb->prefix}icl_translations io
+            ON io.trid != it.trid
+        JOIN {$wpdb->posts} po
+            ON po.ID = io.element_id
+            AND po.post_type = 'nav_menu_item'
+        JOIN {$wpdb->postmeta} mo
+            ON mo.post_id = po.ID
+            AND mo.meta_key = '_menu_item_object_id'
+        JOIN {$wpdb->postmeta} mt
+            ON mt.post_id = pt.ID
+            AND mt.meta_key = '_menu_item_object_id'
+        JOIN {$wpdb->prefix}icl_translations page_t
+            ON mt.meta_value = page_t.element_id
+            AND page_t.element_type = 'post_page'
+        JOIN {$wpdb->prefix}icl_translations page_o
+            ON mo.meta_value = page_o.element_id
+            AND page_o.element_type = 'post_page'
+            AND page_o.trid = page_t.trid
+        WHERE io.element_id = %d
+        AND io.element_type = 'post_nav_menu_item'
+        AND (
+            SELECT COUNT(count.element_id)
+            FROM {$wpdb->prefix}icl_translations count
+            WHERE count.trid = it.trid
+        ) = 1",
 			$menu_item_id
 		);
 	}
@@ -531,10 +498,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		);
 	}
 
-	/**
-	 * @param array<string,int> $item_translations
-	 * @param int               $menu_id
-	 */
 	private function fix_assignment_to_menu( $item_translations, $menu_id ) {
 		foreach ( $item_translations as $lang_code => $item_id ) {
 			$correct_menu_id = $this->term_translations->term_id_in( $menu_id, $lang_code );
@@ -567,10 +530,6 @@ abstract class WPML_Menu_Sync_Functionality extends WPML_Full_Translation_API {
 		}
 	}
 
-	/**
-	 * Removes potentially mis-assigned menu items from their menu, whose language differs from that of their
-	 * associated menu.
-	 */
 	private function fix_language_conflicts() {
 		$wrong_items = $this->wpdb->get_results(
 			"	SELECT r.object_id, t.term_taxonomy_id

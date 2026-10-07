@@ -2,27 +2,13 @@
 
 use WPML\API\Sanitize;
 
-/**
- * @package    wpml-core
- * @subpackage wpml-user-language
- */
 class WPML_User_Language_Switcher_Hooks {
 
 	private $nonce_name = 'wpml_user_language_switcher';
 
-	/**
-	 * @var WPML_User_Language_Switcher_UI
-	 */
 	private $user_language_switcher_ui;
-	/**
-	 * @var WPML_User_Language_Switcher
-	 */
 	private $user_language_switcher;
 
-	/**
-	 * @param WPML_User_Language_Switcher $WPML_User_Language_Switcher
-	 * @param WPML_User_Language_Switcher_UI $WPML_User_Language_Switcher_UI
-	 */
 	public function __construct( &$WPML_User_Language_Switcher, &$WPML_User_Language_Switcher_UI ) {
 
 		$this->user_language_switcher    = &$WPML_User_Language_Switcher;

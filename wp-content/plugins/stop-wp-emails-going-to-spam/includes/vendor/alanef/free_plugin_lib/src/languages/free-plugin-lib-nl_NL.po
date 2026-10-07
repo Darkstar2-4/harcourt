@@ -168,6 +168,18 @@ msgstr "Beveiligingscontrole mislukt"
 msgid "Too many attempts. Please try again later."
 msgstr "Te veel pogingen. Probeer het later opnieuw."
 
+#: Main.php
+msgid "You haven't visited settings yet."
+msgstr "Je hebt de instellingen nog niet bezocht."
+
+#: Main.php
+msgid "Please check your settings"
+msgstr "Controleer je instellingen"
+
+#: Main.php
+msgid "for optimal configuration and opt in for security updates, tips and occasional offers."
+msgstr "voor een optimale configuratie en meld je aan voor beveiligingsupdates, tips en incidentele aanbiedingen."
+
 #: Classes/Advert.php
 msgid "Premium Plugin Advertisement"
 msgstr "Premium plugin-aanbieding"

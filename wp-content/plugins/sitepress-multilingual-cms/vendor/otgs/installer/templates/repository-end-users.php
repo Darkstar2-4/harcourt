@@ -31,28 +31,23 @@ class EndUsers {
 		
 		if ( $model->endUserRenewalUrl ): ?>
             <div class="js-question">
-                <p class="otgs-installer-notice-status-item"><?php echo esc_html( $accountQuestion ); ?></p>
-                <a class="js-yes-button otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
-                   href="">
+                <p><?php echo esc_html( $accountQuestion ); ?></p>
+                <a class="js-yes-button button" href="">
 					<?php esc_html_e( 'Yes', 'installer' ); ?>
                 </a>
-                <a class="js-no-button otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
-                   href="">
+                <a class="js-no-button button" href="">
 					<?php esc_html_e( 'No', 'installer' ); ?>
                 </a>
-                <a class="js-dont-know otgs-installer-notice-status-item otgs-installer-notice-status-item-link"
-                   href="">
-					<?php esc_html_e( 'I do not remember', 'installer' ); ?>
+                <a class="js-dont-know button" href="">
+					<?php esc_html_e( "I'm not sure", 'installer' ); ?>
                 </a>
             </div>
 
             <div class="js-yes-section" style="display: none;">
-                <p class="otgs-installer-notice-status-item"
-                   data-alternative="<?php echo esc_html( $extendAlternative ); ?>"
-                >
+                <p data-alternative="<?php echo esc_html( $extendAlternative ); ?>">
 					<?php echo esc_html( $extendInfo ); ?>
                 </p>
-                <a class="otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
+                <a class="button button-primary"
                    href="<?php echo esc_url( $model->productUrl . '/account' ); ?>"
                 >
 					<?php echo esc_html( $extendButton ); ?>
@@ -60,23 +55,21 @@ class EndUsers {
             </div>
 
             <div class="js-no-section" style="display: none;">
-                <p class="otgs-installer-notice-status-item"
-                   data-alternative="<?php echo esc_html( $discountAlternative ); ?>"
-                >
+                <p data-alternative="<?php echo esc_html( $discountAlternative ); ?>">
 					<?php echo esc_html( $discountQuestion ); ?>
                 </p>
-                <a class="otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
+                <a class="button button-primary"
                    href="<?php echo esc_url( $model->endUserRenewalUrl . '&token=' . $model->siteKey ); ?>">
 					<?php echo esc_html( $discountButton ); ?>
                 </a>
             </div>
 
             <div class="js-find-account-section" style="display: none;">
-                <p class="otgs-installer-notice-status-item"><?php echo esc_html( $findAccountInfo ); ?></p>
+                <p><?php echo esc_html( $findAccountInfo ); ?></p>
                 <div class="otgs-installer-notice-status-item-wrapper">
                     <input type="text"
                            placeholder="<?php echo esc_attr( $findAccountPlaceholder ); ?>"/>
-                    <a class="js-find-account otgs-installer-notice-status-item otgs-installer-notice-status-item-btn btn-disabled"
+                    <a class="js-find-account button btn-disabled"
                        href=""
                        data-repository="<?php echo $model->repoId ?>"
                        data-nonce="<?php echo $model->findAccountNonce ?>"
@@ -87,7 +80,7 @@ class EndUsers {
             </div>
 		<?php else: ?>
             <div class="js-yes-section">
-                <a class="otgs-installer-notice-status-item otgs-installer-notice-status-item-btn"
+                <a class="button button-primary"
                    href="<?php echo esc_url( $model->productUrl . '/account' ); ?>"
                 >
 					<?php echo esc_html( $extendButton ); ?>

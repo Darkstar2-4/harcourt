@@ -7,7 +7,6 @@ use WPML\Core\SharedKernel\Component\Translation\Domain\TranslationMethod\Target
 class AutomaticMethod implements TranslationMethodInterface {
 
 
-  /** @return TargetLanguageMethodType::AUTOMATIC */
   public function get() {
     return TargetLanguageMethodType::AUTOMATIC;
   }

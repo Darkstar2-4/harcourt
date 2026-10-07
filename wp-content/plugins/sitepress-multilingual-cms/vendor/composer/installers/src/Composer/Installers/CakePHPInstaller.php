@@ -10,9 +10,6 @@ class CakePHPInstaller extends BaseInstaller
         'plugin' => 'Plugin/{$name}/',
     );
 
-    /**
-     * Format package name to CamelCase
-     */
     public function inflectPackageVars($vars)
     {
         if ($this->matchesCakeVersion('>=', '3.0.0')) {
@@ -30,9 +27,6 @@ class CakePHPInstaller extends BaseInstaller
         return $vars;
     }
 
-    /**
-     * Change the default plugin location when cakephp >= 3.0
-     */
     public function getLocations()
     {
         if ($this->matchesCakeVersion('>=', '3.0.0')) {
@@ -41,14 +35,6 @@ class CakePHPInstaller extends BaseInstaller
         return $this->locations;
     }
 
-    /**
-     * Check if CakePHP version matches against a version
-     *
-     * @param string $matcher
-     * @param string $version
-     * @return bool
-     * @phpstan-param Constraint::STR_OP_* $matcher
-     */
     protected function matchesCakeVersion($matcher, $version)
     {
         $repositoryManager = $this->composer->getRepositoryManager();

@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Miscellaneous utilities.
- */
 
 namespace PhpMyAdmin\SqlParser\Utils;
 
@@ -18,14 +15,6 @@ use PhpMyAdmin\SqlParser\Statements\SelectStatement;
  */
 class Misc
 {
-    /**
-     * Gets a list of all aliases and their original names.
-     *
-     * @param SelectStatement $statement the statement to be processed
-     * @param string          $database  the name of the database
-     *
-     * @return array
-     */
     public static function getAliases($statement, $database)
     {
         if (! ($statement instanceof SelectStatement)
@@ -39,15 +28,8 @@ class Misc
 
         $tables = array();
 
-        /**
-         * Expressions that may contain aliases.
-         * These are extracted from `FROM` and `JOIN` keywords.
-         *
-         * @var Expression[]
-         */
         $expressions = $statement->from;
 
-        // Adding expressions from JOIN.
         if (! empty($statement->join)) {
             foreach ($statement->join as $join) {
                 $expressions[] = $join->expr;

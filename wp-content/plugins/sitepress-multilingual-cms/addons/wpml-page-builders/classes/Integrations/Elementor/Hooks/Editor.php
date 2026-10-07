@@ -9,9 +9,6 @@ use function WPML\FP\spreadArgs;
 
 class Editor implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 
-	/**
-	 * @return void
-	 */
 	public function add_hooks() {
 		Hooks::onFilter( 'wpml_pb_is_editing_translation_with_native_editor', 10, 2 )
 			->then(
@@ -30,9 +27,6 @@ class Editor implements \IWPML_Backend_Action, \IWPML_Frontend_Action {
 			->then( [ $this, 'maybeDisplayModalPageBuilderWarning' ] );
 	}
 
-	/**
-	 * @return void
-	 */
 	public function maybeDisplayModalPageBuilderWarning() {
 		$postId = (int) Obj::prop( 'post', $_GET );
 

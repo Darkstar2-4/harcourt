@@ -8,22 +8,14 @@ use WPML_TM_Jobs_Search_Params;
 use WPML\TM\ATE\Jobs;
 
 abstract class AbstractQuery implements Query {
-	/** @var wpdb */
 	protected $wpdb;
 
-	/** @var QueryBuilder */
 	protected $query_builder;
 
-	/** @var string */
 	protected $title_column = 'posts.post_title';
 
-	/** @var string */
 	protected $batch_name_column = 'batches.batch_name';
 
-	/**
-	 * @param wpdb         $wpdb
-	 * @param QueryBuilder $query_builder
-	 */
 	public function __construct( wpdb $wpdb, QueryBuilder $query_builder ) {
 		$this->wpdb          = $wpdb;
 		$this->query_builder = $query_builder;
@@ -85,12 +77,6 @@ abstract class AbstractQuery implements Query {
 	}
 
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 * @param array                      $columns
-	 *
-	 * @return string
-	 */
 	protected function build_query( WPML_TM_Jobs_Search_Params $params, array $columns ) {
 		if ( $this->check_job_type( $params ) ) {
 			return '';
@@ -109,18 +95,10 @@ abstract class AbstractQuery implements Query {
 		return $query_builder->build();
 	}
 
-	/**
-	 * @param WPML_TM_Jobs_Search_Params $params
-	 *
-	 * @return bool
-	 */
 	protected function check_job_type( WPML_TM_Jobs_Search_Params $params ) {
 		return $params->get_job_types() && ! in_array( $this->get_type(), $params->get_job_types(), true );
 	}
 
-	/**
-	 * @return string
-	 */
 	abstract protected function get_type();
 
 	protected function define_joins( QueryBuilder $query_builder ) {

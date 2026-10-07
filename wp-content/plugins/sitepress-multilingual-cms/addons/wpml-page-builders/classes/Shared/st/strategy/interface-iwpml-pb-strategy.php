@@ -2,23 +2,10 @@
 
 interface IWPML_PB_Strategy {
 
-	/**
-	 * @param \WP_Post|stdClass $post
-	 */
 	public function register_strings( $post );
 
-	/**
-	 * @param int                             $post_id
-	 * @param string                          $content
-	 * @param WPML\PB\Shortcode\StringCleanUp $stringCleanUp
-	 *
-	 * @return bool - true if strings were added.
-	 */
-	public function register_strings_in_content( $post_id, $content, WPML\PB\Shortcode\StringCleanUp $stringCleanUp = null );
+	public function register_strings_in_content( $post_id, $content, ?WPML\PB\Shortcode\StringCleanUp $stringCleanUp = null );
 
-	/**
-	 * @param WPML_PB_Factory $factory
-	 */
 	public function set_factory( $factory );
 
 	public function get_package_key( $page_id );

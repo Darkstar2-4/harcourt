@@ -12,11 +12,6 @@ namespace WPML\Core\Twig\Node\Expression;
 
 use WPML\Core\Twig\Compiler;
 use WPML\Core\Twig\Node\Node;
-/**
- * Represents an arrow function.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- */
 class ArrowFunctionExpression extends \WPML\Core\Twig\Node\Expression\AbstractExpression
 {
     public function __construct(\WPML\Core\Twig\Node\Expression\AbstractExpression $expr, \WPML\Core\Twig\Node\Node $names, $lineno, $tag = null)

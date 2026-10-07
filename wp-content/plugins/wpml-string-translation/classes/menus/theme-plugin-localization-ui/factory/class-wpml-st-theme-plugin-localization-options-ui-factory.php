@@ -2,7 +2,6 @@
 
 class WPML_ST_Theme_Plugin_Localization_Options_UI_Factory implements IWPML_Backend_Action_Loader, IWPML_Deferred_Action_Loader {
 
-	/** @return WPML_ST_Theme_Plugin_Localization_Options_UI */
 	public function create() {
 		global $sitepress;
 
@@ -16,7 +15,6 @@ class WPML_ST_Theme_Plugin_Localization_Options_UI_Factory implements IWPML_Back
 		return $hooks;
 	}
 
-	/** @return string */
 	public function get_load_action() {
 		return 'current_screen';
 	}

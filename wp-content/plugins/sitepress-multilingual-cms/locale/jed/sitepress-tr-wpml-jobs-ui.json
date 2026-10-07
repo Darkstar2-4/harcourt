@@ -1,0 +1,409 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=2; plural=(n > 1);",
+            "lang": "tr_TR"
+         },
+         "Start batch sync": [
+            "Toplu senkronizasyonu başlat"
+         ],
+         "Cancel job": [
+            "İşi iptal et"
+         ],
+         "Continue reviewing": [
+            "İncelemeye devam et"
+         ],
+         "Start downloading XLIFF file": [
+            "XLIFF dosyasını indirmeye başla"
+         ],
+         "Edit": [
+            "Düzenle"
+         ],
+         "Get translation": [
+            "Çeviriyi al"
+         ],
+         "Resign": [
+            "İstifa et"
+         ],
+         "Review": [
+            "İncele"
+         ],
+         "Translate": [
+            "Çevir"
+         ],
+         "Take and Translate": [
+            "Al ve çevir"
+         ],
+         "View": [
+            "Görüntüle"
+         ],
+         "Delete Translations": [
+            "Çevirileri sil"
+         ],
+         "Keep Translations as Draft": [
+            "Çevirileri taslak olarak tut"
+         ],
+         "Never mind. I want to review these translations.": [
+            "Boş ver. Bu çevirileri incelemek istiyorum."
+         ],
+         "Cancel": [
+            "İptal"
+         ],
+         "This will remove the selected jobs from the Translations Queue without publishing them. What would you like to do with the translations?": [
+            "Bu işlem, seçilen işleri yayınlamadan Çeviri Kuyruğu'ndan kaldıracaktır. Çevirilerle ne yapmak istersiniz?"
+         ],
+         "Cancel Translation Review": [
+            "Çeviri incelemesini iptal et"
+         ],
+         "Bulk actions": [
+            "Toplu işlemler"
+         ],
+         "Apply": [
+            "Uygula"
+         ],
+         "Actions applied to multiple translation jobs can take a few seconds. Please do not leave the page.": [
+            "Birden fazla çeviri işine uygulanan işlemler birkaç saniye sürebilir. Lütfen sayfadan ayrılmayın."
+         ],
+         "Actions applied to multiple translation jobs can take a few minutes. Please do not leave the page.": [
+            "Birden fazla çeviri işine uygulanan işlemler birkaç dakika sürebilir. Lütfen sayfadan ayrılmayın."
+         ],
+         "Select translator": [
+            "Çevirmen seç"
+         ],
+         "Assign": [
+            "Ata"
+         ],
+         "Cancelled": [
+            "İptal edildi"
+         ],
+         "Needs translation": [
+            "Çeviri gerekiyor"
+         ],
+         "In progress": [
+            "Devam ediyor"
+         ],
+         "Translation ready to download": [
+            "Çeviri indirilmeye hazır"
+         ],
+         "Completed": [
+            "Tamamlandı"
+         ],
+         "%s are immediately published because they don't support draft mode.": [
+            "%s taslak modunu desteklemediği için hemen yayınlanır."
+         ],
+         "Published — Pending review": [
+            "Yayınlandı — İnceleme bekleniyor"
+         ],
+         "Draft — Pending review": [
+            "Taslak — İnceleme bekleniyor"
+         ],
+         "Review in progress": [
+            "İnceleme devam ediyor"
+         ],
+         "Published — Review in progress": [
+            "Yayınlandı — İnceleme devam ediyor"
+         ],
+         "Draft — Review in progress": [
+            "Taslak — İnceleme devam ediyor"
+         ],
+         "Insufficient funds": [
+            "Yetersiz bakiye"
+         ],
+         "Needs update": [
+            "Güncelleme gerekiyor"
+         ],
+         "View original": [
+            "Orijinali görüntüle"
+         ],
+         "(no title)": [
+            "(başlık yok)"
+         ],
+         "Automatic translation": [
+            "Otomatik çeviri"
+         ],
+         "TP ID: %d": [
+            "TP Kimliği: %d"
+         ],
+         "Reset": [
+            "Sıfırla"
+         ],
+         "Filter": [
+            "Filtrele"
+         ],
+         "ID (%s)": [
+            "Kimlik (%s)"
+         ],
+         "Title (%s)": [
+            "Başlık (%s)"
+         ],
+         "Type (%s)": [
+            "Tür (%s)"
+         ],
+         "Language (%s)": [
+            "Dil (%s)"
+         ],
+         "Batch name (%s)": [
+            "Toplu iş adı (%s)"
+         ],
+         "Status (%s)": [
+            "Durum (%s)"
+         ],
+         "Translated by (%s)": [
+            "Çeviren (%s)"
+         ],
+         "Sent date (%s)": [
+            "Gönderilme tarihi (%s)"
+         ],
+         "Deadline (%s)": [
+            "Son teslim tarihi (%s)"
+         ],
+         "Clear all filters": [
+            "Tüm filtreleri temizle"
+         ],
+         "Any Translation Service": [
+            "Herhangi bir çeviri hizmeti"
+         ],
+         "Any WordPress Translator": [
+            "Herhangi bir WordPress çevirmeni"
+         ],
+         "From": [
+            "Kimden"
+         ],
+         "To": [
+            "Kime"
+         ],
+         "Anyone": [
+            "Herkes"
+         ],
+         "Include jobs from translation services": [
+            "Çeviri hizmetlerinden gelen işleri dahil et"
+         ],
+         "All types": [
+            "Tüm türler"
+         ],
+         "Select visible columns": [
+            "Görünür sütunları seç"
+         ],
+         "Sort descending": [
+            "Azalan sırala"
+         ],
+         "Sort ascending": [
+            "Artan sırala"
+         ],
+         "Cancel sorting": [
+            "Sıralamayı iptal et"
+         ],
+         "The bulk action is running...": [
+            "Toplu işlem yürütülüyor..."
+         ],
+         "Export all jobs to XLIFF 1.0": [
+            "Tüm işleri XLIFF 1.0 olarak dışa aktar"
+         ],
+         "Export all filtered jobs to XLIFF 1.0": [
+            "Tüm filtrelenmiş işleri XLIFF 1.0 olarak dışa aktar"
+         ],
+         "Export all jobs to XLIFF 1.1": [
+            "Tüm işleri XLIFF 1.1 olarak dışa aktar"
+         ],
+         "Export all filtered jobs to XLIFF 1.1": [
+            "Tüm filtrelenmiş işleri XLIFF 1.1 olarak dışa aktar"
+         ],
+         "Export all jobs to XLIFF 1.2": [
+            "Tüm işleri XLIFF 1.2 olarak dışa aktar"
+         ],
+         "Export all filtered jobs to XLIFF 1.2": [
+            "Tüm filtrelenmiş işleri XLIFF 1.2 olarak dışa aktar"
+         ],
+         "Export": [
+            "Dışa aktar"
+         ],
+         "Select File": [
+            "Dosya seç"
+         ],
+         ".xliff .zip": [
+            ".xliff .zip"
+         ],
+         "Importing": [
+            "İçe aktarılıyor"
+         ],
+         "Import": [
+            "İçe aktar"
+         ],
+         "Import / Export XLIFF": [
+            "XLIFF içe/dışa aktar"
+         ],
+         "Actions": [
+            "Eylemler"
+         ],
+         "Batch name": [
+            "Toplu iş adı"
+         ],
+         "Filter by %s": [
+            "%s'e göre filtrele"
+         ],
+         "Title": [
+            "Başlık"
+         ],
+         "Approve translation reviews": [
+            "Çeviri incelemelerini onayla"
+         ],
+         "Cancel jobs": [
+            "İşleri iptal et"
+         ],
+         "Cancel translation reviews": [
+            "Çeviri incelemelerini iptal et"
+         ],
+         "Export to XLIFF %s": [
+            "XLIFF %s olarak dışa aktar"
+         ],
+         "Get translations": [
+            "Çevirileri al"
+         ],
+         "This action does not apply to any of the selected translation jobs": [
+            "Bu eylem seçilen çeviri işlerinden hiçbirine uygulanmaz"
+         ],
+         "Translations have been downloaded": [
+            "Çeviriler indirildi"
+         ],
+         "Translation has been downloaded": [
+            "Çeviri indirildi"
+         ],
+         "Translations could not be downloaded": [
+            "Çeviriler indirilemedi"
+         ],
+         "Translation could not be downloaded": [
+            "Çeviri indirilemedi"
+         ],
+         "Approving translations reviews failed!": [
+            "Çeviri incelemeleri onaylanamadı!"
+         ],
+         "Failed approving translations for the following posts: ": [
+            "Aşağıdaki gönderiler için çeviriler onaylanamadı: "
+         ],
+         "Translations reviews approved successfully!": [
+            "Çeviri incelemeleri başarıyla onaylandı!"
+         ],
+         "No valid jobs selected to approve translations reviews!": [
+            "Çeviri incelemelerini onaylamak için geçerli iş seçilmedi!"
+         ],
+         "The translator has been assigned to the job": [
+            "Çevirmen işe atandı"
+         ],
+         "The translator could not be assigned to the job": [
+            "Çevirmen işe atanamadı"
+         ],
+         "The jobs have been cancelled": [
+            "İşler iptal edildi"
+         ],
+         "The job has been cancelled": [
+            "İş iptal edildi"
+         ],
+         "The jobs could not be cancelled": [
+            "İşler iptal edilemedi"
+         ],
+         "The job could not be cancelled": [
+            "İş iptal edilemedi"
+         ],
+         "Translation reviews have been canceled": [
+            "Çeviri incelemeleri iptal edildi"
+         ],
+         "Translation review has been canceled": [
+            "Çeviri incelemesi iptal edildi"
+         ],
+         "Translation reviews could not be canceled": [
+            "Çeviri incelemeleri iptal edilemedi"
+         ],
+         "Translation review could not be canceled": [
+            "Çeviri incelemesi iptal edilemedi"
+         ],
+         "Sent on": [
+            "Gönderilme tarihi"
+         ],
+         "Deadline": [
+            "Son teslim tarihi"
+         ],
+         "Status": [
+            "Durum"
+         ],
+         "Pending review": [
+            "İnceleme bekleniyor"
+         ],
+         "ID": [
+            "Kimlik"
+         ],
+         "Type": [
+            "Tür"
+         ],
+         "Languages": [
+            "Diller"
+         ],
+         "Translated by": [
+            "Çeviren"
+         ],
+         "Download XLIFF file couldn't be finished": [
+            "XLIFF dosyası indirilemedi"
+         ],
+         "Could not load jobs for export": [
+            "Dışa aktarılacak işler yüklenemedi"
+         ],
+         "The export to XLIFF failed": [
+            "XLIFF'e dışa aktarma başarısız oldu"
+         ],
+         "Imported %d jobs": [
+            "%d iş içe aktarıldı"
+         ],
+         "Imported one job": [
+            "Bir iş içe aktarıldı"
+         ],
+         "Could not import any job": [
+            "Hiçbir iş içe aktarılamadı"
+         ],
+         "Import failed!": [
+            "İçe aktarma başarısız oldu!"
+         ],
+         "Loading translations queue": [
+            "Çeviri kuyruğu yükleniyor"
+         ],
+         "Loading translation jobs": [
+            "Çeviri işleri yükleniyor"
+         ],
+         "Jobs could not be loaded": [
+            "İşler yüklenemedi"
+         ],
+         "Specify some jobs to resign": [
+            "İstifa etmek için bazı işler belirtin"
+         ],
+         "We could not resign jobs: %s": [
+            "İşlerden istifa edemedik: %s"
+         ],
+         "Resigned from jobs": [
+            "İşlerden istifa edildi"
+         ],
+         "Resigned from job": [
+            "İşten istifa edildi"
+         ],
+         "Failed to resign from jobs": [
+            "İşlerden istifa edilemedi"
+         ],
+         "The Advanced Editor jobs synchronization has failed": [
+            "Gelişmiş Düzenleyici işleri senkronizasyonu başarısız oldu"
+         ],
+         "Synchronization with the Professional Translation service has failed": [
+            "Profesyonel Çeviri hizmetiyle senkronizasyon başarısız oldu"
+         ],
+         "%d translation has been downloaded": [
+            "%d çeviri indirildi",
+            "%d çeviri indirildi"
+         ],
+         "Batch sync finished successfully!": [
+            "Toplu senkronizasyon başarıyla tamamlandı!"
+         ],
+         "Batch sync couldn't be finished": [
+            "Toplu senkronizasyon tamamlanamadı"
+         ]
+      }
+   }
+}

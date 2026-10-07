@@ -9,16 +9,10 @@ class WpmlStBeforeRemoveStringsAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'wpml_st_before_remove_strings';
 	const ACTION_ARGS = 1;
 
-	/** @var QueueRepositoryInterface */
 	private $queueRepository;
 
-	/** @var FindByIdQueryInterface */
 	private $findByIdQuery;
 
-	/**
-	 * @param QueueRepositoryInterface $queueRepository
-	 * @param FindByIdQueryInterface   $findByIdQuery
-	 */
 	public function __construct(
 		QueueRepositoryInterface $queueRepository,
 		FindByIdQueryInterface   $findByIdQuery

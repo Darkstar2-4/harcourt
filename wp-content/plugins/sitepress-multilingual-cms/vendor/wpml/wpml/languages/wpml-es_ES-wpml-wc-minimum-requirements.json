@@ -5,13 +5,13 @@
          "": {
             "domain": "messages",
             "plural_forms": "nplurals=2; plural=(n != 1);",
-            "lang": "es"
+            "lang": "es_ES"
          },
          "Your site now meets WPML's minimum requirements": [
-            "Su sitio ahora cumple con los requisitos mínimos de WPML"
+            "Su sitio ahora cumple los requisitos mínimos de WPML"
          ],
          "Start WPML Setup": [
-            "Iniciar configuración de WPML"
+            "Iniciar la configuración de WPML"
          ],
          "Need Help?": [
             "¿Necesita ayuda?"
@@ -23,10 +23,10 @@
             " y le guiaremos paso a paso."
          ],
          "Your site doesn't meet WPML's minimum requirements": [
-            "Su sitio no cumple con los requisitos mínimos de WPML"
+            "Su sitio no cumple los requisitos mínimos de WPML"
          ],
          "Ensure your site runs smoothly with WPML by meeting these simple minimum requirements.": [
-            "Asegúrate de que tu sitio funcione sin problemas con WPML cumpliendo estos sencillos requisitos mínimos."
+            "Asegúrese de que su sitio funciona correctamente con WPML cumpliendo estos sencillos requisitos mínimos."
          ],
          "Re-check Now": [
             "Volver a comprobar ahora"

@@ -9,10 +9,8 @@ class UpgraderProcessCompleteAction extends AbstractActionHookHandler {
 	const ACTION_NAME = 'upgrader_process_complete';
 	const ACTION_ARGS = 2;
 
-	/** @var LoadExistingStringTranslationsForAllStringsCommandInterface */
 	private $loadExistingStringTranslationsForAllStringsCommand;
 
-	/** @var SettingsRepositoryInterface */
 	private $settingsRepository;
 
 	public function __construct(

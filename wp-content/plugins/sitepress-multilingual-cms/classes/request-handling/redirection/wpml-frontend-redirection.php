@@ -1,9 +1,5 @@
 <?php
 
-/**
- *
- * @return  WPML_Redirection
- */
 function _wpml_get_redirect_helper() {
 	global $wpml_url_converter, $wpml_request_handler, $wpml_language_resolution, $sitepress;
 

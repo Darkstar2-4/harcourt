@@ -3,21 +3,14 @@
 class WPML_TP_API_Request {
 	const API_VERSION = 1.1;
 
-	/** @var string */
 	private $url;
 
-	/** @var array */
 	private $params = array( 'api_version' => self::API_VERSION );
 
-	/** @var string */
 	private $method = 'GET';
 
-	/** @var bool */
 	private $has_api_response = true;
 
-	/**
-	 * @param string $url
-	 */
 	public function __construct( $url ) {
 		if ( empty( $url ) ) {
 			throw new InvalidArgumentException( 'Url cannot be empty' );
@@ -25,16 +18,10 @@ class WPML_TP_API_Request {
 		$this->url = $url;
 	}
 
-	/**
-	 * @param array $params
-	 */
 	public function set_params( array $params ) {
 		$this->params = array_merge( $this->params, $params );
 	}
 
-	/**
-	 * @param string $method
-	 */
 	public function set_method( $method ) {
 		if ( ! in_array( $method, array( 'GET', 'POST', 'PUT', 'DELETE', 'HEAD' ), true ) ) {
 			throw new InvalidArgumentException( 'HTTP request method has invalid value' );
@@ -43,16 +30,10 @@ class WPML_TP_API_Request {
 		$this->method = $method;
 	}
 
-	/**
-	 * @param bool $has_api_response
-	 */
 	public function set_has_api_response( $has_api_response ) {
 		$this->has_api_response = (bool) $has_api_response;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_url() {
 		$url = $this->url;
 		if ( $this->get_params() ) {
@@ -65,23 +46,14 @@ class WPML_TP_API_Request {
 		return $url;
 	}
 
-	/**
-	 * @return array
-	 */
 	public function get_params() {
 		return $this->params;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function get_method() {
 		return $this->method;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function has_api_response() {
 		return $this->has_api_response;
 	}
@@ -108,12 +80,6 @@ class WPML_TP_API_Request {
 		return array( $url, $used_params );
 	}
 
-	/**
-	 * @param $params_used_in_path
-	 * @param $url
-	 *
-	 * @return string
-	 */
 	private function add_query_parameters( $params_used_in_path, $url ) {
 		$url .= '?' . preg_replace(
 			'/\%5B\d+\%5D/',

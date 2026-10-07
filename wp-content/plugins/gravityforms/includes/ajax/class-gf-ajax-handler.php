@@ -24,7 +24,7 @@ class GF_Ajax_Handler {
 	 * @since 2.9.0
 	 *
 	 * @deprecated 2.9.9 Use GFAPI::validate_form() instead.
-	 * @remove-in 3.1.0
+	 * @remove-in 4.0
 	 */
 	public function validate_form() {
 
@@ -117,7 +117,12 @@ class GF_Ajax_Handler {
 		$result = \GFAPI::submit_form( $form_id, array(), $field_values, $target_page, $source_page, \GFFormDisplay::SUBMISSION_INITIATED_BY_WEBFORM );
 
 		if ( is_wp_error( $result ) ) {
-			GFCommon::send_json_error( $result->get_error_message() );
+			// If the error is not a form level error, send the error message as a JSON response.
+			if ( $result->get_error_code() !== 'form_level_error' ) {
+				GFCommon::send_json_error( $result->get_error_message() );
+			}
+			// If the error is a form level error, send the form validation result as a JSON response.
+			$result = array( 'is_valid' => false, 'form' => \GFAPI::get_form( $form_id ) );
 		}
 
 		$form = $result['form'];
@@ -139,6 +144,9 @@ class GF_Ajax_Handler {
 
 			// Getting the field markup for the target page if the form is a multipage form.
 			$result['page_markup'] = \GFFormDisplay::get_page( $form_id, $page_number, $field_values, $theme, $style, $submission_method );
+
+			// Ensure the form UUID is maintained on page changes.
+			$result['form_unique_id'] = \GFFormsModel::get_form_unique_id( $form_id );
 		}
 
 		$result['submission_type'] = $this->get_submission_type( $target_page, $source_page );
@@ -196,7 +204,10 @@ class GF_Ajax_Handler {
 
 		\GFFormDisplay::process_send_resume_link();
 
-		$confirmation = \GFFormDisplay::get_form( $form_id, false, false, false, rgpost( 'gform_field_values' ) );
+		$theme = rgpost( 'gform_theme' );
+		$style = rgpost( 'gform_style_settings' );
+
+		$confirmation = \GFFormDisplay::get_form( $form_id, false, false, false, rgpost( 'gform_field_values' ), false, 0, $theme, $style );
 
 		GFCommon::send_json_success(
 			array(

@@ -12,15 +12,6 @@ namespace WPML\Core;
  * file that was distributed with this source code.
  */
 @\trigger_error('The Twig_Function_Function class is deprecated since version 1.12 and will be removed in 2.0. Use \\Twig\\TwigFunction instead.', \E_USER_DEPRECATED);
-/**
- * Represents a function template function.
- *
- * Use \Twig\TwigFunction instead.
- *
- * @author Arnaud Le Blanc <arnaud.lb@gmail.com>
- *
- * @deprecated since 1.12 (to be removed in 2.0)
- */
 class Twig_Function_Function extends \WPML\Core\Twig_Function
 {
     protected $function;

@@ -7,22 +7,14 @@ class WPML_ST_Slug_Translation_UI_Save implements IWPML_Action {
 	const ACTION_HOOK_FOR_POST = 'wpml_save_cpt_sync_settings';
 	const ACTION_HOOK_FOR_TAX  = 'wpml_save_taxonomy_sync_settings';
 
-	/** @var WPML_ST_Slug_Translation_Settings $settings */
 	private $settings;
 
-	/** @var WPML_Slug_Translation_Records $records */
 	private $records;
 
-	/** @var SitePress $sitepress */
 	private $sitepress;
 
-	/** @var IWPML_WP_Element_Type $wp_element_type */
 	private $wp_element_type;
 
-	/**
-	 * @var string $action_hook either WPML_ST_Slug_Translation_UI_Save::ACTION_HOOK_FOR_POST
-	 *                          or WPML_ST_Slug_Translation_UI_Save::ACTION_HOOK_FOR_TAX
-	 */
 	private $action_hook;
 
 	public function __construct(
@@ -58,11 +50,6 @@ class WPML_ST_Slug_Translation_UI_Save implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	private function sanitize_translate_slug_data( array $data ) {
 		$data['original'] = Sanitize::stringProp( 'original', $data );
 
@@ -85,11 +72,6 @@ class WPML_ST_Slug_Translation_UI_Save implements IWPML_Action {
 		return false;
 	}
 
-	/**
-	 * @param array $data
-	 *
-	 * @return array
-	 */
 	private function get_slug_translations( array $data ) {
 		$slugs              = $data['langs'];
 		$original_slug_lang = $data['original'];
@@ -97,10 +79,6 @@ class WPML_ST_Slug_Translation_UI_Save implements IWPML_Action {
 		return $slugs;
 	}
 
-	/**
-	 * @param string $type
-	 * @param array  $data
-	 */
 	private function update_slug_translations( $type, array $data ) {
 		$string = $this->records->get_slug_string( $type );
 
@@ -136,31 +114,16 @@ class WPML_ST_Slug_Translation_UI_Save implements IWPML_Action {
 		}
 	}
 
-	/**
-	 * @param string $type
-	 *
-	 * @return null|WPML_ST_String
-	 */
 	private function register_string_if_not_exit( $type ) {
 		$slug = $this->get_registered_slug( $type );
 		$this->records->register_slug( $type, $slug );
 		return $this->records->get_slug_string( $type );
 	}
 
-	/**
-	 * @param string $slug
-	 *
-	 * @return string
-	 */
 	private function sanitize_slug( $slug ) {
 		return implode( '/', array_map( array( 'WPML_Slug_Translation', 'sanitize' ), explode( '/', $slug ) ) );
 	}
 
-	/**
-	 * @param string $type_name
-	 *
-	 * @return string
-	 */
 	private function get_registered_slug( $type_name ) {
 		$wp_element = $this->wp_element_type->get_wp_element_type_object( $type_name );
 		return $wp_element ? trim( $wp_element->rewrite['slug'], '/' ) : false;

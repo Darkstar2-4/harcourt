@@ -3,7 +3,9 @@
 Plugin Name: Gravity Forms reCAPTCHA Add-On
 Plugin URI: https://gravityforms.com
 Description: Enhance Gravity Forms with support for Google reCAPTCHA.
-Version: 2.0.0
+Version: 2.2.2
+Requires at least: 6.5
+Requires PHP: 7.4
 Author: Gravity Forms
 Author URI: https://gravityforms.com
 License: GPL-3.0+
@@ -11,7 +13,7 @@ Text Domain: gravityformsrecaptcha
 Domain Path: /languages
 
 ------------------------------------------------------------------------
-Copyright 2023-2025 Rocketgenius Inc.
+Copyright 2023-2026 Rocketgenius Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,10 +35,10 @@ defined( 'ABSPATH' ) || die();
 use Gravity_Forms\Gravity_Forms_RECAPTCHA\GF_RECAPTCHA;
 
 // Defines the current version of the Gravity Forms Recaptcha Add-On.
-define( 'GF_RECAPTCHA_VERSION', '2.0.0' );
+define( 'GF_RECAPTCHA_VERSION', '2.2.2' );
 
 // Defines the minimum version of Gravity Forms required to run Gravity Forms Recaptcha Add-On.
-define( 'GF_RECAPTCHA_MIN_GF_VERSION', '2.5-rc-1' );
+define( 'GF_RECAPTCHA_MIN_GF_VERSION', '2.9.5' );
 
 // After Gravity Forms is loaded, load the Add-On.
 add_action( 'gform_loaded', array( 'GF_RECAPTCHA_Bootstrap', 'load_addon' ), 5 );

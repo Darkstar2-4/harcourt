@@ -1,6 +1,6 @@
 <?php
 require_once "scs_header.php";
-$forms->title("Product Search";
+$forms->title("Product Search");
 
 $menu->head();
 print $forms->message();

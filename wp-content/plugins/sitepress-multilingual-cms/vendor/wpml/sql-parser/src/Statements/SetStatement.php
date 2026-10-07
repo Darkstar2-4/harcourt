@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `SET` statement.
- */
 
 namespace PhpMyAdmin\SqlParser\Statements;
 
@@ -19,13 +16,6 @@ use PhpMyAdmin\SqlParser\Statement;
  */
 class SetStatement extends Statement
 {
-    /**
-     * The clauses of this statement, in order.
-     *
-     * @see Statement::$CLAUSES
-     *
-     * @var array
-     */
     public static $CLAUSES = array(
         'SET' => array(
             'SET',
@@ -37,11 +27,6 @@ class SetStatement extends Statement
         )
     );
 
-    /**
-     * Possible exceptions in SET statment.
-     *
-     * @var array
-     */
     public static $OPTIONS = array(
         'CHARSET' => array(
             3,
@@ -77,32 +62,12 @@ class SetStatement extends Statement
         'DEFAULT' => 1
     );
 
-    /**
-     * Options used in current statement.
-     *
-     * @var OptionsArray[]
-     */
     public $options;
 
-    /**
-     * The end options of this query.
-     *
-     * @var OptionsArray
-     *
-     * @see static::$END_OPTIONS
-     */
     public $end_options;
 
-    /**
-     * The updated values.
-     *
-     * @var SetOperation[]
-     */
     public $set;
 
-    /**
-     * @return string
-     */
     public function build()
     {
         $ret = 'SET ' . OptionsArray::build($this->options)

@@ -3,27 +3,9 @@
 use function WPML\Container\make;
 use WPML\TM\ATE\ReturnedJobs;
 
-/**
- * Factory class for \WPML_TM_ATE_Jobs_Actions.
- *
- * @package wpml\tm
- *
- * @author  OnTheGo Systems
- */
 class WPML_TM_ATE_Jobs_Actions_Factory implements IWPML_Backend_Action_Loader, \IWPML_REST_Action_Loader {
-	/**
-	 * The instance of \WPML_Current_Screen.
-	 *
-	 * @var WPML_Current_Screen
-	 */
 	private $current_screen;
 
-	/**
-	 * It returns an instance of \WPML_TM_ATE_Jobs_Actions or null if ATE is not enabled and active.
-	 *
-	 * @return \WPML_TM_ATE_Jobs_Actions|null
-	 * @throws \Auryn\InjectionException
-	 */
 	public function create() {
 		$ams_ate_factories = wpml_tm_ams_ate_factories();
 
@@ -51,22 +33,12 @@ class WPML_TM_ATE_Jobs_Actions_Factory implements IWPML_Backend_Action_Loader, \
 		return null;
 	}
 
-	/**
-	 * The global instance of \Sitepress.
-	 *
-	 * @return SitePress
-	 */
 	private function get_sitepress() {
 		global $sitepress;
 
 		return $sitepress;
 	}
 
-	/**
-	 * It gets the instance of \WPML_Current_Screen.
-	 *
-	 * @return \WPML_Current_Screen
-	 */
 	private function get_current_screen() {
 		if ( ! $this->current_screen ) {
 			$this->current_screen = new WPML_Current_Screen();

@@ -20,18 +20,6 @@ class Option {
 	const SHOULD_SHOW_HANDLE_MEDIA_AUTO_NOTICE_30_DAYS_AFTER_UPGRADE = 'should_show_handle_media_auto_notice_30_days_after_upgrade';
 	const IS_ADMIN_NOTICE_FOR_ELEMENTOR_ON_MT_HOMEPAGE_DISMISSED = 'is_admin_notice_for_elementor_on_mt_homepage_dismissed';
 
-	/**
-	 * This makes sure that the option '_wpml_media' is written to the database.
-	 * This is required because after the WPML setup there are parallel ajax calls,
-	 * which can lead having the '_wpml_media' in the WP "notoptions" cache key, while
-	 * the set options call ran in a parallel and writes when "notoptions" isn't set,
-	 * so it never gets cleared. In that case the "Calculation..." of automatic
-	 * translation will never start as the media setup does not finish.
-	 *
-	 * Note: This only happens when persistent object caching (Redis) is active.
-	 *
-	 * @return void
-	 */
 	public static function prepareSetup() {
 		$option = WPOption::getOr( self::OPTION_KEY, false );
 		if ( $option === false ) {
@@ -47,12 +35,6 @@ class Option {
 		self::set( self::SETUP_FINISHED, $setupFinished );
 	}
 
-	/**
-	 * It gets default setting for new content creation.
-	 * It determines if media should be translated, duplicated or not.
-	 *
-	 * @return array{always_translate_media: bool, duplicate_media: bool, duplicate_featured: bool}
-	 */
 	public static function getNewContentSettings() {
 		$data = self::get( 'new_content_settings', [
 			'always_translate_media' => true,
@@ -67,11 +49,6 @@ class Option {
 		], $data );
 	}
 
-	/**
-	 * @param array{always_translate_media: bool, duplicate_media: bool, duplicate_featured: bool} $settings
-	 *
-	 * @return void
-	 */
 	public static function setNewContentSettings( array $settings ) {
 		$settings = Obj::pick( [ 'always_translate_media', 'duplicate_media', 'duplicate_featured' ], $settings );
 		$settings = Obj::evolve( [
@@ -83,12 +60,6 @@ class Option {
 		self::set( 'new_content_settings', $settings );
 	}
 
-	/**
-	 * @param int $postId
-	 * @param bool $useGlobalSettings
-	 *
-	 * @return bool|null
-	 */
 	public static function shouldDuplicateMedia( $postId, $useGlobalSettings = true ) {
 		if ( self::shouldHandleMediaAuto() ) {
 			return false;
@@ -108,12 +79,6 @@ class Option {
 		return (bool) $individualValue;
 	}
 
-	/**
-	 * @param int $postId
-	 * @param bool $useGlobalSettings
-	 *
-	 * @return bool|null
-	 */
 	public static function shouldDuplicateFeatured( $postId, $useGlobalSettings = true ) {
 		if ( self::shouldHandleMediaAuto() ) {
 			return false;
@@ -133,50 +98,26 @@ class Option {
 		return (bool) $individualValue;
 	}
 
-	/**
-	 * @param int $postId
-	 * @param bool $flag
-	 */
 	public static function setDuplicateMediaForIndividualPost( $postId, $flag ) {
 		Post::updateMeta( $postId, self::DUPLICATE_MEDIA_KEY, $flag ? 1 : 0 );
 	}
 
-	/**
-	 * @param int $postId
-	 * @param bool $flag
-	 */
 	public static function setDuplicateFeaturedForIndividualPost( $postId, $flag ) {
 		Post::updateMeta( $postId, self::DUPLICATE_FEATURED_KEY, $flag ? 1 : 0 );
 	}
 
-	/**
-	 * @param bool $flag
-	 *
-	 * @return void
-	 */
 	public static function setTranslateMediaLibraryTexts( $flag ) {
 		self::set( 'translate_media_library_texts', (bool) $flag );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function getTranslateMediaLibraryTexts() {
 		return (bool) self::get( 'translate_media_library_texts', false );
 	}
 
-	/**
-	 * @param bool $flag
-	 *
-	 * @return void
-	 */
 	public static function setShouldHandleMediaAuto( $flag ) {
 		self::set( self::SHOULD_HANDLE_MEDIA_AUTO_KEY, (bool) $flag );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public static function shouldHandleMediaAuto() {
 		return (bool) self::get( self::SHOULD_HANDLE_MEDIA_AUTO_KEY, false );
 	}
@@ -205,23 +146,14 @@ class Option {
 		self::remove( self::IS_ADMIN_NOTICE_FOR_ELEMENTOR_ON_MT_HOMEPAGE_DISMISSED );
 	}
 
-	/**
-	 * @return boolean
-	 */
 	public static function shouldShowHandleMediaAutoBannerAfterUpgrade() {
 		return self::get( self::SHOULD_SHOW_HANDLE_MEDIA_AUTO_BANNER_AFTER_UPGRADE, null ) !== null;
 	}
 
-	/**
-	 * @return boolean
-	 */
 	public static function isAdminNoticeForElementorOnMtHomepageDismissed() {
 		return self::get( self::IS_ADMIN_NOTICE_FOR_ELEMENTOR_ON_MT_HOMEPAGE_DISMISSED, null ) !== null;
 	}
 
-	/**
-	 * @return boolean
-	 */
 	public static function shouldShowHandleMediaAutoNotice30DaysAfterUpgrade() {
 		$startTime = self::get( self::SHOULD_SHOW_HANDLE_MEDIA_AUTO_NOTICE_30_DAYS_AFTER_UPGRADE, null );
 		if ( is_null( $startTime ) ) {
@@ -244,9 +176,6 @@ class Option {
 		WPOption::updateWithoutAutoLoad( self::OPTION_KEY, $data );
 	}
 
-	/**
-	 * @param string $name
-	 */
 	private static function remove( $name ) {
 		$data = WPOption::getOr( self::OPTION_KEY, [] );
 		unset( $data[ $name ] );

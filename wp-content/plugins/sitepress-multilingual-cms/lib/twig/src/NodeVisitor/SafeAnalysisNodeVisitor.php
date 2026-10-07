@@ -21,9 +21,6 @@ use WPML\Core\Twig\Node\Expression\MethodCallExpression;
 use WPML\Core\Twig\Node\Expression\NameExpression;
 use WPML\Core\Twig\Node\Expression\ParentExpression;
 use WPML\Core\Twig\Node\Node;
-/**
- * @final
- */
 class SafeAnalysisNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVisitor
 {
     protected $data = [];
@@ -68,20 +65,15 @@ class SafeAnalysisNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVi
     protected function doLeaveNode(\WPML\Core\Twig\Node\Node $node, \WPML\Core\Twig\Environment $env)
     {
         if ($node instanceof \WPML\Core\Twig\Node\Expression\ConstantExpression) {
-            // constants are marked safe for all
             $this->setSafe($node, ['all']);
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\BlockReferenceExpression) {
-            // blocks are safe by definition
             $this->setSafe($node, ['all']);
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\ParentExpression) {
-            // parent block is safe by definition
             $this->setSafe($node, ['all']);
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\ConditionalExpression) {
-            // intersect safeness of both operands
             $safe = $this->intersectSafe($this->getSafe($node->getNode('expr2')), $this->getSafe($node->getNode('expr3')));
             $this->setSafe($node, $safe);
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\FilterExpression) {
-            // filter expression is safe when the filter is safe
             $name = $node->getNode('filter')->getAttribute('value');
             $args = $node->getNode('arguments');
             if (\false !== ($filter = $env->getFilter($name))) {
@@ -94,7 +86,6 @@ class SafeAnalysisNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVi
                 $this->setSafe($node, []);
             }
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\FunctionExpression) {
-            // function expression is safe when the function is safe
             $name = $node->getAttribute('name');
             $args = $node->getNode('arguments');
             $function = $env->getFunction($name);
@@ -111,7 +102,6 @@ class SafeAnalysisNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVi
             }
         } elseif ($node instanceof \WPML\Core\Twig\Node\Expression\GetAttrExpression && $node->getNode('node') instanceof \WPML\Core\Twig\Node\Expression\NameExpression) {
             $name = $node->getNode('node')->getAttribute('name');
-            // attributes on template instances are safe
             if ('_self' == $name || \in_array($name, $this->safeVars)) {
                 $this->setSafe($node, ['all']);
             } else {
@@ -122,7 +112,7 @@ class SafeAnalysisNodeVisitor extends \WPML\Core\Twig\NodeVisitor\AbstractNodeVi
         }
         return $node;
     }
-    protected function intersectSafe(array $a = null, array $b = null)
+    protected function intersectSafe(?array $a = null, ?array $b = null)
     {
         if (null === $a || null === $b) {
             return [];

@@ -5,6 +5,7 @@ namespace WPML;
 use WPML\UserInterface\Web\Core\Component\ATE\Application\Endpoint\GetWebsiteContext\GetWebsiteContextController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\DashboardController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\DashboardRequirements;
+use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\AutomaticTranslation\CancelAllAutomaticJobsController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetCredits\GetCreditsController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetHierarchicalPosts\GetHierarchicaPostsController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetLocalTranslatorById\GetTranslatorByIdController;
@@ -20,7 +21,8 @@ use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetTran
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetTranslationStatus\GetTranslationStatusController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetUntranslatedTypesCount\GetUntranslatedTypesCountController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetWordsToTranslate\GetCreditsPerWordController;
-use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetWordsToTranslate\GetWordsToTranslateController;
+use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetWordsToTranslate\GetWordsToTranslateForItemsController;
+use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\GetWordsToTranslate\GetWordsToTranslateForTypesController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\HasPostsUsingNativeEditor\HasPostsUsingNativeEditorController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\SaveTranslatorNote\SaveTranslatorNoteController;
 use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\SendToTranslation\SendToTranslationController;
@@ -36,62 +38,13 @@ use WPML\UserInterface\Web\Core\Component\Dashboard\Application\Endpoint\Validat
 use WPML\UserInterface\Web\Core\Component\Preferences\Application\AutomaticTranslationsSectionController;
 use WPML\UserInterface\Web\Core\Component\Preferences\Application\Endpoint\GetEngines\GetEnginesController;
 use WPML\UserInterface\Web\Core\Component\Preferences\Application\Endpoint\SaveAutomaticTranslationsSettings\SaveAutomaticTranslationsSettingsController;
+use WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\Endpoint\EnableAliasDomainController;
+use WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\Endpoint\RegisterAliasDomainController;
+use WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\Endpoint\ResetAliasDomainController;
 use WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\Endpoint\UpdatePostHogStateController;
 use WPML\UserInterface\Web\Core\Component\Troubleshooting\Application\TroubleshootingController;
 use WPML\UserInterface\Web\Core\SharedKernel\Config\Endpoint\MethodType;
 
-/**
- * Page properties
- * - [arrayKey]                 Id of the page.
- *  - parentId (optional)       To create a sub page.
- *  - legacyParentId (optional) To create a sub page in a legacy menu.
- *  - title (optional)          Title of the page.
- *                              Default: ''
- *  - controller (optional)     Classname of the page controller.
- *                              The controller can take over specific tasks by
- *                              implementing one of the following interfaces:
- *                                - PageRenderInterface
- *                                - PageConfigUserInterface
- *                                - PageRequirementsInterface
- *                              Can be extended by adding further interfaces
- *                              src/UserInterface/Web/Core/SharedKernel/Config/*
- *  - requirements (optional)   Classname to specify the page loading requirements.
- *                              It must implement PageRequirementsInterface.
- *  - menuTitle (optional)      Title of the menu item.
- *                              Default: [value of title]
- *  - capability (optional)     Capability string... see constants WPML_CAP_*
- *                              Default: WPML_CAP_MANAGE_TRANSLATIONS
- *  - legacyExtension(optional) Name of action to load the page scripts, styles and endpoints.
- *                              WARNING: This will disable the page and page menu registration.
- *  - scripts (optional)        Array of scripts or single script.
- *   - id (optional)            Script id, if not set the page id is used.
- *   - src                      Script source path. Start with 'public/js/...'.
- *   - dependencies (optional)  Array of script dependencies.
- *   - prerequisites (optional) Classname of script prerequisites
- *                              (must implement ScriptPrerequisitesInterface).
- *   - dataProvider (optional)  Classname of data provider
- *                              (must implement ScriptDataProviderInterface).
- *  - styles (optional)         Array of styles or single style.
- *                              Can also just be a string (for src).
- *   - id (optional)            Style id, if not set the page id is used.
- *   - src                      Style source path. Start with 'public/css/...'.
- *   - dependencies (optional)  Array of style dependencies.
- *  - endpoints
- *   - [arrayKey]               Id of the endpoint.
- *    - handler                 Classname of endpoint handler.
- *    - params
- *      [arrayKey]              id of param
- *      [arrayValue]            value type of param
- *
- * Endpoint properties
- * - [arrayKey]                 Id of the endpoint.
- *  - path                      Url path to the endpoint.
- *  - method                    MethodType::* (GET, POST, PUT, DELETE)
- *                              Default: MethodType::GET
- *  - handler                   Classname of endpoint handler.
- *  - capability (optional)     Interface of capability
- *                              Page capability is used if not set.
- */
 return [
   'sitepress-multilingual-cms/menu/troubleshooting.php' => [
     'controller'                     => TroubleshootingController::class,
@@ -120,9 +73,24 @@ return [
         'method'  => MethodType::POST,
         'handler' => UpdatePostHogStateController::class,
       ],
+      'enablealiasdomain' => [
+        'path'    => '/troubleshooting/enable-alias-domain',
+        'method'  => MethodType::POST,
+        'handler' => EnableAliasDomainController::class,
+      ],
+      'registeraliasdomain' => [
+        'path'    => '/troubleshooting/register-alias-domain',
+        'method'  => MethodType::POST,
+        'handler' => RegisterAliasDomainController::class,
+      ],
+      'resetaliasdomain' => [
+        'path'    => '/troubleshooting/reset-alias-domain',
+        'method'  => MethodType::POST,
+        'handler' => ResetAliasDomainController::class,
+      ],
     ],
   ],
-  'tm/menu/main.php'                          => [ // Keeping the old id 'tm/menu/main.php' as long as not all tabs are migrated from legacy.
+  'tm/menu/main.php'                          => [
     'title' => __( 'Translation Dashboard', 'wpml' ),
 
     'controller' => DashboardController::class,
@@ -133,16 +101,16 @@ return [
     'requirements'                   => DashboardRequirements::class,
     'requiresWPMLSetupToBeCompleted' => true,
 
-    // If more than one script is needed a multi array can be used.
     'scripts'                        => [
       [
         'id'            => 'wpml-dashboard',
         'src'           => 'public/js/dashboard.js',
         'prerequisites' => DashboardController::class,
         'dataProvider'  => DashboardController::class,
-        'dependencies'  => [ 'wpml-node-modules', 'wp-i18n', 'lodash' ]
+        'dependencies'  => [ 'wpml-node-modules', 'wp-i18n', 'lodash' ],
+        'supportsHMR'   => true,
       ],
-      [ // Move 'wpml-notice-glossary' to config-admin-notices.php
+      [
         'id'            => 'wpml-notice-glossary',
         'src'           => 'public/js/notice-glossary.js',
         'prerequisites' => DashboardController::class,
@@ -150,14 +118,11 @@ return [
       ],
     ],
 
-    // If there is only one style for the page and it has no
-    // dependencies, it can be defined simply like this:
     'styles'                         => [
       'src'          => 'public/css/dashboard.css',
       'dependencies' => [ 'otgs-icons' ]
     ],
 
-    // Endpoints only used by this page.
     'endpoints'                      => [
       'getpopulateditemsections'       => [
         'path'    => '/item-sections/populated',
@@ -219,6 +184,12 @@ return [
         'handler' => DisableController::class,
         'method'  => 'POST',
       ],
+      'cancelallautomaticjobs'     => [
+        'path'    => '/cancelallautomaticjobs',
+        'handler' => CancelAllAutomaticJobsController::class,
+        'method'  => 'GET',
+      ],
+
       'getuntranslatedtypescount'      => [
         'path'    => '/getuntranslatedtypescount',
         'handler' => GetUntranslatedTypesCountController::class,
@@ -295,15 +266,20 @@ return [
         'handler' => HasPostsUsingNativeEditorController::class,
         'method'  => 'GET',
       ],
-      'getcreditstotranslate' => [
-        'path'    => '/get-credits-to-translate',
-        'handler' => GetWordsToTranslateController::class,
-        'method'  => 'POST',
-      ],
       'getcreditsperword' => [
         'path'    => '/get-credits-per-word',
         'handler' => GetCreditsPerWordController::class,
         'method'  => 'GET',
+      ],
+      'getwordstotranslateforitems' => [
+        'path'    => '/get-words-to-translate-for-items',
+        'handler' => GetWordsToTranslateForItemsController::class,
+        'method'  => 'POST',
+      ],
+      'getwordstotranslatefortypes' => [
+        'path'    => '/get-words-to-translate-for-types',
+        'handler' => GetWordsToTranslateForTypesController::class,
+        'method'  => 'POST',
       ],
     ],
   ],

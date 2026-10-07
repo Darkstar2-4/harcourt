@@ -1,28 +1,28 @@
-# Copyright (C) 2025 Alan Fuller
+# Copyright (C) 2026 Alan Fuller
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Stop WP Emails Going to Spam 2.2\n"
+"Project-Id-Version: Stop WP Emails Going to Spam 2.2.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/stop-wp-emails-going-to-spam\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-02-26T19:49:56+00:00\n"
+"POT-Creation-Date: 2026-09-03T15:28:39+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.10.0\n"
+"X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: stop-wp-emails-going-to-spam\n"
 
 #. Plugin Name of the plugin
 #: stop-wp-emails-going-to-spam.php
-#: admin/class-admin-settings.php:39
+#: admin/class-admin-settings.php:45
 msgid "Stop WP Emails Going to Spam"
 msgstr ""
 
 #. Plugin URI of the plugin
 #: stop-wp-emails-going-to-spam.php
-msgid "http://fullworks.net/wordpress-plugins/stop-wp-emails-going-to-spam/"
+msgid "https://fullworksplugins.com/products/stop-wp-emails-going-to-spam/"
 msgstr ""
 
 #. Description of the plugin
@@ -37,34 +37,34 @@ msgstr ""
 
 #. Author URI of the plugin
 #: stop-wp-emails-going-to-spam.php
-msgid "http://fullworks.net/"
+msgid "https://fullworksplugins.com/"
 msgstr ""
 
 #: admin/class-admin-pages.php:77
 msgid "Are you sure want to do this?"
 msgstr ""
 
-#: admin/class-admin-pages.php:163
+#: admin/class-admin-pages.php:164
 msgid "Save Options"
 msgstr ""
 
-#: admin/class-admin-pages.php:187
+#: admin/class-admin-pages.php:188
 msgid "Save"
 msgstr ""
 
-#: admin/class-admin-pages.php:198
+#: admin/class-admin-pages.php:199
 msgid "Settings reset to defaults."
 msgstr ""
 
-#: admin/class-admin-settings.php:104
+#: admin/class-admin-settings.php:102
 msgid "Information"
 msgstr ""
 
-#: admin/class-admin-settings.php:112
+#: admin/class-admin-settings.php:110
 msgid "Sending Health Check"
 msgstr ""
 
-#: admin/class-admin-settings.php:120
+#: admin/class-admin-settings.php:118
 msgid "Envelope Sender"
 msgstr ""
 
@@ -110,6 +110,7 @@ msgstr ""
 
 #. translators:  leave the @%s  as in noreply@%s
 #: admin/class-admin-settings.php:202
+#, php-format
 msgid "You can use an email like noreply@%s, but make sure the email account exists."
 msgstr ""
 
@@ -147,6 +148,7 @@ msgstr ""
 
 #. translators:  leave &lt;wordpress@%s&gt;
 #: admin/class-admin-settings.php:270
+#, php-format
 msgid "WordPress default system messages come from an account WordPress &lt;wordpress@%s&gt;  you can control that with the following settings"
 msgstr ""
 
@@ -255,6 +257,6 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: stop-wp-emails-going-to-spam.php:79
+#: stop-wp-emails-going-to-spam.php:70
 msgid "Cannot execute as the plugin already exists"
 msgstr ""

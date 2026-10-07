@@ -2,7 +2,6 @@
 
 class WPML_TM_Default_Settings implements IWPML_Action {
 
-	/** @var TranslationManagement */
 	private $tm;
 
 	public function __construct( TranslationManagement $tm ) {
@@ -34,41 +33,22 @@ class WPML_TM_Default_Settings implements IWPML_Action {
 		$this->maybe_update_notification( 'purge-old', 7 );
 	}
 
-	/**
-	 * @param string $key
-	 * @param mixed  $default
-	 *
-	 * @return bool
-	 */
 	private function get_notification( $key, $default = null ) {
 		return isset( $this->tm->settings['notification'][ $key ] )
 			? $this->tm->settings['notification'][ $key ]
 			: $default;
 	}
 
-	/**
-	 * @param string $key
-	 *
-	 * @return bool
-	 */
 	private function has_notification( $key ) {
 		return isset( $this->tm->settings['notification'][ $key ] );
 	}
 
-	/**
-	 * @param string $key
-	 * @param mixed  $value
-	 */
 	private function maybe_update_notification( $key, $value ) {
 		if ( ! $this->has_notification( $key ) ) {
 			$this->update_notification( $key, $value );
 		}
 	}
 
-	/**
-	 * @param string $key
-	 * @param mixed  $value
-	 */
 	private function update_notification( $key, $value ) {
 		$this->tm->settings['notification'][ $key ] = $value;
 	}

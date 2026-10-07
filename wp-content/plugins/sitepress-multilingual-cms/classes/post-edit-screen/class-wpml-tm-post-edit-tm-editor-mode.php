@@ -13,17 +13,6 @@ class WPML_TM_Post_Edit_TM_Editor_Mode {
 	const TM_KEY_FOR_POST_TYPE_USE_WPML = 'post_translation_editor_wpml_for_post_type';
 	const TM_KEY_GLOBAL_USE_WPML        = 'post_translation_editor_wpml';
 
-	/**
-	 * Check post meta first
-	 * Then check setting for post type
-	 * Then finally check global setting
-	 *
-	 * @param mixed $deprecated (Deprecated) There is no need to pass `SitePress` instance.
-	 * @param int $post_id
-	 * @param bool $should_find_original_id (Optional) If not passing original ID, it will be found. Default: true
-	 *
-	 * @return bool
-	 */
 	public static function is_using_tm_editor( $deprecated, $post_id, $should_find_original_id = true ) {
 		if ( $should_find_original_id ) {
 			$original_id = (int) Translations::getOriginalId( $post_id, 'post_' . get_post_type( $post_id ) );
@@ -49,11 +38,6 @@ class WPML_TM_Post_Edit_TM_Editor_Mode {
 		return ! $tm_settings[ self::TM_KEY_GLOBAL_USE_NATIVE ];
 	}
 
-	/**
-	 * @param string $post_type (Optional) Provide post type to check against it or empty for global setting.
-	 *
-	 * @return bool
-	 */
 	public static function is_post_type_using_wp_editor( $post_type = '' ) : bool {
 		$tm_settings = self::init_settings();
 
@@ -64,12 +48,6 @@ class WPML_TM_Post_Edit_TM_Editor_Mode {
 		return (bool) $tm_settings[ self::TM_KEY_GLOBAL_USE_NATIVE ] ?? false;
 	}
 
-	/**
-	 * @param mixed $deprecated (Deprecated) There is no need to pass `SitePress` instance.
-	 * @param int $postId
-	 *
-	 * @return array
-	 */
 	public static function get_editor_settings( $deprecated, $postId ) {
 		$useTmEditor = \WPML_TM_Post_Edit_TM_Editor_Mode::is_using_tm_editor( null, $postId );
 		$useTmEditor = apply_filters( 'wpml_use_tm_editor', $useTmEditor, $postId );
@@ -91,38 +69,13 @@ class WPML_TM_Post_Edit_TM_Editor_Mode {
 		];
 	}
 
-	/**
-	 * @param array $postIds list of post ids that should be checked is blocked.
-	 *
-	 * @return array list of post ids that are blocked and the reason why they are blocked.
-	 */
 	public static function get_blocked_posts( $postIds ) {
-		/**
-		 * Returns the editor settings for the posts - is the WPML editor blocked, and if so, why.
-		 *
-		 * Filter returns an array of: the reason why its blocked indexed by the post ID.
-		 *
-		 * @since 4.6.0
-		 *
-		 * @param array $defaultParams The default parameters that should be returned
-		 * @param array $postIds An array of post IDs
-		 */
 		return apply_filters( 'wpml_tm_editor_exclude_posts', [], $postIds );
 	}
 
-	/**
-	 * @return array
-	 */
 	private static function init_settings() {
 		$tm_settings = Settings::get( 'translation-management', [] );
 
-		/**
-		 * Until a user explicitly change the settings through
-		 * the switcher ( @see WPML_TM_Post_Edit_TM_Editor_Select::save_mode ),
-		 * we'll set it by default at run time:
-		 * - Native editor set to true if using the manual method
-		 * - Native editor set to false otherwise
-		 */
 		if ( ! isset( $tm_settings['post_translation_editor_native'] ) ) {
 			if ( ( (string) ICL_TM_TMETHOD_MANUAL === (string) $tm_settings['doc_translation_method'] ) ) {
 				$tm_settings['post_translation_editor_native'] = true;
@@ -138,9 +91,6 @@ class WPML_TM_Post_Edit_TM_Editor_Mode {
 		return $tm_settings;
 	}
 
-	/**
-	 * @param null|string $post_type
-	 */
 	public static function delete_all_posts_option( $post_type = null ) {
 		global $wpdb;
 

@@ -42,7 +42,7 @@ abstract class Next_Gen_Transform implements Transform {
 		$this->transform_elements( $page->get_elements() );
 	}
 
-	private function add_fallback_attribute( Element $element ) {
+	private function add_fallback_attribute( $element ) {
 		$fallback_values = array();
 
 		foreach ( $element->get_image_attributes() as $fallback_attribute ) {
@@ -105,7 +105,7 @@ abstract class Next_Gen_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function transform_element( Element $element ) {
+	private function transform_element( $element ) {
 		$this->transform_image_element_attributes( $element );
 
 		$this->transform_image_element_css_properties( $element );
@@ -120,7 +120,7 @@ abstract class Next_Gen_Transform implements Transform {
 	 *
 	 * @return void
 	 */
-	private function transform_elements( array $elements ) {
+	private function transform_elements( $elements ) {
 		foreach ( $elements as $element ) {
 			$this->transform_element( $element );
 		}

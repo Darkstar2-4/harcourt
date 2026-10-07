@@ -1,8 +1,5 @@
 <?php
 
-/**
- * `LIMIT` keyword parser.
- */
 
 namespace PhpMyAdmin\SqlParser\Components;
 
@@ -20,39 +17,16 @@ use PhpMyAdmin\SqlParser\TokensList;
  */
 class Limit extends Component
 {
-    /**
-     * The number of rows skipped.
-     *
-     * @var int
-     */
     public $offset;
 
-    /**
-     * The number of rows to be returned.
-     *
-     * @var int
-     */
     public $rowCount;
 
-    /**
-     * Constructor.
-     *
-     * @param int $rowCount the row count
-     * @param int $offset   the offset
-     */
     public function __construct($rowCount = 0, $offset = 0)
     {
         $this->rowCount = $rowCount;
         $this->offset = $offset;
     }
 
-    /**
-     * @param Parser     $parser  the parser that serves as context
-     * @param TokensList $list    the list of tokens that are being parsed
-     * @param array      $options parameters for parsing
-     *
-     * @return Limit
-     */
     public static function parse(Parser $parser, TokensList $list, array $options = array())
     {
         $ret = new self();
@@ -60,19 +34,12 @@ class Limit extends Component
         $offset = false;
 
         for (; $list->idx < $list->count; ++$list->idx) {
-            /**
-             * Token parsed at this moment.
-             *
-             * @var Token
-             */
             $token = $list->tokens[$list->idx];
 
-            // End of statement.
             if ($token->type === Token::TYPE_DELIMITER) {
                 break;
             }
 
-            // Skipping whitespaces and comments.
             if (($token->type === Token::TYPE_WHITESPACE) || ($token->type === Token::TYPE_COMMENT)) {
                 continue;
             }
@@ -95,7 +62,6 @@ class Limit extends Component
                 continue;
             }
 
-            // Skip if not a number
             if (($token->type !== Token::TYPE_NUMBER)) {
                 break;
             }
@@ -120,12 +86,6 @@ class Limit extends Component
         return $ret;
     }
 
-    /**
-     * @param Limit $component the component to be built
-     * @param array $options   parameters for building
-     *
-     * @return string
-     */
     public static function build($component, array $options = array())
     {
         return $component->offset . ', ' . $component->rowCount;

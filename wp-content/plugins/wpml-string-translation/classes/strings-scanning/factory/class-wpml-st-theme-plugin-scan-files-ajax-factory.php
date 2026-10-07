@@ -5,7 +5,6 @@ class WPML_ST_Theme_Plugin_Scan_Files_Ajax_Factory extends WPML_AJAX_Base_Factor
 	const AJAX_ACTION = 'wpml_st_scan_chunk';
 	const NONCE       = 'wpml-scan-files-nonce';
 
-	/** @return null|WPML_ST_Theme_Plugin_Scan_Files_Ajax */
 	public function create() {
 		$hooks        = null;
 		$scan_factory = '';

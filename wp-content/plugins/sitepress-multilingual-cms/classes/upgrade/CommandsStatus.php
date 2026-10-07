@@ -5,29 +5,15 @@ namespace WPML\Upgrade;
 class CommandsStatus {
 	const OPTION_KEY = 'wpml_update_statuses';
 
-	/**
-	 * @param string $className
-	 *
-	 * @return bool
-	 */
 	public function hasBeenExecuted( $className ) {
 		return (bool) $this->get_update_option_value( $this->get_command_id( $className ) );
 	}
 
-	/**
-	 * @param string $className
-	 * @param bool   $flag
-	 */
 	public function markAsExecuted( $className, $flag = true ) {
 		$this->set_update_status( $this->get_command_id( $className ), $flag );
 		wp_cache_flush();
 	}
 
-	/**
-	 * @param string $className
-	 *
-	 * @return string
-	 */
 	private function get_command_id( $className ) {
 		return str_replace( '_', '-', strtolower( $className ) );
 	}

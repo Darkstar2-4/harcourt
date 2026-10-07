@@ -17,12 +17,6 @@ class TranslationJobImages implements \IWPML_Frontend_Action, \IWPML_Backend_Act
 			->then( spreadArgs( Lst::append( '/Image-(\d+)-\d+$/' ) ) );
 	}
 
-	/**
-	 * @param string $title
-	 * @param array  $shortcode
-	 *
-	 * @return string
-	 */
 	public function filterStringTitle( $title, $shortcode ) {
 		$atts = shortcode_parse_atts( '[dummy ' . $shortcode['attributes'] . ']' );
 		if ( isset( $atts['image_id'] ) && Groups::isGroupLabel( $title ) ) {

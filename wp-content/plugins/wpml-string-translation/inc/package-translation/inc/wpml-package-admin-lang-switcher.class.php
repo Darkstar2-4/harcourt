@@ -46,8 +46,6 @@ class WPML_Package_Admin_Lang_Switcher {
 
 		$metabox .= $this->add_js();
 
-		// This is required when a new package is created but it doesn't have any translated content yet.
-		// https://onthegosystems.myjetbrains.com/youtrack/issue/wpmlst-556
 		WPML_Simple_Language_Selector::enqueue_scripts();
 
 		wp_enqueue_style( 'wpml-package-adminbar-popup', WPML_ST_URL . '/res/css/wpml-package-adminbar-popup.css', array(), ICL_SITEPRESS_VERSION );

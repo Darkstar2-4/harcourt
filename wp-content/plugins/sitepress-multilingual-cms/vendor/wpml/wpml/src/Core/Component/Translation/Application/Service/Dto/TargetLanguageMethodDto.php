@@ -6,37 +6,20 @@ use WPML\PHP\ConstructableFromArrayInterface;
 use WPML\PHP\ConstructableFromArrayTrait;
 use WPML\PHP\Exception\InvalidArgumentException;
 
-/**
- * @implements ConstructableFromArrayInterface<TargetLanguageMethodDto>
- *
- * @phpstan-import-type TranslationServiceExtraFieldsArray from SendToTranslationExtraInformationDto
- *
- */
 final class TargetLanguageMethodDto implements ConstructableFromArrayInterface {
-  /** @use ConstructableFromArrayTrait<TargetLanguageMethodDto> */
   use ConstructableFromArrayTrait;
 
-  /** @var string */
   private $targetLanguageCode;
 
-  /** @var string */
   private $translationMethod;
 
-  /** @var int|null */
   private $translatorId;
 
 
-  /**
-   * @param string   $targetLanguageCode
-   * @param string   $translationMethod
-   * @param int|null $translatorId
-   *
-   * @throws InvalidArgumentException
-   */
   public function __construct(
     string $targetLanguageCode,
     string $translationMethod,
-    int $translatorId = null
+    ?int $translatorId = null
   ) {
     $this->targetLanguageCode = $targetLanguageCode;
     $this->translationMethod  = $translationMethod;
@@ -54,9 +37,6 @@ final class TargetLanguageMethodDto implements ConstructableFromArrayInterface {
   }
 
 
-  /**
-   * @return int|null
-   */
   public function getTranslatorId() {
     return $this->translatorId;
   }

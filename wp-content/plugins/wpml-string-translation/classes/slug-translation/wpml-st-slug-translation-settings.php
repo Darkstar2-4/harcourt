@@ -4,12 +4,10 @@ class WPML_ST_Slug_Translation_Settings {
 
 	const KEY_ENABLED_GLOBALLY = 'wpml_base_slug_translation';
 
-	/** @param bool $enabled */
 	public function set_enabled( $enabled ) {
 		update_option( self::KEY_ENABLED_GLOBALLY, (int) $enabled );
 	}
 
-	/** @return bool */
 	public function is_enabled() {
 		return (bool) get_option( self::KEY_ENABLED_GLOBALLY );
 	}

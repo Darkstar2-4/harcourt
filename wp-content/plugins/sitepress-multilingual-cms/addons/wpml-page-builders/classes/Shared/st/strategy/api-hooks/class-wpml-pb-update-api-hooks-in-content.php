@@ -2,7 +2,6 @@
 
 class WPML_PB_Update_API_Hooks_In_Content {
 
-	/** @var  WPML_PB_API_Hooks_Strategy $strategy */
 	private $strategy;
 
 	public function __construct( WPML_PB_API_Hooks_Strategy $strategy ) {
@@ -21,13 +20,6 @@ class WPML_PB_Update_API_Hooks_In_Content {
 
 	}
 
-	/**
-	 * @param string $original_content
-	 * @param array  $string_translations
-	 * @param string $lang
-	 *
-	 * @return string
-	 */
 	public function update_content( $original_content, $string_translations, $lang ) {
 		return $original_content;
 	}

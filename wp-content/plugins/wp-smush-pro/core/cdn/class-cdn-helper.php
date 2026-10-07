@@ -3,6 +3,7 @@
 namespace Smush\Core\CDN;
 
 use Smush\Core\Media\Attachment_Url_Cache;
+use Smush\Core\Membership\Membership;
 use Smush\Core\Settings;
 use Smush\Core\Url_Utils;
 use Smush\Core\Array_Utils;
@@ -11,6 +12,11 @@ use WP_Smush;
 use WPMUDEV_Dashboard;
 
 class CDN_Helper {
+	/**
+	 * CDN API version included in the base URL.
+	 */
+	const CDN_VERSION = '2.0';
+
 	/**
 	 * Static instance
 	 *
@@ -287,7 +293,7 @@ class CDN_Helper {
 		 * Do not allow enabling CDN for sites that are not registered on the Hub
 		 * Taken from 6e13e2f0
 		 */
-		return WP_Smush::is_pro()
+		return Membership::get_instance()->is_pro()
 		       // CDN will not work if there is no dashboard plugin installed.
 		       && class_exists( 'WPMUDEV_Dashboard' )
 		       // CDN will not work if site is not registered with the dashboard.
@@ -313,9 +319,15 @@ class CDN_Helper {
 		$status  = $this->get_cdn_status();
 		$site_id = absint( $status->site_id );
 
-		return trailingslashit( "https://{$status->endpoint_url}/{$site_id}" );
+		return trailingslashit( "https://{$status->endpoint_url}/" . self::CDN_VERSION . "/{$site_id}" );
 	}
 
+	/**
+	 * Returns the CDN status string including 'disabled' state.
+	 * Handles disabled checks here; delegates active-state logic to CDN_Status.
+	 *
+	 * @return string 'disabled' | 'activating' | 'overcap' | 'upgrade' | 'enabled'
+	 */
 	public function get_cdn_status_string() {
 		if ( ! $this->settings->is_cdn_active() ) {
 			return 'disabled';
@@ -326,22 +338,7 @@ class CDN_Helper {
 			return 'disabled';
 		}
 
-		if ( isset( $cdn->cdn_enabling ) && $cdn->cdn_enabling ) {
-			return 'activating';
-		}
-
-		$plan      = isset( $cdn->bandwidth_plan ) ? $cdn->bandwidth_plan : 10;
-		$bandwidth = isset( $cdn->bandwidth ) ? $cdn->bandwidth : 0;
-
-		$percentage = round( 100 * $bandwidth / 1024 / 1024 / 1024 / $plan );
-
-		if ( $percentage > 100 || 100 === (int) $percentage ) {
-			return 'overcap';
-		} elseif ( 90 <= (int) $percentage ) {
-			return 'upgrade';
-		}
-
-		return 'enabled';
+		return CDN_Status::from_setting( $cdn )->get_status_string();
 	}
 
 	/**
@@ -432,9 +429,9 @@ class CDN_Helper {
 			'strip' => (int) $strip_exif,
 		);
 
-		if ( Settings::AVIF_CDN_MODE === $next_gen_cdn ) {
+		if ( Settings::get_avif_cdn_mode() === $next_gen_cdn ) {
 			$cdn_params['avif'] = 1;
-		} elseif ( Settings::WEBP_CDN_MODE === $next_gen_cdn ) {
+		} elseif ( Settings::get_webp_cdn_mode() === $next_gen_cdn ) {
 			$cdn_params['webp'] = 1;
 		} else {
 			$cdn_params['webp'] = 0;
@@ -525,8 +522,24 @@ class CDN_Helper {
 		return apply_filters( 'wp_smush_cdn_excluded_keywords', array_unique( $excluded_keywords ) );
 	}
 
-	private function get_cdn_advanced_settings() {
-		return $this->settings->get_setting( 'wp-smush-cdn-advanced-settings', $this->get_default_cdn_advanced_settings() );
+	public function get_cdn_advanced_settings() {
+		$advanced_setting = $this->settings->get_setting( 'wp-smush-cdn-advanced-settings', $this->get_default_cdn_advanced_settings() );
+		return $this->array_utils->ensure_array( $advanced_setting );
+	}
+
+	public function get_cdn_options() {
+		$site_settings    = $this->settings->get_site_settings();
+		$default_settings = $this->settings->get_defaults();
+		$cdn_settings     = array();
+		foreach ( $this->settings->get_cdn_fields() as $field ) {
+			$cdn_settings[ $field ] = $site_settings[ $field ] ?? $default_settings[ $field ] ?? null;
+		}
+
+		return array_merge(
+			$cdn_settings,
+			$this->get_default_cdn_advanced_settings(),
+			$this->get_cdn_advanced_settings()
+		);
 	}
 
 	private function get_default_cdn_advanced_settings() {
@@ -577,7 +590,7 @@ class CDN_Helper {
 	 *
 	 * @return string
 	 */
-	private function get_original_url_key( $original_url, array $args ): string {
+	private function get_original_url_key( $original_url, $args ) {
 		$key = md5( $original_url );
 		if ( $args ) {
 			$key .= '-' . $this->array_utils->array_hash( $args );

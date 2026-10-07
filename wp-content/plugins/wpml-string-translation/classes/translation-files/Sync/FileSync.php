@@ -7,13 +7,10 @@ use WPML_ST_Translations_File_Locale;
 
 class FileSync {
 
-	/** @var Manager */
 	private $manager;
 
-	/** @var TranslationUpdates */
 	private $translationUpdates;
 
-	/** @var WPML_ST_Translations_File_Locale */
 	private $fileLocale;
 
 	public function __construct(
@@ -26,17 +23,6 @@ class FileSync {
 		$this->fileLocale         = $FileLocale;
 	}
 
-	/**
-	 * Before to load the custom translation file, we'll:
-	 * - Re-generate it if it's missing or outdated.
-	 * - Delete it if we don't have custom translations.
-	 *
-	 * We will also sync the custom file when a native file is passed
-	 * because the custom file might never be loaded if it's missing.
-	 *
-	 * @param string|false $filePath
-	 * @param string       $domain
-	 */
 	public function sync( $filePath, $domain ) {
 		if ( ! $filePath ) {
 			return;
@@ -58,13 +44,6 @@ class FileSync {
 
 
 
-	/**
-	 * @param string $filePath
-	 * @param string $domain
-	 * @param string $locale
-	 *
-	 * @return string|null
-	 */
 	private function getCustomFilePath( $filePath, $domain, $locale ) {
 		if ( self::isWpmlCustomFile( $filePath ) ) {
 			return $filePath;
@@ -73,11 +52,6 @@ class FileSync {
 		return $this->manager->getFilepath( $domain, $locale );
 	}
 
-	/**
-	 * @param string $file
-	 *
-	 * @return bool
-	 */
 	private static function isWpmlCustomFile( $file ) {
 		return 0 === strpos( $file, WP_LANG_DIR . '/' . Manager::SUB_DIRECTORY );
 	}

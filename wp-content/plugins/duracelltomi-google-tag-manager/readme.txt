@@ -1,11 +1,11 @@
-=== GTM4WP - A Google Tag Manager (GTM) plugin for WordPress  ===
+=== GTM4WP - A Google Tag Manager (GTM) plugin for WordPress ===
 Contributors: duracelltomi
 Donate link: https://gtm4wp.com/
 Tags: google tag manager, tag manager, gtm, google ads, google analytics
-Requires at least: 3.4.0
-Requires PHP: 7.4
-Tested up to: 6.8
-Stable tag: 1.22
+Requires at least: 6.3
+Requires PHP: 8.0
+Tested up to: 7.1
+Stable tag: 2.0.5
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -16,13 +16,13 @@ Advanced tag management for WordPress with Google Tag Manager
 Google Tag Manager (GTM) is Google's free tool for everyone to manage and deploy analytics and marketing tags as well as other code snippets
 using an intuitive web UI. To learn more about this tool, visit the [official website](https://marketingplatform.google.com/about/tag-manager/).
 
-This plugin places the GTM container code snippets onto your WordPress website so that you do not need to add it manually.
-Multiple containers are also supported!
+This plugin places the GTM container code snippets onto your WordPress website so that you do not need to add them manually.
+Multiple containers are also supported, and each container can have its own environment parameters, custom domain and custom path.
 
-The plugin complements your GTM setup by pushing page meta data and user information into the so called data layer.
-Google's official help pages includes [more details about the data layer](https://developers.google.com/tag-platform/tag-manager/datalayer#datalayer).
+The plugin complements your GTM setup by pushing page meta data and user information into the so-called data layer.
+Google's official help pages include [more details about the data layer](https://developers.google.com/tag-platform/tag-manager/datalayer#datalayer).
 
-**PHP 7.4 is required to use this plugin.**
+**PHP 8.0 and WordPress 6.3 are required to use this plugin.**
 
 = GTM container code placement =
 
@@ -37,19 +37,19 @@ Google recommends – for best performance – to place this code snippet direct
 
 Albeit not ideal, it will work when placed lower in the code. This plugin provides a code placement option for the second code snippet.
 
-If your WordPress theme is compatible with the additions of WordPress 5.2 then this plugin will place this second code to the right place.
-Users of the Genisis theme, GeneratePress theme, Elementor, Oxygen Builder and Beaver Builder Theme will also have this placed correctly.
-To utilize this, set the compatibility mode in plugin options to off.
+If your WordPress theme is compatible with the additions of WordPress 5.2, then this plugin will place this second snippet in the right place.
+Users of the Genesis theme, GeneratePress theme, Elementor, Oxygen Builder and Beaver Builder Theme will also have it placed correctly.
+To utilize this, set the compatibility mode in the plugin options to off.
 
-All other users can place this second code snippet using a custom PHP code ("Manually coded" option) or select the so called "Footer" option to
-add the code lower in the code (it is not the recommended way but will work)
+All other users can place this second code snippet using custom PHP code (the "Manually coded" option), or select the so-called "Footer" option
+to add the code lower on the page (this is not the recommended way, but it will work).
 
 = Basic data included =
 
 * post/page titles
 * post/page dates
-* post/page category names
-* post/page tag names
+* post/page category slugs
+* post/page tag slugs
 * post/page author ID and name
 * post/page ID
 * post types
@@ -58,12 +58,24 @@ add the code lower in the code (it is not the recommended way but will work)
 * custom terms associated with any post type
 * logged in status
 * logged in user role
-* logged in user ID (to track cross device behaviour in Google Analytics)
-* logged in user email address (both unhashed and SHA256 hased values to be used with tracking)
-* logger in user creation date
+* logged in user ID (to track cross device behavior in Google Analytics)
+* logged in user email address (both unhashed and SHA256 hashed values to be used with tracking)
+* logged in user creation date
 * site search data
 * site name and id (for WordPress multisite instances)
-* IP address of the visitor (please use the explicit consent of the visitor to utilize this)
+* IP address of the visitor (please obtain the visitor's explicit consent before using this)
+* post author data from PublishPress Authors, including co-authors and guest authors
+
+= Content & engagement data =
+
+Optional page variables that help with behavior tracking and Google Analytics 4 content grouping:
+
+* content word count and estimated reading time
+* last modified date and content age in days
+* comment count and comment status
+* page template, featured image presence, page hierarchy and sticky flag
+* primary category, detected from Yoast SEO or Rank Math
+* page language, detected from WPML or Polylang
 
 = Browser / OS / Device data =
 
@@ -71,95 +83,101 @@ add the code lower in the code (it is not the recommended way but will work)
 * OS data (name, version)
 * device data (type, manufacturer, model)
 
-Data is provided using the WhichBrowser library: http://whichbrowser.net/
-
-= Weather data =
-
-(beta)
-
-Push data about users' current weather conditions into the dataLayer. This can be used to generate weather-related
-audience/remarketing lists on ad platforms and allows for user segmentation in your web analytics solutions:
-
-* weather category (clouds, rain, snow, etc.)
-* weather description: more detailed data
-* temperature in Celsius or Fahrenheit
-* air pressure
-* wind speed and degrees
-
-Weather data is queried from Open Weather Map. Depending on your websites traffic, additional fees may apply:
-http://openweathermap.org/price
-
-An (free) API key from OpenWeatherMap is required for this feature to work.
-
-ipstack.com is used to determine the site visitor's location. A (free) API key from IPStack.com is required for this feature to work:
-https://ipstack.com/product
+Data is collected in the browser using User-Agent Client Hints and pushed as a gtm4wp.deviceData event.
+Note that Safari and Firefox expose less detail than Chromium based browsers.
 
 = Media player events =
 
-(experimental)
-
-Track users' interaction with any embedded media:
+Track users' interactions with any embedded media:
 
 * YouTube
 * Vimeo
 * Soundcloud
+* HTML5 audio and video
+* Dailymotion
+* Mixcloud
+* Cloudflare Stream
+* Wistia
+* JW Player
+* VideoPress
+* Spotify
+* Twitch
 
-DataLayer events can be chosen to fire upon media player load, media is being played, paused/stopped and optionally when
-the user reaches 10, 20, 30, ..., 90, 100% of the media duration.
+You can choose to fire data layer events when the media player loads, when the media is played, when it is paused or stopped,
+and optionally when the user reaches 10, 20, 30, ..., 90, 100% of the media duration. Each event also populates Google Tag
+Manager's built-in Video variables (Video Status, Video URL, Video Title, Video Provider, Video Duration, Video Current Time,
+Video Percent, Video Visible).
 
-Tracking is supported for embedded media using the built-in oEmbed feature of WordPress as well as most other media plugins
-and copy/pasted codes. Players injected into the website after page load are not currently supported.
+Tracking is supported for embedded media using the built-in oEmbed feature of WordPress, as well as most other media plugins
+and copy/pasted embed codes. Players inserted into the page after it has loaded (for example in a popup, a lightbox or via
+AJAX) can also be tracked by turning on the optional "Track dynamically inserted players" setting.
 
-= Scroll tracking =
+= Tag restrictions: allowlist & blocklist Tag Manager tags, triggers and variables =
 
-Fire tags based on how the visitor scrolls from the top to the bottom of a page.
-An example would be to separate "readers" (who spend a specified amount of time on a page) from "scrollers"
-(who only scroll through within seconds). You can use these events to fire Analytics tags and/or remarketing/conversion tags
-(for micro conversions).
+To increase website security, you have the option to allowlist or blocklist tags, triggers and variables.
+You can prevent specific tags from firing, or prevent the use of certain variable types, regardless of your GTM setup.
 
-Scroll tracking is based on the solution originally created by
-
-* Nick Mihailovski
-* Thomas Baekdal
-* Avinash Kaushik
-* Joost de Valk
-* Eivind Savio
-* Justin Cutroni
-
-Original script:
-http://cutroni.com/blog/2012/02/21/advanced-content-tracking-with-google-analytics-part-1/
-
-= Blacklist & Whitelist Tag Manager tags, triggers and variables =
-
-To increase website security, you have the option to white- and blacklist tags/triggers/variables.
-You can prevent specific tags from firing or the use of certain variable types regardless of your GTM setup.
-
-If the Google account associated with your GTM account is being hacked, an attacker could easily
-execute malware on your website without accessing its code on your hosting server. By blacklisting custom HTML tags
-and/or custom JavaScript variables you can secure the Tag Manager container.
+If the Google account associated with your GTM account is compromised, an attacker could easily
+execute malware on your website without accessing its code on your hosting server. By blocklisting custom HTML tags,
+custom JavaScript variables and sandboxed scripts (custom tag and variable templates), you can secure the Tag Manager container.
 
 = Integration =
 
-Google Tag Manager for WordPress integrates with several popular plugins. More integration to come!
+Google Tag Manager for WordPress integrates with several popular plugins. More integrations to come!
 
-* Contact Form 7: fire an event when a Contact Form 7 form was submitted with any result (mail sent, mail failed, spam detected, invalid input)
+* Contact Form 7: fire an event when a form is submitted with any result (mail sent, mail failed, spam detected, invalid input, submission aborted or terms not accepted). Optionally push the Google Analytics 4 recommended form events (form_start, form_submit, generate_lead) as well
 * WooCommerce:
-	*	Implementation of [GA4 E-commerce](https://developers.google.com/tag-manager/ecommerce-ga4)
-	* Does not support promotions since WooCommerce does not have such a feature (yet)
+	* Implementation of [GA4 E-commerce](https://developers.google.com/tag-manager/ecommerce-ga4)
+	* Support for the Cart, Checkout, Mini-Cart, Product Collection and cross-sell blocks, not only the classic shortcode based pages
+	* Enhanced Conversions user data on the purchase event for Google Ads
+	* Compatibility with High Performance Order Storage (HPOS)
+	* Does not support promotions, since WooCommerce does not have such a feature (yet)
 	* Does not support refunds
-  * Compatibility with High Performance Order Storage (HPOS)
+* CheckoutWC: optional support for its multi step checkout template
+* PublishPress Authors: co-author and guest author data in the page variables
 * AMP: load your AMP container on the AMP version of your pages
+* Google Consent Mode v2: fire the "default" command with specific consent flags to integrate with non-certified Consent Management Platforms (CMPs) and plugins
 * Cookiebot: use automatic cookie blocking mode if needed
-* Google Consent Mode v2: fire the "default" command with specific consent flags to integrat with non-certified Consent Management Platforms (CMPs) and plugins.
+* Axeptio: load the Axeptio SDK and push every consent change into the data layer
+* CookieYes: push a data layer event whenever the visitor's consent changes
 
 = Server side containers =
 
-If you are using a [server side container](https://developers.google.com/tag-manager/serverside/send-data#update_the_gtmjs_source_domain)
-you can enter your custom domain name and custom path to load gtm.js from your there.
+If you are using a [server side container](https://developers.google.com/tag-manager/serverside/send-data#update_the_gtmjs_source_domain),
+you can enter your custom domain name and custom path to load gtm.js from there. Both can be set per container, so you can mix
+server side and standard containers on the same site.
+
+= Cache-safe data layer =
+
+(experimental, off by default)
+
+On sites using a full page cache (LiteSpeed, WP Rocket, Varnish, Cloudflare APO), the HTML generated for one visitor is served
+to everyone else as well. Any visitor specific value written into the data layer would therefore leak to other visitors - the
+classic example being a page cached while an editor was logged in, then served to anonymous visitors with that editor's email
+address and role still in the data layer.
+
+When this option is enabled, no visitor or session data is written into cacheable HTML at all. Those values are delivered in the
+browser instead, under the same data layer variable names, so your existing Google Tag Manager setup keeps working.
+
+= Export & import your settings =
+
+You can export all plugin settings into a JSON file and import them on another site, which makes it easy to roll out the same
+configuration across several websites. Imported files are treated as untrusted and every value is validated before it is stored.
 
 = Exclude specific user roles from being tracked =
 
-You can set which user roles needs to be excluded from tracking when a user with that role visits the frontend. This will completely disable the container code for that user.
+You can set which user roles need to be excluded from tracking when a user with that role visits the frontend. This will completely disable the container code for that user.
+
+= Staging and development sites =
+
+The container can be limited to production environments only, so a cloned or staging copy of your site does not send data into
+your production Google Tag Manager container. This relies on the WP_ENVIRONMENT_TYPE setting of WordPress.
+
+= For developers =
+
+Version 2.0 is a complete object oriented rewrite. Every feature is a module, and third party plugins can register their own
+modules through the gtm4wp_register_modules action. All public template functions, filter and action names, wp-config constants
+and the option storage key of the 1.x versions are unchanged, so existing integrations keep working.
 
 == Installation ==
 
@@ -176,42 +194,58 @@ https://gtm4wp.com/setup-gtm4wp-features
 
 = PayPal / 3rd party payment gateway transactions in WooCommerce are not being tracked in Google Analytics =
 
-PayPal and some other 3rd party payment gateways do not redirect users back to your website upon successful transaction by default.
-It offers the route back for your customer but it can happen that users close the browser before arriving at your thankyou page
-(aka. order received page). This means that neither Google Analytics tags or any other tags have the chance to fire.
+PayPal and some other 3rd party payment gateways do not redirect users back to your website after a successful transaction by default.
+They offer a route back for your customer, but it can happen that users close the browser before arriving at your thank you page
+(also known as the order received page). This means that neither Google Analytics tags nor any other tags have a chance to fire.
 
-Enable auto-return in your payment gateway settings. This will instruct them to show a quick info page after payment
+Enable auto-return in your payment gateway settings. This will instruct the gateway to show a quick info page after payment
 and redirect the user back to your site. This will improve the accuracy and frequency of tracked transactions.
 
 = Purchase event is not tracked with WooCommerce =
 
-If you are using a 3rd party plugin that alters the default order received page in a way that does not utilize the integration hooks
-of WooCommerce then this can happen. Either stop using this 3rd party plugin or ask them to better mimic the behavior of the
-default order received page by supporting the woocommerce is_order_received_page and the woocommerce_thankyou actions and filters.
+This can happen if you are using a 3rd party plugin that alters the default order received page in a way that does not use
+WooCommerce's integration hooks. Either stop using that plugin, or ask its authors to mimic the behavior of the default order
+received page more closely by supporting the woocommerce is_order_received_page function and the woocommerce_thankyou action.
 
-= Why isn't there an option to blacklist tag/variable classes =
+Since version 2.0 the plugin also offers two settings that work around this without changing the 3rd party plugin: "Custom order
+received (thank-you) page" fires the purchase event on a bespoke confirmation page, and "Reliable purchase tracking" emits a
+missed purchase event on the next page the customer views in the same browser session. Both are de-duplicated, so an order is
+never counted twice.
 
-Although Google recommends to blacklist tags and variables using classes, people struggle to know
-which tags/variables gets affected. Therefore I opted for individual tags and variables rather than classes
-on the blacklist tabs.
+= Why isn't there an option to blocklist tag/variable classes =
 
-Regarding variables; ensure they are not part of any critical tags as blacklisting such variables will render said tags useless.
+Although Google recommends blocklisting tags and variables using classes, people struggle to know
+which tags and variables get affected. Therefore I opted for individual tags and variables rather than classes
+on the tag restriction tabs.
+
+Regarding variables: ensure they are not part of any critical tags, as blocklisting such variables will render those tags useless.
 
 = How can I track scroll events in Google Tag Manager? =
 
-Google Tag Manager supports basic scroll depth tracking based on percentage or pixels natively. This plugin adds
-additional scroll tracking events, more focused on capturing the users' intent and/or engagement.
+Google Tag Manager supports basic scroll depth tracking based on percentage or pixels natively. Add a Scroll Depth
+trigger in your container and use it to fire your Google Analytics 4 and/or Google Ads remarketing/conversion tags.
+(The plugin's own scroll tracking feature was removed in 2.0 in favor of this built-in GTM functionality.)
 
-There are five dataLayer events you can use in your rule definitions:
+= I use a page cache. Can visitor data leak between visitors? =
 
-* gtm4wp.reading.articleLoaded: the content has been loaded
-* gtm4wp.reading.startReading: the visitor started to scroll. The `timeToScroll` dataLayer variable stores duration since the article loaded (in seconds)
-* gtm4wp.reading.contentBottom: the visitor reached the end of the content (not the page!). `timeToScroll` dataLayer variable updated
-* gtm4wp.reading.pagebottom: the visitor reached the end of the page. `timeToScroll` dataLayer variable updated
-* gtm4wp.reading.readerType: based on time spent since article loaded we determine whether the user is a 'scanner' or 'reader' and store this in the `readerType` dataLayer variable
+Yes, this is a real risk with any full page cache, and it is not specific to this plugin: the HTML generated for one visitor is
+stored and served to everyone else. If visitor specific values (email address, user role, IP address) are written into the data
+layer, the cached copy will contain the values of whoever happened to trigger the caching.
 
-Example use cases: using these events as triggers, you can fire Google Universal Analytics and/or Google Ads remarketing/conversion tags
-to report micro conversions and/or to serve ads only to visitors who spend more time reading your content.
+Turn on the "Cache-safe data layer" option to avoid this. With it enabled, no visitor or session data is written into cacheable
+HTML; those values are delivered in the browser instead, under the same data layer variable names.
+
+= Why does the plugin load several separate JavaScript files instead of one? =
+
+Each tracking feature (WooCommerce, each media player, Contact Form 7, device data, etc.) is its own small
+JavaScript file, and the plugin loads only the files a page actually needs - the YouTube tracker, for instance,
+loads only on pages that embed a YouTube video, and with the "defer" strategy so it never blocks rendering.
+Those files are already minified by the plugin's build.
+
+Merging several files into one is intentionally left to a caching / performance plugin (WP Rocket, Autoptimize,
+LiteSpeed Cache, etc.), which can combine scripts across your whole site and in a way that suits your hosting and
+HTTP setup. On modern HTTP/2 hosting, many small conditionally-loaded files usually perform as well as one combined
+file. (1.x combined its own scripts; 2.0 delegates this.)
 
 == Screenshots ==
 
@@ -220,129 +254,127 @@ to report micro conversions and/or to serve ads only to visitors who spend more 
 3. Events
 4. Integration panel
 5. Advanced settings
-6. Scroll tracking
 
 == Changelog ==
 
-= 1.22 =
+= 2.0.5 =
 
-* Added: new WooCommerce option to change the event timeout of the select_item event. Could help some UX issues when a user has an ad blocker installed.
-* Added: new WordPress filter GTM4WP_WPFILTER_OVERWRITE_COMO_FLAG / gtm4wp_overwrite_consent_mode_flag to overwrite Consent Mode flags in the default command. Can be used by consent banner plugins to mitigate support issues.
-* Fixed: Unwanted content on frontend when container placement set to off and gtm4wp_the_gtm_tag() called manually. Thanks [Michael Bourne](https://wordpress.org/support/users/michaelbourne/)
-* Fixed: Add to cart tracking broken with Bricks template and WooCommerce
-* Updated: bundled WhichBrowser library updated to the latest version. This is a short term solution to solve PHP erros, on the long term, the plan is to switch to [Matomo Device Detector](https://github.com/matomo-org/device-detector)
-* Updated: allow the / character in GTM container path to support same tag gateway
-* Updated / Fixed: I reverted back the purchase tracking with WooCommerce to the logic present in v1.20- as the new way caused more headache than it resolved. Sorry for everyone who was affected by this.
+* Fixed: the data layer initialisation block no longer contains the word `gtag`. Since 2.0.3, a JavaScript delay plugin with `gtag` on its keyword list, such as Flying Scripts, delayed the whole block and the browser console showed `dataLayer is not defined`. The Google tag developer ID is still set.
+* Fixed: a page with no data layer variables to report no longer pushes an empty array into the data layer; `dataLayer_content` is then an empty object and is not pushed. Content that is pushed is always an object, never an array, which GTM would read as a command.
 
-= 1.21.1 =
+= 2.0.4 =
 
-* Fix: undefined product_qty variable prevents add_to_cart in some cases. Thanks [diegoarda](https://github.com/diegoarda)
-* Fix: clarified that WebToffee integartion is only needed with the legacy 2.x product line
-* Fix: Reflected Cross-Site Scripting (XSS) with site search tracking. Thanks [godzeo](https://github.com/godzeo)!
+* Fixed: on the classic WooCommerce checkout, an error in the plugin's checkout step tracking could stop the order from being submitted the normal way, so a gateway that adds card details in the browser, such as Stripe, rejected it. Tracking errors can no longer interrupt the checkout or a variation selection, and still show in the browser console. (#472)
 
-= 1.21 =
+= 2.0.3 =
 
-!!! WARNING !!!
-Significant change in WooCommerce integration!
-Check your template whether it supports must have hook: woocommerce_thankyou
+* Fixed: on a store that displays prices including tax, every cart line in view_cart, begin_checkout and the cart content carried a discount equal to the line's tax, with no coupon or sale involved, so GA4 reported a share of the revenue as a discount on every order. The total side of the discount calculation read a key WooCommerce never writes on a cart item, so only the subtotal side gained the tax. An undiscounted line carries no discount again. Stores displaying prices excluding tax were never affected, and neither was the purchase event.
+* Fixed: on a store whose product page runs the newer WooCommerce blocks (built on the WordPress Interactivity API), an add to cart the store refused could still be reported when a related-products or grid add was clicked within the next ten seconds, so add_to_cart fired twice for a single item. A list add now supersedes whatever the product form still had waiting.
+* Fixed: on the same stores, a cart read over the Store API that came back with something other than a cart could report every item as removed; it is now treated as no reading at all.
+* Fixed: a purchase was never reported when the customer reached the order received page while the order was still Pending payment, and "Reliable purchase tracking" did not recover it. This happens with a payment provider that confirms the payment through a webhook, such as the WooCommerce Stripe Gateway with webhooks enabled: the customer is redirected back a moment before the confirmation arrives, so the plugin sees a status that is not in "Order statuses that trigger the purchase event" and withholds the event, and the later change to Processing happens in a request the plugin cannot connect to the customer's browser. With "Reliable purchase tracking" on, such an order is now remembered in the customer's session and checked again on the pages they view next; the purchase is reported once, as soon as the status has become one of the tracked statuses, and the order is flagged as tracked at that moment. The wait ends by itself when the order is cancelled, refunded or fails, or once the order is older than the "Maximum order age" (30 minutes by default). Pending payment itself is still not counted as a sale, and every existing duplicate guard applies unchanged.
+* Fixed: with a custom data layer variable name, the Google Consent Mode default block pushed its defaults to dataLayer instead of the configured variable, so the container never received them and the consent defaults did not apply. The block now uses the configured name and stays out of WP Rocket's combined JavaScript.
+* Fixed: on a subdomain multisite, or any site defining COOKIE_DOMAIN, the cache-safe data layer could not clear its event cookie after a one-shot event was delivered, so every later page view made a needless request. The cookie is now host-only.
+* Fixed: a login or registration event was lost when the visitor's next request was a REST call (the WooCommerce Store API, a headless front end) rather than a page view.
+* Fixed: a user account created by a logged-in administrator through the REST API or an admin app fired gtm4wp.userRegistered in the administrator's own browser instead of nowhere.
+* Fixed: the form interaction and Contact Form 7 events reported a hidden action field instead of the form's URL when the form contained a field named action, id or target.
+* Fixed: the browser, OS and device data script reported all three signals when a page optimiser removed its inline configuration, ignoring which of them were enabled. It now reports nothing in that case.
+* Fixed: with the cache-safe data layer, a logged-in visitor served a cached page kept requesting their visitor data on every page view after WordPress refused the page's nonce. When WordPress itself reports the rejected nonce, the data is requested once more anonymously and that page stops asking.
+* Updated: tested with WooCommerce 11.1.2.
+* Added: the data layer initialisation block carries the plugin's Google tag developer ID, gtag('set', 'developer_id.dNGJiYT', true), so Google can tell which platform installed the tag. It identifies GTM4WP only and adds nothing about the site or its visitors.
 
-* Added: new WooCommerce option that allows you to fire the view_item event during page load of a variable product using parent product data.
-* Added: item_group_id parameter includes the parent ID of a variable product in WooCommerce
-* Added: GTM4WP_WPFILTER_GET_CSP_NONCE (PHP constant) / gtm4wp_get_csp_nonce WordPress filter to add nonce to script tags supporting Content Security Policy (CSP) setups
-* Updated: purchase event is now fired on the woocommerce_thankyou event. This will move execution time behind consent state checks in most cases making the purchase event working in more cases
-* Updated: GTM4WP_WPFILTER_EEC_ORDER_DATA / gtm4wp_eec_order_data WordPress filter now has a second parameter passing the whole WC_Order object to the filter after the $order_data parameter
-* Updated: no view_cart or begin_checkout events will be triggered from the backend if there are no products in the cart. This prevents wrong data collection with themes not properly supporting WooCommerce hooks
-* Fix: load_plugin_textdomain() related PHP notice on admin page
+= 2.0.2 =
 
-= 1.20.3 =
+* Updated: tested with WooCommerce 11.1.
+* Fixed: a product category or brand name containing an ampersand reached the data layer as "Shirts &amp; Ties" rather than "Shirts & Ties", which is what GA4 then reported. WordPress encodes term names when they are saved, and the plugin now decodes that once when it reads the name.
+* Fixed: item_id, sku and the dynamic remarketing id are now always strings. A product with no SKU falls back to its numeric id, and that fallback was written into the data layer as a number while the same fields are strings on every product that has a SKU. Check your GTM setup if a trigger or variable compares one of those fields against a number.
 
-* Fix: notice "_load_textdomain_just_in_time was called incorrectly" - WordPress 6.7 compatibility
+* Fixed: the begin_checkout event was missing on stores where WooCommerce reports the checkout page as the cart page as well, which happens when a plugin or a theme forces that decision or when a cart shortcode is left in the checkout page content. Such a checkout page pushed view_cart and begin_checkout never fired anywhere. The checkout is now decided first, so a page reported as both is treated as the checkout page. The order-received page is recognized ahead of both on both halves as well: on such a store the thank-you page used to be taken for the cart page by the block tracker, which loaded there in its cart context in place of the regular tracker.
+* Fixed: add_to_cart and remove_from_cart never fired on a store whose product and cart blocks are built on the WordPress Interactivity API, the newer form of the WooCommerce blocks. Product pages now report the add once WooCommerce confirms that the item reached the cart, and cart changes made anywhere else are read back from the WooCommerce Store API and reported the same way as on a store using the older blocks. Variable products are covered as well: the interactive form publishes no variation data the plugin could read, so the event is completed from the cart line the add creates, which carries the data of the variation itself.
+* Fixed: a GTM4WP_HARDCODED_* value in wp-config.php that ends in a newline character - typically an untrimmed file read feeding the define() - is now rejected and named in the existing admin notice, like any other malformed value. Previously a gtm_auth/gtm_preview value with a trailing newline passed validation, the newline reached the container loader script and broke the whole block, so the container silently did not load with nothing pointing at wp-config. A container ID with a trailing newline used to be silently repaired and kept working; it is now reported the same way instead - remove the stray newline from the define() and the override applies again.
+* Fixed: a page whose author cannot be resolved no longer takes the whole page down with a critical error when PublishPress Authors is active. PublishPress reports such an author as no author at all, which happens when the author's user account has been deleted, and the plugin passed that straight into the code reading the author name and ID, where it ended in a fatal error. The WooCommerce My Account page is the one most likely to hit it, since it is often the page nobody keeps an author on. An author that cannot be resolved is now skipped, so the page renders and the author variables are simply left out of the data layer, and a post that has one real author next to an unresolvable one is treated as having a single author.
 
-= 1.20.2 =
+= 2.0.1 =
 
-* Fix: Wrong ID parameter used tracking product variations (id instead of item_id). Thanks [micmaf](https://github.com/micmaf)
-* Fix: do not track add_to_cart in product lists when 'Select options' or 'View products' buttons are clicked
-* Fix: JavaScript reference error while updating cart count in WooCommerce. Thanks [Sakuk3](https://github.com/Sakuk3)
-* Fix: hash customerBillingEmailHash just like orderData.customer.billing.email_hash (for enhanced conversions, use the value in orderData)
-* Added: minimum required WooCommerce version (currently 5.0+) is displayed now on GTM4WP admin
+* Fixed: on a block-based store, opening the Cart page pushed add_shipping_info and add_payment_info into the data layer with no interaction, and both events then fired again on the Checkout page. The block tracker told the two pages apart by the presence of the WooCommerce payment data store, which WooCommerce registers on the Cart page as well; the Cart and Checkout pages now each receive their own context and the checkout-step events fire only on the Checkout page.
+* Fixed: a blank settings screen no longer stays silent about why it is blank. Some ad and privacy blocker filter lists block everything under the plugin folder, including the file that builds the settings screen in the browser, which left the settings page empty with no explanation. A static notice now appears after a few seconds whenever the settings app could not start, explaining the most likely cause and the workaround (pause the blocker for the admin area of the site, or add an exception for it).
 
-= 1.20.1 =
+= 2.0.0 =
 
-* Fix: do not load GTM container when OFF and console.log OFF. Thanks [morvy](https://github.com/morvy)
-* Fix: reverted a change where item_id in ecommerce data layer was converted to numeric type when the value was a numeric value. It will be kept as a string to preserve compatibility with other integrations.
-* Fix: JavaScript error when element ID not set correctly in scroll tracking
-* Changed: better normalize and hash user data with WooCommerce + orderData variable for enhanced conventions
-* Changed: PHP code optimization by [hans2103](https://github.com/hans2103)
-* Added: New filter to be able to modify data in the orderData variable on a WooCommerce order received page. Filter can be accessed either using the GTM4WP_WPFILTER_EEC_ORDER_DATA constant or the gtm4wp_eec_order_data string.
+Major rewrite of the plugin. Please read the announcement post on gtm4wp.com before upgrading. This section is a summary; wordpress.org truncates a changelog after 5,000 words, so the complete list of 2.0.0 changes with every detail lives in the changelog on GitHub: https://github.com/duracelltomi/gtm4wp/blob/master/CHANGELOG.md
 
-= 1.20 =
+* Changed: complete object-oriented rewrite. Every feature is a module that third-party plugins can extend. All public template functions, filter and action names, wp-config constants and the options storage key are unchanged, so existing integrations keep working.
+* Changed: minimum requirements raised to PHP 8.0 and WordPress 6.3.
+* Added: modern React-based settings screen with left pane navigation, tabbed option groups, option search, inline validation, a help link on every option, bookmarkable addresses and settings export and import.
+* Added: every Google Tag Manager container ID has its own environment parameters, custom domain and custom path; a production-only kill switch for staging copies; validation of the hard-coded wp-config constants with a warning that names the wrong one.
+* Changed: the tag restriction list is written under the documented `gtm.allowlist` / `gtm.blocklist` keys, the entity list is refreshed from Google's documentation, and blocklist mode no longer blocks every tag.
+* Added: cache-safe data layer mode for sites behind a full page cache, with the visitor specific values fetched separately.
+* Changed: GA4 e-commerce tracking reworked for WooCommerce: reliable purchase tracking, custom order received page, order statuses that trigger the purchase event, list attribution across the funnel, block cart and checkout support, Store API data for the block trackers, and numeric-looking text values no longer turned into numbers.
+* Added: an Axeptio consent management platform integration and a CookieYes consent bridge; the WebToffee v2.x integration is deprecated. Media events cover more embedded players, and a player's script is requested only on pages that contain one of its embeds.
+* Removed: the weather and geo data features and the scroll tracking feature (use the built-in Scroll Depth trigger of Google Tag Manager instead). Browser, OS and device data is now collected in the browser with User-Agent Client Hints, which replaces the bundled WhichBrowser library.
+* Deprecated: the "YouTube video events" option (Google Tag Manager ships a native YouTube Video trigger) and the `$gtp4wp_plugin_url`, `$gtp4wp_plugin_basename` and `$gtp4wp_script_path` global variables, which will be removed in 2.1.
 
-THE BIG CLEANUP RELEASE!
+= 1.22.5 =
 
-Lots of deprecated features removed.
-The code of WooCommerce integration was cleaned and restructured, if you have any custom code that relies on GTM4WP internal data structure,
-please update the plugin on a test version of your website before updating your live site!
+A maintenance release for the 1.x line. 1.22.4 was intended to be the last one before GTM4WP 2.0; this release exists because the fixes below are worth shipping to 1.x users rather than holding for 2.0.
 
-* Removed: deprecated Universal Analytics events for WooCommerce
-* Removed: deprecated filter GTM4WP_WPFILTER_AFTER_DATALAYER/gtm4wp_after_datalayer
-* Removed: deprecated filter GTM4WP_WPFILTER_ADDGLOBALVARS/gtm4wp_add_global_vars
-* Removed: deprecated feature that puts the 'Do not track' option of the browser into the data layer. It is a deprecated browser feature therefore removed from this plugin.
-* Removed: deprecated Google Optimize integration
-* Removed: deprecated constants GTM4WP_OPTION_BLACKLIST_MACRO_* and GTM4WP_OPTION_BLACKLIST_<adsystemname>
-* Removed: deprecated WordPress filter GTM4WP_WPFILTER_GETTHEGTMTAG (deprecated in v1.16)
-* Changed: lots of internal function names and variable names changed, although is not recommended to depend on them, if you did, check your code
-* Changed: renamed WP filter gtm4wp_datalayer_on_pageload to gtm4wp_woocommerce_datalayer_on_pageload to better reflect when it is called.
-* Changed: orderData data layer variable in WooCommerce integration now includes keys to better support enhanced conversions setup:
-  * orderData.customer.billing.first_name_hash
-  * orderData.customer.billing.last_name_hash
-  * orderData.customer.billing.phone_hash
-* Deprecated: orderData.customer.billing.emailhash, please update to use orderData.customer.billing.email_hash (with an underscore)
-* Added: stockstatus key into the product array of every ecommerce action. Returns the value of WP_Product->get_stock_status(). Thanks [hans2103](https://github.com/hans2103).
-* Added: integration with WebToffee GDPR Cookie Consent plugin. GTM4WP can not fire a GTM event when user consent changes or when a previously stored consent has been loaded.
-* Fixed: add_payment_info and add_shipping_info events were not fired during checkout submit when not fired before on the page.
-* Fixed: GTM4WP will only look for the user's IP address in the REMOTE_ADDR server variable. You may enter a custom HTTP header instead in plugin settings.
+* Fixed (security): hardened how the hidden product-data attribute is built for WooCommerce product lists and cart remove links, so that no product field value can affect the surrounding HTML. Certain values were not guaranteed to stay inside the attribute.
+* Fixed: when a custom X-Forwarded-For header is configured as the visitor IP source, all entries of the header are now evaluated. Only the first entry was ever considered, because the remaining ones were not trimmed of the space that follows each comma and therefore failed IP validation.
+* Fixed: the custom visitor IP header name is now validated in full. The check accepted any value that contained at least one valid character, so an invalid header name passed validation and was then simply never found. Setups with a working header name are unaffected.
 
-= 1.19.1 =
+= 1.22.4 =
 
-* Fixed: run additional checks when determing product category to prevent PHP errors in certain cases
-* Fixed: corrected Consent Mode flag names in admin page description texts
+* Fixed: hardened how values are encoded into the data layer and into inline script blocks. Script blocks are no longer HTML entity decoded after sanitization, and every value written into a script context is now JSON encoded with the full set of hex escaping flags. Thanks [cyn](https://github.com/cyn8)
+* Fixed: nonce attribute should not be sanitized. Thanks [oxyc](https://github.com/oxyc)
+* Fixed: avoid warnings when saving settings. Thanks [mircobabini](https://github.com/mircobabini)
+* Fixed: only float number is returned in JavaScript processing. Thanks [gkipouros](https://github.com/gkipouros)
+* Updated: only load plugin files on frontend or on admin when the admin user has sufficient permissions.
+* Updated: WooCommerce 10.4+ compatibility - the checkout inline script no longer uses the deprecated wc_enqueue_js() function. The old function is still used as a fallback on setups where the tracker script is loaded in the page head.
+* Updated: WordPress and WooCommerce compatibility.
+* Deprecated: geo data (ipstack.com) and weather data (OpenWeatherMap) integrations. They still work in this version but will be removed in GTM4WP 2.0. There is no direct replacement: collect this data in Google Tag Manager or with a dedicated service instead.
+* Deprecated: scroll tracking. It still works in this version but will be removed in GTM4WP 2.0. Use the Scroll Depth trigger built into Google Tag Manager instead.
+* Deprecated: the "Custom tag/variable templates" blacklist option, plus the Universal Analytics and Mouseflow entries of the tag blacklist. These will be removed in GTM4WP 2.0.
+* Added: a dismissable admin notice announcing the upcoming GTM4WP 2.0 release. If your site uses one of the deprecated features above, the notice names it.
 
-= 1.19 =
+= 1.22.3 =
 
-WARNING!
-Universal Analytics / GA3 ecommerce events **deprecated**!
-Please update your GTM setup so that it does not rely on any of the following GTM4WP events and the old ecommerce data layer:
-* gtm4wp.productClickEEC
-* gtm4wp.addProductToCartEEC
-* gtm4wp.removeFromCartEEC
-* gtm4wp.checkoutOptionEEC
-* gtm4wp.checkoutStepEEC
-* gtm4wp.changeDetailViewEEC
-* gtm4wp.orderCompletedEEC
+* Fixed: when timeout for the select_item event with WooCommerce is set to 0, plugin does not halt the browser from loading the product page
+* Fixed: properly reading timeout for select_item eventCallback
 
-Instead of the above events, you can use the new GA4 ecommerce events (add_to_cart, purchase, etc.)
-In the Universal Analytics GTM tag now you have an option to use the GA4 ecommerce data in the data layer.
-If you are on GA360 and still collecting ecommerce data, you need to update your GTM setup to use that option firing on the GA4 ecommerce events.
+= 1.22.2 =
 
-* Updated: WooCommerce integration now accepts the primary category selection of Yoast SEO and Rank Math SEO
-* Updated: use the gtm4wp_admin_page_capability filter to modify the capability needed to use the admin page (thanks [emreerkan](https://github.com/emreerkan))
-* Fixed: price did not include the .00 postfix for integers in the add_to_cart event
-* Added: if needed, you can turn on clearing the ecommerce object before a new GA4 event is being pushed.
-* Added: support for Google Consent Mode default command for use cases where the consent management tool does not support it already
+* Fixed: purchase event was not fired when is_order_received_page() WooCommerce tag was not supported by the template and the fallback method had to activate.
 
-= 1.18.1 =
+= 1.22.1 =
 
-* Fixed: PHP notice about Undefined variable: blocking_cookie
+* Fixed: yet another fix to the purchase tracking. Thanks [Khnaz35](https://github.com/Khnaz35)
 
-= 1.18 =
-
-* Fixed: error while checking the new customer status in WooCommerce on the order received page (thanks [morvy](https://github.com/morvy))
-* Fixed: Call to a member function get_meta() on null error on WooCommerce order received page (thanks [Dekadinious](https://github.com/Dekadinious))
-* Updated: WordPress and WooCommerce compatibility
-* Updated: Deprecated Google Optimize integration as the tool is sunsetting in September 2023
-* Added: Create a cookie named block_gtm4wp_geoip after a specific user selected cookie preferences. Set the value to either "yes", "true", "on" or "1" and the GeoIP (and weather API) feature will be disabled for that particular user
+Older releases are listed in the full changelog on GitHub: https://github.com/duracelltomi/gtm4wp/blob/master/CHANGELOG.md
 
 == Upgrade Notice ==
+
+= 2.0.0 =
+Major rewrite: requires PHP 8.0 and WordPress 6.3. Weather/geo data, scroll tracking and the bundled WhichBrowser library were removed. Public API (template functions, hooks, options) is unchanged.
+
+
+= 1.22.5 =
+
+Security release. Hardens how product data is written into WooCommerce product list and cart markup. Recommended for every store, and especially where users other than the site administrator can edit products.
+
+= 1.22.4 =
+
+Security and deprecation release. Hardens data layer and inline script encoding, and marks the features that will be removed in the upcoming GTM4WP 2.0 rewrite (geo data, weather data and scroll tracking). Those features still work in this version.
+
+= 1.22.3 =
+
+Bugfix release
+
+= 1.22.2 =
+
+Bugfix release
+
+= 1.22.1 =
+
+Bugfix release
 
 = 1.22 =
 

@@ -6,24 +6,8 @@ use WPML\StringTranslation\Application\Translation\Query\Dto\TranslationStatusDt
 
 class StringWithTranslationStatusDto extends StringDto {
 
-	/** @var array<string, TranslationStatusDto> */
 	private $translationStatuses;
 
-	/**
-	 * @param int $id
-	 * @param string $language
-	 * @param string $domain
-	 * @param string $context
-	 * @param string $name
-	 * @param string $value
-	 * @param int $status
-	 * @param string $translationPriority
-	 * @param int $wordCount
-	 * @param int $kind
- 	 * @param int $type
-	 * @param array $sources
-	 * @param array<string, TranslationStatusDto> $translationStatuses
-	 */
 	public function __construct(
 		int $id,
 		string $language,
@@ -57,7 +41,6 @@ class StringWithTranslationStatusDto extends StringDto {
 		$this->translationStatuses = $translationStatuses;
 	}
 
-	/** @return array<string, TranslationStatusDto> */
 	public function getTranslationStatuses(): array {
 		return $this->translationStatuses;
 	}

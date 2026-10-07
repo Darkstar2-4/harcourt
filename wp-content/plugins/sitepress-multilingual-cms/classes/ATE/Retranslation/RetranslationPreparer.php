@@ -7,30 +7,16 @@ use WPML\FP\Obj;
 
 class RetranslationPreparer {
 
-	/** @var \wpdb */
 	private $wpdb;
 
-	/** @var \WPML_TM_ATE_API $ateApi */
 	private $ateApi;
 
-	/**
-	 * @param \wpdb $wpdb
-	 * @param \WPML_TM_ATE_API $ateApi
-	 */
 	public function __construct( \wpdb $wpdb, \WPML_TM_ATE_API $ateApi ) {
 		$this->wpdb   = $wpdb;
 		$this->ateApi = $ateApi;
 	}
 
 
-	/**
-	 * It changes status of corresponding WPML jobs into "waiting to translator" ( means in-progress ),
-	 * which will trigger the ATE Sync flow for them.
-	 *
-	 * @param int[] $ateJobIds
-	 *
-	 * @return array{int, int}
-	 */
 	public function delegate( array $ateJobIds ): array {
 		$rowset = \wpml_collect( $this->wpdb->get_results( $this->buildSelectQuery( $ateJobIds ) ) );
 

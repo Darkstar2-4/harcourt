@@ -1,8 +1,5 @@
 <?php
 
-/**
- * @author OnTheGo Systems
- */
 class WPML_Main_Admin_Menu {
 	const MENU_ORDER_LANGUAGES                       = 100;
 	const MENU_ORDER_THEMES_AND_PLUGINS_LOCALIZATION = 200;
@@ -10,32 +7,15 @@ class WPML_Main_Admin_Menu {
 	const MENU_ORDER_SETTINGS                        = 9900;
 	const MENU_ORDER_MAX                             = 10000;
 
-	/** @var string */
 	private $languages_menu_slug;
-	/**
-	 * @var WPML_Admin_Menu_Root
-	 */
 	private $root;
-	/**
-	 * @var SitePress
-	 */
 	private $sitepress;
 
-	/**
-	 * WPML_Menu_Main constructor.
-	 *
-	 * @param SitePress $sitepress
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	public function __construct( SitePress $sitepress ) {
 		$this->sitepress           = $sitepress;
 		$this->languages_menu_slug = WPML_PLUGIN_FOLDER . '/menu/languages.php';
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	public function configure() {
 		$this->root = new WPML_Admin_Menu_Root(
 			array(
@@ -75,9 +55,6 @@ class WPML_Main_Admin_Menu {
 		do_action( 'wpml_core_admin_menus_completed' );
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	private function languages() {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_order( self::MENU_ORDER_LANGUAGES );
@@ -98,17 +75,11 @@ class WPML_Main_Admin_Menu {
 		$this->root->add_item( $menu );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_wpml_setup_completed() {
 		return $this->sitepress->get_setting( 'existing_content_language_verified' )
 			   && 2 <= count( $this->sitepress->get_active_languages() );
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	private function themes_and_plugins_localization() {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_order( self::MENU_ORDER_THEMES_AND_PLUGINS_LOCALIZATION );
@@ -119,16 +90,10 @@ class WPML_Main_Admin_Menu {
 		$this->root->add_item( $menu );
 	}
 
-	/**
-	 * @return bool
-	 */
 	private function is_tm_active() {
 		return $this->sitepress->get_wp_api()->defined( 'WPML_TM_VERSION' );
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	private function translation_options() {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_order( self::MENU_ORDER_SETTINGS );
@@ -139,9 +104,6 @@ class WPML_Main_Admin_Menu {
 		$this->root->add_item( $menu );
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	private function taxonomy_translation() {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_order( self::MENU_ORDER_TAXONOMY_TRANSLATION );
@@ -153,9 +115,6 @@ class WPML_Main_Admin_Menu {
 		$this->root->add_item( $menu );
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
 	private function support() {
 		$menu_slug = WPML_PLUGIN_FOLDER . '/menu/support.php';
 
@@ -171,11 +130,6 @@ class WPML_Main_Admin_Menu {
 		$this->debug_information_menu( $menu_slug );
 	}
 
-	/**
-	 * @param string $parent_slug
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	private function troubleshooting_menu( $parent_slug ) {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_parent_slug( $parent_slug );
@@ -186,11 +140,6 @@ class WPML_Main_Admin_Menu {
 		$this->root->add_item( $menu );
 	}
 
-	/**
-	 * @param string $parent_slug
-	 *
-	 * @throws \InvalidArgumentException
-	 */
 	private function debug_information_menu( $parent_slug ) {
 		$menu = new WPML_Admin_Menu_Item();
 		$menu->set_parent_slug( $parent_slug );

@@ -58,11 +58,6 @@ class Register {
 		return str_replace( [ 'https://', 'http://' ], '', $str );
 	}
 
-	/**
-	 * @param $model
-	 *
-	 * @return string
-	 */
 	private static function getAccountUrl( $model ) {
 		return apply_filters(
 			'otgs_installer_add_site_url',
@@ -71,11 +66,6 @@ class Register {
 		);
 	}
 
-	/**
-	 * @param $model
-	 *
-	 * @return string
-	 */
 	private static function getRegisterLink( $model ) {
 		$buttonText = sprintf( esc_attr( 'register on %s.' ), self::removeScheme( $model->productUrl ) );
 		ob_start();

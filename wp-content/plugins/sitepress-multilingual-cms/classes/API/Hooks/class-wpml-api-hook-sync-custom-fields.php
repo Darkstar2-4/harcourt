@@ -2,7 +2,6 @@
 
 class WPML_API_Hook_Sync_Custom_Fields implements IWPML_Action {
 
-	/** @var WPML_Sync_Custom_Fields $sync_custom_fields */
 	private $sync_custom_fields;
 
 	public function __construct( WPML_Sync_Custom_Fields $sync_custom_fields ) {

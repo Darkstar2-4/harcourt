@@ -1,17 +1,9 @@
 <?php
 
-/**
- * Class WPML_Troubleshoot_Action
- *
- * @author onTheGoSystems
- */
 class WPML_Troubleshoot_Action {
 
 	const SYNC_POSTS_TAXONOMIES_SLUG = 'synchronize_posts_taxonomies';
 
-	/**
-	 * @return bool
-	 */
 	public function is_valid_request() {
 		$response = false;
 

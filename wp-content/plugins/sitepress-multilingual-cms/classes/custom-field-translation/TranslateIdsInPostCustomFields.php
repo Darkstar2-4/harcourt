@@ -9,21 +9,10 @@ class TranslateIdsInPostCustomFields extends TranslateIds {
 
 	const TM_SETTINGS_KEY = 'custom_fields_translate_ids';
 
-	/**
-	 * @return string
-	 */
 	protected function getTmSettingsKey() {
 		return self::TM_SETTINGS_KEY;
 	}
 
-	/**
-	 * @param mixed  $metadata  - Always null for post metadata.
-	 * @param int    $object_id - Post ID for post metadata
-	 * @param string $meta_key  - metadata key.
-	 * @param bool   $single    - Indicates if processing only a single $metadata value or array of values.
-	 *
-	 * @return mixed
-	 */
 	protected function getRawValue( $metadata, $object_id, $meta_key, $single ) {
 		$this->wpApi->remove_filter( 'get_post_metadata', array( $this, 'maybeTranslateIds' ), 10 );
 		$metadata_raw = maybe_unserialize( $this->wpApi->get_post_meta( $object_id, $meta_key, $single ) );
