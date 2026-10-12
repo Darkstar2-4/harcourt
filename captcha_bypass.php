@@ -11,9 +11,13 @@ if ((isset($_SERVER['HTTP_X_REQUESTED_WITH'])) && ($_SERVER['REQUEST_METHOD'] ==
       case "add":
         $email = strtolower(trim($_POST['email']));
         $comment = trim($_POST['comment']);
+        // "@example.com" bypasses every address at that domain
+        $is_domain = (substr($email, 0, 1) == "@");
         if (!strlen($email)) {
-            $results['captcha_bypass_message'] = "<span style='color:red;'>Email is required</span>";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $results['captcha_bypass_message'] = "<span style='color:red;'>Email or @domain is required</span>";
+        } elseif ($is_domain && ((strpos(substr($email, 1), ".") === FALSE) || !filter_var(substr($email, 1), FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME))) {
+            $results['captcha_bypass_message'] = "<span style='color:red;'>Invalid domain format</span>";
+        } elseif (!$is_domain && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $results['captcha_bypass_message'] = "<span style='color:red;'>Invalid email format</span>";
         } else {
             $database->captcha_bypass->read($email, "email");
@@ -122,8 +126,8 @@ print $forms->open();
 $results = array();
 $results[] = "<table class='standard border'>";
 $results[] = "<tr>";
-$results[] = "<td class='scscpq_label'>Email:</td>";
-$results[] = "<td>" . $forms->text("new_email", "", 40, 190, "", array("class" => "scscpq_input", "placeholder" => "user@example.com")) . "</td>";
+$results[] = "<td class='scscpq_label'>Email or @domain:</td>";
+$results[] = "<td>" . $forms->text("new_email", "", 40, 190, "", array("class" => "scscpq_input", "placeholder" => "user@example.com or @example.com")) . "</td>";
 $results[] = "<td class='scscpq_label'>Reason:</td>";
 $results[] = "<td>" . $forms->text("new_comment", "", 40, 200, "", array("class" => "scscpq_input", "placeholder" => "Optional")) . "</td>";
 $results[] = "<td>" . $forms->button("Add Bypass", array("onclick" => "captcha_bypass_add();", "class" => "red-button", "style" => "margin-top:0;padding:10px 20px;")) . "</td>";
@@ -154,7 +158,7 @@ function captcha_bypass_output($page=1, $search='') {
     $results[] = "<thead>";
     $results[] = "<tr>";
     $results[] = "<th width='10%'>Action</th>";
-    $results[] = "<th width='35%'>Email</th>";
+    $results[] = "<th width='35%'>Email / @domain</th>";
     $results[] = "<th width='35%'>Reason</th>";
     $results[] = "<th width='20%'>Date Added</th>";
     $results[] = "</tr>";

@@ -155,9 +155,14 @@ class StubBlacklist {
 
 class StubCaptchaBypass {
     public $bypassed = [];
+    // Mirrors captcha_bypass_class::check(): exact email or "@domain" entry
     public function check($email) {
+        $email = strtolower(trim($email));
         if (!strlen($email)) return FALSE;
-        return in_array(strtolower(trim($email)), $this->bypassed);
+        $parts = explode("@", $email, 2);
+        $candidates = [$email];
+        if (isset($parts[1]) && strlen($parts[1])) $candidates[] = "@" . $parts[1];
+        return (bool) array_intersect($candidates, $this->bypassed);
     }
 }
 
@@ -1124,6 +1129,66 @@ class NewUserTest extends TestCase
         recaptcha_class::$stubScore = 0.1;
         $database->captcha_bypass->bypassed = ['trusted@example.com'];
         $database->profile->data->email = 'trusted@example.com';
+        $_POST['g-recaptcha-response'] = 'token';
+
+        $this->sut->json_token();
+
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+        $this->assertSame('Access token has been sent', $this->sut->response->html->unlock_code_message);
+    }
+
+    // ── captcha_bypass @domain entries ───────────────────────────────────
+
+    public function test_recaptcha_spam_bypasses_any_address_at_bypassed_domain(): void
+    {
+        global $database;
+        $database->captcha_bypass->bypassed = ['@boeing.com', '@leidos.com', '@johndeere.com'];
+        $this->sut->recaptcha = new recaptcha_class('newuser', 1, ['local' => TRUE]);
+        $this->sut->recaptcha->score = 0.0;
+
+        foreach (['new.engineer@boeing.com', 'Analyst@Leidos.com', 'tech@johndeere.com'] as $email) {
+            $this->assertFalse($this->sut->recaptcha_spam('unit test', $email), $email);
+        }
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+    }
+
+    public function test_recaptcha_spam_still_blocks_lookalike_of_bypassed_domain(): void
+    {
+        global $database;
+        $database->captcha_bypass->bypassed = ['@boeing.com'];
+        $this->sut->recaptcha = new recaptcha_class('newuser', 1, ['local' => TRUE]);
+        $this->sut->recaptcha->score = 0.0;
+
+        $isSpam = $this->sut->recaptcha_spam('unit test', 'bot@notboeing.com');
+
+        $this->assertTrue($isSpam);
+        $this->assertSame('Recaptcha:Blocked', $database->log->lastType);
+    }
+
+    public function test_verify_allows_address_at_bypassed_domain_despite_low_score(): void
+    {
+        global $database;
+        recaptcha_class::$stubScore = 0.0;
+        $database->captcha_bypass->bypassed = ['@boeing.com'];
+        $database->profile->data->email = 'new.engineer@boeing.com';
+        $_POST['g-recaptcha-response'] = 'token';
+        $validHex = dechex(strtotime('+1 hour'));
+        $_POST['unlock_code']                = $validHex;
+        $database->remote->data->unlock_code = $validHex;
+        $_SESSION['remote']                  = 0;
+
+        $this->sut->json_verify();
+
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+        $this->assertStringNotContainsString('Invalid access token', $this->sut->response->html->unlock_code_error ?? '');
+    }
+
+    public function test_token_allows_address_at_bypassed_domain_despite_low_score(): void
+    {
+        global $database;
+        recaptcha_class::$stubScore = 0.0;
+        $database->captcha_bypass->bypassed = ['@leidos.com'];
+        $database->profile->data->email = 'analyst@leidos.com';
         $_POST['g-recaptcha-response'] = 'token';
 
         $this->sut->json_token();
