@@ -1,4 +1,4 @@
-Part Number,Manufacturing Date,Testing Date,Product Family,Product Description,Product Weight,Rated Load,Conversion,Test Machine,Test Machine Calibration Date
-H0000001,12/31/2025,1/5/2026,HLIFT,HLIFT-8-48,5.6 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025
-H0000002,12/31/2025,1/5/2026,HLIFT,HLIFT-2-48,4.5 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025
-H0000003,12/31/2025,1/6/2026,HLIFT,HLIFT-6-50,6.2 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025
+Part Number,Manufacturing Date,Testing Date,Product Family,Product Description,Product Weight,Rated Load,Conversion,Test Machine,Test Machine Calibration Date,Customer Domain
+H0000001,12/31/2025,1/5/2026,HLIFT,HLIFT-8-48,5.6 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025,customer.com
+H0000002,12/31/2025,1/5/2026,HLIFT,HLIFT-2-48,4.5 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025,toolbuilder.com; client.com
+H0000003,12/31/2025,1/6/2026,HLIFT,HLIFT-6-50,6.2 lbs,"10,000 lbs","4,536 KG",ADB Calibrated Equipment per ASTM E4-20,10/23/2025,customer.com

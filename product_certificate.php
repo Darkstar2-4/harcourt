@@ -5,12 +5,13 @@ if ( (!$_SESSION['user']->id) || ($_SESSION['user']->status != "Active") ) exit;
 
 if (isset($_GET['download'])) {
     $database->product_certificate->read(intval($_GET['download']));
-    if (!$database->product_certificate->data->id) {
+    $certificate = $database->product_certificate->data;
+    if ( (!$certificate->id) || (!$database->product_certificate->access($certificate->sku, $_SESSION['user'])) ) {
         http_response_code(404);
         die("Certificate not found");
     }
-    $html = product_certificate_pdf_html($database->product_certificate->data);
-    $filename = "Certificate_" . preg_replace("/[^A-Za-z0-9_-]/", "", $database->product_certificate->data->sku) . ".pdf";
+    $html = product_certificate_pdf_html($certificate);
+    $filename = "Certificate_" . preg_replace("/[^A-Za-z0-9_-]/", "", $certificate->sku) . ".pdf";
     require_once "scs_pdf.php";
     new scs_pdf_class($html, array("file" => $filename));
 }
@@ -21,12 +22,16 @@ if ((isset($_SERVER['HTTP_X_REQUESTED_WITH'])) && ($_SERVER['REQUEST_METHOD'] ==
     die(json_encode($results));
 }
 
-$forms->title("Harcourt | Product Certificate Lookup");
+$forms->title("Harcourt | Harcourt Certified™");
 $forms->html->meta("description", "Look up and download Harcourt Industrial pull test certificates by product number.");
 $menu->head();
 ?>
 <style>
 .pc-page { background:#f5f6f8; padding:32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+.pc-intro { max-width:820px; margin:0 auto 20px; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:28px 32px; }
+.pc-intro .pc-logo { display:block; width:100%; max-width:280px; height:auto; margin:0 0 16px; }
+.pc-intro h1 { margin:0 0 10px; font-size:26px; color:#111827; }
+.pc-intro p { margin:0; color:#374151; font-size:16px; line-height:1.6; }
 .pc-card { max-width:820px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:32px; }
 .pc-card h2 { margin:0 0 4px; font-size:22px; }
 .pc-card p.pc-subtitle { margin:0 0 20px; color:#6b7280; }
@@ -72,8 +77,13 @@ jQuery(function() {
 </script>
 <?php
 print "<div class='pc-page'>";
+print "<div class='pc-intro'>";
+print "<img class='pc-logo' src='/scs_images/hcert_logo.png' alt='HCERT'>";
+print "<h1>A Revolutionary Way to Verify Your Parts</h1>";
+print "<p>Harcourt parts, verified in seconds. Search by item number or serial to get pull tests, finish records, and inspection data straight from our manufacturing files. No waiting, no email chains. It's the fastest way to confirm what you received is exactly what you ordered.</p>";
+print "</div>";
 print "<div class='pc-card'>";
-print "<h2>Certificate Lookup</h2>";
+print "<h2>Harcourt Certified&trade;</h2>";
 print "<p class='pc-subtitle'>Enter your product number to view and download the pull test certificate</p>";
 print "<div class='pc-search-row'>";
 print "<input type='text' id='pc_sku' placeholder='Enter product number (e.g., H0000001)' autocomplete='off'>";
@@ -90,6 +100,9 @@ $menu->copyright();
 function product_certificate_search_output($sku) {
     global $database;
     if (!strlen($sku)) return "<p class='pc-empty'>Please enter a product number.</p>";
+    // Same message as an unknown SKU so restricted SKUs can't be discovered by scanning
+    $not_found = "<p class='pc-empty'>No certificate found for product number &ldquo;" . htmlspecialchars($sku) . "&rdquo;.</p>";
+    if (!$database->product_certificate->access($sku, $_SESSION['user'])) return $not_found;
     $query = array("select * from product_certificate");
     $query[] = "where sku=" . fn_escape($sku);
     $query[] = "order by testing_date desc";
@@ -100,9 +113,7 @@ function product_certificate_search_output($sku) {
         $certificates[] = clone $database->product_certificate->data;
     }
     $database->product_certificate->free_result();
-    if (!sizeof($certificates)) {
-        return "<p class='pc-empty'>No certificate found for product number &ldquo;" . htmlspecialchars($sku) . "&rdquo;.</p>";
-    }
+    if (!sizeof($certificates)) return $not_found;
     $results = array();
     $results[] = "<div class='pc-results'>";
     foreach ($certificates as $cert) {
