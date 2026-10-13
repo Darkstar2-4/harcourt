@@ -1036,6 +1036,19 @@ class NewUserTest extends TestCase
         $this->assertSame('user:signup', $database->log->lastType);
     }
 
+    public function test_json_register_new_signup_says_request_is_pending_not_granted(): void
+    {
+        recaptcha_class::$stubScore = 0.9;
+        $_POST['g-recaptcha-response'] = 'token';
+
+        $this->sut->json_register();
+
+        $html = $this->sut->response->html->profile_register;
+        $this->assertStringContainsString('your access request has been submitted', $html);
+        $this->assertStringContainsString('pending approval', $html);
+        $this->assertStringNotContainsString('you now have access', $html);
+    }
+
     public function test_verify_blocks_low_recaptcha_score(): void
     {
         global $database;

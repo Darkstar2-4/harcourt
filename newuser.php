@@ -159,7 +159,10 @@ class remote_access_class {
         $mail->html("<p class='standard'>" . implode("<br>",$comment) . "</p>");
         $mail->send();
 
-        return "<h2 class='page-subtitle editable h2-login'>Congratulations, you now have access!<h2>";
+        $results=array();
+        $results[]="<h2 class='page-subtitle editable h2-login'>Congratulations, your access request has been submitted!</h2>";
+        $results[]="<p>Your request is pending approval. You will be able to enter our catalog as soon as it has been approved.</p>";
+        return implode("",$results);
     }
     function json_verify() {
     	global $database, $forms, $menu;
