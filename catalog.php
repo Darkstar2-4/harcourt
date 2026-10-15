@@ -681,17 +681,17 @@ class catalog_output_class {
             $header=isset($_SERVER['HTTP_X_CATALOG_UNIT_FILTER']) ? $_SERVER['HTTP_X_CATALOG_UNIT_FILTER'] : "";
             $source=in_array($header,array("click","history")) ? $header : "url";
             $comment[]="Unit filter: {$unit_type}";
-            $subtype="unit_filter";
+            $subtype="Unit Filter";
           } else {
             if (!strlen($default) || !empty($_SESSION['catalog_unit_default_logged'])) return;
             $_SESSION['catalog_unit_default_logged']=TRUE;
             $source="default";
-            $subtype="unit_default";
+            $subtype="Unit Default";
         }
         $comment[]="Default: " . (strlen($default) ? $default : "all");
         $comment[]="Country: " . strtoupper(trim($_SESSION['user']->country_code));
         $comment[]="Source: {$source}";
-        $database->log->update(array("catalog",$subtype),$comment);
+        $database->log->update(array("Catalog",$subtype),array("comment"=>$comment));
     }
     function output_unit_filter() {
     	$this->trace[]=__FUNCTION__;

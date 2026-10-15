@@ -611,7 +611,7 @@ class CatalogTest extends TestCase
         $obj->request = $request;
         $database->log = new class {
             public $calls = [];
-            function update($action, $text = []) { $this->calls[] = [$action, $text]; }
+            function update($action, $options = []) { $this->calls[] = [$action, $options["comment"]]; }
         };
         $obj->log_unit_filter();
         return $database->log->calls;
@@ -621,7 +621,7 @@ class CatalogTest extends TestCase
     public function test_log_unit_filter_records_pill_click(): void {
         $calls = $this->captureUnitFilterLog(['unit_type' => 'all'], $this->defaultSessionUser(['country_code' => 'FR']), 'click');
 
-        $this->assertSame([[['catalog', 'unit_filter'], ['Unit filter: all', 'Default: metric', 'Country: FR', 'Source: click']]], $calls);
+        $this->assertSame([[['Catalog', 'Unit Filter'], ['Unit filter: all', 'Default: metric', 'Country: FR', 'Source: click']]], $calls);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
@@ -635,7 +635,7 @@ class CatalogTest extends TestCase
     public function test_log_unit_filter_logs_country_default_once_per_session(): void {
         global $database;
         $calls = $this->captureUnitFilterLog([], $this->defaultSessionUser(['country_code' => 'DE']));
-        $this->assertSame([[['catalog', 'unit_default'], ['Default: metric', 'Country: DE', 'Source: default']]], $calls);
+        $this->assertSame([[['Catalog', 'Unit Default'], ['Default: metric', 'Country: DE', 'Source: default']]], $calls);
 
         $obj = (new ReflectionClass('catalog_output_class'))->newInstanceWithoutConstructor();
         $obj->request = [];
