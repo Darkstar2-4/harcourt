@@ -610,6 +610,7 @@ class catalog_output_class {
         // Country default only applies here, where the pills are shown; search
         // results also go through output_summary() but have no way to undo it.
         if (!strlen($this->request['unit_type'])) $this->unit_type=$this->default_unit_type();
+        $this->log_unit_filter();
         print $this->output_unit_filter();
 	    $query_where=array();
 	    $query_where[]=new query_where("category.active","=",1);
@@ -666,6 +667,32 @@ class catalog_output_class {
         $country_code=strtoupper(trim($_SESSION['user']->country_code));
         return (strlen($country_code) && ($country_code != "US")) ? "metric" : "";
     }
+    function log_unit_filter() {
+        // Records filter usage for reporting. An explicit unit_type is a choice
+        // (pill click, back/forward, or a shared URL); otherwise the country
+        // default was applied, logged once per session to keep volume down.
+        global $database;
+        if (isset($_SESSION['user']->bot_code)) return;
+        $default=$this->default_unit_type();
+        $comment=array();
+        $requested=isset($this->request['unit_type']) ? $this->request['unit_type'] : "";
+        if (strlen($requested)) {
+            $unit_type=in_array($requested,array("metric","imperial")) ? $requested : "all";
+            $header=isset($_SERVER['HTTP_X_CATALOG_UNIT_FILTER']) ? $_SERVER['HTTP_X_CATALOG_UNIT_FILTER'] : "";
+            $source=in_array($header,array("click","history")) ? $header : "url";
+            $comment[]="Unit filter: {$unit_type}";
+            $subtype="unit_filter";
+          } else {
+            if (!strlen($default) || !empty($_SESSION['catalog_unit_default_logged'])) return;
+            $_SESSION['catalog_unit_default_logged']=TRUE;
+            $source="default";
+            $subtype="unit_default";
+        }
+        $comment[]="Default: " . (strlen($default) ? $default : "all");
+        $comment[]="Country: " . strtoupper(trim($_SESSION['user']->country_code));
+        $comment[]="Source: {$source}";
+        $database->log->update(array("catalog",$subtype),$comment);
+    }
     function output_unit_filter() {
     	$this->trace[]=__FUNCTION__;
         $url_query=array();
@@ -713,7 +740,8 @@ class catalog_output_class {
         $results[]="  var spinner=document.createElement('div');";
         $results[]="  spinner.className='catalog_unit_filter_spinner';";
         $results[]="  document.body.appendChild(spinner);";
-        $results[]="  fetch(url, {credentials: 'same-origin'}).then(function(response) {";
+        $results[]="  var headers={'X-Catalog-Unit-Filter': push_state ? 'click' : 'history'};";
+        $results[]="  fetch(url, {credentials: 'same-origin', headers: headers}).then(function(response) {";
         $results[]="    if (!response.ok) throw new Error('http_error');";
         $results[]="    return response.text();";
         $results[]="  }).then(function(html) {";
