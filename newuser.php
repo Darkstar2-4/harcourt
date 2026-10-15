@@ -24,6 +24,7 @@ class remote_access_class {
     var $trace=array();
     function scs_table_version() {
     	$results=array();
+        $results['10/15/2026']="Email register recipient when a new user is auto-approved by domain";
         $results['06/18/2026']="Add Google OAuth2 registration";
         $results['06/12/2026']="Microsoft OAuth: populate domain/company/address from profile on registration";
         $results['06/11/2026']="Microsoft OAuth: check remote table by email first";
@@ -97,6 +98,7 @@ class remote_access_class {
         }
         $database->remote->access($address->data->email);
         if (strlen($database->remote->data->access)) {
+            if (!$database->remote->meta->rows) $this->auto_approved_email($address->data->email, "Registration form (access token emailed for verification)");
             $menu->cookie($address->data->email);
             $this->json_email($address->data->email);
             $this->response->html->scscpq_content=$this->html_remote(TRUE);
@@ -256,6 +258,26 @@ class remote_access_class {
         $mail->send();
         return "Your access token has been emailed to: <b>{$email}</b>";
     }
+    function auto_approved_email($email, $method) {
+    	global $database;
+        $this->trace[]=__FUNCTION__;
+        // First access for this email via an Active company domain (no manual approval);
+        // goes to the same "register" mailform recipient as new access requests
+        $comment=array();
+        $comment[]="<b>A new user was auto-approved because their email domain matches an active account.</b>";
+        $comment[]="";
+        $comment[]="Email: " . $email;
+        $comment[]="Company: " . $database->user->data->company_name . " (" . $database->user->data->domain . ")";
+        $comment[]="Method: " . $method;
+        $comment[]="";
+        $comment[]="Browser: " . $_SERVER['HTTP_USER_AGENT'];
+        $comment[]="IP Address: " . harcourt_remote_addr();
+        $comment[]="DNS Name: " . gethostbyaddr(harcourt_remote_addr());
+        $comment[]="Date/Time: " . date('m/d/Y h:i A');
+	    $mail=new scsmail_class("register",$database->user->data,array("subject"=>"New Account Auto-Approved: {$email}"));
+        $mail->html("<p class='standard'>" . implode("<br>",$comment) . "</p>");
+        $mail->send();
+    }
     function html() {
         global $database, $forms, $menu;
         $this->trace[]=__FUNCTION__;
@@ -359,7 +381,9 @@ class remote_access_class {
                 $domain_user_status = $database->user->data->status;
 
                 if ($domain_user_found && $domain_user_status == "Active") {
-                    $body = $this->grant_oauth_remote_access($email, $database->remote->meta->rows ? TRUE : FALSE);
+                    $is_update = $database->remote->meta->rows ? TRUE : FALSE;
+                    if (!$is_update) $this->auto_approved_email($email, $provider . " OAuth");
+                    $body = $this->grant_oauth_remote_access($email, $is_update);
                 } elseif ($domain_user_found && $domain_user_status == "Pending") {
                     $body = $this->html_pending();
                 } else {
