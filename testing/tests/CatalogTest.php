@@ -597,6 +597,24 @@ class CatalogTest extends TestCase
         $this->assertSame('metric', $pills['Metric']['query']['unit_type']);
     }
 
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_unit_filter_fetches_the_script_directly_when_embedded(): void {
+        // Embedded in WordPress the pill hrefs point at /catalog/, which has no
+        // .products_summary; the swap must fetch catalog.php with scscpq_wp kept.
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $_SERVER['PHP_SELF'] = '/catalog.php';
+        $obj->php_self    = '/catalog/';
+        $obj->search_code = '';
+        $obj->new_date    = 0;
+        $obj->unit_type   = '';
+        $obj->request     = ['scscpq_wp' => '1'];
+
+        $html = $obj->output_unit_filter();
+
+        $this->assertStringContainsString("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='scscpq_wp=1'>", $html);
+    }
+
     // ── log_unit_filter(): filter usage logging ──────────────────────────
 
     /**

@@ -701,8 +701,14 @@ class catalog_output_class {
         if ($this->new_date) $url_query['new_date']=1;
         $unit_type_options=array(""=>"All","metric"=>"Metric","imperial"=>"Imperial");
         $results=array();
+        // Pill hrefs point at the page URL (the WordPress /catalog/ page when
+        // embedded), which has no .products_summary to swap in. The script
+        // fetches this script directly instead, keeping scscpq_wp so the
+        // response is the embedded fragment.
+        $fetch_query=array();
+        if (isset($this->request['scscpq_wp'])) $fetch_query['scscpq_wp']=$this->request['scscpq_wp'];
         $results[]=$this->output_unit_filter_script();
-        $results[]="<div class='catalog_unit_filter'>";
+        $results[]="<div class='catalog_unit_filter' data-fetch-path='" . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES) . "' data-fetch-query='" . htmlspecialchars(http_build_query($fetch_query),ENT_QUOTES) . "'>";
         $results[]="<span class='catalog_unit_filter_label nobr'>Show:</span>";
         foreach ($unit_type_options as $value => $label) {
             $pill_query=$url_query;
@@ -734,6 +740,14 @@ class catalog_output_class {
         $results[]="    fn_catalog_unit_filter_load(location.href, false);";
         $results[]="  });";
         $results[]="}";
+        $results[]="function fn_catalog_unit_filter_fetch_url(url) {";
+        $results[]="  var filter=document.querySelector('.catalog_unit_filter');";
+        $results[]="  var target=new URL(url, location.href);";
+        $results[]="  if (!filter || !filter.dataset.fetchPath) return target.toString();";
+        $results[]="  target.pathname=filter.dataset.fetchPath;";
+        $results[]="  new URLSearchParams(filter.dataset.fetchQuery || '').forEach(function(value, key) { target.searchParams.set(key, value); });";
+        $results[]="  return target.toString();";
+        $results[]="}";
         $results[]="function fn_catalog_unit_filter_load(url, push_state) {";
         $results[]="  var old_summary=document.querySelector('.products_summary');";
         $results[]="  if (old_summary) old_summary.classList.add('catalog_loading');";
@@ -741,7 +755,7 @@ class catalog_output_class {
         $results[]="  spinner.className='catalog_unit_filter_spinner';";
         $results[]="  document.body.appendChild(spinner);";
         $results[]="  var headers={'X-Catalog-Unit-Filter': push_state ? 'click' : 'history'};";
-        $results[]="  fetch(url, {credentials: 'same-origin', headers: headers}).then(function(response) {";
+        $results[]="  fetch(fn_catalog_unit_filter_fetch_url(url), {credentials: 'same-origin', headers: headers}).then(function(response) {";
         $results[]="    if (!response.ok) throw new Error('http_error');";
         $results[]="    return response.text();";
         $results[]="  }).then(function(html) {";
