@@ -597,6 +597,81 @@ class CatalogTest extends TestCase
         $this->assertSame('metric', $pills['Metric']['query']['unit_type']);
     }
 
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_unit_filter_fetches_the_script_directly_when_embedded(): void {
+        // Embedded in WordPress the pill hrefs point at /catalog/, which has no
+        // .products_summary; the swap must fetch catalog.php with scscpq_wp kept.
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $_SERVER['PHP_SELF'] = '/catalog.php';
+        $obj->php_self    = '/catalog/';
+        $obj->search_code = '';
+        $obj->new_date    = 0;
+        $obj->unit_type   = '';
+        $obj->request     = ['scscpq_wp' => '1'];
+
+        $html = $obj->output_unit_filter();
+
+        $this->assertStringContainsString("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='scscpq_wp=1'>", $html);
+    }
+
+    // ── log_unit_filter(): filter usage logging ──────────────────────────
+
+    /**
+     * Runs log_unit_filter() on a bare instance with the given request and
+     * session user, returning the log->update() calls it made.
+     */
+    private function captureUnitFilterLog(array $request, stdClass $user, string $header = null): array {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $user;
+        if ($header !== null) $_SERVER['HTTP_X_CATALOG_UNIT_FILTER'] = $header;
+        $obj->request = $request;
+        $database->log = new class {
+            public $calls = [];
+            function update($action, $options = []) { $this->calls[] = [$action, $options["comment"]]; }
+        };
+        $obj->log_unit_filter();
+        return $database->log->calls;
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_log_unit_filter_records_pill_click(): void {
+        $calls = $this->captureUnitFilterLog(['unit_type' => 'all'], $this->defaultSessionUser(['country_code' => 'FR']), 'click');
+
+        $this->assertSame([[['Catalog', 'Unit Filter'], ['Unit filter: all', 'Default: metric', 'Country: FR', 'Source: click']]], $calls);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_log_unit_filter_without_header_is_url_source(): void {
+        $calls = $this->captureUnitFilterLog(['unit_type' => 'metric'], $this->defaultSessionUser(['country_code' => 'US']));
+
+        $this->assertSame(['Unit filter: metric', 'Default: all', 'Country: US', 'Source: url'], $calls[0][1]);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_log_unit_filter_logs_country_default_once_per_session(): void {
+        global $database;
+        $calls = $this->captureUnitFilterLog([], $this->defaultSessionUser(['country_code' => 'DE']));
+        $this->assertSame([[['Catalog', 'Unit Default'], ['Default: metric', 'Country: DE', 'Source: default']]], $calls);
+
+        $obj = (new ReflectionClass('catalog_output_class'))->newInstanceWithoutConstructor();
+        $obj->request = [];
+        $obj->log_unit_filter();
+        $this->assertCount(1, $database->log->calls);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_log_unit_filter_skips_us_users_without_a_choice(): void {
+        $this->assertSame([], $this->captureUnitFilterLog([], $this->defaultSessionUser(['country_code' => 'US'])));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_log_unit_filter_skips_bots(): void {
+        $user = $this->defaultSessionUser(['country_code' => 'DE', 'bot_code' => 'crawler']);
+        $this->assertSame([], $this->captureUnitFilterLog(['unit_type' => 'metric'], $user, 'click'));
+    }
+
     // ── output_summary(): unit_type (metric/imperial) filter ────────────
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
