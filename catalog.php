@@ -610,6 +610,7 @@ class catalog_output_class {
         // Country default only applies here, where the pills are shown; search
         // results also go through output_summary() but have no way to undo it.
         if (!strlen($this->request['unit_type'])) $this->unit_type=$this->default_unit_type();
+        $this->log_unit_filter();
         print $this->output_unit_filter();
 	    $query_where=array();
 	    $query_where[]=new query_where("category.active","=",1);
@@ -666,6 +667,32 @@ class catalog_output_class {
         $country_code=strtoupper(trim($_SESSION['user']->country_code));
         return (strlen($country_code) && ($country_code != "US")) ? "metric" : "";
     }
+    function log_unit_filter() {
+        // Records filter usage for reporting. An explicit unit_type is a choice
+        // (pill click, back/forward, or a shared URL); otherwise the country
+        // default was applied, logged once per session to keep volume down.
+        global $database;
+        if (isset($_SESSION['user']->bot_code)) return;
+        $default=$this->default_unit_type();
+        $comment=array();
+        $requested=isset($this->request['unit_type']) ? $this->request['unit_type'] : "";
+        if (strlen($requested)) {
+            $unit_type=in_array($requested,array("metric","imperial")) ? $requested : "all";
+            $header=isset($_SERVER['HTTP_X_CATALOG_UNIT_FILTER']) ? $_SERVER['HTTP_X_CATALOG_UNIT_FILTER'] : "";
+            $source=in_array($header,array("click","history")) ? $header : "url";
+            $comment[]="Unit filter: {$unit_type}";
+            $subtype="Unit Filter";
+          } else {
+            if (!strlen($default) || !empty($_SESSION['catalog_unit_default_logged'])) return;
+            $_SESSION['catalog_unit_default_logged']=TRUE;
+            $source="default";
+            $subtype="Unit Default";
+        }
+        $comment[]="Default: " . (strlen($default) ? $default : "all");
+        $comment[]="Country: " . strtoupper(trim($_SESSION['user']->country_code));
+        $comment[]="Source: {$source}";
+        $database->log->update(array("Catalog",$subtype),array("comment"=>$comment));
+    }
     function output_unit_filter() {
     	$this->trace[]=__FUNCTION__;
         $url_query=array();
@@ -674,8 +701,14 @@ class catalog_output_class {
         if ($this->new_date) $url_query['new_date']=1;
         $unit_type_options=array(""=>"All","metric"=>"Metric","imperial"=>"Imperial");
         $results=array();
+        // Pill hrefs point at the page URL (the WordPress /catalog/ page when
+        // embedded), which has no .products_summary to swap in. The script
+        // fetches this script directly instead, keeping scscpq_wp so the
+        // response is the embedded fragment.
+        $fetch_query=array();
+        if (isset($this->request['scscpq_wp'])) $fetch_query['scscpq_wp']=$this->request['scscpq_wp'];
         $results[]=$this->output_unit_filter_script();
-        $results[]="<div class='catalog_unit_filter'>";
+        $results[]="<div class='catalog_unit_filter' data-fetch-path='" . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES) . "' data-fetch-query='" . htmlspecialchars(http_build_query($fetch_query),ENT_QUOTES) . "'>";
         $results[]="<span class='catalog_unit_filter_label nobr'>Show:</span>";
         foreach ($unit_type_options as $value => $label) {
             $pill_query=$url_query;
@@ -707,13 +740,22 @@ class catalog_output_class {
         $results[]="    fn_catalog_unit_filter_load(location.href, false);";
         $results[]="  });";
         $results[]="}";
+        $results[]="function fn_catalog_unit_filter_fetch_url(url) {";
+        $results[]="  var filter=document.querySelector('.catalog_unit_filter');";
+        $results[]="  var target=new URL(url, location.href);";
+        $results[]="  if (!filter || !filter.dataset.fetchPath) return target.toString();";
+        $results[]="  target.pathname=filter.dataset.fetchPath;";
+        $results[]="  new URLSearchParams(filter.dataset.fetchQuery || '').forEach(function(value, key) { target.searchParams.set(key, value); });";
+        $results[]="  return target.toString();";
+        $results[]="}";
         $results[]="function fn_catalog_unit_filter_load(url, push_state) {";
         $results[]="  var old_summary=document.querySelector('.products_summary');";
         $results[]="  if (old_summary) old_summary.classList.add('catalog_loading');";
         $results[]="  var spinner=document.createElement('div');";
         $results[]="  spinner.className='catalog_unit_filter_spinner';";
         $results[]="  document.body.appendChild(spinner);";
-        $results[]="  fetch(url, {credentials: 'same-origin'}).then(function(response) {";
+        $results[]="  var headers={'X-Catalog-Unit-Filter': push_state ? 'click' : 'history'};";
+        $results[]="  fetch(fn_catalog_unit_filter_fetch_url(url), {credentials: 'same-origin', headers: headers}).then(function(response) {";
         $results[]="    if (!response.ok) throw new Error('http_error');";
         $results[]="    return response.text();";
         $results[]="  }).then(function(html) {";
