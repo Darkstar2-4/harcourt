@@ -97,6 +97,7 @@ class dashboard_class {
 	    $menu_group->item("Administrator","Search Utility","/search_utility.php");
 	    $menu_group->item("Administrator","Image Filmstrip","/image_filmstrip.php");
 	    $menu_group->item("Administrator","Design Partner Agreement","/design_partner_agreement.php");
+	    $menu_group->item("Administrator","Metric Filter","/catalog_metric_filter.php");
 
 	    $menu_group->group("PARTsolutions Integration");
 	    $menu_group->item("Administrator","Inventory Import PRJ","/inventory_prj.php");
