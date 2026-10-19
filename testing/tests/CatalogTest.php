@@ -326,7 +326,7 @@ class CatalogTest extends TestCase
         // Mirrors catalog.php: is_metric is derived once from the untranslated
         // name at load time, before translation may overwrite ->name.
         if (!array_key_exists('is_metric', $overrides)) {
-            $data['is_metric'] = (stripos($data['name'], '(Metric') !== false);
+            $data['is_metric'] = catalog_output_class::is_metric_name($data['name']);
         }
         return (object) $data;
     }
@@ -701,6 +701,52 @@ class CatalogTest extends TestCase
         $this->assertStringNotContainsString("<span class='subcat10'>", $html);
         $this->assertStringContainsString("<span class='subcat16'>", $html);
         $this->assertStringContainsString('Press Fit (Metric)', $html);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_is_metric_name_matches_metric_suffix_and_iso(): void {
+        $this->bareCatalogInstance();
+
+        $this->assertTrue(catalog_output_class::is_metric_name('Press Fit (Metric)'));
+        $this->assertTrue(catalog_output_class::is_metric_name('Configurable Press Fit Bushings ISO'));
+        $this->assertFalse(catalog_output_class::is_metric_name('Press Fit'));
+        $this->assertFalse(catalog_output_class::is_metric_name('Isolation Mounts'));
+        $this->assertFalse(catalog_output_class::is_metric_name('Configurable Press Fit Bushings iso'));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_output_summary_metric_filter_includes_iso_subcategories(): void {
+        global $database;
+        $obj = $this->bareCatalogInstance();
+        $_SESSION['user'] = $this->defaultSessionUser();
+        $database->temp = new CatalogStubTable();
+        $database->temp->rows = [];
+
+        $obj->category    = [1 => (object) ['id' => 1, 'name' => 'Bushings']];
+        $obj->subcategory = [
+            10  => $this->subcategoryFixture(['id' => 10, 'name' => 'Press Fit', 'category_id' => 1]),
+            684 => $this->subcategoryFixture(['id' => 684, 'name' => 'Configurable Press Fit Bushings ISO', 'category_id' => 1]),
+        ];
+        $obj->php_self    = '/catalog.php';
+        $obj->request     = ['debug' => 0];
+        $obj->search_code = '';
+        $obj->category_id = 0;
+        $obj->new_date    = 0;
+
+        $obj->unit_type = 'metric';
+        ob_start();
+        $obj->output_summary([1 => [10, 684]]);
+        $metric_html = ob_get_clean();
+
+        $obj->unit_type = 'imperial';
+        ob_start();
+        $obj->output_summary([1 => [10, 684]]);
+        $imperial_html = ob_get_clean();
+
+        $this->assertStringContainsString("<span class='subcat684'>", $metric_html);
+        $this->assertStringNotContainsString("<span class='subcat10'>", $metric_html);
+        $this->assertStringNotContainsString("<span class='subcat684'>", $imperial_html);
+        $this->assertStringContainsString("<span class='subcat10'>", $imperial_html);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
