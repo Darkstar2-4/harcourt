@@ -198,6 +198,7 @@ class log_constant_class {
     function __construct() {
         $this->type['User']=array('Login','Remote Login','Download','Signup','Email','PO','Click Through');
         $this->type['Page']=array('General','Solutions','Products','Portal');
+        $this->type['Catalog']=array('Unit Filter','Unit Default');
         $this->type['Search']=array('General','Subcategory','SKU','Competitor SKU','Lookup');
         $this->type['PARTSolutions']=array('Reverse Lookup Error','CAD','Quick CAD','Quick CAD Error','PDF Datasheet','Configurator','Security');
         $this->type['Initial']=array('Campaign','Referer');
