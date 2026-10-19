@@ -159,7 +159,7 @@ class catalog_output_class {
 		$database->subcategory->query("select * from subcategory");
         while ($database->subcategory->fetch = $database->subcategory->fetch_array() ) {
 			$database->subcategory->fetch();
-            $database->subcategory->data->is_metric=(stripos($database->subcategory->data->name,"(Metric") !== FALSE);
+            $database->subcategory->data->is_metric=catalog_output_class::is_metric_name($database->subcategory->data->name);
             $this->subcategory[$database->subcategory->data->id]=$database->subcategory->data;
         }
         $database->subcategory->free_result();
@@ -659,6 +659,12 @@ class catalog_output_class {
 		$database->temp->free_result();
         $this->output_summary($summary_list);
 		print "</div> <!-- products_summary -->";
+    }
+    static function is_metric_name($name) {
+        // Metric is encoded only in the English subcategory name: "(Metric)",
+        // or ISO-standard ranges named "... ISO". ISO is matched as a whole,
+        // upper-case word so names like "Isolation" don't count.
+        return ( (stripos($name,"(Metric") !== FALSE) || preg_match("/\bISO\b/",$name) );
     }
     function default_unit_type() {
         // Users outside the US land on Metric. Bots and users with no country
