@@ -222,11 +222,12 @@ if (!class_exists('UserManagerStubMenu')) {
 }
 
 // ── Stub: $database->log / $database->captcha_bypass ───────────────────────
-// Backs the "auto-add signup email to captcha_bypass on Pending→Active
+// Backs the "auto-add signup domain to captcha_bypass on Pending→Active
 // approval" behavior: user.php looks up the user:signup log row for the
 // user_id being approved (that's where the registrant's email lives, since
 // user_data_class itself has no email field) and, if found, inserts it into
-// captcha_bypass unless it's already there.
+// captcha_bypass as "@domain" (exact email for free-email domains) unless
+// it's already there.
 
 if (!class_exists('captcha_bypass_data_class')) {
     class captcha_bypass_data_class {
@@ -414,7 +415,7 @@ class UserManagerTest extends TestCase
     // ── Approval → captcha_bypass (looked up via the user:signup log row) ──
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
-    public function test_approving_pending_user_adds_signup_email_to_captcha_bypass(): void {
+    public function test_approving_pending_user_adds_signup_domain_to_captcha_bypass(): void {
         global $database;
         $user     = $this->pendingUser();
         $category = new UserManagerStubCategory();
@@ -422,11 +423,28 @@ class UserManagerTest extends TestCase
         $temp = new UserManagerStubTemp();
 
         $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
-            ['email' => 'new.customer@example.com'],
+            ['email' => 'New.Customer@Example.com'],
         ]);
 
         $this->assertCount(1, $database->captcha_bypass->store);
-        $this->assertSame('new.customer@example.com', $database->captcha_bypass->store[0]->email);
+        $this->assertSame('@example.com', $database->captcha_bypass->store[0]->email);
+        $this->assertSame('Auto-added on user approval', $database->captcha_bypass->store[0]->comment);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_approving_free_email_user_adds_exact_address_not_domain(): void {
+        global $database;
+        $user     = $this->pendingUser();
+        $category = new UserManagerStubCategory();
+        $category->rows = $this->categoryFixture();
+        $temp = new UserManagerStubTemp();
+
+        $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
+            ['email' => 'Someone@Gmail.com'],
+        ]);
+
+        $this->assertCount(1, $database->captcha_bypass->store);
+        $this->assertSame('someone@gmail.com', $database->captcha_bypass->store[0]->email);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
@@ -484,13 +502,13 @@ class UserManagerTest extends TestCase
 
         $existing = new captcha_bypass_data_class();
         $existing->id    = 1;
-        $existing->email = 'new.customer@example.com';
+        $existing->email = '@example.com';
 
         $this->runUserManager([], ['status' => 'Active'], $user, $category, $temp, [
             ['email' => 'new.customer@example.com'],
         ], [$existing]);
 
-        $this->assertCount(1, $database->captcha_bypass->store, 'Duplicate email should not create a second row.');
+        $this->assertCount(1, $database->captcha_bypass->store, 'Existing domain entry should not create a second row.');
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

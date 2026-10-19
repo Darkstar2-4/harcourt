@@ -77,6 +77,68 @@ class CaptchaBypassTest extends TestCase
         $this->assertFalse($this->cb->check('other@example.com'));
     }
 
+    public function test_check_matches_any_address_at_a_bypassed_domain(): void
+    {
+        database_class::$rows = [
+            ['id' => 1, 'email' => '@boeing.com', 'comment' => 'remote access company', 'created' => time()],
+        ];
+
+        $this->assertTrue($this->cb->check('New.Engineer@Boeing.com'));
+    }
+
+    public function test_check_domain_entry_does_not_match_subdomains_or_lookalikes(): void
+    {
+        database_class::$rows = [
+            ['id' => 1, 'email' => '@boeing.com', 'comment' => '', 'created' => time()],
+        ];
+
+        $this->assertFalse($this->cb->check('user@notboeing.com'));
+        $this->assertFalse($this->cb->check('user@mail.boeing.com'));
+    }
+
+    // ── migration: boeing / leidos / johndeere domain bypass ─────────────
+
+    private function domainMigration(): array
+    {
+        return include dirname(__DIR__, 2) . '/migrations/2026_10_12_151657_add_domain_captcha_bypass_boeing_leidos_johndeere.php';
+    }
+
+    public function test_domain_migration_up_inserts_the_three_domains(): void
+    {
+        $up = implode(' ', $this->domainMigration()['up']);
+
+        $this->assertStringContainsString('INSERT IGNORE INTO `captcha_bypass`', $up);
+        foreach (['@boeing.com', '@leidos.com', '@johndeere.com'] as $domain) {
+            $this->assertStringContainsString("'{$domain}'", $up);
+        }
+    }
+
+    public function test_domain_migration_down_removes_only_the_three_domains(): void
+    {
+        $down = implode(' ', $this->domainMigration()['down']);
+
+        $this->assertStringContainsString("DELETE FROM `captcha_bypass` WHERE `email` IN ('@boeing.com', '@leidos.com', '@johndeere.com')", $down);
+    }
+
+    public function test_migrated_domains_bypass_their_employees(): void
+    {
+        database_class::$rows = [
+            ['id' => 1, 'email' => '@boeing.com', 'comment' => '', 'created' => time()],
+            ['id' => 2, 'email' => '@leidos.com', 'comment' => '', 'created' => time()],
+            ['id' => 3, 'email' => '@johndeere.com', 'comment' => '', 'created' => time()],
+        ];
+
+        $this->assertTrue($this->cb->check('new.engineer@boeing.com'));
+        $this->assertTrue($this->cb->check('analyst@leidos.com'));
+        $this->assertTrue($this->cb->check('tech@johndeere.com'));
+        $this->assertFalse($this->cb->check('someone@deere.com'));
+    }
+
+    public function test_check_returns_false_for_email_without_domain(): void
+    {
+        $this->assertFalse($this->cb->check('not-an-email'));
+    }
+
     public function test_check_returns_false_when_table_does_not_exist(): void
     {
         database_class::$tableExists = false;
