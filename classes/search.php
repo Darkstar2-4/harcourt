@@ -3,6 +3,7 @@ $database->search = new search_class();
 class search_class extends database_class {
 	function scs_table_version() {
 		$results=array();
+        $results['10/20/2026']="Separator-insensitive part# matching";
         $results['09/11/2024']="Add lookup part# if null results";
         $results['07/31/2023']="Initial release";
         $results['file']=__FILE__;
@@ -87,6 +88,17 @@ class search_class extends database_class {
         }
         return array_values(array_unique($blocked_categories));
     }
+    // Part numbers are matched with separators (hyphen, space, underscore, period, slash)
+    // ignored so HRSH81 or HRSH 8 1 finds HRSH-8-1.
+    function normalize_code($text) {
+        return strtoupper(preg_replace("/[-\s_.\/]+/", "", $text));
+    }
+    function normalized_field($field="code") {
+        foreach (array("-", " ", "_", ".", "/") as $separator) {
+            $field="replace({$field}," . fn_escape($separator) . ",'')";
+        }
+        return $field;
+    }
     function ajax($search_terms,$limit,$options=array()) {
     global $database;
 		$this->search_terms=implode(" ",$search_terms);
@@ -94,13 +106,18 @@ class search_class extends database_class {
         $query_where[]=new query_where("language_code","in", array("",$_SESSION['user']->language_code));
 		if ($database->user->access("Administrator",FALSE)) $query_where[]=new query_where("active","=",1);
         foreach ($search_terms as $term) {
-			$query_where[]=new query_where("code", "like", "%{$term}%");
+            $normalized=$this->normalize_code($term);
+            if (strlen($normalized)) {
+                $query_where[]=new query_where($this->normalized_field(), "like", "%{$normalized}%");
+              } else {
+                $query_where[]=new query_where("code", "like", "%{$term}%");
+            }
 		}
         $query_where[]=new query_where("category_id","not in",$this->blocked_categories());
         $query=array();
         $query[]="select * from search";
         $query[]=$this->where($query_where);
-        $query[]="order by ranking, code";
+        $query[]="order by " . $this->normalized_field() . "=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
 		if ($limit) $query[]="limit {$limit}";
         $this->query($query);
         $response=new stdClass();

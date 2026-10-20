@@ -35,6 +35,7 @@ class catalog_output_class {
     var $blocked_categories;
 	function scs_table_version() {
 		$results=array();
+        $results['10/20/2026']="Separator-insensitive part# lookup";
         $results['11/25/2025']="New hero, portal format, related";
         $results['08/13/2025']="Improve lookup algorithm";
         $results['07/08/2025']="Security issues";
@@ -387,12 +388,14 @@ class catalog_output_class {
         }
         $query_where=array();
         $query_where[]=new query_where("table_name", "in", array("inventory", "competitor_sku"));
-        $query_where[]=new query_where("code", "in", $skus);
+        $query_where['code']=array();
+        $query_where['code'][]=new query_where("code", "in", $skus);
+        $query_where['code'][]=new query_where($database->search->normalized_field(), "=", $database->search->normalize_code($this->sku_request), "or");
         $query=array("select");
         $query[]="if(table_name='inventory',0,1) as ranking,";
         $query[]="search.* from search";
         $query[]=trim($database->where($query_where));
-        $query[]="order by ranking";
+        $query[]="order by if(code in (" . fn_escape_array($skus) . "),0,1), ranking";
         $query[]="limit 1";
         $database->search->query($query);
         if ($database->search->meta->rows) {

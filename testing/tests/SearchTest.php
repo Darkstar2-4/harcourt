@@ -162,4 +162,49 @@ class SearchTest extends TestCase
         $sql = implode("\n", $search->queryLog);
         $this->assertStringNotContainsString('category_id', $sql);
     }
+
+    // ── Separator-insensitive part number matching ──────────────────────────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_normalize_code_strips_separators_and_uppercases(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $this->assertSame('HRSH81', $search->normalize_code('HRSH-8-1'));
+        $this->assertSame('HRSH81', $search->normalize_code('hrsh 8 1'));
+        $this->assertSame('HPSR4', $search->normalize_code('HPSR_4'));
+        $this->assertSame('M35X20', $search->normalize_code('M3.5x20'));
+        $this->assertSame('AB12', $search->normalize_code('A/B-1 2'));
+        $this->assertSame('', $search->normalize_code(' - '));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_normalized_field_strips_each_separator_in_sql(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $this->assertSame(
+            "replace(replace(replace(replace(replace(code,'-',''),' ',''),'_',''),'.',''),'/','')",
+            $search->normalized_field()
+        );
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_matches_part_number_typed_without_separators(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $search->ajax(['hrsh-8-1'], 20);
+
+        $sql = implode("\n", $search->queryLog);
+        $this->assertStringContainsString($search->normalized_field() . " like '%HRSH81%'", $sql);
+        $this->assertStringContainsString("order by " . $search->normalized_field() . "='HRSH81' desc, ranking, code", $sql);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_keeps_raw_match_for_separator_only_term(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $search->ajax(['-'], 20);
+
+        $sql = implode("\n", $search->queryLog);
+        $this->assertStringContainsString("code like '%-%'", $sql);
+    }
 }
