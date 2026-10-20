@@ -178,24 +178,14 @@ class SearchTest extends TestCase
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
-    public function test_normalized_field_strips_each_separator_in_sql(): void {
-        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
-
-        $this->assertSame(
-            "replace(replace(replace(replace(replace(code,'-',''),' ',''),'_',''),'.',''),'/','')",
-            $search->normalized_field()
-        );
-    }
-
-    /** @runInSeparateProcess @preserveGlobalState disabled */
     public function test_ajax_matches_part_number_typed_without_separators(): void {
         $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
 
         $search->ajax(['hrsh-8-1'], 20);
 
         $sql = implode("\n", $search->queryLog);
-        $this->assertStringContainsString($search->normalized_field() . " like '%HRSH81%'", $sql);
-        $this->assertStringContainsString("order by " . $search->normalized_field() . "='HRSH81' desc, ranking, code", $sql);
+        $this->assertStringContainsString("code_normalized like '%HRSH81%'", $sql);
+        $this->assertStringContainsString("order by code_normalized='HRSH81' desc, ranking, code", $sql);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

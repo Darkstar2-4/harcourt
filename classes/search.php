@@ -89,15 +89,10 @@ class search_class extends database_class {
         return array_values(array_unique($blocked_categories));
     }
     // Part numbers are matched with separators (hyphen, space, underscore, period, slash)
-    // ignored so HRSH81 or HRSH 8 1 finds HRSH-8-1.
+    // ignored so HRSH81 or HRSH 8 1 finds HRSH-8-1. Must strip the same separators as
+    // the code_normalized generated column.
     function normalize_code($text) {
         return strtoupper(preg_replace("/[-\s_.\/]+/", "", $text));
-    }
-    function normalized_field($field="code") {
-        foreach (array("-", " ", "_", ".", "/") as $separator) {
-            $field="replace({$field}," . fn_escape($separator) . ",'')";
-        }
-        return $field;
     }
     function ajax($search_terms,$limit,$options=array()) {
     global $database;
@@ -108,7 +103,7 @@ class search_class extends database_class {
         foreach ($search_terms as $term) {
             $normalized=$this->normalize_code($term);
             if (strlen($normalized)) {
-                $query_where[]=new query_where($this->normalized_field(), "like", "%{$normalized}%");
+                $query_where[]=new query_where("code_normalized", "like", "%{$normalized}%");
               } else {
                 $query_where[]=new query_where("code", "like", "%{$term}%");
             }
@@ -117,7 +112,7 @@ class search_class extends database_class {
         $query=array();
         $query[]="select * from search";
         $query[]=$this->where($query_where);
-        $query[]="order by " . $this->normalized_field() . "=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
+        $query[]="order by code_normalized=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
 		if ($limit) $query[]="limit {$limit}";
         $this->query($query);
         $response=new stdClass();
@@ -166,6 +161,7 @@ CREATE TABLE `search` (
   `active`  int(1),
   `table_name` varchar(45),
   `code` varchar(256),
+  `code_normalized` varchar(256) GENERATED ALWAYS AS (replace(replace(replace(replace(replace(`code`,'-',''),' ',''),'_',''),'.',''),'/','')) STORED,
   `category_id` bigint(10),
   `subcategory_id` bigint(10),
   `inventory_id` bigint(10),

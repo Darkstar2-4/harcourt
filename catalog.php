@@ -390,7 +390,7 @@ class catalog_output_class {
         $query_where[]=new query_where("table_name", "in", array("inventory", "competitor_sku"));
         $query_where['code']=array();
         $query_where['code'][]=new query_where("code", "in", $skus);
-        $query_where['code'][]=new query_where($database->search->normalized_field(), "=", $database->search->normalize_code($this->sku_request), "or");
+        $query_where['code'][]=new query_where("code_normalized", "=", $database->search->normalize_code($this->sku_request), "or");
         $query=array("select");
         $query[]="if(table_name='inventory',0,1) as ranking,";
         $query[]="search.* from search";

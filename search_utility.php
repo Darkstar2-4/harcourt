@@ -10,6 +10,7 @@ class local_class {
     var $trace=array();
 	function scs_table_version() {
 		$results=array();
+        $results['10/20/2026']="Name insert columns (search.code_normalized)";
         $results['09/29/2025']="Add cron output";
         $results['10/06/2024']="Add purge";
         $results['08/22/2024']="Add search_words, competitor_sku";
@@ -131,7 +132,7 @@ class local_class {
         $query_where[]=new query_where("content.record_type", "=", "subcategory");
         $query_where[]=new query_where("content.record_item", "=", "");
         $query_where[]=new query_where("content.record_id", "in", $this->subcategory);
-        $query=array("insert into search");
+        $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
 		$query[]="select 0, content.language_code, if(subcategory.status = 'Pending',0,1), 'subcategory', content.name, subcategory.category_id, subcategory.id, 0, subcategory.sort_order from content";
         $query[]="left join subcategory on subcategory.id=content.record_id";
         $query[]=$database->where($query_where);
@@ -146,7 +147,7 @@ class local_class {
         $query_where=array();
         $query_where[]=new query_where("inventory.active", "=", 1);
         $query_where[]=new query_where("inventory.subcategory_id", "in", $this->subcategory);
-        $query=array("insert into search");
+        $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
         $query[]="select 0, '', if(subcategory.status = 'Pending',0,1), 'inventory', inventory.sku, subcategory.category_id, subcategory.id, inventory.id, inventory.sort_order + 2000000 from inventory";
         $query[]="left join subcategory on subcategory.id=inventory.subcategory_id";
         $query[]=$database->where($query_where);
@@ -193,7 +194,7 @@ class local_class {
             $query[]=implode(", ", $items);
             $database->temp->query($query);
         }
-        $query=array("insert into search");
+        $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
         $query[]="select 0, 'EN', 1, 'search_words', code, category_id, subcategory_id, inventory_id, ranking from search_temp";
         $query[]="group by code";
         $query[]="order by code, ranking";
@@ -234,7 +235,7 @@ class local_class {
             $query[]=implode(", ", $items);
             $database->temp->query($query);
         }
-        $query=array("insert into search");
+        $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
         $query[]="select 0, '', 1, 'competitor_sku', code, category_id, subcategory_id, inventory_id, ranking from search_temp";
         $query[]="group by code";
         $query[]="order by code, ranking";
