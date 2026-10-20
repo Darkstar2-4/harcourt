@@ -188,6 +188,57 @@ class SearchTest extends TestCase
         $this->assertStringContainsString("order by code_normalized='HRSH81' desc, ranking, code", $sql);
     }
 
+    // ── Typo-tolerant fallback ───────────────────────────────────────────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_typo_variants_cover_each_single_typo(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $variants = $search->typo_variants('HRSG81');
+
+        $this->assertContains('HRSH81', $variants, 'wrong character');
+        $this->assertContains('HRS81', $variants, 'extra character');
+        $this->assertContains('HRSGG81', $variants, 'missing character');
+        $this->assertContains('HRGS81', $variants, 'swapped characters');
+        $this->assertNotContains('HRSG81', $variants);
+        $this->assertSame(count($variants), count(array_unique($variants)));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_falls_back_to_typo_prefix_search_when_nothing_matches(): void {
+        $temp = new SearchStubTemp();
+        $temp->userCategoryRows = [['category_id' => 3]];
+        $search = $this->requireSearch($this->defaultSessionUser(), $temp);
+
+        $response = $search->ajax(['HRSG-8-1'], 20);
+
+        $this->assertCount(2, $search->queryLog);
+        $typo = $search->queryLog[1];
+        $this->assertStringContainsString('force index (code_normalized_index)', $typo);
+        $this->assertStringContainsString("code_normalized like 'HRSH81%' or ", $typo);
+        $this->assertStringContainsString('category_id not in (3)', $typo);
+        $this->assertStringContainsString("order by code_normalized in ('RSG81', ", $typo);
+        $this->assertSame('Lookup', end($response->items)->category);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_skips_typo_search_for_short_codes(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $search->ajax(['HPS4'], 20);
+
+        $this->assertCount(1, $search->queryLog);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_typo_search_escapes_like_wildcard(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $search->ajax(['HRS%G81'], 20);
+
+        $this->assertStringContainsString("code_normalized like 'ARS\\%G81%'", $search->queryLog[1]);
+    }
+
     /** @runInSeparateProcess @preserveGlobalState disabled */
     public function test_ajax_keeps_raw_match_for_separator_only_term(): void {
         $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());

@@ -3,7 +3,7 @@ $database->search = new search_class();
 class search_class extends database_class {
 	function scs_table_version() {
 		$results=array();
-        $results['10/20/2026']="Separator-insensitive part# matching";
+        $results['10/20/2026']="Separator-insensitive and typo-tolerant part# matching";
         $results['09/11/2024']="Add lookup part# if null results";
         $results['07/31/2023']="Initial release";
         $results['file']=__FILE__;
@@ -94,31 +94,46 @@ class search_class extends database_class {
     function normalize_code($text) {
         return strtoupper(preg_replace("/[-\s_.\/]+/", "", $text));
     }
-    function ajax($search_terms,$limit,$options=array()) {
-    global $database;
-		$this->search_terms=implode(" ",$search_terms);
-	    $query_where=array();
-        $query_where[]=new query_where("language_code","in", array("",$_SESSION['user']->language_code));
-		if ($database->user->access("Administrator",FALSE)) $query_where[]=new query_where("active","=",1);
-        foreach ($search_terms as $term) {
-            $normalized=$this->normalize_code($term);
-            if (strlen($normalized)) {
-                $query_where[]=new query_where("code_normalized", "like", "%{$normalized}%");
-              } else {
-                $query_where[]=new query_where("code", "like", "%{$term}%");
+    // Every code one typo away (deleted, swapped, wrong or extra character) from $code.
+    function typo_variants($code) {
+        $characters=str_split($this->constant->typo_characters);
+        $length=strlen($code);
+        $results=array();
+        for ($position=0; $position < $length; $position ++) {
+            $results[]=substr($code,0,$position) . substr($code,$position+1);
+            if ($position < $length-1) $results[]=substr($code,0,$position) . $code[$position+1] . $code[$position] . substr($code,$position+2);
+            foreach ($characters as $character) {
+                $results[]=substr($code,0,$position) . $character . substr($code,$position+1);
             }
-		}
-        $query_where[]=new query_where("category_id","not in",$this->blocked_categories());
+        }
+        for ($position=0; $position <= $length; $position ++) {
+            foreach ($characters as $character) {
+                $results[]=substr($code,0,$position) . $character . substr($code,$position);
+            }
+        }
+        return array_values(array_diff(array_unique($results),array($code,"")));
+    }
+    // Fallback when nothing matches as typed: codes starting with a one-typo variant of the
+    // search, so a mistyped (or partly typed) part# still finds the part. Exact variants first.
+    function ajax_typo($query_where,$limit) {
+        $code=$this->normalize_code($this->search_terms);
+        if ( (strlen($code) < $this->constant->typo_min_length) || (strlen($code) > $this->constant->typo_max_length) ) return FALSE;
+        $variants=$this->typo_variants($code);
+        $query_where['typo']=array();
+        foreach ($variants as $variant) {
+            $query_where['typo'][]=new query_where("code_normalized", "like", str_replace("%","\\%",$variant) . "%", (sizeof($query_where['typo']) ? "or" : ""));
+        }
         $query=array();
-        $query[]="select * from search";
+        $query[]="select * from search force index (code_normalized_index)";
         $query[]=$this->where($query_where);
-        $query[]="order by code_normalized=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
+        $query[]="order by code_normalized in (" . implode(", ",array_map("fn_escape",$variants)) . ") desc, ranking, code";
 		if ($limit) $query[]="limit {$limit}";
         $this->query($query);
-        $response=new stdClass();
+        return TRUE;
+    }
+    function ajax_items($response) {
         $response->rows=$this->meta->rows;
         $response->found_rows=number_format($this->meta->found_rows);
-        $response->items=array();
 	    while($this->fetch = $this->fetch_array() ) {
 			$this->fetch();
 			$obj=new stdClass();
@@ -128,7 +143,37 @@ class search_class extends database_class {
             $obj->id=$this->data->id;
 			$response->items[]=$obj;
 		}
-        if ( (!sizeof($response->items)) && (sizeof($search_terms) == 1) ) {
+		$this->free_result();
+    }
+    function ajax($search_terms,$limit,$options=array()) {
+    global $database;
+		$this->search_terms=implode(" ",$search_terms);
+	    $query_filter=array();
+        $query_filter[]=new query_where("language_code","in", array("",$_SESSION['user']->language_code));
+		if ($database->user->access("Administrator",FALSE)) $query_filter[]=new query_where("active","=",1);
+        $query_filter[]=new query_where("category_id","not in",$this->blocked_categories());
+	    $query_where=$query_filter;
+        foreach ($search_terms as $term) {
+            $normalized=$this->normalize_code($term);
+            if (strlen($normalized)) {
+                $query_where[]=new query_where("code_normalized", "like", "%{$normalized}%");
+              } else {
+                $query_where[]=new query_where("code", "like", "%{$term}%");
+            }
+		}
+        $query=array();
+        $query[]="select * from search";
+        $query[]=$this->where($query_where);
+        $query[]="order by code_normalized=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
+		if ($limit) $query[]="limit {$limit}";
+        $this->query($query);
+        $response=new stdClass();
+        $response->items=array();
+        $this->ajax_items($response);
+        if (sizeof($response->items)) return $response;
+        // Typo suggestions sit above the part# lookup, which still covers parts not in the index
+        if ($this->ajax_typo($query_filter,$limit)) $this->ajax_items($response);
+        if (sizeof($search_terms) == 1) {
             $obj=new stdClass();
             $obj->value=$this->search_terms;
             $obj->label="Lookup Part# {$this->search_terms}";
@@ -136,7 +181,6 @@ class search_class extends database_class {
             $obj->id=0;
             $response->items[]=$obj;
         }
-		$this->free_result();
 		return $response;
 	}
 }
@@ -152,7 +196,10 @@ class search_data_class {
     var $ranking=0;
 }
 class search_constant_class {
-
+    // Shorter codes have too many one-typo neighbours to be useful; longer ones too many variants
+    var $typo_min_length=5;
+    var $typo_max_length=25;
+    var $typo_characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 }
 /*
 CREATE TABLE `search` (
@@ -167,7 +214,8 @@ CREATE TABLE `search` (
   `inventory_id` bigint(10),
   `ranking` bigint(10),
   PRIMARY KEY (`id`),
-  KEY `code_index` (`language_code`, `active`, `code`)
+  KEY `code_index` (`language_code`, `active`, `code`),
+  KEY `code_normalized_index` (`code_normalized`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='Search (07/31/2023)'
 */
 ?>
