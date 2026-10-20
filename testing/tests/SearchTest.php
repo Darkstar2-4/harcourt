@@ -239,6 +239,60 @@ class SearchTest extends TestCase
         $this->assertStringContainsString("code_normalized like 'ARS\\%G81%'", $search->queryLog[1]);
     }
 
+    // ── Keyword search: plurals and misspelled words ──────────────────────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_keyword_stem_matches_singular_and_plural(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $this->assertSame('hinge', $search->keyword_stem('hinges'));
+        $this->assertSame('hinge', $search->keyword_stem('Hinge'));
+        $this->assertSame('bushing', $search->keyword_stem('bushings'));
+        $this->assertSame('assembl', $search->keyword_stem('assemblies'));
+        $this->assertSame('assembl', $search->keyword_stem('assembly'));
+        $this->assertSame('box', $search->keyword_stem('boxes'));
+        $this->assertSame('stainless', $search->keyword_stem('stainless'));
+        $this->assertSame('pin', $search->keyword_stem('pins'));
+        $this->assertSame('nus', $search->keyword_stem('nus'), 'too short to stem');
+        $this->assertSame('HRSH-8-1S', $search->keyword_stem('HRSH-8-1S'), 'part numbers are left alone');
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_searches_plural_as_stem(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+
+        $search->ajax(['fixture', 'hinges'], 20);
+
+        $sql = $search->queryLog[0];
+        $this->assertStringContainsString("code_normalized like '%FIXTURE%'", $sql);
+        $this->assertStringContainsString("code_normalized like '%HINGE%'", $sql);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_keyword_correct_fixes_unknown_word_to_most_common_neighbour(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+        $search->keywords = ['drill' => 9, 'bushing' => 2, 'bushings' => 7, 'pushing' => 1, 'hoist' => 4, 'ring' => 5];
+
+        $this->assertSame(['drill', 'bushing'], $search->keyword_correct(['drill', 'bushng']));
+        $this->assertSame(['hoist', 'ring'], $search->keyword_correct(['hosit', 'rnig']));
+        $this->assertSame(['drill', 'bush'], $search->keyword_correct(['drill', 'bush']), 'part of a known word is left alone');
+        $this->assertSame(['HRSG81', 'zzzzzz'], $search->keyword_correct(['HRSG81', 'zzzzzz']));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_retries_with_corrected_words_before_part_number_fallback(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+        $search->keywords = ['drill' => 9, 'bushing' => 2];
+
+        $response = $search->ajax(['drill', 'bushng'], 20);
+
+        $this->assertCount(3, $search->queryLog);
+        $this->assertStringContainsString("code_normalized like '%BUSHNG%'", $search->queryLog[0]);
+        $this->assertStringContainsString("code_normalized like '%BUSHING%'", $search->queryLog[1]);
+        $this->assertStringContainsString('force index (code_normalized_index)', $search->queryLog[2]);
+        $this->assertSame([], $response->items, 'no Lookup Part# entry for multi-word searches');
+    }
+
     /** @runInSeparateProcess @preserveGlobalState disabled */
     public function test_ajax_keeps_raw_match_for_separator_only_term(): void {
         $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());

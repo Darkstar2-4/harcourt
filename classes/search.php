@@ -3,7 +3,7 @@ $database->search = new search_class();
 class search_class extends database_class {
 	function scs_table_version() {
 		$results=array();
-        $results['10/20/2026']="Separator-insensitive and typo-tolerant part# matching";
+        $results['10/20/2026']="Separator-insensitive and typo-tolerant part# and keyword matching";
         $results['09/11/2024']="Add lookup part# if null results";
         $results['07/31/2023']="Initial release";
         $results['file']=__FILE__;
@@ -113,6 +113,86 @@ class search_class extends database_class {
         }
         return array_values(array_diff(array_unique($results),array($code,"")));
     }
+    // Singular/plural-insensitive keyword: "hinges" and "hinge" both search as "hinge",
+    // "assemblies" and "assembly" as "assembl". Part numbers (anything not all letters) pass through.
+    function keyword_stem($term) {
+        if (!preg_match("/^[a-z]{4,}$/i",$term)) return $term;
+        $term=strtolower($term);
+        switch (TRUE) {
+          case (preg_match("/ies$/",$term)):
+            $stem=substr($term,0,-3);
+            break;
+          case (preg_match("/(s|x|z|ch|sh)es$/",$term)):
+            $stem=substr($term,0,-2);
+            break;
+          case (preg_match("/[^s]s$/",$term)):
+          case ( (strlen($term) >= 5) && (preg_match("/y$/",$term)) ):
+            $stem=substr($term,0,-1);
+            break;
+          default:
+            $stem=$term;
+        }
+        return (strlen($stem) >= 3) ? $stem : $term;
+    }
+    // One condition per search term; every term must appear somewhere in the code.
+    function keyword_where($search_terms) {
+        $query_where=array();
+        foreach ($search_terms as $term) {
+            $normalized=$this->normalize_code($this->keyword_stem($term));
+            if (strlen($normalized)) {
+                $query_where[]=new query_where("code_normalized", "like", "%{$normalized}%");
+              } else {
+                $query_where[]=new query_where("code", "like", "%{$term}%");
+            }
+		}
+        return $query_where;
+    }
+    // Words used in category, product family and search-word names, with how often each appears.
+    function keywords() {
+        if (isset($this->keywords)) return $this->keywords;
+        $this->keywords=array();
+        $query_where=array();
+        $query_where[]=new query_where("table_name","in",array("category","subcategory","search_words"));
+        $query_where[]=new query_where("language_code","in",array("",$_SESSION['user']->language_code));
+        $query=array("select code from search");
+        $query[]=$this->where($query_where);
+        $this->query($query);
+        while ($this->fetch = $this->fetch_array() ) {
+            foreach (preg_split("/[^a-z]+/",strtolower($this->fetch['code']),-1,PREG_SPLIT_NO_EMPTY) as $word) {
+                if (strlen($word) < 4) continue;
+                $this->keywords[$word]=( (isset($this->keywords[$word])) ? $this->keywords[$word] : 0 ) + 1;
+            }
+        }
+        $this->free_result();
+        return $this->keywords;
+    }
+    // Replaces each word not found in any name with the most common name word one typo away,
+    // so "drill bushng" searches as "drill bushing". Returns the terms unchanged if nothing fits.
+    function keyword_correct($search_terms) {
+        $results=array();
+        foreach ($search_terms as $term) {
+            $results[]=$term;
+            if (!preg_match("/^[a-z]{4,}$/i",$term)) continue;
+            $stem=$this->keyword_stem($term);
+            $known=FALSE;
+            foreach ($this->keywords() as $word => $count) {
+                if (strpos($word,$stem) !== FALSE) {
+                    $known=TRUE;
+                    break;
+                }
+            }
+            if ($known) continue;
+            $best=0;
+            foreach ($this->typo_variants(strtoupper($term)) as $variant) {
+                $variant=strtolower($variant);
+                if ( (isset($this->keywords[$variant])) && ($this->keywords[$variant] > $best) ) {
+                    $best=$this->keywords[$variant];
+                    $results[sizeof($results)-1]=$variant;
+                }
+            }
+        }
+        return $results;
+    }
     // Fallback when nothing matches as typed: codes starting with a one-typo variant of the
     // search, so a mistyped (or partly typed) part# still finds the part. Exact variants first.
     function ajax_typo($query_where,$limit) {
@@ -130,6 +210,14 @@ class search_class extends database_class {
 		if ($limit) $query[]="limit {$limit}";
         $this->query($query);
         return TRUE;
+    }
+    function ajax_keyword($query_filter,$search_terms,$limit) {
+        $query=array();
+        $query[]="select * from search";
+        $query[]=$this->where(array_merge($query_filter,$this->keyword_where($search_terms)));
+        $query[]="order by code_normalized=" . fn_escape($this->normalize_code(implode(" ",$search_terms))) . " desc, ranking, code";
+		if ($limit) $query[]="limit {$limit}";
+        $this->query($query);
     }
     function ajax_items($response) {
         $response->rows=$this->meta->rows;
@@ -152,25 +240,17 @@ class search_class extends database_class {
         $query_filter[]=new query_where("language_code","in", array("",$_SESSION['user']->language_code));
 		if ($database->user->access("Administrator",FALSE)) $query_filter[]=new query_where("active","=",1);
         $query_filter[]=new query_where("category_id","not in",$this->blocked_categories());
-	    $query_where=$query_filter;
-        foreach ($search_terms as $term) {
-            $normalized=$this->normalize_code($term);
-            if (strlen($normalized)) {
-                $query_where[]=new query_where("code_normalized", "like", "%{$normalized}%");
-              } else {
-                $query_where[]=new query_where("code", "like", "%{$term}%");
-            }
-		}
-        $query=array();
-        $query[]="select * from search";
-        $query[]=$this->where($query_where);
-        $query[]="order by code_normalized=" . fn_escape($this->normalize_code($this->search_terms)) . " desc, ranking, code";
-		if ($limit) $query[]="limit {$limit}";
-        $this->query($query);
         $response=new stdClass();
         $response->items=array();
+        $this->ajax_keyword($query_filter,$search_terms,$limit);
         $this->ajax_items($response);
         if (sizeof($response->items)) return $response;
+        $corrected=$this->keyword_correct($search_terms);
+        if ($corrected != $search_terms) {
+            $this->ajax_keyword($query_filter,$corrected,$limit);
+            $this->ajax_items($response);
+            if (sizeof($response->items)) return $response;
+        }
         // Typo suggestions sit above the part# lookup, which still covers parts not in the index
         if ($this->ajax_typo($query_filter,$limit)) $this->ajax_items($response);
         if (sizeof($search_terms) == 1) {

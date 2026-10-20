@@ -10,7 +10,7 @@ class local_class {
     var $trace=array();
 	function scs_table_version() {
 		$results=array();
-        $results['10/20/2026']="Name insert columns (search.code_normalized)";
+        $results['10/20/2026']="Add categories; name insert columns (search.code_normalized)";
         $results['09/29/2025']="Add cron output";
         $results['10/06/2024']="Add purge";
         $results['08/22/2024']="Add search_words, competitor_sku";
@@ -90,6 +90,8 @@ class local_class {
         }
         $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
         $this->count['subcategory']=$database->temp->affected_rows();
+        // Categories first, so they survive the duplicate purge against same-named search words
+        $this->count['category']=$this->category();
         $this->count['content']=$this->content();
         $this->count['inventory']=$this->inventory();
         $this->count['search_words']=$this->search_words();
@@ -99,6 +101,7 @@ class local_class {
         $this->stopwatch->stop();
         $this->message['elapsed']="Elapsed Time: " . number_format($this->stopwatch->elapsed, 2) . " seconds";
         $this->message['subcategory']="Subcategory: " . number_format($this->count['subcategory']);
+        $this->message['category']="Category Languages: " . number_format($this->count['category']);
         $this->message['languages']="Subcategory Languages: " . number_format($this->count['content']);
         $this->message['search words']="Search Words: " . number_format($this->count['search_words']);
         $this->message['inventory']="Inventory: " . number_format($this->count['inventory']);
@@ -124,6 +127,22 @@ class local_class {
     `ranking` bigint(10) DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='Temporary Search (08/20/2024)'
  EOT;
+    }
+    function category() {
+        global $database;
+        $this->trace[]=__FUNCTION__;
+        $query_where=array();
+        $query_where[]=new query_where("content.record_type", "=", "category");
+        $query_where[]=new query_where("content.record_item", "=", "");
+        $query_where[]=new query_where("category.active", "=", 1);
+        $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
+		$query[]="select 0, content.language_code, 1, 'category', regexp_replace(content.name, ' *&[a-zA-Z0-9#]+;', ''), category.id, 0, 0, cast(category.sort_order as signed) - 1000000 from content";
+        $query[]="left join category on category.id=content.record_id";
+        $query[]=$database->where($query_where);
+        $this->stopwatch->split("Category Languages", $query);
+        $database->temp->query($query);
+        $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
+		return $database->temp->affected_rows();
     }
     function content() {
         global $database;
