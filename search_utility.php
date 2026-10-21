@@ -10,6 +10,7 @@ class local_class {
     var $trace=array();
 	function scs_table_version() {
 		$results=array();
+        $results['10/21/2026']="Keep search words/competitor SKUs shared by several products";
         $results['10/20/2026']="Add categories; name insert columns (search.code_normalized)";
         $results['09/29/2025']="Add cron output";
         $results['10/06/2024']="Add purge";
@@ -90,7 +91,6 @@ class local_class {
         }
         $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
         $this->count['subcategory']=$database->temp->affected_rows();
-        // Categories first, so they survive the duplicate purge against same-named search words
         $this->count['category']=$this->category();
         $this->count['content']=$this->content();
         $this->count['inventory']=$this->inventory();
@@ -215,7 +215,6 @@ class local_class {
         }
         $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
         $query[]="select 0, 'EN', 1, 'search_words', code, category_id, subcategory_id, inventory_id, ranking from search_temp";
-        $query[]="group by code";
         $query[]="order by code, ranking";
         $database->temp->query($query);
         $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
@@ -256,7 +255,6 @@ class local_class {
         }
         $query=array("insert into search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking)");
         $query[]="select 0, '', 1, 'competitor_sku', code, category_id, subcategory_id, inventory_id, ranking from search_temp";
-        $query[]="group by code";
         $query[]="order by code, ranking";
         $database->temp->query($query);
         $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
@@ -265,21 +263,26 @@ class local_class {
     function duplicates() {
         global $database;
         $this->trace[]=__FUNCTION__;
-        $query=array("select code, id, count(*) as count from search");
-        $query[]="group by code";
+        // Only rows with the same text, language and destination are duplicates; a search word or
+        // competitor SKU shared by several products keeps one row per product. The earliest row
+        // (category, then subcategory, inventory, search word, competitor SKU) is kept.
+        $query=array("select language_code, code, subcategory_id, inventory_id, min(id) as id, count(*) as count from search");
+        $query[]="group by language_code, code, subcategory_id, inventory_id";
         $query[]="having count > 1";
-        $query[]="order by ranking, id";
         $database->temp->query($query);
         $this->stopwatch->split("Duplicate Records", $query);
         $this->stopwatch->split_comment("Records: " . number_format($database->temp->meta->rows));
         $items=array();
         while ($database->temp->fetch = $database->temp->fetch_array()) {
-            $items[ $database->temp->fetch['id'] ]=$database->temp->fetch['code'];
+            $items[]=$database->temp->fetch;
         }
-        foreach ($items as $id => $code) {
+        foreach ($items as $item) {
             $query=array("delete from search");
-            $query[]="where code=" . fn_escape($code);
-            $query[]="and id <> {$id}";
+            $query[]="where language_code=" . fn_escape($item['language_code']);
+            $query[]="and code=" . fn_escape($item['code']);
+            $query[]="and subcategory_id=" . fn_escape($item['subcategory_id'],FALSE);
+            $query[]="and inventory_id=" . fn_escape($item['inventory_id'],FALSE);
+            $query[]="and id <> " . fn_escape($item['id'],FALSE);
             $database->temp->query($query);
         }
         return sizeof($items);

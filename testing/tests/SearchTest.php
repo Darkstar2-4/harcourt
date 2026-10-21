@@ -69,13 +69,32 @@ if (!class_exists('SearchStubTemp')) {
     class SearchStubTemp {
         public $userCategoryRows = [];
         public $companyCategoryRows = [];
+        public $categoryNameRows = [];
+        public $subcategoryNameRows = [];
+        public $inventorySkuRows = [];
         public $fetch;
         private $activeRows = [];
         private $cursor = 0;
 
         function query($sql) {
+            if (is_array($sql)) $sql = implode(' ', $sql);
             $this->cursor = 0;
-            $this->activeRows = (stripos($sql, 'company_category_block') !== false) ? $this->companyCategoryRows : $this->userCategoryRows;
+            switch (TRUE) {
+              case (stripos($sql, 'company_category_block') !== false):
+                $this->activeRows = $this->companyCategoryRows;
+                break;
+              case (stripos($sql, 'from content') !== false):
+                $this->activeRows = $this->categoryNameRows;
+                break;
+              case (stripos($sql, 'from subcategory') !== false):
+                $this->activeRows = $this->subcategoryNameRows;
+                break;
+              case (stripos($sql, 'from inventory') !== false):
+                $this->activeRows = $this->inventorySkuRows;
+                break;
+              default:
+                $this->activeRows = $this->userCategoryRows;
+            }
         }
         function fetch_array() {
             if ($this->cursor < count($this->activeRows)) return $this->activeRows[$this->cursor++];
@@ -185,7 +204,7 @@ class SearchTest extends TestCase
 
         $sql = implode("\n", $search->queryLog);
         $this->assertStringContainsString("code_normalized like '%HRSH81%'", $sql);
-        $this->assertStringContainsString("order by code_normalized='HRSH81' desc, ranking, code", $sql);
+        $this->assertStringContainsString("order by (code_normalized='HRSH81' and table_name <> 'search_words') desc, code_normalized like 'HRSH81%' desc, (code_normalized like '%HRSH81%') desc, ranking, code", $sql);
     }
 
     // ── Typo-tolerant fallback ───────────────────────────────────────────
@@ -291,6 +310,88 @@ class SearchTest extends TestCase
         $this->assertStringContainsString("code_normalized like '%BUSHING%'", $search->queryLog[1]);
         $this->assertStringContainsString('force index (code_normalized_index)', $search->queryLog[2]);
         $this->assertSame([], $response->items, 'no Lookup Part# entry for multi-word searches');
+    }
+
+    // ── Category keywords, labels and exact-first ranking ─────────────────
+
+    private function categoryTemp(): SearchStubTemp {
+        $temp = new SearchStubTemp();
+        $temp->categoryNameRows = [
+            ['record_id' => 14, 'name' => 'Clamping'],
+            ['record_id' => 7,  'name' => 'Hoisting & Rigging'],
+            ['record_id' => 8,  'name' => 'Tool Storage & Shipping'],
+            ['record_id' => 18, 'name' => 'HBOX &trade;'],
+        ];
+        return $temp;
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_category_matches_word_starts_only(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), $this->categoryTemp());
+
+        $this->assertSame([14], $search->category_matches('clamps'));
+        $this->assertSame([7], $search->category_matches('rig'));
+        $this->assertSame([18], $search->category_matches('hbox'));
+        $this->assertSame([], $search->category_matches('pin'), 'not inside "Shipping"');
+        $this->assertSame([], $search->category_matches('ring'), 'not inside "Rigging"');
+        $this->assertSame([], $search->category_matches('to'), 'too short');
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_keyword_also_matches_products_in_matching_category(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), $this->categoryTemp());
+
+        $search->ajax(['clamp'], 20);
+
+        $sql = $search->queryLog[0];
+        $this->assertStringContainsString("(table_name <> 'category' and (code_normalized like '%CLAMP%' or category_id in (14)))", $sql);
+        $this->assertStringContainsString("(table_name = 'category' and category_id in (14))", $sql);
+        $this->assertStringContainsString("(code_normalized like '%CLAMP%') desc, ranking", $sql, 'name matches rank above category-only matches');
+        $this->assertStringContainsString('limit 60', $sql, 'headroom for skipped repeats');
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_category_entry_needs_every_term_in_its_name(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), $this->categoryTemp());
+
+        $search->ajax(['swing', 'clamp'], 20);
+
+        $this->assertStringNotContainsString("table_name = 'category'", $search->queryLog[0]);
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_labels_shared_codes_and_skips_repeated_families(): void {
+        $temp = new SearchStubTemp();
+        $temp->subcategoryNameRows = [['id' => 209, 'name' => 'Swivel Hoist Rings (Metric)']];
+        $temp->inventorySkuRows    = [['id' => 8166, 'sku' => 'HBLB-3-0.50']];
+        $search = $this->requireSearch($this->defaultSessionUser(), $temp);
+        $row = ['language_code' => 'EN', 'active' => 1, 'category_id' => 7, 'inventory_id' => 0, 'ranking' => 0];
+        database_class::$rows = [
+            ['id' => 1, 'table_name' => 'subcategory', 'code' => 'Swivel Hoist Rings', 'subcategory_id' => 208] + $row,
+            ['id' => 2, 'table_name' => 'search_words', 'code' => 'envirolox', 'subcategory_id' => 208] + $row,
+            ['id' => 3, 'table_name' => 'search_words', 'code' => 'envirolox', 'subcategory_id' => 209] + $row,
+            ['id' => 4, 'table_name' => 'competitor_sku', 'code' => 'BLPB-3-0.50', 'subcategory_id' => 390, 'inventory_id' => 8166] + $row,
+        ];
+
+        $response = $search->ajax(['envirolox'], 20);
+
+        $this->assertSame(
+            ['Swivel Hoist Rings', 'envirolox - Swivel Hoist Rings (Metric)', 'BLPB-3-0.50 (Harcourt HBLB-3-0.50)'],
+            array_map(function ($item) { return $item->label; }, $response->items)
+        );
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_ajax_caps_items_at_limit(): void {
+        $search = $this->requireSearch($this->defaultSessionUser(), new SearchStubTemp());
+        database_class::$rows = [];
+        for ($id = 1; $id <= 5; $id++) {
+            database_class::$rows[] = ['id' => $id, 'table_name' => 'inventory', 'code' => "HPSR-{$id}", 'subcategory_id' => 1, 'inventory_id' => $id];
+        }
+
+        $response = $search->ajax(['HPSR'], 2);
+
+        $this->assertCount(2, $response->items);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

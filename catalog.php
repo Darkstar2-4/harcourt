@@ -450,6 +450,8 @@ class catalog_output_class {
         $query[]="from search";
         $query[]=$database->where($query_where);
         $query[]="group by category_id, subcategory_id";
+        // A matched category's own entry ranks first, so its section leads the results
+        $query[]="order by min(ranking)";
         return $query;
     }
     // Subcategories shown on a category's search results, in catalog order
