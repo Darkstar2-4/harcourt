@@ -36,13 +36,24 @@ if (!class_exists('database_class')) {
 
         // Generic builder for query_where-shaped objects (field/operator/value,
         // "op" also accepted since not every test file's query_where stub uses
-        // the same property name). Only "in"/"not in" are exercised so far
-        // (classes/search.php's category-block filter); other operators fall
-        // back to a simple equality fragment.
+        // the same property name). "in"/"not in" get a value list (classes/
+        // search.php's category-block filter); other operators fall back to a
+        // simple "field operator 'value'" fragment. A nested array of conditions
+        // is an OR group, as the real builder renders search.php's typo variants.
         public function where($conditions) {
-            if (!is_array($conditions)) return '';
+            $parts = $this->where_parts($conditions);
+            return sizeof($parts) ? 'where ' . implode(' and ', $parts) . "\n" : '';
+        }
+
+        private function where_parts($conditions) {
+            if (!is_array($conditions)) return [];
             $parts = [];
             foreach ($conditions as $item) {
+                if (is_array($item)) {
+                    $group = $this->where_parts($item);
+                    if (sizeof($group)) $parts[] = '(' . implode(' or ', $group) . ')';
+                    continue;
+                }
                 $field    = isset($item->field) ? $item->field : null;
                 $operator = strtolower(isset($item->operator) ? $item->operator : (isset($item->op) ? $item->op : ''));
                 $value    = isset($item->value) ? $item->value : null;
@@ -59,7 +70,7 @@ if (!class_exists('database_class')) {
                     $parts[] = (string) $field;
                 }
             }
-            return sizeof($parts) ? 'where ' . implode(' and ', $parts) . "\n" : '';
+            return $parts;
         }
 
         public function query($q) {

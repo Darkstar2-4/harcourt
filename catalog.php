@@ -35,6 +35,7 @@ class catalog_output_class {
     var $blocked_categories;
 	function scs_table_version() {
 		$results=array();
+        $results['10/20/2026']="Separator-insensitive part# lookup; category and corrected keyword search";
         $results['11/25/2025']="New hero, portal format, related";
         $results['08/13/2025']="Improve lookup algorithm";
         $results['07/08/2025']="Security issues";
@@ -347,6 +348,12 @@ class catalog_output_class {
                 $database->log->update("search:Subcategory",$options);
 	            $this->subcategory();
 	            break;
+              case "category":
+                $options=array();
+                $options['comment']="Category: " . $this->category[$this->category_id]->name;
+                $database->log->update("search:Category",$options);
+                $this->output_summary(array($this->category_id => $this->category_subcategories($this->category_id)));
+                break;
               default:
 				$this->search_code();
           	}
@@ -387,12 +394,14 @@ class catalog_output_class {
         }
         $query_where=array();
         $query_where[]=new query_where("table_name", "in", array("inventory", "competitor_sku"));
-        $query_where[]=new query_where("code", "in", $skus);
+        $query_where['code']=array();
+        $query_where['code'][]=new query_where("code", "in", $skus);
+        $query_where['code'][]=new query_where("code_normalized", "=", $database->search->normalize_code($this->sku_request), "or");
         $query=array("select");
         $query[]="if(table_name='inventory',0,1) as ranking,";
         $query[]="search.* from search";
         $query[]=trim($database->where($query_where));
-        $query[]="order by ranking";
+        $query[]="order by if(code in (" . fn_escape_array($skus) . "),0,1), ranking";
         $query[]="limit 1";
         $database->search->query($query);
         if ($database->search->meta->rows) {
@@ -430,21 +439,8 @@ class catalog_output_class {
         $this->category_id=$database->category->data->category_id;
         $this->subcategory_id=$database->subcategory->data->id;
     }
-    function search_code() {
-        global $database, $forms;
-    	$this->trace[]=__FUNCTION__;
-        $codes=preg_split("/\s+/",trim($this->request['search_code']));
-        if (!sizeof($codes)) {
-			print "<p class=center>Search term cannot be blank</p>";
-            return;
-        }
-		$query_where=array();
-        $query_where[]=new query_where("language_code", "in", array("", $_SESSION['user']->language_code));
-        foreach ($codes as $code) {
-        	$query_where[]=new query_where("code","like","%{$code}%");
-		}
-	    if ($this->subcategory_id) $query_where[]=new query_where("subcategory_id","=",$this->subcategory_id);
-
+    function search_code_query($query_where) {
+        global $database;
 		$query=array("select");
         $query[]="table_name,";
         $query[]="code,";
@@ -454,13 +450,57 @@ class catalog_output_class {
         $query[]="from search";
         $query[]=$database->where($query_where);
         $query[]="group by category_id, subcategory_id";
+        // A matched category's own entry ranks first, so its section leads the results
+        $query[]="order by min(ranking)";
+        return $query;
+    }
+    // Subcategories shown on a category's search results, in catalog order
+    function category_subcategories($category_id) {
+        global $database;
+        $status=array("active");
+        if ($database->user->access("Administrator",FALSE)) $status[]="pending";
+        $results=array_filter($this->subcategory, function($subcategory) use ($category_id, $status) {
+            return ( ($subcategory->category_id == $category_id) && (in_array(strtolower($subcategory->status),$status)) );
+        });
+        uasort($results, function($a, $b) {
+            return ( ($a->sort_order == $b->sort_order) ? strcmp($a->name,$b->name) : $a->sort_order - $b->sort_order );
+        });
+        return array_keys($results);
+    }
+    function search_code() {
+        global $database, $forms;
+    	$this->trace[]=__FUNCTION__;
+        $codes=preg_split("/\s+/",trim($this->request['search_code']));
+        if (!sizeof($codes)) {
+			print "<p class=center>Search term cannot be blank</p>";
+            return;
+        }
+		$query_filter=array();
+        $query_filter[]=new query_where("language_code", "in", array("", $_SESSION['user']->language_code));
+	    if ($this->subcategory_id) $query_filter[]=new query_where("subcategory_id","=",$this->subcategory_id);
+        $query_where=array_merge($query_filter,$database->search->keyword_where($codes));
+        $database->temp->query($this->search_code_query($query_where));
+        $corrected="";
+        if (!$database->temp->meta->rows) {
+            $corrected_codes=$database->search->keyword_correct($codes);
+            if ($corrected_codes != $codes) {
+                $query_where=array_merge($query_filter,$database->search->keyword_where($corrected_codes));
+                $database->temp->query($this->search_code_query($query_where));
+                if ($database->temp->meta->rows) $corrected=implode(" ",$corrected_codes);
+            }
+        }
 		$summary_list=array();
         $table_subcategory=FALSE;
-        $database->temp->query($query);
         $options=array();
         $comment=array("Search: " . $this->request['search_code']);
         $summary=array();
         while ($database->temp->fetch = $database->temp->fetch_array()) {
+            if ($database->temp->fetch['table_name'] == "category") {
+                $category_id=$database->temp->fetch['category_id'];
+                $summary_list[$category_id]=array_merge( (isset($summary_list[$category_id]) ? $summary_list[$category_id] : array()), $this->category_subcategories($category_id) );
+                $table_subcategory=TRUE;
+                continue;
+            }
             if ( ($database->temp->fetch['table_name'] == "inventory") && ($database->temp->fetch['count'] == 1) ) $summary['sku']=$database->temp->fetch['code'];
         	$summary['category_id']=$database->temp->fetch['category_id'];
         	$summary['subcategory_id']=$database->temp->fetch['subcategory_id'];
@@ -484,8 +524,13 @@ class catalog_output_class {
             }
             $comment[]="Subcategories: " . number_format($count);
         }
+        if (strlen($corrected)) $comment[]="Corrected: {$corrected}";
         $options['comment']=$comment;
         $database->log->update("search:general", $options);
+        foreach ($summary_list as $category_id => $subcategory_list) {
+            $summary_list[$category_id]=array_values(array_unique($subcategory_list));
+        }
+        if (strlen($corrected)) print "<p class=center>Showing results for <b>" . htmlspecialchars($corrected) . "</b></p>";
         switch (TRUE) {
           case (!$database->temp->meta->rows):
 			print "<p class=center>No results for search term: <b>" . $this->search_code . "</b></p>";

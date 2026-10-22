@@ -547,6 +547,23 @@ class CatalogTest extends TestCase
         $this->assertStringContainsString('Antivirus', $html);
     }
 
+    // ── category_subcategories(): a category picked from search ─────────
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function test_category_subcategories_lists_active_subcategories_in_catalog_order(): void {
+        $obj = $this->bareCatalogInstance();
+        $obj->subcategory = [
+            20 => $this->subcategoryFixture(['id' => 20, 'name' => 'Swivel Hoist Rings', 'category_id' => 7, 'sort_order' => 2]),
+            21 => $this->subcategoryFixture(['id' => 21, 'name' => 'Lifting Eye Bolts', 'category_id' => 7, 'sort_order' => 1]),
+            22 => $this->subcategoryFixture(['id' => 22, 'name' => 'Hoist Ring Clips', 'category_id' => 7, 'sort_order' => 2]),
+            23 => $this->subcategoryFixture(['id' => 23, 'name' => 'Retired Hoist', 'category_id' => 7, 'sort_order' => 0, 'status' => 'Inactive']),
+            24 => $this->subcategoryFixture(['id' => 24, 'name' => 'Pending Hoist', 'category_id' => 7, 'sort_order' => 0, 'status' => 'Pending']),
+            30 => $this->subcategoryFixture(['id' => 30, 'name' => 'Drill Bushings', 'category_id' => 1, 'sort_order' => 0]),
+        ];
+
+        $this->assertSame([21, 22, 20], $obj->category_subcategories(7));
+    }
+
     // ── default_unit_type() / output_unit_filter(): country default ──────
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

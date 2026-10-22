@@ -125,10 +125,15 @@ switch ($forms->report['action']) {
         if ($database->log->meta->rows) {
             $signup=$database->log->fetch_array();
             $database->log->free_result();
-            $database->captcha_bypass->read($signup['email'],"email");
+            // Bypass the whole company domain; free-email domains fall back to
+            // the exact address so approving one Gmail user doesn't bypass all of Gmail
+            $free_email=array("gmail.com","googlemail.com","yahoo.com","ymail.com","hotmail.com","outlook.com","live.com","msn.com","aol.com","icloud.com","me.com","mac.com","protonmail.com","proton.me","gmx.com","gmx.de","web.de","mail.com","zoho.com","yandex.com","qq.com","163.com","comcast.net","verizon.net","att.net","sbcglobal.net");
+            list(, $signup_domain)=array_pad(explode("@",strtolower(trim($signup['email'])),2),2,"");
+            $bypass_entry=( (strlen($signup_domain)) && (!in_array($signup_domain,$free_email)) ) ? "@" . $signup_domain : strtolower(trim($signup['email']));
+            $database->captcha_bypass->read($bypass_entry,"email");
             if (!$database->captcha_bypass->meta->rows) {
                 $database->captcha_bypass->data=new captcha_bypass_data_class();
-                $database->captcha_bypass->data->email=$signup['email'];
+                $database->captcha_bypass->data->email=$bypass_entry;
                 $database->captcha_bypass->data->comment="Auto-added on user approval";
                 $database->captcha_bypass->update(FALSE);
             }

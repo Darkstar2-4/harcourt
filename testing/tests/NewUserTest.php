@@ -74,11 +74,21 @@ if (!class_exists('recaptcha_class')) {
 }
 
 if (!class_exists('scsmail_class')) {
+    // Same recording interface as the CheckoutTest stub (whichever loads first wins)
     class scsmail_class {
-        public function __construct($type, $data)   {}
-        public function recipient($email, $name)    {}
-        public function html($html)                 {}
-        public function send()                      {}
+        public static $instances = [];
+        public $form;
+        public $options;
+        public $html;
+        public $sent = FALSE;
+        public function __construct($form, $data = [], $options = []) {
+            $this->form    = $form;
+            $this->options = $options;
+            self::$instances[] = $this;
+        }
+        public function recipient($email, $name, $field = "") {}
+        public function html($html)                 { $this->html = $html; }
+        public function send($success_message = "") { $this->sent = TRUE; }
     }
 }
 
@@ -94,11 +104,12 @@ class StubRemoteData {
 class StubRemote {
     public $data;
     public $meta;
+    public $stubAccess = '';
     public function __construct() {
         $this->data = new StubRemoteData();
         $this->meta = (object)['rows' => 0];
     }
-    public function access($a = null, $b = null) { return ''; }
+    public function access($a = null, $b = null) { $this->data->access = $this->stubAccess; return ''; }
     public function read($email)    {}
     public function expiry()        {}
     public function token()         {}
@@ -155,9 +166,14 @@ class StubBlacklist {
 
 class StubCaptchaBypass {
     public $bypassed = [];
+    // Mirrors captcha_bypass_class::check(): exact email or "@domain" entry
     public function check($email) {
+        $email = strtolower(trim($email));
         if (!strlen($email)) return FALSE;
-        return in_array(strtolower(trim($email)), $this->bypassed);
+        $parts = explode("@", $email, 2);
+        $candidates = [$email];
+        if (isset($parts[1]) && strlen($parts[1])) $candidates[] = "@" . $parts[1];
+        return (bool) array_intersect($candidates, $this->bypassed);
     }
 }
 
@@ -241,6 +257,7 @@ class NewUserTest extends TestCase
         $_POST    = [];
         $_SERVER['HTTP_USER_AGENT'] = 'PHPUnit';
         recaptcha_class::$stubScore = 0.9;
+        scsmail_class::$instances = [];
 
         // Instantiate without running the constructor so each test starts clean.
         $ref       = new ReflectionClass(remote_access_class::class);
@@ -1031,6 +1048,107 @@ class NewUserTest extends TestCase
         $this->assertSame('user:signup', $database->log->lastType);
     }
 
+    public function test_json_register_new_signup_says_request_is_pending_not_granted(): void
+    {
+        recaptcha_class::$stubScore = 0.9;
+        $_POST['g-recaptcha-response'] = 'token';
+
+        $this->sut->json_register();
+
+        $html = $this->sut->response->html->profile_register;
+        $this->assertStringContainsString('your access request has been submitted', $html);
+        $this->assertStringContainsString('pending approval', $html);
+        $this->assertStringNotContainsString('you now have access', $html);
+    }
+
+    // ── auto-approval notification ───────────────────────────────────────
+
+    private function autoApprovedMails(): array
+    {
+        $results = [];
+        foreach (scsmail_class::$instances as $mail) {
+            $subject = $mail->options['subject'] ?? '';
+            if ($mail->sent && strpos($subject, 'Auto-Approved') !== FALSE) {
+                $results[] = ['form' => $mail->form, 'subject' => $subject, 'html' => $mail->html];
+            }
+        }
+        return $results;
+    }
+
+    public function test_json_register_new_email_on_active_domain_sends_auto_approved_notice(): void
+    {
+        global $database;
+        $_POST['g-recaptcha-response'] = 'token';
+        $database->remote->stubAccess = 'remote';
+        $this->sut->remote = ''; // html_remote() reads this undeclared property
+        $database->remote->meta->rows = 0;
+        $database->user->data->company_name = 'Acme Corp';
+        $database->user->data->domain       = 'acme.com';
+
+        $this->sut->json_register();
+
+        $mails = $this->autoApprovedMails();
+        $this->assertCount(1, $mails);
+        $this->assertSame('register', $mails[0]['form'], 'Must use the access-request mailform so it reaches the same recipient.');
+        $this->assertStringContainsString('Acme Corp (acme.com)', $mails[0]['html']);
+        $this->assertStringContainsString('Registration form', $mails[0]['html']);
+    }
+
+    public function test_json_register_returning_remote_email_sends_no_auto_approved_notice(): void
+    {
+        global $database;
+        $_POST['g-recaptcha-response'] = 'token';
+        $database->remote->stubAccess = 'token';
+        $this->sut->remote = ''; // html_remote() reads this undeclared property
+        $database->remote->meta->rows = 1;
+
+        $this->sut->json_register();
+
+        $this->assertCount(0, $this->autoApprovedMails());
+    }
+
+    public function test_json_register_pending_signup_sends_no_auto_approved_notice(): void
+    {
+        $_POST['g-recaptcha-response'] = 'token';
+
+        $this->sut->json_register();
+
+        $this->assertCount(0, $this->autoApprovedMails());
+    }
+
+    public function test_oauth_new_email_on_active_domain_sends_auto_approved_notice(): void
+    {
+        global $database;
+        $database->user->meta->rows   = 1;
+        $database->user->data->status = 'Active';
+        $_SESSION['google_oauth_result'] = $this->oauthData(['email' => 'new.person@harcourt.co']);
+
+        ob_start();
+        $this->sut->process_oauth('Google');
+        ob_end_clean();
+
+        $mails = $this->autoApprovedMails();
+        $this->assertCount(1, $mails);
+        $this->assertSame('register', $mails[0]['form']);
+        $this->assertStringContainsString('new.person@harcourt.co', $mails[0]['subject']);
+        $this->assertStringContainsString('Google OAuth', $mails[0]['html']);
+    }
+
+    public function test_oauth_returning_remote_email_sends_no_auto_approved_notice(): void
+    {
+        global $database;
+        $database->remote->meta->rows = 1;
+        $database->user->meta->rows   = 1;
+        $database->user->data->status = 'Active';
+        $_SESSION['microsoft_oauth_result'] = $this->oauthData(['email' => 'known@harcourt.co']);
+
+        ob_start();
+        $this->sut->process_oauth('Microsoft');
+        ob_end_clean();
+
+        $this->assertCount(0, $this->autoApprovedMails());
+    }
+
     public function test_verify_blocks_low_recaptcha_score(): void
     {
         global $database;
@@ -1124,6 +1242,66 @@ class NewUserTest extends TestCase
         recaptcha_class::$stubScore = 0.1;
         $database->captcha_bypass->bypassed = ['trusted@example.com'];
         $database->profile->data->email = 'trusted@example.com';
+        $_POST['g-recaptcha-response'] = 'token';
+
+        $this->sut->json_token();
+
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+        $this->assertSame('Access token has been sent', $this->sut->response->html->unlock_code_message);
+    }
+
+    // ── captcha_bypass @domain entries ───────────────────────────────────
+
+    public function test_recaptcha_spam_bypasses_any_address_at_bypassed_domain(): void
+    {
+        global $database;
+        $database->captcha_bypass->bypassed = ['@boeing.com', '@leidos.com', '@johndeere.com'];
+        $this->sut->recaptcha = new recaptcha_class('newuser', 1, ['local' => TRUE]);
+        $this->sut->recaptcha->score = 0.0;
+
+        foreach (['new.engineer@boeing.com', 'Analyst@Leidos.com', 'tech@johndeere.com'] as $email) {
+            $this->assertFalse($this->sut->recaptcha_spam('unit test', $email), $email);
+        }
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+    }
+
+    public function test_recaptcha_spam_still_blocks_lookalike_of_bypassed_domain(): void
+    {
+        global $database;
+        $database->captcha_bypass->bypassed = ['@boeing.com'];
+        $this->sut->recaptcha = new recaptcha_class('newuser', 1, ['local' => TRUE]);
+        $this->sut->recaptcha->score = 0.0;
+
+        $isSpam = $this->sut->recaptcha_spam('unit test', 'bot@notboeing.com');
+
+        $this->assertTrue($isSpam);
+        $this->assertSame('Recaptcha:Blocked', $database->log->lastType);
+    }
+
+    public function test_verify_allows_address_at_bypassed_domain_despite_low_score(): void
+    {
+        global $database;
+        recaptcha_class::$stubScore = 0.0;
+        $database->captcha_bypass->bypassed = ['@boeing.com'];
+        $database->profile->data->email = 'new.engineer@boeing.com';
+        $_POST['g-recaptcha-response'] = 'token';
+        $validHex = dechex(strtotime('+1 hour'));
+        $_POST['unlock_code']                = $validHex;
+        $database->remote->data->unlock_code = $validHex;
+        $_SESSION['remote']                  = 0;
+
+        $this->sut->json_verify();
+
+        $this->assertNotSame('Recaptcha:Blocked', $database->log->lastType);
+        $this->assertStringNotContainsString('Invalid access token', $this->sut->response->html->unlock_code_error ?? '');
+    }
+
+    public function test_token_allows_address_at_bypassed_domain_despite_low_score(): void
+    {
+        global $database;
+        recaptcha_class::$stubScore = 0.0;
+        $database->captcha_bypass->bypassed = ['@leidos.com'];
+        $database->profile->data->email = 'analyst@leidos.com';
         $_POST['g-recaptcha-response'] = 'token';
 
         $this->sut->json_token();
