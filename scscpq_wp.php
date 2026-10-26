@@ -31,6 +31,7 @@ class scscpq_wp_class {
     var $url_query=array();
 	var $response;
     var $trace=array();
+    var $account_language="";
 	function scs_table_version() {
 		$results=array();
         $results['10/01/2025']="Add harcourt_remote_addr()";
@@ -99,6 +100,7 @@ class scscpq_wp_class {
         $this->trace[]=__FUNCTION__;
 		if (!strlen($this->token)) $this->token();
 		if (!isset($_SESSION['user'])) $this->user();
+		$this->language();
 		$this->response->scscpq_newuser=$this->newuser();
 		$this->response->scscpq_impersonate=$this->impersonate();
         $this->response->scscpq_catalog=$this->catalog();
@@ -107,8 +109,28 @@ class scscpq_wp_class {
         $this->response->scscpq_portal=$this->portal();
         $this->response->scscpq_dashboard=$this->dashboard();
         $this->response->scscpq_products=$this->response->scscpq_catalog;
-        $database->language->read($_REQUEST['language'], "local_name");
-        if ($database->language->meta->rows) $_SESSION['user']->language_code=$database->language->data->code;
+        $this->response->account_language=($_SESSION['user']->id) ? $this->account_language : "";
+    }
+    // The page's language decides the catalog's and the menu's, so it is applied before anything is built.
+    // A flag click sends remember=1, which also saves the choice to the signed-in account (as language_change.php does).
+    function language() {
+        global $database, $menu;
+        $this->trace[]=__FUNCTION__;
+        if ($_SESSION['user']->id) {
+            $database->user->read($_SESSION['user']->id);
+            if ($database->user->meta->rows) $this->account_language=$database->user->data->language_code;
+        }
+        $code=strtoupper(substr(trim($_REQUEST['language']), 0, 2));
+        if (!array_key_exists($code, $menu->language)) {
+            $database->language->read($_REQUEST['language'], "local_name");
+            $code=($database->language->meta->rows) ? $database->language->data->code : "";
+        }
+        if (!$code) return;
+        $_SESSION['user']->language_code=$code;
+        if ( (!$_REQUEST['remember']) || (!$this->account_language) || ($this->account_language == $code) ) return;
+        $database->user->data->language_code=$code;
+        $database->user->update(TRUE);
+        $this->account_language=$code;
     }
     function token() {
         $this->trace[]=__FUNCTION__;
@@ -226,7 +248,10 @@ EOT;
 
 <script>
 jQuery(function() {
-    jQuery("#scscpq_search_text").autocomplete({
+    var box=jQuery("#scscpq_search_text");
+    box.autocomplete({
+        // hxweb answers in about a millisecond, so ask on every keystroke instead of after jQuery UI's 300 ms pause
+        delay: 0,
         source: function(request, response) {
             var term=this.term.trim();
             if (term.length < 2) return;
@@ -235,6 +260,10 @@ jQuery(function() {
                 url: "/scs_ajax.php?" + jQuery.param(query),
                 dataType: 'json',
                 success: function (data) {
+                    // Enter opens the first suggestion when it is the part number or name typed, or starts with it
+                    // (hxweb's tiers exact and prefix); otherwise Enter still opens the search results page
+                    var tier=(data.items.length > 0) ? data.items[0].tier : "";
+                    box.autocomplete("option", "autoFocus", tier == "exact" || tier == "prefix");
                     if (data.items.length > 0) {
                         response(data.items);
                         } else {
@@ -286,7 +315,11 @@ function search_content(id, code, search_source="search") {
         alert("Your search term must include at least 2 characters");
         return;
     }
-    window.location.href="/catalog/?" + jQuery.param( { search_source: search_source, search_id: id, search_code: code } );
+    // the French catalogue keeps its own address, so a pick there can swap in place too
+    var french=/^\/catalogue\//.test(location.pathname);
+    var url=(french ? "/catalogue/?lang=fr&" : "/catalog/?") + jQuery.param( { search_source: search_source, search_id: id, search_code: code } );
+    // on a catalog page hx-nav swaps in just the catalog, as it does for catalog links
+    if (!(window.hxGo && window.hxGo(url))) window.location.href=url;
 }
 </script>
 EOT;

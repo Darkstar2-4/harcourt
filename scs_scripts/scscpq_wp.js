@@ -1,8 +1,21 @@
-scscpq_version="20231121";
+scscpq_version="20261021";
 scscpq_url=window.location.origin + "/scscpq_wp.php";
 jQuery(document).ready(function() {
-	scscpq_event('initial');
+	scscpq_flag_links();
+	// hxweb already put the catalog into the page and inlined the loader's answer.
+	if (window.hxweb_loader) scscpq_apply(window.hxweb_loader, true);
+	else scscpq_event('initial');
 });
+// A flag click carries hxlang=<code>, so the catalog saves the choice to the account; a plain link in another
+// language does not.
+function scscpq_flag_links() {
+	jQuery("li.wpml-ls-item > a[href]").each(function() {
+		var lang=(jQuery(this).closest("li").attr("class").match(/wpml-ls-item-(\w\w)\b/) || [])[1];
+		var href=jQuery(this).attr("href");
+		if (!lang || href == "#" || /[?&]hxlang=/.test(href)) return;
+		jQuery(this).attr("href", href.replace(/(#.*)?$/, (href.indexOf("?") < 0 ? "?" : "&") + "hxlang=" + lang + "$1"));
+	});
+}
 jQuery(window).on('message', function(e) {
 	var event=e.originalEvent;
 	if ( (typeof event.data !== "object") || (!event.data.scscpq) ) return;
@@ -43,48 +56,51 @@ function scscpq_event(action) {
         	action: action,
             page: scscpq_page,
             document: scscpq_document,
-            language: jQuery(".wpml-ls-native").html(),
+            language: (document.documentElement.lang || "").slice(0, 2),
+            remember: /[?&]hxlang=/.test(window.location.search) ? 1 : 0,
             token: sessionStorage['scscpq_token'],
             url: window.location.href
         },
         type: "post",
 	    dataType: "json",
 	    success: function(response) {
-	        for (var key in response) {
-            	value=response[key];
-				switch (true) {
-                  case (key == "token"):
-                  	sessionStorage['scscpq_token']=value;
-                  	break;
-                  case (key.substring(0,6) != "scscpq"):
-                  	break;
-                  case ( (key == "scscpq_document") && (value) ):
-					jQuery("#scscpq_document").load(value);
-                  	break;
-                  case (key == "scscpq_document"):
-					jQuery("#scscpq_document").html('');
-                  	break;
-                  case (key == "scscpq_link"):
-					jQuery("#scscpq_page").load(value);
-                  	break;
-                  case (key == "scscpq_page"):
-                  case (key == "scscpq_iframe"):
-                 	jQuery("#scscpq_page").html(value);
-                    break;
-                  case (value == 0):
-                	jQuery("." + key).hide();
-                  	break;
-                  default:
-                	jQuery("." + key).show();
-                    if (value != 1) jQuery("." + key).html(value);
-
-                }
-			}
+	        scscpq_apply(response, false);
         },
         error: function(xhr, response) {
 			jQuery("#scscpq_status").html(xhr.responseText);
         }
 	});
+}
+function scscpq_apply(response, inlined) {
+	for (var key in response) {
+		value=response[key];
+		switch (true) {
+		  case (key == "token"):
+			sessionStorage['scscpq_token']=value;
+			break;
+		  case (key.substring(0,6) != "scscpq"):
+			break;
+		  case ( (key == "scscpq_document") && (value) ):
+			jQuery("#scscpq_document").load(value);
+			break;
+		  case (key == "scscpq_document"):
+			jQuery("#scscpq_document").html('');
+			break;
+		  case (key == "scscpq_link"):
+			if (!inlined) jQuery("#scscpq_page").load(value);
+			break;
+		  case (key == "scscpq_page"):
+		  case (key == "scscpq_iframe"):
+			jQuery("#scscpq_page").html(value);
+			break;
+		  case (value == 0):
+			jQuery("." + key).hide();
+			break;
+		  default:
+			jQuery("." + key).show();
+			if (value != 1) jQuery("." + key).html(value);
+		}
+	}
 }
 
 function ajax_fill(table,data) {

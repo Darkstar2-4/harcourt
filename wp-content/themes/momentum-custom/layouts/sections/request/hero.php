@@ -7,7 +7,7 @@ $background_image = get_field('background_image');
 $website_notification = get_field('website_notification' , 'options');
 
 ?>
-<section id="signup" class="signup-hero <?php if($website_notification): echo "add-margin"; endif; ?>" style="background-image:url('<?php if (!empty($background_image)): echo $background_image['url']; endif; ?>')">
+<section id="signup" class="signup-hero <?php if($website_notification): echo "add-margin"; endif; ?>" style="background-image:url('<?php if (is_array($background_image)): echo $background_image['url']; elseif (is_numeric($background_image)): echo wp_get_attachment_url($background_image); elseif (!empty($background_image)): echo $background_image; endif; ?>')">
   <div class="background-overlay site-padding">
     <div class="container large">
       <div class="row align-items-start">
