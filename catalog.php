@@ -228,6 +228,8 @@ class catalog_output_class {
 	    switch (TRUE) {
           case ($_SESSION['user']->bot_code):
           case ($this->search_source == "search"):
+          // hx-nav.js fetches a catalog link ahead of the click; the view is logged once it is shown (X-HX-View).
+          case (isset($_SERVER['HTTP_X_HX_PREFETCH'])):
           	break;
           case ($this->subcategory_id):
           	if ( (!$this->sku) && (!$this->page) ) {
@@ -243,6 +245,10 @@ class catalog_output_class {
 			$options['comment'][]="Landing Page";
 			$database->log->update("page:products",$options);
             break;
+	    }
+	    if (isset($_SERVER['HTTP_X_HX_VIEW'])) {
+	        http_response_code(204);
+	        exit;
 	    }
 	    if ($this->document) {
 	        $database->document->read($this->document);

@@ -49,16 +49,25 @@
     return ulang === lang ? u.pathname + u.search : null;
   }
 
-  function load(url) {
+  function load(url, prefetch) {
     if (!inflight[url] || Date.now() - inflight[url].at > 60000) {
-      var p = fetch(url, { headers: { 'X-HX-Nav': '1' }, credentials: 'same-origin' }).then(function (r) {
+      var headers = { 'X-HX-Nav': '1' };
+      if (prefetch) headers['X-HX-Prefetch'] = '1';
+      var p = fetch(url, { headers: headers, credentials: 'same-origin' }).then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       });
       p.catch(function () { delete inflight[url]; });
-      inflight[url] = { at: Date.now(), p: p };
+      inflight[url] = { at: Date.now(), p: p, prefetch: !!prefetch };
     }
     return inflight[url].p;
+  }
+
+  // The catalog leaves a prefetch out of the visitor's activity log; this logs the view once it is on screen.
+  function logView(url) {
+    var u = new URL(url, location.href);
+    fetch('/catalog.php' + (u.search ? u.search + '&' : '?') + 'scscpq_wp=1',
+      { headers: { 'X-HX-View': '1' }, credentials: 'same-origin', keepalive: true }).catch(function () {});
   }
 
   function remember(url, view) {
@@ -139,7 +148,9 @@
     document.documentElement.style.cursor = 'progress';
     var wait = setTimeout(function () { if (mine === seq) page.classList.add('hx-wait'); }, WAIT_MS);
     var giveUp = new Promise(function (resolve, reject) { setTimeout(function () { reject(new Error('slow')); }, GIVE_UP_MS); });
-    Promise.race([load(url), giveUp]).then(function (data) {
+    var loading = load(url);
+    var prefetched = inflight[url].prefetch;
+    Promise.race([loading, giveUp]).then(function (data) {
       delete inflight[url];
       if (mine !== seq) return;
       clearTimeout(wait);
@@ -148,7 +159,9 @@
       if (push) history.pushState({ hx: url, y: 0 }, '', url);
       here = url;
       window.scrollTo(0, 0);
-      return render(url, data);
+      var shown = render(url, data);
+      if (prefetched) logView(url);
+      return shown;
     }).catch(function () {
       if (mine === seq) location.href = url;
     }).then(function () {
@@ -172,7 +185,7 @@
     var url = navigable(a);
     if (!url || !page.contains(a) || url === here) return;
     clearTimeout(timer);
-    timer = setTimeout(function () { load(url).catch(function () {}); }, e.type === 'touchstart' ? 0 : PREFETCH_MS);
+    timer = setTimeout(function () { load(url, true).catch(function () {}); }, e.type === 'touchstart' ? 0 : PREFETCH_MS);
   }
   document.addEventListener('mouseover', intent);
   document.addEventListener('touchstart', intent, { passive: true });
