@@ -825,7 +825,11 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
         Some(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
             let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
-            let Some(html) = theme::render(site, page, &wp_uri) else {
+            // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded; a post it
+            // left out (an FAQ) has none to print, so WordPress keeps it.
+            let recorded = site.meta(page.id).contains_key("title");
+            let rendered = if recorded { theme::render(site, page, &wp_uri) } else { None };
+            let Some(html) = rendered else {
                 if replay {
                     return legacy();
                 }
@@ -908,13 +912,8 @@ struct Island {
 }
 
 /// The forms of a page in render order, as the import recorded them.
-/// The forms of a page as the export recorded them. Only pages were exported; a post (an FAQ) carries the footer's
-/// form alone, which is the 404 page's.
 fn islands(site: &Site, page: &Page) -> BTreeMap<usize, Island> {
-    match site.meta(page.id).get("islands") {
-        Some(raw) => parse_islands(Some(raw)),
-        None => not_found_islands(site, page.lang),
-    }
+    parse_islands(site.meta(page.id).get("islands").map(String::as_str))
 }
 
 /// The forms of the 404 page (the footer's).
@@ -1064,19 +1063,6 @@ mod tests {
         assert!(lists_users("rest_route=%2Fwp%2Fv2%2Fusers&per_page=100"));
         assert!(lists_users("rest_route=//WP/v2/users/1"));
         assert!(!lists_users("rest_route=/wp/v2/pages"));
-    }
-
-    #[test]
-    fn a_post_the_export_left_out_has_the_footer_form() {
-        let mut site = Site::new(vec![page(1, 10, Lang::En, "/product/alignment/", Status::Publish), page(2, 11, Lang::En, "/faq/example/", Status::Publish)]);
-        let footer = r#"[{"form":1,"ajax":true,"theme":"legacy","styles":"","in_content":false}]"#;
-        let own = r#"[{"form":1,"ajax":true,"theme":"legacy","styles":"","in_content":false},{"form":5,"ajax":false,"theme":"legacy","styles":"","in_content":true}]"#;
-        let option = crate::cms::model::Field { kind: crate::cms::model::Kind::Html, value: footer.to_string() };
-        site.options.entry(Lang::En).or_default().insert(format!("{}islands", theme::NOT_FOUND_OPTION), option);
-        site.meta.entry(crate::cms::PageId(1)).or_default().insert("islands".into(), own.into());
-        let forms = |id: i64| islands(&site, site.page(crate::cms::PageId(id)).unwrap()).values().map(|i| i.form).collect::<Vec<_>>();
-        assert_eq!(forms(1), [1, 5], "an exported page keeps its own");
-        assert_eq!(forms(2), [1], "a post without them has the footer's");
     }
 
     #[test]

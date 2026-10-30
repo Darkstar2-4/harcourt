@@ -148,6 +148,17 @@ async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
 }
 
 #[tokio::test]
+async fn a_post_the_export_left_out_stays_with_wordpress() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let res = app.clone().oneshot(Request::builder().uri("/faq/example-question/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "no recorded head, no page");
+}
+
+#[tokio::test]
 async fn sitemaps_list_the_pages_as_wpml_links_them() {
     let (app, _) = harness().await;
     let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
