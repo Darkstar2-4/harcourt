@@ -98,3 +98,10 @@
 {"name": "api-sku-part", "path": "/scscpq_api.php", "persona": "customer-active-fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=sku&data%5Blina%5D=LS-1&data%5BpartId%5D=demo"}
 {"name": "api-sku-part", "path": "/scscpq_api.php", "persona": "superuser-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=sku&data%5Blina%5D=LS-1&data%5BpartId%5D=demo"}
 {"name": "api-sku-unknown", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=sku&data%5Blina%5D=NO-SUCH-PART-9"}
+{"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "beta-warm", "path": "/beta.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "beta-warm", "path": "/beta.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "index-pending-cold", "path": "/scs_index.php", "persona": "internal-pending", "session": "cold"}
+{"name": "index-pending-cold", "path": "/scs_index.php", "persona": "customer-denied", "session": "cold"}
