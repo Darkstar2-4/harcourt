@@ -36,6 +36,7 @@ pub mod time;
 pub mod campaign;
 pub mod company;
 pub mod dashboard;
+pub mod filmstrip;
 pub mod grants;
 pub mod hero_preview;
 pub mod increase;

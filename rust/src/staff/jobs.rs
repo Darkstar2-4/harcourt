@@ -13,7 +13,7 @@ use sqlx::SqlitePool;
 use super::time;
 use crate::{config::Config, db};
 
-const USAGE: &str = "usage: hxweb job search_utility | search_export <dir> | search_export --log <file>";
+const USAGE: &str = "usage: hxweb job search_utility | search_export <dir> | search_export --log <file> | image_filmstrip <docroot>";
 
 pub async fn cli(args: &[String]) -> i32 {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -31,6 +31,10 @@ pub async fn cli(args: &[String]) -> i32 {
         },
         ["search_export", "--log", file] => match db::open(&config.db_path).await {
             Ok(pool) => search_log(&pool, Path::new(file), db::unix_now()).await,
+            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
+        },
+        ["image_filmstrip", docroot] => match db::open(&config.db_path).await {
+            Ok(pool) => super::filmstrip::run(&pool, Path::new(docroot), db::unix_now()).await,
             Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
         },
         ["search_export", dir] => match db::open(&config.db_path).await {
