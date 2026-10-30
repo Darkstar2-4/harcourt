@@ -347,7 +347,7 @@ impl Choices {
                 (false, _) => c.ca.push((r.state, r.name)),
             }
         }
-        c.carriers = sqlx::query_scalar!(r#"SELECT name AS "name!: String" FROM carrier WHERE active = 1 AND name IS NOT NULL ORDER BY name"#)
+        c.carriers = sqlx::query_scalar!(r#"SELECT name AS "name!: String" FROM carrier WHERE name IS NOT NULL ORDER BY name"#)
             .fetch_all(pool)
             .await?
             .into_iter()
@@ -450,7 +450,7 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Shipping Method</td></tr>".into());
     if entry {
-        r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", html::select("carrier_name", &choices.carriers, &o.carrier_name, Some("Select Carrier"), "", errors.has("carrier_name"))));
+        r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", html::select("carrier_name", &choices.carriers, &o.carrier_name, Some("Shipping Carrier"), "", errors.has("carrier_name"))));
         r.push(format!("<tr><td>Collect Account#</td><td>{}</td></tr>", html::text_input("text", "carrier_account", &o.carrier_account, 40, 60, "Collect Account# (Optional)", false)));
     } else {
         if !o.carrier_name.is_empty() {
@@ -560,10 +560,10 @@ async fn complete(state: &Orders, shopper: &Shopper, ip: &str, order: &mut Order
     Ok(Placed { html, messages })
 }
 
-/// The `user:po` row classes/log.php writes for a placed order.
+/// The `user:po` row classes/log.php writes for a placed order (its canonical names are User and PO).
 async fn log_order(pool: &SqlitePool, ip: &str, shopper: &Shopper, comment: &str, now: i64) {
     let result = sqlx::query!(
-        "INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES (?1, ?2, ?3, ?4, 'User', 'po', ?5)",
+        "INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES (?1, ?2, ?3, ?4, 'User', 'PO', ?5)",
         ip,
         now,
         shopper.user.id.0,

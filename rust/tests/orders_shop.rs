@@ -230,7 +230,7 @@ async fn checkout_writes_the_order_and_queues_both_mails() {
     assert_eq!(mails, [("orders@example.com".into(), "PO #ABC-1".into()), ("buyer@example.com".into(), "Order Confirmation".into())]);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox_recipient WHERE kind = 'bcc' AND email = 'copy@example.com'").await, 2);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 0);
-    assert_eq!(count(&h.pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'po'").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'PO'").await, 1);
 }
 
 #[tokio::test]
