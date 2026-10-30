@@ -369,24 +369,7 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
-        return r;
-    }
     catalog_view(&core, cache, &visitor, &headers, &uri, &q).await
-}
-
-/// scs_header.php's first-visit redirect for an SCS page, or None to answer the request.
-async fn landing(core: &Auth, visitor: &Visitor, uri: &axum::http::Uri, headers: &HeaderMap) -> Option<Response> {
-    match crate::visitor::landing(core, visitor, uri.path(), uri.query(), headers).await {
-        Ok(r) => r,
-        Err(e) => Some(failed(e)),
-    }
-}
-
-/// Whether the PHP session was inside the WordPress frame: the query says so, or the request is inside a visit,
-/// and the site's visits come through the catalog page.
-fn framed(core: &Auth, q: &Params, headers: &HeaderMap) -> bool {
-    q.get("scscpq_wp").is_some_and(|v| !v.is_empty() && v != "0") || !crate::visitor::begins_visit(headers, &core.public_origin)
 }
 
 type Params = std::collections::HashMap<String, String>;
@@ -395,7 +378,7 @@ async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &V
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
         let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
-        let req = Request { uri, framed: framed(core, q, headers), ..Request::parse(q) };
+        let req = Request { uri, framed: visitor.framed, ..Request::parse(q) };
         let mut ctx = load_ctx(&core.pool, &viewer, req, headers).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
@@ -417,16 +400,13 @@ async fn new_catalog(
     uri: axum::http::Uri,
     Query(q): Query<Params>,
 ) -> Response {
-    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
-        return r;
-    }
     let gate = async {
         let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
         let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).is_some_and(|e| !e.is_empty());
         Ok::<_, sqlx::Error>(match viewer.kind {
             viewer::Kind::Anonymous => {
                 let reg = registry::load(&core.pool).await?;
-                let ribbon = (!framed(&core, &q, &headers)).then(|| chrome::ribbon(None));
+                let ribbon = (!visitor.framed).then(|| chrome::ribbon(None));
                 let doc = document_html(&core.pool, 157, viewer.lang).await?.unwrap_or_default();
                 Some(format!("{}{doc}", chrome::open(&reg, &chrome::Head::titled("Products"), ribbon.as_deref())))
             }
@@ -444,10 +424,7 @@ async fn new_catalog(
 
 /// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown. With a login_url it
 /// is a page linking there, which is followed only to an address on this site.
-async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(q): Query<Params>) -> Response {
-    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
-        return r;
-    }
+async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<Params>) -> Response {
     let id = q
         .get("document")
         .and_then(|d| html::base64_fields_decode(d))

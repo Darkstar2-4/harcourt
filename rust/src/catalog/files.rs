@@ -22,7 +22,7 @@ use crate::{
     api::Auth,
     identity::Role,
     orders::html::{self as chrome, Chrome, Head},
-    visitor::{self, Visitor, PHP_CONTENT_TYPE},
+    visitor::{Visitor, PHP_CONTENT_TYPE},
 };
 
 pub fn router() -> Router<Arc<Auth>> {
@@ -279,9 +279,6 @@ jQuery(document).ready(function() {
 /// An SCS page: scs_header.php's landing redirect when the request begins a visit, else `body` in the SCS chrome.
 async fn scs_page(core: &Auth, visitor: &Visitor, uri: &Uri, headers: &HeaderMap, title: &str, description: Option<&str>, body: &str) -> Response {
     let result = async {
-        if let Some(r) = visitor::landing(core, visitor, uri.path(), uri.query(), headers).await? {
-            return Ok(r);
-        }
         let chrome_data = Chrome::load(&core.pool).await?;
         let head = Head {
             title,

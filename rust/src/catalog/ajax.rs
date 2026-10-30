@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, StatusCode, Uri},
+    http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Router,
@@ -17,7 +17,7 @@ use super::{search, viewer};
 use crate::{
     api::Auth,
     identity::Role,
-    visitor::{self, Visitor, PHP_CONTENT_TYPE},
+    visitor::{Visitor, PHP_CONTENT_TYPE},
 };
 
 pub fn router() -> Router<Arc<Auth>> {
@@ -87,14 +87,11 @@ fn php_json(rows: &[String]) -> Response {
     (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE)], body).into_response()
 }
 
-async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<search::Cache>>, visitor: Visitor, uri: Uri, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> Response {
+async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<search::Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> Response {
     if is_search_box(&q) {
         return search::suggestions(&core, &cache, &visitor, &headers, q.get("term").map_or("", String::as_str), q.get("limit").map(String::as_str)).await;
     }
     let result = async {
-        if let Some(r) = visitor::landing(&core, &visitor, "/scs_ajax.php", uri.query(), &headers).await? {
-            return Ok(r);
-        }
         let req = AjaxRequest::parse(&q);
         let Some(source) = req.source.filter(|_| req.action == "search" && !req.terms.is_empty() && from_site_script(&headers)) else {
             return Ok(refused());

@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use axum::{
     body::Bytes,
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::any,
     Router,
@@ -26,7 +26,7 @@ use crate::{
     api::Auth,
     identity::Role,
     pricing,
-    visitor::{self, Visitor, PHP_CONTENT_TYPE},
+    visitor::{Visitor, PHP_CONTENT_TYPE},
 };
 
 /// The only hosts quick CAD talks to or downloads from.
@@ -53,15 +53,7 @@ fn params(query: HashMap<String, String>, body: &Bytes) -> HashMap<String, Strin
     p
 }
 
-async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
-    match visitor::landing(&core, &visitor, "/scscpq_api.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => {
-            tracing::error!("scscpq_api: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
-        }
-    }
+async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
     let p = params(query, &body);
     let get = |k: &str| p.get(k).map(String::as_str).unwrap_or("");
     if !headers.contains_key("x-requested-with") {

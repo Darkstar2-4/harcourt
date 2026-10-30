@@ -9,10 +9,6 @@ use crate::{session, token::Token};
 /// The address the browser last signed in or registered with (PHP's `harcourt`). It fills in forms and says
 /// which address an emailed code is for. It grants nothing.
 pub const EMAIL: &str = "harcourt";
-/// The language this browser chose, for this browser session.
-pub const LANGUAGE: &str = "hx_lang";
-/// The campaign this browser arrived from, for this browser session.
-pub const CAMPAIGN: &str = "hx_campaign";
 
 const YEAR_SECS: i64 = 365 * 24 * 3600;
 
@@ -21,9 +17,6 @@ const PHP_URLENCODE: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').rem
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Life {
-    /// Until the browser closes.
-    Browser,
-    Secs(i64),
     Year,
     /// Delete it.
     Gone,
@@ -44,12 +37,23 @@ pub fn get(headers: &HeaderMap, name: &str) -> Option<String> {
 pub fn set(name: &str, value: &str, life: Life) -> Option<HeaderValue> {
     let value = if life == Life::Gone { String::new() } else { utf8_percent_encode(value, PHP_URLENCODE).to_string() };
     let age = match life {
-        Life::Browser => String::new(),
-        Life::Secs(s) => format!("; Max-Age={s}"),
         Life::Year => format!("; Max-Age={YEAR_SECS}"),
         Life::Gone => "; Max-Age=0".into(),
     };
     HeaderValue::from_str(&format!("{name}={value}; Path=/{age}; Secure; HttpOnly; SameSite=Lax")).ok()
+}
+
+/// PHP rawurlencode keeps letters, digits and `-_.~`.
+const PHP_RAWURLENCODE: &AsciiSet = &PHP_URLENCODE.remove(b'~');
+
+/// A cookie as scs_header.php menu_class::cookie() wrote it through PHP's setcookie(): kept for a year from `now`,
+/// HTTPS only, hidden from scripts, with no SameSite.
+pub fn php_year(name: &str, value: &str, now: i64) -> Option<HeaderValue> {
+    let start = chrono::DateTime::from_timestamp(now, 0)?;
+    let expires = start.checked_add_months(chrono::Months::new(12))?;
+    let value = utf8_percent_encode(value, PHP_RAWURLENCODE);
+    let (date, age) = (expires.format("%a, %d %b %Y %H:%M:%S GMT"), expires.timestamp() - now);
+    HeaderValue::from_str(&format!("{name}={value}; expires={date}; Max-Age={age}; path=/; secure; HttpOnly")).ok()
 }
 
 /// The session cookie. A remembered sign-in keeps it for a year and lets the server's sliding expiry decide, as
@@ -79,10 +83,17 @@ mod tests {
     }
 
     #[test]
+    fn php_year_is_setcookie_with_raw_url_encoding() {
+        let v = php_year("harcourt_profile", r#"{"name":"A B~"}"#, 1_793_327_258).unwrap();
+        assert_eq!(
+            v.to_str().unwrap(),
+            "harcourt_profile=%7B%22name%22%3A%22A%20B~%22%7D; expires=Sat, 30 Oct 2027 02:27:38 GMT; Max-Age=31536000; path=/; secure; HttpOnly"
+        );
+    }
+
+    #[test]
     fn gone_clears_the_value() {
-        let v = set(CAMPAIGN, "SPRING", Life::Gone).unwrap();
-        assert!(v.to_str().unwrap().starts_with("hx_campaign=; Path=/; Max-Age=0"));
-        let v = set(LANGUAGE, "FR", Life::Browser).unwrap();
-        assert_eq!(v.to_str().unwrap(), "hx_lang=FR; Path=/; Secure; HttpOnly; SameSite=Lax");
+        let v = set(EMAIL, "pat@example.com", Life::Gone).unwrap();
+        assert_eq!(v.to_str().unwrap(), "harcourt=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax");
     }
 }

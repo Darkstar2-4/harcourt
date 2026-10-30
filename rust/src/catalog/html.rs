@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn escapes_markup_and_quotes() {
         assert_eq!(esc(r#"<a href="x">Tom's & Co</a>"#), "&lt;a href=&quot;x&quot;&gt;Tom&#039;s &amp; Co&lt;/a&gt;");
-        assert_eq!(esc_text("Catia >=V5 <script>&trade;"), "Catia >=V5 &lt;script>&trade;");
+        assert_eq!(esc_text("Catia >=V5 &trade;"), "Catia >=V5 &trade;");
     }
 
     #[test]

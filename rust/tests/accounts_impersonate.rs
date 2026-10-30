@@ -23,7 +23,9 @@ use tower::ServiceExt;
 
 const ORIGIN: &str = "https://www.harcourt.co";
 const OFFICE_IP: &str = "203.0.113.40";
-const HOME: &str = "<script language=\"javascript\">\nwindow.open('/','_top')\n</script>";
+fn went_home(status: StatusCode, headers: &HeaderMap) -> bool {
+    status == StatusCode::FOUND && headers.get(header::LOCATION).is_some_and(|l| l == "/scs_index.php")
+}
 
 async fn pool() -> SqlitePool {
     let pool = db::open_memory().await.unwrap();
@@ -49,13 +51,26 @@ fn app(pool: &SqlitePool, peer: &str) -> Router {
     routes::all(core).layer(MockConnectInfo(peer))
 }
 
+fn set_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().to_string()).find(|c| c.split('=').next() == Some(name))
+}
+
 async fn cookie_for(pool: &SqlitePool, id: i64) -> String {
     let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
-/// A request from one of the site's own pages, unless the case names its own Referer.
+/// A request from a browser in the middle of a visit (it holds a PHP session cookie), from one of the site's own
+/// pages unless the case names its own Referer.
 async fn send(app: &Router, method: Method, uri: &str, headers: &[(&str, &str)], form: Option<&str>) -> (StatusCode, HeaderMap, String) {
+    let cookie = headers.iter().find(|(k, _)| *k == "cookie").map_or_else(|| "PHPSESSID=test".to_string(), |(_, c)| format!("{c}; PHPSESSID=test"));
+    let mut rest: Vec<(&str, &str)> = headers.iter().copied().filter(|(k, _)| *k != "cookie").collect();
+    rest.push(("cookie", &cookie));
+    send_cold(app, method, uri, &rest, form).await
+}
+
+/// A request as it comes, with no PHP session unless the case sends one.
+async fn send_cold(app: &Router, method: Method, uri: &str, headers: &[(&str, &str)], form: Option<&str>) -> (StatusCode, HeaderMap, String) {
     let mut req = Request::builder().method(method).uri(uri);
     if !headers.iter().any(|(k, _)| *k == "referer") {
         req = req.header(header::REFERER, format!("{ORIGIN}/request-access"));
@@ -86,10 +101,10 @@ async fn only_an_administrator_gets_the_form() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
     let customer = cookie_for(&pool, 2).await;
-    let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &customer)], None).await;
-    assert_eq!(body, HOME);
-    let (_, _, body) = send(&app, Method::POST, "/user_impersonate.php", &[("cookie", &customer)], Some(AS_CUSTOMER)).await;
-    assert_eq!(body, HOME);
+    let (status, headers, _) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &customer)], None).await;
+    assert!(went_home(status, &headers));
+    let (status, headers, _) = send(&app, Method::POST, "/user_impersonate.php", &[("cookie", &customer)], Some(AS_CUSTOMER)).await;
+    assert!(went_home(status, &headers));
     assert_eq!(count(&pool, "SELECT count(*) FROM impersonation").await, 0);
     let admin = cookie_for(&pool, 1).await;
     let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
@@ -126,8 +141,8 @@ async fn impersonating_stores_the_view_and_any_visit_stops_it() {
 
     let (_, _, body) = send(&app, Method::GET, "/newuser.php", &[("cookie", &admin)], None).await;
     assert!(!body.contains("profile_register"), "seen as the signed-in customer");
-    let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
-    assert_eq!(body, HOME);
+    let (status, headers, _) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
+    assert!(went_home(status, &headers));
     assert_eq!(count(&pool, "SELECT count(*) FROM impersonation").await, 0);
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 1, "the Administrator stays signed in");
 }
@@ -138,8 +153,7 @@ async fn an_administrator_signed_in_by_address_gets_a_session_to_hold_the_view()
     let app = app(&pool, OFFICE_IP);
     let (_, headers, body) = send(&app, Method::POST, "/user_impersonate.php", &[], Some("action=update&visitor=1")).await;
     assert_eq!(body, "<script>window.open('/','_top');\n</script>");
-    let set = headers.get(header::SET_COOKIE).unwrap().to_str().unwrap();
-    assert!(set.starts_with("__Host-hx_session="));
+    let set = set_cookie(&headers, "__Host-hx_session").unwrap();
     assert_eq!(count(&pool, "SELECT count(*) FROM impersonation WHERE user_id IS NULL").await, 1);
     let cookie = set.split(';').next().unwrap().to_string();
     let (_, _, body) = send(&app, Method::GET, "/newuser.php", &[("cookie", &cookie)], None).await;
@@ -159,9 +173,13 @@ async fn a_post_from_another_site_is_refused() {
 async fn a_language_choice_is_kept_and_saved_to_the_account() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
+    let chosen = || async { sqlx::query_scalar::<_, Option<String>>("SELECT language_code FROM visit").fetch_optional(&pool).await.unwrap().flatten() };
     let (status, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=fr", &[("referer", "https://www.harcourt.co/catalog/")], None).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/catalog/"));
-    assert!(headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().starts_with("hx_lang=FR; Path=/;"));
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "https://www.harcourt.co/catalog/"));
+    assert_eq!(chosen().await, None, "codes are upper case");
+    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=FR", &[("referer", "https://www.harcourt.co/catalog/")], None).await;
+    assert_eq!(chosen().await.as_deref(), Some("FR"), "kept for the visit");
+    assert!(set_cookie(&headers, "hx_lang").is_none());
 
     let customer = cookie_for(&pool, 2).await;
     let saved = || async { sqlx::query_scalar::<_, String>(r#"SELECT language_code FROM "user" WHERE id = 2"#).fetch_one(&pool).await.unwrap() };
@@ -171,8 +189,9 @@ async fn a_language_choice_is_kept_and_saved_to_the_account() {
     assert_eq!(saved().await, "FR");
 
     let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=xx", &[("referer", "https://www.harcourt.co/societe/")], None).await;
-    assert_eq!(headers.get(header::LOCATION).unwrap(), "/societe/");
-    assert!(headers.get(header::SET_COOKIE).is_none(), "a code the site does not offer changes nothing");
+    assert_eq!(headers.get(header::LOCATION).unwrap(), "https://www.harcourt.co/societe/");
+    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=EN", &[("referer", "https://evil.example/x")], None).await;
+    assert_eq!(headers.get(header::LOCATION).unwrap(), "/", "only back to a page on this site");
 }
 
 #[tokio::test]
@@ -198,13 +217,20 @@ async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
         if !cookie.is_empty() {
             h.push(("cookie", cookie.as_str()));
         }
-        let (status, headers, _) = send(&app(&pool, peer), Method::GET, path, &h, None).await;
+        let (status, headers, _) = send_cold(&app(&pool, peer), Method::GET, path, &h, None).await;
         assert_eq!((status, location(&headers).as_deref()), (StatusCode::FOUND, Some(expected)), "{path} as {signed_in:?}");
-        assert!(headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().starts_with("harcourt_profile="));
+        let set: Vec<&str> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().split('=').next().unwrap()).collect();
+        assert_eq!(set, ["PHPSESSID", "harcourt_profile"], "the visit's PHP session, and the profile PHP loaded");
     }
     let admin = cookie_for(&pool, 1).await;
-    let (status, _, _) = send(&app(&pool, "198.51.100.1"), Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
-    assert_eq!(status, StatusCode::OK, "from one of the site's pages the page itself answers");
+    let (status, _, _) = send_cold(&app(&pool, "198.51.100.1"), Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
+    assert_eq!(status, StatusCode::FOUND, "a link from one of the site's pages does not make a visit");
+    let (status, headers, _) = send(&app(&pool, "198.51.100.1"), Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
+    assert_eq!(status, StatusCode::OK, "inside a visit the page itself answers");
+    assert!(set_cookie(&headers, "harcourt_profile").is_none(), "an Active account's profile is not reloaded mid-visit");
+    let (_, headers, _) = send(&app(&pool, "198.51.100.1"), Method::GET, "/newuser.php", &[], None).await;
+    assert!(set_cookie(&headers, "PHPSESSID").is_none());
+    assert!(set_cookie(&headers, "harcourt_profile").is_some(), "an anonymous visitor's is, on every page");
 }
 
 #[tokio::test]
@@ -212,10 +238,17 @@ async fn cookie_reset_signs_out_and_forgets_the_choices() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
     let customer = cookie_for(&pool, 2).await;
-    let (status, headers, body) = send(&app, Method::GET, "/cookie_reset.php", &[("cookie", &format!("{customer}; hx_lang=FR"))], None).await;
+    send(&app, Method::GET, "/language_change.php?language_code=FR", &[("cookie", &customer), ("referer", "https://www.harcourt.co/catalog/")], None).await;
+    assert_eq!(count(&pool, "SELECT count(*) FROM visit").await, 1);
+    let (status, headers, body) = send(&app, Method::GET, "/cookie_reset.php", &[("cookie", &customer)], None).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("<p>Your cookies and cache have been reset</p>"));
     let cleared: Vec<String> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().split('=').next().unwrap().to_string()).collect();
-    assert_eq!(cleared, ["harcourt", "__Host-hx_session", "hx_lang"], "what the browser holds, and always harcourt");
+    assert_eq!(cleared, ["harcourt", "__Host-hx_session"], "the sign-in, and always harcourt");
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
+    assert_eq!(count(&pool, "SELECT count(*) FROM visit WHERE language_code IS NULL AND destroyed = 1").await, 1, "the visit is forgotten");
+    let (status, headers, _) = send(&app, Method::GET, "/newuser.php", &[], None).await;
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"), "back with the old id: a new visit");
+    let (status, _, _) = send(&app, Method::GET, "/newuser.php", &[], None).await;
+    assert_eq!(status, StatusCode::OK, "and then inside it");
 }

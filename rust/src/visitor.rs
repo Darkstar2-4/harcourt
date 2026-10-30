@@ -19,10 +19,11 @@
 //!    price_type and price_pct (a fraction), currency_code, language_code, domain. `account.catalog()`, `.cad()`
 //!    and `.ecommerce()` say what the visitor may use now (false unless the account is Active); `account.grants`
 //!    is what is stored. The status may be Pending or Denied.
-//!  * `language`: the language to show when the URL does not say. An explicit choice this browser session, else
-//!    the account's saved language, else Accept-Language, else English.
+//!  * `language`: the language to show when the URL does not say. An explicit choice this visit, else the
+//!    account's saved language, else Accept-Language, else English.
 //!  * `currency`: the currency to price in: the account's, if the site offers it, else US dollars.
-//!  * `campaign`: the active campaign this browser arrived from (`?campaign=CODE`, kept for the browser session).
+//!  * `campaign`: the active campaign this visit began with (`?campaign=CODE` on its first page).
+//!  * `framed`: the visit is inside the WordPress frame (`?scscpq_wp=1` on this or an earlier page of the visit).
 //!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
 //!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
@@ -31,17 +32,21 @@
 //! `portal_id()` and `industry_id()` cover the common questions.
 //!
 //! `layer` resolves the visitor once per request for the page routers and writes what the PHP wrote when a visit
-//! began: the sign-in log for a company address, the campaign cookie, the referer and bot log rows.
+//! began: the sign-in log for a company address, the campaign cookie, the referer and bot log rows. For a PHP
+//! page it also does what scs_header.php did before the page ran: a browser without a PHP session cookie begins a
+//! visit, gets one, and is sent to its landing page; the `harcourt_profile` cookie is written whenever PHP loaded
+//! the profile.
 
 use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
 use axum::{
     extract::{FromRequestParts, Request, State},
-    http::{header, request::Parts, HeaderMap, HeaderName, StatusCode},
+    http::{header, request::Parts, HeaderMap, HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use percent_encoding::percent_decode_str;
+use rand::{rngs::OsRng, RngCore};
 use sqlx::SqlitePool;
 
 use crate::{
@@ -52,7 +57,8 @@ use crate::{
         clock, cookies,
         locale::{Currencies, CurrencyCode, LanguageCode, Languages},
         log::{self, Kind, Subject},
-        profile::{self, Profile},
+        profile::Profile,
+        visit::{self, Visit, VisitId},
     },
     api::{self, Auth},
     db::unix_now,
@@ -72,6 +78,11 @@ pub struct Visitor {
     /// The session this browser is signed in with, as stored: what per-browser state (the cart) hangs off. None
     /// for anonymous visitors, bots and sign-in by company address.
     pub session: Option<TokenHash>,
+    /// Inside the WordPress frame: this request or an earlier one of the visit asked for `scscpq_wp`. Home is then
+    /// `/` and the catalog the WordPress catalog page.
+    pub framed: bool,
+    /// The visit (PHP session) this request is part of, for what PHP kept in its session.
+    pub visit: Option<VisitId>,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +124,8 @@ impl Visitor {
             impersonator: None,
             client: None,
             session: None,
+            framed: false,
+            visit: None,
         }
     }
 
@@ -177,6 +190,17 @@ impl Visitor {
     pub fn industry_id(&self) -> i64 {
         self.account().map_or(0, |a| a.industry_id)
     }
+
+    /// The session user PHP kept for this visitor had the status Pending: a Pending account, or anyone not signed
+    /// in (user_data_class started every visitor as Pending). scs_header.php reloaded such a user, and the
+    /// profile, on every page.
+    pub fn pending_in_php(&self) -> bool {
+        match &self.identity {
+            Identity::Anonymous => true,
+            Identity::Account(s) => s.account.user.status == Status::Pending,
+            Identity::Bot(_) => false,
+        }
+    }
 }
 
 impl FromRequestParts<Arc<Auth>> for Visitor {
@@ -186,7 +210,46 @@ impl FromRequestParts<Arc<Auth>> for Visitor {
         if let Some(v) = parts.extensions.get::<Visitor>() {
             return Ok(v.clone());
         }
-        Ok(resolve_or_anonymous(core, parts, unix_now()).await.visitor)
+        let php = Php::of(parts, false);
+        Ok(resolve_or_anonymous(core, parts, &php, unix_now()).await.visitor)
+    }
+}
+
+/// Where a request stands with PHP's session: what scs_header.php did for the page, the PHP session id the browser
+/// sent or the one started for it, and whether this request began the visit.
+struct Php {
+    page: Header,
+    sid: Option<String>,
+    first: bool,
+    /// The session id was made here for a browser that sent none, and is to be set.
+    minted: bool,
+}
+
+impl Php {
+    /// `start`: give a browser that has no PHP session one, as session_start() did for the PHP pages.
+    fn of(parts: &Parts, start: bool) -> Php {
+        let page = Header::of(parts.uri.path(), parts.uri.query());
+        let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| !s.is_empty());
+        let first = sent.is_none();
+        let minted = first && start && page != Header::None;
+        let sid = sent.or_else(|| minted.then(new_php_session_id));
+        Php { page, sid, first, minted }
+    }
+
+    /// A browser back with the id of a destroyed session began a new one under it, as PHP adopted any id it was sent.
+    async fn after_destroy(mut self, pool: &SqlitePool) -> Php {
+        if let (false, Some(sid)) = (self.first || self.page == Header::None, &self.sid) {
+            match visit::begins_again(pool, &VisitId::of(sid)).await {
+                Ok(again) => self.first = again,
+                Err(e) => tracing::error!("visit: {e}"),
+            }
+        }
+        self
+    }
+
+    /// menu_class::initial() ran in full: the first request of a visit, on a page that started visits.
+    fn initial(&self) -> bool {
+        self.first && self.page.begins_visits()
     }
 }
 
@@ -197,6 +260,7 @@ enum Effect {
     Bot(Bot),
     Campaign(Option<Campaign>),
     Referer(String),
+    Framed,
 }
 
 pub struct Resolved {
@@ -207,8 +271,8 @@ pub struct Resolved {
 /// A browser at the same company address counts as one visit for this long (PHP's default session lifetime).
 const VISIT_SECS: i64 = 1440;
 
-async fn resolve_or_anonymous(core: &Auth, parts: &Parts, now: i64) -> Resolved {
-    match resolve(core, parts, now).await {
+async fn resolve_or_anonymous(core: &Auth, parts: &Parts, php: &Php, now: i64) -> Resolved {
+    match resolve(core, parts, php, now).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("visitor: database error, treating the request as anonymous: {e}");
@@ -217,8 +281,13 @@ async fn resolve_or_anonymous(core: &Auth, parts: &Parts, now: i64) -> Resolved 
     }
 }
 
-pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resolved> {
+async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Result<Resolved> {
     let pool = &core.pool;
+    let visit_id = php.sid.as_deref().map(VisitId::of);
+    let stored = match (&visit_id, php.first) {
+        (Some(id), false) => visit::load(pool, id, now).await?,
+        _ => Visit::default(),
+    };
     let client = api::client_addr(parts, &core.trusted_proxies);
     let mut effects = Vec::new();
     let mut impersonator = None;
@@ -270,10 +339,14 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
         }
     }
 
+    // Inside a visit PHP reloaded a session user who was not signed in from an empty user_data_class, so every PHP
+    // page after the first spoke English to them, whatever they had asked for.
+    let reset_to_english = matches!(identity, Identity::Anonymous) && impersonator.is_none() && !php.first && php.page.reloads_user();
     let languages = Languages::load(pool).await?;
     let language = overlay_language
         .and_then(|code| languages.get(&code))
-        .or_else(|| cookies::get(&parts.headers, cookies::LANGUAGE).and_then(|c| languages.get(&c)))
+        .or_else(|| reset_to_english.then(LanguageCode::english))
+        .or_else(|| stored.language_code.as_deref().and_then(|c| languages.get(c)))
         .or_else(|| match &identity {
             Identity::Account(s) => languages.get(&s.account.language_code),
             _ => None,
@@ -290,7 +363,8 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
         .unwrap_or_else(CurrencyCode::usd);
 
     let today = clock::detroit(now).date;
-    let campaign = match (overlay_campaign, campaign_in_query(parts.uri.query())) {
+    let asked = campaign_in_query(parts.uri.query()).filter(|_| php.initial());
+    let campaign = match (overlay_campaign, asked) {
         (Some(code), _) => match code {
             Some(code) => campaign::active(pool, &code, today).await?,
             None => None,
@@ -300,7 +374,7 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
             effects.push(Effect::Campaign(found.clone()));
             found
         }
-        (None, None) => match cookies::get(&parts.headers, cookies::CAMPAIGN) {
+        (None, None) => match stored.campaign_code {
             Some(code) => campaign::active(pool, &code, today).await?,
             None => None,
         },
@@ -309,26 +383,25 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
     if let Some(host) = external_referer(header_str(&parts.headers, header::REFERER)) {
         effects.push(Effect::Referer(host));
     }
-    if impersonator.is_some() {
+    if !php.initial() || impersonator.is_some() {
         effects.clear();
     }
+    let asks_frame = (php.page.reloads_pending() || php.initial()) && framed_in_query(parts.uri.query());
+    if asks_frame && !stored.framed {
+        effects.push(Effect::Framed);
+    }
+    let framed = asks_frame || stored.framed;
 
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session }, effects })
+    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id }, effects })
+}
+
+/// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.
+fn framed_in_query(query: Option<&str>) -> bool {
+    query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"))
 }
 
 /// What PHP labelled every answer it gave, redirects included.
 pub const PHP_CONTENT_TYPE: &str = "text/html; charset=UTF-8";
-
-/// A request that arrives from outside the site begins a visit. The PHP started a session on it and sent the
-/// visitor to their home page unless they had asked for it (scs_header.php menu_class::page(TRUE)). A request
-/// from one of the site's own pages, a script on them, or a browser that still has a PHP session is mid-visit.
-pub fn begins_visit(headers: &HeaderMap, public_origin: &str) -> bool {
-    let from_page = header_str(headers, header::REFERER).strip_prefix(public_origin).is_some_and(|rest| rest.starts_with('/'));
-    let same_origin = header_str(headers, HeaderName::from_static("sec-fetch-site")) == "same-origin";
-    let script = headers.contains_key("x-requested-with");
-    let php_session = cookies::get(headers, "PHPSESSID").is_some();
-    !(from_page || same_origin || script || php_session)
-}
 
 /// Where scs_header.php sent a visit that began on an SCS page: the dashboard for Executives and above, the
 /// catalog for an Active account that can see a category, otherwise the home page. Inside the WordPress frame
@@ -354,7 +427,7 @@ async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> s
     )
     .fetch_one(pool)
     .await?;
-    Ok(match (visible, framed, account.language_code.eq_ignore_ascii_case("FR")) {
+    Ok(match (visible, framed, account.language_code == "FR") {
         (false, _, _) => home,
         (true, false, _) => "/catalog.php",
         (true, true, true) => "/catalogue/",
@@ -362,23 +435,98 @@ async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> s
     })
 }
 
-/// scs_header.php's landing redirect for an SCS page at `path`, when this request begins a visit. Campaign
-/// visitors and bots were never redirected. The PHP wrote the browser's profile cookie on the way.
-pub async fn landing(core: &Auth, visitor: &Visitor, path: &str, query: Option<&str>, headers: &HeaderMap) -> sqlx::Result<Option<Response>> {
-    if !begins_visit(headers, &core.public_origin) || visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
+/// scs_header.php's landing redirect (menu_class::page(TRUE)) for a visit that begins on the SCS page at `path`:
+/// where to send the visitor, unless that is the page asked for. Campaign visitors and bots were never redirected.
+async fn landing(pool: &SqlitePool, visitor: &Visitor, path: &str) -> sqlx::Result<Option<&'static str>> {
+    if visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
         return Ok(None);
     }
-    let framed = query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"));
-    let target = landing_target(&core.pool, visitor, framed).await?;
-    if target.to_ascii_lowercase().starts_with(&path.to_ascii_lowercase()) {
-        return Ok(None);
+    let target = landing_target(pool, visitor, visitor.framed).await?;
+    Ok((!target.to_ascii_lowercase().starts_with(&path.to_ascii_lowercase())).then_some(target))
+}
+
+/// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
+const PHP_SESSION: &str = "PHPSESSID";
+
+/// A new PHP session id: 32 hex digits, as PHP made them.
+fn new_php_session_id() -> String {
+    let mut id = [0u8; 16];
+    OsRng.fill_bytes(&mut id);
+    hex::encode(id)
+}
+
+/// What scs_header.php did for a request to a PHP page.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Header {
+    /// It did not run with a session: not a PHP page (WordPress, the JSON API), cookie_reset.php, and
+    /// scs_file.php for a plain file.
+    None,
+    /// The OAuth pages: a PHP session (oauth/session.php) and nothing of scs_header.php.
+    Session,
+    /// scscpq_wp.php: menu_class::initial() for a browser with no session, and never page().
+    Initial,
+    /// initial() stopped at once unless the session's user was Pending: scs_file.php and stock.php.
+    Quiet,
+    /// initial() and page() ran.
+    Page,
+}
+
+impl Header {
+    fn of(path: &str, query: Option<&str>) -> Header {
+        let asks = |name: &str| query.unwrap_or("").split('&').any(|kv| kv.split('=').next() == Some(name));
+        match path {
+            "/scscpq_wp.php" => Header::Initial,
+            "/cookie_reset.php" => Header::None,
+            "/stock.php" => Header::Quiet,
+            "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
+            "/scs_file.php" => Header::None,
+            p if !p.ends_with(".php") => Header::None,
+            p if p.starts_with("/oauth/") => Header::Session,
+            _ => Header::Page,
+        }
     }
-    let profile = Profile::load(headers, visitor.account(), visitor.account().map_or(visitor.language.as_str(), |a| a.language_code.as_str()));
-    let mut r = (StatusCode::FOUND, [(header::LOCATION, target), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response();
-    if let Some(c) = cookies::set(profile::COOKIE, &profile.to_cookie(), cookies::Life::Year) {
-        r.headers_mut().append(header::SET_COOKIE, c);
+
+    /// initial() ran in full when the browser had no session.
+    fn begins_visits(self) -> bool {
+        matches!(self, Header::Page | Header::Initial)
     }
-    Ok(Some(r))
+
+    /// initial() reloaded a Pending session user, and so the profile, on every request.
+    fn reloads_pending(self) -> bool {
+        matches!(self, Header::Page | Header::Quiet)
+    }
+
+    /// The page reloaded a Pending session user (scscpq_wp.php without the profile).
+    fn reloads_user(self) -> bool {
+        matches!(self, Header::Page | Header::Quiet | Header::Initial)
+    }
+}
+
+
+
+/// What scs_header.php answered and wrote before the page ran, for a request to `parts`: a landing redirect that
+/// replaces the page, and the cookies it set. A browser without a PHP session began a visit: PHP started a
+/// session, wrote the remembered address again and loaded the profile (not for a bot), then sent the visitor to
+/// their landing page. Inside a visit only a Pending session user was reloaded, profile included.
+async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, now: i64) -> sqlx::Result<(Option<&'static str>, Vec<HeaderValue>)> {
+    if php.page == Header::None {
+        return Ok((None, Vec::new()));
+    }
+    let mut out = Vec::new();
+    if let (true, Some(sid)) = (php.minted, &php.sid) {
+        out.extend(HeaderValue::from_str(&format!("{PHP_SESSION}={sid}; path=/; secure; HttpOnly; SameSite=Lax")).ok());
+    }
+    if php.initial() {
+        if let Some(email) = cookies::get(&parts.headers, cookies::EMAIL).filter(|e| !e.is_empty() && e != "0") {
+            out.extend(cookies::php_year(cookies::EMAIL, &email, now));
+        }
+    }
+    let loads_profile = if php.first { php.initial() && visitor.bot().is_none() } else { php.page.reloads_pending() && visitor.pending_in_php() };
+    if loads_profile {
+        out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.remember(&core.pool, visitor, now).await?);
+    }
+    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, parts.uri.path()).await? } else { None };
+    Ok((landing, out))
 }
 
 fn may_sign_in_by_address(ip: IpAddr, trusted_proxies: &[IpAddr]) -> bool {
@@ -488,23 +636,38 @@ async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &U
 pub async fn layer(State(core): State<Arc<Auth>>, req: Request, next: Next) -> Response {
     let now = unix_now();
     let (mut parts, body) = req.into_parts();
-    let Resolved { visitor, effects } = resolve_or_anonymous(&core, &parts, now).await;
-    let mut set_cookies = Vec::new();
+    let php = Php::of(&parts, true).after_destroy(&core.pool).await;
+    let Resolved { visitor, effects } = resolve_or_anonymous(&core, &parts, &php, now).await;
     for effect in &effects {
-        apply(&core.pool, &visitor, effect, now, &mut set_cookies).await;
+        apply(&core.pool, &visitor, effect, now).await;
     }
-    let denied_bot = visitor.bot().is_some_and(|b| b.status == BotStatus::Denied);
+    let denied_bot = php.initial() && visitor.bot().is_some_and(|b| b.status == BotStatus::Denied);
+    let (landing, early) = scs_header(&core, &parts, &php, &visitor, now).await.unwrap_or_else(|e| {
+        tracing::error!("visitor: scs_header: {e}");
+        (None, Vec::new())
+    });
     parts.extensions.insert(visitor);
     let req = Request::from_parts(parts, body);
-    let mut response =
-        if denied_bot { (StatusCode::FOUND, [(header::LOCATION, "/index.php"), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response() } else { next.run(req).await };
-    for c in set_cookies {
-        response.headers_mut().append(header::SET_COOKIE, c);
+    let mut response = match (denied_bot, landing) {
+        (true, _) => found("/index.php"),
+        (false, Some(target)) => found(target),
+        (false, None) => next.run(req).await,
+    };
+    let headers = response.headers_mut();
+    let page_cookies: Vec<_> = headers.get_all(header::SET_COOKIE).iter().cloned().collect();
+    headers.remove(header::SET_COOKIE);
+    for c in early.into_iter().chain(page_cookies) {
+        headers.append(header::SET_COOKIE, c);
     }
     response
 }
 
-async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64, set_cookies: &mut Vec<axum::http::HeaderValue>) {
+/// PHP's fn_url_redirect().
+fn found(to: &str) -> Response {
+    (StatusCode::FOUND, [(header::LOCATION, to), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response()
+}
+
+async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64) {
     let ip = visitor.client.map(|ip| ip.to_string()).unwrap_or_default();
     let who = Subject {
         ip: &ip,
@@ -523,16 +686,23 @@ async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64, 
             log::record(pool, kind, &who, "").await;
         }
         Effect::Campaign(found) => {
-            let cookie = match found {
-                Some(c) => cookies::set(cookies::CAMPAIGN, &c.code, cookies::Life::Browser),
-                None => cookies::set(cookies::CAMPAIGN, "", cookies::Life::Gone),
-            };
-            set_cookies.extend(cookie);
+            if let Some(id) = &visitor.visit {
+                if let Err(e) = visit::set_campaign(pool, id, found.as_ref().map(|c| c.code.as_str()), now).await {
+                    tracing::warn!("visit campaign: {e}");
+                }
+            }
             if let Some(c) = found {
                 log::record(pool, Kind::InitialCampaign, &who, &c.code).await;
             }
         }
         Effect::Referer(host) => log::record(pool, Kind::InitialReferer, &who, host).await,
+        Effect::Framed => {
+            if let Some(id) = &visitor.visit {
+                if let Err(e) = visit::frame(pool, id, now).await {
+                    tracing::warn!("visit frame: {e}");
+                }
+            }
+        }
     }
 }
 
@@ -557,6 +727,18 @@ mod tests {
         assert_eq!(external_referer("https://harcourtXco.example/"), None);
         assert_eq!(external_referer(""), None);
         assert_eq!(external_referer("not a url"), None);
+    }
+
+    #[test]
+    fn which_requests_ran_scs_header() {
+        assert_eq!(Header::of("/newuser.php", None), Header::Page);
+        assert_eq!(Header::of("/scscpq_wp.php", Some("action=initial")), Header::Initial);
+        assert_eq!(Header::of("/scs_file.php", Some("watermark=1&id=2")), Header::Quiet);
+        assert_eq!(Header::of("/scs_file.php", Some("id=2")), Header::None);
+        assert_eq!(Header::of("/stock.php", None), Header::Quiet);
+        assert_eq!(Header::of("/oauth/callback.php", None), Header::Session);
+        assert_eq!(Header::of("/cookie_reset.php", None), Header::None);
+        assert_eq!(Header::of("/catalog/", None), Header::None);
     }
 
     #[test]

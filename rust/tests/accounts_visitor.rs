@@ -13,7 +13,11 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use hxweb::{
-    accounts::{bot::Dns, Services},
+    accounts::{
+        bot::Dns,
+        visit::{self, VisitId},
+        Services,
+    },
     api::Auth,
     config::Secret,
     db,
@@ -54,7 +58,7 @@ fn app(pool: &SqlitePool, peer: &str) -> Router {
     });
     let peer: SocketAddr = format!("{peer}:40000").parse().unwrap();
     Router::new()
-        .route("/probe", get(probe))
+        .route("/scscpq_wp.php", get(probe))
         .layer(middleware::from_fn_with_state(core.clone(), visitor::layer))
         .with_state(core)
         .layer(MockConnectInfo(peer))
@@ -100,8 +104,13 @@ async fn seed(pool: &SqlitePool, id: i64, status: &str, role: &str, ip: Option<&
         .unwrap();
 }
 
+/// The probe answers at scscpq_wp.php, where PHP began a visit (menu_class::initial()) without a landing redirect.
 async fn ask(app: &Router, headers: &[(&str, &str)]) -> (StatusCode, HeaderMap, serde_json::Value) {
-    ask_at(app, "/probe", headers).await
+    ask_at(app, "/scscpq_wp.php", headers).await
+}
+
+fn set_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().to_string()).find(|c| c.split('=').next() == Some(name))
 }
 
 async fn ask_at(app: &Router, uri: &str, headers: &[(&str, &str)]) -> (StatusCode, HeaderMap, serde_json::Value) {
@@ -218,16 +227,17 @@ async fn a_campaign_link_is_kept_for_the_browser_session() {
         .await
         .unwrap();
     let app = app(&pool, "198.51.100.1");
-    let (_, headers, v) = ask_at(&app, "/probe?Campaign=spring", &[]).await;
+    let (_, headers, v) = ask_at(&app, "/scscpq_wp.php?Campaign=spring", &[]).await;
     assert_eq!(v["campaign"], "SPRING");
-    let set = headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().to_string();
-    assert!(set.starts_with("hx_campaign=SPRING; Path=/;") && !set.contains("Max-Age"), "{set}");
     assert_eq!(log_count(&pool, "Initial", "Campaign").await, 1);
-    let (_, _, v) = ask(&app, &[("cookie", "hx_campaign=SPRING")]).await;
-    assert_eq!(v["campaign"], "SPRING");
-    let (_, headers, v) = ask_at(&app, "/probe?campaign=OLD", &[("cookie", "hx_campaign=SPRING")]).await;
+    let visit = set_cookie(&headers, "PHPSESSID").unwrap().split(';').next().unwrap().to_string();
+    let (_, _, v) = ask(&app, &[("cookie", &visit)]).await;
+    assert_eq!(v["campaign"], "SPRING", "kept for the visit");
+    let (_, _, v) = ask_at(&app, "/scscpq_wp.php?campaign=OLD", &[("cookie", &visit)]).await;
+    assert_eq!(v["campaign"], "SPRING", "only the first page of a visit names its campaign");
+    let (_, _, v) = ask_at(&app, "/scscpq_wp.php?campaign=OLD", &[]).await;
     assert!(v["campaign"].is_null());
-    assert!(headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().starts_with("hx_campaign=; Path=/; Max-Age=0"));
+    assert_eq!(log_count(&pool, "Initial", "Campaign").await, 1);
 }
 
 #[tokio::test]
@@ -239,11 +249,16 @@ async fn language_choice_beats_the_account_which_beats_the_browser() {
     let app = app(&pool, "198.51.100.1");
     let (_, _, v) = ask(&app, &[("cookie", signed_in.as_str()), ("accept-language", "en-US")]).await;
     assert_eq!(v["language"], "FR");
-    let both = format!("{signed_in}; hx_lang=en");
+    visit::set_language(&pool, &VisitId::of("chose-en"), "EN", db::unix_now()).await.unwrap();
+    visit::set_language(&pool, &VisitId::of("chose-de"), "DE", db::unix_now()).await.unwrap();
+    let both = format!("{signed_in}; PHPSESSID=chose-en");
     let (_, _, v) = ask(&app, &[("cookie", both.as_str())]).await;
     assert_eq!(v["language"], "EN");
-    let (_, _, v) = ask(&app, &[("cookie", "hx_lang=de"), ("accept-language", "fr")]).await;
+    let unoffered = format!("{signed_in}; PHPSESSID=chose-de");
+    let (_, _, v) = ask(&app, &[("cookie", unoffered.as_str())]).await;
     assert_eq!(v["language"], "FR", "a code the site does not offer is ignored");
+    let (_, _, v) = ask(&app, &[("cookie", "PHPSESSID=chose-de"), ("accept-language", "fr")]).await;
+    assert_eq!(v["language"], "EN", "inside a visit PHP spoke English to anyone not signed in");
 }
 
 #[tokio::test]

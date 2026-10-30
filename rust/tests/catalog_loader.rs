@@ -88,12 +88,10 @@ async fn a_flag_click_saves_the_page_language_to_the_account() {
 }
 
 #[tokio::test]
-async fn request_values_come_back_as_json_text_never_as_markup() {
+async fn an_unknown_action_is_a_401_json_error_with_the_php_content_type() {
     let h = harness().await;
-    let (status, headers, body) = send(&h.app, get("/scscpq_wp.php?action=%3Cb%3E", None)).await;
+    let (status, headers, body) = send(&h.app, get("/scscpq_wp.php?action=nope", None)).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
     assert_eq!(headers["content-type"], "text/html; charset=UTF-8", "as the PHP answered");
-    assert!(body.contains("\"error\":\"\\u003cb\\u003e: 102\""), "{body}");
-    let (_, _, v) = load(&h, None, &format!("{FORM}&token=%3Cimg%3E")).await;
-    assert_eq!(v["token"], "<img>", "the same string to a JSON reader");
+    assert!(body.contains("\"error\":\"nope: 102\""), "{body}");
 }

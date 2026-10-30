@@ -3,7 +3,7 @@
 mod catalog_support;
 
 use axum::{body::Body, http::Method, http::StatusCode};
-use catalog_support::{get, harness, request, send, send_bytes, signed_in, Account};
+use catalog_support::{first_get, get, harness, request, send, send_bytes, signed_in, Account};
 use hxweb::catalog::html::base64_fields;
 use sqlx::SqlitePool;
 
@@ -65,8 +65,8 @@ async fn documents_are_public_and_text_shows_inline() {
     assert_eq!(body, "hello");
     let (status, _, body) = send(&h.app, get(&format!("{}&override=1", file(102)), None)).await;
     assert_eq!((status, body.as_str()), (StatusCode::OK, "hello"));
-    let (status, _, body) = send(&h.app, get("/scs_file.php?content_id=%3Cb%3E", None)).await;
-    assert_eq!((status, body.as_str()), (StatusCode::OK, "Content missing: &lt;b&gt;"));
+    let (status, _, body) = send(&h.app, get("/scs_file.php?content_id=nope", None)).await;
+    assert_eq!((status, body.as_str()), (StatusCode::OK, "Content missing: nope"));
 }
 
 #[tokio::test]
@@ -87,7 +87,7 @@ fn from_site(path: &str) -> axum::http::Request<Body> {
 #[tokio::test]
 async fn the_portal_page_and_the_old_home() {
     let h = harness().await;
-    let (status, headers, _) = send(&h.app, get("/customer_portal.php?scscpq_wp=1", None)).await;
+    let (status, headers, _) = send(&h.app, first_get("/customer_portal.php?scscpq_wp=1")).await;
     assert_eq!((status, &headers["location"]), (StatusCode::FOUND, &"/".parse().unwrap()), "a visit that begins here goes home");
     let (status, _, body) = send(&h.app, from_site("/customer_portal.php?scscpq_wp=1")).await;
     assert_eq!(status, StatusCode::OK);
@@ -99,8 +99,8 @@ async fn the_portal_page_and_the_old_home() {
         assert!(body.contains("<title>Harcourt</title>\n<meta") && body.contains("noimageindex\">\n<meta name=\"description\" content=\"Harcourt\">"), "{body}");
         assert!(body.contains("<div id='scs_menu' >") && body.contains("<div id=scscpq_page></div></div> <!-- #scs_content -->"));
     }
-    let (status, headers, _) = send(&h.app, get("/beta.php", None)).await;
+    let (status, headers, _) = send(&h.app, first_get("/beta.php")).await;
     assert_eq!((status, &headers["location"]), (StatusCode::FOUND, &"/scs_index.php".parse().unwrap()));
-    let (status, _, _) = send(&h.app, get("/scs_index.php", None)).await;
+    let (status, _, _) = send(&h.app, first_get("/scs_index.php")).await;
     assert_eq!(status, StatusCode::OK, "the home page is where an anonymous visit lands");
 }

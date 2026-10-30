@@ -176,9 +176,8 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         .ok_or("loader returned no scscpq_link")?;
     let link_path = link.split_once("://").and_then(|(_, rest)| rest.find('/').map(|i| &rest[i..])).ok_or_else(|| format!("unexpected link {link}"))?;
 
-    // The loader put the page's language in the PHP session, where catalog.php read it; the fragment is told the
-    // same way, and the browser's own language choice is left alone.
-    jar.set(hxweb::accounts::cookies::LANGUAGE, &page.lang.to_ascii_uppercase());
+    // The loader recorded the page's language in the visit, which the fragment request reads through the same session
+    // cookie the jar carries, and the browser's own language choice is left alone.
     let (status, frag_headers, frag_body) = internal(app, Method::GET, link_path, headers, &jar, &page_url, String::new()).await?;
     if status != StatusCode::OK {
         return Err(format!("fragment status {status}"));

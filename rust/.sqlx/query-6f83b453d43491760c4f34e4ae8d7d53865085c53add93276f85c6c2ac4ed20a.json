@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM visit WHERE seen_at < ?1 - ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "6f83b453d43491760c4f34e4ae8d7d53865085c53add93276f85c6c2ac4ed20a"
+}

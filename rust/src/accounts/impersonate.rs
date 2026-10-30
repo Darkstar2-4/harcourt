@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use sqlx::SqlitePool;
@@ -24,6 +24,7 @@ use crate::{
     identity::{Role, Status, UserId},
     session,
     token::Token,
+    orders::html::{self as page, Chrome, Head},
     visitor::{self, Via, Visitor},
 };
 
@@ -31,8 +32,6 @@ const ROLES: [Role; 6] = [Role::Customer, Role::External, Role::Internal, Role::
 const STATUSES: [&str; 3] = ["Pending", "Active", "Denied"];
 const PRICE_TYPES: [(PriceType, &str); 4] = [(PriceType::None, "No pricing"), (PriceType::Base, "Base price"), (PriceType::Discount, "Discount"), (PriceType::Plus, "Base plus")];
 
-/// The home page, opened over the frame the page sits in (fn_url_redirect with the menu's `_top` home).
-const HOME: &str = "<script language=\"javascript\">\nwindow.open('/','_top')\n</script>";
 const STARTED: &str = "<script>window.open('/','_top');\n</script>";
 
 /// What the form asked to see, once checked.
@@ -142,6 +141,12 @@ pub fn check(actor: &Account, target: Option<&Account>, posted: &[(String, Strin
     })
 }
 
+/// fn_url_redirect($menu->page->home): a plain redirect, since the PHP read a `target` the menu page never had.
+fn home(visitor: &Visitor) -> Response {
+    let to = if visitor.framed { "/" } else { "/scs_index.php" };
+    (StatusCode::FOUND, [(header::LOCATION, to), (header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE)]).into_response()
+}
+
 fn page_response(body: String, set: Vec<HeaderValue>) -> Response {
     let mut r = ([(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], body).into_response();
     for c in set {
@@ -168,41 +173,36 @@ fn administrator(visitor: &Visitor) -> Option<&Account> {
     visitor.account().filter(|a| a.user.is_active() && a.role() >= Role::Administrator)
 }
 
-pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Response {
-    respond(&core, visitor, &headers, uri, None).await
+pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap) -> Response {
+    respond(&core, visitor, &headers, None).await
 }
 
-pub async fn submit(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
+pub async fn submit(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Form(posted): Form<Vec<(String, String)>>) -> Response {
     if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
         return StatusCode::FORBIDDEN.into_response();
     }
-    respond(&core, visitor, &headers, uri, Some(posted)).await
+    respond(&core, visitor, &headers, Some(posted)).await
 }
 
-async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, uri: Uri, posted: Option<Vec<(String, String)>>) -> Response {
+async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, posted: Option<Vec<(String, String)>>) -> Response {
     let pool = &core.pool;
-    match visitor::landing(core, &visitor, "/user_impersonate.php", uri.query(), headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
-    }
     if visitor.impersonator.is_some() {
         return match stop(pool, headers).await {
-            Ok(_) => page_response(HOME.into(), Vec::new()),
+            Ok(_) => home(&visitor),
             Err(e) => internal(e),
         };
     }
-    let Some(actor) = administrator(&visitor) else { return page_response(HOME.into(), Vec::new()) };
+    let Some(actor) = administrator(&visitor) else { return home(&visitor) };
     let posted = posted.filter(|p| !field(p, "action").is_empty());
     let Some(posted) = posted else {
-        return match form(pool, actor, headers, &[]).await {
+        return match form(pool, actor, visitor.framed, headers, &[]).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         };
     };
     match start(core, &visitor, actor, headers, &posted).await {
         Ok(Ok(set)) => page_response(STARTED.into(), set),
-        Ok(Err(errors)) => match form(pool, actor, headers, &errors).await {
+        Ok(Err(errors)) => match form(pool, actor, visitor.framed, headers, &errors).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         },
@@ -305,12 +305,32 @@ async fn options(pool: &SqlitePool, sql: OptionsOf) -> sqlx::Result<Vec<(String,
             .into_iter()
             .map(|r| {
                 let mut label = vec![r.name.unwrap_or_default()];
-                label.extend(r.from_date.filter(|d| !d.is_empty()).map(|d| format!("From: {d}")));
-                label.extend(r.thru_date.filter(|d| !d.is_empty()).map(|d| format!("Thru: {d}")));
+                label.extend(r.from_date.as_deref().and_then(us_date).map(|d| format!("From: {d}")));
+                label.extend(r.thru_date.as_deref().and_then(us_date).map(|d| format!("Thru: {d}")));
                 (r.code, label.join(" "))
             })
             .collect(),
     })
+}
+
+/// fn_date($date, "ymd") of a stored `YYYY-MM-DD`: `MM/DD/YYYY`, nothing for an empty or zero date.
+fn us_date(d: &str) -> Option<String> {
+    let mut parts = d.get(..10)?.split('-');
+    let (y, m, day) = (parts.next()?, parts.next()?, parts.next()?);
+    (y != "0000").then(|| format!("{m}/{day}/{y}"))
+}
+
+/// currency->select(): every currency by name, those with a rate under Priced and the rest under No Price.
+async fn currency_groups(pool: &SqlitePool) -> sqlx::Result<Vec<(&'static str, Vec<(String, String)>)>> {
+    let rows = sqlx::query!(r#"SELECT code AS "code!", name, coalesce(exchange_rate, 0) AS "rate!: f64" FROM currency WHERE code IS NOT NULL ORDER BY name"#)
+        .fetch_all(pool)
+        .await?;
+    let (mut priced, mut other) = (Vec::new(), Vec::new());
+    for r in rows {
+        let group = if r.rate > 0.0 { &mut priced } else { &mut other };
+        group.push((r.code, r.name.unwrap_or_default()));
+    }
+    Ok(vec![("Priced", priced), ("No Price", other)])
 }
 
 enum OptionsOf {
@@ -320,11 +340,11 @@ enum OptionsOf {
 }
 
 /// The form of user_impersonate.php, filled in with the Administrator's own settings as the PHP did.
-async fn form(pool: &SqlitePool, me: &Account, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
+async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
     let roles: Vec<(String, String)> = ROLES.iter().map(|r| (r.as_str().to_string(), r.as_str().to_string())).collect();
     let statuses: Vec<(String, String)> = STATUSES.iter().map(|s| (s.to_string(), s.to_string())).collect();
     let prices: Vec<(String, String)> = PRICE_TYPES.iter().map(|(p, l)| (p.as_str().to_string(), l.to_string())).collect();
-    let currencies: Vec<(String, String)> = Currencies::load(pool).await?.all().iter().map(|c| (c.code.as_str().to_string(), c.name.clone())).collect();
+    let currencies = currency_groups(pool).await?;
     let languages: Vec<(String, String)> = Languages::load(pool).await?.all().iter().map(|l| (l.code.as_str().to_string(), l.name.clone())).collect();
     let pct = if me.price_pct == 0.0 { String::new() } else { format!("{:.2}", me.price_pct * 100.0) };
     let remembered = cookies::get(headers, cookies::EMAIL).unwrap_or_default();
@@ -355,19 +375,23 @@ async fn form(pool: &SqlitePool, me: &Account, headers: &HeaderMap, errors: &[(&
         format!("<tr><tr><td>Portal</td><td>{}</td></tr>", html::select("ajax_user_portal_id", &options(pool, OptionsOf::Portal).await?, &me.portal_id.to_string(), Blank::Empty, Opts::new())),
         format!("<tr><td>Legacy?</td><td>{}</td></tr>", cb("portal_legacy", false)),
         format!("<tr><td>Campaign</td><td>{}</td></tr>", html::select("campaign_code", &options(pool, OptionsOf::Campaign).await?, "", Blank::Empty, Opts::new())),
-        format!("<tr><td>Currency</td><td>{}</td></tr>", html::select("ajax_user_currency_code", &currencies, &me.currency_code, Blank::None, Opts::new())),
+        format!("<tr><td>Currency</td><td>{}</td></tr>", html::optgroup("ajax_user_currency_code", &currencies, &me.currency_code, Opts::new())),
         format!("<tr><td>Langauge</td><td>{}</td></tr>", html::select("ajax_user_language_code", &languages, &me.language_code, Blank::None, Opts::new())),
         format!("<tr><td>{} Reset cookie?</td><td>{}</td></tr>", cb("reset_cookie", false), escape(&remembered)),
         "</table>".into(),
         format!("<p>{}</p>", html::submit("Go!", Opts::new())),
     ];
     let message = if errors.is_empty() { String::new() } else { format!("<p class=message>Correct {} Error(s)</p>\n", errors.len()) };
+    let chrome = Chrome::load(pool).await?;
+    let head = Head { title: "User Impersonate", description: None, js: &[], framed, dashboard: true, catalog_url: "/catalog.php" };
     Ok(format!(
-        "<!DOCTYPE html>\n<html><head><meta charset=utf-8><title>User Impersonate</title><link rel=stylesheet href='/scs_scripts/scs.css'></head><body>\n{message}{}{}{}{}</body></html>",
+        "{}<p class='message left'>User Impersonate</p>{message}{}{}{}{}{}",
+        page::open(&chrome, &head),
         html::form_open("/user_impersonate.php", Opts::new()),
         html::hidden("action", "update", ""),
         rows.concat(),
-        html::FORM_CLOSE
+        html::FORM_CLOSE,
+        page::close()
     ))
 }
 
@@ -407,6 +431,14 @@ mod tests {
 
     fn form(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    #[test]
+    fn campaign_dates_read_as_fn_date_printed_them() {
+        assert_eq!(us_date("2017-10-09").as_deref(), Some("10/09/2017"));
+        assert_eq!(us_date("2017-10-09 00:00:00").as_deref(), Some("10/09/2017"));
+        assert_eq!(us_date("0000-00-00"), None);
+        assert_eq!(us_date(""), None);
     }
 
     #[test]

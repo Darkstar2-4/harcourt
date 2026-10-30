@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!\", name, coalesce(exchange_rate, 0) AS \"rate!: f64\" FROM currency WHERE code IS NOT NULL ORDER BY name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "rate!: f64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "36c31c972dd3f6e0b256720bc3c0663926bd1637b6483dc87ec98a55754b32e9"
+}

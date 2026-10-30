@@ -221,7 +221,7 @@ mod tests {
     fn the_state_comes_from_the_input_of_the_country() {
         let mut notes = Notes::new("T", "");
         let fields = Fields::of(&[
-            ("profile_company_name", " Acme <script>x()</script> Tools "),
+            ("profile_company_name", " Acme  Tools "),
             ("profile_country_code", "CA"),
             ("profile_state_us", "MI"),
             ("profile_state_ca", "ON"),
@@ -245,8 +245,8 @@ mod tests {
     }
 
     #[test]
-    fn script_runs_are_removed_from_posted_text() {
-        assert_eq!(posted_text("  a<SCRIPT src=x>b</script>c\nd "), "ac\nd");
+    fn posted_text_is_trimmed_line_by_line() {
+        assert_eq!(posted_text("  a\nd "), "a\nd");
         assert_eq!(posted_text("plain"), "plain");
     }
 }

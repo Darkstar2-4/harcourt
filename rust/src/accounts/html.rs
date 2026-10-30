@@ -3,6 +3,42 @@
 //! be `'static` text, so nothing a visitor sent can reach one.
 
 /// PHP htmlspecialchars($s, ENT_QUOTES).
+/// PHP json_encode() with its default flags: plain JSON with `/` written `\/` and every non-ASCII character as
+/// `\uXXXX`.
+pub fn json_encode(value: &impl serde::Serialize) -> String {
+    let json = serde_json::to_string(value).unwrap_or_default();
+    let mut out = String::with_capacity(json.len());
+    for c in json.chars() {
+        match c {
+            '/' => out.push_str("\\/"),
+            c if c.is_ascii() => out.push(c),
+            c => {
+                let mut units = [0u16; 2];
+                for u in c.encode_utf16(&mut units) {
+                    out.push_str(&format!("\\u{u:04x}"));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Text between tags, escaped only where HTML would read it differently: `<`, `>`, and an `&` that could start a
+/// character reference. The PHP printed option labels raw; this draws the same bytes for ordinary text.
+pub fn plain(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '&' if chars.peek().is_some_and(|n| n.is_ascii_alphanumeric() || *n == '#') => out.push_str("&amp;"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
 pub fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -158,10 +194,25 @@ pub fn select(field: &str, items: &[(String, String)], selected: &str, blank: Bl
     }
     for (value, label) in items {
         let sel = if value == selected { " selected" } else { "" };
-        lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), escape(label)));
+        lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), plain(label)));
     }
     lines.push("</select>".into());
     lines.push(String::new());
+    lines.join("\n")
+}
+
+/// forms_rev2.php optgroup(): a select whose options sit under group labels, the groups with no options left out.
+pub fn optgroup(field: &str, groups: &[(&str, Vec<(String, String)>)], selected: &str, opts: Opts) -> String {
+    let mut lines = vec![format!("<select{}>", opts.render(field))];
+    for (label, items) in groups.iter().filter(|(_, items)| !items.is_empty()) {
+        lines.push(format!("<optgroup label='{}'>", escape(label)));
+        for (value, text) in items {
+            let sel = if value == selected { " selected" } else { "" };
+            lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), plain(text)));
+        }
+        lines.push("</optgroup>".into());
+    }
+    lines.push("</select>".into());
     lines.join("\n")
 }
 
@@ -175,6 +226,13 @@ pub const FORM_CLOSE: &str = "</form>";
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plain_text_is_left_as_the_php_printed_it_where_that_reads_the_same() {
+        assert_eq!(plain("Antigua & Barbuda"), "Antigua & Barbuda");
+        assert_eq!(plain("Cote D'Ivoire \"x\""), "Cote D'Ivoire \"x\"");
+        assert_eq!(plain("<b>&amp;&#39;&x&"), "&lt;b&gt;&amp;amp;&amp;#39;&amp;x&");
+    }
 
     #[test]
     fn escape_matches_htmlspecialchars_with_quotes() {

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -25,7 +25,7 @@ use crate::{
         oauth::{self, Outcome},
         profile::{self, Layout, Profile},
         recaptcha::{self, Recaptcha, Score},
-        registry,
+        registry, visit,
     },
     api::Auth,
     db::unix_now,
@@ -62,12 +62,14 @@ impl Request {
         cookies::get(&self.headers, cookies::EMAIL).as_deref().and_then(Email::parse)
     }
 
-    fn profile(&self) -> Profile {
-        let mut p = Profile::from_cookie(cookies::get(&self.headers, profile::COOKIE).as_deref());
-        if p.email.is_empty() {
-            p.email = cookies::get(&self.headers, cookies::EMAIL).unwrap_or_default();
+    /// The profile the page loaded: the visit's, for a visitor PHP reloaded on every page; an empty one otherwise,
+    /// which the PHP's form changes were never kept in.
+    async fn profile(&self, pool: &sqlx::SqlitePool) -> sqlx::Result<Profile> {
+        if self.visitor.pending_in_php() {
+            Profile::load(pool, &self.headers, &self.visitor).await
+        } else {
+            Ok(Profile::default())
         }
-        p
     }
 }
 
@@ -76,12 +78,7 @@ fn request(visitor: Visitor, headers: HeaderMap) -> Request {
     Request { visitor, headers, ip, now: unix_now() }
 }
 
-pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Response {
-    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
-    }
+pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap) -> Response {
     let req = request(visitor, headers);
     match render_page(&core, &req).await {
         Ok((body, set)) => html_response(body, set),
@@ -89,14 +86,9 @@ pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: Head
     }
 }
 
-pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
+pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Form(posted): Form<Vec<(String, String)>>) -> Response {
     if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
         return StatusCode::FORBIDDEN.into_response();
-    }
-    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
     }
     let xhr = headers.contains_key("x-requested-with");
     let req = request(visitor, headers);
@@ -109,7 +101,7 @@ pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     let field = |name: &str| posted.iter().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str());
     let result = match field("action") {
         "microsoft_oauth_init" => {
-            return json_response(r#"{"redirect":"/oauth/init.php"}"#.to_string(), Vec::new());
+            return json_response(r#"{"redirect":"\/oauth\/init.php"}"#.to_string(), Vec::new());
         }
         "register" => register(&core, &req, &posted, field("g-recaptcha-response")).await,
         "remote" => verify(&core, &req, field("unlock_code"), field("g-recaptcha-response")).await,
@@ -119,7 +111,7 @@ pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     match result {
         Ok(reply) => {
             let set = reply.cookies.clone();
-            json_response(serde_json::to_string(&reply).unwrap_or_default(), set)
+            json_response(html::json_encode(&reply), set)
         }
         Err(e) => internal(e),
     }
@@ -138,8 +130,9 @@ fn html_response(body: String, set: Vec<HeaderValue>) -> Response {
     r
 }
 
+/// The answer to the page's own script: json_encode() printed under PHP's default content type.
 fn json_response(body: String, set: Vec<HeaderValue>) -> Response {
-    let mut r = ([(header::CONTENT_TYPE, "application/json"), (header::CACHE_CONTROL, "no-store")], body).into_response();
+    let mut r = ([(header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response();
     for c in set {
         r.headers_mut().append(header::SET_COOKIE, c);
     }
@@ -203,13 +196,17 @@ async fn score(core: &Auth, req: &Request, rc: Option<&Recaptcha>, token: &str) 
     }
 }
 
-/// Send a code to an address at an Active company. The answer to the browser never depends on whether it went.
-async fn send_code(core: &Auth, email: &Email, now: i64) -> sqlx::Result<()> {
+/// Send a code to an address at an Active company, and start the visit's count of turned-down codes again. The
+/// answer to the browser never depends on whether it went.
+async fn send_code(core: &Auth, req: &Request, email: &Email) -> sqlx::Result<()> {
+    if let Some(id) = &req.visitor.visit {
+        visit::reset_code_tries(&core.pool, id).await?;
+    }
     let Some(secret) = core.secret.as_ref() else {
         tracing::warn!("HXWEB_SECRET is not set: no sign-in code sent");
         return Ok(());
     };
-    access_code::issue(&core.pool, secret, email, now).await?;
+    access_code::issue(&core.pool, secret, email, req.now).await?;
     Ok(())
 }
 
@@ -220,12 +217,15 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     let rc = Recaptcha::load(pool).await?;
     let score = score(core, req, rc.as_ref(), token).await;
     let layout = Layout::load(pool).await?;
-    let (p, errors) = profile::verify(&layout, posted, req.profile());
-    if spam(core, req, rc.as_ref(), &score, "registration form", &p.email).await? {
+    let (p, errors) = profile::verify(&layout, posted, req.profile(pool).await?);
+    if req.visitor.pending_in_php() {
+        p.keep(pool, &req.visitor, req.now).await?;
+    }
+    if spam(core, req, rc.as_ref(), &score, "registration form", p.get("email")).await? {
         reply.html.set("profile_register", UNABLE.into());
         return Ok(reply);
     }
-    let email = Email::parse(&p.email);
+    let email = Email::parse(p.get("email"));
     if let Some(email) = &email {
         match admission::classify(pool, email).await? {
             Admission::Blacklisted => {
@@ -239,7 +239,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
                 }
                 admission::remember_address(pool, email, req.now).await?;
                 reply.cookies.extend(cookies::set(cookies::EMAIL, email.as_str(), cookies::Life::Year));
-                send_code(core, email, req.now).await?;
+                send_code(core, req, email).await?;
                 reply.html.set("scscpq_content", remote_form(pool, &company, rc.as_ref()).await?);
                 return Ok(reply);
             }
@@ -254,19 +254,19 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         return Ok(reply);
     };
     let registration = Registration {
-        company_name: p.company_name.clone(),
-        address: p.address.clone(),
-        city: p.city.clone(),
-        state: p.state.clone(),
-        zip: p.zip.clone(),
-        country_code: p.country_code.clone(),
+        company_name: p.get("company_name").into(),
+        address: p.get("address").into(),
+        city: p.get("city").into(),
+        state: p.get("state").into(),
+        zip: p.get("zip").into(),
+        country_code: p.get("country_code").into(),
         domain: None,
         recaptcha_score: score.value,
     };
     let ctx = req.context();
     let (id, signin) = admission::register(pool, &registration, &email, false, &ctx).await?;
     reply.cookies.extend(signin.cookies());
-    reply.cookies.extend(cookies::set(profile::COOKIE, &p.to_cookie(), cookies::Life::Year));
+    reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
     lines.push(format!("reCAPTCHA Score: {}", score.text));
     admission::log_signup(pool, id, &ctx, &lines.join("<br>")).await;
@@ -298,9 +298,19 @@ async fn verify(core: &Auth, req: &Request, typed: &str, token: &str) -> sqlx::R
     let email = req.remembered_email();
     let company = company_for(core, email.as_ref()).await?;
     let typed = typed.trim();
-    let spam = spam(core, req, rc.as_ref(), &score, "access token verify", email.as_ref().map_or("", Email::as_str)).await?;
+    if spam(core, req, rc.as_ref(), &score, "access token verify", email.as_ref().map_or("", Email::as_str)).await? {
+        if let (Some(e), Some(_), Some(secret)) = (&email, &company, core.secret.as_ref()) {
+            access_code::attempt(pool, secret, e, None, req.now, CODE_TRIES).await?;
+        }
+        let n = match &req.visitor.visit {
+            Some(id) => visit::count_code_try(pool, id, req.now).await?,
+            None => 1,
+        };
+        reply.html.set("unlock_code_message", String::new());
+        reply.html.set("unlock_code_error", format!("Invalid access token ({n} of 3)"));
+        return Ok(reply);
+    }
     let outcome = match (&email, &company, core.secret.as_ref()) {
-        (Some(e), Some(_), Some(secret)) if spam => Some(access_code::attempt(pool, secret, e, None, req.now, CODE_TRIES).await?),
         _ if typed.is_empty() => None,
         (Some(e), Some(_), Some(secret)) => Some(access_code::attempt(pool, secret, e, Some(typed), req.now, CODE_TRIES).await?),
         _ => Some(Attempt::Expired),
@@ -335,7 +345,7 @@ async fn resend(core: &Auth, req: &Request, token: &str) -> sqlx::Result<Reply> 
     let email = req.remembered_email();
     if !spam(core, req, rc.as_ref(), &score, "resend access token", email.as_ref().map_or("", Email::as_str)).await? {
         if let (Some(e), Some(_)) = (&email, company_for(core, email.as_ref()).await?) {
-            send_code(core, e, req.now).await?;
+            send_code(core, req, e).await?;
         }
     }
     reply.html.set("unlock_code_error", String::new());
@@ -347,7 +357,12 @@ async fn resend(core: &Auth, req: &Request, token: &str) -> sqlx::Result<Reply> 
 async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<HeaderValue>)> {
     let pool = &core.pool;
     let rc = Recaptcha::load(pool).await?;
-    if let Some(outcome) = oauth::take_outcome(pool, &req.headers).await? {
+    let left = match (&req.visitor.visit, oauth::take_outcome(pool, &req.headers).await?) {
+        (_, Some(outcome)) => Some(outcome),
+        (Some(id), None) => visit::take_oauth_error(pool, id, req.now).await?.map(Outcome::Error),
+        (None, None) => None,
+    };
+    if let Some(outcome) = left {
         let body = match outcome {
             Outcome::Error(message) => format!("<p style='color:red;'>{}</p>{}", escape(&message), register_form(core, req, rc.as_ref()).await?),
             Outcome::NoEmail(kind) => format!(
@@ -375,7 +390,7 @@ async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<He
             Some((company, known)) if req.visitor.impersonator.is_none() => {
                 if known {
                     if let Some(e) = req.remembered_email() {
-                        send_code(core, &e, req.now).await?;
+                        send_code(core, req, &e).await?;
                     }
                 }
                 remote_form(pool, &company, rc.as_ref()).await?
@@ -427,7 +442,7 @@ async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sq
         OAUTH_BUTTONS.into(),
         "<hr style='margin: 20px 0; border: 0; border-top: 1px solid #ccc;'>".into(),
         "<p style='font-weight:bold;'>Or complete the form below:</p>".into(),
-        profile::form(pool, &layout, &req.profile(), &Labels::load(pool, &req.visitor.language).await?).await?,
+        profile::form(pool, &layout, &Profile::load(pool, &req.headers, &req.visitor).await?, &Labels::load(pool, &req.visitor.language).await?).await?,
         recaptcha::button(rc, "Submit", "red-button", None, None),
         "<div id=recaptcha_status></div>".into(),
         "</div>".into(),

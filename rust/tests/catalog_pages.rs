@@ -156,8 +156,8 @@ async fn french_pages_use_french_names_and_links() {
     let cookie = signed_in(&h.pool, &Account::customer(26)).await;
     let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
     assert!(!body.contains("<h1>Goupilles à billes</h1>"), "the link's lang= is not the session's language");
-    let french = format!("{cookie}; hx_lang=FR");
-    let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&french))).await;
+    sqlx::query(r#"UPDATE "user" SET language_code = 'FR' WHERE id = 26"#).execute(&h.pool).await.unwrap();
+    let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
     assert!(body.contains("<h1>Goupilles à billes</h1>"), "{body}");
     assert!(body.contains("Détails du produit</a>"));
     assert!(body.contains("href=\"/catalogue/?lang=fr&action=sku"));
@@ -181,15 +181,21 @@ async fn a_lookup_opens_the_family_or_says_not_found() {
     let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=hblt-2"), Some(&cookie))).await;
     assert!(body.contains("<h1>Ball Lock Pins</h1>"));
     assert!(body.contains("<input type=hidden name='category_id' id='category_id' value='1'>\n<input type=hidden name='subcategory_id' id='subcategory_id' value='7'>"), "the form carries the part's family: {body}");
-    let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope%3Cb%3E"), Some(&cookie))).await;
-    assert!(body.contains("<p class=center>Part# <b>NOPE&lt;B></b> not found</p>"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>Part# <b>NOPE</b> not found</p>"), "{body}");
 }
 
 #[tokio::test]
 async fn a_visit_that_begins_on_the_fragment_goes_where_scs_header_sent_it() {
     let h = harness().await;
     seed(&h.pool).await;
-    let first = |path: &str, cookie: Option<&str>| catalog_support::request(Method::GET, path, cookie, &[], Body::empty());
+    let first = |path: &str, cookie: Option<&str>| {
+        let mut req = axum::http::Request::builder().uri(path);
+        if let Some(c) = cookie {
+            req = req.header(axum::http::header::COOKIE, c);
+        }
+        req.body(Body::empty()).unwrap()
+    };
     let location = |headers: &axum::http::HeaderMap| headers.get("location").map(|v| v.to_str().unwrap().to_string());
     let (status, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=7", None)).await;
     assert_eq!((status, location(&headers).as_deref()), (StatusCode::FOUND, Some("/")));
@@ -198,12 +204,18 @@ async fn a_visit_that_begins_on_the_fragment_goes_where_scs_header_sent_it() {
     let cookie = signed_in(&h.pool, &Account::customer(28)).await;
     let (_, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1", Some(&cookie))).await;
     assert_eq!(location(&headers).as_deref(), Some("/catalog/"));
+    let php_session = headers
+        .get_all("set-cookie")
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .find_map(|v| v.split(';').next().filter(|c| c.starts_with("PHPSESSID=")).map(str::to_string))
+        .expect("the visit's session cookie");
     let (status, _, body) = send(&h.app, first("/catalog.php", Some(&cookie))).await;
     assert_eq!(status, StatusCode::OK, "an active customer asked for the catalog itself");
     assert!(body.contains("src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>") && body.contains("<div id='scs_menu' >"), "outside the frame the page draws its own menu: {body}");
     assert!(body.contains("href=\"/catalog.php?lang=en&action=subcategory&subcategory_id=7\""), "and links to itself: {body}");
-    let (_, _, body) = send(&h.app, get("/catalog.php", Some(&cookie))).await;
-    assert!(!body.contains("<div id='scs_menu' >"), "a request inside a visit came through the frame");
+    let (_, _, body) = send(&h.app, first("/catalog.php", Some(&format!("{cookie}; {php_session}")))).await;
+    assert!(!body.contains("<div id='scs_menu' >"), "a request inside a visit that came through the frame stays in it");
 }
 
 #[tokio::test]

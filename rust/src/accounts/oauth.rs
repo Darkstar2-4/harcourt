@@ -24,7 +24,8 @@ use crate::{
         admission::{self, Admission, Context, Registration},
         cookies,
         html::escape,
-        profile::{self, Profile},
+        profile::Profile,
+        visit,
     },
     api::Auth,
     db::unix_now,
@@ -95,6 +96,7 @@ const STATE_SECS: i64 = 300;
 /// The outcome waits this long for the sign-up page.
 const KEEP_SECS: i64 = 900;
 const LANDING: &str = "/request-access";
+const INVALID_STATE: &str = "Invalid OAuth state. Please try again.";
 
 /// One OAuth app. The endpoints are fields so a test can point them at a local stand-in.
 #[derive(Debug, Clone)]
@@ -482,6 +484,11 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
     let now = unix_now();
     let token = browser_token(headers);
     if token.is_none() {
+        if let Some(id) = &visitor.visit {
+            if let Err(e) = visit::leave_oauth_error(pool, id, kind == Kind::Google, INVALID_STATE, now).await {
+                tracing::error!("oauth callback: {e}");
+            }
+        }
         return redirect(LANDING, Vec::new());
     }
     let pending = match &token {
@@ -509,7 +516,7 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
         _ => false,
     };
     let Some(row) = pending.filter(|_| state_ok) else {
-        return finish(pool, kind, token, Outcome::Error("Invalid OAuth state. Please try again.".into()), now, Vec::new()).await;
+        return finish(pool, kind, token, Outcome::Error(INVALID_STATE.into()), now, Vec::new()).await;
     };
     if now - row.created_at > STATE_SECS {
         return finish(pool, kind, token, Outcome::Error("Authentication request expired. Please try again.".into()), now, Vec::new()).await;
@@ -541,8 +548,15 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
 async fn admit(pool: &SqlitePool, kind: Kind, person: &Person, ctx: &Context<'_>) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
     let Some(email) = Email::parse(&person.email) else { return Ok((Outcome::NoEmail(kind), Vec::new())) };
     let via = format!("{} OAuth", kind.name());
-    let profile = Profile { email: email.as_str().into(), name_first: person.name_first.clone(), name_last: person.name_last.clone(), ..Profile::default() };
-    let mut set: Vec<HeaderValue> = cookies::set(profile::COOKIE, &profile.to_cookie(), cookies::Life::Year).into_iter().collect();
+    let profile = Profile {
+        email: Some(email.as_str().into()),
+        name: format!("{} {}", person.name_first, person.name_last),
+        name_first: Some(person.name_first.clone()),
+        name_last: Some(person.name_last.clone()),
+        language_code: "EN".into(),
+        ..Profile::default()
+    };
+    let mut set: Vec<HeaderValue> = profile.cookie(ctx.now).into_iter().collect();
     match admission::classify(pool, &email).await? {
         Admission::Blacklisted => {
             admission::log_blacklisted(pool, &email, ctx, &via).await;

@@ -70,18 +70,23 @@ impl Profile {
     /// The fields the address form draws, as accounts::profile has them.
     fn address(&self) -> AddressProfile {
         AddressProfile {
-            email: self.email.clone(),
-            name_first: self.name_first.clone(),
-            name_last: self.name_last.clone(),
-            company_name: self.company_name.clone(),
-            address: self.address.clone(),
-            city: self.city.clone(),
-            state: self.state.clone(),
-            zip: self.zip.clone(),
-            country_code: self.country_code.clone(),
+            email: set(&self.email),
+            name_first: set(&self.name_first),
+            name_last: set(&self.name_last),
+            company_name: set(&self.company_name),
+            address: set(&self.address),
+            city: set(&self.city),
+            state: set(&self.state),
+            zip: set(&self.zip),
+            country_code: set(&self.country_code),
             ..AddressProfile::default()
         }
     }
+}
+
+/// accounts::profile holds an unset field as None; this module holds it as an empty string.
+fn set(value: &str) -> Option<String> {
+    (!value.is_empty()).then(|| value.to_string())
 }
 
 fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
