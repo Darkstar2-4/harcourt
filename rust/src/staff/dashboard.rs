@@ -21,6 +21,7 @@ use crate::{
     api::{Auth, Executive},
     db::unix_now,
     identity::Role,
+    visitor::Visitor,
 };
 
 const PATH: &str = "/dashboard.php";
@@ -149,9 +150,9 @@ fn table(class: &str, headers: &[&str], rows: Vec<String>) -> String {
     out.join("\n")
 }
 
-/// `fn_url("/x.php", ["action" => "maintain", "record_id" => id, "return_url" => "/dashboard.php?tab=…"])`.
-fn maintain_url(page: &str, id: i64, tab: &str) -> String {
-    let back = format!("{PATH}{}", url_query(&[("tab", tab)]));
+/// `fn_url("/x.php", ["action" => "maintain", "record_id" => id, "return_url" => fn_url(PHP_SELF, ["tab" => …])])`.
+fn maintain_url(page: &str, id: i64, tab: &str, here: &str) -> String {
+    let back = format!("{here}{}", url_query(&[("tab", tab)]));
     format!("{page}{}", url_query(&[("action", "maintain"), ("record_id", &id.to_string()), ("return_url", &back)]))
 }
 
@@ -201,7 +202,7 @@ fn recaptcha(score: f64, s: &Settings) -> String {
     format!("{score:.1} {verdict}")
 }
 
-async fn pending(pool: &SqlitePool, s: &Settings, tabs: &mut Tabs) -> sqlx::Result<()> {
+async fn pending(pool: &SqlitePool, s: &Settings, here: &str, tabs: &mut Tabs) -> sqlx::Result<()> {
     let users = sqlx::query!(
         r#"SELECT id AS "id!: i64", ip, company_name, recaptcha_score, last_login FROM "user"
            WHERE status = 'Pending' ORDER BY recaptcha_score DESC, company_name"#
@@ -227,7 +228,7 @@ async fn pending(pool: &SqlitePool, s: &Settings, tabs: &mut Tabs) -> sqlx::Resu
         .map(|u| {
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &maintain_url("/user.php", u.id, &tab), Opts::new())),
+                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &maintain_url("/user.php", u.id, &tab, here), Opts::new())),
                 format!("<td>{}</td>", text(u.company_name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(names.get(&u.id).map_or("", String::as_str)).replace("&lt;br>", "<br>")),
                 format!("<td>{}</td>", recaptcha(u.recaptcha_score, s)),
@@ -242,7 +243,7 @@ async fn pending(pool: &SqlitePool, s: &Settings, tabs: &mut Tabs) -> sqlx::Resu
     Ok(())
 }
 
-async fn pending_po(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
+async fn pending_po(pool: &SqlitePool, here: &str, tabs: &mut Tabs) -> sqlx::Result<()> {
     let orders = sqlx::query!(
         r#"SELECT id AS "id!: i64", company_name, name, email, order_date FROM orderhd WHERE status = 'Pending' ORDER BY id"#
     )
@@ -257,7 +258,7 @@ async fn pending_po(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
         .map(|o| {
             [
                 "<tr>".to_string(),
-                format!("<td class=center>{}</td>", href(&o.id.to_string(), &maintain_url("/orderhd.php", o.id, &tab), Opts::new())),
+                format!("<td class=center>{}</td>", href(&o.id.to_string(), &maintain_url("/orderhd.php", o.id, &tab, here), Opts::new())),
                 format!("<td>{}</td>", text(o.company_name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(o.name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(o.email.as_deref().unwrap_or(""))),
@@ -554,7 +555,8 @@ async fn related_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     Ok(())
 }
 
-async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> sqlx::Result<Response> {
+/// `here` is PHP_SELF, which the page's links and form send the visitor back to.
+async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields, here: &str) -> sqlx::Result<Response> {
     let role = staff.who.user.role;
     let title = format!("{} Dashboard", role.as_str());
     let notes = Notes::new(&title, "");
@@ -570,9 +572,9 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> 
     }
     tabs.item(role.as_str(), menu(role));
     if role >= Role::Administrator {
-        pending(pool, &s, &mut tabs).await?;
+        pending(pool, &s, here, &mut tabs).await?;
     }
-    pending_po(pool, &mut tabs).await?;
+    pending_po(pool, here, &mut tabs).await?;
     if role >= Role::Administrator {
         leadscore(pool, &s, viewer_last_login, &mut tabs).await?;
     }
@@ -586,7 +588,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> 
         notes.render(),
         open("/user.php", staff.csrf.as_str(), false),
         hidden("action", "maintain"),
-        hidden("return_url", PATH),
+        hidden("return_url", here),
         hidden("record_id", ""),
         close().to_string(),
         tabs.render(),
@@ -595,8 +597,8 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> 
     Ok(shell::page(pool, staff.view(), &title, &body).await)
 }
 
-async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, RawQuery(q): RawQuery) -> Response {
-    render(&auth.pool, &staff, &Fields::from_query(q.as_deref())).await.unwrap_or_else(shell::internal)
+async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, visitor: Visitor, RawQuery(q): RawQuery) -> Response {
+    render(&auth.pool, &staff, &Fields::from_query(q.as_deref()), &visitor.php_self).await.unwrap_or_else(shell::internal)
 }
 
 pub fn routes() -> Router<Arc<Auth>> {
@@ -640,7 +642,7 @@ mod tests {
 
     #[test]
     fn return_urls_come_back_to_the_tab() {
-        assert_eq!(maintain_url("/user.php", 5, "Pending Access (2)"), "/user.php?action=maintain&record_id=5&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25282%2529");
+        assert_eq!(maintain_url("/user.php", 5, "Pending Access (2)", PATH), "/user.php?action=maintain&record_id=5&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25282%2529");
         assert_eq!(content_key(17, 255), STANDARD_NO_PAD.encode("17\tff"));
     }
 }

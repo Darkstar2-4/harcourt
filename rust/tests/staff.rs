@@ -222,6 +222,24 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
 }
 
 #[tokio::test]
+async fn the_dashboard_sends_the_visitor_back_to_the_path_apache_ran() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ip, last_login) VALUES (9, 'Pending', 'Customer', 'Pending Co', '192.0.2.9', 0)"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(h.app.clone());
+    for (path, here) in [("/dashboard.php", "/dashboard.php"), ("/dashboard.php/", "/dashboard.php/"), ("//dashboard.php", "/dashboard.php")] {
+        let res = app.clone().oneshot(get(path, Some(&admin))).await.unwrap();
+        let page = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+        assert!(page.contains(&format!("<input type=hidden name='return_url' id='return_url' value='{here}'>")), "{path}: {page}");
+        let back = here.replace('/', "%2F");
+        assert!(page.contains(&format!("record_id=9&return_url={back}%3Ftab%3DPending%2BAccess%2B%25281%2529\"")), "{path}");
+    }
+}
+
+#[tokio::test]
 async fn administrators_mint_list_and_revoke_grants_within_their_role() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
