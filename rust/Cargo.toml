@@ -11,6 +11,18 @@ path = "src/lib.rs"
 name = "hxweb"
 path = "src/main.rs"
 
+[[bin]]
+name = "hx-import"
+path = "src/bin/hx-import.rs"
+required-features = ["import"]
+
+[[bin]]
+name = "hx-diff"
+path = "src/bin/hx-diff.rs"
+
+[features]
+import = ["sqlx/mysql", "dep:futures-util"]
+
 [dependencies]
 axum = { version = "0.8", features = ["multipart"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
@@ -36,6 +48,8 @@ lettre = { version = "0.11", default-features = false, features = ["builder", "s
 rust_decimal = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 chrono-tz = "0.10"
+similar = "2"
+futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]
 http-body-util = "0.1"
