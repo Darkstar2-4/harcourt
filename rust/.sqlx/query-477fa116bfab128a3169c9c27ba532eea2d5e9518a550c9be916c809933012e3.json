@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO \"user\" (ip, company_name, address, city, state, zip, country_code, status, \"type\", login_document_id, landing_document_id,\n                                   portal_id, customer_code, catalog, cad, ecommerce, price_type, price_pct, language_code, currency_code, industry_id,\n                                   leadscore, revenue, employees, last_login)\n               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25)\n               RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 25
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "477fa116bfab128a3169c9c27ba532eea2d5e9518a550c9be916c809933012e3"
+}
