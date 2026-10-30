@@ -85,7 +85,7 @@ impl Pages {
         let uri = request_uri(path, query, lang);
         match self.assemble(app, path, lang, &uri).await {
             Ok(Some(html)) => {
-                let html = if crate::on("fa-static") { crate::catalog::without_fa_kit(app, &html) } else { html };
+                let html = if crate::on("fa-static") { crate::compose::without_fa_kit(app, &html) } else { html };
                 let html = if crate::on("bg-preload") { with_hero_bg_preload(&html) } else { html };
                 Some(
                     Response::builder()

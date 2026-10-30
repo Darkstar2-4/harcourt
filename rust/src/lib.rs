@@ -4,9 +4,11 @@
 pub mod access_code;
 pub mod api;
 pub mod audit;
+pub mod catalog;
 pub mod config;
 pub mod db;
 pub mod identity;
+pub mod pricing;
 pub mod remote_grant;
 pub mod retired;
 pub mod routes;

@@ -1,8 +1,8 @@
-//! hxweb: the front of www.harcourt.co. Builds the catalog pages in one response (catalog.rs), serves the former
+//! hxweb: the front of www.harcourt.co. Builds the catalog pages in one response (compose.rs), serves the former
 //! WordPress pages from the static export (pages.rs), and passes everything else to the legacy Apache/PHP stack
 //! unchanged (proxy.rs).
 
-mod catalog;
+mod compose;
 mod pages;
 mod proxy;
 mod search;
@@ -186,10 +186,10 @@ async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {
     if req.method() == Method::GET || req.method() == Method::HEAD {
         let path = req.uri().path().to_string();
         if path == "/catalog/" || path == "/catalogue/" {
-            return catalog::handle(&app, req).await;
+            return compose::handle(&app, req).await;
         }
         let query = req.uri().query().unwrap_or("").to_string();
-        if let Some(resp) = catalog::fragment_as_page(&path, &query, req.headers()) {
+        if let Some(resp) = compose::fragment_as_page(&path, &query, req.headers()) {
             return resp;
         }
         if let Some(resp) = app.pages.serve(&app, &path, &query).await {
