@@ -27,7 +27,7 @@ use sqlx::SqlitePool;
 use super::{
     catalog::php_floatval,
     choices,
-    csrf::{php_intval, Fields, Posted, Unchecked, Upload},
+    csrf::{php_intval, Fields, Posted, Rejected, Unchecked, Upload},
     html::{button, close, esc, hidden, href, list_options, number, open, text, Blank, Form, Notes, Opts, Tabs},
     inventory::{file_kind, languages},
     map,
@@ -1471,7 +1471,8 @@ fn inventory_download_tab(form: &Form<'_>, sub: &Sub) -> Vec<String> {
     out
 }
 
-async fn page(pool: &SqlitePool, staff: &Staff<Administrator>, posted: Option<&Posted>) -> sqlx::Result<Response> {
+/// `may_write`: the post carried the form token, which an update needs once there is a draft for it to save.
+async fn page(pool: &SqlitePool, staff: &Staff<Administrator>, posted: Option<&Posted>, may_write: bool) -> sqlx::Result<Response> {
     let f = posted.map(|p| p.fields.clone()).unwrap_or_default();
     let input = Input {
         action: f.get("action").to_string(),
@@ -1515,6 +1516,9 @@ async fn page(pool: &SqlitePool, staff: &Staff<Administrator>, posted: Option<&P
         }
         "update" => {
             if let (Some(mut d), Some(p)) = (Draft::load(pool, staff).await?, posted) {
+                if !may_write {
+                    return Ok(Rejected::Token.into_response());
+                }
                 let mut s = sub.clone().unwrap_or_else(|| Sub::new(0));
                 update(pool, staff, p, &input, &mut s, &mut d, &mut notes).await?;
                 if notes.has_errors() {
@@ -1575,15 +1579,16 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, header
     } else if query.get("action") == "download" {
         download(&auth.pool, &query).await
     } else {
-        page(&auth.pool, &staff, None).await
+        page(&auth.pool, &staff, None, false).await
     };
     answer.unwrap_or_else(shell::internal)
 }
 
 /// The editor's AJAX posts carry no form token, as the PHP page's script sent none; `X-Requested-With`, which a
 /// page on another site cannot send without the browser asking first, marks them. They change only this session's
-/// draft, which a save (a form post with the token) must still apply. Of the form's own posts only a save or a
-/// delete needs the token; the others list, download, or open or drop this session's draft.
+/// draft, which a save (a form post with the token) must still apply. Of the form's own posts only a delete, or a
+/// save with a draft to save, needs the token; the others list, download, or open or drop this session's draft, and
+/// an update with no draft did nothing in the PHP either.
 async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, headers: HeaderMap, RawQuery(q): RawQuery, req: Request) -> Response {
     let query = Fields::from_query(q.as_deref());
     if is_ajax(&headers) {
@@ -1595,12 +1600,12 @@ async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, header
         Ok(f) => f,
         Err(rejected) => return rejected.into_response(),
     };
-    let posted = match form.accept_by_action() {
-        Ok(p) => p,
-        Err(rejected) => return rejected.into_response(),
-    };
+    let (posted, may_write) = form.with_token();
+    if posted.fields.get("action") == "delete" && !may_write {
+        return Rejected::Token.into_response();
+    }
     let request = posted.fields.clone().with_query(&query);
-    let answer = if request.get("action") == "download" { download(&auth.pool, &request).await } else { page(&auth.pool, &staff, Some(&posted)).await };
+    let answer = if request.get("action") == "download" { download(&auth.pool, &request).await } else { page(&auth.pool, &staff, Some(&posted), may_write).await };
     answer.unwrap_or_else(shell::internal)
 }
 
