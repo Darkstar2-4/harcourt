@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO captcha_bypass (email, comment, created) SELECT ?1, 'Auto-added on user approval', ?2\n         WHERE NOT EXISTS (SELECT 1 FROM captcha_bypass WHERE lower(email) = ?1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "308a2ce43bb511fa0b2e23823acd19f7ce9f2754d9352670a1671bb4fb6a2fe9"
+}

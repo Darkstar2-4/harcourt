@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE subcategory SET price_increase = ?2 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "3f05b3fda43bac7645458ec4023f75cd6c41af8d8c58c4ba3f0c5ec9650a553e"
+}

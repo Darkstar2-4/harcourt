@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country, name FROM country WHERE state = '' AND active = 1\n           ORDER BY CASE country WHEN 'US' THEN 1 WHEN 'CA' THEN 2 ELSE 3 END, name COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "country",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "c8712e6475cda823719939d69de4d686cf1b687b5b056c3ae49fc2da2d998dc7"
+}

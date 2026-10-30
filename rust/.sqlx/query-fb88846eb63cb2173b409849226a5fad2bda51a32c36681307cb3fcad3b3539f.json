@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT email AS \"email!\" FROM log WHERE user_id = ?1 AND type = 'User' AND subtype = 'Signup' AND COALESCE(email, '') <> ''\n           ORDER BY date_time DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "email!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "fb88846eb63cb2173b409849226a5fad2bda51a32c36681307cb3fcad3b3539f"
+}
