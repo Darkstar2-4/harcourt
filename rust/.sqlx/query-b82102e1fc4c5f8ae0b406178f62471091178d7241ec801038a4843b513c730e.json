@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE remote_grant SET expires_at = ?2 WHERE rowid = ?1 AND used_at IS NULL AND expires_at > ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b82102e1fc4c5f8ae0b406178f62471091178d7241ec801038a4843b513c730e"
+}

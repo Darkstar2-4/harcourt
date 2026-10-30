@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO company_category_block (company_name, category_id) VALUES (?1, ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "534f0c51e8eb8070de97f0552c41021f9dae895991a9dc215d96414bdc6e988c"
+}

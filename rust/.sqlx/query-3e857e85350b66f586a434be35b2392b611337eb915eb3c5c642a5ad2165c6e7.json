@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT l.user_id AS \"user_id!: i64\", l.comment FROM log l JOIN \"user\" u ON u.id = l.user_id\n           WHERE u.status = 'Pending' AND lower(l.type) = 'user' AND lower(l.subtype) = 'signup' ORDER BY l.id DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "3e857e85350b66f586a434be35b2392b611337eb915eb3c5c642a5ad2165c6e7"
+}

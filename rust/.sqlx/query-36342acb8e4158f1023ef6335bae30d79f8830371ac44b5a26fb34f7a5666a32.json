@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT coalesce(c.name, '') AS \"category!: String\", coalesce(s.name, '') AS \"subcategory!: String\"\n                   FROM inventory i\n                   LEFT JOIN subcategory s ON s.id = i.subcategory_id\n                   LEFT JOIN category c ON c.id = i.category_id\n                   WHERE i.sku = ?1 AND i.active = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "category!: String",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "subcategory!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "36342acb8e4158f1023ef6335bae30d79f8830371ac44b5a26fb34f7a5666a32"
+}

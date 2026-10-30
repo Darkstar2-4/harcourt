@@ -172,6 +172,7 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
     if config.secret.is_none() {
         tracing::warn!("HXWEB_SECRET is not set: emailed-code sign-in answers 503");
     }
+    hxweb::orders::mail::start_from_env(pool.clone());
     Some(Arc::new(hxweb::api::Auth {
         pool,
         secret: config.secret,

@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", date_time AS \"date_time!: i64\", user_id AS \"user_id!: i64\", ip AS \"ip!\", subtype, sku AS \"sku!\",\n                  subcategory_id AS \"subcategory_id!: i64\", comment\n           FROM log WHERE type = 'Search' AND bot_id = 0 AND date_time > ?1\n             AND user_id NOT IN (SELECT id FROM \"user\" WHERE comment = 'bench-test')\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "date_time!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "user_id!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "subtype",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "sku!",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_id!: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "b1a40164277a157e7167cdf1c1baac4e515de461ccbc055238b129cb02256e1d"
+}

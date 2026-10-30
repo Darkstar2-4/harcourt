@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT sku AS \"sku!\", comment, date_time AS \"date_time!: i64\" FROM log WHERE id IN (\n             SELECT max(id) FROM log WHERE lower(type) = 'error' AND lower(subtype) = 'related sku' AND date_time >= ?1 GROUP BY sku)\n           ORDER BY sku",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "comment",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "date_time!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "13fe12dca430c98a1cdf248397cd5283bd5bf5b8432befba497def03d0f0534c"
+}

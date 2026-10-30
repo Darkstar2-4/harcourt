@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at) VALUES (?1, ?2, ?3, ?4, ?5)\n         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,\n             comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "b34b006d324d772d058ad74a76e6539c396cb3daee2d543b93fe2cc055038e19"
+}

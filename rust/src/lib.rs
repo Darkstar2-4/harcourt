@@ -7,6 +7,7 @@ pub mod audit;
 pub mod config;
 pub mod db;
 pub mod identity;
+pub mod orders;
 pub mod remote_grant;
 pub mod retired;
 pub mod routes;
