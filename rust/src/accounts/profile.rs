@@ -12,7 +12,7 @@ use sqlx::SqlitePool;
 use crate::{
     accounts::{
         cookies,
-        html::{self, escape, Blank, Opts},
+        html::{self, escape, Opts},
         locale::Labels,
         registry, visit,
     },
@@ -402,15 +402,15 @@ pub async fn address_rows(pool: &SqlitePool, layout: &Layout, p: &Profile, omit:
             Field::Address => row(layout, f, "Address", &text("address", 40, 100, "Address")),
             Field::City => row(layout, f, "City", &text("city", 40, 40, "City")),
             Field::State => {
-                let us = html::select(&field_name("state_us"), &pairs(&states(pool, "US").await?), p.get("state"), Blank::Label("Select State"), opts(""));
-                let ca = html::select(&field_name("state_ca"), &pairs(&states(pool, "CA").await?), p.get("state"), Blank::Label("Select Province"), opts(""));
+                let us = html::select(&field_name("state_us"), &pairs(&states(pool, "US").await?), p.get("state"), "Select State", opts(""));
+                let ca = html::select(&field_name("state_ca"), &pairs(&states(pool, "CA").await?), p.get("state"), "Select Province", opts(""));
                 let other = text("state_other", 40, 40, "Province/State");
                 row(layout, f, "<span id=profile_state_text></span>", &[us, ca, other].join(" "))
             }
             Field::Zip => row(layout, f, "<span id=profile_zip_text></span>", &html::text(&field_name("zip"), p.get("zip"), 25, Some(40), opts("Zip/Postal Code/Zip Code"))),
             Field::CountryCode => {
                 let o = opts("").event("onchange", "fn_country_address('profile');");
-                let select = html::select(&field_name("country_code"), &pairs(&countries(pool).await?), p.get("country_code"), Blank::Label("Select Country"), o);
+                let select = html::select(&field_name("country_code"), &pairs(&countries(pool).await?), p.get("country_code"), "Select Country", o);
                 let mut cell = row(layout, f, "Country", &select);
                 if layout.need(f).is_none() {
                     cell.push_str(&html::hidden("country_code", "US", ""));
@@ -545,13 +545,14 @@ pub async fn summary(pool: &SqlitePool, layout: &Layout, p: &Profile) -> sqlx::R
 
 fn country_js(jquery: bool) -> &'static str {
     if jquery {
-        COUNTRY_JS_JQUERY
+        COUNTRY_JS
     } else {
         COUNTRY_JS_PLAIN
     }
 }
 
-const COUNTRY_JS_JQUERY: &str = "function fn_country_address(table) {
+/// address_class::js() where the site loads jQuery; the checkout's address blocks use it too.
+pub const COUNTRY_JS: &str = "function fn_country_address(table) {
 jQuery('#' + table + '_state_us').hide();
 jQuery('#' + table + '_state_ca').hide();
 jQuery('#' + table + '_state_other').hide();

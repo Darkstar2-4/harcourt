@@ -56,9 +56,9 @@ The PR moves the site's request handling into one Rust program, `hxweb`. It brin
 
 | Area | Where | What it replaces |
 |---|---|---|
-| Visitor identity | `src/visitor.rs`, `src/accounts/` | `scs_header.php`'s sign-in by address, bots, campaigns, language and currency, the PHP session, and the first-visit redirect. Sign-in by emailed code and by Microsoft or Google, sign-up, impersonation, sign-out. |
+| Visitor identity | `src/visitor.rs`, `src/accounts/` | `scs_header.php`'s sign-in by address, bots, campaigns, language and currency, the PHP session, and the first-visit redirect. Sign-in by emailed code and by Microsoft or Google, sign-up and request-access, sign-out, and redeeming a remote grant. |
 | Catalog | `src/catalog/`, `src/compose.rs`, `src/pricing.rs` | `catalog.php`, `scscpq_wp.php`, `scscpq_api.php`, `scs_file.php`, `scs_ajax.php`, search, the catalog page's composition. |
-| Orders | `src/orders/` | `cart.php`, `checkout.php`, `orderhd.php`, carriers, contact, every live Gravity Forms form, and the sender that drains the `outbox` table. |
+| Orders | `src/orders/` | `cart.php`, `checkout.php` (orders are saved and mailed), contact, every live Gravity Forms form, and the sender that drains the `outbox` table. |
 | Staff | `src/staff/` | The dashboard, the log viewer, the maintenance pages for users, inventory, subcategories, campaigns and portals, the import and export framework, and the cron jobs as `hxweb job <name>`. |
 | WordPress | `src/cms/`, `src/routes/wordpress.rs`, `docs/cms.md` | The theme, the page content, menus, redirects, sitemaps, the 404 page, and editing page text from the staff dashboard. |
 | Database | `migrations/` | SQLite schema for all 37 application tables, generated from the MySQL schema, plus the tables Rust adds (`session`, `visit`, `access_code`, `remote_grant`, `outbox`, `cart`, `staff_draft`, the `cms_*` tables). |
@@ -72,9 +72,9 @@ These are not bugs. Each is listed with its reason in the `rust/oracle/*.expecte
 
 - **Staff pages need a real sign-in.** An emailed code or OAuth, not a company's address. Pending and Denied staff accounts are turned away, and the role is checked before any AJAX call.
 - **State-changing forms need a token.** Every staff form carries a per-session token. A GET never changes data.
-- **The emailed code is random.** 8 characters from the system random source, 15 minutes, five tries counted in the database. The PHP code was derived from the clock.
+- **The emailed code is random.** 8 characters from the system random source, 15 minutes, two wrong tries counted in the database, good once. The PHP code was derived from the clock.
 - **Retired paths answer 410.** `scs_remote.php` is deleted and replaced by `remote_grant.rs`. The web SQL consoles, PHP diagnostics, developer toolboxes and `scs_filemanager.php` have no replacement. The list is `src/retired.rs`.
-- **Errors are not printed to visitors.** `login.php` failed on every request and printed the database's error; Rust prints a plain message.
+- **Errors are not printed to visitors.** `login.php` failed on every request and printed the database's error; it now answers 410 with the other dropped pages.
 - **Files are served by id to whoever may see them.** `scs_file.php` no longer serves a file by name.
 - **Outside services are opt-in.** ipstack lookups at sign-up run only with `HXWEB_IPSTACK=on`. Spam checks and mail read their keys from the environment and skip with a warning when absent.
 - **Browser scripts trust less.** `scscpq_wp.js` acts on a `message` only from its own origin, posts only to its own origin, shows a failed request's text as text, and no longer logs element ids.
@@ -120,7 +120,7 @@ A malformed value in the core group (marked core below) is not a warning. hxweb 
 |---|---|---|---|
 | `HXWEB_LISTEN` | `127.0.0.1:8090` | Address hxweb listens on, behind nginx. | Listens on the default; nginx must point there. |
 | `HXWEB_DB` (core) | `/var/lib/hxweb/hx.db` | The SQLite database. | If it cannot be opened, no Rust route is mounted. |
-| `HXWEB_SECRET` (core) | none | At least 32 bytes as hex. Keys the emailed sign-in codes and the Gravity Forms anti-spam token. | Emailed-code sign-in answers 503, sign-up sends no code, and form posts are not checked for the anti-spam token. Not hex or under 32 bytes: no Rust route is mounted. |
+| `HXWEB_SECRET` (core) | none | At least 32 bytes as hex. Keys the emailed sign-in codes and the Gravity Forms anti-spam token. | Sign-up sends no code, and form posts are not checked for the anti-spam token. Not hex or under 32 bytes: no Rust route is mounted. |
 | `HXWEB_PUBLIC_ORIGIN` (core) | `https://www.harcourt.co` | The one origin browsers may post from; absolute redirects; the blog URL sent to Akismet. | Must be `https://host` with no path, or no Rust route is mounted. A wrong host refuses every form post from the real site (403). |
 | `HXWEB_TRUSTED_PROXIES` (core) | `127.0.0.1,::1` | Proxies whose `X-Real-IP` is believed, comma-separated. | Not a list of addresses: no Rust route is mounted. Without nginx's address, every visitor is seen as nginx: no sign-in by company address, and logs record the proxy. |
 | `HXWEB_LEGACY` | `https://127.0.0.1:8443` | The Apache and PHP stack, for paths Rust does not claim yet and for a form the orders tables lack. | Those requests answer 502. |

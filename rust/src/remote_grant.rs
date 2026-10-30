@@ -4,8 +4,7 @@
 //! action put the named user into the session without checking the code's result. It needed no sign-in at either
 //! step. Here:
 //!
-//!  * minting needs a signed-in Administrator (`Authed<Administrator>` in api.rs) and may not reach above the
-//!    Administrator's own role;
+//!  * minting is for an Active Administrator (`may_grant`) and may not reach above the Administrator's own role;
 //!  * the credential is 256 random bits, valid for ten minutes, redeemable once;
 //!  * redeeming is one atomic UPDATE, so two requests with the same token cannot both succeed.
 

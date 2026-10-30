@@ -65,6 +65,11 @@ fn app(pool: &SqlitePool, peer: &str) -> Router {
 }
 
 async fn probe(v: Visitor) -> Json<serde_json::Value> {
+    let catalog = match &v.identity {
+        Identity::Anonymous => false,
+        Identity::Bot(b) => b.catalog,
+        Identity::Account(s) => s.account.catalog(),
+    };
     let (kind, id, via, status) = match &v.identity {
         Identity::Anonymous => ("anonymous", 0, "", ""),
         Identity::Bot(b) => ("bot", b.id, "", ""),
@@ -84,11 +89,10 @@ async fn probe(v: Visitor) -> Json<serde_json::Value> {
     };
     Json(serde_json::json!({
         "kind": kind, "id": id, "via": via, "status": status,
-        "role": v.role().as_str(), "catalog": v.catalog(),
+        "role": v.role().as_str(), "catalog": catalog,
         "email": v.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string()),
-        "language": v.language.as_str(), "currency": v.currency.as_str(),
+        "language": v.language.as_str(),
         "campaign": v.campaign.as_ref().map(|c| c.code.clone()),
-        "impersonator": v.impersonator.as_ref().map(|i| i.id.0),
     }))
 }
 
@@ -134,14 +138,14 @@ async fn cookie_for(pool: &SqlitePool, id: i64, email: Option<&str>) -> String {
 }
 
 #[tokio::test]
-async fn an_anonymous_visitor_gets_the_browser_language_and_dollars() {
+async fn an_anonymous_visitor_gets_the_browser_language() {
     let pool = pool().await;
     let (status, _, v) = ask(&app(&pool, "198.51.100.1"), &[("accept-language", "fr-CA,fr;q=0.9")]).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(v["kind"], "anonymous");
     assert_eq!(v["role"], "Customer", "the PHP counted an anonymous visitor as a Customer");
     assert_eq!(v["catalog"], false);
-    assert_eq!((v["language"].as_str(), v["currency"].as_str()), (Some("FR"), Some("USD")));
+    assert_eq!(v["language"], "FR");
 }
 
 #[tokio::test]
@@ -155,7 +159,6 @@ async fn a_company_address_signs_in_and_logs_once_per_visit() {
         let (_, _, v) = ask(&app, &[("cookie", visit.as_str())]).await;
         assert_eq!((v["kind"].as_str(), v["id"].as_i64(), v["via"].as_str()), (Some("account"), Some(3), Some("address")));
         assert_eq!(v["catalog"], true);
-        assert_eq!(v["currency"], "CAD");
     }
     assert_eq!(log_count(&pool, "User", "Login").await, 1);
     ask(&app, &[]).await;
@@ -291,46 +294,6 @@ async fn an_external_referer_is_logged() {
     let host: String = sqlx::query_scalar("SELECT comment FROM log WHERE type = 'Initial' AND subtype = 'Referer'").fetch_one(&pool).await.unwrap();
     assert_eq!(host, "search.example");
     assert_eq!(log_count(&pool, "Initial", "Referer").await, 1);
-}
-
-async fn impersonate(pool: &SqlitePool, cookie: &str, user_id: Option<i64>, role: &str, status: &str) {
-    let token = cookie.split_once('=').unwrap().1;
-    let hash = hxweb::token::Token::parse(token).unwrap().hash();
-    sqlx::query(r#"INSERT INTO impersonation (session_hash, user_id, "type", status, catalog, language_code, currency_code, created_at) VALUES (?1, ?2, ?3, ?4, 1, 'FR', 'USD', 0)"#)
-        .bind(hash.as_slice())
-        .bind(user_id)
-        .bind(role)
-        .bind(status)
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
-#[tokio::test]
-async fn an_impersonation_shows_the_chosen_view_but_never_above_the_administrator() {
-    let pool = pool().await;
-    seed(&pool, 1, "Active", "Administrator", None).await;
-    seed(&pool, 2, "Pending", "Customer", None).await;
-    let admin = cookie_for(&pool, 1, Some("admin@example.com")).await;
-    impersonate(&pool, &admin, Some(2), "Super User", "Active").await;
-    let (_, _, v) = ask(&app(&pool, "198.51.100.1"), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["id"].as_i64(), v["status"].as_str(), v["catalog"].as_bool()), (Some(2), Some("Active"), Some(true)));
-    assert_eq!(v["role"], "Administrator", "capped at the impersonator's role");
-    assert_eq!((v["impersonator"].as_i64(), v["language"].as_str()), (Some(1), Some("FR")));
-
-    sqlx::query(r#"UPDATE "user" SET "type" = 'Executive' WHERE id = 1"#).execute(&pool).await.unwrap();
-    let (_, _, v) = ask(&app(&pool, "198.51.100.1"), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["id"].as_i64(), v["impersonator"].is_null()), (Some(1), true), "a demoted Administrator impersonates no one");
-}
-
-#[tokio::test]
-async fn an_impersonated_visitor_is_anonymous() {
-    let pool = pool().await;
-    seed(&pool, 1, "Active", "Administrator", Some(COMPANY_IP)).await;
-    let admin = cookie_for(&pool, 1, None).await;
-    impersonate(&pool, &admin, None, "Customer", "Pending").await;
-    let (_, _, v) = ask(&app(&pool, COMPANY_IP), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["kind"].as_str(), v["impersonator"].as_i64()), (Some("anonymous"), Some(1)));
 }
 
 #[tokio::test]

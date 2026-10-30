@@ -166,18 +166,6 @@
 {"name": "wp-wel-bare-administrator-active-warm", "path": "/welcome-pages", "persona": "administrator-active", "language": "en", "session": "warm"}
 {"name": "wp-wel-bare-customer-active-fr-cold", "path": "/welcome-pages", "persona": "customer-active-fr", "language": "en", "session": "cold"}
 {"name": "wp-wel-bare-customer-active-fr-warm", "path": "/welcome-pages", "persona": "customer-active-fr", "language": "en", "session": "warm"}
-{"name": "php-dslash-anonymous-cold", "path": "//login.php", "persona": "anonymous", "language": "en", "session": "cold"}
-{"name": "php-dslash-anonymous-warm", "path": "//login.php", "persona": "anonymous", "language": "en", "session": "warm"}
-{"name": "php-dslash-customer-active-cold", "path": "//login.php", "persona": "customer-active", "language": "en", "session": "cold"}
-{"name": "php-dslash-customer-active-warm", "path": "//login.php", "persona": "customer-active", "language": "en", "session": "warm"}
-{"name": "php-info-anonymous-cold", "path": "/login.php/x", "persona": "anonymous", "language": "en", "session": "cold"}
-{"name": "php-info-anonymous-warm", "path": "/login.php/x", "persona": "anonymous", "language": "en", "session": "warm"}
-{"name": "php-info-customer-active-cold", "path": "/login.php/x", "persona": "customer-active", "language": "en", "session": "cold"}
-{"name": "php-info-customer-active-warm", "path": "/login.php/x", "persona": "customer-active", "language": "en", "session": "warm"}
-{"name": "php-slash-anonymous-cold", "path": "/login.php/", "persona": "anonymous", "language": "en", "session": "cold"}
-{"name": "php-slash-anonymous-warm", "path": "/login.php/", "persona": "anonymous", "language": "en", "session": "warm"}
-{"name": "php-slash-customer-active-cold", "path": "/login.php/", "persona": "customer-active", "language": "en", "session": "cold"}
-{"name": "php-slash-customer-active-warm", "path": "/login.php/", "persona": "customer-active", "language": "en", "session": "warm"}
 {"name": "php-dslash-newuser-anonymous-cold", "path": "//newuser.php", "persona": "anonymous", "language": "en", "session": "cold"}
 {"name": "php-dslash-newuser-anonymous-warm", "path": "//newuser.php", "persona": "anonymous", "language": "en", "session": "warm"}
 {"name": "php-dslash-newuser-customer-active-cold", "path": "//newuser.php", "persona": "customer-active", "language": "en", "session": "cold"}
@@ -190,12 +178,5 @@
 {"name": "php-enc-newuser-anonymous-warm", "path": "/newuser%2Ephp", "persona": "anonymous", "language": "en", "session": "warm"}
 {"name": "php-enc-newuser-customer-active-cold", "path": "/newuser%2Ephp", "persona": "customer-active", "language": "en", "session": "cold"}
 {"name": "php-enc-newuser-customer-active-warm", "path": "/newuser%2Ephp", "persona": "customer-active", "language": "en", "session": "warm"}
-{"name": "lc-noref-anonymous", "path": "/language_change.php?language_code=FR", "persona": "anonymous", "language": "en", "session": "warm"}
-{"name": "lc-ref-anonymous", "path": "/language_change.php?language_code=EN", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
-{"name": "lc-noref-customer-active", "path": "/language_change.php?language_code=FR", "persona": "customer-active", "language": "en", "session": "warm"}
-{"name": "lc-ref-customer-active", "path": "/language_change.php?language_code=EN", "persona": "customer-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
-{"name": "lc-noref-customer-pending", "path": "/language_change.php?language_code=FR", "persona": "customer-pending", "language": "en", "session": "warm"}
-{"name": "lc-ref-customer-pending", "path": "/language_change.php?language_code=EN", "persona": "customer-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
 {"name": "php-info-campaign-anonymous-warm", "path": "/campaign.php/x?campaign=SLIDE&scscpq_wp=1", "persona": "anonymous", "language": "en", "session": "warm"}
 {"name": "php-info-campaign-customer-active-warm", "path": "/campaign.php/x?campaign=SLIDE&scscpq_wp=1", "persona": "customer-active", "language": "en", "session": "warm"}
-{"name": "impersonate-form-administrator-active-warm", "path": "/user_impersonate.php?scscpq_wp=1", "persona": "administrator-active", "language": "en", "session": "warm"}

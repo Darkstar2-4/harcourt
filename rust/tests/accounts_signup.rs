@@ -171,6 +171,9 @@ async fn an_address_at_an_active_company_gets_a_code_and_the_right_code_signs_in
     assert!(session.contains("Max-Age=31536000"), "{session}");
     assert_eq!(scalar(&pool, "SELECT renew_secs FROM session WHERE email = 'pat@example.com'").await, 30 * 86400);
     assert_eq!(scalar(&pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'Remote Login' AND user_id = 5").await, 1);
+    let again = ajax(&app, &jar, &format!("action=remote&unlock_code={code}")).await;
+    assert_eq!(again.json()["html"]["unlock_code_error"], "Your access token has expired. A new token must be resent", "a code works once");
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
 
     let signed_in = format!("{jar}; {}", session.split(';').next().unwrap());
     let a = page(&app, &signed_in).await;

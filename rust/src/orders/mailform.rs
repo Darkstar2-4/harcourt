@@ -17,8 +17,6 @@ use crate::identity::Email;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Template {
-    pub code: String,
-    pub name: String,
     pub recipient: Option<Email>,
     pub bcc: Vec<Email>,
     pub css: String,
@@ -30,8 +28,7 @@ pub struct Template {
 /// The first template with this code, as `mailform->read($code, "code")` does. Inactive rows still send, as in PHP.
 pub async fn load(pool: &SqlitePool, code: &str) -> sqlx::Result<Option<Template>> {
     let row = sqlx::query!(
-        r#"SELECT coalesce(code, '') AS "code!: String", coalesce(name, '') AS "name!: String", recipient, bcc,
-                  coalesce(css, '') AS "css!: String", coalesce(subject, '') AS "subject!: String",
+        r#"SELECT recipient, bcc, coalesce(css, '') AS "css!: String", coalesce(subject, '') AS "subject!: String",
                   coalesce(header_html, '') AS "header_html!: String", coalesce(footer_html, '') AS "footer_html!: String"
            FROM mailform WHERE code = ?1 ORDER BY id LIMIT 1"#,
         code
@@ -39,8 +36,6 @@ pub async fn load(pool: &SqlitePool, code: &str) -> sqlx::Result<Option<Template
     .fetch_optional(pool)
     .await?;
     Ok(row.map(|r| Template {
-        code: r.code,
-        name: r.name,
         recipient: Email::parse(&r.recipient),
         bcc: parse_bcc(r.bcc.as_deref().unwrap_or("")),
         css: r.css,
@@ -137,10 +132,6 @@ impl Registry {
     pub fn get(&self, field: &str) -> &str {
         self.0.get(field).map_or("", String::as_str)
     }
-
-    pub fn from_pairs(pairs: &[(&str, &str)]) -> Self {
-        Registry(pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect())
-    }
 }
 
 /// What every HTML mail carries around its body: the base href and the stylesheet from the registry's `email`
@@ -160,7 +151,7 @@ impl Letterhead {
     }
 
     /// This base href and the stylesheet at `css_path` under the document root.
-    pub async fn read(docroot: &Path, base_href: &str, css_path: &str) -> Self {
+    async fn read(docroot: &Path, base_href: &str, css_path: &str) -> Self {
         let css = match safe_relative(css_path) {
             Some(rel) => tokio::fs::read_to_string(docroot.join(rel)).await.unwrap_or_default(),
             None => String::new(),
@@ -218,8 +209,6 @@ mod tests {
 
     fn template() -> Template {
         Template {
-            code: "checkout".into(),
-            name: "Check Out".into(),
             recipient: Email::parse("orders@example.com"),
             bcc: vec![Email::parse("copy@example.com").unwrap()],
             css: String::new(),
@@ -268,13 +257,14 @@ mod tests {
         assert_eq!(parse_bcc(r#"["a@example.com","junk"]"#).len(), 1);
         assert!(parse_bcc("null").is_empty() && parse_bcc("").is_empty());
         assert_eq!(safe_relative("/css/mail.css"), Some("css/mail.css"));
-        assert_eq!(safe_relative("/css/../../etc/passwd"), None);
+        assert_eq!(safe_relative("css//mail.css"), None);
         assert_eq!(safe_relative(""), None);
     }
 
     #[test]
     fn standard_tags_use_detroit_time() {
-        let m = Merge::standard(1_700_000_000, "192.0.2.1", "www.example.com", 7, "Test Co", &Registry::from_pairs(&[("name", "Example Inc")]));
+        let company = Registry(HashMap::from([("name".to_string(), "Example Inc".to_string())]));
+        let m = Merge::standard(1_700_000_000, "192.0.2.1", "www.example.com", 7, "Test Co", &company);
         assert_eq!(m.text("%scs_date% %scs_time% %scs_mdy% %scs_hhmm%"), "November 14, 2023 5:13 PM 11/14/2023 17:13");
         assert_eq!(m.text("%scs_company_name%|%scs_company_fax%"), "Example Inc|");
     }

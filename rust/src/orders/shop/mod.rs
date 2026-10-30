@@ -1,4 +1,4 @@
-//! The cart (cart.php), checkout (checkout.php) and the order viewer (orderhd.php).
+//! The cart (cart.php) and checkout (checkout.php).
 //!
 //! PHP kept the cart in `$_SESSION['cart']` with the price worked out when an item was added. Here the cart is a
 //! table keyed by the browser's visit (`CartKey`), and every price comes from `Pricing` when the cart is shown or
@@ -20,13 +20,9 @@ use crate::{
 
 pub mod cart;
 pub mod checkout;
-mod viewer;
 
 pub fn routes() -> Router<Arc<Orders>> {
-    Router::new()
-        .route("/cart.php", get(cart::page).post(cart::page))
-        .route("/checkout.php", get(checkout::page).post(checkout::page))
-        .route("/orderhd.php", get(viewer::page).post(viewer::page))
+    Router::new().route("/cart.php", get(cart::page).post(cart::page)).route("/checkout.php", get(checkout::page).post(checkout::page))
 }
 
 /// A signed-in account allowed to shop (`user.ecommerce`), in this browser session.

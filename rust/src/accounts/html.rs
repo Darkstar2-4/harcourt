@@ -57,7 +57,6 @@ pub fn escape(s: &str) -> String {
 enum Val {
     Text(String),
     Event(&'static str),
-    On,
 }
 
 /// The `$options` array of forms_rev2.php: attributes in the order they were added. `options()` groups them as
@@ -80,11 +79,6 @@ impl Opts {
 
     pub fn event(mut self, key: &'static str, js: &'static str) -> Opts {
         self.set(key, Val::Event(js));
-        self
-    }
-
-    pub fn flag(mut self, key: &'static str, on: bool) -> Opts {
-        self.set(key, if on { Val::On } else { Val::Text(String::new()) });
         self
     }
 
@@ -115,7 +109,7 @@ impl Opts {
                 self.set("id", Val::Text(field.into()));
             }
         }
-        let [mut name, mut value, mut event, mut boolean, mut html5, mut data] = Default::default();
+        let [mut name, mut value, mut event, mut html5, mut data] = Default::default();
         for (key, v) in self.0 {
             let bucket: &mut String = match (&v, key) {
                 (Val::Text(t), _) if t.is_empty() => continue,
@@ -125,15 +119,13 @@ impl Opts {
                 (Val::Text(_), _) => &mut value,
                 (Val::Event(_), k) if EVENT.contains(&k) => &mut event,
                 (Val::Event(_), _) => continue,
-                (Val::On, _) => &mut boolean,
             };
             match v {
                 Val::Text(t) => bucket.push_str(&format!(" {key}='{}'", escape(&t))),
                 Val::Event(js) => bucket.push_str(&format!(" {key}=\"javascript:{js}\"")),
-                Val::On => bucket.push_str(&format!(" {key}")),
             }
         }
-        [name, value, event, boolean, html5, data].concat()
+        [name, value, event, html5, data].concat()
     }
 }
 
@@ -171,48 +163,16 @@ pub fn submit(label: &str, opts: Opts) -> String {
     format!("<input type=submit {}>\n", o.render("").trim())
 }
 
-pub fn checkbox(field: &str, value: &str, checked: bool, opts: Opts) -> String {
-    let o = if opts.has("checked") { opts } else { opts.flag("checked", checked) };
-    let o = o.attr("value", value);
-    format!("<input type=checkbox {}>", o.render(field).trim())
-}
-
-pub enum Blank<'a> {
-    None,
-    Empty,
-    Label(&'a str),
-}
-
-/// forms_rev2.php select(): one `<option>` per (value, label), the matching value selected. Labels are escaped
-/// here, which the PHP left to its callers.
-pub fn select(field: &str, items: &[(String, String)], selected: &str, blank: Blank<'_>, opts: Opts) -> String {
-    let mut lines = vec![format!("<select{}>", opts.render(field))];
-    match blank {
-        Blank::None => {}
-        Blank::Empty => lines.push("<option></option>".into()),
-        Blank::Label(l) => lines.push(format!("<option value=''>{}</option>", escape(l))),
-    }
+/// forms_rev2.php select() with a labelled blank first: one `<option>` per (value, label), the matching value
+/// selected. Labels are escaped here, which the PHP left to its callers.
+pub fn select(field: &str, items: &[(String, String)], selected: &str, blank: &str, opts: Opts) -> String {
+    let mut lines = vec![format!("<select{}>", opts.render(field)), format!("<option value=''>{}</option>", escape(blank))];
     for (value, label) in items {
         let sel = if value == selected { " selected" } else { "" };
         lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), plain(label)));
     }
     lines.push("</select>".into());
     lines.push(String::new());
-    lines.join("\n")
-}
-
-/// forms_rev2.php optgroup(): a select whose options sit under group labels, the groups with no options left out.
-pub fn optgroup(field: &str, groups: &[(&str, Vec<(String, String)>)], selected: &str, opts: Opts) -> String {
-    let mut lines = vec![format!("<select{}>", opts.render(field))];
-    for (label, items) in groups.iter().filter(|(_, items)| !items.is_empty()) {
-        lines.push(format!("<optgroup label='{}'>", escape(label)));
-        for (value, text) in items {
-            let sel = if value == selected { " selected" } else { "" };
-            lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), plain(text)));
-        }
-        lines.push("</optgroup>".into());
-    }
-    lines.push("</select>".into());
     lines.join("\n")
 }
 
@@ -261,8 +221,6 @@ mod tests {
             button("Submit", Opts::new().attr("class", "g-recaptcha red-button").attr("id", "recaptcha_button").attr("data-sitekey", "K").attr("data-callback", "cb")),
             "<input type=button class='g-recaptcha red-button' id='recaptcha_button' value='Submit' data-sitekey='K' data-callback='cb'>\n"
         );
-        assert_eq!(checkbox("visitor", "1", true, Opts::new()), "<input type=checkbox name='visitor' id='visitor' value='1' checked>");
-        assert_eq!(checkbox("visitor", "1", false, Opts::new()), "<input type=checkbox name='visitor' id='visitor' value='1'>");
         assert_eq!(
             form_open("/newuser.php", Opts::new().event("onsubmit", "return false;")),
             "<form name='scs_form' id='scs_form' onsubmit=\"javascript:return false;\" method=post action='/newuser.php' accept-charset='utf-8' autocomplete=on>\n"
@@ -270,17 +228,17 @@ mod tests {
     }
 
     #[test]
-    fn visitor_text_cannot_break_out_of_an_attribute() {
-        let out = text("email", "x' onmouseover='alert(1)", 50, None, Opts::new());
-        assert!(out.contains("value='x&#039; onmouseover=&#039;alert(1)'"), "{out}");
+    fn quotes_in_visitor_text_stay_inside_the_attribute() {
+        let out = text("company", "O'Brien & Sons", 50, None, Opts::new());
+        assert!(out.contains("value='O&#039;Brien &amp; Sons'"), "{out}");
     }
 
     #[test]
     fn select_marks_the_choice() {
         let items = vec![("EN".to_string(), "English".to_string()), ("FR".to_string(), "Français".to_string())];
         assert_eq!(
-            select("lang", &items, "FR", Blank::None, Opts::new()),
-            "<select name='lang' id='lang'>\n<option value='EN'>English</option>\n<option value='FR' selected>Français</option>\n</select>\n"
+            select("lang", &items, "FR", "Language", Opts::new()),
+            "<select name='lang' id='lang'>\n<option value=''>Language</option>\n<option value='EN'>English</option>\n<option value='FR' selected>Français</option>\n</select>\n"
         );
     }
 }

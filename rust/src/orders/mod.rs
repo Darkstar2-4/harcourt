@@ -1,26 +1,21 @@
-//! Orders: the cart, checkout and the order viewer (`shop`), the site's forms (`forms`), the other order-side pages
-//! (`pages`), and outgoing mail (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the session
-//! extractors reach the shared `Auth` through it.
+//! Orders: the cart and checkout (`shop`), the site's forms (`forms`), the contact page (`pages`), and outgoing mail
+//! (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the extractors reach the shared `Auth`
+//! through it.
 
 use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
 
 use percent_encoding::percent_decode_str;
 
 use axum::{
-    extract::{FromRequest, FromRequestParts, Request, State},
+    extract::{FromRequestParts, Request, State},
     http::{header, request::Parts, Method, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     Router,
 };
 
-pub use crate::staff::{
-    csrf::{Posted, Rejected},
-    Staff,
-};
 use crate::{
-    api::{ApiError, Auth, Authed, ClientIp, MinRole},
-    identity::Role,
+    api::{Auth, ClientIp},
     visitor::Visitor,
 };
 
@@ -80,14 +75,6 @@ impl FromRequestParts<Arc<Orders>> for Visitor {
     }
 }
 
-impl<R: MinRole> FromRequestParts<Arc<Orders>> for Authed<R> {
-    type Rejection = ApiError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, ApiError> {
-        Authed::<R>::from_request_parts(parts, &state.core).await
-    }
-}
-
 /// PHP's `$_REQUEST` for a urlencoded request: query fields, then body fields over them; the last repeat wins.
 pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> {
     let decode = |s: &str| percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
@@ -98,37 +85,6 @@ pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> 
         out.insert(decode(k), decode(v));
     }
     out
-}
-
-/// A staff page changes data only for a POST that returns the form's token; a GET never does.
-pub fn may_change<R: MinRole>(method: &Method, staff: &Staff<R>, params: &HashMap<String, String>) -> bool {
-    *method == Method::POST && staff.csrf.matches(params.get(crate::staff::csrf::FIELD).map_or("", String::as_str))
-}
-
-pub struct Executive;
-pub struct SuperUser;
-impl MinRole for Executive {
-    const ROLE: Role = Role::Executive;
-}
-impl MinRole for SuperUser {
-    const ROLE: Role = Role::SuperUser;
-}
-
-/// The gate of a staff page is the staff module's: `Staff<R>` over the same core state.
-impl<R: MinRole + Send + Sync + 'static> FromRequestParts<Arc<Orders>> for Staff<R> {
-    type Rejection = Response;
-
-    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
-        Staff::<R>::from_request_parts(parts, &state.core).await
-    }
-}
-
-impl FromRequest<Arc<Orders>> for Posted {
-    type Rejection = Rejected;
-
-    async fn from_request(req: Request, state: &Arc<Orders>) -> Result<Self, Rejected> {
-        Posted::from_request(req, &state.core).await
-    }
 }
 
 impl FromRequestParts<Arc<Orders>> for ClientIp {

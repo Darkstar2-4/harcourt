@@ -70,11 +70,6 @@ pub async fn lookup(pool: &SqlitePool, token: &Token, now: i64) -> sqlx::Result<
     Ok(User::from_row(r.id, &r.status, &r.ty, r.company_name).map(|user| Session { user, email: r.email }))
 }
 
-/// Every sign-in of this person, on every browser (staff revoking a remote address).
-pub async fn destroy_for_email(pool: &SqlitePool, email: &str) -> sqlx::Result<u64> {
-    Ok(sqlx::query!("DELETE FROM session WHERE email = ?1", email).execute(pool).await?.rows_affected())
-}
-
 pub async fn destroy(pool: &SqlitePool, token: &Token) -> sqlx::Result<()> {
     let hash = token.hash();
     let hash = hash.as_slice();

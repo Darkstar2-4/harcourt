@@ -238,7 +238,7 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
             return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
         }
     };
-    if let Some(log) = q.get("local_log").and_then(|l| Download::parse(l)).filter(|_| visitor.impersonator.is_none()) {
+    if let Some(log) = q.get("local_log").and_then(|l| Download::parse(l)) {
         if let Err(e) = log.record(&core.pool, &visitor).await {
             tracing::warn!("scs_file: download log: {e}");
         }

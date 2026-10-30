@@ -82,7 +82,6 @@ async fn read(pool: &SqlitePool, code: &str) -> sqlx::Result<Option<Campaign>> {
 /// address the browser remembers.
 struct Reader {
     signed_in: Option<(i64, Status, String)>,
-    impersonating: bool,
     cookie: String,
 }
 
@@ -95,7 +94,7 @@ impl Reader {
             (None, None) => None,
         };
         let cookie = cookies::get(headers, cookies::EMAIL).filter(|c| !matches!(c.as_str(), "" | "0")).unwrap_or_default();
-        Reader { signed_in, impersonating: visitor.impersonator.is_some(), cookie }
+        Reader { signed_in, cookie }
     }
 }
 
@@ -188,7 +187,7 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
             if error.is_some() {
                 notes.error("email", None);
             }
-            if let (false, false, Some(email)) = (notes.has_errors(), reader.impersonating, Email::parse(&typed.email)) {
+            if let (false, Some(email)) = (notes.has_errors(), Email::parse(&typed.email)) {
                 let user_agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
                 let ctx = admission::Context { ip: &ip, user_agent, dns_name: None, now };
                 let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
@@ -208,15 +207,13 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                 notes.error("email", None);
             } else {
                 set_cookies.extend(cookies::php_year(cookies::EMAIL, &typed.email, now));
-                if !reader.impersonating {
-                    let who = Subject {
-                        ip: &ip,
-                        user_id: reader.signed_in.as_ref().map_or(0, |s| s.0),
-                        bot_id: visitor.bot().map_or(0, |b| b.id),
-                        email: Some(&typed.email),
-                    };
-                    log::record(pool, Kind::UserEmail, &who, "").await;
-                }
+                let who = Subject {
+                    ip: &ip,
+                    user_id: reader.signed_in.as_ref().map_or(0, |s| s.0),
+                    bot_id: visitor.bot().map_or(0, |b| b.id),
+                    email: Some(&typed.email),
+                };
+                log::record(pool, Kind::UserEmail, &who, "").await;
                 reader.cookie = typed.email.clone();
             }
         }
