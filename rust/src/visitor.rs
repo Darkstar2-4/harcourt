@@ -47,7 +47,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use percent_encoding::percent_decode_str;
+use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use rand::{rngs::OsRng, RngCore};
 use sqlx::SqlitePool;
 
@@ -504,8 +504,13 @@ fn php_script(raw: &str) -> Option<(String, String)> {
     if decoded.ends_with('/') {
         php_self.push('/');
     }
-    (script != raw).then_some((script, php_self))
+    // Routed by the file's name as a path again: a `%` or `?` in the name stays part of it.
+    let routed = utf8_percent_encode(&script, SCRIPT_PATH).to_string();
+    (routed != raw).then_some((routed, php_self))
 }
+
+/// What a decoded script name must have encoded to be a request path naming the same file.
+const SCRIPT_PATH: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'#').add(b'%').add(b'<').add(b'>').add(b'?').add(b'`').add(b'{').add(b'}');
 
 /// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
 const PHP_SESSION: &str = "PHPSESSID";
@@ -822,6 +827,8 @@ mod tests {
         assert_eq!(s("/oauth//callback.php"), both("/oauth/callback.php", "/oauth/callback.php"));
         assert_eq!(s("/x/../login.php"), both("/login.php", "/login.php"));
         assert_eq!(s("/login.php/../catalog.php/y"), both("/catalog.php", "/catalog.php/y"));
+        assert_eq!(s("//50%25off.php"), both("/50%25off.php", "/50%off.php"), "a % in the file's name stays in it");
+        assert_eq!(s("/50%25off.php"), None);
         for unchanged in ["/login.php", "/oauth/callback.php", "/catalog/", "/", "//catalog/", "/login.php%2Fx", "/%2Flogin.php", "/login.PHP/x", "/%ff.php/x"] {
             assert_eq!(s(unchanged), None, "{unchanged}");
         }
