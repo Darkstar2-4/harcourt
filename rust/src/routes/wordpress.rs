@@ -746,11 +746,16 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     // The catalog page in its own language is composed around the catalog (main.rs hands it to compose.rs);
     // WordPress's answers to the rest (its redirects, a form post) stay here.
     if crate::catalog::composed_page(uri.path(), uri.query().unwrap_or("")).is_some() {
-        let mut r = Response::new(Body::empty());
-        r.headers_mut().insert("x-hxweb", HeaderValue::from_static("compose"));
-        return r;
+        return handback("compose");
     }
     serve(&wp, &uri, &headers, None, true).await
+}
+
+/// A GET main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export.
+fn handback(to: &'static str) -> Response<Body> {
+    let mut r = Response::new(Body::empty());
+    r.headers_mut().insert("x-hxweb", HeaderValue::from_static(to));
+    r
 }
 
 /// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
@@ -857,7 +862,7 @@ enum Shown<'a> {
 }
 
 /// What `shown` is as WordPress printed it at `uri`. A post the theme does not render (the blog's, a case study, a
-/// testimonial) or one the export recorded no head for gets the 404 page.
+/// testimonial) or one the export recorded no head for gets the 404 page; such a page goes to the static export.
 #[allow(clippy::too_many_arguments)]
 async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, get: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
@@ -882,6 +887,10 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
         }
         Shown::NotFound => None,
     };
+    // A page whose template the cms does not render yet (a builder part not ported) is served from the static export.
+    if rendered.is_none() && get && page.is_some_and(|p| p.kind == PostType::Page) {
+        return handback("export");
+    }
     let (status, html, islands, lang, wp_uri) = match rendered {
         Some(r) => r,
         // An import without WordPress's 404 page left nothing to render it from.

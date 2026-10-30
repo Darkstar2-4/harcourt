@@ -176,6 +176,18 @@ async fn a_post_the_export_left_out_is_not_found() {
 }
 
 #[tokio::test]
+async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (437, 437, 'en', '/innovations/example-builder/', 'layouts/template-product-boxjoint.php', 'publish', 'Example', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let res = app.clone().oneshot(Request::builder().uri("/innovations/example-builder/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "main.rs serves it from the export");
+    assert_eq!(send(&app, Method::POST, "/innovations/example-builder/").await.0, StatusCode::NOT_FOUND, "only a GET is handed over");
+}
+
+#[tokio::test]
 async fn sitemaps_list_the_pages_as_wpml_links_them() {
     let (app, _) = harness().await;
     let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;

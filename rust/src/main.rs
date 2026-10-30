@@ -1,6 +1,7 @@
 //! hxweb: www.harcourt.co. The library's routes answer every page (routes/), the catalog pages are composed in one
-//! response (compose.rs), and the static files come from one asset directory (assets.rs). The old PHP and WordPress
-//! addresses that nothing answers get 410 (retired.rs).
+//! response (compose.rs), a page the cms does not render yet comes from the static export (pages.rs), and the
+//! static files come from one asset directory (assets.rs). The old PHP and WordPress addresses that nothing
+//! answers get 410 (retired.rs).
 
 mod compose;
 mod pages;
@@ -134,14 +135,15 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
 }
 
 /// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs. A
-/// GET a route hands back goes to `dispatch`: the catalog page (`x-hxweb: compose`) to the composer, a shape the
-/// route does not answer (`x-hxweb: legacy`) to what an unclaimed path gets.
+/// GET a route hands back goes to `dispatch`: the catalog page (`x-hxweb: compose`) to the composer, a page the cms
+/// does not render (`export`) to the static export, a shape the route does not answer (`legacy`) to what an
+/// unclaimed path gets.
 async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum::middleware::Next) -> Response<Body> {
     let again = (req.method() == Method::GET || req.method() == Method::HEAD).then(|| {
         (req.method().clone(), req.uri().clone(), req.headers().clone(), req.extensions().get::<ConnectInfo<SocketAddr>>().cloned())
     });
     let resp = next.run(req).await;
-    let handed_back = resp.headers().get("x-hxweb").is_some_and(|v| v == "compose" || v == "legacy");
+    let handed_back = resp.headers().get("x-hxweb").is_some_and(|v| v == "compose" || v == "export" || v == "legacy");
     if let Some((method, uri, headers, peer)) = again.filter(|_| handed_back) {
         let mut req = Request::new(Body::empty());
         *req.method_mut() = method;
@@ -163,12 +165,17 @@ async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum:
     Response::from_parts(parts, Body::from(pages::finish(&app, String::from_utf8_lossy(&bytes).into_owned())))
 }
 
-/// What no route answers: the composed catalog page, the old stack's 410, or 404.
+/// What no route answers: the composed catalog page, a page from the static export, the old stack's 410, or 404.
 async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {
     let path = req.uri().path();
-    let composed = hxweb::catalog::composed_page(path, req.uri().query().unwrap_or("")).is_some();
-    if (req.method() == Method::GET || req.method() == Method::HEAD) && composed {
-        return compose::handle(&app, req).await;
+    let query = req.uri().query().unwrap_or("");
+    if req.method() == Method::GET || req.method() == Method::HEAD {
+        if hxweb::catalog::composed_page(path, query).is_some() {
+            return compose::handle(&app, req).await;
+        }
+        if let Some(page) = app.pages.serve(&app, path, query).await {
+            return page;
+        }
     }
     if let Some(gone) = hxweb::retired::guard(path) {
         return gone;
