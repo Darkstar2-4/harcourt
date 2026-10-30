@@ -33,7 +33,10 @@ use super::{
 use crate::{api::Auth, db::unix_now, pricing::PriceBook, visitor::Visitor};
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/catalog.php", get(catalog_php)).route("/document_viewer.php", get(document_viewer))
+    Router::new()
+        .route("/catalog.php", get(catalog_php))
+        .route("/new_catalog.php", get(catalog_php))
+        .route("/document_viewer.php", get(document_viewer))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.

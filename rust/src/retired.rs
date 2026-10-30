@@ -13,7 +13,8 @@ use percent_encoding::percent_decode_str;
 
 /// scs_remote.php: `action=access` set the session user from an unsigned code with no sign-in. Replaced by
 /// remote_grant.rs (POST /api/remote/grants, POST /api/remote/redeem).
-/// beta_authorize.php: a diagnostic script with no traffic and no replacement.
+/// beta_authorize.php: a diagnostic script with no traffic and no replacement. image_viewer.php: served a file named
+/// in the PHP session, which no longer exists.
 ///
 /// The web SQL consoles, PHP diagnostics and developer toolboxes have no replacement: staff use the SQLite CLI and
 /// the server shell.
@@ -35,6 +36,7 @@ const RETIRED: &[&str] = &[
     "scs_php_toolbox.php",
     "jquery_toolbox.php",
     "beta_authorize.php",
+    "image_viewer.php",
 ];
 
 pub fn is_retired(raw_path: &str) -> bool {

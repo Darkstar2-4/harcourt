@@ -26,6 +26,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/scs_file.php", get(scs_file))
         .route("/customer_portal.php", get(customer_portal))
         .route("/scs_index.php", get(|| async { Redirect::permanent("/") }))
+        .route("/beta.php", get(|| async { Redirect::permanent("/") }))
 }
 
 /// What a content row is attached to, which decides who may fetch it.
