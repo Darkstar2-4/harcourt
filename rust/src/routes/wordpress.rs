@@ -78,7 +78,8 @@ const PAGES: [&str; 41] = [
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.
-const ROBOTS: &str = include_str!("../../../robots.txt");
+// A copy of the docroot's robots.txt, so the crate builds from rust/ alone.
+const ROBOTS: &str = include_str!("../../assets/robots.txt");
 
 pub struct Wp {
     core: Arc<Auth>,
