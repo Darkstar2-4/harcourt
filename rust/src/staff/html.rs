@@ -6,6 +6,7 @@
 //! most of them raw. Attribute values given in `Opts` are markup the page wrote, built from literals and `js`.
 
 use base64::{engine::general_purpose::STANDARD, Engine};
+use rust_decimal::{Decimal, RoundingStrategy};
 
 pub fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -708,6 +709,17 @@ pub fn page_items(found_rows: i64, page: i64, script: &str) -> String {
     }
     out.push("</p>".into());
     out.join("\n")
+}
+
+/// number_format() of a positive decimal with thousands commas; empty for zero, as the decimal type showed it.
+pub fn amount(d: &Decimal, places: u32) -> String {
+    if d.is_zero() {
+        return String::new();
+    }
+    let s = format!("{:.*}", places as usize, d.round_dp_with_strategy(places, RoundingStrategy::MidpointAwayFromZero));
+    let (int, frac) = s.split_once('.').map_or((s.as_str(), None), |(i, f)| (i, Some(f)));
+    let int = number(int.parse::<i64>().unwrap_or(0));
+    frac.map_or(int.clone(), |f| format!("{int}.{f}"))
 }
 
 /// number_format() with no decimals.

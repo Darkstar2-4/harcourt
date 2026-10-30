@@ -29,3 +29,7 @@
 {"name":"prj-import","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
 {"name":"prj-import-no-file","method":"POST","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=upload&filename=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"prj-import-cancel","method":"POST","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&filename=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"increase-anonymous","path":"/inventory_increase.php","persona":"anonymous"}
+{"name":"increase","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"increase-percent-errors","method":"POST","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=percent&percent=150&fixed=&subcategory_390=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"increase-fixed-no-subcategory","method":"POST","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=fixed&percent=&fixed=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}

@@ -9,16 +9,16 @@ use std::{str::FromStr, sync::Arc};
 
 use axum::{extract::State, response::Response, routing::get, Router};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use rust_decimal::{Decimal, RoundingStrategy};
+use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::SqlitePool;
 
 use super::{
     catalog::{self, Subcategory},
-    check::posted_text,
+    check::{posted_number, posted_text},
     choices,
     csrf::{Fields, Posted, Upload},
-    html::{button, close, hidden, href, js, list_options, open, php_float, text, Blank, Form, Notes, Opts, Tabs},
+    html::{amount, button, close, hidden, href, js, list_options, open, php_float, text, Blank, Form, Notes, Opts, Tabs},
     phpser::{self, Php},
     shell, time, Staff,
 };
@@ -64,9 +64,9 @@ impl Action {
 
 /// One price break: from this quantity up, this price.
 #[derive(Debug, Clone, PartialEq)]
-struct Break {
-    qty: Decimal,
-    price: Decimal,
+pub(super) struct Break {
+    pub(super) qty: Decimal,
+    pub(super) price: Decimal,
 }
 
 /// The part being edited, as inventory_data_class held it.
@@ -118,12 +118,12 @@ fn decimal(p: Option<&Php>) -> Decimal {
     p.map(Php::text).and_then(|s| Decimal::from_str(s.trim()).or_else(|_| Decimal::from_scientific(s.trim())).ok()).unwrap_or_default()
 }
 
-fn pricing(stored: &str) -> Vec<Break> {
+pub(super) fn pricing(stored: &str) -> Vec<Break> {
     phpser::parse(stored).map(|v| v.entries().iter().map(|(_, b)| Break { qty: decimal(b.get("qty_break")), price: decimal(b.get("price")) }).collect()).unwrap_or_default()
 }
 
 /// The breaks as the PHP serialized them: the first quantity an integer, later ones floats.
-fn pricing_text(breaks: &[Break]) -> String {
+pub(super) fn pricing_text(breaks: &[Break]) -> String {
     let number = |d: &Decimal, first: bool| if first { Php::Int(0) } else { Php::Float(d.normalize().to_string()) };
     let entries = breaks
         .iter()
@@ -293,17 +293,6 @@ fn file_kind(name: &str) -> (&'static str, &'static str) {
 async fn languages(pool: &SqlitePool) -> sqlx::Result<Vec<(String, String)>> {
     let rows = sqlx::query!("SELECT code, name FROM language WHERE active = 1 ORDER BY priority, name COLLATE NOCASE").fetch_all(pool).await?;
     Ok(rows.into_iter().map(|r| (r.code, r.name)).collect())
-}
-
-/// fn_number($text, $decimals): the digits of the text rounded as number_format() rounds, a hundredth if it holds %.
-fn posted_number(s: &str, decimals: u32) -> Decimal {
-    let n = Decimal::try_from(catalog::php_floatval(&s.chars().filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-')).collect::<String>())).unwrap_or_default();
-    let n = n.round_dp_with_strategy(decimals, RoundingStrategy::MidpointAwayFromZero);
-    if s.contains('%') {
-        n / Decimal::ONE_HUNDRED
-    } else {
-        n
-    }
 }
 
 /// competitor_sku(): one SKU per line, upper-cased, at least three characters, no commas; sorted and unique.
@@ -514,17 +503,6 @@ async fn delete(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
     sqlx::query!("DELETE FROM inventory WHERE id = ?1", id).execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM content WHERE record_type = 'inventory' AND record_id = ?1", id).execute(&mut *tx).await?;
     tx.commit().await
-}
-
-/// number_format() of a positive decimal with thousands commas; empty for zero, as the decimal type showed it.
-fn amount(d: &Decimal, places: u32) -> String {
-    if d.is_zero() {
-        return String::new();
-    }
-    let s = format!("{:.*}", places as usize, d.round_dp_with_strategy(places, RoundingStrategy::MidpointAwayFromZero));
-    let (int, frac) = s.split_once('.').map_or((s.as_str(), None), |(i, f)| (i, Some(f)));
-    let int = super::html::number(int.parse::<i64>().unwrap_or(0));
-    frac.map_or(int.clone(), |f| format!("{int}.{f}"))
 }
 
 async fn sku_tab(pool: &SqlitePool, form: &Form<'_>, item: &Item, sub: Option<&Subcategory>, record_id: &str) -> sqlx::Result<Vec<String>> {

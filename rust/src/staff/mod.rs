@@ -29,6 +29,7 @@ pub mod time;
 pub mod company;
 pub mod dashboard;
 pub mod grants;
+pub mod increase;
 pub mod inventory;
 pub mod jobs;
 pub mod log;
@@ -86,6 +87,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(company::routes())
         .merge(dashboard::routes())
         .merge(grants::routes())
+        .merge(increase::routes())
         .merge(inventory::routes())
         .merge(log::routes())
         .merge(prj::routes())

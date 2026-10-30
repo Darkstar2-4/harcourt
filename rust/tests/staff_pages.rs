@@ -364,3 +364,24 @@ async fn a_prj_import_is_reviewed_then_applied() {
     let prj: String = sqlx::query_scalar("SELECT prj FROM inventory WHERE id = 700").fetch_one(&h.pool).await.unwrap();
     assert_eq!(prj, "prjCatalog=h&prjNode=n&prjName=TP&values=v");
 }
+
+#[tokio::test]
+async fn a_price_increase_raises_every_break_of_the_chosen_subcategories() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "UPDATE subcategory SET output = '' WHERE id = 50").await;
+    exec(&h.pool, "UPDATE inventory SET pricing = 'a:2:{i:0;O:23:\"inventory_pricing_class\":2:{s:5:\"price\";d:10;s:9:\"qty_break\";i:0;}i:1;O:23:\"inventory_pricing_class\":2:{s:5:\"price\";d:9.5;s:9:\"qty_break\";d:5;}}' WHERE id = 700").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/inventory_increase.php", Some(&admin))).await;
+    assert!(page.contains("<p class='message left'>Inventory Price Increase<span class=message2><br>Revised 12/19/2023</span></p>"));
+    assert!(page.contains("<input type=hidden name='count_subcategory_50' class='count' id='count_subcategory_50' value='2'>\n<tr><td rowspan=1><input type=checkbox class='subcategory_all' name='category_5' id='category_5' value='1' onclick=\"javascript:select_group('category_5',this.checked);\"> Alignment</td>"));
+    assert!(page.contains("<td class=right>2</td><td>Never</td></tr>"));
+    let (_, _, page) = submit(&h, "/inventory_increase.php", &admin, &[("action", "percent"), ("percent", "10"), ("subcategory_50", "1")]).await;
+    assert!(page.contains("<br><br>Subcategories: 1<br>Increase: 10.00%<br>SKUs updated: 1 SKUs skipped: 1<br>Elapsed time: "), "{page}");
+    let pricing: String = sqlx::query_scalar("SELECT pricing FROM inventory WHERE id = 700").fetch_one(&h.pool).await.unwrap();
+    assert!(pricing.contains("d:11;") && pricing.contains("d:10.45;"), "{pricing}");
+    let stamped: i64 = sqlx::query_scalar("SELECT price_increase FROM subcategory WHERE id = 50").fetch_one(&h.pool).await.unwrap();
+    assert!(stamped > 0);
+    let logged: String = sqlx::query_scalar("SELECT subtype FROM log WHERE type = 'Import Table'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(logged, "Price Increase: Percent");
+}

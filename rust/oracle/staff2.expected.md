@@ -57,3 +57,12 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
   links in a hidden `prj_rows` field (JSON), and the update reads them from there.
 - **"Not Changed" lists each SKU.** The PHP printed the last SKU of the file once per unchanged part.
 - The PHP's `Import: Inventory PRJ` log call wrote nothing (no such log type), so there is none.
+
+### inventory_increase.php (`/inventory_increase.php`)
+
+- **Decimal prices.** Breaks are raised in decimal, so a stored price reads `13.53` where PHP's float sum could
+  store `13.530000000000001`.
+- **One log row.** The PHP logged "Update failed" first and rewrote the row when done. Each subcategory is raised in
+  one transaction here, so the `Import Table` / `Price Increase: …` row is written once, at the end.
+- No case runs an increase on the oracle, because it would change its prices; the cases cover the form and its
+  errors.
