@@ -354,23 +354,34 @@ fn send(s: &Sent) -> Result<StatusCode, TestCaseError> {
     Ok(status)
 }
 
-/// Runs one shard of requests and prints how they were answered, and the paths that answered 5xx (a page that
+/// Where a 5xx came from: the path up to its script, or its first two segments.
+fn origin_of(target: &str) -> String {
+    let path = target.split('?').next().unwrap_or("");
+    match path.to_ascii_lowercase().find(".php") {
+        Some(i) => path[..i + 4].to_string(),
+        None => path.split('/').take(3).collect::<Vec<_>>().join("/"),
+    }
+}
+
+/// Runs one shard of requests and prints how they were answered, and where the 5xx answers came from (a page that
 /// fails as its PHP did, or a database error), for a person to read.
 fn run_shard(n: u64) {
     let statuses = Mutex::new(BTreeMap::<u16, u64>::new());
-    let failing = Mutex::new(BTreeSet::<String>::new());
+    let failing = Mutex::new(BTreeMap::<String, u64>::new());
     let mut runner = TestRunner::new(shard(1000, 5, n));
     let result = runner.run(&request(), |s| {
         let status = send(&s)?;
         *statuses.lock().unwrap().entry(status.as_u16()).or_default() += 1;
         if status.is_server_error() {
-            failing.lock().unwrap().insert(format!("{} {} {}", status.as_u16(), s.method, s.target.split('?').next().unwrap_or("")));
+            *failing.lock().unwrap().entry(format!("{} {} {}", status.as_u16(), s.method, origin_of(&s.target))).or_default() += 1;
         }
         Ok(())
     });
     eprintln!("router shard {n}: {} paths, {} field names; statuses {:?}", claimed().len(), field_names().len(), statuses.lock().unwrap());
-    for f in failing.lock().unwrap().iter().take(40) {
-        eprintln!("router shard {n}: {f}");
+    let mut failing: Vec<(String, u64)> = failing.into_inner().unwrap().into_iter().collect();
+    failing.sort_by_key(|f| std::cmp::Reverse(f.1));
+    for (f, count) in failing.iter().take(60) {
+        eprintln!("router shard {n}: {count} x {f}");
     }
     if let Err(e) = result {
         panic!("{e}");
