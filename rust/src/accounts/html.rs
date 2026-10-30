@@ -79,19 +79,25 @@ impl Opts {
                 self.set("id", Val::Text(field.into()));
             }
         }
-        let (mut name, mut value, mut event, mut boolean, mut data) = (String::new(), String::new(), String::new(), String::new(), String::new());
+        let [mut name, mut value, mut event, mut boolean, mut html5, mut data] = Default::default();
         for (key, v) in self.0 {
+            let bucket: &mut String = match (&v, key) {
+                (Val::Text(t), _) if t.is_empty() => continue,
+                (Val::Text(_), k) if k.starts_with("data-") => &mut data,
+                (Val::Text(_), "placeholder") => &mut html5,
+                (Val::Text(_), k) if NAME.contains(&k) => &mut name,
+                (Val::Text(_), _) => &mut value,
+                (Val::Event(_), k) if EVENT.contains(&k) => &mut event,
+                (Val::Event(_), _) => continue,
+                (Val::On, _) => &mut boolean,
+            };
             match v {
-                Val::Text(t) if t.is_empty() => {}
-                Val::Text(t) if key.starts_with("data-") => data.push_str(&format!(" {key}='{}'", escape(&t))),
-                Val::Text(t) if NAME.contains(&key) => name.push_str(&format!(" {key}='{}'", escape(&t))),
-                Val::Text(t) => value.push_str(&format!(" {key}='{}'", escape(&t))),
-                Val::Event(js) if EVENT.contains(&key) => event.push_str(&format!(" {key}=\"javascript:{js}\"")),
-                Val::Event(_) => {}
-                Val::On => boolean.push_str(&format!(" {key}")),
+                Val::Text(t) => bucket.push_str(&format!(" {key}='{}'", escape(&t))),
+                Val::Event(js) => bucket.push_str(&format!(" {key}=\"javascript:{js}\"")),
+                Val::On => bucket.push_str(&format!(" {key}")),
             }
         }
-        format!("{name}{value}{event}{boolean}{data}")
+        [name, value, event, boolean, html5, data].concat()
     }
 }
 
@@ -101,12 +107,22 @@ pub fn hidden(field: &str, value: &str, class: &str) -> String {
 }
 
 pub fn text(field: &str, value: &str, size: u32, maxlength: Option<u32>, opts: Opts) -> String {
+    input("text", field, value, size, maxlength, opts)
+}
+
+/// forms_rev2.php text() with its `$type` (text, email, password and the other HTML5 input types).
+pub fn input(kind: &'static str, field: &str, value: &str, size: u32, maxlength: Option<u32>, opts: Opts) -> String {
     let mut o = opts.attr("size", size.to_string());
     if let Some(m) = maxlength.filter(|m| *m > 0) {
         o = o.attr("maxlength", m.to_string());
     }
     let o = o.attr("value", value);
-    format!("<input type=text {}>\n", o.render(field).trim())
+    format!("<input type={kind} {}>\n", o.render(field).trim())
+}
+
+/// forms_rev2.php font(). Both parts are markup the caller built.
+pub fn font(color: &str, inner: &str, after: &str) -> String {
+    format!("<font color={color}>{inner}</font>{after}")
 }
 
 pub fn button(label: &str, opts: Opts) -> String {
@@ -179,6 +195,14 @@ mod tests {
             "<input type=button class='red-button' value='Go' onclick=\"javascript:go();\">\n"
         );
         assert_eq!(submit("Go!", Opts::new()), "<input type=submit class='nav_button' value='Go!'>\n");
+        assert_eq!(
+            input("email", "profile_email", "a@b.co", 40, Some(60), Opts::new().attr("class", "scscpq_input").attr("placeholder", "Email")),
+            "<input type=email class='scscpq_input' name='profile_email' id='profile_email' size='40' maxlength='60' value='a@b.co' placeholder='Email'>\n"
+        );
+        assert_eq!(
+            button("Submit", Opts::new().attr("class", "g-recaptcha red-button").attr("id", "recaptcha_button").attr("data-sitekey", "K").attr("data-callback", "cb")),
+            "<input type=button class='g-recaptcha red-button' id='recaptcha_button' value='Submit' data-sitekey='K' data-callback='cb'>\n"
+        );
         assert_eq!(checkbox("visitor", "1", true, Opts::new()), "<input type=checkbox name='visitor' id='visitor' value='1' checked>");
         assert_eq!(checkbox("visitor", "1", false, Opts::new()), "<input type=checkbox name='visitor' id='visitor' value='1'>");
         assert_eq!(

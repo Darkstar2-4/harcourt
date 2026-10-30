@@ -2,6 +2,7 @@
 //! it is built from (the account row, bots, campaigns, language and currency) and the sign-in and sign-up flows.
 
 pub mod account;
+pub mod admission;
 pub mod bot;
 pub mod campaign;
 pub mod clock;
@@ -10,7 +11,10 @@ pub mod html;
 pub mod locale;
 pub mod log;
 pub mod oauth;
+pub mod profile;
+pub mod recaptcha;
 pub mod registry;
+pub mod signup;
 
 use std::time::Duration;
 
