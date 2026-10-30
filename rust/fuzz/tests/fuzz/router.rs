@@ -163,28 +163,33 @@ async fn seed(pool: &SqlitePool) -> Vec<Persona> {
     personas
 }
 
+/// Each shard's own server and database, so shards run side by side.
 fn world() -> &'static World {
-    static WORLD: OnceLock<World> = OnceLock::new();
-    WORLD.get_or_init(|| {
-        for proxy in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"] {
-            std::env::set_var(proxy, "http://127.0.0.1:9");
-        }
-        let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
-        let (app, personas) = rt.block_on(async {
-            let pool = db::open_memory().await.unwrap();
-            let personas = seed(&pool).await;
-            let auth = Arc::new(Auth {
-                pool,
-                secret: Some(Secret::from_bytes(vec![7; 32])),
-                public_origin: "https://www.harcourt.co".into(),
-                trusted_proxies: vec!["127.0.0.1".parse().unwrap()],
-                accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
-            });
-            let app = routes::all(auth).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
-            (tower::ServiceBuilder::new().map_request(apache_paths as fn(Request) -> Request).service(app), personas)
+    thread_local! {
+        static WORLD: &'static World = Box::leak(Box::new(new_world()));
+    }
+    WORLD.with(|w| *w)
+}
+
+fn new_world() -> World {
+    for proxy in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"] {
+        std::env::set_var(proxy, "http://127.0.0.1:9");
+    }
+    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let (app, personas) = rt.block_on(async {
+        let pool = db::open_memory().await.unwrap();
+        let personas = seed(&pool).await;
+        let auth = Arc::new(Auth {
+            pool,
+            secret: Some(Secret::from_bytes(vec![7; 32])),
+            public_origin: "https://www.harcourt.co".into(),
+            trusted_proxies: vec!["127.0.0.1".parse().unwrap()],
+            accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
         });
-        World { rt, app, personas }
-    })
+        let app = routes::all(auth).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
+        (tower::ServiceBuilder::new().map_request(apache_paths as fn(Request) -> Request).service(app), personas)
+    });
+    World { rt, app, personas }
 }
 
 #[derive(Debug, Clone)]
@@ -355,7 +360,7 @@ fn send(s: &Sent) -> Result<StatusCode, TestCaseError> {
 fn run_shard(n: u64) {
     let statuses = Mutex::new(BTreeMap::<u16, u64>::new());
     let failing = Mutex::new(BTreeSet::<String>::new());
-    let mut runner = TestRunner::new(shard(200, 10, n));
+    let mut runner = TestRunner::new(shard(1000, 5, n));
     let result = runner.run(&request(), |s| {
         let status = send(&s)?;
         *statuses.lock().unwrap().entry(status.as_u16()).or_default() += 1;
