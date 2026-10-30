@@ -13,9 +13,9 @@ use std::{
 use axum::{
     body::{Body, Bytes},
     extract::Extension,
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::any,
     Router,
 };
 use regex::Regex;
@@ -48,7 +48,8 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         forms: OrdersForms { orders: Arc::new(Orders::from_env(core.clone())), fallback: Islands::from_env() },
         origin: core.public_origin.clone(),
     });
-    Router::new().route("/search/{*rest}", get(results).post(results)).layer(Extension(search))
+    // WordPress answered every method alike; only a POST has form fields.
+    Router::new().route("/search/{*rest}", any(results)).layer(Extension(search))
 }
 
 /// What a request under /search/ asks WordPress for.
@@ -831,8 +832,8 @@ fn legacy() -> Response {
 }
 
 /// A search page, for a GET or a post (WordPress showed the page for a post that submits no form).
-async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
-    let posted: Vec<String> = form_urlencoded::parse(&body).map(|(k, _)| k.into_owned()).collect();
+async fn results(Extension(search): Extension<Arc<Search>>, method: Method, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
+    let posted: Vec<String> = if method == Method::POST { form_urlencoded::parse(&body).map(|(k, _)| k.into_owned()).collect() } else { Vec::new() };
     let (s, paged, lang, page) = match asked(uri.path(), uri.query().unwrap_or(""), &posted) {
         Asked::Results { s, paged, lang, page } => (s, paged, lang, page),
         Asked::Found(to) => {

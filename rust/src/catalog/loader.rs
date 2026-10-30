@@ -425,8 +425,11 @@ async fn scscpq_wp(
     Query(query): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Response {
+    // $_REQUEST: the query, then the body of a POST only, as PHP fills $_POST for nothing else.
     let mut params = query;
-    params.extend(form(&body));
+    if method == Method::POST {
+        params.extend(form(&body));
+    }
     let get = |k: &str| params.get(k).map(String::as_str).unwrap_or("");
     let named = get("action");
     let action = Action::parse(named);
