@@ -146,11 +146,11 @@ async fn main() {
             watcher.search.refresh().await;
         }
     });
-    let api = match open_auth().await {
-        Some(auth) => hxweb::api::router(auth),
-        None => hxweb::api::unavailable(),
+    let legacy = Router::new().fallback(dispatch).with_state(app);
+    let router = match open_auth().await {
+        Some(core) => hxweb::routes::all(core).fallback_service(legacy),
+        None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
-    let router = Router::new().nest_service("/api", api).fallback(dispatch).with_state(app);
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
     tracing::info!("hxweb listening on {listen}");
     axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()).await.expect("serve");

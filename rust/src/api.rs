@@ -150,7 +150,7 @@ impl<R: MinRole> FromRequestParts<Arc<Auth>> for Authed<R> {
     }
 }
 
-fn session_cookie(headers: &HeaderMap) -> Option<Token> {
+pub fn session_cookie(headers: &HeaderMap) -> Option<Token> {
     headers
         .get_all(header::COOKIE)
         .iter()

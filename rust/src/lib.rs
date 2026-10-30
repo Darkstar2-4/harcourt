@@ -9,5 +9,7 @@ pub mod db;
 pub mod identity;
 pub mod remote_grant;
 pub mod retired;
+pub mod routes;
 pub mod session;
+pub mod visitor;
 pub mod token;
