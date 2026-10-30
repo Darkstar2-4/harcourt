@@ -5,6 +5,7 @@
 //! per-page parts as `{{name}}` holes (chrome/{en,fr}/*.html, made by tools/cms_chrome.py); `chrome` computes each
 //! hole. The body comes from the page's template in `templates`, a transcription of the theme's PHP.
 
+mod builder;
 mod chrome;
 mod company;
 mod contact;
@@ -178,12 +179,16 @@ impl<'a> Ctx<'a> {
 
     /// `echo $link[$part]` for an ACF link field (`url`, `title` or `target`), printed as stored.
     pub fn link(&mut self, name: &str, part: &str) {
-        let value = self
-            .field(name)
+        let value = self.link_value(name, part);
+        self.out.push_str(&value);
+    }
+
+    /// `$link[$part]` of an ACF link field, "" when the field or the part is missing.
+    pub fn link_value(&self, name: &str, part: &str) -> String {
+        self.field(name)
             .and_then(|f| serde_json::from_str::<serde_json::Value>(&f.value).ok())
             .and_then(|v| v.get(part).and_then(|p| p.as_str().map(str::to_string)))
-            .unwrap_or_default();
-        self.out.push_str(&value);
+            .unwrap_or_default()
     }
 
     /// `echo get_field($name)` for an image field returning its URL (or an array printed by its `url`). On a page

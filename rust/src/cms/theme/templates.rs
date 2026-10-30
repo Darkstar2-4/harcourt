@@ -23,6 +23,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::ContactFrance | Template::ContactIndia => super::contact::contact_region,
         Template::Locations => super::contact::locations,
         Template::Home => super::home::home,
+        Template::Builder => super::builder::builder,
         _ => return None,
     })
 }

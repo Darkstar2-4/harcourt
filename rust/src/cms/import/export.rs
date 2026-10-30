@@ -230,8 +230,11 @@ pub fn check(site: &Site, export: &Export, ported_only: bool) -> Vec<(bool, Stri
             continue;
         }
         let u = uri(page);
+        // A page that uses a part not ported yet is not served from the cms, like a page of an unported template.
         let Some(rendered) = theme::render_parts(site, page, &u) else {
-            out.push((false, format!("{label}  uses an unported part")));
+            if !ported_only {
+                out.push((false, format!("{label}  uses an unported part")));
+            }
             continue;
         };
         let mut diffs = Vec::new();
