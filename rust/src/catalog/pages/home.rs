@@ -142,7 +142,11 @@ fn unit_filter(ctx: &Ctx) -> String {
     let fetch_query = ctx.req.scscpq_wp.as_ref().map(|v| format!("scscpq_wp={}", html::urlencode(v))).unwrap_or_default();
     let mut out = vec![
         assets::UNIT_FILTER_SCRIPT.to_string(),
-        format!("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='{}'>", html::esc_attr(&fetch_query)),
+        format!(
+            "<div class='catalog_unit_filter' data-fetch-path='{}' data-fetch-query='{}'>",
+            html::esc(&ctx.req.script),
+            html::esc_attr(&fetch_query)
+        ),
         "<span class='catalog_unit_filter_label nobr'>Show:</span>".to_string(),
     ];
     for (value, label) in [("", "All"), ("metric", "Metric"), ("imperial", "Imperial")] {

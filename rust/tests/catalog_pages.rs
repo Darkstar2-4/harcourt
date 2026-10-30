@@ -289,3 +289,19 @@ async fn the_old_pages_answer_as_their_php_did() {
     let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=javascript%3Aalert(1)", None)).await;
     assert!(!body.contains("Click here"), "only an address on this site is linked");
 }
+
+#[tokio::test]
+async fn the_form_posts_back_to_the_path_as_apache_ran_it() {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let h = harness().await;
+    seed(&h.pool).await;
+    let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(h.app.clone());
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (path, script) in [("/catalog.php?scscpq_wp=1&lang=en", "/catalog.php"), ("/catalog.php/?scscpq_wp=1&lang=en", "/catalog.php/"), ("//catalog.php?scscpq_wp=1&lang=en", "/catalog.php")] {
+        let res = app.clone().oneshot(get(path, Some(&cookie))).await.unwrap();
+        let body = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+        assert!(body.contains(&format!("<form name='scs_form' id='scs_form' method=post action='{script}'")), "{path}: {body}");
+        assert!(body.contains(&format!("data-fetch-path='{script}'")), "{path}");
+    }
+}

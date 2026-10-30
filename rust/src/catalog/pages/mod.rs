@@ -32,7 +32,14 @@ use super::{
     tabs::Tabs,
     viewer::{self, Lang, Viewer},
 };
-use crate::{accounts::profile::Profile as AddressProfile, api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
+use crate::{
+    accounts::profile::Profile as AddressProfile,
+    api::Auth,
+    db::unix_now,
+    identity::Role,
+    pricing::PriceBook,
+    visitor::{SentPath, Visitor},
+};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
@@ -71,6 +78,8 @@ pub struct Request {
     pub scscpq_wp: Option<String>,
     /// $_SERVER['REQUEST_URI']: where the profile gate returns to.
     pub uri: String,
+    /// $_SERVER['PHP_SELF'], the script and any PATH_INFO: where the page's form posts.
+    pub script: String,
     /// The visit came through the WordPress frame ($_SESSION['scscpq_wp']): links go to the catalog page, and the
     /// page has no menu ribbon of its own.
     pub framed: bool,
@@ -121,6 +130,7 @@ impl Request {
             debug: q.get("debug").is_some_and(|d| !d.is_empty() && d != "0"),
             scscpq_wp: q.get("scscpq_wp").cloned(),
             uri: String::new(),
+            script: "/catalog.php".to_string(),
             framed: true,
         }
     }
@@ -338,7 +348,10 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let mut body = String::new();
     body.push_str(assets::JS);
     body.push_str(assets::CSS);
-    body.push_str("<form name='scs_form' id='scs_form' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n");
+    body.push_str(&format!(
+        "<form name='scs_form' id='scs_form' method=post action='{}' accept-charset='utf-8' autocomplete=on>\n",
+        html::esc(&ctx.req.script)
+    ));
     // A subcategory_id that names no subcategory left catalog.php's category_id null, printed with no value.
     let category = if ctx.subcategory_id != 0 && ctx.family().is_none() { String::new() } else { ctx.category_id.to_string() };
     for (field, value) in [
@@ -457,6 +470,7 @@ async fn catalog_php(
     visitor: Visitor,
     headers: HeaderMap,
     uri: axum::http::Uri,
+    sent: Option<Extension<SentPath>>,
     Query(q): Query<std::collections::HashMap<String, String>>,
 ) -> Response {
     if let Some(redirect) = fragment_as_page(uri.query().unwrap_or(""), &headers) {
@@ -465,17 +479,22 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    catalog_view(&core, cache, &visitor, &headers, &uri, &q).await
+    catalog_view(&core, cache, &visitor, &headers, &request_uri(&uri, sent), &q).await
 }
 
 type Params = std::collections::HashMap<String, String>;
 
+/// REQUEST_URI: the target as the client sent it (`/catalog.php/?a=1`), not as it was routed.
+fn request_uri(uri: &axum::http::Uri, sent: Option<Extension<SentPath>>) -> String {
+    let uri = sent.as_ref().map_or(uri, |Extension(s)| &s.uri);
+    uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string())
+}
+
 /// catalog.php. Its constructor loaded the profile, which writes the `harcourt_profile` cookie on every request.
-async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &axum::http::Uri, q: &Params) -> Response {
+async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &str, q: &Params) -> Response {
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
-        let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
-        let req = Request { uri, framed: visitor.framed, ..Request::parse(q) };
+        let req = Request { uri: uri.to_string(), script: visitor.php_self.clone(), framed: visitor.framed, ..Request::parse(q) };
         let loaded = AddressProfile::load(&core.pool, headers, visitor).await?;
         let cookie = loaded.remember(&core.pool, visitor, unix_now()).await?;
         let mut ctx = load_ctx(&core.pool, &viewer, req, Profile::from(&loaded)).await?;
@@ -503,6 +522,7 @@ async fn new_catalog(
     visitor: Visitor,
     headers: HeaderMap,
     uri: axum::http::Uri,
+    sent: Option<Extension<SentPath>>,
     Query(q): Query<Params>,
 ) -> Response {
     let gate = async {
@@ -522,7 +542,7 @@ async fn new_catalog(
     .await;
     match gate {
         Ok(Some(body)) => html_response(body),
-        Ok(None) => catalog_view(&core, cache, &visitor, &headers, &uri, &q).await,
+        Ok(None) => catalog_view(&core, cache, &visitor, &headers, &request_uri(&uri, sent), &q).await,
         Err(e) => failed(e),
     }
 }
