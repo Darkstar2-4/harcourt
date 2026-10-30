@@ -22,17 +22,26 @@ pub struct Harness {
     pub pool: SqlitePool,
 }
 
-pub async fn harness() -> Harness {
-    let pool = db::open_memory().await.unwrap();
-    let auth = Arc::new(Auth {
+fn auth(pool: &SqlitePool) -> Arc<Auth> {
+    Arc::new(Auth {
         pool: pool.clone(),
         secret: Some(Secret::from_bytes(vec![7; 32])),
         public_origin: ORIGIN.into(),
         trusted_proxies: vec!["127.0.0.1".parse().unwrap()],
         accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
-    });
-    let app = routes::all(auth).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
+    })
+}
+
+pub async fn harness() -> Harness {
+    let pool = db::open_memory().await.unwrap();
+    let app = routes::all(auth(&pool)).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
     Harness { app, pool }
+}
+
+/// The catalog's routes alone, without the rest of the site: what the catalog claims.
+pub async fn catalog_only() -> Router {
+    let pool = db::open_memory().await.unwrap();
+    routes::catalog::router(auth(&pool)).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))))
 }
 
 /// The catalog fields of a synthetic account. `Account::customer(id)` is an Active Customer with the catalog.

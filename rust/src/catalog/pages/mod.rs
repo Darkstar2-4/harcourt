@@ -1,12 +1,10 @@
-//! catalog.php's views and the document viewer, rendered from SQLite. The request is parsed once into
-//! `Request`, catalog.php's gate (who may browse, the profile, a landing document) picks what is shown, and each
-//! view writes its part of the page.
+//! catalog.php's views, rendered from SQLite. The request is parsed once into `Request`, catalog.php's gate (who may
+//! browse, the profile, a landing document) picks what is shown, and each view writes its part of the page.
 
 mod assets;
 mod chrome;
 mod family;
 mod home;
-mod info;
 mod results;
 
 use std::sync::Arc;
@@ -16,7 +14,7 @@ use axum::{
     Extension,
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{any, get},
+    routing::any,
     Router,
 };
 use sqlx::SqlitePool;
@@ -45,10 +43,6 @@ pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         // PHP answered every method alike.
         .route("/catalog.php", any(catalog_php))
-        .route("/new_catalog.php", get(new_catalog))
-        .route("/document_viewer.php", get(document_viewer))
-        .route("/search.php", get(search_php).post(search_php))
-        .route("/inventory_info.php", get(info::page).post(info::page))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
@@ -511,91 +505,6 @@ async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &V
             }
             resp
         }
-        Err(e) => failed(e),
-    }
-}
-
-/// new_catalog.php, the 2020 catalog, kept for old links: its own gate (the access document for visitors who
-/// are not signed in, the sign-in document for a browser that never gave its address), then the catalog.
-async fn new_catalog(
-    State(core): State<Arc<Auth>>,
-    Extension(cache): Extension<Arc<super::search::Cache>>,
-    visitor: Visitor,
-    headers: HeaderMap,
-    uri: axum::http::Uri,
-    sent: Option<Extension<SentPath>>,
-    Query(q): Query<Params>,
-) -> Response {
-    let gate = async {
-        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
-        let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).is_some_and(|e| !e.is_empty());
-        Ok::<_, sqlx::Error>(match viewer.kind {
-            viewer::Kind::Anonymous => {
-                let reg = registry::load(&core.pool).await?;
-                let ribbon = (!visitor.framed).then(|| chrome::ribbon(None));
-                let doc = document_html(&core.pool, 157, viewer.lang).await?.unwrap_or_default();
-                Some(format!("{}{doc}", chrome::open(&reg, &chrome::Head::titled("Products"), ribbon.as_deref())))
-            }
-            viewer::Kind::Account(_) if !remembered => Some(document_html(&core.pool, viewer.login_document_id.unwrap_or(156), viewer.lang).await?.unwrap_or_default()),
-            _ => None,
-        })
-    }
-    .await;
-    match gate {
-        Ok(Some(body)) => html_response(body),
-        Ok(None) => catalog_view(&core, cache, &visitor, &headers, &request_uri(&uri, sent), &q).await,
-        Err(e) => failed(e),
-    }
-}
-
-const SEARCH_FORM: &str = concat!(
-    "<form name=\"productSearch\" id=\"productSearch\" method=\"get\" action=\"/products.php?action=search\" accept-charset=\"utf-8\" autocomplete=\"on\">\n",
-    "<input type=\"hidden\" name=\"search_source\" id=\"search_source\" value=\"term\">\n",
-    "<input type=\"text\" name=\"search_code\" id=\"ajax_inventory_search\" placeholder=\"Product Search\" class=\"ui-autocomplete-input\" autocomplete=\"off\">\n",
-    "<button type=\"submit\"><img src=\"images/red-magnifier.png\"></button>\n",
-    "</form>\n",
-);
-
-/// search.php: the old product search form in the SCS page.
-async fn search_php(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
-    let page = async {
-        let reg = registry::load(&core.pool).await?;
-        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
-        let dashboard = match viewer.at_least(Role::Executive) {
-            true => Some(strings::load(&core.pool, viewer.lang).await?.get("menu_dashboard").to_string()),
-            false => None,
-        };
-        let ribbon = (!visitor.framed).then(|| chrome::ribbon(dashboard.as_deref()));
-        let body = format!("<p class='message left'>Product Search</p>{SEARCH_FORM}");
-        Ok::<_, sqlx::Error>(chrome::document(&reg, &chrome::Head::titled("Product Search"), &body, ribbon.as_deref()))
-    }
-    .await;
-    match page {
-        Ok(body) => html_response(body),
-        Err(e) => failed(e),
-    }
-}
-
-/// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown. With a login_url it
-/// is a page linking there, which is followed only to an address on this site.
-async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<Params>) -> Response {
-    let id = q
-        .get("document")
-        .and_then(|d| html::base64_fields_decode(d))
-        .and_then(|f| f.first().map(|s| super::php::Value::Str(s.clone()).int()))
-        .unwrap_or(0);
-    let login_url = q.get("login_url").filter(|u| u.starts_with('/') && !u.starts_with("//") && !u.starts_with("/\\"));
-    let result = async {
-        if let Some(url) = login_url {
-            let reg = registry::load(&core.pool).await?;
-            let link = format!("<p class='center large'><a href='{}' target='_top'>Click here to continue</a></p>\n", html::esc_attr(url));
-            return Ok(format!("{}{link}{}", chrome::html_open(&reg, &chrome::Head::titled(""), false), chrome::HTML_CLOSE));
-        }
-        Ok(document_html(&core.pool, id, viewer::lang_for(&visitor)).await?.unwrap_or_default())
-    }
-    .await;
-    match result {
-        Ok(body) => html_response(body),
         Err(e) => failed(e),
     }
 }

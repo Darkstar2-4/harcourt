@@ -14,20 +14,12 @@ use crate::api::Auth;
 
 pub mod ajax;
 pub mod api;
-pub mod cad_lookup;
-pub mod callbacks;
-pub mod category;
-pub mod configure;
-pub mod document;
 pub mod files;
 pub mod forms;
-pub mod hero;
 pub mod html;
-pub mod industry;
 pub mod keywords;
 pub mod learn;
 pub mod loader;
-pub mod metric_filter;
 pub mod model;
 pub mod pages;
 pub mod php;
@@ -58,13 +50,5 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(files::router())
         .merge(api::router())
         .merge(ajax::router())
-        .merge(configure::router())
-        .merge(callbacks::router())
-        .merge(metric_filter::router())
-        .merge(category::router())
-        .merge(industry::router())
-        .merge(hero::router())
-        .merge(document::router())
-        .merge(cad_lookup::router())
         .layer(Extension(search::Cache::new()))
 }

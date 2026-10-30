@@ -87,20 +87,16 @@ fn from_site(path: &str) -> axum::http::Request<Body> {
 #[tokio::test]
 async fn the_portal_page_and_the_old_home() {
     let h = harness().await;
-    for path in ["/scs_index.php", "/beta.php"] {
-        let (status, _, body) = send(&h.app, from_site(path)).await;
-        assert_eq!(status, StatusCode::OK, "{path}");
-        assert!(body.contains("<title>Harcourt</title>\n<meta") && body.contains("noimageindex\">\n<meta name=\"description\" content=\"Harcourt\">"), "{body}");
-        assert!(body.contains("<div id='scs_menu' >") && body.contains("<div id=scscpq_page></div></div> <!-- #scs_content -->"));
-    }
+    let (status, _, body) = send(&h.app, from_site("/scs_index.php")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("<title>Harcourt</title>\n<meta") && body.contains("noimageindex\">\n<meta name=\"description\" content=\"Harcourt\">"), "{body}");
+    assert!(body.contains("<div id='scs_menu' >") && body.contains("<div id=scscpq_page></div></div> <!-- #scs_content -->"));
     let (status, headers, _) = send(&h.app, first_get("/customer_portal.php?scscpq_wp=1")).await;
     assert_eq!((status, &headers["location"]), (StatusCode::FOUND, &"/".parse().unwrap()), "a visit that begins here goes home");
     let (status, _, body) = send(&h.app, from_site("/customer_portal.php?scscpq_wp=1")).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("<title>Untitled Page</title>\n<meta name=\"description\" content=\"Untitled Page\">"), "{body}");
     assert!(body.contains("<iframe src='https://portal.harcourt.co'") && !body.contains("scs_menu"));
-    let (status, headers, _) = send(&h.app, first_get("/beta.php")).await;
-    assert_eq!((status, &headers["location"]), (StatusCode::FOUND, &"/scs_index.php".parse().unwrap()));
     let (status, _, _) = send(&h.app, first_get("/scs_index.php")).await;
     assert_eq!(status, StatusCode::OK, "the home page is where an anonymous visit lands");
 }

@@ -10,21 +10,10 @@
 {"name": "fc-cold-home", "path": "/catalog.php", "persona": "administrator-active", "session": "cold"}
 {"name": "fc-cold-home-xhr", "path": "/catalog.php?scscpq_wp=1", "persona": "customer-active", "session": "cold", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "fc-cold-family", "path": "/catalog.php?action=subcategory&subcategory_id=731&scscpq_wp=1", "persona": "customer-denied", "session": "cold"}
-{"name": "fc-cold-new-catalog", "path": "/new_catalog.php?scscpq_wp=1", "persona": "anonymous", "session": "cold"}
-{"name": "fc-cold-new-catalog", "path": "/new_catalog.php", "persona": "customer-active", "session": "cold"}
 {"name": "fc-cold-portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "anonymous", "session": "cold"}
 {"name": "fc-cold-portal", "path": "/customer_portal.php", "persona": "customer-active", "session": "cold"}
-{"name": "fc-cold-docviewer", "path": "/document_viewer.php", "persona": "anonymous", "session": "cold"}
-{"name": "fc-cold-docviewer", "path": "/document_viewer.php?document=MTU3CTE3MDAwMDAwMDA", "persona": "customer-active", "session": "cold"}
-{"name": "fc-cold-beta", "path": "/beta.php", "persona": "anonymous", "session": "cold"}
-{"name": "fc-warm-new-catalog", "path": "/new_catalog.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "fc-warm-new-catalog", "path": "/new_catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=731", "persona": "customer-active", "session": "warm"}
 {"name": "fc-warm-portal", "path": "/customer_portal.php", "persona": "anonymous", "session": "warm"}
 {"name": "fc-warm-portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "fc-warm-docviewer", "path": "/document_viewer.php", "persona": "anonymous", "session": "warm"}
-{"name": "fc-warm-docviewer", "path": "/document_viewer.php?document=MTU3CTE3MDAwMDAwMDA", "persona": "anonymous", "session": "warm"}
-{"name": "fc-warm-docviewer", "path": "/document_viewer.php?document=MTU2CTE3MDAwMDAwMDA&login_url=%2Fcatalog%2F", "persona": "customer-active", "session": "warm"}
-{"name": "fc-warm-beta", "path": "/beta.php", "persona": "anonymous", "session": "warm"}
 {"name": "fc-warm-search-id", "path": "/catalog.php?scscpq_wp=1&search_source=search&search_id=503", "persona": "customer-active", "session": "warm"}
 {"name": "fc-warm-lang-fr", "path": "/catalog.php?lang=fr&action=subcategory&subcategory_id=658&scscpq_wp=1", "persona": "anonymous", "language": "fr", "session": "warm"}
 {"name": "fc-warm-lang-fr", "path": "/catalog.php?lang=fr&action=subcategory&subcategory_id=658&scscpq_wp=1", "persona": "customer-active", "session": "warm"}

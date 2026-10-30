@@ -38,11 +38,6 @@
 {"name": "p5sd-docs-fr", "path": "/search/documents?lang=fr", "language": "fr"}
 {"name": "p5sd-docs-feed", "path": "/search/documents/feed/"}
 {"name": "p5sd-docs-s", "path": "/search/documents?s=pin"}
-{"name": "p5cad-plain", "path": "/cad_lookup.php"}
-{"name": "p5cad-ipc", "path": "/cad_lookup.php?action=ipc&source=prj&prj=x.prj&sku=SYN-100"}
-{"name": "p5cad-ipc-nosku", "path": "/cad_lookup.php?action=ipc&source=sku"}
-{"name": "p5cad-other", "path": "/cad_lookup.php?action=other&sku=SYN-100"}
-{"name": "p5cad-fr", "path": "/cad_lookup.php", "language": "fr"}
 {"name": "p5c-key-space", "path": "/catalog/?a%20b=1"}
 {"name": "p5c-key-quote", "path": "/catalog/?a%22b=1"}
 {"name": "p5c-key-latin", "path": "/catalog/?%C3%A9t%C3%A9=1"}

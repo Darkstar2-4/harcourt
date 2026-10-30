@@ -52,7 +52,7 @@ impl<'a> Head<'a> {
 }
 
 /// forms_class::html_open(): through `<body>`. A page outside the WordPress frame also loads the loader script.
-pub fn html_open(reg: &Registry, head: &Head<'_>, own_frame: bool) -> String {
+fn html_open(reg: &Registry, head: &Head<'_>, own_frame: bool) -> String {
     let prefix = reg.get("www", "title_prefix").trim();
     let full = match (head.title.trim().is_empty(), prefix.is_empty()) {
         (true, _) => "Untitled Page".to_string(),
@@ -93,9 +93,6 @@ pub fn html_open(reg: &Registry, head: &Head<'_>, own_frame: bool) -> String {
     out.push_str("</head>\n<body>\n");
     out
 }
-
-/// forms_class::html_close().
-pub const HTML_CLOSE: &str = "</body>\n</html>\n";
 
 /// menu_class::head(): the document through the opening of scs_content. A page outside the WordPress frame
 /// (`ribbon` given) also loads the loader script and draws the ribbon.
