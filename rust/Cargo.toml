@@ -28,6 +28,10 @@ rand = "0.8"
 base64 = "0.22"
 hex = "0.4"
 percent-encoding = "2"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "ring", "webpki-roots", "hostname"] }
+rust_decimal = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono-tz = "0.10"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
