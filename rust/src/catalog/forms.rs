@@ -78,6 +78,11 @@ pub fn checkbox(field: &str, value: &str, compare: &str, attrs: &[(&str, &str)])
     format!("<input type=checkbox{}>", options(field, &list))
 }
 
+/// forms_class::radio(): the value first, then the other attributes, `checked` when `compare` is the value.
+pub fn radio(field: &str, value: &str, compare: &str, attrs: &[(&str, &str)]) -> String {
+    format!("<input type=radio value='{}'{}{}>\n", esc(value), options(field, attrs), if compare == value { " checked" } else { "" })
+}
+
 /// forms_class::select() over a plain list (each value is its own key), with an empty first option.
 pub fn select_list(field: &str, values: &[String], selected: &str, attrs: &[(&str, &str)]) -> String {
     let mut out = format!("<select{}>\n<option></option>\n", options(field, attrs));

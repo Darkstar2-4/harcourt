@@ -202,6 +202,10 @@ impl Layout {
     fn need(&self, f: Field) -> Option<Need> {
         self.fields.get(f.key()).copied()
     }
+
+    pub fn required(&self, key: &str) -> bool {
+        self.fields.get(key) == Some(&Need::Required)
+    }
 }
 
 /// A row of the country table, as country->select() lists it.
@@ -263,8 +267,34 @@ pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile, labels: &Labe
     }
     out.push("<div id=profile_message></div>".into());
     out.push("<table class=noborder>".into());
+    out.push(address_rows(pool, layout, p, &[]).await?);
+    out.push(legend());
+    out.push("</table>".into());
+    let note = labels.get(
+        "catalog_profile_note",
+        "Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b>",
+    );
+    out.push(format!("<p>{note}</p>"));
+    Ok(out.concat())
+}
+
+/// address_class legend().
+pub fn legend() -> String {
+    format!("<tr ><td colspan=2>{}</td></tr>", html::font("red", "<b>*</b>", "Indicates mandatory fields"))
+}
+
+/// address_class input() for the profile, without its legend: a row per field the registry lists, email and name
+/// first, except the fields in `omit`, then the country script.
+pub async fn address_rows(pool: &SqlitePool, layout: &Layout, p: &Profile, omit: &[&str]) -> sqlx::Result<String> {
+    let mut out = Vec::new();
     let text = |key: &str, size: u32, max: u32, placeholder: &str| html::text(&field_name(key), p.get(key), size, Some(max), opts(placeholder));
     for f in Field::order(&[Field::Email, Field::Name]) {
+        if omit.contains(&f.key()) {
+            if f == Field::CountryCode && layout.need(f).is_none() {
+                out.push(html::hidden("country_code", "US", ""));
+            }
+            continue;
+        }
         let cell = match f {
             Field::CompanyName => row(layout, f, "Company Name", &text("company_name", 40, 40, "Company Name")),
             Field::Name => {
@@ -296,13 +326,6 @@ pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile, labels: &Labe
         out.push(cell);
     }
     out.push(format!("\n<script>\n\nfn_country_address('profile');\n{}\n\n</script>\n", country_js(layout.jquery)));
-    out.push(format!("<tr >{}</tr>", format_args!("<td colspan=2>{}</td>", html::font("red", "<b>*</b>", "Indicates mandatory fields"))));
-    out.push("</table>".into());
-    let note = labels.get(
-        "catalog_profile_note",
-        "Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b>",
-    );
-    out.push(format!("<p>{note}</p>"));
     Ok(out.concat())
 }
 

@@ -63,6 +63,8 @@ pub struct Request {
     pub search_id: i64,
     pub debug: bool,
     pub scscpq_wp: Option<String>,
+    /// $_SERVER['REQUEST_URI']: where the profile gate returns to.
+    pub uri: String,
 }
 
 fn int(s: Option<&String>) -> i64 {
@@ -105,6 +107,7 @@ impl Request {
             search_id: int(q.get("search_id")),
             debug: q.get("debug").is_some_and(|d| !d.is_empty() && d != "0"),
             scscpq_wp: q.get("scscpq_wp").cloned(),
+            uri: String::new(),
         }
     }
 }
@@ -157,12 +160,12 @@ impl Ctx<'_> {
     }
 }
 
-pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap, email: Option<&str>) -> sqlx::Result<Ctx<'a>> {
+pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap) -> sqlx::Result<Ctx<'a>> {
     let registry = registry::load(pool).await?;
     let catalog = model::load(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
-    let profile = super::profile::load(pool, viewer, cookies, email).await?;
+    let profile = super::profile::load(pool, viewer, cookies).await?;
     let php_self = if viewer.lang == Lang::Fr { "/catalogue/" } else { "/catalog/" };
     let (category_id, subcategory_id) = (req.category_id, req.subcategory_id);
     Ok(Ctx { pool, viewer, req, catalog, registry, strings, book, profile, php_self, category_id, subcategory_id, part: None, related_sku: String::new(), search: None })
@@ -173,13 +176,18 @@ enum View {
     Document(i64),
     Profile,
     Family,
-    Lookup(String),
-    Search,
+    Lookup(Option<results::Hit>),
+    Search(Option<results::Hit>),
     Home,
 }
 
 async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
     let req = ctx.req.clone();
+    let found = results::resolve(ctx).await?;
+    if let Some(hit) = &found {
+        ctx.category_id = hit.category_id;
+        ctx.subcategory_id = hit.subcategory_id;
+    }
     match req.search_source.as_str() {
         "sku" if req.action == "search" => {
             ctx.part = model::part_by_sku(ctx.pool, &req.search_code).await?;
@@ -220,8 +228,8 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
         }
     }
     match req.search_source.as_str() {
-        "lookup" => return Ok(View::Lookup(req.raw_search_code.clone())),
-        "search" => return Ok(View::Search),
+        "lookup" => return Ok(View::Lookup(found)),
+        "search" => return Ok(View::Search(found)),
         _ => {}
     }
     let family_view = req.search_source == "name" || (matches!(ctx.req.action.as_str(), "subcategory" | "sku") && ctx.family().is_some());
@@ -251,10 +259,10 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     }
     match view {
         View::Document(id) => body.push_str(&document_html(ctx.pool, id, ctx.viewer.lang).await?.unwrap_or_default()),
-        View::Profile => body.push_str(&super::profile::enter(ctx, true).await?),
+        View::Profile => body.push_str(&super::profile::enter(ctx, Some(&ctx.req.uri)).await?),
         View::Family => family::page(ctx).await?.write_to(&mut body),
-        View::Lookup(code) => body.push_str(&family::lookup(ctx, &code).await?),
-        View::Search => body.push_str(&results::search(ctx).await?),
+        View::Lookup(found) => body.push_str(&family::lookup(ctx, found).await?),
+        View::Search(found) => body.push_str(&results::search(ctx, found).await?),
         View::Home => body.push_str(&home::page(ctx).await?),
     }
     body.push_str("</form>");
@@ -353,11 +361,16 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    let lang = viewer::lang_for(&visitor, q.get("lang").map(String::as_str));
+    match crate::visitor::landing(&core, &visitor, uri.path(), uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => return failed(e),
+    }
+    let lang = viewer::lang_for(&visitor);
     let result = async {
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string());
-        let mut ctx = load_ctx(&core.pool, &viewer, Request::parse(&q), &headers, email.as_deref()).await?;
+        let req = Request { uri: uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string()), ..Request::parse(&q) };
+        let mut ctx = load_ctx(&core.pool, &viewer, req, &headers).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
     }

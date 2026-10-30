@@ -182,12 +182,10 @@ impl Viewer {
     }
 }
 
-/// The page's language: the link's `lang=`, else the visitor's (an explicit choice, the account's, the browser's).
-pub fn lang_for(visitor: &Visitor, param: Option<&str>) -> Lang {
-    match param.map(str::trim).filter(|p| !p.is_empty()) {
-        Some(p) => Lang::from_param(Some(p)),
-        None => Lang::from_code(visitor.language.as_str()).unwrap_or(Lang::En),
-    }
+/// The page's language: the visitor's, as the PHP session held it (the catalog page's language, an explicit
+/// choice, the account's, the browser's). A link's `lang=` is WordPress's and does not change it.
+pub fn lang_for(visitor: &Visitor) -> Lang {
+    Lang::from_code(visitor.language.as_str()).unwrap_or(Lang::En)
 }
 
 /// The viewer for this request.
