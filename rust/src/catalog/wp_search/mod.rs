@@ -11,7 +11,7 @@ use std::{
 };
 
 use axum::{
-    body::Body,
+    body::{Body, Bytes},
     extract::Extension,
     http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
@@ -48,13 +48,15 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         forms: OrdersForms { orders: Arc::new(Orders::from_env(core.clone())), fallback: Islands::from_env() },
         origin: core.public_origin.clone(),
     });
-    Router::new().route("/search/{*rest}", get(results)).layer(Extension(search))
+    Router::new().route("/search/{*rest}", get(results).post(results)).layer(Extension(search))
 }
 
 /// What a request under /search/ asks WordPress for.
 #[derive(Debug, PartialEq, Eq)]
 enum Asked {
-    Results { s: String, paged: usize, lang: Lang },
+    /// The terms, the page of results, the language, and the `page` query var (a post's page; on a search it
+    /// only adds body classes).
+    Results { s: String, paged: usize, lang: Lang, page: usize },
     /// WPML's 302 away from `lang=en`, to this relative Location.
     Found(String),
     /// A feed or embed of a search, or a query WordPress acts on: the legacy stack answers.
@@ -63,7 +65,7 @@ enum Asked {
 
 /// Query keys WordPress acts on besides WPML's `lang` (WP::$public_query_vars and the site's post types).
 const WP_KEYS: &[&str] = &[
-    "m", "p", "posts", "w", "cat", "withcomments", "withoutcomments", "s", "search", "exact", "sentence", "calendar", "page", "paged", "more", "tb",
+    "m", "p", "posts", "w", "cat", "withcomments", "withoutcomments", "s", "search", "exact", "sentence", "calendar", "paged", "more", "tb",
     "pb", "author", "order", "orderby", "year", "monthnum", "day", "hour", "minute", "second", "name", "category_name", "tag", "feed", "author_name",
     "pagename", "page_id", "error", "attachment", "attachment_id", "subpost", "subpost_id", "preview", "robots", "favicon", "taxonomy", "term", "cpage",
     "post_type", "embed", "rest_route", "sitemap", "case_study", "faq", "faq_type", "testimonials", "job_listing", "post_format", "replytocom",
@@ -121,7 +123,12 @@ fn terms_from_path(matched: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-fn asked(raw_path: &str, raw_query: &str) -> Asked {
+/// The request: its path by WordPress's search rewrite rules, its query (and a post's body) by WordPress's and
+/// WPML's query vars.
+fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
+    if posted.iter().any(|k| WP_KEYS.contains(&k.as_str()) || k == "page" || k == "gform_submit") {
+        return Asked::Legacy;
+    }
     let trimmed = raw_path.trim_matches('/');
     let rules = rewrite();
     if rules[..3].iter().any(|r| r.is_match(trimmed)) {
@@ -148,7 +155,12 @@ fn asked(raw_path: &str, raw_query: &str) -> Asked {
         let to = format!("/{trimmed}/");
         return Asked::Found(if rest.is_empty() { to } else { format!("{to}?{}", rest.join("&")) });
     }
-    Asked::Results { s: terms_from_path(matched), paged: paged.max(1), lang: if lang == Some("fr") { Lang::Fr } else { Lang::En } }
+    let page = pairs
+        .iter()
+        .rev()
+        .find(|(k, _)| k == "page")
+        .map_or(0, |(_, kv)| kv.split_once('=').map_or("", |(_, v)| v).bytes().take_while(u8::is_ascii_digit).fold(0usize, |n, d| n.saturating_mul(10).saturating_add(usize::from(d - b'0'))));
+    Asked::Results { s: terms_from_path(matched), paged: paged.max(1), lang: if lang == Some("fr") { Lang::Fr } else { Lang::En }, page }
 }
 
 /// WordPress's search stopwords per locale (the translated wp_search_stopwords list).
@@ -661,17 +673,31 @@ fn main_html(site: &Site, query: &str, shown: &[&Page]) -> String {
     out
 }
 
+/// One page of a search's results as asked for.
+struct Shown<'a> {
+    s: &'a str,
+    lang: Lang,
+    /// The page of results, and how many there are.
+    paged: usize,
+    pages: usize,
+    /// The `page` query var.
+    page: usize,
+    /// An XMLHttpRequest, for which WPML prints no alternates.
+    ajax: bool,
+}
+
 /// The holes of the search's head and header that differ from the 404 page's: Yoast's title, Open Graph,
 /// Twitter and schema for a search, WPML's alternates and switchers with the search in their links.
-fn holes(site: &Site, lang: Lang, s: &str, paged: usize, pages: usize, shown: &[&Page]) -> BTreeMap<&'static str, String> {
-    let (first, last) = (shown.first().copied(), shown.last().copied());
+fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, String> {
+    let (s, lang, paged, pages) = (v.s, v.lang, v.paged, v.pages);
+    let (first, last) = (results.first().copied(), results.last().copied());
     let not_found = |name: &str| site.options(lang).get(&format!("{}{name}", theme::NOT_FOUND_OPTION)).map(|f| f.value.clone()).unwrap_or_default();
     let (shown, u) = (esc(s), urlencode(s, false));
     let page = if paged > 1 { if lang == Lang::Fr { format!(" - Page {paged} sur {pages}") } else { format!(" - Page {paged} of {pages}") } } else { String::new() };
     let title = format!("You searched for {shown}{page} - Harcourt");
     let mut h = BTreeMap::new();
     // WPML prints no alternates for a later page of results.
-    if paged == 1 {
+    if paged == 1 && !v.ajax {
         h.insert(
             "hreflang",
             format!(
@@ -689,9 +715,11 @@ fn holes(site: &Site, lang: Lang, s: &str, paged: usize, pages: usize, shown: &[
     h.insert("datalayer", "{\"pagePostType\":\"search-results\"}".to_string());
     let found = if first.is_some() { "search-results" } else { "search-no-results" };
     let body_class = not_found("body_class").replacen("error404", &format!("search {found}"), 1);
-    let body_class = match paged {
-        1 => body_class,
-        n => body_class.replacen(" wp-custom-logo", &format!(" paged wp-custom-logo paged-{n} search-paged-{n}"), 1),
+    // body_class(): `paged` for a later page of results; the page number from the `page` var, else the page.
+    let number = if v.page > 1 { v.page } else { paged };
+    let body_class = match (paged > 1, number) {
+        (false, 0 | 1) => body_class,
+        (is_paged, n) => body_class.replacen(" wp-custom-logo", &format!("{} wp-custom-logo paged-{n} search-paged-{n}", if is_paged { " paged" } else { "" }), 1),
     };
     h.insert("body_class", body_class);
     let links = |v: String| {
@@ -792,9 +820,11 @@ fn legacy() -> Response {
     r
 }
 
-async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: HeaderMap) -> Response {
-    let (s, paged, lang) = match asked(uri.path(), uri.query().unwrap_or("")) {
-        Asked::Results { s, paged, lang } => (s, paged, lang),
+/// A search page, for a GET or a post (WordPress showed the page for a post that submits no form).
+async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
+    let posted: Vec<String> = form_urlencoded::parse(&body).map(|(k, _)| k.into_owned()).collect();
+    let (s, paged, lang, page) = match asked(uri.path(), uri.query().unwrap_or(""), &posted) {
+        Asked::Results { s, paged, lang, page } => (s, paged, lang, page),
         Asked::Found(to) => {
             return match HeaderValue::from_str(&to) {
                 Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
@@ -821,7 +851,8 @@ async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: H
         (StatusCode::NOT_FOUND, theme::not_found(&site, lang, &request_uri))
     } else {
         let shown: Vec<&Page> = found.iter().skip((paged - 1) * PER_PAGE).take(PER_PAGE).copied().collect();
-        let holes = holes(&site, lang, &s, paged, pages, &shown);
+        let ajax = headers.get("x-requested-with").and_then(|v| v.to_str().ok()).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest"));
+        let holes = holes(&site, &Shown { s: &s, lang, paged, pages, page, ajax }, &shown);
         let html = theme::without_post(&site, lang, &request_uri, &holes, &main_html(&site, &esc(&s), &shown));
         (StatusCode::OK, with_feed_link(html, lang, &s))
     };
@@ -880,16 +911,19 @@ mod tests {
 
     #[test]
     fn the_rewrite_rules_and_wpml_read_the_request() {
-        assert_eq!(asked("/search/products", "q=alignment+pin"), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En });
-        assert_eq!(asked("/search/alignment+pin/", "lang=fr"), Asked::Results { s: "alignment pin".into(), paged: 1, lang: Lang::Fr });
-        assert_eq!(asked("/search/the/page/2/", ""), Asked::Results { s: "the".into(), paged: 2, lang: Lang::En });
-        assert_eq!(asked("/search/%2570in/", ""), Asked::Results { s: "%70in".into(), paged: 1, lang: Lang::En }, "decoded once");
-        assert_eq!(asked("/search/a/b/", ""), Asked::Results { s: "a/b".into(), paged: 1, lang: Lang::En });
-        assert_eq!(asked("/search/products", "lang=en"), Asked::Found("/search/products/".into()));
-        assert_eq!(asked("/search/products", "lang=en&q=1"), Asked::Found("/search/products/?q=1".into()));
-        assert_eq!(asked("/search/products/feed/", ""), Asked::Legacy);
-        assert_eq!(asked("/search/products/feed/rss2/", ""), Asked::Legacy);
-        assert_eq!(asked("/search/products", "paged=2"), Asked::Legacy);
+        assert_eq!(asked("/search/products", "q=alignment+pin", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/alignment+pin/", "lang=fr", &[]), Asked::Results { s: "alignment pin".into(), paged: 1, lang: Lang::Fr, page: 0 });
+        assert_eq!(asked("/search/the/page/2/", "", &[]), Asked::Results { s: "the".into(), paged: 2, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/%2570in/", "", &[]), Asked::Results { s: "%70in".into(), paged: 1, lang: Lang::En, page: 0 }, "decoded once");
+        assert_eq!(asked("/search/a/b/", "", &[]), Asked::Results { s: "a/b".into(), paged: 1, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/products", "lang=en", &[]), Asked::Found("/search/products/".into()));
+        assert_eq!(asked("/search/products", "lang=en&q=1", &[]), Asked::Found("/search/products/?q=1".into()));
+        assert_eq!(asked("/search/products/feed/", "", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products/feed/rss2/", "", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products", "paged=2", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products", "page=2", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 2 });
+        assert_eq!(asked("/search/products", "", &["q".into()]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/products", "", &["gform_submit".into()]), Asked::Legacy);
     }
 
     #[test]
