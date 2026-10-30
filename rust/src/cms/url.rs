@@ -122,6 +122,17 @@ pub fn with_query(target: &str, query: &str) -> String {
     join(base, &build(&args))
 }
 
+/// PHP's http_build_query() of parsed args: keys and values urlencode()d, an empty value keeping its `=`.
+pub fn http_build_query(args: &[(String, Arg)]) -> String {
+    args.iter()
+        .flat_map(|(k, a)| match a {
+            Arg::One(v) => vec![format!("{}={}", urlencode(k), urlencode(v))],
+            Arg::List(list) => list.iter().map(|(s, v)| format!("{}={}", urlencode(&format!("{k}[{s}]")), urlencode(v))).collect(),
+        })
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
 /// remove_query_arg($key, $uri): the query parsed, its values urlencode()d (urlencode_deep), `key` dropped, and
 /// rebuilt with the keys as parse_str() left them.
 pub fn remove_query_arg(key: &str, uri: &str) -> String {
