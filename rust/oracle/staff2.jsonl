@@ -33,3 +33,8 @@
 {"name":"increase","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
 {"name":"increase-percent-errors","method":"POST","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=percent&percent=150&fixed=&subcategory_390=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"increase-fixed-no-subcategory","method":"POST","path":"/inventory_increase.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=fixed&percent=&fixed=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"subcategory-order-anonymous","path":"/subcategory_order.php","persona":"anonymous"}
+{"name":"subcategory-order","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"subcategory-order-maintain","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=&report_category_id=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"subcategory-order-unknown-category","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=&report_category_id=999999&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"subcategory-order-cancel","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=&report_category_id=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}

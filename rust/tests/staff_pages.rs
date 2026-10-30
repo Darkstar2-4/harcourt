@@ -385,3 +385,19 @@ async fn a_price_increase_raises_every_break_of_the_chosen_subcategories() {
     let logged: String = sqlx::query_scalar("SELECT subtype FROM log WHERE type = 'Import Table'").fetch_one(&h.pool).await.unwrap();
     assert_eq!(logged, "Price Increase: Percent");
 }
+
+#[tokio::test]
+async fn subcategories_are_reordered_in_the_order_posted() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO subcategory (id, category_id, name, status, sort_order) VALUES (52, 6, 'Elsewhere', 'Active', 1)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/subcategory_order.php", Some(&admin))).await;
+    assert!(page.contains("<p>Category: <select name='report_category_id' id='report_category_id' onchange=\"javascript:fn_action('maintain');\">\n<option></option>\n<option value='5'>Alignment</option>"));
+    let (_, _, page) = submit(&h, "/subcategory_order.php", &admin, &[("action", "maintain"), ("report_category_id", "5")]).await;
+    assert!(page.contains("<p>Category: <b>Alignment</b><br>Click and drag to desired order</p>\n<ol class='sortable large'>\n<li class='ui-state-default'><input type=hidden name='subcategory_51' id='subcategory_51' value='51'>\nOld Pins</li>"));
+    let (_, _, page) = submit(&h, "/subcategory_order.php", &admin, &[("action", "update"), ("report_category_id", "5"), ("subcategory_50", "50"), ("subcategory_51", "51"), ("subcategory_52", "52")]).await;
+    assert!(page.contains("<br>3 records updated in category Alignment"));
+    let orders: Vec<(i64, i64)> = sqlx::query_as("SELECT id, sort_order FROM subcategory ORDER BY id").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(orders, [(50, 5), (51, 10), (52, 1)]);
+}

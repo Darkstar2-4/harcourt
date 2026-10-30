@@ -66,3 +66,8 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
   one transaction here, so the `Import Table` / `Price Increase: …` row is written once, at the end.
 - No case runs an increase on the oracle, because it would change its prices; the cases cover the form and its
   errors.
+
+### subcategory_order.php (`/subcategory_order.php`)
+
+- **Scoped update.** A save changes the sort order only of subcategories in the chosen category, in one
+  transaction; the PHP updated any id posted. No case saves an order on the oracle.

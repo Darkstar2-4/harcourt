@@ -35,6 +35,7 @@ pub mod jobs;
 pub mod log;
 pub mod mailer;
 pub mod prj;
+pub mod subcategory_order;
 pub mod user;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
@@ -91,5 +92,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(inventory::routes())
         .merge(log::routes())
         .merge(prj::routes())
+        .merge(subcategory_order::routes())
         .merge(user::routes())
 }

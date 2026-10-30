@@ -38,6 +38,12 @@ pub async fn currencies(pool: &SqlitePool) -> sqlx::Result<Vec<OptGroup>> {
     Ok(vec![("Priced".into(), priced), ("No Price".into(), unpriced)])
 }
 
+/// category->select(): every category by sort order and name.
+pub async fn categories(pool: &SqlitePool) -> sqlx::Result<Options> {
+    let rows = sqlx::query!(r#"SELECT id AS "id!: i64", name FROM category ORDER BY sort_order, name COLLATE NOCASE"#).fetch_all(pool).await?;
+    Ok(rows.into_iter().map(|r| (r.id.to_string(), text(&r.name.unwrap_or_default()))).collect())
+}
+
 /// industry->select(): active industries by name.
 pub async fn industries(pool: &SqlitePool) -> sqlx::Result<Options> {
     let rows = sqlx::query!(r#"SELECT id AS "id!: i64", name FROM industry WHERE active = 1 ORDER BY name COLLATE NOCASE"#).fetch_all(pool).await?;
