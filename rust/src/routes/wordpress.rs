@@ -34,12 +34,22 @@ use crate::{
 /// Every path of a page whose template Rust renders, in both languages. `hxweb-cms check` proves each renders as
 /// WordPress did.
 const PAGES: &[&str] = &[
+    "/boxjoint-inquiry-form/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
     "/company/history/",
     "/company/why-harcourt/",
     "/confidentialite/",
+    "/contact/",
+    "/contact-form/",
+    "/contact-form-hwy-madison-heights-mi/",
+    "/contact-form-madison-heights-mi/",
+    "/contact-form-troy-mi/",
+    "/contact-france/",
+    "/contact-india/",
+    "/contact-uk/",
+    "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
     "/gamme-de-produits/centrage/",
@@ -74,15 +84,23 @@ const PAGES: &[&str] = &[
     "/product/locators/",
     "/product/tool-storage/",
     "/product/tooling-essentials/",
+    "/merci/",
+    "/nous-contacter/",
+    "/nous-contacter-france/",
+    "/nous-contacter-inde/",
+    "/nous-contacter-uk/",
     "/resources/",
+    "/resources/faq/",
     "/resources/lunch-learns/",
     "/ressources/",
     "/ressources/dejeuners-et-causeries/",
+    "/ressources/faq/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
     "/societe/opportunites-de-carriere/",
     "/societe/pourquoi-harcourt/",
+    "/thank-you/",
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.
@@ -270,6 +288,10 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     if let Some(p) = published(lang) {
         return Answer::Render(p);
     }
+    let name = path.trim_matches('/');
+    if !name.is_empty() && !name.contains('/') {
+        return guess(site, name, lang);
+    }
     let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
     let Some(p) = published(other) else { return Answer::NotFound };
     match (lang, site.translation(p, lang)) {
@@ -278,6 +300,27 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
         (Lang::En, Some(t)) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
         (Lang::En, None) => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
         (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        (Lang::Fr, _) => Answer::NotFound,
+    }
+}
+
+/// A one-segment path with no page in the request's language: WordPress takes it for a post name, finds none, and
+/// redirect_guess_404_permalink() sends the visitor to the first published post (in the order the database reads
+/// them, by date) whose slug starts with it, which WPML links in the request's language. So /contact/?lang=fr goes
+/// to the French contact form, not to the translation of /contact/.
+fn guess<'a>(site: &'a Site, name: &str, lang: Lang) -> Answer<'a> {
+    let slug = |p: &Page| p.path.trim_end_matches('/').rsplit('/').next().unwrap_or("").to_string();
+    let Some(g) = site.pages.iter().filter(|p| p.status == Status::Publish && slug(p).starts_with(name)).min_by_key(|p| (p.published_at.as_str(), p.id))
+    else {
+        return Answer::NotFound;
+    };
+    match (lang, site.translation(g, lang)) {
+        (Lang::En, t) => {
+            let t = t.unwrap_or(g);
+            Answer::Redirect(format!("{}{}", t.path, t.lang.query()))
+        }
+        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        // WPML links an untranslated page at the URL asked for, so redirect_canonical() leaves the 404 alone.
         (Lang::Fr, _) => Answer::NotFound,
     }
 }
@@ -310,7 +353,7 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
-    serve(&wp, &uri, agent, None).await
+    serve(&wp, &uri, agent, None, true).await
 }
 
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
@@ -325,7 +368,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let params = crate::orders::form_params(None, &body);
     let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return serve(&wp, &parts.uri, agent, None).await;
+        return serve(&wp, &parts.uri, agent, None, false).await;
     };
     let site = match wp.content.site().await {
         Ok(s) => s,
@@ -333,7 +376,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None).await };
+    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let lang = match page.lang {
         Lang::En => model::Lang::En,
@@ -344,8 +387,8 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
         }
-        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h))).await,
-        Ok(None) => serve(&wp, &parts.uri, agent, None).await,
+        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h)), false).await,
+        Ok(None) => serve(&wp, &parts.uri, agent, None, false).await,
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
@@ -360,8 +403,9 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
 /// neutral request gets the page as hxweb finished the static pages; any other gets it as WordPress printed it,
-/// forms marked for the visitor's browser.
-async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>) -> Response<Body> {
+/// forms marked for the visitor's browser. Only a GET or HEAD (`replay`) can be handed back to the legacy stack; a
+/// post that would be handed back gets the page at its path, or a 404.
+async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
     let q = query(raw_query);
@@ -377,8 +421,12 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         Answer::Render(p) => p,
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::Found(to) => return found(&to),
-        Answer::NotFound => return (StatusCode::NOT_FOUND, "Not found").into_response(),
-        Answer::Legacy => return legacy(),
+        // WordPress prints its themed 404 page until that page is ported.
+        Answer::NotFound | Answer::Legacy if replay => return legacy(),
+        Answer::NotFound | Answer::Legacy => match resolve(&site, &path, q.lang) {
+            Answer::Render(p) => p,
+            _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
+        },
     };
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
@@ -611,7 +659,13 @@ mod tests {
             page(4, 20, Lang::En, "/?page_id=4", Status::Draft),
             page(5, 30, Lang::En, "/legal/", Status::Publish),
             page(6, 40, Lang::Fr, "/seulement/", Status::Publish),
+            page(7, 50, Lang::En, "/contact-form/", Status::Publish),
+            page(8, 50, Lang::Fr, "/formulaire-de-contact/", Status::Publish),
+            page(9, 60, Lang::En, "/contact/", Status::Publish),
+            page(10, 60, Lang::Fr, "/nous-contacter/", Status::Publish),
         ]);
+        assert_eq!(resolve(&site, "/contact/", Lang::Fr), Answer::Redirect("/formulaire-de-contact/?lang=fr".into()));
+        assert_eq!(resolve(&site, "/nous-contacter/", Lang::En), Answer::Redirect("/contact/".into()));
         assert_eq!(resolve(&site, "/product/alignment/", Lang::En), Answer::Render(&site.pages[0]));
         assert_eq!(resolve(&site, "/gamme-de-produits/centrage/", Lang::Fr), Answer::Render(&site.pages[1]));
         assert_eq!(resolve(&site, "/gamme-de-produits/centrage/", Lang::En), Answer::Redirect("/product/alignment/".into()));

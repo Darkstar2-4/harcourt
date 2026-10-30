@@ -118,7 +118,9 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr")));
     let (status, location, _) = send(&app, Method::GET, "/gamme-de-produits/centrage/").await;
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/product/alignment/")));
-    assert_eq!(send(&app, Method::GET, "/product/clamping/").await.0, StatusCode::NOT_FOUND);
+    let unknown = app.clone().oneshot(Request::builder().uri("/product/clamping/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(unknown.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "WordPress answers a page the cms lacks");
+    assert_eq!(send(&app, Method::POST, "/product/clamping/").await.0, StatusCode::NOT_FOUND);
     assert_eq!(send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/users").await.0, StatusCode::GONE);
     assert_eq!(send(&app, Method::POST, "/product/alignment/").await.0, StatusCode::OK);
 }
