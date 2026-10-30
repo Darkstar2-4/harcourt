@@ -6,6 +6,7 @@ mod assets;
 mod chrome;
 mod family;
 mod home;
+mod info;
 mod results;
 
 use std::sync::Arc;
@@ -39,6 +40,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
         .route("/search.php", get(search_php).post(search_php))
+        .route("/inventory_info.php", get(info::page).post(info::page))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
