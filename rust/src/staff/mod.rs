@@ -92,10 +92,8 @@ fn go_home(wp: bool) -> Response {
     (StatusCode::FOUND, [(header::LOCATION, home), (header::CONTENT_TYPE, "text/html; charset=utf-8"), (header::CACHE_CONTROL, "no-store")]).into_response()
 }
 
-/// The dashboard's menu still links its "Pages" item to the PHP page-text manager; page text is the cms editor now.
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/pages.php", axum::routing::get(|| async { axum::response::Redirect::permanent(crate::cms::admin::PATH) }))
         .merge(access::routes())
         .merge(company::routes())
         .merge(dashboard::routes())

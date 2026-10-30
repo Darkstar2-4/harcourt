@@ -17,15 +17,15 @@ none of them is an allowed normalization.
   page checked no role. No case exercises it.
 - **Retired paths.** The web SQL consoles, PHP diagnostics and developer toolboxes (`retired.rs`) answer 410 in
   Rust. There are no cases for them.
-- **Dashboard menu.** The links to `/scs_mysql.php`, `/scs_toolbox.php`, `/jquery_toolbox.php`,
-  `/php_toolbox.php` and `/scs_filemanager.php` are gone, because those paths answer 410. "Remote Grants"
-  (`/staff/remote-grants`) is added for Administrators. The other links stay as the PHP printed them, though the
-  pages most of them name are gone (below), so the dashboard renders exactly as before.
+- **Dashboard menu.** It links only to pages the program still serves: the remote access, token, currency and
+  language pages, page text (`/staff/cms`, for Administrators), the design partner agreement, POs, the event log,
+  cookie reset and the email output tester. A group with nothing for the visitor's role is left out. Every signed-in
+  dashboard case differs from the oracle in its menu.
 - **The cut.** The maintenance pages answer 410 (`retired.rs`); their data work is `hxweb export`, `hxweb import`,
-  `hxweb job` and `hxweb remote-grants` (`staff/cli.rs`). The Pending Access tab still links each request to
-  `/user.php?action=maintain&record_id=<id>`, which redirects to `/staff/access/<id>`, where an Administrator
-  approves or denies it; every other `/user.php` request answers 410. The menu's "Pages" link
-  (`/pages.php`) redirects to the cms page-text editor, `/staff/cms`.
+  `hxweb job` and `hxweb remote-grants` (`staff/cli.rs`). The Pending Access tab links each request to
+  `/staff/access/<id>`, where an Administrator approves or denies it, in place of `/user.php`. The Reverse Part#
+  Missing tab shows each SKU as text; `cad_lookup.php`, which it linked to, is gone. The never-submitted form that
+  posted to `/user.php` is gone.
 - **Stopwatch tab.** The Super User tab that timed the dashboard's queries and printed their SQL is not ported. The
   superuser case shows its absence.
 - **Active accounts only.** Staff pages take `Authed<R>`, which refuses Pending and Denied sessions. The oracle signs

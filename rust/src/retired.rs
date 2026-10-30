@@ -48,7 +48,7 @@ const RETIRED: &[&str] = &[
     "remote_code.php",
     "punchout.php",
     // Staff maintenance pages: their data work is `hxweb export`/`hxweb import`/`hxweb job` (staff/cli.rs), the
-    // rest is done in the SQLite CLI. user.php keeps only the dashboard's access-request links (staff/access.rs).
+    // rest is done in the SQLite CLI. Access requests are decided from the dashboard (staff/access.rs).
     "campaign_manager.php",
     "hero_preview.php",
     "inventory.php",

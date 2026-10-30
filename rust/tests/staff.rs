@@ -155,12 +155,11 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
     assert!(page.contains("<p class='message left'>Executive Dashboard</p>"));
     assert!(page.contains(">Pending PO (1)</a>"));
     assert!(!page.contains("Pending Access"));
-    assert!(page.contains("<form name='scs_form' id='scs_form' method=post action='/user.php'"));
 
     let (_, _, page) = send(&h.app, get("/dashboard.php?tab=Campaign", Some(&admin))).await;
     assert!(page.contains(">Pending Access (1)</a>"));
     assert!(page.contains("<td>Pending &lt;Co></td>\n<td>Pat Example</td>"));
-    assert!(page.contains("href=\"/user.php?action=maintain&record_id=9&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529\""));
+    assert!(page.contains("href=\"/staff/access/9?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529\""));
     let tab_index = |title: &str| {
         let at = page.find(&format!(">{title}</a></li>")).unwrap();
         page[..at].matches("<li id='tab_").count() - 1
@@ -181,9 +180,8 @@ async fn the_dashboard_sends_the_visitor_back_to_the_path_apache_ran() {
     for (path, here) in [("/dashboard.php", "/dashboard.php"), ("/dashboard.php/", "/dashboard.php/"), ("//dashboard.php", "/dashboard.php")] {
         let res = app.clone().oneshot(get(path, Some(&admin))).await.unwrap();
         let page = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
-        assert!(page.contains(&format!("<input type=hidden name='return_url' id='return_url' value='{here}'>")), "{path}: {page}");
         let back = here.replace('/', "%2F");
-        assert!(page.contains(&format!("record_id=9&return_url={back}%3Ftab%3DPending%2BAccess%2B%25281%2529\"")), "{path}");
+        assert!(page.contains(&format!("/staff/access/9?return_url={back}%3Ftab%3DPending%2BAccess%2B%25281%2529\"")), "{path}: {page}");
     }
 }
 
@@ -323,12 +321,10 @@ async fn an_administrator_approves_a_request_from_the_dashboards_link() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
     pending(&h.pool, 9, "Pending <Co>", "Buyer@Example.com").await;
-    let link = "/user.php?action=maintain&record_id=9&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529";
-    let (status, headers, _) = send(&h.app, get(link, Some(&admin))).await;
-    assert_eq!(status, StatusCode::FOUND);
-    let to = headers[header::LOCATION].to_str().unwrap().to_string();
-    assert_eq!(to, "/staff/access/9?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529");
-    let (_, _, page) = send(&h.app, get(&to, Some(&admin))).await;
+    let (_, _, dashboard) = send(&h.app, get("/dashboard.php", Some(&admin))).await;
+    let link = "/staff/access/9?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529";
+    assert!(dashboard.contains(&format!("href=\"{link}\"")), "{dashboard}");
+    let (_, _, page) = send(&h.app, get(link, Some(&admin))).await;
     assert!(page.contains("<td width='30%'>Company</td><td width='70%'>Pending &lt;Co></td>"), "{page}");
     assert!(page.contains("<td width='30%'>Status</td><td width='70%'>Pending</td>"));
     assert!(page.contains("fn_action('approve');") && page.contains("fn_action('deny');"));
@@ -376,7 +372,7 @@ async fn a_denied_request_gets_no_bypass_and_no_one_decides_above_their_role() {
     assert_eq!(status_of(&h.pool, 6).await, "Pending");
 }
 
-const DROPPED: [&str; 26] = [
+const DROPPED: [&str; 27] = [
     "/campaign_manager.php",
     "/hero_preview.php",
     "/inventory.php",
@@ -401,6 +397,7 @@ const DROPPED: [&str; 26] = [
     "/subcategory_order.php",
     "/subcategory_prj.php",
     "/subcategory_utility.php",
+    "/user.php",
     "/user_email.php",
     "/user_utility.php",
 ];
@@ -417,20 +414,23 @@ async fn the_dropped_staff_pages_answer_gone_or_not_found() {
         let gone = hxweb::retired::guard(path).map(|r| r.status());
         assert!(gone == Some(StatusCode::GONE) || path.starts_with("/staff/"), "{path} answers 410 in front of the router");
     }
-    for path in ["/user.php", "/user.php?action=list", "/user.php?action=maintain", "/user.php?action=delete&record_id=9"] {
-        let (status, _, _) = send(&h.app, get(path, Some(&admin))).await;
-        assert_eq!(status, StatusCode::GONE, "{path}");
-    }
-    assert_eq!(hxweb::retired::guard("/user.php").map(|r| r.status()), Some(StatusCode::GONE), "a post to user.php");
-    for kept in ["/dashboard.php", "/scs_log.php", "/company.php", "/pages.php"] {
+    for kept in ["/dashboard.php", "/scs_log.php", "/company.php", "/staff/access/1"] {
         assert!(hxweb::retired::guard(kept).is_none(), "{kept}");
     }
 }
 
 #[tokio::test]
-async fn the_dashboards_pages_link_goes_to_the_page_text_editor() {
+async fn every_dashboard_link_is_a_page_the_program_serves() {
     let h = harness().await;
-    let (status, headers, _) = send(&h.app, get("/pages.php", None)).await;
-    assert_eq!(status, StatusCode::PERMANENT_REDIRECT);
-    assert_eq!(headers[header::LOCATION], "/staff/cms");
+    let superuser = person(&h.pool, 1, "Super User").await;
+    let (_, _, page) = send(&h.app, get("/dashboard.php", Some(&superuser))).await;
+    let links: Vec<&str> = page.split("<a href=\"").skip(1).filter_map(|s| s.split_once("\" class='nobr'").map(|(href, _)| href)).collect();
+    assert!(links.len() >= 8 && links.contains(&"/staff/cms"), "{links:?}");
+    let auth = Arc::new(Auth { pool: h.pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
+    let all = hxweb::routes::all(auth).layer(axum::extract::connect_info::MockConnectInfo(std::net::SocketAddr::from(([127, 0, 0, 1], 40000))));
+    for link in links {
+        assert!(hxweb::retired::guard(link).is_none(), "{link} is retired");
+        let (status, _, _) = send(&all, get(link, Some(&superuser))).await;
+        assert!(status != StatusCode::NOT_FOUND && status != StatusCode::GONE, "{link}: {status}");
+    }
 }

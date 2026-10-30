@@ -1,7 +1,6 @@
 //! Access requests: an Administrator opens a pending account from the dashboard's Pending Access tab and approves or
-//! denies it. This is what remains of user.php: the dashboard still links each request to
-//! `/user.php?action=maintain&record_id=<id>`, which comes here; any other user.php request is gone (410). Account
-//! edits in bulk are `hxweb export user` and `hxweb import user`.
+//! denies it, which is what user.php was used for most. Other account edits are `hxweb export user` and
+//! `hxweb import user`.
 
 use std::{sync::Arc, time::Duration};
 
@@ -31,21 +30,6 @@ use crate::{
 const PATH: &str = "/staff/access/{id}";
 const TITLE: &str = "Access Request";
 const DASHBOARD: &str = "/dashboard.php";
-
-/// The dashboard's link to a request, `/user.php?action=maintain&record_id=<id>&return_url=…`, sent to the request.
-async fn user_php(RawQuery(q): RawQuery) -> Response {
-    let f = Fields::from_query(q.as_deref());
-    let id = f.int("record_id");
-    if f.get("action") != "maintain" || id <= 0 {
-        return gone();
-    }
-    let back = local(f.get("return_url")).map(|r| super::html::url_query(&[("return_url", r)])).unwrap_or_default();
-    found(&format!("/staff/access/{id}{back}"))
-}
-
-fn gone() -> Response {
-    (StatusCode::GONE, [(header::CONTENT_TYPE, "text/plain; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], "Gone\n").into_response()
-}
 
 fn found(to: &str) -> Response {
     (StatusCode::FOUND, [(header::LOCATION, to.to_string()), (header::CACHE_CONTROL, "no-store".to_string())]).into_response()
@@ -284,7 +268,7 @@ async fn ipstack_lookup(url: &str, key: &str, ip: &str) -> Result<Map<String, Va
 }
 
 pub fn routes() -> Router<Arc<Auth>> {
-    Router::new().route("/user.php", get(user_php)).route(PATH, get(show).post(decide))
+    Router::new().route(PATH, get(show).post(decide))
 }
 
 #[cfg(test)]

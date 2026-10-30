@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT l.sku AS \"sku!\", c.name AS \"category_name?\", s.name AS \"subcategory_name?\",\n                  min(l.date_time) AS \"first!: i64\", max(l.date_time) AS \"last!: i64\", count(*) AS \"count!: i64\"\n           FROM log l\n           LEFT JOIN inventory i ON i.sku = l.sku\n           LEFT JOIN category c ON c.id = i.category_id\n           LEFT JOIN subcategory s ON s.id = i.subcategory_id\n           WHERE l.type = 'PARTSolutions' AND l.subtype = 'Reverse Lookup Error' AND l.date_time >= ?1 AND s.prj <> ''\n           GROUP BY i.sku ORDER BY min(l.date_time)",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_name?",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_name?",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "first!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "last!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "count!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "abd7e6ac2d00a023de3d2b392f5078715edbe7cba142e69ebc91784ad496547e"
+}
