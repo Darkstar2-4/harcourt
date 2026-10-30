@@ -51,7 +51,7 @@ impl Php {
 }
 
 pub fn unserialize(s: &str) -> Result<Php, String> {
-    let mut p = Parser { b: s.as_bytes(), i: 0 };
+    let mut p = Parser { b: s.as_bytes(), i: 0, depth: 0 };
     let v = p.value()?;
     if p.i != p.b.len() {
         return Err(format!("trailing bytes at {}", p.i));
@@ -68,6 +68,7 @@ pub fn is_serialized(s: &str) -> bool {
 struct Parser<'a> {
     b: &'a [u8],
     i: usize,
+    depth: usize,
 }
 
 impl Parser<'_> {
@@ -101,7 +102,7 @@ impl Parser<'_> {
     fn string(&mut self) -> Result<String, String> {
         let n = self.len()?;
         self.expect(b'"')?;
-        let bytes = self.b.get(self.i..self.i + n).ok_or("string runs past the end")?;
+        let bytes = self.i.checked_add(n).and_then(|end| self.b.get(self.i..end)).ok_or("string runs past the end")?;
         let s = String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())?;
         self.i += n;
         self.expect(b'"')?;
@@ -111,13 +112,18 @@ impl Parser<'_> {
     fn entries(&mut self) -> Result<Vec<(Php, Php)>, String> {
         let n = self.len()?;
         self.expect(b'{')?;
-        let mut items = Vec::with_capacity(n);
+        self.depth += 1;
+        if self.depth > crate::catalog::php::MAX_DEPTH {
+            return self.err("nested too deep");
+        }
+        let mut items = Vec::with_capacity(n.min(1024));
         for _ in 0..n {
             let k = self.value()?;
             let v = self.value()?;
             items.push((k, v));
         }
         self.expect(b'}')?;
+        self.depth -= 1;
         Ok(items)
     }
 
