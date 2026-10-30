@@ -1,7 +1,7 @@
-//! Two docroot directories of old static pages and campaign assets: welcome-pages/ and campaign/, whose slide
-//! assets shadow the WordPress page at /campaign/. Apache answered for them itself: no directory listing and no
-//! PHP inside (403), and mod_dir's 301 for a directory asked for without its slash. Their other files are static
-//! assets, served with the rest of the docroot.
+//! Docroot directories Apache answered for itself: no directory listing (403) and mod_dir's 301 for a directory
+//! asked for without its slash. Two of them hold old static pages and campaign assets, welcome-pages/ and campaign/
+//! (whose slide assets shadow the WordPress page at /campaign/), and Apache ran no PHP there (403). Their other
+//! files are static assets, served with the rest of the docroot.
 
 use std::sync::Arc;
 
@@ -24,12 +24,13 @@ const DIRS: &[&str] = &[
     "/campaign/slide/scripts/slicknav",
     "/campaign/slide/scripts/slicknav/css",
     "/campaign/slide/scripts/slicknav/js",
+    "/oauth",
     "/welcome-pages",
 ];
 
 const SCRIPTS: &[&str] = &["/welcome-pages/xwelcome-usual.php", "/welcome-pages/xwelcomel.php"];
 
-/// Apache answered the path without running PHP.
+/// The path is in the trees where Apache ran no PHP.
 pub fn contains(path: &str) -> bool {
     ["/campaign", "/welcome-pages"].iter().any(|d| path.strip_prefix(d).is_some_and(|rest| rest.is_empty() || rest.starts_with('/')))
 }

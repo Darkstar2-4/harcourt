@@ -193,6 +193,12 @@ fn query(pairs: &[(&str, &str)]) -> String {
     pairs.iter().map(|(k, v)| format!("{k}={}", utf8_percent_encode(v, NON_ALPHANUMERIC))).collect::<Vec<_>>().join("&")
 }
 
+/// session.php and the provider classes (MicrosoftAuth.php, GoogleAuth.php, PkceTrait.php), asked for directly:
+/// PHP ran them and they printed nothing.
+pub async fn include_file() -> Response {
+    ([(header::CONTENT_TYPE, crate::visitor::PHP_CONTENT_TYPE)], "").into_response()
+}
+
 pub async fn microsoft_init(State(core): State<Arc<Auth>>) -> Response {
     init(&core, Kind::Microsoft).await
 }
