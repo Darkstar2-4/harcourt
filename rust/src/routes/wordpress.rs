@@ -743,7 +743,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<render::Answ
     let page = match answer_of {
         Answer::Render(p) => Some(p),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
-        Answer::Found(to) => return found(&to),
+        Answer::Found(to) => return found(&wp.core.public_origin, &to),
         Answer::FeedRedirect(to, kind) => {
             let mut r = redirect(&wp.core.public_origin, &to);
             r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind));
@@ -891,8 +891,12 @@ fn redirect(origin: &str, to: &str) -> Response<Body> {
     }
 }
 
-/// WPML's redirect: a 302 with the Location relative, as WordPress's wp_redirect() leaves it.
-fn found(to: &str) -> Response<Body> {
+/// WPML's redirect: a 302 with the Location relative, as WordPress's wp_redirect() leaves it. It went through
+/// wp_safe_redirect(), which sends a Location naming another host (`//catalog/...` from a path that began with two
+/// slashes) to the admin URL instead.
+fn found(origin: &str, to: &str) -> Response<Body> {
+    let admin = format!("{origin}/wp-admin/");
+    let to = if to.starts_with("//") || to.starts_with("/\\") { admin.as_str() } else { to };
     match HeaderValue::from_str(to) {
         Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
@@ -997,6 +1001,13 @@ mod tests {
         assert!(lists_users("rest_route=%2Fwp%2Fv2%2Fusers&per_page=100"));
         assert!(lists_users("rest_route=//WP/v2/users/1"));
         assert!(!lists_users("rest_route=/wp/v2/pages"));
+    }
+
+    #[test]
+    fn wpml_redirects_stay_on_the_site() {
+        let location = |to: &str| found("https://www.harcourt.co", to).headers()[header::LOCATION].to_str().unwrap().to_string();
+        assert_eq!(location("/catalog/?unit_type=all"), "/catalog/?unit_type=all");
+        assert_eq!(location("//catalog/?unit_type=all"), "https://www.harcourt.co/wp-admin/");
     }
 
     #[test]
