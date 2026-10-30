@@ -37,6 +37,40 @@ jobs:
       - run: cargo test --locked
       - run: cargo clippy --locked --lib --test auth -- -D warnings
 
+  rig:
+    runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: "true"
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo build --locked --features import --bin hx-import --bin hx-diff
+      - run: cargo test --locked --features import --bin hx-import --bin hx-diff
+      - run: cargo clippy --locked --features import --bin hx-import --bin hx-diff -- -D warnings
+
+  fuzz:
+    runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: "true"
+    defaults:
+      run:
+        working-directory: rust/fuzz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/fuzz
+      - run: cargo test --locked --release
+
   web:
     runs-on: ubuntu-latest
     defaults:
