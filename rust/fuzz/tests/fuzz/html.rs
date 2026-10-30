@@ -165,6 +165,65 @@ proptest! {
         }
     }
 
+    /// The widgets every area draws: values and labels come out escaped, inputs stay one tag, a field in error
+    /// keeps its markup.
+    #[test]
+    fn widgets_escape_values_and_labels(field in "[a-z_]{1,10}", choices in proptest::collection::vec((gen::text(20), gen::text(20)), 0..5), value in gen::text(40), error in any::<bool>()) {
+        let mark = |s: &str| format!("Zq{s}qZ");
+        let choices: Vec<(String, String)> = choices.iter().map(|(v, l)| (mark(v), mark(l))).collect();
+        let value = mark(&value);
+        let selected = choices.first().map_or(String::new(), |c| c.0.clone());
+        let plain: Vec<String> = choices.iter().map(|c| c.1.clone()).collect();
+        let mut notes = staff::html::Notes::new("Fuzz", "");
+        if error {
+            notes.error(&field, Some("wrong"));
+        }
+        let form = staff::html::Form { notes: &notes };
+        let o = staff::html::Opts::new;
+        let tags = [
+            form.text(&field, &value, 10, 20, o()),
+            form.date(&field, &value, o()),
+            form.checkbox(&field, &value, error, o()),
+            form.radio(&field, &value, error, o()),
+            staff::html::hidden(&field, &value),
+            staff::html::button(&value, o()),
+            staff::html::submit(&value, o()),
+            orders::html::hidden(&field, &value),
+            accounts::html::checkbox(&field, &value, error, accounts::html::Opts::new()),
+            accounts::html::button(&value, accounts::html::Opts::new()),
+            catalog::forms::checkbox(&field, &value, &value, &[]),
+            catalog::forms::radio(&field, &value, "", &[]),
+            catalog::forms::button(&value, &[("title", value.as_str())]),
+        ];
+        for html in &tags {
+            prop_assert!(html.matches('<').count() == html.matches('>').count(), "{:?}", html);
+        }
+        let in_attribute = |s: &String| s.contains(['<', '>', '\'']);
+        let in_text = |s: &String| s.contains(['<', '>']);
+        let values: Vec<&String> = choices.iter().map(|(v, _)| v).filter(|v| in_attribute(v)).collect();
+        let labels: Vec<&String> = choices.iter().map(|(_, l)| l).filter(|l| in_text(l)).collect();
+        let none: Vec<&String> = Vec::new();
+        let value_attr: Vec<&String> = [&value].into_iter().filter(|v| in_attribute(v)).collect();
+        let value_text: Vec<&String> = [&value].into_iter().filter(|v| in_text(v)).collect();
+        let select_values: Vec<&String> = plain.iter().filter(|v| in_attribute(v)).collect();
+        // Each widget with what may not appear in it as written: attributes are single-quoted, and the staff
+        // select's labels are markup by contract.
+        let drawn: [(String, &[&String], &[&String]); 7] = [
+            (form.select(&field, &choices, &selected, staff::html::Blank::Empty, o()), &values, &none),
+            (form.textarea(&field, &value, 4, 40, o()), &value_text, &none),
+            (orders::html::select(&field, &choices, &selected, Some("Pick"), "", error), &values, &labels),
+            (accounts::html::select(&field, &choices, &selected, accounts::html::Blank::Label("Pick"), accounts::html::Opts::new()), &values, &labels),
+            (catalog::forms::select_list(&field, &plain, &selected, &[]), &select_values, &none),
+            (staff::html::href(&staff::html::esc(&value), "/x.php", o()), &value_attr, &none),
+            (tags.concat(), &value_attr, &none),
+        ];
+        for (html, a, b) in &drawn {
+            for raw in a.iter().chain(b.iter()) {
+                prop_assert!(!html.contains(raw.as_str()), "{:?} drawn raw in {:?}", raw, html);
+            }
+        }
+    }
+
     /// fn_text(): no line keeps a `<script` run that a `>` closes.
     #[test]
     fn fn_text_removes_script_runs(s in gen::text_of("<scriptSCRIPT> \nab", 0..60), upper in any::<bool>()) {
