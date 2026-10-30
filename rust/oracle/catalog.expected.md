@@ -1,6 +1,6 @@
 # Catalog: deliberate differences from the PHP oracle
 
-- `scscpq_wp.php` and `scscpq_api.php` answer as `application/json`. PHP sent `text/html`, with request values (`action`, `token`, posted `data`) inside json_encode output, which leaves `<` and `>` as they are. No `Access-Control-Allow-Origin: *`.
+- `scscpq_wp.php` answers `text/html` as the PHP did, but the request values it echoes (`action` in an error, `token`, the referrer) have `<` and `>` written as `\u003c` and `\u003e`: the same JSON string, never markup. `scscpq_api.php`'s JSON answers only requests with `X-Requested-With`, which a page on another site cannot send. No `Access-Control-Allow-Origin: *` on either.
 - `scscpq_wp.php`'s `meta.script` is `/scscpq_wp.php`, not the server's file path. The composed `/catalog/` page inlines the same loader, so it differs on this one value too.
 - `scscpq_api.php?action=sku` returns `meta` with `source`, `sku_url`, `sku`, `quantity` only; smart (configured) SKUs are not priced.
 - A request counts as inside a visit when it has a same-site Referer, `Sec-Fetch-Site: same-origin`, `X-Requested-With` or a PHP session cookie (`visitor::begins_visit`). PHP's first-visit redirect (`scs_header.php` `page()`) also caught the first three when the browser had no PHP session.

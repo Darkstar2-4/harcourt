@@ -64,8 +64,14 @@ impl Loader {
 
 /// The meta object, keys in the PHP's order; the referrer is null when the request had none.
 fn meta(referrer: Option<&str>) -> String {
-    let referrer = referrer.map_or(Value::Null, |r| json!(r));
-    format!("{{\"script\":{},\"referrer\":{},\"version\":{}}}", php_json(&json!("/scscpq_wp.php")), php_json(&referrer), php_json(&json!(VERSION)))
+    let referrer = referrer.map_or_else(|| "null".to_string(), echoed);
+    format!("{{\"script\":{},\"referrer\":{referrer},\"version\":{}}}", php_json(&json!("/scscpq_wp.php")), php_json(&json!(VERSION)))
+}
+
+/// json_encode() of a value the request supplied. The answer is text/html as the PHP's was, so `<` and `>` are
+/// written as < and >: the same string to a JSON reader, never markup to a browser.
+fn echoed(s: &str) -> String {
+    php_json(&json!(s)).replace('<', "\\u003c").replace('>', "\\u003e")
 }
 
 /// json_encode() of one value.
@@ -158,7 +164,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
         }
         None => Value::Null,
     });
-    out.set("token", json!(token));
+    out.set_encoded("token", echoed(&token));
     out.set("error", json!(""));
     out.set("trace", json!(trace));
     Ok(out)
@@ -238,7 +244,7 @@ fn portal_link(strings: &Strings, lang: Lang) -> String {
 }
 
 fn json_response(status: StatusCode, body: String) -> Response {
-    (status, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], body).into_response()
+    (status, [(header::CONTENT_TYPE, crate::visitor::PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response()
 }
 
 fn form(body: &Bytes) -> HashMap<String, String> {
@@ -272,7 +278,7 @@ async fn scscpq_wp(
         let mut out = Loader::default();
         out.set_encoded("meta", meta(referrer));
         out.set("scscpq_document", Value::Null);
-        out.set("error", json!(format!("{action}: {code}")));
+        out.set_encoded("error", echoed(&format!("{action}: {code}")));
         out.set("trace", json!(["__construct", "document"]));
         return json_response(StatusCode::UNAUTHORIZED, out.to_json());
     }

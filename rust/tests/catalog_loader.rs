@@ -86,3 +86,14 @@ async fn a_flag_click_saves_the_page_language_to_the_account() {
     let saved: String = sqlx::query_scalar(r#"SELECT language_code FROM "user" WHERE id = 51"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(saved, "FR");
 }
+
+#[tokio::test]
+async fn request_values_come_back_as_json_text_never_as_markup() {
+    let h = harness().await;
+    let (status, headers, body) = send(&h.app, get("/scscpq_wp.php?action=%3Cb%3E", None)).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(headers["content-type"], "text/html; charset=UTF-8", "as the PHP answered");
+    assert!(body.contains("\"error\":\"\\u003cb\\u003e: 102\""), "{body}");
+    let (_, _, v) = load(&h, None, &format!("{FORM}&token=%3Cimg%3E")).await;
+    assert_eq!(v["token"], "<img>", "the same string to a JSON reader");
+}
