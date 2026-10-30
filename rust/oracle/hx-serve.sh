@@ -1,8 +1,7 @@
 #!/bin/bash
 # Start your own build of hxweb on hxport for differential testing: a fresh copy of the imported database, migrated
 # with your migrations/, the persona sessions seeded, the Gravity Forms definitions loaded and, when hxweb-cms is built
-# next to hxweb, the cms content imported from the oracle's WordPress tables; unported paths go to the oracle's PHP.
-# Listens on 127.0.0.1:<port>.
+# next to hxweb, the cms content imported from the oracle's WordPress tables. Listens on 127.0.0.1:<port>.
 #   cd ~/w/<area>/rust && cargo build --release --bin hxweb && /home/ubuntu/oracle-data/bin/hx-serve.sh <area> <port>
 # Then, from another shell: $ORACLE_DATA/bin/hx-diff run --oracle "$ORACLE_FRONT" --rust http://127.0.0.1:<port> ...
 # HX_DIFF overrides which hx-diff seeds the copy (default: the published one next to this script).
@@ -38,8 +37,8 @@ if [ -x $bin/hxweb-cms ]; then
     fi
     echo "cms imported from $ORACLE_DATA/wp.sql: $(tail -1 "$log")"
 fi
-export HXWEB_LISTEN=127.0.0.1:$port HXWEB_DB=$db HXWEB_LEGACY=$ORACLE_LEGACY HXWEB_SITE=www.harcourt.co \
+export HXWEB_LISTEN=127.0.0.1:$port HXWEB_DB=$db HXWEB_SITE=www.harcourt.co \
     HXWEB_EXPORT=$ORACLE_DATA/static_site HXWEB_SEARCH=$ORACLE_DATA/search_index HXWEB_DOCROOT=$ORACLE_DATA/docroot \
     HXWEB_SECRET=$(openssl rand -hex 32) HXWEB_TRUSTED_PROXIES=127.0.0.1,::1 RUST_LOG=${RUST_LOG:-info}
-echo "hxweb ($bin) on http://127.0.0.1:$port, database $db, legacy $ORACLE_LEGACY"
+echo "hxweb ($bin) on http://127.0.0.1:$port, database $db"
 exec $bin/hxweb

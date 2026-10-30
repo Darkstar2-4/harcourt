@@ -398,7 +398,6 @@ fn retired_accounts_scripts_are_gone() {
     for path in ["/cookie.php", "/bot_apache.php", "/remote_code.php"] {
         assert_eq!(hxweb::retired::guard(path).map(|r| r.status()), Some(StatusCode::GONE), "{path}");
     }
-    assert!(hxweb::retired::guard("/cookie_reset.php").is_none());
 }
 
 #[tokio::test]

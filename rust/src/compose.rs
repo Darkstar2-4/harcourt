@@ -2,13 +2,12 @@
 //!
 //! Before: a WordPress shell whose JS, after DOMContentLoaded, asked /scscpq_wp.php for a link and jQuery.load()ed
 //! catalog.php, which re-downloaded jQuery, jQuery UI and the SCS scripts through synchronous XHR. Here the same two
-//! PHP calls happen on the server and the catalog markup, scripts included, goes into the shell. Any failure falls
-//! back to the legacy response untouched.
+//! calls happen on the server and the catalog markup, scripts included, goes into the shell.
 
 use std::{
     net::SocketAddr,
     sync::Arc,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use axum::{
@@ -21,15 +20,14 @@ use hxweb::{
     catalog::viewer::Lang,
     cms::{
         self,
-        forms::{FormSource, Islands, OrdersForms},
+        forms::{FormSource, OrdersForms},
         Content, FormEmbed,
     },
     orders::Orders,
 };
 
-use crate::{proxy, tabs, App};
+use crate::{tabs, App};
 
-pub const SHELL_TTL: Duration = Duration::from_secs(60);
 /// The Font Awesome kit (5.15.4 Pro, webfont mode) injects three stylesheets, then its auto-accessibility feature
 /// watches every DOM change to put aria-hidden on icons. While the parser streams a 1,066-row parts table that
 /// watcher cost ~600 ms of main thread. Linking the same stylesheets where the kit put them, and marking the page's
@@ -78,7 +76,7 @@ pub async fn handle(app: &App, req: Request) -> Response<Body> {
     let page = match hxweb::catalog::composed_page(uri.path(), query) {
         Some(Lang::En) => EN,
         Some(Lang::Fr) => FR,
-        None => return proxy::pass(app, req).await,
+        None => return Response::builder().status(StatusCode::NOT_FOUND).body(Body::from("Not found")).unwrap(),
     };
     let nav = headers.contains_key("x-hx-nav");
     let peer = req.extensions().get::<ConnectInfo<SocketAddr>>().cloned();
@@ -93,8 +91,8 @@ pub async fn handle(app: &App, req: Request) -> Response<Body> {
             json_response(serde_json::json!({ "reload": true }), Vec::new())
         }
         Err(e) => {
-            tracing::warn!("{} fallback: {e}", uri);
-            proxy::pass(app, req).await
+            tracing::error!("{} not composed: {e}", uri);
+            Response::builder().status(StatusCode::BAD_GATEWAY).body(Body::from("Bad gateway")).unwrap()
         }
     }
 }
@@ -298,7 +296,7 @@ struct Island {
 
 impl Cms {
     pub fn new(core: Arc<Auth>) -> Cms {
-        Cms { content: Content::new(core.pool.clone()), forms: OrdersForms { orders: Arc::new(Orders::from_env(core)), fallback: Islands::from_env() } }
+        Cms { content: Content::new(core.pool.clone()), forms: OrdersForms { orders: Arc::new(Orders::from_env(core)) } }
     }
 
     /// The page in the theme's markup with its forms in place, or None when the cms lacks it or its template.
@@ -334,8 +332,8 @@ impl Cms {
 }
 
 /// The page around the catalog: from the cms tables, else the static export (WordPress's render, kept in step by
-/// the export), else WordPress itself. Only the menu's current-item marker and the form actions follow the request
-/// URI: the forms are rendered for it, the WordPress fallback is patched.
+/// the export). Only the menu's current-item marker and the form actions follow the request URI: the forms are
+/// rendered for it.
 async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
     let base_uri = page_uri(page, "");
     let current = |html: String| if uri == base_uri { html } else { app.re.current.replace_all(&html, "").into_owned() };
@@ -346,35 +344,7 @@ async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
             Err(e) => tracing::warn!("{uri}: the cms page failed, trying the export: {e}"),
         }
     }
-    if let Some(html) = app.pages.assemble(app, page.path, page.lang, uri).await? {
-        return Ok(current(html));
-    }
-    let cached = app.shells.read().await.get(page.path).filter(|(at, _)| at.elapsed() < SHELL_TTL).map(|(_, s)| s.clone());
-    let base = match cached {
-        Some(s) => s,
-        None => {
-            let r = app
-                .http
-                .get(format!("{}{}", app.legacy, base_uri))
-                .header(header::HOST, &app.site)
-                .header(header::USER_AGENT, "hxweb/0.1 shell")
-                .send()
-                .await
-                .map_err(|e| format!("shell: {e}"))?;
-            if r.status() != StatusCode::OK {
-                return Err(format!("shell status {}", r.status()));
-            }
-            let s = r.text().await.map_err(|e| format!("shell body: {e}"))?;
-            app.shells.write().await.insert(page.path, (Instant::now(), s.clone()));
-            s
-        }
-    };
-    if uri == base_uri {
-        return Ok(base);
-    }
-    let from = format!("action='{}#gf_", base_uri.replace('&', "&#038;"));
-    let to = format!("action='{}#gf_", uri.replace('&', "&#038;"));
-    Ok(app.re.current.replace_all(&base, "").replace(&from, &to))
+    app.pages.assemble(app, page.path, page.lang, uri).await?.map(current).ok_or_else(|| format!("no page for {}", page.path))
 }
 
 /// The browser request a composed page answers: what the internal calls carry over from it.
@@ -389,7 +359,7 @@ struct Caller<'a> {
 /// the cookies as updated so far, the page as referer.
 async fn internal(app: &App, from: &Caller<'_>, method: Method, path: &str, jar: &CookieJar, body: String) -> Result<(StatusCode, HeaderMap, axum::body::Bytes), String> {
     use tower::ServiceExt;
-    let lib = app.lib.clone().ok_or("no database: the catalog is served by PHP")?;
+    let lib = app.lib.clone().ok_or("no database")?;
     let mut req = axum::http::Request::builder().method(method.clone()).uri(path);
     for (k, v) in forward_headers(app, from.incoming, jar, from.page_url).iter() {
         req = req.header(k, v);

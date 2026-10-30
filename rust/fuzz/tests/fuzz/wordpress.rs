@@ -82,7 +82,7 @@ fn request_query() -> impl Strategy<Value = String> {
 proptest! {
     #![proptest_config(config(16384))]
 
-    /// Every answer is a page that is published, a 404, the legacy stack, or a redirect to a path of this site.
+    /// Every answer is a page that is published, a 404, or a redirect to a path of this site.
     #[test]
     fn routing_answers_with_a_published_page_or_a_site_path(site in site(), path in request_path(), q in request_query(), extra in proptest::option::of(request_query())) {
         let q = match extra {
@@ -97,7 +97,7 @@ proptest! {
             Answer::Redirect(to) | Answer::Found(to) | Answer::TranslationFound(to) | Answer::FeedRedirect(to, _) => {
                 prop_assert!(to.starts_with('/'), "{:?} for {} ? {}", answer, path, q)
             }
-            Answer::Archive(_) | Answer::Search { .. } | Answer::NotFound | Answer::BlogNotFound | Answer::Legacy => {}
+            Answer::Archive(_) | Answer::Search { .. } | Answer::NotFound => {}
         }
         for lang in [Lang::En, Lang::Fr] {
             within(PURE, "resolve", || resolve(&site, &path, lang));

@@ -1,7 +1,6 @@
-//! The former WordPress pages, served from the static export (see export/README.md): chrome + body + per-page
-//! values, then live Gravity Forms islands from the orders area's port (the headless WordPress endpoint for a form
-//! it lacks). The export is reloaded when any
-//! of its files changes, so edits by the translation tools show up within seconds.
+//! The former WordPress pages from the static export (see export/README.md), for the catalog page's shell when the
+//! cms lacks it: chrome + body + per-page values, then live Gravity Forms islands from the orders area's port. The
+//! export is reloaded when any of its files changes.
 
 use std::{
     collections::HashMap,
@@ -12,7 +11,7 @@ use std::{
 
 use axum::{
     body::Body,
-    http::{header, Response, StatusCode},
+    http::{header, StatusCode},
 };
 use regex::Regex;
 use tokio::sync::RwLock;
@@ -22,8 +21,6 @@ use crate::App;
 const ISLAND_TTL: Duration = Duration::from_secs(3600);
 /// Island cache keys include the full request URI (utm tags, catalog queries), so cap it.
 const ISLAND_CACHE_MAX: usize = 5000;
-/// Query keys that do not change what WordPress renders for a page. Anything else (?s=, ?p=, ...) goes to WordPress.
-const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
 
 pub struct Export {
     chrome: HashMap<(String, String), String>,
@@ -68,38 +65,6 @@ impl Pages {
                 *self.export.write().await = Some(Arc::new(e));
             }
             Err(e) => tracing::error!("export not loaded, keeping the previous one: {e}"),
-        }
-    }
-
-    /// The page for this request, or None when the export has no such page or the query could change the render.
-    pub async fn serve(&self, app: &App, path: &str, query: &str) -> Option<Response<Body>> {
-        let mut lang = "en";
-        for kv in query.split('&').filter(|kv| !kv.is_empty()) {
-            let key = kv.split('=').next().unwrap_or("");
-            if !NEUTRAL_KEYS.contains(&key) {
-                return None;
-            }
-            if key == "lang" {
-                lang = if kv == "lang=fr" { "fr" } else { "en" };
-            }
-        }
-        let uri = request_uri(path, query, lang);
-        match self.assemble(app, path, lang, &uri).await {
-            Ok(Some(html)) => Some(
-                Response::builder()
-                    .status(StatusCode::OK)
-                    .header(header::CONTENT_TYPE, "text/html; charset=UTF-8")
-                    .header(header::CACHE_CONTROL, "no-cache")
-                    .header("strict-transport-security", "max-age=31536000; includeSubDomains")
-                    .header("x-hxweb", "static")
-                    .body(Body::from(finish(app, html)))
-                    .unwrap(),
-            ),
-            Ok(None) => None,
-            Err(e) => {
-                tracing::warn!("{uri} static page failed, falling back: {e}");
-                None
-            }
         }
     }
 
@@ -149,24 +114,7 @@ impl Pages {
                 return Ok(html.clone());
             }
         }
-        let html = match ported_island(app, form, lang, uri).await {
-            Some(html) => html,
-            None => {
-                let r = app
-                    .http
-                    .get(format!("{}/", app.legacy))
-                    .query(&[("hx_form", form.to_string().as_str()), ("hx_lang", lang), ("hx_page", uri)])
-                    .header(header::HOST, &app.site)
-                    .header(header::USER_AGENT, ISLAND_AGENT)
-                    .send()
-                    .await
-                    .map_err(|e| format!("island {form}: {e}"))?;
-                if r.status() != StatusCode::OK {
-                    return Err(format!("island {form} for {uri}: HTTP {}", r.status()));
-                }
-                r.text().await.map_err(|e| format!("island {form} body: {e}"))?
-            }
-        };
+        let html = ported_island(app, form, lang, uri).await.ok_or_else(|| format!("form {form} is not available"))?;
         let mut cache = self.islands.write().await;
         if cache.len() >= ISLAND_CACHE_MAX {
             cache.retain(|_, (at, _)| at.elapsed() < ISLAND_TTL);
@@ -206,15 +154,6 @@ pub fn finish(app: &App, html: String) -> String {
     let html = if crate::on("fa-static") { crate::compose::without_fa_kit(app, &html) } else { html };
     let html = if crate::on("bg-preload") { with_hero_bg_preload(&html) } else { html };
     app.public(&app.vendor.localize(&html))
-}
-
-/// The request URI WordPress would see: WPML redirects `lang=en` away; the hxlang flag marker is the site's own.
-fn request_uri(path: &str, query: &str, lang: &str) -> String {
-    let q: Vec<&str> = query
-        .split('&')
-        .filter(|kv| !kv.is_empty() && !kv.starts_with("hxlang=") && !(lang == "en" && *kv == "lang=en"))
-        .collect();
-    if q.is_empty() { path.to_string() } else { format!("{}?{}", path, q.join("&")) }
 }
 
 /// Most pages open with a hero section whose photo is an inline CSS background (hero-bg-big.jpg on 26 English pages). The browser
@@ -305,12 +244,5 @@ mod tests {
         assert_eq!(with_hero_bg_preload(plain), plain);
         let id = "<head></head><body><section class=\"contact-hero\" style=\"background-image:url('474')\"></section></body>";
         assert_eq!(with_hero_bg_preload(id), id);
-    }
-
-    #[test]
-    fn uri() {
-        assert_eq!(request_uri("/", "", "en"), "/");
-        assert_eq!(request_uri("/", "lang=en&utm_source=x", "en"), "/?utm_source=x");
-        assert_eq!(request_uri("/societe/", "lang=fr&hxlang=fr", "fr"), "/societe/?lang=fr");
     }
 }

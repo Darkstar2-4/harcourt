@@ -25,7 +25,7 @@ use self::texturize::{ampersands, texturize};
 use crate::{
     api::Auth,
     cms::{
-        forms::{FormSource, Islands, OrdersForms},
+        forms::{FormSource, OrdersForms},
         theme, Content, FormEmbed, Lang, MediaId, Page, PageId, PostType, Site, Status, Taxonomy,
     },
     orders::Orders,
@@ -52,7 +52,7 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
 pub fn searcher(core: Arc<Auth>) -> Arc<Search> {
     Arc::new(Search {
         content: Content::new(core.pool.clone()),
-        forms: OrdersForms { orders: Arc::new(Orders::from_env(core.clone())), fallback: Islands::from_env() },
+        forms: OrdersForms { orders: Arc::new(Orders::from_env(core.clone())) },
         origin: core.public_origin.clone(),
     })
 }

@@ -1,9 +1,10 @@
-//! The Rust-owned part of www.harcourt.co that is not page rendering: accounts, sign-in, sessions and the routes
-//! that replace PHP endpoints. The binary (main.rs) mounts `api::router` and checks `retired` before it proxies.
+//! www.harcourt.co's routes, accounts, sign-in, sessions, content and data. The binary (main.rs) mounts
+//! `routes::all` and answers what no route claims with `retired`.
 
 pub mod access_code;
 pub mod accounts;
 pub mod api;
+pub mod assets;
 pub mod audit;
 pub mod cms;
 pub mod catalog;
