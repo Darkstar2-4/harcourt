@@ -283,6 +283,38 @@ async fn the_company_page_shows_its_cms_document_in_the_accounts_language() {
 }
 
 #[tokio::test]
+async fn search_export_writes_the_four_index_files_and_a_private_log() {
+    use std::os::unix::fs::PermissionsExt;
+    let h = harness().await;
+    for sql in [
+        "INSERT INTO search (id, table_name, language_code, active, code, category_id, subcategory_id, inventory_id, ranking) VALUES (1, 'inventory', NULL, 1, 'AB-1', 2, 3, 4, 10)",
+        "INSERT INTO subcategory (id, category_id, status) VALUES (3, 2, 'Active')",
+        "INSERT INTO category (id, name) VALUES (2, 'Clamps')",
+        "INSERT INTO content (record_type, record_id, record_item, language_code, name) VALUES ('subcategory', 3, '', 'EN', 'Toggle\tclamps'), ('category', 2, '', 'FR', 'Brides')",
+        "INSERT INTO inventory (id, sku, subcategory_id) VALUES (4, 'AB-1', 3)",
+    ] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    event(&h.pool, 0, 60, "Search", "SKU", "ab-1\nsecond line").await;
+    let dir = std::env::temp_dir().join(format!("hx_search_export_{}", std::process::id()));
+    let summary = hxweb::staff::jobs::search_export(&h.pool, &dir).await.unwrap();
+    assert_eq!(summary, "rows.tsv: 1 rows\nfamilies.tsv: 1 rows\ncategories.tsv: 1 rows\nparts.tsv: 1 rows\n");
+    let read = |f: &str| std::fs::read_to_string(dir.join(f)).unwrap();
+    assert_eq!(read("rows.tsv"), "1\tinventory\t\t1\tAB-1\t2\t3\t4\t10\n");
+    assert_eq!(read("families.tsv"), "3\t2\tActive\tToggle clamps\t\n");
+    assert_eq!(read("categories.tsv"), "2\t\tBrides\n");
+    assert_eq!(read("parts.tsv"), "4\tAB-1\t3\n");
+    assert!(!dir.join("rows.tsv.tmp").exists());
+    let log = dir.join("search.log");
+    hxweb::staff::jobs::search_log(&h.pool, &log, db::unix_now()).await.unwrap();
+    assert_eq!(std::fs::metadata(&log).unwrap().permissions().mode() & 0o777, 0o600);
+    let text = read("search.log");
+    assert!(text.starts_with("id\tdate_time\tuser_id\tip\tsubtype\tsku\tsubcategory_id\tc\n"));
+    assert!(text.ends_with("\t0\t192.0.2.1\tSKU\tSKU-1\t0\tab-1 | second line\n"), "{text}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
