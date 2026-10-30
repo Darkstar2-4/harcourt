@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE registry SET data = ?1 WHERE domain = '' AND module = 'local' AND field = 'search_timestamp' AND item = ''",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f5fbf6ef1b251343f1a5307c864888dbd4aad3da42341b05b6ebcbe0e1ca92e5"
+}

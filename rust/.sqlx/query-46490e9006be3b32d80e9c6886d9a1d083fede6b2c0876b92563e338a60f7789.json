@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT pi.id AS \"id!: i64\", pi.portal_id, pi.name, pi.pdf_portalcontent_id AS pdf, pi.cad_portalcontent_id AS cad,\n                  pi.other_portalcontent_id AS other, pi.subcategory_id, pi.active,\n                  pc.name AS \"category?: String\", s.name AS \"subcategory?: String\"\n           FROM portalitem pi LEFT JOIN portalcategory pc ON pc.id = pi.portalcategory_id LEFT JOIN subcategory s ON s.id = pi.subcategory_id\n           ORDER BY pi.output_order, pi.name COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "portal_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "pdf",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cad",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "other",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "active",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category?: String",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory?: String",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "46490e9006be3b32d80e9c6886d9a1d083fede6b2c0876b92563e338a60f7789"
+}

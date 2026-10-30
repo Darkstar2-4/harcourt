@@ -60,7 +60,7 @@ async fn tab_viewer(pool: &SqlitePool, staff: &Staff<AnyUser>, ip: &str) -> sqlx
 
 async fn show(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, staff: Staff<AnyUser>) -> Response {
     match tab_viewer(&auth.pool, &staff, &ip).await {
-        Ok(body) => shell::described(&auth.pool, staff.who.user.role, TITLE, Some(DESCRIPTION), &body).await,
+        Ok(body) => shell::described(&auth.pool, staff.view(), TITLE, Some(DESCRIPTION), &body).await,
         Err(e) => shell::internal(e),
     }
 }

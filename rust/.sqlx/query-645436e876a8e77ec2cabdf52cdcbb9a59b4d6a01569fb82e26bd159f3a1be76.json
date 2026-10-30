@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO search (language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking)\n             VALUES (?1, 1, 'category', ?2, replace(replace(replace(replace(replace(?2, '-', ''), ' ', ''), '_', ''), '.', ''), '/', ''), ?3, 0, 0, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "645436e876a8e77ec2cabdf52cdcbb9a59b4d6a01569fb82e26bd159f3a1be76"
+}

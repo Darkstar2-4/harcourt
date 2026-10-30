@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", sku, active,\n                  json_array(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9,\n                             parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17, parameter18,\n                             parameter19) AS \"parameters!: String\"\n           FROM inventory WHERE subcategory_id = ?1 ORDER BY sort_order, sku",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sku",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "active",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "parameters!: String",
+        "ordinal": 3,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "d9c4494561bbf643454e1b63c3cf0b8ece4571f547571779bfa2b991d2bccfcf"
+}
