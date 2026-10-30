@@ -213,6 +213,11 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
         if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
             return legacy();
         }
+        // WPML's 302 away from lang=en comes first, to the address as asked with a slash.
+        let q = query(raw_query);
+        if rest.is_empty() && q.lang_en {
+            return found(&wp.core.public_origin, &format!("/index.php/{}", if q.without_lang.is_empty() { String::new() } else { format!("?{}", q.without_lang) }));
+        }
         return redirect(&wp.core.public_origin, &with_query(if rest.is_empty() { "/" } else { rest }, raw_query));
     }
     match docroot::owner(&path, docroot()) {
@@ -661,7 +666,8 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         return Answer::Found(front_without_lang(site, raw_query));
     }
     if q.wordpress {
-        return if front { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
+        // Under a doubled slash WordPress resolves a post id its own way (a 301 to the permalink): not ported.
+        return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
     }
     if q.lang_en && answer != Answer::NotFound {
         // WPML moves to the path WordPress parsed, its slashes trimmed and one put back; a path that began with two
@@ -1092,6 +1098,7 @@ mod tests {
         assert_eq!(r("/", "lang=en&p=7&p=2"), "302 /?p=1", "the last p counts");
         assert_eq!(r("/", "s=pin&lang=en&s=alignment%20pin"), "302 /?s=alignment+pin");
         assert_eq!(r("//", "lang=en"), "302 /");
+        assert_eq!(r("//", "p=1&lang=fr"), "Legacy", "a post id under a doubled slash is not ported");
         assert_eq!(r("/", "lang=fr&p=1"), "302 /?lang=fr&p=2", "the query keeps its order");
         assert_eq!(r("/", "p=2&lang="), "302 /?p=1&lang=", "an empty lang is the default language and stays");
         assert_eq!(r("/", "p=1&lang=fr&lang=FR"), "/company/history/?lang=FR");

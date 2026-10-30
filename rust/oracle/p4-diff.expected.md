@@ -19,7 +19,7 @@ home, the database errors `inventory_info.php` printed) are not repeated.
   PATH_INFO spelling (`/hx_search_ctx.php/`) reached the PHP on the oracle and answered the session's context.
 - **WPML's redirect from a path that begins with two slashes** (`//catalog/?lang=en`): WordPress's
   wp_safe_redirect() turned the protocol-relative Location into the admin URL, and Rust does too. The front page
-  under any number of slashes is the front page, as on the oracle.
+  under more than one slash with `lang=en` goes to `/`, as on the oracle.
 
 ## Not comparable here
 
@@ -36,4 +36,5 @@ home, the database errors `inventory_info.php` printed) are not repeated.
   `robots.txt` (Rust serves it from `rust/assets`), so the front controller sees no file and answers WordPress's 404.
 - **WordPress shapes not ported**, which the closed backend shows as 502: the search page under `?s=` on the front
   page, the 404 over the blog query (`/sitemap.xml/`, `/sitemap.xml` with a query, a sitemap Yoast does not have, a
-  doubled slash WordPress cannot resolve), feeds, oEmbed and the archive pages.
+  doubled slash WordPress cannot resolve), a post id on the front page under a doubled slash (`//?p=`), WordPress's
+  `page` argument on a page (`/catalog?page=0`), feeds, oEmbed and the archive pages.
