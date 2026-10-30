@@ -315,6 +315,38 @@ async fn search_export_writes_the_four_index_files_and_a_private_log() {
 }
 
 #[tokio::test]
+async fn search_utility_rebuilds_the_search_table_and_converges() {
+    let h = harness().await;
+    for sql in [
+        "INSERT INTO category (id, name, sort_order, active) VALUES (2, 'Clamps', 5, 1), (3, 'Old', 1, 0)",
+        "INSERT INTO subcategory (id, category_id, status, sort_order, search_words) VALUES (10, 2, 'Active', 7, 'toggle^tg^Toggle^riser'), (11, 2, 'Pending', 1, 'hidden')",
+        "INSERT INTO content (record_type, record_id, record_item, language_code, name) VALUES ('category', 2, '', 'EN', 'Clamps &amp; Pins'), ('category', 3, '', 'EN', 'Old'), ('subcategory', 10, '', 'EN', 'Toggle'), ('subcategory', 11, '', 'EN', 'Hidden')",
+        "INSERT INTO inventory (id, sku, category_id, subcategory_id, active, sort_order, competitor_sku) VALUES (20, 'TC-1', 2, 10, 1, 4, 'X-1,X-1'), (21, 'TC-2', 2, 11, 1, 0, '')",
+    ] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let summary = hxweb::staff::jobs::search_utility(&h.pool, db::unix_now()).await.unwrap();
+    assert!(summary.starts_with("Subcategory: 1\nCategory Languages: 1\nSubcategory Languages: 1\nSearch Words: 3\nInventory: 1\nCompetitor SKU: 2\nPurge Duplicates: 2\n"), "{summary}");
+    let rows = || async {
+        sqlx::query_as::<_, (String, String, String, String, i64, i64, i64)>(
+            "SELECT language_code, table_name, code, code_normalized, subcategory_id, inventory_id, ranking FROM search ORDER BY id",
+        )
+        .fetch_all(&h.pool)
+        .await
+        .unwrap()
+    };
+    let first = rows().await;
+    let codes: Vec<(&str, &str)> = first.iter().map(|r| (r.1.as_str(), r.2.as_str())).collect();
+    assert_eq!(codes, [("category", "Clamps Pins"), ("subcategory", "Toggle"), ("inventory", "TC-1"), ("search_words", "riser"), ("competitor_sku", "X-1")]);
+    assert_eq!(first[4].3, "X1");
+    hxweb::staff::jobs::search_utility(&h.pool, db::unix_now()).await.unwrap();
+    let again: Vec<_> = rows().await.into_iter().map(|r| (r.1, r.2)).collect();
+    assert_eq!(again, first.iter().map(|r| (r.1.clone(), r.2.clone())).collect::<Vec<_>>());
+    let runs: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'CRON' AND subtype = 'Search Utility'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(runs, 2);
+}
+
+#[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
