@@ -580,7 +580,9 @@ async fn complete(state: &Orders, shopper: &Shopper, ip: &str, order: &mut Order
     }
     let comment = format!("Order #{}", order.id);
     log_order(pool, ip, shopper, &comment, now).await;
-    cart::clear(pool, &shopper.session).await?;
+    if let Some(key) = &shopper.cart {
+        cart::clear(pool, key).await?;
+    }
     let mut messages = vec!["Order Complete!".to_string()];
     if let Some(template) = mailform::load(pool, "checkout").await? {
         let host = state.core.public_origin.trim_start_matches("https://");
@@ -627,7 +629,7 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(i
     let pool = &state.core.pool;
     let framed = html::framed(uri.query(), &headers);
     let home = if framed { "/" } else { "/scs_index.php" };
-    let Some(shopper) = shopper(pool, visitor).await? else { return Ok(html::redirect(home)) };
+    let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(html::redirect(home)) };
     let lines = cart::lines(&state, &shopper).await?;
     if lines.is_empty() {
         return Ok(html::redirect(home));

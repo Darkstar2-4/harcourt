@@ -3,7 +3,8 @@
 Cases that would only show these are left out of `orders.jsonl` and `orders-forms.jsonl`.
 
 - **Values in text are escaped.** `<` and `>` in an order, carrier or cart value are written as `&lt;` and `&gt;`. The PHP printed them raw, so a stored value could add markup to a staff page.
-- **The cart is stored per signed-in session.** PHP kept it in its own session. Cases that fill a cart would compare a Rust cart with an empty PHP cart, because hx-diff sends no cookies.
+- **The cart is stored per visit, in Rust's database.** PHP kept it in its own session. A session sign-in keys it by the session; a company-address sign-in by the PHP session id with the account. A cart filled on one side only is not on the other, so cases that fill a cart are left out.
+- **Staff pages need an Active account.** PHP's `access()` read the role alone, so a Pending or Denied Executive could open the PO Manager. Rust sends them home.
 - **Checkout prefill.** No `harcourt_ecommerce` cookie is written or read. The form is prefilled from the account's last order under the same signed-in address.
 - **PO Manager `return_url`.** It is followed only when it is a path on this site.
 - **Carrier delete.** Only an inactive carrier can be deleted, which is all the list offers.

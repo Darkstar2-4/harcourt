@@ -147,6 +147,24 @@ async fn carts_belong_to_one_session_and_end_with_it() {
 }
 
 #[tokio::test]
+async fn an_account_signed_in_by_company_address_keeps_its_cart_in_the_php_session() {
+    let h = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let a = add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-1 cart updated"), Some(1)));
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
+    assert!(page.contains("<td class=nobr>SKU-1</td>"));
+    let (status, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-two", &[], false)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p>Your shopping cart is empty</p>"));
+    let a = add(&h, "", "SKU-1", "1").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-1 invalid"), Some(0)), "no visit, no cart to keep");
+}
+
+#[tokio::test]
 async fn accounts_without_ecommerce_cannot_shop() {
     let h = harness().await;
     account(&h.pool, 2, "Customer", 0).await;
