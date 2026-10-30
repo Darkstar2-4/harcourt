@@ -217,6 +217,7 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
     }
     match docroot::owner(&path, docroot()) {
         Owner::Legacy => legacy(),
+        Owner::NotFound => crate::accounts::static_dirs::not_found(&wp.core.public_origin),
         Owner::File(file, kind) => static_file(file, kind).await,
         Owner::WordPress => {
             let q = query(uri.query().unwrap_or(""));

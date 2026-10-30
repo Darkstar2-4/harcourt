@@ -64,6 +64,11 @@ fn apache_page(status: StatusCode, location: Option<HeaderValue>, title: &str, b
     r
 }
 
+/// Apache's 404, for a path it found no script or file for.
+pub fn not_found(origin: &str) -> Response {
+    apache_page(StatusCode::NOT_FOUND, None, "Not Found", "The requested URL was not found on this server.", origin)
+}
+
 async fn forbidden(State(core): State<Arc<Auth>>) -> Response {
     apache_page(StatusCode::FORBIDDEN, None, "Forbidden", "You don't have permission to access this resource.", &core.public_origin)
 }
