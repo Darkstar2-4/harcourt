@@ -5,6 +5,7 @@ pub mod access_code;
 pub mod accounts;
 pub mod api;
 pub mod audit;
+pub mod cms;
 pub mod config;
 pub mod db;
 pub mod identity;

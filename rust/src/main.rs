@@ -14,7 +14,7 @@ use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, sync::Arc, time
 use axum::{
     body::Body,
     extract::{Request, State},
-    http::{Method, Response},
+    http::{Method, Response, StatusCode},
     Router,
 };
 use regex::Regex;
@@ -150,9 +150,15 @@ async fn main() {
             watcher.search.refresh().await;
         }
     });
+    let passthrough = app.clone();
+    let finisher = app.clone();
     let legacy = Router::new().fallback(dispatch).with_state(app);
     let router = match open_auth().await {
-        Some(core) => hxweb::routes::all(core).fallback_service(legacy),
+        // A path claimed for some methods (GET on a page) still sends the others (a form POST) to the legacy stack.
+        Some(core) => hxweb::routes::all(core)
+            .method_not_allowed_fallback(move |req: Request| dispatch(State(passthrough.clone()), req))
+            .layer(axum::middleware::from_fn_with_state(finisher, finish_cms_pages))
+            .fallback_service(legacy),
         None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
@@ -183,6 +189,20 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
         trusted_proxies: config.trusted_proxies,
         accounts,
     }))
+}
+
+/// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs.
+async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum::middleware::Next) -> Response<Body> {
+    let resp = next.run(req).await;
+    if resp.headers().get("x-hxweb").is_none_or(|v| v != "cms") {
+        return resp;
+    }
+    let (mut parts, body) = resp.into_parts();
+    let Ok(bytes) = axum::body::to_bytes(body, 16 << 20).await else {
+        return Response::builder().status(StatusCode::BAD_GATEWAY).body(Body::from("Bad gateway")).unwrap();
+    };
+    parts.headers.remove(axum::http::header::CONTENT_LENGTH);
+    Response::from_parts(parts, Body::from(pages::finish(&app, String::from_utf8_lossy(&bytes).into_owned())))
 }
 
 async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {

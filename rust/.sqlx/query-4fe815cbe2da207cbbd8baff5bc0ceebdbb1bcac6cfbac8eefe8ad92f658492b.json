@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", file, mime, width, height, alt, sizes FROM cms_media",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "file",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "width",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "alt",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "sizes",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4fe815cbe2da207cbbd8baff5bc0ceebdbb1bcac6cfbac8eefe8ad92f658492b"
+}
