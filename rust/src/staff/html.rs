@@ -325,7 +325,7 @@ impl Form<'_> {
 
     pub fn radio(&self, field: &str, value: &str, checked: bool, opts: Opts) -> String {
         let mut opts = opts;
-        opts.push_default("id", format!("{field}_{value}"));
+        opts.push_default("id", format!("{field}_{}", esc(value)));
         let mut a = attrs(field, opts, self.notes.is_error(field)).trim().to_string();
         if checked {
             a.push_str(" checked");
@@ -817,6 +817,7 @@ mod tests {
             f.radio("delete", "7", false, Opts::new().onclick("x();")),
             "<input type=radio value='7' id='delete_7' name='delete' onclick=\"javascript:x();\">\n"
         );
+        assert_eq!(f.radio("size", "1/2\" & up", false, Opts::new()), "<input type=radio value='1/2&quot; &amp; up' id='size_1/2&quot; &amp; up' name='size'>\n");
         assert_eq!(href("Add new", "javascript:fn_action(this,'maintain','0','');", Opts::new()), "<a href=\"javascript:fn_action(this,'maintain','0','');\" >Add new</a>");
     }
 
