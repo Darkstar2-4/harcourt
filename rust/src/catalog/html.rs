@@ -26,6 +26,40 @@ pub fn esc(s: &str) -> String {
     out
 }
 
+/// A single-quoted attribute value as the PHP wrote it, with only what could end the attribute or open a tag
+/// escaped. A `&` stays as written, so links read `?a=1&b=2` as they did.
+pub fn esc_attr(s: &str) -> String {
+    escape_only(s, &['<', '>', '\''])
+}
+
+/// The same for a double-quoted attribute: a `'` in it (generated JavaScript) stays as written.
+pub fn esc_dq(s: &str) -> String {
+    escape_only(s, &['<', '>', '"'])
+}
+
+fn escape_only(s: &str, which: &[char]) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '<' if which.contains(&c) => out.push_str("&lt;"),
+            '>' if which.contains(&c) => out.push_str("&gt;"),
+            '"' if which.contains(&c) => out.push_str("&quot;"),
+            '\'' if which.contains(&c) => out.push_str("&#039;"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// An attribute value the PHP wrote without quotes (an iframe's src). Kept bare when nothing in it would end it.
+pub fn bare_attr(s: &str) -> String {
+    if s.is_empty() || s.contains(|c: char| c.is_whitespace() || "\"'<>`".contains(c)) {
+        format!("\"{}\"", esc_dq(s))
+    } else {
+        s.to_string()
+    }
+}
+
 /// PHP's urlencode: letters, digits and `-_.` stay, a space becomes `+`, every other byte is `%XX`.
 pub fn urlencode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -129,19 +163,19 @@ fn form_decode(s: &str) -> String {
 
 /// fn_href: a link whose label is already markup.
 pub fn href(label_html: &str, url: &str) -> String {
-    format!("<a href=\"{}\">{label_html}</a>", esc(url))
+    format!("<a href=\"{}\" >{label_html}</a>", esc_dq(url))
 }
 
 /// fn_href with element attributes after the href, in the order given; attributes with empty values are left out.
 pub fn href_with(label_html: &str, url: &str, attrs: &[(&str, &str)]) -> String {
-    format!("<a href=\"{}\"{}>{label_html}</a>", esc(url), attributes(attrs))
+    format!("<a href=\"{}\" {}>{label_html}</a>", esc_dq(url), attributes(attrs).trim_start())
 }
 
 /// ` name='value'` for each non-empty value, single-quoted as forms_rev2.php writes them.
 pub fn attributes(attrs: &[(&str, &str)]) -> String {
     let mut out = String::new();
     for (name, value) in attrs.iter().filter(|(_, v)| !v.is_empty()) {
-        let _ = write!(out, " {name}='{}'", esc(value));
+        let _ = write!(out, " {name}='{}'", esc_attr(value));
     }
     out
 }
@@ -202,8 +236,11 @@ mod tests {
 
     #[test]
     fn links_escape_their_address() {
-        assert_eq!(href("<b>X</b>", "/catalog/?a=1&b=2"), "<a href=\"/catalog/?a=1&amp;b=2\"><b>X</b></a>");
+        assert_eq!(href("<b>X</b>", "/catalog/?a=1&b=2"), "<a href=\"/catalog/?a=1&b=2\" ><b>X</b></a>");
+        assert_eq!(href("x", "/c?q=\"><script>"), "<a href=\"/c?q=&quot;&gt;&lt;script&gt;\" >x</a>");
         assert_eq!(href_with("Go", "/c", &[("class", "pill active"), ("title", "")]), "<a href=\"/c\" class='pill active'>Go</a>");
+        assert_eq!(bare_attr("https://x/?a=1&b=2"), "https://x/?a=1&b=2");
+        assert_eq!(bare_attr("a b"), "\"a b\"");
     }
 
     #[test]

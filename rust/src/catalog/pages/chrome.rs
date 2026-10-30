@@ -19,16 +19,15 @@ fn absolute(url: &str) -> bool {
 
 /// The whole document: head, then the view between the scs_body and scs_content divs.
 pub fn document(reg: &Registry, title: &str, extra_css: &[String], body: &str) -> String {
-    let mut meta: Vec<String> = reg.items("www", "meta").iter().map(|(_, v)| v.trim().to_string()).filter(|v| !v.is_empty()).collect();
-    meta.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
     let prefix = reg.get("www", "title_prefix").trim();
     let full = match (title.trim().is_empty(), prefix.is_empty()) {
         (true, _) => "Untitled Page".to_string(),
         (false, true) => title.to_string(),
         (false, false) => format!("{prefix} {title}"),
     };
-    meta.push(format!("<title>{}</title>", esc(&full)));
-    meta.push(format!("<meta name=\"description\" content=\"{}\">", esc(full.trim())));
+    let mut meta = vec![format!("<title>{}</title>", esc(&full)), format!("<meta name=\"description\" content=\"{}\">", esc(full.trim()))];
+    meta.extend(reg.items("www", "meta").iter().map(|(_, v)| v.trim().to_string()).filter(|v| !v.is_empty()));
+    meta.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
     meta.push("<meta charset=\"utf-8\">".into());
     let icon = reg.get("www", "icon").trim();
     if !icon.is_empty() {
@@ -75,7 +74,7 @@ mod tests {
             ("", "www", "js", "2", Some("/scs_scripts/scscpq.js")),
         ]);
         let doc = document(&reg, "Products", &["/scs_scripts/catalog.css?v=7".into()], "<p>x</p>");
-        assert!(doc.starts_with("<!DOCTYPE html>\n<html>\n<head>\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n<title>Harcourt | Products</title>\n"));
+        assert!(doc.starts_with("<!DOCTYPE html>\n<html>\n<head>\n<title>Harcourt | Products</title>\n<meta name=\"description\" content=\"Harcourt | Products\">\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n"));
         assert!(doc.contains("<link rel='stylesheet' type='text/css' href='/scs_scripts/a.css'>\n<link rel='stylesheet' type='text/css' href='/scs_scripts/catalog.css?v=7'>\n<script type='text/javascript' src='/scs_scripts/jquery.js'></script>\n<script type='text/javascript' src='/scs_scripts/scscpq.js'></script>\n</head>"));
         assert!(doc.ends_with("<div id='scs_content' ><p>x</p></div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n"));
     }

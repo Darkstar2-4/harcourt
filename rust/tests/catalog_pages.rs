@@ -71,7 +71,7 @@ async fn a_customer_sees_the_family_with_its_parts_and_tabs() {
     assert!(body.contains("<table class='products_table'>"));
     assert!(body.contains("<th>Part#</th>\n<th>Diameter</th>\n<th>Mate</th>\n</tr>"));
     assert!(!body.contains("<th>Price</th>"), "no price terms, no price column");
-    assert!(body.contains("<a href=\"/catalog/?lang=en&amp;action=sku&amp;subcategory_id=7&amp;sku=SEJMVC0x&amp;scs_page=0\">HBLT-1</a>"), "{body}");
+    assert!(body.contains("<a href=\"/catalog/?lang=en&action=sku&subcategory_id=7&sku=SEJMVC0x&scs_page=0\" >HBLT-1</a>"), "{body}");
     assert!(body.contains("title='Related Part#'>HB-A</a>"));
     assert!(body.contains("<li id='tab_catalog_overview' class='products_jquery_tabs'><a href='#catalog_overview' id='href_catalog_overview' class='products_jquery_tabs'>Overview</a></li>"));
     assert!(body.contains("<ul><li>Quick release</li></ul>"));
@@ -107,7 +107,7 @@ async fn prices_and_the_cart_columns_follow_the_account() {
     assert!(body.contains("<td class='right nobr'>$8.00</td>"), "{body}");
     assert!(body.contains("<th class=nobr><font color=red>*</font> Typical<br>Lead Time</th>"));
     assert!(body.contains("<td class=center>In Stock</td>"));
-    assert!(body.contains("javascript:cart_update(this,&#039;bGlzdAlIQkxULTE&#039;,&#039;c2t1CUhCTFQtMQ&#039;)"));
+    assert!(body.contains("javascript:cart_update(this,'bGlzdAlIQkxULTE','c2t1CUhCTFQtMQ')"));
 
     let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=SEJMVC0y"), Some(&cookie))).await;
     assert!(part.contains("Part number: HBLT-2<br>\nCategory: Pins<br>\nSubcategory: Ball Lock Pins</p>"), "{part}");
@@ -137,7 +137,7 @@ async fn a_blocked_category_shows_the_agreement_overlay() {
     let cookie = signed_in(&h.pool, &Account::customer(25)).await;
     exec(&h.pool, "INSERT INTO user_category (user_id, category_id) VALUES (25, 1)").await;
     let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
-    assert!(body.contains("<div class='catalog_category_overlay_message'>Integrator Agreement Required for Access. <a href=\"/contact\">Contact Us</a> for more information.</div>"), "{body}");
+    assert!(body.contains("<div class='catalog_category_overlay_message'>Integrator Agreement Required for Access. <a href=\"/contact\" >Contact Us</a> for more information.</div>"), "{body}");
     assert!(!body.contains("products_table"));
 }
 
@@ -149,7 +149,7 @@ async fn french_pages_use_french_names_and_links() {
     let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
     assert!(body.contains("<h1>Goupilles à billes</h1>"), "{body}");
     assert!(body.contains("Détails du produit</a>"));
-    assert!(body.contains("href=\"/catalogue/?lang=fr&amp;action=sku"));
+    assert!(body.contains("href=\"/catalogue/?lang=fr&action=sku"));
 }
 
 #[tokio::test]
@@ -182,9 +182,9 @@ async fn the_home_lists_visible_families_by_category_with_the_unit_filter() {
     let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&cookie))).await;
     assert!(body.contains("<div class=products_summary><div id=scscpq_hero class=scscpq_hero_preview><h2>Spring sale</h2></div>"), "{body}");
     assert!(body.contains("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='scscpq_wp=1'>"));
-    assert!(body.contains("<a href=\"/catalog/?lang=en&amp;unit_type=all\" class='catalog_unit_filter_pill active'>All</a>"));
+    assert!(body.contains("<a href=\"/catalog/?lang=en&unit_type=all\" class='catalog_unit_filter_pill active'>All</a>"));
     assert!(body.contains("<a class=anchor id=category1></a><h2>Pins</h2>\n<div class='catalog_category_wrapper'>\n<div class=catalog_subcategory_list>\n<ul>"));
-    assert!(body.contains("<li ><a href=\"/catalog/?lang=en&amp;action=subcategory&amp;subcategory_id=7\"><span class='subcat7'></span>Ball Lock Pins</a></li>"));
+    assert!(body.contains("<li ><a href=\"/catalog/?lang=en&action=subcategory&subcategory_id=7\" ><span class='subcat7'></span>Ball Lock Pins</a></li>"));
     assert!(!body.contains("subcat8"), "Pending families are for administrators");
     assert!(body.contains("subcat9"));
 
@@ -192,7 +192,7 @@ async fn the_home_lists_visible_families_by_category_with_the_unit_filter() {
     admin.role = "Administrator";
     let admin = signed_in(&h.pool, &admin).await;
     let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&admin))).await;
-    assert!(body.contains("<li style='border: 1px solid #00b0f0;'><a href=\"/catalog/?lang=en&amp;action=subcategory&amp;subcategory_id=8\">"));
+    assert!(body.contains("<li style='border: 1px solid #00b0f0;'><a href=\"/catalog/?lang=en&action=subcategory&subcategory_id=8\" >"));
 }
 
 #[tokio::test]

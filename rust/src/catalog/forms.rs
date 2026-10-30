@@ -7,7 +7,7 @@ use std::{
     sync::OnceLock,
 };
 
-use super::html::esc;
+use super::html::{esc, esc_attr};
 
 const NAME: &[&str] = &["name", "id", "class", "style"];
 const BOOLEAN: &[&str] = &["checked", "selected", "disabled", "readonly"];
@@ -29,12 +29,12 @@ pub fn options(field: &str, attrs: &[(&str, &str)]) -> String {
     let (mut name, mut src, mut value, mut event, mut boolean, mut html5) =
         (String::new(), String::new(), String::new(), String::new(), String::new(), String::new());
     for (k, v) in list.iter().filter(|(_, v)| !v.is_empty()) {
-        let quoted = format!(" {k}='{}'", esc(v));
+        let quoted = if *k == "value" { format!(" {k}='{}'", esc(v)) } else { format!(" {k}='{}'", esc_attr(v)) };
         match *k {
             k if NAME.contains(&k) => name.push_str(&quoted),
             k if BOOLEAN.contains(&k) => boolean.push_str(&format!(" {k}")),
             k if HTML5.contains(&k) => html5.push_str(&quoted),
-            k if k.starts_with("on") => event.push_str(&format!(" {k}=\"javascript:{}\"", esc(v))),
+            k if k.starts_with("on") => event.push_str(&format!(" {k}=\"javascript:{}\"", v.replace('"', "&quot;"))),
             "src" => src.push_str(&quoted),
             _ => value.push_str(&quoted),
         }
@@ -162,7 +162,7 @@ mod tests {
         );
         assert_eq!(
             button("Add to Cart", &[("class", "cart_button"), ("onclick", "cart_update(this,'a','b');")]),
-            "<input type=button class='cart_button' value='Add to Cart' onclick=\"javascript:cart_update(this,&#039;a&#039;,&#039;b&#039;);\">\n"
+            "<input type=button class='cart_button' value='Add to Cart' onclick=\"javascript:cart_update(this,'a','b');\">\n"
         );
         assert_eq!(text("q", "", "6", "6", &[("class", "products_quantity")]), "<input type=text class='products_quantity' name='q' id='q' size='6' maxlength='6'>\n");
         assert_eq!(checkbox("c", "1", "0", &[]), "<input type=checkbox name='c' id='c' value='1'>");
@@ -174,7 +174,7 @@ mod tests {
         let values = vec!["1/4".to_string(), "3/8".to_string()];
         assert_eq!(
             select_list("parameter2", &values, "3/8", &[("onchange", "fn_search_select(this,'0');")]),
-            "<select name='parameter2' id='parameter2' onchange=\"javascript:fn_search_select(this,&#039;0&#039;);\">\n<option></option>\n<option value='1/4'>1/4</option>\n<option value='3/8' selected>3/8</option>\n</select>\n"
+            "<select name='parameter2' id='parameter2' onchange=\"javascript:fn_search_select(this,'0');\">\n<option></option>\n<option value='1/4'>1/4</option>\n<option value='3/8' selected>3/8</option>\n</select>\n"
         );
     }
 

@@ -53,7 +53,7 @@ impl Tabs {
         self.calls += 1;
         let Some(content) = content else { return };
         let content_id = id.map_or_else(|| format!("{NAME}_header_{}", self.calls), str::to_string);
-        let class = class.map_or_else(|| format!("{NAME}_content"), str::to_string);
+        let class = class.unwrap_or("products_content").to_string();
         self.contents.push(format!(
             "{}<div id='{}' class='{}'>\n{}\n</div>\n",
             hidden(&tab_field(label), label),

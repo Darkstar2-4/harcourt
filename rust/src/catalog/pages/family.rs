@@ -100,7 +100,7 @@ fn title(ctx: &Ctx, family: &Family) -> String {
     }
     let mut out = vec!["<div id=products_header>".to_string(), format!("<h1>{name}</h1>"), "</div>".into(), "<div class=products_content>".into()];
     if !family.thumbnail_url.is_empty() {
-        out.push(format!("<div style='display:none;'><img src='{}' id=cart_thumbnail></div>", esc(&family.thumbnail_url)));
+        out.push(format!("<div style='display:none;'><img src='{}' id=cart_thumbnail></div>", html::esc_attr(&family.thumbnail_url)));
     }
     out.push("<div id=products_image>".into());
     for src in [&family.image_url, &family.sketch_url] {
@@ -328,7 +328,7 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
             let field_list = html::base64_fields(&["list", &part.sku]);
             out.push(format!("<td class=center>{}</td>", esc(&part.leadtime(family))));
             out.push(format!("<td class=center>{}</td>", forms::text(&field_list, "", "6", "6", &[("class", "products_quantity")])));
-            let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", "Add to Cart")]).unwrap_or_default();
+            let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", "Add to Cart")]).map(|i| i.replacen("<img", "<img id=''", 1)).unwrap_or_default();
             out.push(format!("<td class=center>{}</td>", href(&icon, &format!("javascript:cart_update(this,{},{})", forms::js_quote(&field_list), forms::js_quote(&field_sku)))));
             if !family.prj.is_empty() {
                 let field = html::base64_fields(&["inventory", &part.sku]);
@@ -421,7 +421,7 @@ async fn overview(ctx: &Ctx<'_>, family: &Family, tabs: &mut Tabs) -> sqlx::Resu
         match r.filetype.as_str() {
             "image" => {
                 out.push(format!("<p class=products_overview>{name}</p>"));
-                out.push(format!("<img src='{}'>", esc(&content_link(r.id))));
+                out.push(format!("<img src='{}'>", html::esc_attr(&content_link(r.id))));
             }
             "html" => {
                 out.push(format!("<p class=products_overview>{name}</p>"));
@@ -455,7 +455,7 @@ async fn customs(ctx: &Ctx<'_>, family: &Family, tabs: &mut Tabs) -> sqlx::Resul
         seen.push(r.item.clone());
         let field = format!("catalog_{}", r.item);
         let content = match r.filetype.as_str() {
-            "image" => Some(format!("<img src='{}'>", esc(&content_link(r.id)))),
+            "image" => Some(format!("<img src='{}'>", html::esc_attr(&content_link(r.id)))),
             "html" => Some(format!("<div>{}</div>", r.html_content.unwrap_or_default())),
             _ => None,
         };
@@ -632,7 +632,7 @@ fn cad(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
     url.push_str("hidePortlets=briefcase&hidePortlets=searchHeader");
     let content = [
         "<div id=products_cad_configurator>".to_string(),
-        format!("<iframe id=scscpq_configurator_id src=\"{}\" onload='javascript:scscpq_initial(this.id, false);'>IFrame support required to view content</iframe>", esc(&url)),
+        format!("<iframe id=scscpq_configurator_id src={} onload='javascript:scscpq_initial(this.id, false);'>IFrame support required to view content</iframe>", html::bare_attr(&url)),
         "</div>".into(),
         "<div id=products_cad_price>".into(),
         "<span id=products_cad_html></span>".into(),
@@ -677,8 +677,8 @@ mod tests {
     #[test]
     fn page_break_buttons() {
         let html = page_breaks(120, 2, "window.location.href='/catalog/?scs_page=%25page%25';");
-        assert!(html.starts_with("<p class='standard center'>\n<input type=button class='nav_button' value='&lt;&lt; First' onclick=\"javascript:window.location.href=&#039;/catalog/?scs_page=1&#039;;\">\n"));
-        assert!(html.contains("value='Next &gt;' onclick=\"javascript:window.location.href=&#039;/catalog/?scs_page=3&#039;;\""));
+        assert!(html.starts_with("<p class='standard center'>\n<input type=button class='nav_button' value='&lt;&lt; First' onclick=\"javascript:window.location.href='/catalog/?scs_page=1';\">\n"));
+        assert!(html.contains("value='Next &gt;' onclick=\"javascript:window.location.href='/catalog/?scs_page=3';\""));
         assert!(html.ends_with("<br>120 Records Found\n<br>Page 2 of 3\n</p>"));
         assert!(page_breaks(120, 3, "x=%page%").contains("value='Next &gt;' class='nav_button_disabled'") || page_breaks(120, 3, "x=%page%").contains("class='nav_button_disabled' value='Next &gt;'"));
     }
