@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_term_page (term_id, page_id) VALUES (?1, ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "0e2a28ec405ca1ecb4d44981eeb83b3e43765f86be2bd7e9410daeb8287dec68"
+}
