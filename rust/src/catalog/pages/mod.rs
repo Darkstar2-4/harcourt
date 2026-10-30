@@ -24,6 +24,7 @@ use super::{
     forms::hidden,
     html,
     model::{self, Catalog, Day, Part, PARAMETERS},
+    php::{self, Key, Value},
     profile::Profile,
     registry::{self, Registry},
     strings::{self, Strings},
@@ -47,6 +48,8 @@ pub struct Request {
     pub page: i64,
     pub item: i64,
     pub document: i64,
+    /// `document` as sent: document_viewer.php, which catalog.php included, read its own id from it.
+    pub document_param: String,
     pub new_date: bool,
     pub search_source: String,
     pub portal_category: String,
@@ -97,6 +100,7 @@ impl Request {
             page: int(q.get("scs_page")),
             item: int(q.get("item")),
             document: int(q.get("document")),
+            document_param: get("document"),
             new_date: int(q.get("new_date")) != 0,
             search_source: source,
             portal_category: get("portal_category"),
@@ -184,12 +188,48 @@ pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request
 
 /// What the gate and route() decided to show.
 enum View {
+    /// Document 157, for a visitor who may not browse.
     Document(i64),
+    /// The account's landing document.
+    Landing(i64),
     Profile,
     Family,
     Lookup(Option<results::Hit>),
     Search(Option<results::Hit>),
     Home,
+}
+
+impl View {
+    /// The step catalog.php's `trace` recorded for the gate's choice.
+    fn traced(&self) -> String {
+        match self {
+            View::Document(id) => format!("Document: {id}"),
+            View::Landing(id) => format!("Landing page: {id}"),
+            View::Profile => "Profile".into(),
+            _ => "route".into(),
+        }
+    }
+}
+
+/// The `document` asked for, kept only when it exists with content in the viewer's language (else 0, as
+/// catalog.php reset it); its name titles the page.
+async fn resolve_document(ctx: &mut Ctx<'_>) -> sqlx::Result<Option<String>> {
+    if ctx.req.document == 0 {
+        return Ok(None);
+    }
+    let (id, code) = (ctx.req.document, ctx.viewer.lang.code());
+    let name = sqlx::query_scalar!(
+        r#"SELECT COALESCE(name, '') AS "name!: String" FROM document
+           WHERE id = ?1 AND EXISTS (SELECT 1 FROM content WHERE record_type = 'document' AND record_id = ?1 AND language_code IN ('EN', ?2))"#,
+        id,
+        code
+    )
+    .fetch_optional(ctx.pool)
+    .await?;
+    if name.is_none() {
+        ctx.req.document = 0;
+    }
+    Ok(name.filter(|n| !n.is_empty()))
 }
 
 async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
@@ -202,10 +242,12 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
     match req.search_source.as_str() {
         "sku" if req.action == "search" => {
             ctx.part = model::part_by_sku(ctx.pool, &req.search_code).await?;
-            if let Some(p) = &ctx.part {
-                ctx.subcategory_id = p.subcategory_id;
-                ctx.req.action = "sku".into();
-                ctx.req.sku = p.sku.clone();
+            match &ctx.part {
+                Some(p) => {
+                    ctx.subcategory_id = p.subcategory_id;
+                    ctx.req.sku = p.sku.clone();
+                }
+                None => ctx.req.action.clear(),
             }
         }
         "name" => ctx.subcategory_id = int(Some(&req.search_code)),
@@ -233,9 +275,9 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
     if !ctx.profile.forced(&ctx.registry) {
         return Ok(View::Profile);
     }
-    if req.document == 0 {
+    if ctx.req.document == 0 {
         if let Some(landing) = ctx.viewer.landing_document_id {
-            return Ok(View::Document(landing));
+            return Ok(View::Landing(landing));
         }
     }
     match req.search_source.as_str() {
@@ -243,21 +285,63 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
         "search" => return Ok(View::Search(found)),
         _ => {}
     }
-    let family_view = req.search_source == "name" || (matches!(ctx.req.action.as_str(), "subcategory" | "sku") && ctx.family().is_some());
+    let sku_search = req.search_source == "sku" && ctx.part.is_some();
+    let family_view = req.search_source == "name" || sku_search || (matches!(ctx.req.action.as_str(), "subcategory" | "sku") && ctx.family().is_some());
     Ok(if family_view && ctx.family().is_some() { View::Family } else { View::Home })
+}
+
+/// catalog.php's `trace` up to the gate's choice: the constructor, the part-number lookup or related part it
+/// resolved, then where the gate sent the request.
+fn trace(req: &Request, view: &View) -> Value {
+    let mut steps = vec!["__construct".to_string()];
+    let lookup = req.search_source == "lookup" || (req.search_source == "search" && req.search_id == 0);
+    if lookup {
+        steps.push("lookup".into());
+    } else if req.action == "related" && !matches!(req.search_source.as_str(), "search" | "sku" | "name") {
+        steps.push("related_sku".into());
+    }
+    steps.push(view.traced());
+    Value::Map(steps.into_iter().enumerate().map(|(i, s)| (Key::Int(i as i64), Value::Str(s))).collect())
+}
+
+/// The document document_viewer.php showed when catalog.php included it: a `document` in the request (PHP-true)
+/// names it as fn_base64 of its id, which a plain id is not; otherwise the one catalog.php chose.
+fn viewer_document(param: &str, chosen: i64) -> i64 {
+    if param.is_empty() || param == "0" {
+        return chosen;
+    }
+    html::base64_fields_decode(param).and_then(|f| f.first().map(|s| Value::Str(s.clone()).int())).unwrap_or(0)
+}
+
+/// $_GET as element text: the PHP printed the keys and values raw, so any `<` in them could open a tag.
+fn text_safe(v: Value) -> Value {
+    match v {
+        Value::Str(s) => Value::Str(html::esc_text(&s)),
+        Value::Map(entries) => Value::Map(
+            entries
+                .into_iter()
+                .map(|(k, v)| (if let Key::Str(s) = k { Key::Str(html::esc_text(&s)) } else { k }, text_safe(v)))
+                .collect(),
+        ),
+        other => other,
+    }
 }
 
 /// The catalog fragment: catalog.php's whole output for this request.
 pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
+    let request = ctx.req.clone();
+    let document_title = resolve_document(ctx).await?;
     let view = decide(ctx).await?;
-    let title = "Products";
+    let title = document_title.as_deref().unwrap_or("Products");
     let mut body = String::new();
     body.push_str(assets::JS);
     body.push_str(assets::CSS);
     body.push_str("<form name='scs_form' id='scs_form' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n");
+    // A subcategory_id that names no subcategory left catalog.php's category_id null, printed with no value.
+    let category = if ctx.subcategory_id != 0 && ctx.family().is_none() { String::new() } else { ctx.category_id.to_string() };
     for (field, value) in [
         ("action", ctx.req.action.clone()),
-        ("category_id", ctx.category_id.to_string()),
+        ("category_id", category),
         ("subcategory_id", ctx.subcategory_id.to_string()),
         ("document", ctx.req.document.to_string()),
         ("scs_page", ctx.req.page.to_string()),
@@ -268,8 +352,12 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     ] {
         body.push_str(&hidden(field, &value));
     }
+    let traced = trace(&request, &view);
     match view {
-        View::Document(id) => body.push_str(&document_html(ctx.pool, id, ctx.viewer.lang).await?.unwrap_or_default()),
+        View::Document(id) | View::Landing(id) => {
+            let id = viewer_document(&request.document_param, id);
+            body.push_str(&document_html(ctx.pool, id, ctx.viewer.lang).await?.unwrap_or_default());
+        }
         View::Profile => body.push_str(&super::profile::enter(ctx, Some(&ctx.req.uri)).await?),
         View::Family => family::page(ctx).await?.write_to(&mut body),
         View::Lookup(found) => body.push_str(&family::lookup(ctx, found).await?),
@@ -277,6 +365,12 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         View::Home => body.push_str(&home::page(ctx).await?),
     }
     body.push_str("</form>");
+    if request.debug {
+        let query = ctx.req.uri.split_once('?').map_or("", |(_, q)| q);
+        for v in [text_safe(php::parse_str(query)), traced] {
+            body.push_str(&format!("<pre>\n{}</pre>\n", php::print_r(&v)));
+        }
+    }
     let ribbon = (!ctx.req.framed).then(|| chrome::ribbon(ctx.viewer.at_least(Role::Executive).then(|| ctx.strings.get("menu_dashboard"))));
     let css = [catalog_css(&ctx.registry)];
     Ok(chrome::document(&ctx.registry, &chrome::Head { css: &css, ..chrome::Head::titled(title) }, &body, ribbon.as_deref()))

@@ -100,6 +100,82 @@ fn leading_number(s: &str) -> f64 {
     (0..=end).rev().find_map(|n| s[..n].parse::<f64>().ok()).unwrap_or(0.0)
 }
 
+/// PHP's parse_str() of a query string ($_GET): keys and values urldecoded, `.` and spaces in a key's name made
+/// `_`, `a[]` and `a[k]` building nested arrays, a repeated key keeping its first place and its last value.
+pub fn parse_str(query: &str) -> Value {
+    let decode = |s: &str| percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
+    let mut root: Vec<(Key, Value)> = Vec::new();
+    for pair in query.split('&').filter(|p| !p.is_empty()) {
+        let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+        let k = decode(k);
+        let k = k.trim_start_matches(' ');
+        let (name, mut rest) = match k.find('[') {
+            Some(i) if k[i..].contains(']') => (k[..i].replace(['.', ' '], "_"), &k[i..]),
+            Some(i) => (format!("{}_{}", k[..i].replace(['.', ' '], "_"), &k[i + 1..]), ""),
+            None => (k.replace(['.', ' '], "_"), ""),
+        };
+        if name.is_empty() {
+            continue;
+        }
+        let mut path = vec![Some(name)];
+        while let Some(inner) = rest.strip_prefix('[').and_then(|r| r.split_once(']')) {
+            path.push(Some(inner.0.to_string()).filter(|s| !s.is_empty()));
+            rest = inner.1;
+        }
+        insert(&mut root, &path, Value::Str(decode(v)));
+    }
+    Value::Map(root)
+}
+
+fn insert(map: &mut Vec<(Key, Value)>, path: &[Option<String>], value: Value) {
+    let Some((first, rest)) = path.split_first() else { return };
+    let key = match first {
+        Some(s) => s.parse::<i64>().ok().filter(|n| n.to_string() == *s).map_or_else(|| Key::Str(s.clone()), Key::Int),
+        None => Key::Int(map.iter().filter_map(|(k, _)| if let Key::Int(i) = k { Some(*i + 1) } else { None }).max().unwrap_or(0).max(0)),
+    };
+    let at = match map.iter().position(|(k, _)| *k == key) {
+        Some(i) => i,
+        None => {
+            map.push((key, Value::Null));
+            map.len() - 1
+        }
+    };
+    if rest.is_empty() {
+        map[at].1 = value;
+        return;
+    }
+    if !matches!(map[at].1, Value::Map(_)) {
+        map[at].1 = Value::Map(Vec::new());
+    }
+    if let Value::Map(inner) = &mut map[at].1 {
+        insert(inner, rest, value);
+    }
+}
+
+/// print_r($value, TRUE).
+pub fn print_r(v: &Value) -> String {
+    let mut out = String::new();
+    print_r_into(&mut out, v, 0);
+    out
+}
+
+fn print_r_into(out: &mut String, v: &Value, pad: usize) {
+    let Value::Map(entries) = v else {
+        out.push_str(&v.text());
+        return;
+    };
+    out.push_str("Array\n");
+    out.push_str(&" ".repeat(pad));
+    out.push_str("(\n");
+    for (k, child) in entries {
+        out.push_str(&format!("{}[{}] => ", " ".repeat(pad + 4), k.as_string()));
+        print_r_into(out, child, pad + 8);
+        out.push('\n');
+    }
+    out.push_str(&" ".repeat(pad));
+    out.push_str(")\n");
+}
+
 /// None for text that is not a serialized value (PHP's unserialize returned false).
 pub fn unserialize(s: &str) -> Option<Value> {
     let mut p = Parser { s: s.as_bytes(), at: 0 };
@@ -227,6 +303,18 @@ fn property_name(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn print_r_of_a_query_as_php_prints_get() {
+        assert_eq!(print_r(&parse_str("debug=1&scscpq_wp=1")), "Array\n(\n    [debug] => 1\n    [scscpq_wp] => 1\n)\n");
+        assert_eq!(print_r(&parse_str("")), "Array\n(\n)\n");
+        assert_eq!(
+            print_r(&parse_str("a.b=x+y&p[]=1&p[]=2&a.b=z&q[k]=v")),
+            "Array\n(\n    [a_b] => z\n    [p] => Array\n        (\n            [0] => 1\n            [1] => 2\n        )\n\n    [q] => Array\n        (\n            [k] => v\n        )\n\n)\n"
+        );
+        assert_eq!(parse_str("x[=1").get("x_").map(Value::text).as_deref(), Some("1"), "an unclosed bracket becomes _");
+        assert_eq!(parse_str("=1&%20s=2").entries().len(), 1);
+    }
 
     #[test]
     fn reads_scalars_arrays_and_objects() {
