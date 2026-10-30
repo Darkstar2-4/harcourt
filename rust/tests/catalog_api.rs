@@ -2,7 +2,10 @@
 
 mod catalog_support;
 
-use axum::{body::Body, http::Method};
+use axum::{
+    body::Body,
+    http::{Method, StatusCode},
+};
 use catalog_support::{harness, request, send, signed_in, Account};
 
 fn xhr(form: &str, cookie: Option<&str>) -> axum::http::Request<Body> {
@@ -55,6 +58,11 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
 #[tokio::test]
 async fn page_requests_name_the_missing_function() {
     let h = harness().await;
-    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[], Body::empty())).await;
+    let (status, headers, _) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[], Body::empty())).await;
+    assert_eq!((status, headers["location"].to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"), "a visit that begins here goes home");
+    let referer = [("referer", "https://www.harcourt.co/catalog/")];
+    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &referer, Body::empty())).await;
     assert_eq!(body, "function: html_html");
+    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=%3Cb%3E", None, &referer, Body::empty())).await;
+    assert_eq!(body, "function: html_&lt;b&gt;");
 }

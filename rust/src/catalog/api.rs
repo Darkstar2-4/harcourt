@@ -50,14 +50,19 @@ fn params(query: HashMap<String, String>, body: &Bytes) -> HashMap<String, Strin
     p
 }
 
-async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
+async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
+    match crate::visitor::landing(&core, &visitor, uri.path(), uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => tracing::error!("scscpq_api: {e}"),
+    }
     let p = params(query, &body);
     let get = |k: &str| p.get(k).map(String::as_str).unwrap_or("");
     if !headers.contains_key("x-requested-with") {
         let action = get("action").trim();
         return match action {
             "download" => download(get("url")).await,
-            _ => text(format!("function: html_{action}")),
+            _ => text(format!("function: html_{}", html::esc(action))),
         };
     }
     let result = async {
