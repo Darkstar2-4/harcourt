@@ -168,11 +168,15 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
     if config.secret.is_none() {
         tracing::warn!("HXWEB_SECRET is not set: emailed-code sign-in answers 503");
     }
+    let accounts = hxweb::accounts::Services::from_env(|k| std::env::var(k).ok())
+        .inspect_err(|e| tracing::error!("/api disabled: {e}"))
+        .ok()?;
     Some(Arc::new(hxweb::api::Auth {
         pool,
         secret: config.secret,
         public_origin: config.public_origin,
         trusted_proxies: config.trusted_proxies,
+        accounts,
     }))
 }
 

@@ -2,6 +2,7 @@
 //! that replace PHP endpoints. The binary (main.rs) mounts `api::router` and checks `retired` before it proxies.
 
 pub mod access_code;
+pub mod accounts;
 pub mod api;
 pub mod audit;
 pub mod config;
