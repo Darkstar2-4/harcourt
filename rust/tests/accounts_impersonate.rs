@@ -54,8 +54,12 @@ async fn cookie_for(pool: &SqlitePool, id: i64) -> String {
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
+/// A request from one of the site's own pages, unless the case names its own Referer.
 async fn send(app: &Router, method: Method, uri: &str, headers: &[(&str, &str)], form: Option<&str>) -> (StatusCode, HeaderMap, String) {
     let mut req = Request::builder().method(method).uri(uri);
+    if !headers.iter().any(|(k, _)| *k == "referer") {
+        req = req.header(header::REFERER, format!("{ORIGIN}/request-access"));
+    }
     for (k, v) in headers {
         req = req.header(*k, *v);
     }
@@ -166,9 +170,41 @@ async fn a_language_choice_is_kept_and_saved_to_the_account() {
     send(&app, Method::GET, "/language_change.php?language_code=FR", &[("cookie", &customer), ("referer", "https://www.harcourt.co/catalog/")], None).await;
     assert_eq!(saved().await, "FR");
 
-    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=xx", &[("referer", "https://evil.example/x")], None).await;
-    assert_eq!(headers.get(header::LOCATION).unwrap(), "/");
-    assert!(headers.get(header::SET_COOKIE).is_none());
+    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=xx", &[("referer", "https://www.harcourt.co/societe/")], None).await;
+    assert_eq!(headers.get(header::LOCATION).unwrap(), "/societe/");
+    assert!(headers.get(header::SET_COOKIE).is_none(), "a code the site does not offer changes nothing");
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
+    let pool = pool().await;
+    sqlx::query("INSERT INTO subcategory (id, category_id, status) VALUES (1, 1, 'Active')").execute(&pool).await.unwrap();
+    let outside = [("referer", "https://search.example/")];
+    let location = |h: &HeaderMap| h.get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
+    let cases = [
+        ("198.51.100.1", "/newuser.php", None, "/scs_index.php"),
+        ("198.51.100.1", "/newuser.php?scscpq_wp=1", None, "/"),
+        ("198.51.100.1", "/user_impersonate.php", Some(2), "/catalog.php"),
+        ("198.51.100.1", "/language_change.php?language_code=FR", Some(2), "/catalog.php"),
+        ("198.51.100.1", "/newuser.php", Some(1), "/dashboard.php"),
+        (OFFICE_IP, "/newuser.php?scscpq_wp=1", None, "/dashboard.php"),
+    ];
+    for (peer, path, signed_in, expected) in cases {
+        let cookie = match signed_in {
+            Some(id) => cookie_for(&pool, id).await,
+            None => String::new(),
+        };
+        let mut h = outside.to_vec();
+        if !cookie.is_empty() {
+            h.push(("cookie", cookie.as_str()));
+        }
+        let (status, headers, _) = send(&app(&pool, peer), Method::GET, path, &h, None).await;
+        assert_eq!((status, location(&headers).as_deref()), (StatusCode::FOUND, Some(expected)), "{path} as {signed_in:?}");
+        assert!(headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().starts_with("harcourt_profile="));
+    }
+    let admin = cookie_for(&pool, 1).await;
+    let (status, _, _) = send(&app(&pool, "198.51.100.1"), Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
+    assert_eq!(status, StatusCode::OK, "from one of the site's pages the page itself answers");
 }
 
 #[tokio::test]
@@ -180,6 +216,6 @@ async fn cookie_reset_signs_out_and_forgets_the_choices() {
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("<p>Your cookies and cache have been reset</p>"));
     let cleared: Vec<String> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().split('=').next().unwrap().to_string()).collect();
-    assert_eq!(cleared, ["__Host-hx_session", "harcourt", "hx_lang", "hx_campaign"]);
+    assert_eq!(cleared, ["harcourt", "__Host-hx_session", "hx_lang"], "what the browser holds, and always harcourt");
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
 }

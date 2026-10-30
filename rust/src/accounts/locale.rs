@@ -87,6 +87,28 @@ impl Languages {
     }
 }
 
+/// Translated page text for one language: the `menu` JSON of its `language` row (prod's classes/scs_lbl.php).
+pub struct Labels(serde_json::Map<String, serde_json::Value>);
+
+impl Labels {
+    pub async fn load(pool: &SqlitePool, code: &LanguageCode) -> sqlx::Result<Labels> {
+        let menu = sqlx::query_scalar!(r#"SELECT menu FROM language WHERE active = 1 AND upper(code) = ?1 LIMIT 1"#, code.0)
+            .fetch_optional(pool)
+            .await?
+            .flatten();
+        Ok(Labels(menu.and_then(|m| serde_json::from_str(&m).ok()).unwrap_or_default()))
+    }
+
+    /// scs_lbl($key, $default): the translation when there is a usable one, else the English default. The text
+    /// is markup staff wrote, as it was in PHP.
+    pub fn get(&self, key: &str, default: &str) -> String {
+        match self.0.get(key).and_then(|v| v.as_str()) {
+            Some(t) if !t.is_empty() && t != key && t != "Missing" => t.to_string(),
+            _ => default.to_string(),
+        }
+    }
+}
+
 /// The active currencies with a rate, US dollars first, then by name.
 pub struct Currencies(Vec<Currency>);
 

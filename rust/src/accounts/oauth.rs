@@ -178,7 +178,8 @@ fn browser_token(headers: &HeaderMap) -> Option<Token> {
 }
 
 fn redirect(to: &str, set: Vec<HeaderValue>) -> Response {
-    let mut r = (StatusCode::FOUND, [(header::LOCATION, to.to_string()), (header::CACHE_CONTROL, "no-store".to_string())]).into_response();
+    let headers = [(header::LOCATION, to), (header::CACHE_CONTROL, "no-store"), (header::CONTENT_TYPE, crate::visitor::PHP_CONTENT_TYPE)];
+    let mut r = (StatusCode::FOUND, headers).into_response();
     for c in set {
         r.headers_mut().append(header::SET_COOKIE, c);
     }
@@ -480,6 +481,9 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
     let pool = &core.pool;
     let now = unix_now();
     let token = browser_token(headers);
+    if token.is_none() {
+        return redirect(LANDING, Vec::new());
+    }
     let pending = match &token {
         Some(t) => {
             let hash = t.hash();
