@@ -11,6 +11,14 @@ path = "src/lib.rs"
 name = "hxweb"
 path = "src/main.rs"
 
+[[bin]]
+name = "hx-import"
+path = "src/bin/hx-import.rs"
+required-features = ["import"]
+
+[features]
+import = ["sqlx/mysql", "dep:futures-util"]
+
 [dependencies]
 axum = "0.8"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
@@ -28,6 +36,7 @@ rand = "0.8"
 base64 = "0.22"
 hex = "0.4"
 percent-encoding = "2"
+futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
