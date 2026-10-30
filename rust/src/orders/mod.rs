@@ -21,7 +21,6 @@ pub use crate::staff::{
 use crate::{
     api::{ApiError, Auth, Authed, ClientIp, MinRole},
     identity::Role,
-    staff::csrf::CsrfToken,
     visitor::Visitor,
 };
 
