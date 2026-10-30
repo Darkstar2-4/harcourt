@@ -20,6 +20,7 @@ pub mod csrf;
 pub mod html;
 pub mod maintain;
 pub mod shell;
+pub mod time;
 
 pub mod campaign;
 pub mod company;
