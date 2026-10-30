@@ -205,7 +205,7 @@ proptest! {
         let none: Vec<&String> = Vec::new();
         let value_attr: Vec<&String> = [&value].into_iter().filter(|v| in_attribute(v)).collect();
         let value_text: Vec<&String> = [&value].into_iter().filter(|v| in_text(v)).collect();
-        let select_values: Vec<&String> = plain.iter().filter(|v| in_attribute(v)).collect();
+        let select_values: Vec<&String> = plain.iter().filter(|v| in_text(v)).collect();
         // Each widget with what may not appear in it as written: attributes are single-quoted, and the staff
         // select's labels are markup by contract.
         let drawn: [(String, &[&String], &[&String]); 7] = [
