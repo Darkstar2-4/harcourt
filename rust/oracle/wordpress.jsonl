@@ -39,3 +39,17 @@
 {"name":"wp-industries-en","path":"/industries/","language":"en"}
 {"name":"wp-robots","path":"/robots.txt","language":"en"}
 {"name":"wp-head","method":"HEAD","path":"/product/","language":"en"}
+{"name":"wp-history","path":"/company/history/","language":"en"}
+{"name":"wp-history-fr","path":"/societe/histoire/?lang=fr","language":"fr"}
+{"name":"wp-why","path":"/company/why-harcourt/","language":"en"}
+{"name":"wp-why-fr","path":"/societe/pourquoi-harcourt/?lang=fr","language":"fr"}
+{"name":"wp-about","path":"/company/about-harcourt/","language":"en"}
+{"name":"wp-about-fr","path":"/societe/a-propos-dharcourt/?lang=fr","language":"fr"}
+{"name":"wp-career","path":"/company/career-opportunities/","language":"en"}
+{"name":"wp-career-fr","path":"/societe/opportunites-de-carriere/?lang=fr","language":"fr"}
+{"name":"wp-about-bare","path":"/company/about-harcourt?utm_source=x","language":"en"}
+{"name":"wp-histoire-en","path":"/societe/histoire/","language":"en"}
+{"name":"wp-why-unknown-query","path":"/company/why-harcourt/?ref=x","language":"en"}
+{"name":"wp-lang-en-redirect","path":"/societe/?lang=en&ref=x","language":"en"}
+{"name":"wp-wp-query-var","path":"/legal/?replytocom=1","language":"en"}
+{"name":"wp-bare-junk-lang","path":"/legal?lang=%27x","language":"en"}

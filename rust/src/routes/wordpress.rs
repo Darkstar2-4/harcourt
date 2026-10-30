@@ -31,10 +31,14 @@ use crate::{
     },
 };
 
-/// Every path of a page whose template Rust renders (product-single, digest, page.php), in both languages. `hxweb-cms
-/// check` proves each renders as WordPress did.
-const PAGES: [&str; 41] = [
+/// Every path of a page whose template Rust renders, in both languages. `hxweb-cms check` proves each renders as
+/// WordPress did.
+const PAGES: &[&str] = &[
     "/company/",
+    "/company/about-harcourt/",
+    "/company/career-opportunities/",
+    "/company/history/",
+    "/company/why-harcourt/",
     "/confidentialite/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -75,6 +79,10 @@ const PAGES: [&str; 41] = [
     "/ressources/",
     "/ressources/dejeuners-et-causeries/",
     "/societe/",
+    "/societe/a-propos-dharcourt/",
+    "/societe/histoire/",
+    "/societe/opportunites-de-carriere/",
+    "/societe/pourquoi-harcourt/",
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.
