@@ -86,3 +86,11 @@
 {"name": "ajax-company-warm", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "administrator-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-company-warm-limit", "path": "/scs_ajax.php?table=user&source=company_name&term=persona%20active&limit=3", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "image-viewer-warm", "path": "/image_viewer.php?action=x", "persona": "anonymous", "session": "warm"}
+{"name": "api-download-empty", "path": "/scscpq_api.php?action=download", "persona": "anonymous", "session": "warm"}
+{"name": "api-download-empty", "path": "/scscpq_api.php?action=download", "persona": "customer-active", "session": "warm"}
+{"name": "api-download-malformed", "path": "/scscpq_api.php?action=download&url=notaurl", "persona": "customer-active", "session": "warm"}
+{"name": "api-profile-incomplete", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=profile&cad_code="}
+{"name": "api-profile-incomplete", "path": "/scscpq_api.php", "persona": "customer-active-fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=profile&cad_code="}
+{"name": "api-quick-cad-no-format", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=quick_cad&sku=LS-1"}
+{"name": "api-quick-cad-no-format", "path": "/scscpq_api.php", "persona": "anonymous", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=quick_cad&sku=LS-1"}
+{"name": "api-xhr-get-action", "path": "/scscpq_api.php?action=sku", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
