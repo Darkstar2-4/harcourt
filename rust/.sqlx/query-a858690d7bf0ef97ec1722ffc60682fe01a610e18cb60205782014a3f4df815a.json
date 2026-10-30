@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", c.name AS category, s.name, s.leadtime_option, s.leadtime_text, s.status, s.prj, COALESCE(s.sort_order, 0) AS \"sort_order!: i64\"\n           FROM subcategory s LEFT JOIN category c ON c.id = s.category_id\n           WHERE c.id <> 0 AND (?1 = 0 OR s.category_id = ?1) ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_option",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_text",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "prj",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "sort_order!: i64",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "a858690d7bf0ef97ec1722ffc60682fe01a610e18cb60205782014a3f4df815a"
+}

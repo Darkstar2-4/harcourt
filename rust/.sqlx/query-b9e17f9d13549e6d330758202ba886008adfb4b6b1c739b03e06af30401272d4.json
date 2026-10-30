@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE inventory SET prj = ?1 WHERE sku = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b9e17f9d13549e6d330758202ba886008adfb4b6b1c739b03e06af30401272d4"
+}

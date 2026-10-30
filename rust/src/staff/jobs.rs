@@ -1,62 +1,22 @@
 //! `hxweb job <name>`: the work cron.php used to start over HTTP with an API key, run as a command by a systemd
-//! timer instead. Nothing here is reachable from the web.
+//! timer instead, and the price increase inventory_increase.php ran. Nothing here is reachable from the web.
 
 use std::{
     fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::OpenOptionsExt,
     path::Path,
+    str::FromStr,
 };
 
+use rust_decimal::{Decimal, RoundingStrategy};
 use sqlx::SqlitePool;
 
-use super::time;
-use crate::{config::Config, db};
-
-const USAGE: &str = "usage: hxweb job search_utility | search_export <dir> | search_export --log <file> | image_filmstrip <docroot>";
-
-pub async fn cli(args: &[String]) -> i32 {
-    let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let config = match Config::from_env(|k| std::env::var(k).ok()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("{e}");
-            return 2;
-        }
-    };
-    let result = match args[..] {
-        ["search_utility"] => match db::open(&config.db_path).await {
-            Ok(pool) => search_utility(&pool, db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["search_export", "--log", file] => match db::open(&config.db_path).await {
-            Ok(pool) => search_log(&pool, Path::new(file), db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["image_filmstrip", docroot] => match db::open(&config.db_path).await {
-            Ok(pool) => super::filmstrip::run(&pool, Path::new(docroot), db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["search_export", dir] => match db::open(&config.db_path).await {
-            Ok(pool) => search_export(&pool, Path::new(dir)).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        _ => {
-            eprintln!("{USAGE}");
-            return 2;
-        }
-    };
-    match result {
-        Ok(summary) => {
-            print!("{summary}");
-            0
-        }
-        Err(e) => {
-            eprintln!("{e}");
-            1
-        }
-    }
-}
+use super::{
+    data::{pricing, pricing_text},
+    html::number,
+    time,
+};
 
 /// One TSV cell: tabs and line breaks become spaces, NULL is empty.
 fn cell(v: impl Into<Option<String>>) -> String {
@@ -368,7 +328,7 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     .map_err(fail)?;
     let unique = sqlx::query_scalar!(r#"SELECT count(*) AS "n!: i64" FROM search"#).fetch_one(&mut *tx).await.map_err(fail)?;
 
-    let n = |v: i64| super::html::number(v);
+    let n = number;
     let lines = [
         format!("Subcategory: {}", n(families)),
         format!("Category Languages: {}", n(names.len() as i64)),
@@ -400,9 +360,116 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     Ok(comment + "\n")
 }
 
+/// How inventory_increase.php raised prices: by a fixed amount or a percentage of each break, to the cent.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Increase {
+    Fixed(Decimal),
+    Percent(Decimal),
+}
+
+impl Increase {
+    /// A fixed amount above $0.00, or a percentage above 0 and below 100.
+    pub fn parse(kind: &str, value: &str) -> Result<Increase, String> {
+        let amount = Decimal::from_str(value.trim().trim_start_matches('$').trim_end_matches('%')).map_err(|_| format!("not an amount: {value}"))?;
+        match kind {
+            "fixed" if amount > Decimal::ZERO => Ok(Increase::Fixed(amount)),
+            "percent" if amount > Decimal::ZERO && amount < Decimal::ONE_HUNDRED => Ok(Increase::Percent(amount)),
+            "fixed" => Err("a fixed increase must be > $0.00".into()),
+            _ => Err("a percent increase must be > 0.00% and < 100.00%".into()),
+        }
+    }
+
+    fn kind(self) -> &'static str {
+        match self {
+            Increase::Fixed(_) => "Fixed Amount",
+            Increase::Percent(_) => "Percent",
+        }
+    }
+
+    fn apply(self, price: Decimal) -> Decimal {
+        match self {
+            Increase::Fixed(add) => price + add,
+            Increase::Percent(pct) => price + (price * pct / Decimal::ONE_HUNDRED).round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero),
+        }
+    }
+
+    fn describe(self) -> String {
+        match self {
+            Increase::Fixed(d) => format!("${:.2}", d),
+            Increase::Percent(d) => format!("{:.2}%", d),
+        }
+    }
+}
+
+/// The subcategories a price increase may touch: active, not smart, in a category.
+async fn raisable(pool: &SqlitePool) -> sqlx::Result<Vec<i64>> {
+    sqlx::query_scalar!(
+        r#"SELECT DISTINCT s.id AS "id!: i64" FROM inventory i JOIN category c ON c.id = i.category_id JOIN subcategory s ON s.id = i.subcategory_id
+           WHERE s.output <> 'smart' AND s.status = 'Active' COLLATE NOCASE AND c.id <> 0 AND s.id <> 0 ORDER BY s.id"#
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// inventory_increase.php: raise every price break of the parts in these subcategories (all that may be raised when
+/// none are named). It cannot be rolled back. Each subcategory is raised in one transaction and stamped with the
+/// time; a part with no base price is skipped.
+pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories: &[i64], now: i64) -> Result<String, String> {
+    let fail = |e: sqlx::Error| format!("price increase: {e}");
+    let allowed = raisable(pool).await.map_err(fail)?;
+    if let Some(id) = subcategories.iter().find(|id| !allowed.contains(id)) {
+        return Err(format!("subcategory {id} is not an active, priced subcategory"));
+    }
+    let chosen = if subcategories.is_empty() { allowed } else { subcategories.to_vec() };
+    let (mut updated, mut skipped) = (0i64, 0i64);
+    for &id in &chosen {
+        let mut tx = pool.begin().await.map_err(fail)?;
+        let parts = sqlx::query!(r#"SELECT id AS "id!: i64", pricing FROM inventory WHERE subcategory_id = ?1"#, id).fetch_all(&mut *tx).await.map_err(fail)?;
+        for part in parts {
+            let mut breaks = part.pricing.as_deref().map(pricing).unwrap_or_default();
+            if breaks.first().is_none_or(|b| b.price.is_zero()) {
+                skipped += 1;
+                continue;
+            }
+            for b in &mut breaks {
+                b.price = increase.apply(b.price);
+            }
+            let stored = pricing_text(&breaks);
+            sqlx::query!("UPDATE inventory SET pricing = ?2 WHERE id = ?1", part.id, stored).execute(&mut *tx).await.map_err(fail)?;
+            updated += 1;
+        }
+        sqlx::query!("UPDATE subcategory SET price_increase = ?2 WHERE id = ?1", id, now).execute(&mut *tx).await.map_err(fail)?;
+        tx.commit().await.map_err(fail)?;
+    }
+    let comment = [
+        format!("Subcategories: {}", number(chosen.len() as i64)),
+        format!("Increase: {}", increase.describe()),
+        format!("SKUs updated: {} SKUs skipped: {}", number(updated), number(skipped)),
+    ]
+    .join("\n");
+    let subtype = format!("Price Increase: {}", increase.kind());
+    sqlx::query!("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('', ?1, 0, '', 'Import Table', ?2, ?3)", now, subtype, comment)
+        .execute(pool)
+        .await
+        .map_err(fail)?;
+    Ok(comment + "\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn increases_round_each_break_to_the_cent() {
+        let d = |s: &str| Decimal::from_str(s).unwrap();
+        assert_eq!(Increase::Percent(d("2.5")).apply(d("12.30")), d("12.61"));
+        assert_eq!(Increase::Percent(d("10")).apply(d("0.05")), d("0.06"));
+        assert_eq!(Increase::Fixed(d("1.25")).apply(d("12.30")), d("13.55"));
+        assert_eq!(Increase::Percent(d("12.5")).describe(), "12.50%");
+        assert_eq!(Increase::parse("fixed", "$1.50"), Ok(Increase::Fixed(d("1.50"))));
+        assert!(Increase::parse("percent", "100").is_err());
+        assert!(Increase::parse("fixed", "0").is_err());
+    }
 
     #[test]
     fn category_names_lose_entities_and_words_are_filtered() {

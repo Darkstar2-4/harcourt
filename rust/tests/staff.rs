@@ -66,58 +66,6 @@ fn csrf_of(page: &str) -> String {
     page[start..].split('\'').next().unwrap().to_string()
 }
 
-async fn mailform_count(pool: &SqlitePool) -> i64 {
-    sqlx::query_scalar("SELECT count(*) FROM mailform").fetch_one(pool).await.unwrap()
-}
-
-#[tokio::test]
-async fn pages_send_visitors_without_the_role_home() {
-    let h = harness().await;
-    let exec = person(&h.pool, 2, "Executive").await;
-    for cookie in [None, Some(exec.as_str())] {
-        let (status, headers, _) = send(&h.app, get("/mailer_maintain.php", cookie)).await;
-        assert_eq!(status, StatusCode::FOUND);
-        assert_eq!(headers[header::LOCATION], "/scs_index.php");
-    }
-}
-
-#[tokio::test]
-async fn an_administrator_sees_the_list_inside_the_site_chrome() {
-    let h = harness().await;
-    let admin = person(&h.pool, 1, "Administrator").await;
-    sqlx::query("INSERT INTO mailform (code, name, subject, recipient, active) VALUES ('quote', 'Quote <form>', 'Quote', '', 0)")
-        .execute(&h.pool)
-        .await
-        .unwrap();
-    let (status, headers, page) = send(&h.app, get("/mailer_maintain.php", Some(&admin))).await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(headers[header::CACHE_CONTROL], "no-store");
-    assert!(page.starts_with("<!DOCTYPE html>\n<html>\n<head>\n<title>Email Documents</title>"));
-    assert!(page.contains("<div id='scs_body' >"));
-    assert!(page.contains("<p class='message left'>Email Documents (08/07/2025)</p>"));
-    assert!(page.contains("<form name='scs_form' id='scs_form' method=post action='/mailer_maintain.php'"));
-    assert!(page.contains("<td>Quote &lt;form&gt;</td>"));
-    assert!(page.contains("<td>Visitor</td>"));
-    assert!(page.contains("onclick=\"javascript:fn_action('delete','1','quote');\""));
-    assert!(page.ends_with("</div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n"));
-}
-
-#[tokio::test]
-async fn a_post_without_the_session_token_changes_nothing() {
-    let h = harness().await;
-    let admin = person(&h.pool, 1, "Administrator").await;
-    let other = person(&h.pool, 3, "Administrator").await;
-    let (_, _, page) = send(&h.app, get("/mailer_maintain.php", Some(&other))).await;
-    let foreign = csrf_of(&page);
-    let fields = [("action", "update"), ("record_id", "0"), ("code", "x"), ("name", "X"), ("subject", "S")];
-    let (status, _, _) = send(&h.app, post("/mailer_maintain.php", &admin, &fields)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
-    let with_foreign: Vec<_> = fields.iter().copied().chain([("csrf", foreign.as_str())]).collect();
-    let (status, _, _) = send(&h.app, post("/mailer_maintain.php", &admin, &with_foreign)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
-    assert_eq!(mailform_count(&h.pool).await, 0);
-}
-
 async fn event(pool: &SqlitePool, user_id: i64, age_secs: i64, kind: &str, subtype: &str, comment: &str) {
     sqlx::query("INSERT INTO log (ip, date_time, user_id, email, type, subtype, sku, comment) VALUES ('192.0.2.1', ?1, ?2, 'someone@example.com', ?3, ?4, 'SKU-1', ?5)")
         .bind(db::unix_now() - age_secs)
@@ -240,43 +188,6 @@ async fn the_dashboard_sends_the_visitor_back_to_the_path_apache_ran() {
 }
 
 #[tokio::test]
-async fn administrators_mint_list_and_revoke_grants_within_their_role() {
-    let h = harness().await;
-    let admin = person(&h.pool, 1, "Administrator").await;
-    person(&h.pool, 5, "Customer").await;
-    person(&h.pool, 6, "Super User").await;
-    let (status, _, _) = send(&h.app, get("/staff/remote-grants", Some(&person(&h.pool, 2, "Executive").await))).await;
-    assert_eq!(status, StatusCode::FOUND);
-    let (_, _, page) = send(&h.app, get("/staff/remote-grants", Some(&admin))).await;
-    assert!(page.contains("<td colspan=6>No live grants</td>"));
-    let csrf = csrf_of(&page);
-    let p = |pairs: &[(&str, &str)]| post("/staff/remote-grants", &admin, &[pairs, &[("csrf", csrf.as_str())]].concat());
-
-    let (_, _, page) = send(&h.app, p(&[("action", "mint"), ("user_id", "6")])).await;
-    assert!(page.contains("No account you can grant"));
-    let (_, _, missing) = send(&h.app, p(&[("action", "mint"), ("user_id", "999")])).await;
-    assert!(missing.contains("No account you can grant"));
-    let grants: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_grant").fetch_one(&h.pool).await.unwrap();
-    assert_eq!(grants, 0);
-
-    let (_, _, page) = send(&h.app, p(&[("action", "mint"), ("user_id", "5")])).await;
-    assert!(page.contains("<br>Grant created for user 5</span>"));
-    let code = page.split("<b><code>").nth(1).unwrap().split("</code>").next().unwrap();
-    assert!(hxweb::token::Token::parse(code).is_some());
-    let (_, _, list) = send(&h.app, get("/staff/remote-grants", Some(&admin))).await;
-    assert!(list.contains("<td>Test company 5</td>") && !list.contains(code));
-
-    let id: i64 = sqlx::query_scalar("SELECT rowid FROM remote_grant").fetch_one(&h.pool).await.unwrap();
-    let id = id.to_string();
-    let (_, _, page) = send(&h.app, p(&[("action", "revoke"), ("record_id", &id)])).await;
-    assert!(page.contains("<br>Grant revoked</span>") && page.contains("No live grants"));
-    let redeemed = hxweb::remote_grant::redeem(&h.pool, &hxweb::token::Token::parse(code).unwrap(), db::unix_now()).await.unwrap();
-    assert!(redeemed.is_none());
-    let audit: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE subtype IN ('remote_granted', 'remote_revoked')").fetch_one(&h.pool).await.unwrap();
-    assert_eq!(audit, 2);
-}
-
-#[tokio::test]
 async fn the_company_page_shows_its_cms_document_in_the_accounts_language() {
     let h = harness().await;
     let customer = person(&h.pool, 8, "Customer").await;
@@ -366,40 +277,160 @@ async fn search_utility_rebuilds_the_search_table_and_converges() {
     assert_eq!(runs, 2);
 }
 
+async fn pending(pool: &SqlitePool, id: i64, company: &str, email: &str) {
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ip, last_login) VALUES (?1, 'Pending', 'Customer', ?2, '192.0.2.9', 0)"#)
+        .bind(id)
+        .bind(company)
+        .execute(pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('192.0.2.9', ?1, ?2, ?3, 'User', 'Signup', 'Pat Example')")
+        .bind(db::unix_now())
+        .bind(id)
+        .bind(email)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+async fn status_of(pool: &SqlitePool, id: i64) -> String {
+    sqlx::query_scalar(r#"SELECT status FROM "user" WHERE id = ?1"#).bind(id).fetch_one(pool).await.unwrap()
+}
+
 #[tokio::test]
-async fn maintain_update_and_delete_a_document() {
+async fn access_requests_are_for_administrators_inside_the_site_chrome() {
+    let h = harness().await;
+    pending(&h.pool, 9, "Pending Co", "buyer@example.com").await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    for cookie in [None, Some(exec.as_str())] {
+        let (status, headers, _) = send(&h.app, get("/staff/access/9", cookie)).await;
+        assert_eq!(status, StatusCode::FOUND);
+        assert_eq!(headers[header::LOCATION], "/scs_index.php");
+    }
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (status, headers, page) = send(&h.app, get("/staff/access/9", Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(headers[header::CACHE_CONTROL], "no-store");
+    assert!(page.starts_with("<!DOCTYPE html>\n<html>\n<head>\n<title>Access Request</title>"), "{page}");
+    assert!(page.contains("<div id='scs_body' >"));
+    assert!(page.ends_with("</div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n"));
+    let (status, _, _) = send(&h.app, get("/staff/access/77", Some(&admin))).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn an_administrator_approves_a_request_from_the_dashboards_link() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
-    let (_, _, page) = send(&h.app, get("/mailer_maintain.php", Some(&admin))).await;
+    pending(&h.pool, 9, "Pending <Co>", "Buyer@Example.com").await;
+    let link = "/user.php?action=maintain&record_id=9&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529";
+    let (status, headers, _) = send(&h.app, get(link, Some(&admin))).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let to = headers[header::LOCATION].to_str().unwrap().to_string();
+    assert_eq!(to, "/staff/access/9?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529");
+    let (_, _, page) = send(&h.app, get(&to, Some(&admin))).await;
+    assert!(page.contains("<td width='30%'>Company</td><td width='70%'>Pending &lt;Co></td>"), "{page}");
+    assert!(page.contains("<td width='30%'>Status</td><td width='70%'>Pending</td>"));
+    assert!(page.contains("fn_action('approve');") && page.contains("fn_action('deny');"));
+    assert!(page.contains("<input type=hidden name='return_url' id='return_url' value='/dashboard.php?tab=Pending+Access+%281%29'>"), "{page}");
+
     let csrf = csrf_of(&page);
-    let p = |pairs: &[(&str, &str)]| post("/mailer_maintain.php", &admin, &[pairs, &[("csrf", csrf.as_str())]].concat());
+    let approve = [("action", "approve"), ("return_url", "/dashboard.php?tab=Pending+Access+%281%29")];
+    let (status, _, _) = send(&h.app, post("/staff/access/9", &admin, &approve)).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "no form token");
+    assert_eq!(status_of(&h.pool, 9).await, "Pending");
 
-    let (status, _, page) = send(&h.app, p(&[("action", "maintain"), ("record_id", "0")])).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(page.contains("<input type=text name='code' id='code' size='20' maxlength='20'>"));
-    assert!(page.contains("fn_action('update','0','');"));
+    let with_token: Vec<_> = approve.iter().copied().chain([("csrf", csrf.as_str())]).collect();
+    let (status, headers, _) = send(&h.app, post("/staff/access/9", &admin, &with_token)).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers[header::LOCATION], "/dashboard.php?tab=Pending+Access+%281%29");
+    assert_eq!(status_of(&h.pool, 9).await, "Active");
+    let bypass: String = sqlx::query_scalar("SELECT email FROM captcha_bypass").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(bypass, "@example.com");
+    let audit: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'Auth' AND subtype = 'access_approved' AND user_id = 1").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(audit, 1);
 
-    let (_, _, page) = send(&h.app, p(&[("action", "update"), ("record_id", "0"), ("code", ""), ("name", "Quote"), ("bcc", "a@x.com\nbad@x\na@x.com")])).await;
-    assert!(page.contains("<span class=message2><br>Correct 3 error(s)</span>"));
-    assert!(page.contains("style='border: 1px solid red !important;'>\n<br>Cannot be blank"));
-    assert!(page.contains("bad@x: Invalid domain"));
-    assert_eq!(mailform_count(&h.pool).await, 0);
+    let (_, _, page) = send(&h.app, get("/staff/access/9", Some(&admin))).await;
+    assert!(page.contains("<td width='30%'>Status</td><td width='70%'>Active</td>") && !page.contains("fn_action('approve');"));
+    let (_, _, page) = send(&h.app, post("/staff/access/9", &admin, &[("action", "deny"), ("csrf", csrf.as_str())])).await;
+    assert!(page.contains("Already Active"));
+    assert_eq!(status_of(&h.pool, 9).await, "Active", "only a pending request is decided");
+}
 
-    let good = [("action", "update"), ("record_id", "0"), ("code", " Quote "), ("name", "Quote"), ("subject", "Your quote"), ("bcc", "b@x.com"), ("active", "1")];
-    let (_, _, page) = send(&h.app, p(&good)).await;
-    assert!(page.contains("<br>Record maintained</span>"), "{page}");
-    let (id, code, bcc): (i64, String, String) = sqlx::query_as("SELECT id, code, bcc FROM mailform").fetch_one(&h.pool).await.unwrap();
-    assert_eq!((code.as_str(), bcc.as_str()), ("quote", r#"["b@x.com"]"#));
+#[tokio::test]
+async fn a_denied_request_gets_no_bypass_and_no_one_decides_above_their_role() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    pending(&h.pool, 9, "Pending Co", "buyer@example.com").await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name) VALUES (6, 'Pending', 'Super User', 'Upstairs')"#).execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/access/9", Some(&admin))).await;
+    let csrf = csrf_of(&page);
+    let (status, headers, _) = send(&h.app, post("/staff/access/9", &admin, &[("action", "deny"), ("csrf", csrf.as_str()), ("return_url", "https://elsewhere.example/")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers[header::LOCATION], "/dashboard.php", "a return address off the site is not followed");
+    assert_eq!(status_of(&h.pool, 9).await, "Denied");
+    let bypasses: i64 = sqlx::query_scalar("SELECT count(*) FROM captcha_bypass").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(bypasses, 0);
+    let (status, _, _) = send(&h.app, post("/staff/access/6", &admin, &[("action", "approve"), ("csrf", csrf.as_str())])).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert_eq!(status_of(&h.pool, 6).await, "Pending");
+}
 
-    let (_, _, page) = send(&h.app, p(&[("action", "update"), ("record_id", "0"), ("code", "quote"), ("name", "Other"), ("subject", "S")])).await;
-    assert!(page.contains("<br>Duplicate code"));
-    assert_eq!(mailform_count(&h.pool).await, 1);
+const DROPPED: [&str; 26] = [
+    "/campaign_manager.php",
+    "/hero_preview.php",
+    "/inventory.php",
+    "/inventory_increase.php",
+    "/inventory_missing_prj.php",
+    "/inventory_no_price.php",
+    "/inventory_price.php",
+    "/inventory_pricebook.php",
+    "/inventory_prj.php",
+    "/inventory_utility.php",
+    "/inventory_xref.php",
+    "/mailer_maintain.php",
+    "/portal.php",
+    "/portal_preview.php",
+    "/portalcategory.php",
+    "/portalcontent.php",
+    "/portalitem.php",
+    "/pricing_utility.php",
+    "/scs_track_log.php",
+    "/staff/remote-grants",
+    "/subcategory.php",
+    "/subcategory_order.php",
+    "/subcategory_prj.php",
+    "/subcategory_utility.php",
+    "/user_email.php",
+    "/user_utility.php",
+];
 
-    let (_, _, _) = send(&h.app, get(&format!("/mailer_maintain.php?action=delete&record_id={id}"), Some(&admin))).await;
-    assert_eq!(mailform_count(&h.pool).await, 1);
+#[tokio::test]
+async fn the_dropped_staff_pages_answer_gone_or_not_found() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    for path in DROPPED {
+        let (status, _, _) = send(&h.app, get(path, Some(&admin))).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path} is not served");
+        let (status, _, _) = send(&h.app, post(path, &admin, &[("action", "update")])).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path} takes no post");
+        let gone = hxweb::retired::guard(path).map(|r| r.status());
+        assert!(gone == Some(StatusCode::GONE) || path.starts_with("/staff/"), "{path} answers 410 in front of the router");
+    }
+    for path in ["/user.php", "/user.php?action=list", "/user.php?action=maintain", "/user.php?action=delete&record_id=9"] {
+        let (status, _, _) = send(&h.app, get(path, Some(&admin))).await;
+        assert_eq!(status, StatusCode::GONE, "{path}");
+    }
+    assert_eq!(hxweb::retired::guard("/user.php").map(|r| r.status()), Some(StatusCode::GONE), "a post to user.php");
+    for kept in ["/dashboard.php", "/scs_log.php", "/company.php", "/pages.php"] {
+        assert!(hxweb::retired::guard(kept).is_none(), "{kept}");
+    }
+}
 
-    let id = id.to_string();
-    let (_, _, page) = send(&h.app, p(&[("action", "delete"), ("record_id", &id)])).await;
-    assert!(page.contains("<br>Document deleted: <b>quote </b>"));
-    assert_eq!(mailform_count(&h.pool).await, 0);
+#[tokio::test]
+async fn the_dashboards_pages_link_goes_to_the_page_text_editor() {
+    let h = harness().await;
+    let (status, headers, _) = send(&h.app, get("/pages.php", None)).await;
+    assert_eq!(status, StatusCode::PERMANENT_REDIRECT);
+    assert_eq!(headers[header::LOCATION], "/staff/cms");
 }

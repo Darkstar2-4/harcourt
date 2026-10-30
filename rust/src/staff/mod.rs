@@ -1,5 +1,6 @@
-//! The staff side of the site: the dashboard, the maintenance pages, the event log, remote-grant management and
-//! the scheduled jobs. Pages render here in Rust with the markup of the PHP they replace (html.rs, shell.rs).
+//! The staff side of the site: a small dashboard (its reports, access requests, the event log; page text is the
+//! cms editor at /staff/cms) and the commands of the binary for the data work, the scheduled jobs and remote grants
+//! (cli.rs). Pages render here in Rust with the markup of the PHP they replace (html.rs, shell.rs).
 //!
 //! Every handler takes `Staff<R>`, which holds the `Authed<R>` of a live session at role R or above, with the
 //! same minimum role the PHP page checked with `user->access()`. Every form posts a CSRF token (csrf.rs).
@@ -19,7 +20,6 @@ use crate::{
     visitor::Visitor,
 };
 
-pub mod address;
 pub mod catalog;
 pub mod check;
 pub mod choices;
@@ -33,30 +33,14 @@ pub mod shell;
 pub mod smart;
 pub mod time;
 
-pub mod campaign;
+pub mod access;
+pub mod cli;
 pub mod company;
 pub mod dashboard;
+pub mod data;
 pub mod filmstrip;
-pub mod grants;
-pub mod hero_preview;
-pub mod increase;
-pub mod inventory;
 pub mod jobs;
 pub mod log;
-pub mod mailer;
-pub mod portal;
-pub mod portal_preview;
-pub mod portalcategory;
-pub mod portalcontent;
-pub mod portalitem;
-pub mod pricebook;
-pub mod pricing_utility;
-pub mod prj;
-pub mod subcategory;
-pub mod subcategory_order;
-pub mod track_log;
-pub mod user;
-pub mod utility;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
 pub const HOME: &str = "/scs_index.php";
@@ -108,28 +92,12 @@ fn go_home(wp: bool) -> Response {
     (StatusCode::FOUND, [(header::LOCATION, home), (header::CONTENT_TYPE, "text/html; charset=utf-8"), (header::CACHE_CONTROL, "no-store")]).into_response()
 }
 
+/// The dashboard's menu still links its "Pages" item to the PHP page-text manager; page text is the cms editor now.
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/mailer_maintain.php", maintain::route::<mailer::Mailform>())
-        .merge(campaign::routes())
+        .route("/pages.php", axum::routing::get(|| async { axum::response::Redirect::permanent(crate::cms::admin::PATH) }))
+        .merge(access::routes())
         .merge(company::routes())
         .merge(dashboard::routes())
-        .merge(grants::routes())
-        .merge(hero_preview::routes())
-        .merge(increase::routes())
-        .merge(inventory::routes())
         .merge(log::routes())
-        .merge(portal::routes())
-        .merge(portal_preview::routes())
-        .merge(portalcategory::routes())
-        .merge(portalcontent::routes())
-        .merge(portalitem::routes())
-        .merge(pricebook::routes())
-        .merge(pricing_utility::routes())
-        .merge(prj::routes())
-        .merge(subcategory::routes())
-        .merge(subcategory_order::routes())
-        .merge(track_log::routes())
-        .merge(user::routes())
-        .merge(utility::routes())
 }

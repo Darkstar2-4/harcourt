@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT i.sku,\n                  CASE WHEN c.id IS NULL THEN 'Missing Category #' || s.category_id ELSE c.name END AS \"category?: String\",\n                  s.name AS \"subcategory?: String\"\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id\n           WHERE i.prj = ''\n           ORDER BY c.sort_order, s.sort_order, i.sku",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category?: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory?: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "0a5eeefe9c60d9e6b6f835bd9a178dbd05e14166fa30db4abaa81563e873817c"
+}

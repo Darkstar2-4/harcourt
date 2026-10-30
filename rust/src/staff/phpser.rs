@@ -1,5 +1,5 @@
-//! PHP's serialize() format, for the columns the PHP classes stored that way (inventory.pricing and .documents,
-//! subcategory.parameters and .download). Strings are counted in bytes, as PHP counted them.
+//! PHP's serialize() format, for the columns the PHP classes stored that way (inventory.pricing, campaign.divs).
+//! Strings are counted in bytes, as PHP counted them.
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Php {
@@ -33,27 +33,6 @@ impl Php {
             Php::Bool(true) => "1".into(),
             Php::Int(n) => n.to_string(),
             Php::Float(s) | Php::Str(s) => s.clone(),
-        }
-    }
-
-    /// intval().
-    pub fn int(&self) -> i64 {
-        match self {
-            Php::Bool(b) => i64::from(*b),
-            Php::Int(n) => *n,
-            Php::Float(s) | Php::Str(s) => super::csrf::php_intval(s),
-            _ => 0,
-        }
-    }
-
-    pub fn truthy(&self) -> bool {
-        match self {
-            Php::Null => false,
-            Php::Bool(b) => *b,
-            Php::Int(n) => *n != 0,
-            Php::Float(s) => s.parse::<f64>().is_ok_and(|f| f != 0.0),
-            Php::Str(s) => !s.is_empty() && s != "0",
-            Php::Array(e) | Php::Object(_, e) => !e.is_empty(),
         }
     }
 }
@@ -167,7 +146,7 @@ mod tests {
         let v = parse(r#"a:1:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:12.5;s:9:"qty_break";i:3;}}"#).unwrap();
         let first = &v.entries()[0].1;
         assert_eq!(first.get("price").map(Php::text).as_deref(), Some("12.5"));
-        assert_eq!(first.get("qty_break").map(Php::int), Some(3));
+        assert_eq!(first.get("qty_break").map(Php::text).as_deref(), Some("3"));
     }
 
     #[test]

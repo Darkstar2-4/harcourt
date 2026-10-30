@@ -47,6 +47,34 @@ const RETIRED: &[&str] = &[
     "bot_apache.php",
     "remote_code.php",
     "punchout.php",
+    // Staff maintenance pages: their data work is `hxweb export`/`hxweb import`/`hxweb job` (staff/cli.rs), the
+    // rest is done in the SQLite CLI. user.php keeps only the dashboard's access-request links (staff/access.rs).
+    "campaign_manager.php",
+    "hero_preview.php",
+    "inventory.php",
+    "inventory_increase.php",
+    "inventory_missing_prj.php",
+    "inventory_no_price.php",
+    "inventory_price.php",
+    "inventory_pricebook.php",
+    "inventory_prj.php",
+    "inventory_utility.php",
+    "inventory_xref.php",
+    "mailer_maintain.php",
+    "portal.php",
+    "portal_preview.php",
+    "portalcategory.php",
+    "portalcontent.php",
+    "portalitem.php",
+    "pricing_utility.php",
+    "scs_track_log.php",
+    "subcategory.php",
+    "subcategory_order.php",
+    "subcategory_prj.php",
+    "subcategory_utility.php",
+    "user.php",
+    "user_email.php",
+    "user_utility.php",
 ];
 
 pub fn is_retired(raw_path: &str) -> bool {
@@ -111,9 +139,10 @@ mod tests {
         for p in ["/scs_mysql.php", "/includes/mysql_rev1.php", "/phpinfo.php", "/scs_toolbox.php/x", "/includes/toolbox_rev0.php", "/X.PHP"] {
             assert!(is_retired(p), "{p}");
         }
-        for p in ["/scs_log.php", "/dashboard.php", "/phpinfo2.php", "/mailer_maintain.php"] {
+        for p in ["/scs_log.php", "/dashboard.php", "/phpinfo2.php"] {
             assert!(!is_retired(p), "{p}");
         }
+        assert!(is_retired("/mailer_maintain.php"));
     }
 
     #[test]

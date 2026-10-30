@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record_type, options, price0, price1, price2, price3, price4 FROM pricing\n           WHERE subcategory_id = ?1 AND (?2 = '' OR record_type = ?2) ORDER BY record_type, options",
+  "describe": {
+    "columns": [
+      {
+        "name": "record_type",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "options",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "price0",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "price1",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "price2",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "price3",
+        "ordinal": 5,
+        "type_info": "Float"
+      },
+      {
+        "name": "price4",
+        "ordinal": 6,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5596a3c12beaa1d223f32200dd66dd9679da1d9723fc0fec7ef3fed0e53656d2"
+}

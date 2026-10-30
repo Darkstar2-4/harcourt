@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT DISTINCT s.id AS \"id!: i64\" FROM inventory i JOIN category c ON c.id = i.category_id JOIN subcategory s ON s.id = i.subcategory_id\n           WHERE s.output <> 'smart' AND s.status = 'Active' COLLATE NOCASE AND c.id <> 0 AND s.id <> 0 ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7bc186f3de3c46dee87c0ba3a144aa105cc5bb84af9a44ba8afb8926c557b27a"
+}
