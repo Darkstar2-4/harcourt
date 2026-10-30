@@ -100,7 +100,7 @@ pub fn parse_date(s: &str) -> Option<(i64, u32, u32)> {
     let (y, m, d) = if parts[0].len() == 4 { (n(0)?, n(1)?, n(2)?) } else { (n(2)?, n(0)?, n(1)?) };
     let y = if parts[0].len() != 4 && parts[2].len() == 2 { 2000 + y } else { y };
     let (m, d) = (u32::try_from(m).ok()?, u32::try_from(d).ok()?);
-    let valid = (1..=12).contains(&m) && d >= 1 && civil_from_days(days_from_civil(y, m, d)) == (y, m, d);
+    let valid = (0..=9999).contains(&y) && (1..=12).contains(&m) && d >= 1 && civil_from_days(days_from_civil(y, m, d)) == (y, m, d);
     valid.then_some((y, m, d))
 }
 
@@ -194,6 +194,7 @@ mod tests {
         assert_eq!(parse_date("09/25/2025"), Some((2025, 9, 25)));
         assert_eq!(parse_date("2025-02-29"), None);
         assert_eq!(parse_date("nope"), None);
+        assert_eq!(parse_date("1/1/20255"), None, "a year past four digits is a typing slip");
         assert_eq!(add_days((2025, 3, 1), -1), (2025, 2, 28));
     }
 }
