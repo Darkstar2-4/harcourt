@@ -37,6 +37,13 @@ link never changes data, persona sign-in times and languages drift on the oracle
   workbook (cover sheet, one sheet per category) as before; its bytes differ (rust_xlsxwriter) and number cells
   hold numbers ("84" where PHP_XLSXWriter wrote "84.00").
 
+### portal_preview.php (`/portal_preview.php`)
+
+- **Debug** prints no SQL; the Super User's "Queries" box stays empty, as on hero_preview.php.
+- **A portal category the portal does not list** answers "No items found"; the PHP died with a fatal error that
+  printed its file path.
+- The preview's image and viewer links carry the viewer's last sign-in (`content_id`), which drifts on the oracle.
+
 ## Not ported
 
 - `supplier.php`, `suppliersku.php`: tables `supplier` and `suppliersku` are missing in production.

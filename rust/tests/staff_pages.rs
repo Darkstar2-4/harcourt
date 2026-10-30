@@ -576,3 +576,22 @@ async fn the_price_book_lists_priced_subcategories_and_checks_its_terms() {
     assert!(json.starts_with("{\"currency_meta\":\"Revised: 12\\/06\\/2024"), "{json}");
     assert!(json.ends_with("<br>Exchange rate: 0.9500%<br>Adder percent: 50.0000%\"}"));
 }
+
+#[tokio::test]
+async fn the_portal_preview_loads_a_portal_or_says_why_not() {
+    let h = harness().await;
+    portal_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO language (code, name, local_name, priority) VALUES ('EN', 'English', 'English', 1), ('FR', 'French', 'Français', 2)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (status, _, page) = send(&h.app, get("/portal_preview.php", Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Portal Preview (11/18/2025)</p>"));
+    assert!(page.contains("<option value='FR'>Français</option>"));
+    assert!(!page.contains("Debug?"));
+    let (_, _, page) = send(&h.app, post("/portal_preview.php", &admin, &[("action", "load"), ("portal_id", "999"), ("language_code", "EN")])).await;
+    assert!(page.contains("</select>\n Missing or inactive portal</td>"), "{page}");
+    let mut req = post("/portal_preview.php", &admin, &[("action", "nothing")]);
+    req.headers_mut().insert("x-requested-with", "XMLHttpRequest".parse().unwrap());
+    let (_, _, json) = send(&h.app, req).await;
+    assert_eq!(json, "{\"preview_detail\":\"Method not found: json_nothing\"}");
+}
