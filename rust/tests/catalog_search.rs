@@ -69,3 +69,27 @@ async fn an_entered_term_the_keyword_search_misses_opens_the_best_suggestion() {
     let (_, _, body) = send(&h.app, catalog_support::get("/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=hblt%201", Some(&cookie))).await;
     assert!(body.contains("Part number: HBLT-1"), "{body}");
 }
+
+#[tokio::test]
+async fn staff_autocompletes_answer_staff_only_with_the_fields_their_pages_read() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let customer = signed_in(&h.pool, &Account::customer(43)).await;
+    let mut staff = Account::customer(44);
+    staff.role = "Internal";
+    staff.company_name = Some("Acme Tooling".into());
+    let staff = signed_in(&h.pool, &staff).await;
+    let get = |path: &str, cookie: &str| request(Method::GET, path, Some(cookie), &[], Body::empty());
+    let (status, _, _) = send(&h.app, get("/catalog-api/companies?term=acme", &customer)).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, _, body) = send(&h.app, get("/scs_ajax.php?table=user&source=company_name&term=acme", &staff)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body, r#"[{"value":"Acme Tooling"}]"#);
+    let (_, _, body) = send(&h.app, get("/scs_ajax.php?table=inventory&detail=sku&term=HBLT", &staff)).await;
+    assert!(body.starts_with(r#"[{"category_name":"Pins","category_subcategory_id":"1:7","label":"HBLT-1","subcategory_name":"Ball Lock Pins"}"#), "{body}");
+    let (status, _, _) = send(&h.app, get("/scs_ajax.php?table=remote&term=x", &staff)).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _, body) = send(&h.app, request(Method::GET, "/scs_ajax.php?table=search&limit=20&term=hblt", Some(&customer), &[("referer", "https://www.harcourt.co/catalog/")], Body::empty())).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("HBLT-1"));
+}

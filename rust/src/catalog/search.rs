@@ -1070,18 +1070,23 @@ struct SuggestQuery {
 
 /// The search box's suggestions, for visitors who may browse the catalog (the box is not shown to anyone else).
 async fn suggest(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<SuggestQuery>) -> Response {
-    let lang = page_lang(&headers);
+    suggestions(&core, &cache, &visitor, &headers, &q.term, q.limit.as_deref()).await
+}
+
+/// The suggestions for `term`, for /catalog-api/search and scs_ajax.php?table=search.
+pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers: &HeaderMap, term: &str, limit: Option<&str>) -> Response {
+    let lang = page_lang(headers);
     let viewer_lang = if lang == Lang::Fr { viewer::Lang::Fr } else { viewer::Lang::En };
     let result = async {
-        let viewer = viewer::load(&core.pool, &visitor, viewer_lang).await?;
+        let viewer = viewer::load(&core.pool, visitor, viewer_lang).await?;
         if !viewer.may_browse() || viewer.is_bot() {
             return Ok(None);
         }
         Ok::<_, sqlx::Error>(cache.index(&core.pool).await?.map(|ix| (ix, scope(&viewer, lang))))
     }
     .await;
-    let term = q.term.trim();
-    let limit = q.limit.as_deref().and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
+    let term = term.trim();
+    let limit = limit.and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
     let headers = [(header::CACHE_CONTROL, "no-store")];
     match result {
         Ok(Some((ix, ctx))) => (StatusCode::OK, headers, Json(answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx))).into_response(),
