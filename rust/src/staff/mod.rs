@@ -34,6 +34,7 @@ pub mod inventory;
 pub mod jobs;
 pub mod log;
 pub mod mailer;
+pub mod portal;
 pub mod portalcategory;
 pub mod portalitem;
 pub mod prj;
@@ -93,6 +94,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(increase::routes())
         .merge(inventory::routes())
         .merge(log::routes())
+        .merge(portal::routes())
         .merge(portalcategory::routes())
         .merge(portalitem::routes())
         .merge(prj::routes())

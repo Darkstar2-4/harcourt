@@ -87,3 +87,9 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
 - **No session state**, as for portalcategory.php.
 - **A new item keeps its portal.** The PHP took the portal of the record being edited, none for a new item, so
   "Add New" opened a form with no portal and no categories to pick. Rust takes the portal the link was under.
+
+### portal.php (`/portal.php`)
+
+- Ported as the PHP behaves: no message line, delete does nothing, the list's row ends print before the table, and a
+  new portal starts with every subcategory ticked. The update writes the portal, its headlines and its subcategory
+  list in one transaction. No case saves on the oracle.

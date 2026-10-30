@@ -478,3 +478,28 @@ async fn portal_items_are_listed_by_category_and_a_new_one_keeps_its_portal() {
     let saved: (i64, i64, i64) = sqlx::query_as("SELECT portal_id, portalcategory_id, pdf_portalcontent_id FROM portalitem WHERE name = 'Item B'").fetch_one(&h.pool).await.unwrap();
     assert_eq!(saved, (3, 32, 62));
 }
+
+#[tokio::test]
+async fn portals_keep_their_headlines_and_subcategories() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    portal_seed(&h.pool).await;
+    exec(&h.pool, "UPDATE subcategory SET portal = '^4^', status = 'Active' WHERE id IN (50, 51)").await;
+    exec(&h.pool, "UPDATE portal SET active = 0 WHERE id = 4").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/portal.php", Some(&admin))).await;
+    assert!(!page.contains("<p class='message left'>"));
+    assert!(page.contains("<input type=hidden name='record_id' id='record_id'>\n</tr></tr><table class='standard border tablesorter'>"));
+    assert!(page.contains("onclick=\"javascript:fn_action('delete','4','Example Auto');\""));
+    let (_, _, page) = submit(&h, "/portal.php", &admin, &[("action", "maintain"), ("record_id", "4")]).await;
+    assert!(page.contains("<div id='standard_div' class='standard_div' style='display:none;'>"));
+    assert!(page.contains("<input type=checkbox class='subcategory' name='category_5' id='category_5' value='1' onclick=\"javascript:fn_subcategory(this);\" checked>"));
+    let (en, fr, s50) = ("ZGVzY3JpcHRpb24JRU4", "ZGVzY3JpcHRpb24JRlI", "c3ViY2F0ZWdvcnkJNTA");
+    let (_, _, page) = submit(&h, "/portal.php", &admin, &[("action", "update"), ("record_id", "4"), ("name", "Example Aero"), (en, "x")]).await;
+    assert!(page.contains("!important;'>\n Duplicate name"), "{page}");
+    let (_, _, _) = submit(&h, "/portal.php", &admin, &[("action", "update"), ("record_id", "4"), ("name", "Example Auto"), ("active", "1"), (en, "Welcome"), (fr, ""), (s50, "1")]).await;
+    let portals: Vec<(i64, String)> = sqlx::query_as("SELECT id, portal FROM subcategory WHERE id IN (50, 51) ORDER BY id").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(portals, [(50, "^4^".to_string()), (51, "^".to_string())]);
+    let headline: String = sqlx::query_scalar("SELECT description FROM content WHERE record_type = 'portal' AND record_id = 4").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(headline, "Welcome");
+}

@@ -480,6 +480,11 @@ impl Tabs {
         Tabs { name: "scs_jquery", tabs: Vec::new(), slots: 0, landing_name: None, landing: 0, lineheight: "content" }
     }
 
+    /// `new jquery_tab_class($name)`: ids and classes prefixed with `name` instead of `scs_jquery`.
+    pub fn named(name: &'static str) -> Self {
+        Tabs { name, ..Tabs::new() }
+    }
+
     /// `landing_tab($name, TRUE)`: open on the tab with this title (`?tab=` on the dashboard).
     pub fn land_on(&mut self, title: &str) {
         if self.landing_name.is_none() {

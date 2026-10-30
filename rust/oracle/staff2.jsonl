@@ -49,4 +49,9 @@
 {"name":"portalitem","path":"/portalitem.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
 {"name":"portalitem-maintain","method":"POST","path":"/portalitem.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=24&report_portal_id=2&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"portalitem-update-errors","method":"POST","path":"/portalitem.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=24&report_portal_id=2&bmFtZQlFTg%3D%3D=&portalcategory_id=0&other_portalcontent_id=5&other_name=&output_order=1&active=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portal-anonymous","path":"/portal.php","persona":"anonymous"}
+{"name":"portal","path":"/portal.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"portal-maintain","method":"POST","path":"/portal.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=2&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portal-update-blank-name","method":"POST","path":"/portal.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=2&name=&active=1&ZGVzY3JpcHRpb24JRU4=Headline&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portal-delete-does-nothing","method":"POST","path":"/portal.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=delete&record_id=999999&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"portalcategory-cancel","method":"POST","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=&report_portal_id=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
