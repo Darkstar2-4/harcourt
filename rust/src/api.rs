@@ -1,5 +1,5 @@
-//! JSON routes under /api. Every route that acts for a signed-in person takes `Authed<Role>` as an argument, so a
-//! handler cannot be written that reaches a session without going through the extractor that checks it.
+//! The shared request state (`Auth`), the session extractor every signed-in page goes through (`Authed<Role>`), the
+//! client address rule, and the one JSON route: redeeming a remote grant (POST /api/remote/redeem).
 
 use std::{convert::Infallible, marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
 
@@ -8,24 +8,24 @@ use axum::{
     http::{header, request::Parts, HeaderMap, HeaderValue, Method, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::post,
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::SqlitePool;
 
 use crate::{
-    access_code,
     audit::{self, Entry},
     config::Secret,
     db::unix_now,
-    identity::{self, Email, Role, User},
+    identity::{self, Role, User},
     remote_grant, session,
     token::Token,
 };
 
 pub struct Auth {
     pub pool: SqlitePool,
+    /// Signs the emailed sign-in codes (newuser.php); without it no code is sent.
     pub secret: Option<Secret>,
     pub public_origin: String,
     pub trusted_proxies: Vec<IpAddr>,
@@ -34,10 +34,6 @@ pub struct Auth {
 
 pub fn router(auth: Arc<Auth>) -> Router {
     Router::new()
-        .route("/auth/code", post(request_code))
-        .route("/auth/verify", post(verify_code))
-        .route("/auth/logout", post(logout))
-        .route("/me", get(me))
         .route("/remote/redeem", post(redeem))
         .layer(DefaultBodyLimit::max(4096))
         .layer(middleware::from_fn_with_state(auth.clone(), same_origin))
@@ -53,7 +49,6 @@ pub fn unavailable() -> Router {
 pub enum ApiError {
     Unauthenticated,
     Forbidden,
-    InvalidCode,
     BadOrigin,
     Unavailable,
     Internal,
@@ -64,7 +59,6 @@ impl IntoResponse for ApiError {
         let (status, error) = match self {
             ApiError::Unauthenticated => (StatusCode::UNAUTHORIZED, "unauthenticated"),
             ApiError::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
-            ApiError::InvalidCode => (StatusCode::UNAUTHORIZED, "invalid_code"),
             ApiError::BadOrigin => (StatusCode::FORBIDDEN, "bad_origin"),
             ApiError::Unavailable => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
             ApiError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
@@ -128,11 +122,7 @@ pub fn client_addr(parts: &Parts, trusted_proxies: &[IpAddr]) -> Option<IpAddr> 
 pub trait MinRole {
     const ROLE: Role;
 }
-pub struct AnyUser;
 pub struct Administrator;
-impl MinRole for AnyUser {
-    const ROLE: Role = Role::Customer;
-}
 impl MinRole for Administrator {
     const ROLE: Role = Role::Administrator;
 }
@@ -143,10 +133,6 @@ impl MinRole for Internal {
 pub struct Executive;
 impl MinRole for Executive {
     const ROLE: Role = Role::Executive;
-}
-pub struct SuperUser;
-impl MinRole for SuperUser {
-    const ROLE: Role = Role::SuperUser;
 }
 
 /// A request that carries a live session of an Active account whose role is at least `R`.
@@ -182,84 +168,12 @@ pub fn session_cookie(headers: &HeaderMap) -> Option<Token> {
         .find_map(|(name, value)| (name == session::COOKIE).then(|| Token::parse(value)).flatten())
 }
 
-fn cookie_header(value: &str, max_age: i64) -> Result<HeaderValue, ApiError> {
-    HeaderValue::from_str(&format!("{}={value}; Path=/; Max-Age={max_age}; Secure; HttpOnly; SameSite=Lax", session::COOKIE))
-        .map_err(|_| ApiError::Internal)
-}
-
 fn signed_in(token: &Token) -> Result<Response, ApiError> {
+    let cookie = format!("{}={}; Path=/; Max-Age={}; Secure; HttpOnly; SameSite=Lax", session::COOKIE, token.as_str(), session::TTL_SECS);
     let mut response = StatusCode::NO_CONTENT.into_response();
-    response.headers_mut().insert(header::SET_COOKIE, cookie_header(token.as_str(), session::TTL_SECS)?);
+    response.headers_mut().insert(header::SET_COOKIE, HeaderValue::from_str(&cookie).map_err(|_| ApiError::Internal)?);
     response.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
     Ok(response)
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CodeRequest {
-    email: String,
-}
-
-/// Always 202, whether or not the address belongs to a company we know, so the route cannot be used to find out.
-async fn request_code(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, Json(body): Json<CodeRequest>) -> Result<StatusCode, ApiError> {
-    let secret = auth.secret.as_ref().ok_or(ApiError::Unavailable)?;
-    if let Some(email) = Email::parse(&body.email) {
-        if let Some(company) = identity::find_active_company_by_domain(&auth.pool, email.domain()).await? {
-            if access_code::issue(&auth.pool, secret, &email, unix_now()).await? {
-                audit::record(&auth.pool, Entry { subtype: "code_sent", user_id: company.0, email: Some(email.as_str()), ip: &ip, comment: "" }).await;
-            }
-        }
-    }
-    Ok(StatusCode::ACCEPTED)
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct VerifyRequest {
-    email: String,
-    code: String,
-}
-
-async fn verify_code(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, Json(body): Json<VerifyRequest>) -> Result<Response, ApiError> {
-    let secret = auth.secret.as_ref().ok_or(ApiError::Unavailable)?;
-    let now = unix_now();
-    let email = Email::parse(&body.email);
-    let verified = match &email {
-        Some(e) => access_code::verify(&auth.pool, secret, e, &body.code, now).await?,
-        None => false,
-    };
-    let company = match (&email, verified) {
-        (Some(e), true) => identity::find_active_company_by_domain(&auth.pool, e.domain()).await?,
-        _ => None,
-    };
-    let (Some(email), Some(company)) = (email, company) else {
-        audit::record(&auth.pool, Entry { subtype: "code_failed", user_id: 0, email: None, ip: &ip, comment: "" }).await;
-        return Err(ApiError::InvalidCode);
-    };
-    let token = session::create(&auth.pool, company, Some(email.as_str()), now).await?;
-    audit::record(&auth.pool, Entry { subtype: "login", user_id: company.0, email: Some(email.as_str()), ip: &ip, comment: "emailed code" }).await;
-    signed_in(&token)
-}
-
-async fn logout(State(auth): State<Arc<Auth>>, headers: HeaderMap) -> Result<Response, ApiError> {
-    if let Some(token) = session_cookie(&headers) {
-        session::destroy(&auth.pool, &token).await?;
-    }
-    let mut response = StatusCode::NO_CONTENT.into_response();
-    response.headers_mut().insert(header::SET_COOKIE, cookie_header("", 0)?);
-    Ok(response)
-}
-
-#[derive(Serialize)]
-struct MeResponse {
-    user_id: i64,
-    role: &'static str,
-    company: Option<String>,
-    email: Option<String>,
-}
-
-async fn me(who: Authed<AnyUser>) -> Json<MeResponse> {
-    Json(MeResponse { user_id: who.user.id.0, role: who.user.role.as_str(), company: who.user.company_name, email: who.email })
 }
 
 #[derive(Deserialize)]

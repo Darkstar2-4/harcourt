@@ -118,17 +118,6 @@ pub async fn load_user(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<Use
     Ok(row.and_then(|r| User::from_row(r.id, &r.status, &r.ty, r.company_name)))
 }
 
-/// The Active company that owns this mail domain, lowest id first. Pending and Denied companies never match.
-pub async fn find_active_company_by_domain(pool: &SqlitePool, domain: &str) -> sqlx::Result<Option<UserId>> {
-    let id = sqlx::query_scalar!(
-        r#"SELECT id AS "id!: i64" FROM "user" WHERE lower(domain) = ?1 AND status = 'Active' ORDER BY id LIMIT 1"#,
-        domain
-    )
-    .fetch_optional(pool)
-    .await?;
-    Ok(id.map(UserId))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
