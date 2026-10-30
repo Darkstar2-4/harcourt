@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", s.name, s.prj AS \"prj!: String\",\n                  (SELECT sku FROM inventory i WHERE i.subcategory_id = s.id ORDER BY i.id LIMIT 1) AS \"sku?: String\"\n           FROM subcategory s WHERE s.prj IS NOT NULL ORDER BY s.name COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "prj!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "sku?: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2db0001974923be3e21578e6797ac370c49542b412aaae0143128dde5894b065"
+}

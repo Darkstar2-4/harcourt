@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE portal SET name = ?2, active = ?3 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "dae9dbbc0dd80381c5fff87c154a1f915cefaf44ea1b6cebecce8bf4b7d87132"
+}

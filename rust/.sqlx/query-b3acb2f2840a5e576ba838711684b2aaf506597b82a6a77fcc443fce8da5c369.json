@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO search (language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking)\n         SELECT '', 1, 'inventory', i.sku,\n                replace(replace(replace(replace(replace(i.sku, '-', ''), ' ', ''), '_', ''), '.', ''), '/', ''),\n                s.category_id, s.id, i.id, i.sort_order + 2000000\n         FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id\n         WHERE i.active = 1 AND lower(s.status) = 'active' ORDER BY i.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "b3acb2f2840a5e576ba838711684b2aaf506597b82a6a77fcc443fce8da5c369"
+}
