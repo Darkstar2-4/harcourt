@@ -539,6 +539,7 @@ impl Header {
         match path {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
+            p if crate::accounts::static_dirs::contains(p) => Header::None,
             "/stock.php" => Header::Quiet,
             "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
             "/scs_api.php" => Header::None,

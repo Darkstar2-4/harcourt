@@ -9,7 +9,7 @@ use axum::{
 };
 
 use crate::{
-    accounts::{campaign_page, choice, impersonate, login, manage, oauth, signup},
+    accounts::{campaign_page, choice, impersonate, login, manage, oauth, signup, static_dirs},
     api::Auth,
 };
 
@@ -26,5 +26,6 @@ pub fn router(core: Arc<Auth>) -> Router {
         .route("/oauth/google_init.php", get(oauth::google_init))
         .route("/oauth/google_callback.php", get(oauth::google_callback))
         .merge(manage::router())
+        .merge(static_dirs::routes())
         .with_state(core)
 }

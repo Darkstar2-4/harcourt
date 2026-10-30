@@ -207,6 +207,21 @@ async fn paths_apache_ran_a_script_for_reach_the_script() {
 }
 
 #[tokio::test]
+async fn the_old_docroot_directories_answer_as_apache_did() {
+    let pool = pool().await;
+    let app = app(&pool);
+    for uri in ["/campaign/", "/campaign/slide/css/", "/welcome-pages/xwelcomel.php"] {
+        let (status, headers, body) = send(&app, Method::GET, uri, "", None).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{uri}");
+        assert_eq!(headers.get(header::CONTENT_TYPE).unwrap(), "text/html; charset=iso-8859-1");
+        assert!(body.contains("<h1>Forbidden</h1>\n<p>You don't have permission to access this resource.</p>"), "{body}");
+    }
+    let (status, headers, body) = send(&app, Method::GET, "/welcome-pages?a=1&b", "", None).await;
+    assert_eq!((status, location(&headers)), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/welcome-pages/?a=1&b")));
+    assert!(body.contains("<a href=\"https://www.harcourt.co/welcome-pages/?a=1&amp;b\">here</a>"), "{body}");
+}
+
+#[tokio::test]
 async fn currency_codes_are_kept_by_administrators() {
     let pool = pool().await;
     let app = app(&pool);
