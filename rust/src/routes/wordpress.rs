@@ -42,8 +42,10 @@ const PAGES: &[&str] = &[
     "/",
     "/beta_catalog/",
     "/boxjoint-inquiry-form/",
+    "/cart/",
     "/catalog/",
     "/catalogue/",
+    "/checkout/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
@@ -111,6 +113,8 @@ const PAGES: &[&str] = &[
     "/nous-contacter-france/",
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
+    "/panier/",
+    "/panier-2/",
     "/recherche/",
     "/request-access/",
     "/resources/",
@@ -120,6 +124,7 @@ const PAGES: &[&str] = &[
     "/ressources/dejeuners-et-causeries/",
     "/ressources/faq/",
     "/search/",
+    "/shopping-cart/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
@@ -127,6 +132,7 @@ const PAGES: &[&str] = &[
     "/societe/pourquoi-harcourt/",
     "/tableau-de-bord/",
     "/thank-you/",
+    "/valider-mon-panier/",
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.
@@ -169,7 +175,7 @@ fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc
     for path in PAGES {
         r = r.route(path, get(page).post(page_post));
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
-            r = r.route(bare, get(page));
+            r = r.route(bare, get(page).post(page_post));
         }
     }
     let front = Router::new().route("/{*path}", get(front)).with_state(wp.clone());
@@ -654,6 +660,16 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     serve(&wp, &uri, agent, None, true).await
 }
 
+/// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
+/// a post to the bare path at the page itself, and Gravity Forms points the form back at the bare path.
+fn slashed(path: &str) -> String {
+    if path.ends_with('/') {
+        path.to_string()
+    } else {
+        format!("{path}/")
+    }
+}
+
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
 /// the page (an ajax form gets the iframe postback document instead); a form the orders tables lack goes on to
 /// WordPress. Any other post shows the page, as WordPress did.
@@ -671,12 +687,9 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
+    let Answer::Render(page) = resolve(&site, &slashed(&path), q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
-            _ => serve(&wp, &parts.uri, agent, None, false).await,
-        };
+        return serve(&wp, &parts.uri, agent, None, false).await;
     };
     let wp_uri = format!("{}{}", page.path, q.wordpress_form_query);
     let lang = match page.lang {
@@ -1055,6 +1068,14 @@ mod tests {
         assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/product/alignment/feed/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
+        let carts = Site::new(vec![
+            page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
+            page(12, 70, Lang::Fr, "/panier-2/", Status::Publish),
+            page(13, 80, Lang::En, "/cart/", Status::Publish),
+            page(14, 80, Lang::Fr, "/panier/", Status::Publish),
+        ]);
+        assert_eq!(resolve(&carts, "/panier/", Lang::En), Answer::Redirect("/cart/".into()), "the exact slug, not the oldest page it starts");
+        assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/shopping-cart/".into()));
     }
 
     #[test]

@@ -11,6 +11,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::ProductSingle => product_single,
         Template::Scscpq => scscpq,
         Template::ScscpqBeta => scscpq_beta,
+        Template::ScscpqCart => scscpq_cart,
         Template::ScscpqCustomerPortal => scscpq_customer_portal,
         Template::ScscpqDashboard => scscpq_dashboard,
         Template::Digest => digest,
@@ -250,6 +251,11 @@ fn scscpq(c: &mut Ctx) {
 /// layouts/template-scscpq_beta.php
 fn scscpq_beta(c: &mut Ctx) {
     scscpq_shell(c, "    ", "catalog");
+}
+
+/// layouts/template-scscpq-cart.php
+fn scscpq_cart(c: &mut Ctx) {
+    scscpq_shell(c, "    ", "cart");
 }
 
 /// layouts/template-scscpq-customer_portal.php

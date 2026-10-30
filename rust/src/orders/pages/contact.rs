@@ -3,11 +3,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::{header, HeaderMap},
-    response::Response,
-};
+use axum::{extract::State, response::Response};
 use sqlx::SqlitePool;
 
 use crate::{
@@ -20,22 +16,6 @@ use crate::{
 
 pub const TITLE: &str = "Harcourt | Engineering Productivity Solutions | Contact Us";
 pub const DESCRIPTION: &str = "For questions or inquiries, please Contact Harcourt today, via phone, mail, email, or online form. Global locations; Contact us Today!";
-
-/// The session language: the account's, or for a visitor the first Accept-Language tag the site offers.
-pub async fn language(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap) -> sqlx::Result<String> {
-    if let Some(user) = visitor.user() {
-        if let Some(code) = sqlx::query_scalar!(r#"SELECT language_code AS "c!: String" FROM "user" WHERE id = ?1"#, user.id.0).fetch_optional(pool).await? {
-            return Ok(code);
-        }
-    }
-    let active = sqlx::query_scalar!(r#"SELECT code AS "c!: String" FROM language WHERE active = 1 ORDER BY code <> 'EN', code"#).fetch_all(pool).await?;
-    let accept = headers.get(header::ACCEPT_LANGUAGE).and_then(|v| v.to_str().ok()).unwrap_or("");
-    let chosen = accept
-        .split([';', '|', ','])
-        .map(|t| t.trim().to_ascii_uppercase())
-        .find_map(|t| active.iter().find(|code| !code.is_empty() && t.starts_with(code.as_str())).cloned());
-    Ok(chosen.unwrap_or_else(|| "EN".into()))
-}
 
 /// What `tab_viewer()` prints for the page at `url`, and the page's type and name for the log.
 pub async fn tab_viewer(pool: &SqlitePool, url: &str, language: &str) -> sqlx::Result<(String, Option<(String, String)>)> {
@@ -54,10 +34,9 @@ pub async fn tab_viewer(pool: &SqlitePool, url: &str, language: &str) -> sqlx::R
     Ok((html, row.map(|r| (r.kind, r.name))))
 }
 
-pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
-    let lang = language(pool, &visitor, &headers).await?;
-    let (body, page) = tab_viewer(pool, "/contact.php", &lang).await?;
+    let (body, page) = tab_viewer(pool, "/contact.php", visitor.language.as_str()).await?;
     if let Some((kind, name)) = page.filter(|(k, _)| k == "general" || k == "solutions") {
         let subtype = if kind == "general" { "General" } else { "Solutions" };
         let user_id = visitor.user().map_or(0, |u| u.id.0);

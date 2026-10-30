@@ -100,6 +100,11 @@ pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> 
     out
 }
 
+/// A staff page changes data only for a POST that returns the form's token; a GET never does.
+pub fn may_change<R: MinRole>(method: &Method, staff: &Staff<R>, params: &HashMap<String, String>) -> bool {
+    *method == Method::POST && staff.csrf.matches(params.get(crate::staff::csrf::FIELD).map_or("", String::as_str))
+}
+
 pub struct Executive;
 pub struct SuperUser;
 impl MinRole for Executive {

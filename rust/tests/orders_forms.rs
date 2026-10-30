@@ -102,7 +102,15 @@ fn token() -> String {
 
 async fn post(h: &Harness, extra: &[(&str, &str)]) -> (StatusCode, String) {
     let t = token();
-    let mut form = vec![("gform_submit", "3"), ("is_submit_3", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Please quote 10 units."), ("state_3", t.as_str())];
+    let mut form = vec![
+        ("gform_submit", "3"),
+        ("is_submit_3", "1"),
+        ("input_1", "Pat Buyer"),
+        ("input_10", "pat@example.com"),
+        ("input_4", "Please quote 10 units."),
+        ("state_3", t.as_str()),
+        ("registry_recaptcha_response", "browser-token"),
+    ];
     for (k, v) in extra {
         form.retain(|(name, _)| name != k);
         form.push((k, v));
@@ -188,6 +196,16 @@ async fn a_low_recaptcha_score_blocks_the_contact_form_unless_bypassed() {
 }
 
 #[tokio::test]
+async fn without_the_secret_a_contact_form_still_needs_the_browsers_token() {
+    let h = harness(None, None).await;
+    let (_, html) = post(&h, &[("registry_recaptcha_response", "")]).await;
+    assert!(html.contains("We were unable to verify your submission."), "{html}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 0);
+    let (_, html) = post(&h, &[]).await;
+    assert!(html.contains("gform_confirmation_message_3"), "a token is taken unscored: {html}");
+}
+
+#[tokio::test]
 async fn a_form_the_page_embeds_with_ajax_answers_the_iframe_postback() {
     let h = harness(None, None).await;
     let t = TokenKey::new(&KEY).issue(1, db::unix_now());
@@ -212,7 +230,7 @@ async fn a_refused_post_shows_why_in_the_forms_language() {
     let (_, html) = post(&h, &[("input_1", ""), ("input_10", "nope")]).await;
     assert!(html.contains("<div class=\"gform_validation_errors validation_error\" id=\"gform_3_validation_container\" data-js=\"gform-focus-validation-error\" autofocus><h2 class='gform_submission_error hide_summary'><span class='gform-icon gform-icon--circle-error'></span>There was a problem with your submission. Please review the fields below.</h2></div>"), "{html}");
     assert!(html.contains("aria-describedby=\"validation_message_3_1\"") && html.contains("<div id='validation_message_3_10' class='gfield_description validation_message gfield_validation_message'>The email address entered is invalid"));
-    let (_, html) = call(&h.app, Method::POST, "/hx/forms/submit?hx_lang=fr&hx_page=%2Fnous-contacter%2F", &[("gform_submit", "3"), ("input_1", "")]).await;
+    let (_, html) = call(&h.app, Method::POST, "/hx/forms/submit?hx_lang=fr&hx_page=%2Fnous-contacter%2F", &[("gform_submit", "3"), ("input_1", ""), ("registry_recaptcha_response", "browser-token")]).await;
     assert!(html.contains("Une erreur s\u{2019}est produite lors de votre envoi.") && html.contains(">Ce champ est nécessaire.</div>"), "{html}");
     let blocked = harness(None, Some(Arc::new(FixedScore(Some(0.1))))).await;
     let (_, html) = post(&blocked, &[("input_1", "")]).await;

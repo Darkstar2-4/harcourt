@@ -76,16 +76,17 @@ pub fn routes() -> Router<Arc<Orders>> {
 
 /// How the export says `page_uri` embeds `form_id` in this language. With no manifest configured every form is
 /// embedded with the defaults; with one, a form the page does not list is not served, as hx-form-island.php did.
+/// A page answers a post at its path without the slash too.
 pub fn embed(services: &Services, form_id: i64, lang: model::Lang, page_uri: &str) -> Option<render::Embed> {
     let Some(path) = &services.manifest else { return Some(render::Embed::default_for(form_id)) };
     let manifest: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
     let lang = if lang == model::Lang::Fr { "fr" } else { "en" };
-    let page_path = page_uri.split('?').next().unwrap_or(page_uri);
+    let page_path = page_uri.split('?').next().unwrap_or(page_uri).trim_end_matches('/');
     let entry = manifest.get("pages")?.as_array()?.iter().find_map(|p| {
         let e = p.get(lang)?;
         let url = e.get("url")?.as_str()?;
         let path = url.split_once("://").map_or(url, |(_, rest)| rest.find('/').map_or("/", |i| &rest[i..]));
-        (path.split('?').next() == Some(page_path)).then_some(e)
+        (path.split('?').next().map(|p| p.trim_end_matches('/')) == Some(page_path)).then_some(e)
     })?;
     let islands = entry.get("islands")?.as_array()?;
     let at = islands.iter().position(|i| i.get("form").and_then(serde_json::Value::as_i64) == Some(form_id))?;
