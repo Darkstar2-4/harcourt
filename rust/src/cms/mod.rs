@@ -11,13 +11,11 @@
 
 pub mod admin;
 pub mod edit;
-pub mod feed;
 pub mod forms;
 pub mod html;
 pub mod import;
 pub mod media;
 pub mod model;
-pub mod rest;
 pub mod sitemap;
 pub mod theme;
 pub mod url;
