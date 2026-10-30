@@ -85,13 +85,16 @@ impl Request {
             _ => sku_param,
         };
         let unit = get("unit_type");
+        let source = get("search_source");
+        let ids_given = !matches!(source.as_str(), "search" | "lookup" | "sku" | "name") && get("action") != "related";
+        let id = |k: &str| if ids_given { int(q.get(k)) } else { 0 };
         Request {
             action: get("action"),
             page: int(q.get("scs_page")),
             item: int(q.get("item")),
             document: int(q.get("document")),
             new_date: int(q.get("new_date")) != 0,
-            search_source: get("search_source"),
+            search_source: source,
             portal_category: get("portal_category"),
             unit_type: if unit == "metric" || unit == "imperial" { unit.clone() } else { String::new() },
             unit_type_given: q.get("unit_type").cloned(),
@@ -102,8 +105,8 @@ impl Request {
             search_complete: get("search_complete"),
             sku,
             related: get("related"),
-            category_id: int(q.get("category_id")),
-            subcategory_id: int(q.get("subcategory_id")),
+            category_id: id("category_id"),
+            subcategory_id: id("subcategory_id"),
             search_id: int(q.get("search_id")),
             debug: q.get("debug").is_some_and(|d| !d.is_empty() && d != "0"),
             scscpq_wp: q.get("scscpq_wp").cloned(),
@@ -412,6 +415,8 @@ mod tests {
         assert_eq!((r.search_code.as_str(), r.search_term.as_str()), ("abc", "def"));
         assert_eq!(r.unit_type, "");
         assert_eq!(Request::parse(&q(&[("sku", "HBLT 3")])).sku, "HBLT 3");
+        assert_eq!(Request::parse(&q(&[("subcategory_id", "664")])).subcategory_id, 664);
+        assert_eq!(Request::parse(&q(&[("subcategory_id", "664"), ("search_source", "search")])).subcategory_id, 0, "a search reads its ids from the search table");
     }
 
     #[test]
