@@ -1,5 +1,5 @@
 //! What WordPress held for the public site (pages and their translations, ACF fields, menus, site-wide options,
-//! media, redirects) and the code that renders it in the momentum-custom theme's markup, so no page needs
+//! media) and the code that renders it in the momentum-custom theme's markup, so no page needs
 //! WordPress at runtime. `import` fills the tables from a WordPress dump and the static export; `theme` renders;
 //! `edit` is what the staff dashboard calls to change page text and banners, keeping every save as a revision.
 //!

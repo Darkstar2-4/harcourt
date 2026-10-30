@@ -6,7 +6,7 @@ The public pages were a static export of WordPress. `rust/src/cms` holds their c
 
 | Part | Role |
 |---|---|
-| `migrations/0500_cms.sql` | Pages and their WPML translations, ACF fields, page meta (Yoast lines, per-page scripts), site-wide options per language, menus, media, redirects, revisions. Rows keep their WordPress ids. |
+| `migrations/0500_cms.sql` | Pages and their WPML translations, ACF fields, page meta (Yoast lines, per-page scripts), site-wide options per language, menus, media, revisions. Rows keep their WordPress ids. `0503` drops the redirect table, which nothing filled or read. |
 | `src/cms/model.rs` | Typed model and the in-memory `Site` snapshot. The newest revision id is the content version; `Content` reloads when it moves. |
 | `src/cms/theme/` | The renderer. `chrome/{en,fr}/*.html` are WordPress's head, header and footer with the per-page parts cut out (cut once from the static export); `chrome.rs` fills them (menus, WPML switchers, body classes, Yoast lines); `templates.rs` transcribes the page templates. |
 | `src/cms/import/` | Reads a mysqldump of the WordPress tables and the static export. Field text is recovered by matching each template, run in probe mode, against the page WordPress rendered. |

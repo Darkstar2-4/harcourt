@@ -329,12 +329,6 @@ pub struct MenuItem {
     pub target: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Redirect {
-    pub target: String,
-    pub status: u16,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Taxonomy {
     Category,
@@ -404,7 +398,6 @@ pub struct Site {
     /// Ordered by menu, language and position.
     pub menus: Vec<MenuItem>,
     pub media: HashMap<MediaId, Media>,
-    pub redirects: HashMap<String, Redirect>,
     /// Ordered by taxonomy and name.
     pub terms: Vec<Term>,
     pub authors: HashMap<i64, Author>,
@@ -567,11 +560,6 @@ impl Site {
                     group_id: r.group_id,
                 },
             );
-        }
-        for r in sqlx::query!("SELECT path, target, status FROM cms_redirect").fetch_all(pool).await? {
-            if let Ok(status) = u16::try_from(r.status) {
-                site.redirects.insert(r.path, Redirect { target: r.target, status });
-            }
         }
         for r in sqlx::query!(r#"SELECT id AS "id!", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id"#).fetch_all(pool).await? {
             let Some(taxonomy) = Taxonomy::parse(&r.taxonomy) else { continue };
