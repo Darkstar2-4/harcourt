@@ -5,7 +5,7 @@
 //!                 [--warm] [--filter REGEX] [--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR]
 //!                 CORPUS.jsonl...
 //!     hx-diff personas [--sql]       the synthetic personas, or the MySQL that loads them into the oracle
-//!     hx-diff seed --db PATH         sessions for the personas in a copy of the imported SQLite file
+//!     hx-diff seed --db PATH         sessions for the personas in a migrated copy of the imported SQLite file
 //!     hx-diff rules                  the normalization rules and compared headers
 //!
 //! Exit 0 when every case passes, 1 when any fails, 2 on usage, input or connection errors.
@@ -192,7 +192,12 @@ async fn seed(db: &Path, personas: &Personas) -> Result<usize, String> {
     if !db.exists() {
         return Err(format!("{} does not exist; copy the imported database first", db.display()));
     }
-    let pool = hxweb::db::open(db).await.map_err(|e| format!("{}: {e}", db.display()))?;
+    let options = sqlx::sqlite::SqliteConnectOptions::new().filename(db).busy_timeout(Duration::from_secs(5));
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .map_err(|e| format!("{}: {e}", db.display()))?;
     let accounts: Vec<(&Persona, &persona::Account)> = personas.all().iter().filter_map(|p| p.account.as_ref().map(|a| (p, a))).collect();
     let (lo, hi) = (*persona::ID_RANGE.start(), *persona::ID_RANGE.end());
     let present = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "n!: i64" FROM "user" WHERE id BETWEEN ?1 AND ?2"#, lo, hi)
@@ -329,8 +334,24 @@ async fn prime(client: &reqwest::Client, oracle: &str, persona: &Persona, lang: 
         .send()
         .await
         .map_err(|e| format!("priming {url}: {e}"))?;
-    warm::phpsessid(resp.headers().get_all(SET_COOKIE).iter().filter_map(|v| v.to_str().ok()))
-        .ok_or_else(|| format!("priming {url} as {} did not start a PHP session", persona.name))
+    let sid = warm::phpsessid(resp.headers().get_all(SET_COOKIE).iter().filter_map(|v| v.to_str().ok()))
+        .ok_or_else(|| format!("priming {url} as {} did not start a PHP session", persona.name))?;
+    resp.bytes().await.map_err(|e| format!("priming {url}: {e}"))?;
+    Ok(sid)
+}
+
+/// The same priming GET on the Rust side, inside the oracle's session id, so the Rust visit for that id exists and
+/// remembers what the first request set (the WordPress frame). Its answer and Set-Cookie are not used.
+async fn prime_rust(client: &reqwest::Client, rust: &str, persona: &Persona, lang: Lang, sid: &str) -> Result<(), String> {
+    let url = format!("{rust}{}", warm::PRIME_PATH);
+    let cookie = warm::cookie_header(Some(sid), None).unwrap_or_default();
+    let resp = request(client, reqwest::Method::GET, url.clone(), persona, lang)
+        .header(COOKIE, cookie)
+        .send()
+        .await
+        .map_err(|e| format!("priming {url}: {e}"))?;
+    resp.bytes().await.map_err(|e| format!("priming {url}: {e}"))?;
+    Ok(())
 }
 
 /// What every worker of one run shares.
@@ -349,15 +370,24 @@ impl Runner {
         job.case.session.unwrap_or(if self.warm_by_default { Session::Warm } else { Session::Cold }) == Session::Warm
     }
 
-    /// Both answers for one job. A warm job first gets its persona's primed PHP session and sends it to both sides.
+    /// The warm session for this job's persona and language, primed on the oracle and then, under the oracle's id,
+    /// on the Rust side, once per run.
+    async fn warm_sid(&self, job: &Job) -> Result<String, String> {
+        let (persona, lang) = (&job.persona, job.case.language);
+        self.sessions
+            .sid(&persona.name, lang, || async {
+                let sid = prime(&self.client, &self.oracle, persona, lang).await?;
+                prime_rust(&self.client, &self.rust, persona, lang, &sid).await?;
+                Ok(sid)
+            })
+            .await
+    }
+
+    /// Both answers for one job. A warm job first gets its persona's primed session and sends it to both sides.
     async fn answers(&self, job: &Job) -> Result<(Answer, Answer), String> {
         let ctx = Ctx { hosts: self.hosts.clone(), now: hxweb::db::unix_now() };
         let sid = match self.is_warm(job) {
-            true => Some(
-                self.sessions
-                    .sid(&job.persona.name, job.case.language, || prime(&self.client, &self.oracle, &job.persona, job.case.language))
-                    .await?,
-            ),
+            true => Some(self.warm_sid(job).await?),
             false => None,
         };
         let token = (self.rust_session && job.persona.account.is_some()).then(|| job.persona.session_token());
@@ -696,8 +726,32 @@ mod tests {
         let fr = cookie_of(&o[5]).unwrap();
         assert_ne!(fr, en);
         let rs = rust.heads();
-        assert_eq!(rs.len(), 4, "the Rust side is never primed");
-        assert_eq!([cookie_of(&rs[0]), cookie_of(&rs[1]), cookie_of(&rs[2]), cookie_of(&rs[3])], [Some(en), Some(en), None, Some(fr)]);
+        let rust_paths: Vec<&str> = rs.iter().map(|h| h.split(' ').nth(1).unwrap()).collect();
+        assert_eq!(rust_paths, [warm::PRIME_PATH, "/cart.php", "/checkout.php", "/cold.php", warm::PRIME_PATH, "/cart.php"]);
+        assert!(rs[0].contains("\r\nx-real-ip: 198.51.100.11\r\n") && rs[4].contains("\r\naccept-language: fr-ca,fr;q=0.9\r\n"));
+        assert_eq!(
+            rs.iter().map(|h| cookie_of(h)).collect::<Vec<_>>(),
+            [Some(en), Some(en), Some(en), None, Some(fr), Some(fr)],
+            "the Rust priming runs inside the oracle's id, and its own Set-Cookie is not used"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_rust_side_is_primed_once_per_pair_before_any_case() {
+        let (oracle, rust) = (Fake::start(true), Fake::start(true));
+        let r = Arc::new(runner(&oracle, &rust, true, false));
+        let mut set = tokio::task::JoinSet::new();
+        for path in ["/a.php", "/b.php", "/c.php", "/d.php"] {
+            let (r, j) = (r.clone(), job(&format!(r#"{{"name":"x","path":"{path}","persona":"anonymous"}}"#)));
+            set.spawn(async move { r.answers(&j).await.map(|_| ()) });
+        }
+        while let Some(done) = set.join_next().await {
+            done.unwrap().unwrap();
+        }
+        let rs = rust.heads();
+        assert_eq!(rs.iter().filter(|h| h.starts_with(&format!("get {} ", warm::PRIME_PATH))).count(), 1);
+        assert!(rs[0].starts_with(&format!("get {} ", warm::PRIME_PATH)), "priming comes first: {}", rs[0]);
+        assert_eq!(oracle.heads().iter().filter(|h| h.starts_with(&format!("get {} ", warm::PRIME_PATH))).count(), 1);
     }
 
     #[tokio::test]
@@ -709,9 +763,10 @@ mod tests {
         let (o, rs) = (oracle.heads(), rust.heads());
         let sid = cookie_of(&o[1]).unwrap();
         let token = Personas::embedded().unwrap().get("customer-active").unwrap().session_token().to_ascii_lowercase();
-        assert_eq!(cookie_of(&rs[0]).unwrap(), format!("{sid}; __host-hx_session={token}"));
+        assert_eq!(cookie_of(&rs[0]), Some(sid), "the Rust priming carries only the PHP session");
+        assert_eq!(cookie_of(&rs[1]).unwrap(), format!("{sid}; __host-hx_session={token}"));
         assert_eq!(cookie_of(&o[2]), None, "an explicit cold case stays cold under --warm");
-        assert_eq!(cookie_of(&rs[1]).unwrap(), format!("__host-hx_session={token}"));
+        assert_eq!(cookie_of(&rs[2]).unwrap(), format!("__host-hx_session={token}"));
     }
 
     #[tokio::test]
