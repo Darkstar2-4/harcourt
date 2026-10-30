@@ -264,7 +264,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         recaptcha_score: score.value,
     };
     let ctx = req.context();
-    let (id, signin) = admission::register(pool, &registration, &email, false, &ctx).await?;
+    let (id, signin) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
     reply.cookies.extend(signin.cookies());
     reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
@@ -379,7 +379,7 @@ async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<He
             Outcome::Submitted => "<h2 class='page-subtitle editable h2-login'>Congratulations, your access request has been submitted!<h2>".into(),
             Outcome::Failed => "<p style='color:red;'>Internal error. Please try again.</p>".into(),
         };
-        let page = [CSS, JS, &form_open(), "<div id=scscpq_content>", &body, "</div>", html::FORM_CLOSE].concat();
+        let page = [CSS, JS, &form_open(&req.visitor), "<div id=scscpq_content>", &body, "</div>", html::FORM_CLOSE].concat();
         return Ok((page, Vec::new()));
     }
     let content = match &req.visitor.identity {
@@ -398,12 +398,13 @@ async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<He
             _ => register_form(core, req, rc.as_ref()).await?,
         },
     };
-    let page = [CSS, JS, &form_open(), "<div id=scscpq_content>", "<div id=scscpq_input_status></div>", &content, html::FORM_CLOSE, "</div>"].concat();
+    let page = [CSS, JS, &form_open(&req.visitor), "<div id=scscpq_content>", "<div id=scscpq_input_status></div>", &content, html::FORM_CLOSE, "</div>"].concat();
     Ok((page, Vec::new()))
 }
 
-fn form_open() -> String {
-    html::form_open("/newuser.php", Opts::new().event("onsubmit", "return false;"))
+/// The PHP's form() posted back to PHP_SELF.
+fn form_open(visitor: &Visitor) -> String {
+    html::form_open(&visitor.php_self, Opts::new().event("onsubmit", "return false;"))
 }
 
 const OAUTH_BUTTONS: &str = concat!(

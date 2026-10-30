@@ -164,6 +164,50 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
 }
 
 #[tokio::test]
+async fn the_request_access_page_renders_its_template_in_both_languages() {
+    let (app, pool) = harness().await;
+    for (id, lang, path) in [(133, "en", "/request-access/"), (2013, "fr", "/demande-dacces/")] {
+        sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (?1, 133, ?2, ?3, 'layouts/template-request.php', 'publish', 'Access', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00')")
+            .bind(id)
+            .bind(lang)
+            .bind(path)
+            .execute(&pool)
+            .await
+            .unwrap();
+        for (name, kind, value) in [
+            ("hero_title", "html", "Synthetic access"),
+            ("hero_description", "html", "<p>Example words</p>"),
+            ("hero_list", "count", "2"),
+            ("hero_list_0_item", "html", "First"),
+            ("hero_list_1_item", "html", "Second"),
+            ("block_two_title", "html", "Block two"),
+        ] {
+            sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (?1, ?2, ?3, ?4)").bind(id).bind(name).bind(kind).bind(value).execute(&pool).await.unwrap();
+        }
+        for (name, value) in [("title", "Access - Example"), ("islands", ISLANDS)] {
+            sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (?1, ?2, ?3)").bind(id).bind(name).bind(value).execute(&pool).await.unwrap();
+        }
+    }
+
+    let (status, _, html) = send(&app, Method::GET, "/request-access/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<h1 class=\"mt-4\">Synthetic access </h1>"));
+    assert!(html.contains("<ul>\n\n              <li>First</li><li>Second</li>            </ul>"));
+    assert!(html.contains("<div id=\"scscpq_page\"><div class=\"noshow\">newuser</div></div>"));
+    assert!(html.contains("<section class='content-section site-padding left light'><div class='container-fluid'>"));
+    assert!(html.contains("<h2>Block two</h2>"));
+    assert!(html.contains("Get Access to Our Full Catalog") && html.contains("href=\"#signup\"> New User Sign Up </a>"));
+
+    let (status, _, html) = send(&app, Method::GET, "/demande-dacces/?lang=fr").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Accédez à l'ensemble de notre catalogue") && html.contains("href=\"#signup\"> Inscription nouvel utilisateur </a>"));
+
+    assert_eq!(send(&app, Method::GET, "/request-access").await.1.as_deref(), Some("https://www.harcourt.co/request-access/"));
+    assert_eq!(send(&app, Method::GET, "/request-access/?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/demande-dacces/?lang=fr"));
+    assert_eq!(send(&app, Method::GET, "/demande-dacces/").await.1.as_deref(), Some("https://www.harcourt.co/request-access/"));
+}
+
+#[tokio::test]
 async fn robots_txt_is_the_docroot_file() {
     let (app, _) = harness().await;
     let (status, _, body) = send(&app, Method::GET, "/robots.txt").await;

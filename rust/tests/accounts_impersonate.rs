@@ -31,7 +31,7 @@ async fn pool() -> SqlitePool {
     let pool = db::open_memory().await.unwrap();
     for sql in [
         r#"INSERT INTO "user" (id, status, "type", company_name, ip) VALUES (1, 'Active', 'Administrator', 'Staff', NULL), (2, 'Active', 'Customer', 'Customer Co', NULL), (3, 'Active', 'Super User', 'Owner', NULL), (4, 'Active', 'Administrator', 'Office', '203.0.113.40')"#,
-        "INSERT INTO language (code, country_code, name, priority, active) VALUES ('EN', 'US', 'English', 1, 1), ('FR', 'CA', 'Français', 2, 1)",
+        "INSERT INTO language (code, country_code, name, local_name, priority, active) VALUES ('EN', 'US', 'English', 'English', 1, 1), ('FR', 'CA', 'French', 'Français', 2, 1)",
         "INSERT INTO currency (code, name, plural, exchange_rate, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 1)",
     ] {
         sqlx::query(sql).execute(&pool).await.unwrap();
@@ -110,6 +110,7 @@ async fn only_an_administrator_gets_the_form() {
     let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
     assert!(body.contains("<input type=text name='ajax_user_id' id='ajax_user_id' size='12' value='1'>"), "{body}");
     assert!(body.contains("<option value='Administrator' selected>Administrator</option>"));
+    assert!(body.contains("<option value='FR'>Français</option>"), "languages by their own name");
 }
 
 #[tokio::test]

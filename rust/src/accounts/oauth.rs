@@ -25,7 +25,7 @@ use crate::{
         cookies,
         html::escape,
         profile::Profile,
-        visit,
+        visit, Services,
     },
     api::Auth,
     db::unix_now,
@@ -534,7 +534,7 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
     };
     let ip = visitor.client.map_or_else(String::new, |ip| ip.to_string());
     let ctx = Context { ip: &ip, user_agent: headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or(""), dns_name: None, now };
-    let (outcome, set) = match admit(pool, kind, &person, &ctx).await {
+    let (outcome, set) = match admit(pool, &core.accounts, kind, &person, &ctx).await {
         Ok(done) => done,
         Err(e) => {
             tracing::error!("oauth admission: {e}");
@@ -545,7 +545,7 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
 }
 
 /// newuser.php process_oauth() after the provider: the same decision as the sign-up form.
-async fn admit(pool: &SqlitePool, kind: Kind, person: &Person, ctx: &Context<'_>) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
+async fn admit(pool: &SqlitePool, services: &Services, kind: Kind, person: &Person, ctx: &Context<'_>) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
     let Some(email) = Email::parse(&person.email) else { return Ok((Outcome::NoEmail(kind), Vec::new())) };
     let via = format!("{} OAuth", kind.name());
     let profile = Profile {
@@ -581,7 +581,7 @@ async fn admit(pool: &SqlitePool, kind: Kind, person: &Person, ctx: &Context<'_>
                 domain: Some(email.domain().to_string()),
                 recaptcha_score: 1.0,
             };
-            let (id, signin) = admission::register(pool, &registration, &email, true, ctx).await?;
+            let (id, signin) = admission::register(pool, services, &registration, &email, true, ctx).await?;
             set.extend(signin.cookies());
             let mut lines = vec![format!("Email: {}", escape(email.as_str())), format!("Name: {}", escape(&person.display_name)), format!("{} OAuth registration", kind.name())];
             admission::log_signup(pool, id, ctx, &lines.join("<br>")).await;

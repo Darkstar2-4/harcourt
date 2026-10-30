@@ -15,7 +15,7 @@ use crate::{
         clock, cookies,
         html::escape,
         log::{self, Kind, Subject},
-        registry,
+        registry, Services,
     },
     identity::{Email, Status, UserId},
     session,
@@ -156,7 +156,9 @@ pub struct Registration {
 
 /// A Pending account for staff to approve, signed in as itself so the visitor sees "pending" (newuser.php
 /// json_register_update and process_oauth_register). `remembered` keeps the sign-in like an OAuth grant.
-pub async fn register(pool: &SqlitePool, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<(UserId, SignIn)> {
+/// A new account at the visitor's address. With IPStack on, its location and currency are looked up afterwards, as
+/// user->update() did for every new user, without holding up the sign-up.
+pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<(UserId, SignIn)> {
     let none_if_empty = |s: &str| (!s.is_empty()).then(|| s.to_string());
     let (address, city, state, zip, country) =
         (none_if_empty(&reg.address), none_if_empty(&reg.city), none_if_empty(&reg.state), none_if_empty(&reg.zip), none_if_empty(&reg.country_code));
@@ -177,6 +179,14 @@ pub async fn register(pool: &SqlitePool, reg: &Registration, email: &Email, reme
     .fetch_one(pool)
     .await?;
     let id = UserId(id);
+    if services.ipstack {
+        let (pool, ip) = (pool.clone(), ctx.ip.to_string());
+        tokio::spawn(async move {
+            if let Err(e) = crate::staff::user::ipstack(&pool, id.0, &ip).await {
+                tracing::warn!("IPStack for account {}: {e}", id.0);
+            }
+        });
+    }
     let renew = if remembered { remote_days(pool).await? * 86400 } else { 0 };
     let token = if renew > 0 {
         remember_address(pool, email, ctx.now).await?;
