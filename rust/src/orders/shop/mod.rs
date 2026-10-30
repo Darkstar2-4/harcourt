@@ -15,7 +15,7 @@ use sqlx::SqlitePool;
 use super::{pricing::Price, Orders};
 use crate::{identity::User, token::TokenHash, visitor::Visitor};
 
-mod cart;
+pub mod cart;
 mod checkout;
 mod viewer;
 

@@ -89,3 +89,36 @@ async fn the_contact_page_shows_its_document_in_the_visitors_language() {
     let views: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'Page' AND subtype = 'General' AND comment = 'Contact Us'").fetch_one(&pool).await.unwrap();
     assert_eq!(views, 3);
 }
+
+async fn ajax(app: &Router, cookie: &str, form: &str) -> serde_json::Value {
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/design_partner_agreement.php")
+        .header(header::COOKIE, cookie)
+        .header("x-requested-with", "XMLHttpRequest")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(Body::from(form.to_string()))
+        .unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap()
+}
+
+#[tokio::test]
+async fn design_partner_blocks_are_saved_per_company() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO category (id, name, sort_order, active) VALUES (1, 'Alpha', 1, 1), (2, 'Beta', 2, 1), (3, 'Gone', 3, 0)").execute(&pool).await.unwrap();
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name) VALUES (50, 'Active', 'Customer', 'Test Co')"#).execute(&pool).await.unwrap();
+    let customer = cookie(&pool, 1, "Customer").await;
+    let (status, _, _) = send(&app, Method::GET, "/design_partner_agreement.php", Some(&customer), "", None).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let a = ajax(&app, &admin, "action=load&company_name=Nobody").await;
+    assert!(a["message"].as_str().unwrap().contains("No users found for company &ldquo;Nobody&rdquo;"));
+    let a = ajax(&app, &admin, "action=save&company_name=Test+Co&company_category_2=1&company_category_1=0&company_category_3=1").await;
+    assert_eq!(a["status"].as_str(), Some("success"));
+    assert!(a["content"].as_str().unwrap().contains("name='company_category_2' id='company_category_2' value='1' checked>Beta"));
+    let blocked: Vec<i64> = sqlx::query_scalar("SELECT category_id FROM company_category_block WHERE company_name = 'Test Co'").fetch_all(&pool).await.unwrap();
+    assert_eq!(blocked, [2], "inactive categories are never blocked");
+    let a = ajax(&app, &admin, "action=save&company_name=").await;
+    assert_eq!(a["status"].as_str(), Some("error"));
+}
