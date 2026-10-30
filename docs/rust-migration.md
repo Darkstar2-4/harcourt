@@ -91,7 +91,7 @@ The PHP site runs unchanged on a private box (the oracle), with a copy of the pr
 
 PHP files stay in the tree until their routes have held up under the checks above and a week of traffic shows no request for them. When the last one is gone, `proxy.rs` and the Apache, PHP-FPM and MariaDB services go with it.
 
-What is still handed to PHP is listed in each area's expected-differences file. In short, it is the blog and archive shapes of the WordPress front controller (posts, categories, `?s=` search), a few catalog leftovers, the cron jobs that call outside services (`cad_toolbox`), and attachments on mail from the staff pages.
+What is still handed to PHP is listed in each area's expected-differences file. In short, it is the blog home, author archives, post singles and search feeds of the WordPress front controller (the FAQ pages, category archives, feeds and `?s=` search on the front page are in Rust), a few catalog leftovers, the cron jobs that call outside services (`cad_toolbox`), and attachments on mail from the staff pages.
 
 The order of a deploy is the order of risk.
 
