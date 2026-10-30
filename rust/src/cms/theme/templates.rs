@@ -68,7 +68,10 @@ pub(super) fn sidebar(c: &mut Ctx) {
     c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n    ");
     c.push(if c.page.kind == crate::cms::model::PostType::Faq { "      " } else { "        " });
     let id = c.page.id;
-    c.slot(Slot::Meta(id, "sidebar".into()));
+    match c.holes.and_then(|h| h.get("sidebar")) {
+        Some(widgets) => c.push(&widgets.clone()),
+        None => c.slot(Slot::Meta(id, "sidebar".into())),
+    }
     c.push("    \n  </div>\n\n    <div class=\"scscpq_newuser mt-4 red-radial-gradient text-center p-5\">\n      <h3 class=\"mt-0 mb-4\">");
     c.push(if fr { "Accédez à l'ensemble de notre catalogue" } else { "Get Access to Our Full Catalog" });
     c.push("</h3>\n      <a class=\"standard-btn ignore-hover white mt-0 w-100\" href=\"");

@@ -9,5 +9,5 @@ use axum::Router;
 use crate::api::Auth;
 
 pub fn router(core: Arc<Auth>) -> Router {
-    crate::catalog::router().with_state(core)
+    crate::catalog::router(core.clone()).with_state(core)
 }

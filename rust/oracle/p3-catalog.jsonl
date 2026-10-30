@@ -35,3 +35,11 @@
 {"name": "inventory-info-overview", "path": "/inventory_info.php?action=overview&sku=HBLT-3-0.50-S"}
 {"name": "inventory-info-prj", "path": "/inventory_info.php?action=specials&prj=alignment_pins/ball_lock_pins/parts/hbl_asmtab.prj"}
 {"name": "inventory-info-post", "method": "POST", "path": "/inventory_info.php", "body": "action=specials&sku=HBLT-3-0.50-S"}
+{"name": "wp-search-the", "path": "/search/the/"}
+{"name": "wp-search-the-p2", "path": "/search/the/page/2/"}
+{"name": "wp-search-harcourt", "path": "/search/harcourt/"}
+{"name": "wp-search-quotes", "path": "/search/alignment+pin%27s%20%26%20%22x%22/"}
+{"name": "wp-search-le-fr", "path": "/search/le/?lang=fr", "language": "fr"}
+{"name": "wp-search-produits-fr", "path": "/search/produits/?lang=fr", "language": "fr"}
+{"name": "wp-search-lang-en", "path": "/search/products?lang=en"}
+{"name": "wp-search-space", "path": "/search/%20/"}

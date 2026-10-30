@@ -168,8 +168,11 @@ fn hole(c: &mut Ctx, name: &str) {
     }
 }
 
-/// A hole of WordPress's 404 page, as the import recorded it for the language.
+/// A hole of WordPress's 404 page, as the import recorded it for the language, unless the view gives its own.
 pub fn not_found_value(c: &Ctx, name: &str) -> String {
+    if let Some(v) = c.holes.and_then(|h| h.get(name)) {
+        return v.clone();
+    }
     c.site.options(c.lang()).get(&format!("{}{name}", super::NOT_FOUND_OPTION)).map(|f| f.value.clone()).unwrap_or_default()
 }
 
