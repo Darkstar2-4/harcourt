@@ -20,7 +20,7 @@ use super::{
     strings::{self, Strings},
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, identity::Role, token::Token, visitor::Visitor};
+use crate::{api::Auth, identity::Role, visitor::Visitor};
 
 const VERSION: &str = "10/01/2025";
 
@@ -36,39 +36,36 @@ pub struct Initial<'a> {
     pub url: &'a str,
     /// The site origin links are built on, e.g. https://www.harcourt.co.
     pub origin: &'a str,
-    pub referrer: &'a str,
+    pub referrer: Option<&'a str>,
 }
 
-/// The answer, keys in the order the PHP set them (json_encode keeps it).
+/// The answer, keys in the order the PHP set them (json_encode keeps it), each value already encoded.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct Loader(Vec<(&'static str, Value)>);
+pub struct Loader(Vec<(&'static str, String)>);
 
 impl Loader {
     fn set(&mut self, key: &'static str, value: Value) {
-        match self.0.iter_mut().find(|(k, _)| *k == key) {
-            Some(entry) => entry.1 = value,
-            None => self.0.push((key, value)),
-        }
+        self.set_encoded(key, php_json(&value));
     }
 
-    pub fn get(&self, key: &str) -> Option<&Value> {
-        self.0.iter().find(|(k, _)| *k == key).map(|(_, v)| v)
+    fn set_encoded(&mut self, key: &'static str, json: String) {
+        match self.0.iter_mut().find(|(k, _)| *k == key) {
+            Some(entry) => entry.1 = json,
+            None => self.0.push((key, json)),
+        }
     }
 
     /// PHP's json_encode(): slashes and non-ASCII characters escaped.
     pub fn to_json(&self) -> String {
-        let mut out = String::from("{");
-        for (i, (k, v)) in self.0.iter().enumerate() {
-            if i > 0 {
-                out.push(',');
-            }
-            out.push_str(&php_json(&Value::String((*k).to_string())));
-            out.push(':');
-            out.push_str(&php_json(v));
-        }
-        out.push('}');
-        out
+        let fields: Vec<String> = self.0.iter().map(|(k, v)| format!("{}:{v}", php_json(&Value::String((*k).to_string())))).collect();
+        format!("{{{}}}", fields.join(","))
     }
+}
+
+/// The meta object, keys in the PHP's order; the referrer is null when the request had none.
+fn meta(referrer: Option<&str>) -> String {
+    let referrer = referrer.map_or(Value::Null, |r| json!(r));
+    format!("{{\"script\":{},\"referrer\":{},\"version\":{}}}", php_json(&json!("/scscpq_wp.php")), php_json(&referrer), php_json(&json!(VERSION)))
 }
 
 /// json_encode() of one value.
@@ -115,7 +112,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
     let mut trace = vec!["__construct", "initial"];
     let token = if req.token.is_empty() {
         trace.push("token");
-        Token::generate().as_str().to_string()
+        hex::encode(rand::random::<[u8; 32]>()) + &hex::encode(rand::random::<[u8; 8]>())
     } else {
         req.token.to_string()
     };
@@ -152,7 +149,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
             None => out.set("scscpq_page", json!("")),
         }
     }
-    out.set("meta", json!({"script": "/scscpq_wp.php", "referrer": req.referrer, "version": VERSION}));
+    out.set_encoded("meta", meta(req.referrer));
     trace.push("document");
     out.set("scscpq_document", match document_url(viewer, req) {
         Some(url) => {
@@ -261,7 +258,7 @@ async fn scscpq_wp(
     params.extend(form(&body));
     let get = |k: &str| params.get(k).map(String::as_str).unwrap_or("");
     let action = get("action");
-    let referrer = headers.get(header::REFERER).and_then(|v| v.to_str().ok()).unwrap_or("");
+    let referrer = headers.get(header::REFERER).and_then(|v| v.to_str().ok());
     let fatal = if method != Method::POST {
         Some("102")
     } else if action.is_empty() {
@@ -273,7 +270,7 @@ async fn scscpq_wp(
     };
     if let Some(code) = fatal {
         let mut out = Loader::default();
-        out.set("meta", json!({"script": "/scscpq_wp.php", "referrer": referrer, "version": VERSION}));
+        out.set_encoded("meta", meta(referrer));
         out.set("scscpq_document", Value::Null);
         out.set("error", json!(format!("{action}: {code}")));
         out.set("trace", json!(["__construct", "document"]));
@@ -374,7 +371,7 @@ mod tests {
     #[test]
     fn the_catalog_page_links_its_own_query_back() {
         let v = Viewer::anonymous(Lang::En);
-        let req = Initial { page: "catalog", document: "", token: "", url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: "" };
+        let req = Initial { page: "catalog", document: "", token: "", url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
         assert_eq!(language("fr-CA"), Lang::Fr);

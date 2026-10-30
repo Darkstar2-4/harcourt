@@ -1,0 +1,11 @@
+# Catalog routes claimed by Rust. Run with --rust-session; see ORACLE.md. Paths and personas only.
+{"name":"catalog-loader","method":"POST","path":"/scscpq_wp.php","persona":"anonymous","language":"en","body":"action=initial&page=catalog&document=&language=en&remember=0&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F"}
+{"name":"catalog-loader","method":"POST","path":"/scscpq_wp.php","persona":"customer-active","language":"en","body":"action=initial&page=catalog&document=&language=en&remember=0&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F"}
+{"name":"catalog-loader","method":"POST","path":"/scscpq_wp.php","persona":"executive-active","language":"en","body":"action=initial&page=catalog&document=&language=en&remember=0&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F"}
+{"name":"catalog-loader-fr","method":"POST","path":"/scscpq_wp.php","persona":"customer-active-fr","language":"fr","body":"action=initial&page=catalog&document=&language=fr&remember=0&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalogue%2F%3Flang%3Dfr"}
+{"name":"catalog-loader-get","method":"GET","path":"/scscpq_wp.php","persona":"anonymous","language":"en"}
+{"name":"catalog-fragment-home","method":"GET","path":"/catalog.php?scscpq_wp=1","persona":"customer-active","language":"en"}
+{"name":"catalog-fragment-family","method":"GET","path":"/catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=731","persona":"customer-active","language":"en"}
+{"name":"catalog-page","method":"GET","path":"/catalog/","persona":"customer-active","language":"en"}
+{"name":"catalog-portal","method":"GET","path":"/customer_portal.php?scscpq_wp=1","persona":"anonymous","language":"en"}
+{"name":"catalog-old-home","method":"GET","path":"/scs_index.php","persona":"anonymous","language":"en"}
