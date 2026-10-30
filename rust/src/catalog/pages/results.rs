@@ -2,7 +2,7 @@
 //! number, or the keyword search over the `search` table.
 
 use super::{family, home, Ctx};
-use crate::catalog::{html::esc_text, model, model::Part};
+use crate::catalog::{html::esc_text, keywords, model, model::Part};
 
 /// A `search` row: what it points at.
 pub struct Hit {
@@ -112,27 +112,56 @@ async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
     hit(ctx, row.map(|r| (r.table_name.unwrap_or_default(), r.category_id, r.subcategory_id, r.inventory_id))).await
 }
 
-/// search_code(): every word of the search term in a `search` code, grouped by family.
+/// search_code() as prod has it: the keyword search (keywords.rs), corrected for a typo when it finds nothing,
+/// grouped by family and listed best-ranked first.
 async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
-    let raw = ctx.req.raw_search_code.trim().to_lowercase();
-    let words: Vec<String> = if raw.is_empty() { vec![String::new()] } else { raw.split_whitespace().map(str::to_string).collect() };
-    let first = format!("%{}%", words[0]);
+    let raw = ctx.req.raw_search_code.trim().to_string();
+    let terms: Vec<String> = if raw.is_empty() { vec![String::new()] } else { raw.split_whitespace().map(str::to_string).collect() };
     let lang = ctx.viewer.lang.code();
     let within = ctx.subcategory_id;
-    let rows = sqlx::query!(
-        r#"SELECT table_name AS "table_name!", code AS "code!", category_id AS "category_id!: i64", subcategory_id AS "subcategory_id!: i64",
-                  inventory_id AS "inventory_id: i64", coalesce(ranking, 0) AS "ranking!: i64"
+    let rows: Vec<keywords::Row> = sqlx::query!(
+        r#"SELECT table_name AS "table!", code AS "code!", coalesce(code_normalized, '') AS "normalized!: String", category_id AS "category_id!: i64",
+                  subcategory_id AS "subcategory_id!: i64", inventory_id AS "inventory_id: i64", coalesce(ranking, 0) AS "ranking!: i64"
            FROM search
-           WHERE code LIKE ?1 AND coalesce(language_code, '') IN ('', ?2) AND (?3 = 0 OR subcategory_id = ?3)
+           WHERE coalesce(language_code, '') IN ('', ?1) AND (?2 = 0 OR subcategory_id = ?2)
              AND table_name IS NOT NULL AND code IS NOT NULL AND category_id IS NOT NULL AND subcategory_id IS NOT NULL
-           ORDER BY category_id, subcategory_id, id"#,
-        first,
+           ORDER BY id"#,
         lang,
         within
     )
     .fetch_all(ctx.pool)
-    .await?;
-    let rows: Vec<_> = rows.into_iter().filter(|r| words.iter().all(|w| r.code.to_lowercase().contains(w.as_str()))).collect();
+    .await?
+    .into_iter()
+    .map(|r| keywords::Row {
+        code_normalized: if r.normalized.is_empty() { keywords::normalize(&r.code) } else { r.normalized },
+        table: r.table,
+        code: r.code,
+        category_id: r.category_id, subcategory_id: r.subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking })
+    .collect();
+    let names: Vec<(i64, String)> = sqlx::query!(
+        r#"SELECT record_id AS "id!: i64", name AS "name!" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', ?1)"#,
+        lang
+    )
+    .fetch_all(ctx.pool)
+    .await?
+    .into_iter()
+    .map(|r| (r.id, r.name))
+    .collect();
+    let categories = keywords::category_words(&names);
+    let mut filter = keywords::Filter::new(&terms, &categories);
+    let mut matched: Vec<&keywords::Row> = rows.iter().filter(|r| filter.matches(r)).collect();
+    let mut corrected = String::new();
+    if matched.is_empty() {
+        let kw = keywords::keywords(rows.iter().filter(|r| matches!(r.table.as_str(), "category" | "subcategory" | "search_words")).map(|r| r.code.as_str()));
+        let fixed = keywords::correct(&terms, &kw);
+        if fixed != terms {
+            filter = keywords::Filter::new(&fixed, &categories);
+            matched = rows.iter().filter(|r| filter.matches(r)).collect();
+            if !matched.is_empty() {
+                corrected = fixed.join(" ");
+            }
+        }
+    }
     struct Group {
         category_id: i64,
         subcategory_id: i64,
@@ -140,44 +169,55 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         ranking: i64,
     }
     let mut groups: Vec<Group> = Vec::new();
-    for r in &rows {
+    for r in &matched {
         match groups.iter_mut().find(|g| g.category_id == r.category_id && g.subcategory_id == r.subcategory_id) {
             Some(g) => g.ranking = g.ranking.min(r.ranking),
-            None => groups.push(Group { category_id: r.category_id, subcategory_id: r.subcategory_id, table: r.table_name.clone(), ranking: r.ranking }),
+            None => groups.push(Group { category_id: r.category_id, subcategory_id: r.subcategory_id, table: r.table.clone(), ranking: r.ranking }),
         }
     }
     groups.sort_by_key(|g| g.ranking);
+    let mut out = String::new();
+    if !corrected.is_empty() {
+        out.push_str(&format!("<p class=center>Showing results for <b>{}</b></p>", crate::catalog::html::esc(&corrected)));
+    }
     if groups.is_empty() {
         if let Some(hit) = best_match(ctx).await? {
             return open(ctx, hit).await;
         }
         return Ok(no_results(ctx));
     }
-    if groups.len() > 1 || groups.iter().any(|g| g.table == "subcategory") {
-        let mut summary: home::Summary = Vec::new();
-        for g in &groups {
-            match summary.iter_mut().find(|(c, _)| *c == g.category_id) {
-                Some((_, list)) => list.push(g.subcategory_id),
-                None => summary.push((g.category_id, vec![g.subcategory_id])),
-            }
+    let mut summary: home::Summary = Vec::new();
+    let mut table_subcategory = false;
+    for g in &groups {
+        let ids: Vec<i64> = if g.table == "category" {
+            table_subcategory = true;
+            category_subcategories(ctx, g.category_id)
+        } else {
+            table_subcategory |= g.table == "subcategory";
+            vec![g.subcategory_id]
+        };
+        match summary.iter_mut().find(|(c, _)| *c == g.category_id) {
+            Some((_, list)) => list.extend(ids.into_iter().filter(|i| !list.contains(i)).collect::<Vec<_>>()),
+            None => summary.push((g.category_id, ids)),
         }
-        return Ok(home::output_summary(ctx, &summary));
+    }
+    if groups.len() > 1 || table_subcategory {
+        out.push_str(&home::output_summary(ctx, &summary));
+        return Ok(out);
     }
     let g = &groups[0];
     ctx.category_id = g.category_id;
     ctx.subcategory_id = g.subcategory_id;
-    let mut ids: Vec<i64> = rows.iter().filter_map(|r| r.inventory_id).collect();
-    ids.dedup();
     let mut parts: Vec<Part> = Vec::new();
-    for id in ids {
+    for id in matched.iter().filter_map(|r| r.inventory_id) {
+        if parts.iter().any(|p| p.id == id) {
+            continue;
+        }
         if let Some(p) = model::part_by_id(ctx.pool, id).await? {
-            if !parts.iter().any(|x| x.id == p.id) {
-                parts.push(p);
-            }
+            parts.push(p);
         }
     }
     parts.sort_by_key(|p| (p.sort_order, p.sku.to_lowercase()));
-    let mut out = String::new();
     if parts.len() == 1 {
         ctx.req.action = "sku".into();
         let part = parts.remove(0);
@@ -186,4 +226,16 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         family::page_listing(ctx, Some(parts)).await?.write_to(&mut out);
     }
     Ok(out)
+}
+
+/// category_subcategories(): a category's families in catalog order, Pending ones for administrators.
+fn category_subcategories(ctx: &Ctx, category_id: i64) -> Vec<i64> {
+    let mut list: Vec<&crate::catalog::model::Family> = ctx
+        .catalog
+        .families
+        .values()
+        .filter(|f| f.category_id == category_id && f.status.visible(ctx.viewer.sees_pending()))
+        .collect();
+    list.sort_by(|a, b| a.sort_order.cmp(&b.sort_order).then_with(|| a.table_name.cmp(&b.table_name)));
+    list.into_iter().map(|f| f.id).collect()
 }

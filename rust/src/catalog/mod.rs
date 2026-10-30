@@ -16,6 +16,7 @@ pub mod api;
 pub mod files;
 pub mod forms;
 pub mod html;
+pub mod keywords;
 pub mod loader;
 pub mod model;
 pub mod pages;
