@@ -27,7 +27,7 @@ use sqlx::SqlitePool;
 use super::{
     catalog::php_floatval,
     choices,
-    csrf::{php_intval, Fields, Posted, Upload},
+    csrf::{php_intval, Fields, Posted, Unchecked, Upload},
     html::{button, close, esc, hidden, href, list_options, number, open, text, Blank, Form, Notes, Opts, Tabs},
     inventory::{file_kind, languages},
     map,
@@ -1587,7 +1587,8 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, header
 
 /// The editor's AJAX posts carry no form token, as the PHP page's script sent none; `X-Requested-With`, which a
 /// page on another site cannot send without the browser asking first, marks them. They change only this session's
-/// draft, which a save (a form post with the token) must still apply.
+/// draft, which a save (a form post with the token) must still apply. Of the form's own posts only a save or a
+/// delete needs the token; the others list, download, or open or drop this session's draft.
 async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, headers: HeaderMap, RawQuery(q): RawQuery, req: Request) -> Response {
     let query = Fields::from_query(q.as_deref());
     if is_ajax(&headers) {
@@ -1595,7 +1596,11 @@ async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, header
         let fields = Fields::from_query(std::str::from_utf8(&body).ok()).with_query(&query);
         return ajax(&auth.pool, &staff, &fields).await.unwrap_or_else(shell::internal);
     }
-    let posted = match Posted::from_request(req, &auth).await {
+    let form = match Unchecked::from_request(req, &auth).await {
+        Ok(f) => f,
+        Err(rejected) => return rejected.into_response(),
+    };
+    let posted = match form.accept_by_action() {
         Ok(p) => p,
         Err(rejected) => return rejected.into_response(),
     };

@@ -147,6 +147,30 @@ async fn the_list_holds_accounts_up_to_the_viewers_role() {
 }
 
 #[tokio::test]
+async fn only_a_post_that_writes_needs_the_form_token() {
+    let h = harness().await;
+    user_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    account(&h.pool, 10, "Customer", "Pending", "198.51.100.10").await;
+    let (status, _, page) = send(&h.app, post("/user.php", &admin, &[("action", "list"), ("report_option_field", "ip"), ("report_option_value", "198.51.100.")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<br>1 Records Found"));
+    let (status, _, page) = send(&h.app, post("/user.php", &admin, &[("action", "maintain"), ("record_id", "10")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("value='Test company 10'"));
+    for writes in [user_form(&[("record_id", "10")]), vec![("action", "delete"), ("record_id", "10")]] {
+        let (status, _, _) = send(&h.app, post("/user.php", &admin, &writes)).await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+    let row: (String, String) = sqlx::query_as(r#"SELECT ip, status FROM "user" WHERE id = 10"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("198.51.100.10".into(), "Pending".into()));
+    let (status, _, _) = send(&h.app, post("/inventory.php", &admin, &[("action", "delete"), ("record_id", "1")])).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, _, _) = send(&h.app, post("/inventory.php", &admin, &[("action", "list"), ("report_subcategory_id", "0")])).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test]
 async fn editing_shows_the_address_block_and_category_tabs() {
     let h = harness().await;
     user_seed(&h.pool).await;

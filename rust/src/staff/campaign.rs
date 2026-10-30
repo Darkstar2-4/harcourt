@@ -23,7 +23,7 @@ use serde_json::Value;
 use sqlx::SqlitePool;
 
 use super::{
-    csrf::{Fields, Posted},
+    csrf::{Fields, Posted, Unchecked},
     html::{button, close, hidden, href, js, list_options, open, text, Blank, Form, Notes, Opts, Tabs},
     map,
     phpser::{self, Php},
@@ -858,14 +858,18 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, header
 }
 
 /// The page's AJAX calls carry no form token, as its script sent none; `X-Requested-With` marks them, and they
-/// touch only this session's draft.
+/// touch only this session's draft. Of the form's own posts only a save or a delete needs the token.
 async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, headers: HeaderMap, RawQuery(q): RawQuery, req: Request) -> Response {
     if is_ajax(&headers) {
         let Ok(body) = axum::body::to_bytes(req.into_body(), 1 << 20).await else { return StatusCode::BAD_REQUEST.into_response() };
         let fields = Fields::from_query(std::str::from_utf8(&body).ok()).with_query(&Fields::from_query(q.as_deref()));
         return ajax(&auth.pool, &staff, &fields).await.unwrap_or_else(shell::internal);
     }
-    match Posted::from_request(req, &auth).await {
+    let form = match Unchecked::from_request(req, &auth).await {
+        Ok(f) => f,
+        Err(rejected) => return rejected.into_response(),
+    };
+    match form.accept_by_action() {
         Ok(posted) => page(&auth.pool, &staff, Some(&posted)).await.unwrap_or_else(shell::internal),
         Err(rejected) => rejected.into_response(),
     }
