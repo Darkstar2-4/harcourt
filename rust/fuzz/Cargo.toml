@@ -1,0 +1,15 @@
+[package]
+name = "hxweb-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Property tests over hxweb's parsers of untrusted input"
+
+[dependencies]
+hxweb = { path = ".." }
+
+[dev-dependencies]
+proptest = "1"
+percent-encoding = "2"
+
+[workspace]

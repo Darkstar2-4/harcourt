@@ -744,6 +744,7 @@ dependencies = [
  "chrono-tz",
  "dns-lookup",
  "form_urlencoded",
+ "futures-util",
  "hex",
  "hmac",
  "http-body-util",
@@ -756,6 +757,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "similar",
  "sqlx",
  "subtle",
  "tokio",
@@ -1839,6 +1841,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
+
+[[package]]
 name = "siphasher"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1965,6 +1973,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx-core",
+ "sqlx-mysql",
  "sqlx-sqlite",
  "syn 2.0.119",
  "tokio",
@@ -2002,6 +2011,7 @@ dependencies = [
  "percent-encoding",
  "rand 0.8.8",
  "rsa",
+ "serde",
  "sha1",
  "sha2",
  "smallvec",
