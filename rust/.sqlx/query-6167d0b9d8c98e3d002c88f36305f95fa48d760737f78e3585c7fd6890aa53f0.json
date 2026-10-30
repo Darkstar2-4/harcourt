@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT i.sku AS \"sku!\", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id\n               FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id\n               WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku LIMIT ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "6167d0b9d8c98e3d002c88f36305f95fa48d760737f78e3585c7fd6890aa53f0"
+}

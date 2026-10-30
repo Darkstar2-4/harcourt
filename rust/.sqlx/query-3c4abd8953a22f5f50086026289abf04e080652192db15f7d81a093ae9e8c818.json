@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", record_item AS \"item!\", filetype AS \"filetype!\", html_content\n           FROM content WHERE record_type = 'subcategory' AND record_id = ?1 AND record_item IN ('specials', 'customs')\n           ORDER BY record_item, CASE WHEN language_code = ?2 THEN 0 ELSE 1 END, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "item!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "filetype!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "3c4abd8953a22f5f50086026289abf04e080652192db15f7d81a093ae9e8c818"
+}

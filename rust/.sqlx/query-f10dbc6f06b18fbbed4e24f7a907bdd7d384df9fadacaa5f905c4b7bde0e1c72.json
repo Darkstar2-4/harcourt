@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT menu FROM language WHERE code = ?1 AND active = 1 ORDER BY priority, name LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "menu",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f10dbc6f06b18fbbed4e24f7a907bdd7d384df9fadacaa5f905c4b7bde0e1c72"
+}

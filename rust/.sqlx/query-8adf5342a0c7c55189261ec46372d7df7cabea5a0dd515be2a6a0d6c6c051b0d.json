@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record_type AS \"record_type!\", record_id AS \"record_id!: i64\", language_code AS \"language_code!\", name AS \"name!\", description\n           FROM content\n           WHERE record_type IN ('category', 'subcategory') AND record_item = '' AND language_code IN ('EN', ?1)\n           ORDER BY record_type, CASE WHEN language_code = 'EN' THEN 2 ELSE 1 END, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "record_type!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "record_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language_code!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8adf5342a0c7c55189261ec46372d7df7cabea5a0dd515be2a6a0d6c6c051b0d"
+}
