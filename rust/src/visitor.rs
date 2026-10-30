@@ -34,10 +34,10 @@
 //! `portal_id()` and `industry_id()` cover the common questions.
 //!
 //! `layer` resolves the visitor once per request for the page routers and writes what the PHP wrote when a visit
-//! began: the sign-in log for a company address, the campaign cookie, the referer and bot log rows. For a PHP
-//! page it also does what scs_header.php did before the page ran: a browser without a PHP session cookie begins a
-//! visit, gets one, and is sent to its landing page; the `harcourt_profile` cookie is written whenever PHP loaded
-//! the profile.
+//! began: an account's sign-in (its `last_login` and log row, by session or by company address), the campaign
+//! cookie, the referer and bot log rows. For a PHP page it also does what scs_header.php did before the page ran:
+//! a browser without a PHP session cookie begins a visit, gets one, and is sent to its landing page; the
+//! `harcourt_profile` cookie is written whenever PHP loaded the profile.
 
 use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
