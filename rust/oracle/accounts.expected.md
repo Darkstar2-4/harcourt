@@ -5,10 +5,9 @@ cannot be compared by `hx-diff`, and has no case.
 
 ## Not comparable with hx-diff
 
-- **Pages behind the landing redirect.** hx-diff sends no cookies and no Referer, so every request to an SCS page
-  begins a visit and both sides answer with scs_header.php's landing redirect (covered by the cases). The pages
-  themselves (the sign-up form, the code form, the pending notice, the impersonation form) need a request from
-  one of the site's own pages. The integration tests in `tests/accounts_*.rs` cover them.
+- **Pages behind the landing redirect.** A cold case begins a visit, so both sides answer an SCS page with
+  scs_header.php's landing redirect. The pages themselves are reached warm (`fix-accounts.jsonl`); cases that
+  change the PHP session are in `fix-accounts-session.jsonl`, to be run on their own.
 - **The sign-up page's AJAX actions** (`register`, `remote`, `token`, `microsoft_oauth_init`) answer JSON only to a
   request with `X-Requested-With`, which hx-diff cannot send.
 - **`/oauth/init.php` and `/oauth/google_init.php`.** Both sides redirect to the provider with a fresh random state,
@@ -17,9 +16,6 @@ cannot be compared by `hx-diff`, and has no case.
 
 ## Intended differences
 
-- **When a visit begins.** PHP redirected on the first request of a PHP session. Rust has no PHP session: a request
-  begins a visit unless it comes from one of the site's pages (Referer or `Sec-Fetch-Site: same-origin`), from a
-  script on them (`X-Requested-With`), or from a browser that still has a `PHPSESSID`.
 - **Sign-in codes.** The code is random and lives in `access_code`. The sign-up page allows two wrong tries, counted
   on the server, and then needs a new code. A code is mailed only to an address at an Active company, at most once
   a minute. The code mail is `access_code`'s text, not the `remote` mail form's.

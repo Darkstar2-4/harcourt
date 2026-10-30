@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::Deserialize;
@@ -57,15 +57,7 @@ fn found(to: &str, set: Vec<HeaderValue>) -> Response {
     r
 }
 
-pub async fn language_change(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Query(q): Query<LanguageChange>) -> Response {
-    match visitor::landing(&core, &visitor, "/language_change.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => {
-            tracing::error!("language_change: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
-        }
-    }
+pub async fn language_change(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<LanguageChange>) -> Response {
     let to = back(&core.public_origin, &headers);
     let has_referer = headers.contains_key(header::REFERER);
     let languages = match Languages::load(&core.pool).await {

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use sqlx::SqlitePool;
@@ -24,7 +24,7 @@ use crate::{
     identity::{Role, Status, UserId},
     session,
     token::Token,
-    visitor::{self, Via, Visitor},
+    visitor::{Via, Visitor},
 };
 
 const ROLES: [Role; 6] = [Role::Customer, Role::External, Role::Internal, Role::Executive, Role::Administrator, Role::SuperUser];
@@ -168,24 +168,19 @@ fn administrator(visitor: &Visitor) -> Option<&Account> {
     visitor.account().filter(|a| a.user.is_active() && a.role() >= Role::Administrator)
 }
 
-pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Response {
-    respond(&core, visitor, &headers, uri, None).await
+pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap) -> Response {
+    respond(&core, visitor, &headers, None).await
 }
 
-pub async fn submit(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
+pub async fn submit(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Form(posted): Form<Vec<(String, String)>>) -> Response {
     if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
         return StatusCode::FORBIDDEN.into_response();
     }
-    respond(&core, visitor, &headers, uri, Some(posted)).await
+    respond(&core, visitor, &headers, Some(posted)).await
 }
 
-async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, uri: Uri, posted: Option<Vec<(String, String)>>) -> Response {
+async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, posted: Option<Vec<(String, String)>>) -> Response {
     let pool = &core.pool;
-    match visitor::landing(core, &visitor, "/user_impersonate.php", uri.query(), headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
-    }
     if visitor.impersonator.is_some() {
         return match stop(pool, headers).await {
             Ok(_) => page_response(HOME.into(), Vec::new()),

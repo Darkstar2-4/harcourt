@@ -24,7 +24,7 @@ use crate::{
         admission::{self, Admission, Context, Registration},
         cookies,
         html::escape,
-        profile::{self, Profile},
+        profile::Profile,
     },
     api::Auth,
     db::unix_now,
@@ -541,8 +541,15 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
 async fn admit(pool: &SqlitePool, kind: Kind, person: &Person, ctx: &Context<'_>) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
     let Some(email) = Email::parse(&person.email) else { return Ok((Outcome::NoEmail(kind), Vec::new())) };
     let via = format!("{} OAuth", kind.name());
-    let profile = Profile { email: email.as_str().into(), name_first: person.name_first.clone(), name_last: person.name_last.clone(), ..Profile::default() };
-    let mut set: Vec<HeaderValue> = cookies::set(profile::COOKIE, &profile.to_cookie(), cookies::Life::Year).into_iter().collect();
+    let profile = Profile {
+        email: Some(email.as_str().into()),
+        name: format!("{} {}", person.name_first, person.name_last),
+        name_first: Some(person.name_first.clone()),
+        name_last: Some(person.name_last.clone()),
+        language_code: "EN".into(),
+        ..Profile::default()
+    };
+    let mut set: Vec<HeaderValue> = profile.cookie(ctx.now).into_iter().collect();
     match admission::classify(pool, &email).await? {
         Admission::Blacklisted => {
             admission::log_blacklisted(pool, &email, ctx, &via).await;

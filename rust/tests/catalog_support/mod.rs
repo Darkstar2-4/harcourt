@@ -125,11 +125,10 @@ pub fn post_form(path: &str, cookie: Option<&str>, form: &str) -> Request<Body> 
     request(Method::POST, path, cookie, &[(header::CONTENT_TYPE.as_str(), "application/x-www-form-urlencoded")], Body::from(form.to_string()))
 }
 
+/// A request from a browser in the middle of a visit: it holds the PHP session cookie.
 pub fn request(method: Method, path: &str, cookie: Option<&str>, headers: &[(&str, &str)], body: Body) -> Request<Body> {
     let mut req = Request::builder().method(method).uri(path);
-    if let Some(c) = cookie {
-        req = req.header(header::COOKIE, c);
-    }
+    req = req.header(header::COOKIE, cookie.map_or_else(|| "PHPSESSID=test".to_string(), |c| format!("{c}; PHPSESSID=test")));
     for (k, v) in headers {
         req = req.header(*k, *v);
     }

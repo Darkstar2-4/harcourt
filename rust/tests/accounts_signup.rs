@@ -83,12 +83,10 @@ impl Answer {
     }
 }
 
-/// A request from the /request-access page, as the browser sends it.
+/// A request from the /request-access page, as the browser sends it in the middle of a visit.
 async fn send(app: &Router, method: Method, uri: &str, cookie: &str, form: Option<&str>, xhr: bool) -> Answer {
     let mut req = Request::builder().method(method).uri(uri).header(header::REFERER, format!("{ORIGIN}/request-access"));
-    if !cookie.is_empty() {
-        req = req.header(header::COOKIE, cookie);
-    }
+    req = req.header(header::COOKIE, if cookie.is_empty() { "PHPSESSID=test".to_string() } else { format!("{cookie}; PHPSESSID=test") });
     if xhr {
         req = req.header("x-requested-with", "XMLHttpRequest");
     }
@@ -156,7 +154,7 @@ async fn an_address_at_an_active_company_gets_a_code_and_the_right_code_signs_in
     assert!(reply["html"]["scscpq_content"].as_str().unwrap().contains("Welcome Example Tools Employee"));
     assert!(reply["html"]["scscpq_content"].as_str().unwrap().contains("mailed from web@example.net"));
     let jar = a.jar();
-    assert_eq!(jar, "harcourt=pat%40example.com");
+    assert!(jar.split("; ").any(|c| c == "harcourt=pat%40example.com"), "{jar}");
     let sent = mails(&pool).await;
     assert_eq!(sent.len(), 2, "{sent:?}");
     assert_eq!((sent[0].0.as_str(), sent[0].1.as_str()), ("staff@example.net", "New Account Auto-Approved: pat@example.com"));
@@ -255,6 +253,7 @@ async fn posts_from_other_sites_or_without_the_ajax_header_change_nothing() {
         .method(Method::POST)
         .uri("/newuser.php")
         .header(header::ORIGIN, "https://evil.example")
+        .header(header::COOKIE, "PHPSESSID=test")
         .header("x-requested-with", "XMLHttpRequest")
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(Body::from(form))

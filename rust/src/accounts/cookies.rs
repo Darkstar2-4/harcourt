@@ -52,6 +52,19 @@ pub fn set(name: &str, value: &str, life: Life) -> Option<HeaderValue> {
     HeaderValue::from_str(&format!("{name}={value}; Path=/{age}; Secure; HttpOnly; SameSite=Lax")).ok()
 }
 
+/// PHP rawurlencode keeps letters, digits and `-_.~`.
+const PHP_RAWURLENCODE: &AsciiSet = &PHP_URLENCODE.remove(b'~');
+
+/// A cookie as scs_header.php menu_class::cookie() wrote it through PHP's setcookie(): kept for a year from `now`,
+/// HTTPS only, hidden from scripts, with no SameSite.
+pub fn php_year(name: &str, value: &str, now: i64) -> Option<HeaderValue> {
+    let start = chrono::DateTime::from_timestamp(now, 0)?;
+    let expires = start.checked_add_months(chrono::Months::new(12))?;
+    let value = utf8_percent_encode(value, PHP_RAWURLENCODE);
+    let (date, age) = (expires.format("%a, %d %b %Y %H:%M:%S GMT"), expires.timestamp() - now);
+    HeaderValue::from_str(&format!("{name}={value}; expires={date}; Max-Age={age}; path=/; secure; HttpOnly")).ok()
+}
+
 /// The session cookie. A remembered sign-in keeps it for a year and lets the server's sliding expiry decide, as
 /// PHP's `remote` cookie did.
 pub fn session(token: &Token, remembered: bool) -> Option<HeaderValue> {
@@ -76,6 +89,15 @@ mod tests {
         headers.insert(header::COOKIE, HeaderValue::from_static("a=1; harcourt=pat%2Btag%40example.com; b=2"));
         assert_eq!(get(&headers, EMAIL).as_deref(), Some("pat+tag@example.com"));
         assert_eq!(get(&headers, "missing"), None);
+    }
+
+    #[test]
+    fn php_year_is_setcookie_with_raw_url_encoding() {
+        let v = php_year("harcourt_profile", r#"{"name":"A B~"}"#, 1_793_327_258).unwrap();
+        assert_eq!(
+            v.to_str().unwrap(),
+            "harcourt_profile=%7B%22name%22%3A%22A%20B~%22%7D; expires=Sat, 30 Oct 2027 02:27:38 GMT; Max-Age=31536000; path=/; secure; HttpOnly"
+        );
     }
 
     #[test]

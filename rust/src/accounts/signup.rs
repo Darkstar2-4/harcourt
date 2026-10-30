@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -30,7 +30,7 @@ use crate::{
     api::Auth,
     db::unix_now,
     identity::{Email, Status},
-    visitor::{self, Identity, Visitor},
+    visitor::{Identity, Visitor},
 };
 
 /// newuser.php allowed two wrong codes; the third try is refused until a new code is sent.
@@ -64,8 +64,8 @@ impl Request {
 
     fn profile(&self) -> Profile {
         let mut p = Profile::from_cookie(cookies::get(&self.headers, profile::COOKIE).as_deref());
-        if p.email.is_empty() {
-            p.email = cookies::get(&self.headers, cookies::EMAIL).unwrap_or_default();
+        if p.get("email").is_empty() {
+            p.email = cookies::get(&self.headers, cookies::EMAIL);
         }
         p
     }
@@ -76,12 +76,7 @@ fn request(visitor: Visitor, headers: HeaderMap) -> Request {
     Request { visitor, headers, ip, now: unix_now() }
 }
 
-pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Response {
-    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
-    }
+pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap) -> Response {
     let req = request(visitor, headers);
     match render_page(&core, &req).await {
         Ok((body, set)) => html_response(body, set),
@@ -89,14 +84,9 @@ pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: Head
     }
 }
 
-pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
+pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Form(posted): Form<Vec<(String, String)>>) -> Response {
     if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
         return StatusCode::FORBIDDEN.into_response();
-    }
-    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return internal(e),
     }
     let xhr = headers.contains_key("x-requested-with");
     let req = request(visitor, headers);
@@ -221,11 +211,11 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     let score = score(core, req, rc.as_ref(), token).await;
     let layout = Layout::load(pool).await?;
     let (p, errors) = profile::verify(&layout, posted, req.profile());
-    if spam(core, req, rc.as_ref(), &score, "registration form", &p.email).await? {
+    if spam(core, req, rc.as_ref(), &score, "registration form", p.get("email")).await? {
         reply.html.set("profile_register", UNABLE.into());
         return Ok(reply);
     }
-    let email = Email::parse(&p.email);
+    let email = Email::parse(p.get("email"));
     if let Some(email) = &email {
         match admission::classify(pool, email).await? {
             Admission::Blacklisted => {
@@ -254,19 +244,19 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         return Ok(reply);
     };
     let registration = Registration {
-        company_name: p.company_name.clone(),
-        address: p.address.clone(),
-        city: p.city.clone(),
-        state: p.state.clone(),
-        zip: p.zip.clone(),
-        country_code: p.country_code.clone(),
+        company_name: p.get("company_name").into(),
+        address: p.get("address").into(),
+        city: p.get("city").into(),
+        state: p.get("state").into(),
+        zip: p.get("zip").into(),
+        country_code: p.get("country_code").into(),
         domain: None,
         recaptcha_score: score.value,
     };
     let ctx = req.context();
     let (id, signin) = admission::register(pool, &registration, &email, false, &ctx).await?;
     reply.cookies.extend(signin.cookies());
-    reply.cookies.extend(cookies::set(profile::COOKIE, &p.to_cookie(), cookies::Life::Year));
+    reply.cookies.extend(p.cookie(req.now));
     let mut lines = profile::summary(pool, &layout, &p).await?;
     lines.push(format!("reCAPTCHA Score: {}", score.text));
     admission::log_signup(pool, id, &ctx, &lines.join("<br>")).await;
