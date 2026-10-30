@@ -417,7 +417,7 @@ async fn bypass_on_approval(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
 
 /// user->ipstack(): look the address up at the configured IPStack URL and keep the answer and its currency.
 /// Without a configured URL nothing happens; a failed lookup goes to the server log.
-async fn ipstack(pool: &SqlitePool, id: i64, ip: &str) -> sqlx::Result<()> {
+pub async fn ipstack(pool: &SqlitePool, id: i64, ip: &str) -> sqlx::Result<()> {
     let url = registry::get(pool, "ipstack", "api_url").await?.unwrap_or_default();
     if url.trim().is_empty() || ip.is_empty() {
         return Ok(());

@@ -192,7 +192,7 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                 let user_agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
                 let ctx = admission::Context { ip: &ip, user_agent, dns_name: None, now };
                 let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
-                let (id, sign_in) = admission::register(pool, &registration, &email, false, &ctx).await?;
+                let (id, sign_in) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
                 set_cookies.extend(cookies::session(&sign_in.token, false));
                 set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
                 let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);

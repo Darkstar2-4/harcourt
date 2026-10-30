@@ -264,7 +264,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         recaptcha_score: score.value,
     };
     let ctx = req.context();
-    let (id, signin) = admission::register(pool, &registration, &email, false, &ctx).await?;
+    let (id, signin) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
     reply.cookies.extend(signin.cookies());
     reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
