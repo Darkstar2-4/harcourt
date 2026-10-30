@@ -45,12 +45,22 @@ pub async fn active(pool: &SqlitePool, code: &str, today: Date) -> sqlx::Result<
     Ok(on.then(|| Campaign { id: r.id, code: r.code, name: r.name.unwrap_or_default(), kind: Kind::parse(r.ty.as_deref()) }))
 }
 
-/// classes/campaign.php active(). This reproduces the PHP's string ordering on purpose: it compared the stored
-/// `YYYY-MM-DD` against `date("Y/m/d")`, and the zero date '0000-00-00' counts as an end date that has passed.
+/// classes/campaign.php active(), on the dates as its fetch() read them through `fn_date($date, 'mysql')`: the
+/// zero date is no date, and `YYYY-MM-DD` becomes `YYYY/MM/DD`, compared as a string with `date("Y/m/d")`.
 fn is_active(active: bool, from: &str, thru: &str, today: Date) -> bool {
     let today = today.slash();
-    let thru_set = !thru.is_empty() && thru != "0";
-    active && from.as_bytes() <= today.as_bytes() && !(thru_set && thru.as_bytes() < today.as_bytes())
+    let (from, thru) = (mysql_date(from), mysql_date(thru));
+    active && from <= today && (thru.is_empty() || thru >= today)
+}
+
+/// `fn_date($stored, 'mysql')`.
+fn mysql_date(stored: &str) -> String {
+    if matches!(stored, "" | "0" | "0000-00-00" | "0000/00/00") {
+        return String::new();
+    }
+    let mut parts = stored.split([' ', '/', '.', '-']);
+    let mut next = || parts.next().unwrap_or("");
+    format!("{}/{}/{}", next(), next(), next())
 }
 
 #[cfg(test)]
@@ -60,15 +70,16 @@ mod tests {
     const TODAY: Date = Date { year: 2026, month: 10, day: 29 };
 
     #[test]
-    fn dates_compare_as_the_php_strings_did() {
+    fn dates_compare_as_fn_date_read_them() {
         assert!(is_active(true, "", "", TODAY));
         assert!(!is_active(false, "", "", TODAY));
-        assert!(is_active(true, "2026-12-01", "", TODAY), "a later date this year sorts before 2026/");
-        assert!(!is_active(true, "2027-01-01", "", TODAY), "next year sorts after");
+        assert!(!is_active(true, "2026-12-01", "", TODAY), "starts later this year");
+        assert!(is_active(true, "2026-10-29", "", TODAY), "starts today");
         assert!(is_active(true, "0000-00-00", "2027-06-30", TODAY));
-        assert!(!is_active(true, "0000-00-00", "0000-00-00", TODAY), "the zero end date has passed");
-        assert!(!is_active(true, "", "2026-12-31", TODAY), "an end date this year sorts before 2026/");
-        assert!(is_active(true, "", "2027-01-01", TODAY));
+        assert!(is_active(true, "0000-00-00", "0000-00-00", TODAY), "the zero date is no date");
+        assert!(is_active(true, "", "2026-12-31", TODAY), "ends later this year");
+        assert!(is_active(true, "", "2026-10-29", TODAY), "ends today");
+        assert!(!is_active(true, "", "2026-10-28", TODAY), "ended yesterday");
     }
 
     #[tokio::test]
