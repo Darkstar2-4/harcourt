@@ -13,13 +13,17 @@ use axum::Router;
 use crate::api::Auth;
 
 pub mod files;
+pub mod forms;
 pub mod html;
 pub mod loader;
+pub mod model;
 pub mod pages;
 pub mod php;
+pub mod profile;
 pub mod registry;
 pub mod search;
 pub mod strings;
+pub mod tabs;
 pub mod viewer;
 
 pub fn router() -> Router<Arc<Auth>> {

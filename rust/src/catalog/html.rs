@@ -69,6 +69,10 @@ impl Query {
         self
     }
 
+    pub fn pairs(&self) -> &[(String, String)] {
+        &self.0
+    }
+
     pub fn get(&self, key: &str) -> Option<&str> {
         self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
     }
