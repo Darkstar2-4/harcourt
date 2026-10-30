@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM portalitem WHERE portalcategory_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "32671f71ba04e7faf8bd3aac4efaf92bf53f1f3ee458e17aa179453007b5d90b"
+}

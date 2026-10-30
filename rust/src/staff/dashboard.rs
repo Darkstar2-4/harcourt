@@ -14,7 +14,7 @@ use sqlx::SqlitePool;
 
 use super::{
     csrf::Fields,
-    html::{close, esc, hidden, href, number, open, url_query, MenuGroup, Notes, Opts, Tabs},
+    html::{close, esc, hidden, href, number, open, text, url_query, MenuGroup, Notes, Opts, Tabs},
     shell, time, Staff,
 };
 use crate::{
@@ -26,7 +26,7 @@ use crate::{
 const PATH: &str = "/dashboard.php";
 const WEEK: i64 = 7 * 86400;
 
-use Role::{Administrator as A, Executive as E, Internal as I, SuperUser as S};
+use Role::{Administrator as A, Executive as E, Internal as I};
 
 /// The menu: groups of (minimum role, label, path). The last group is titled with the visitor's role.
 type Link = (Role, &'static str, &'static str);
@@ -118,7 +118,6 @@ const MENU: &[(&str, &[Link])] = &[
             (E, "Reset Cookie", "/cookie_reset.php"),
             (A, "Email Documents", "/mailer_maintain.php"),
             (A, "Email Output Tester", "/mailer_output.php"),
-            (S, "File Manager", "/scs_filemanager.php"),
         ],
     ),
 ];
@@ -133,6 +132,7 @@ fn menu(role: Role) -> String {
             }
         }
     }
+    m.item("Cookie Test", "/cookie.php", Opts::new().set("target", "_blank"));
     m.render()
 }
 
@@ -198,7 +198,7 @@ fn recaptcha(score: f64, s: &Settings) -> String {
     } else {
         "(OK)"
     };
-    format!("{score} {verdict}")
+    format!("{score:.1} {verdict}")
 }
 
 async fn pending(pool: &SqlitePool, s: &Settings, tabs: &mut Tabs) -> sqlx::Result<()> {
@@ -227,9 +227,9 @@ async fn pending(pool: &SqlitePool, s: &Settings, tabs: &mut Tabs) -> sqlx::Resu
         .map(|u| {
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&esc(u.ip.as_deref().unwrap_or("")), &maintain_url("/user.php", u.id, &tab), Opts::new())),
-                format!("<td>{}</td>", esc(u.company_name.as_deref().unwrap_or(""))),
-                format!("<td>{}</td>", esc(names.get(&u.id).map_or("", String::as_str))),
+                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &maintain_url("/user.php", u.id, &tab), Opts::new())),
+                format!("<td>{}</td>", text(u.company_name.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", text(names.get(&u.id).map_or("", String::as_str)).replace("&lt;br>", "<br>")),
                 format!("<td>{}</td>", recaptcha(u.recaptcha_score, s)),
                 format!("<td class=center>{}</td>", date(u.last_login)),
                 "</tr>".into(),
@@ -258,9 +258,9 @@ async fn pending_po(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
             [
                 "<tr>".to_string(),
                 format!("<td class=center>{}</td>", href(&o.id.to_string(), &maintain_url("/orderhd.php", o.id, &tab), Opts::new())),
-                format!("<td>{}</td>", esc(o.company_name.as_deref().unwrap_or(""))),
-                format!("<td>{}</td>", esc(o.name.as_deref().unwrap_or(""))),
-                format!("<td>{}</td>", esc(o.email.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", text(o.company_name.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", text(o.name.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", text(o.email.as_deref().unwrap_or(""))),
                 format!("<td class=center>{}</td>", date(o.order_date.unwrap_or(0))),
                 "</tr>".into(),
             ]
@@ -309,7 +309,7 @@ impl Lead {
 }
 
 /// `content_class::encode()`: the scs_file.php key for a content row, tied to the viewer's last sign-in.
-fn content_key(content_id: i64, last_login: i64) -> String {
+pub(super) fn content_key(content_id: i64, last_login: i64) -> String {
     STANDARD_NO_PAD.encode(format!("{content_id}\t{last_login:x}"))
 }
 
@@ -359,7 +359,7 @@ async fn leadscore(pool: &SqlitePool, s: &Settings, viewer_last_login: i64, tabs
                     Some(src) => format!("<img src='{}' width='{t}' height='{t}' border='0'>", esc(src)),
                     None => String::new(),
                 };
-                viewed.push(format!("<li>{img}<br>{}</li>", esc(sub.name.as_deref().unwrap_or(""))));
+                viewed.push(format!("<li>{img}<br>{}</li>", text(sub.name.as_deref().unwrap_or(""))));
             }
         }
         if !lead.portal.is_empty() {
@@ -378,16 +378,16 @@ async fn leadscore(pool: &SqlitePool, s: &Settings, viewer_last_login: i64, tabs
                     "/scs_file.php{}",
                     url_query(&[("width", t), ("height", t), ("resize", "1"), ("content_id", &content_key(cat.content_id.unwrap_or(0), viewer_last_login))])
                 );
-                viewed.push(format!("<li><img src='{}' border='0'><br>{}</li>", esc(&src), esc(cat.portal_name.as_deref().unwrap_or(""))));
+                viewed.push(format!("<li><img src='{src}' border='0'><br>{}</li>", text(cat.portal_name.as_deref().unwrap_or(""))));
             }
         }
         let viewed = if viewed.is_empty() { "&nbsp;".to_string() } else { format!("<ul>{}</ul>", viewed.join("\n")) };
-        let join = |v: &[String]| v.iter().map(|x| esc(x)).collect::<Vec<_>>().join("<br>");
+        let join = |v: &[String]| v.iter().map(|x| text(x)).collect::<Vec<_>>().join("<br>");
         out.push(
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", esc(email)),
-                format!("<td class nobr>{}</td>", esc(&lead.company_name)),
+                format!("<td>{}</td>", text(email)),
+                format!("<td class nobr>{}</td>", text(&lead.company_name)),
                 format!("<td class=center>{}</td>", number(lead.score)),
                 format!("<td class=catalog_subcategory_list>{viewed}</td>"),
                 format!("<td>{}</td>", if lead.new { "<font color='red'>NEW!</font>" } else { "&nbsp;" }),
@@ -421,10 +421,10 @@ async fn access(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
         .map(|u| {
             let link = format!("/scs_log.php{}", url_query(&[("action", "login"), ("user_id", &u.id.to_string())]));
             let when = if u.last_login != 0 { date(u.last_login) } else { "&nbsp;".into() };
-            let cell = |v: &Option<String>| format!("<td>{}</td>", esc(v.as_deref().unwrap_or("")));
+            let cell = |v: &Option<String>| format!("<td>{}</td>", text(v.as_deref().unwrap_or("")));
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&esc(u.ip.as_deref().unwrap_or("")), &link, Opts::new())),
+                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &link, Opts::new())),
                 cell(&u.company_name),
                 cell(&u.city),
                 cell(&u.state),
@@ -469,7 +469,7 @@ async fn campaign(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     ];
     for r in &rows {
         out.push("<tr>".into());
-        out.push(format!("<td>{}</td>", esc(r.comment.as_deref().unwrap_or(""))));
+        out.push(format!("<td>{}</td>", text(r.comment.as_deref().unwrap_or(""))));
         out.push(format!("<td class=center>{}</td>", date(r.date)));
         out.push(format!("<td class=right>{}</td>", number(r.count)));
         out.push("</td>".into());
@@ -511,9 +511,9 @@ async fn sku_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
             let link = format!("/cad_lookup.php{}", url_query(&[("action", "ipc"), ("source", "prj"), ("prj", r.prj.as_deref().unwrap_or("")), ("sku", &r.sku)]));
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&esc(&r.sku), &esc(&link), Opts::new())),
-                format!("<td>{}</td>", esc(r.category_name.as_deref().unwrap_or(""))),
-                format!("<td>{}</td>", esc(r.subcategory_name.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", href(&text(&r.sku), &link, Opts::new())),
+                format!("<td>{}</td>", text(r.category_name.as_deref().unwrap_or(""))),
+                format!("<td>{}</td>", text(r.subcategory_name.as_deref().unwrap_or(""))),
                 format!("<td class=center>{}</td>", date(r.first)),
                 format!("<td class=center>{}</td>", date(r.last)),
                 format!("<td class=right>{}</td>", number(r.count)),
@@ -544,8 +544,8 @@ async fn related_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     let mut out = vec!["<table class='border'>".to_string(), "<tr>".into(), "<th>Part#</th>".into(), "<th>Comment</th>".into(), "<th>Last Date</th>".into(), "</tr>".into()];
     for r in rows {
         out.push("<tr>".into());
-        out.push(format!("<td>{}</td>", esc(&r.sku)));
-        out.push(format!("<td>{}</td>", esc(r.comment.as_deref().unwrap_or("")).replace('\n', "<br>")));
+        out.push(format!("<td>{}</td>", text(&r.sku)));
+        out.push(format!("<td>{}</td>", text(r.comment.as_deref().unwrap_or("")).replace('\n', "<br>")));
         out.push(format!("<td class=center>{}</td>", time::date("m/d/Y h:i", r.date_time)));
         out.push("</tr>".into());
     }
@@ -564,6 +564,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> 
         .await?
         .unwrap_or(0);
     let mut tabs = Tabs::new();
+    tabs.in_wordpress(staff.wp);
     if query.has("tab") {
         tabs.land_on(query.get("tab"));
     }
@@ -591,7 +592,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields) -> 
         tabs.render(),
     ]
     .concat();
-    Ok(shell::page(pool, role, &title, &body).await)
+    Ok(shell::page(pool, staff.view(), &title, &body).await)
 }
 
 async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, RawQuery(q): RawQuery) -> Response {
@@ -614,9 +615,11 @@ mod tests {
         assert!(!exec.contains("Remote Access"));
         assert!(exec.contains("<span style='font-size: 140%;'>Executive</span><br>"));
         let admin = menu(Role::Administrator);
-        assert!(admin.contains("/staff/remote-grants") && !admin.contains("/scs_filemanager.php"));
-        assert!(menu(Role::SuperUser).contains("/scs_filemanager.php"));
-        for gone in ["/scs_mysql.php", "/scs_toolbox.php", "/jquery_toolbox.php", "/php_toolbox.php", "/cookie.php"] {
+        assert!(admin.contains("/staff/remote-grants"));
+        assert!(!menu(Role::SuperUser).contains("/scs_filemanager.php"));
+        assert!(exec.contains("<a href=\"/cookie.php\" class='nobr' target='_blank'>Cookie Test</a>"));
+        assert!(menu(Role::Executive).contains("<span style='font-size: 140%;'>User & BOT Manager</span>"));
+        for gone in ["/scs_mysql.php", "/scs_toolbox.php", "/jquery_toolbox.php", "/php_toolbox.php"] {
             assert!(!menu(Role::SuperUser).contains(gone), "{gone}");
         }
     }
