@@ -11,7 +11,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     body::Body,
-    extract::{FromRequestParts, Request, State},
+    extract::{Extension, FromRequestParts, Request, State},
     http::{header, HeaderName, HeaderValue, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::get,
@@ -21,6 +21,7 @@ use percent_encoding::percent_decode_str;
 
 use crate::{
     api::{Auth, ClientIp},
+    visitor::SentPath,
     cms::{
         docroot::{self, Owner},
         feed, sitemap,
@@ -196,10 +197,12 @@ fn unported_rewrite(path: &str) -> bool {
 
 /// Any GET no route claims: a static file as nginx served it, WordPress's answer when WordPress gave one, else what
 /// an unclaimed path gets.
-async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
-    // WordPress's own front controller: redirect_canonical() drops it from the URL, except under a search.
-    if let Some(rest) = path.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
+    // WordPress's own front controller: redirect_canonical() drops it from the URL as sent (the front routes
+    // /index.php/more as /index.php), except under a search.
+    let asked = sent.map_or(path.clone(), |Extension(s)| percent_decode_str(s.uri.path()).decode_utf8_lossy().into_owned());
+    if let Some(rest) = asked.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
         let raw_query = uri.query().unwrap_or("");
         if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
             return legacy();
