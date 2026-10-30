@@ -5,12 +5,26 @@
 //! PHP calls happen on the server and the catalog markup, scripts included, goes into the shell. Any failure falls
 //! back to the legacy response untouched.
 
-use std::time::{Duration, Instant};
+use std::{
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{ConnectInfo, Request},
     http::{header, HeaderMap, HeaderValue, Method, Response, StatusCode},
+};
+use hxweb::{
+    api::Auth,
+    catalog::viewer::Lang,
+    cms::{
+        self,
+        forms::{FormSource, Islands, OrdersForms},
+        Content, FormEmbed,
+    },
+    orders::Orders,
 };
 
 use crate::{proxy, tabs, App};
@@ -61,14 +75,15 @@ pub async fn handle(app: &App, req: Request) -> Response<Body> {
     let raw_query = uri.query().unwrap_or("");
     let flag_click = raw_query.split('&').any(|kv| kv.starts_with("hxlang="));
     let query = &raw_query.split('&').filter(|kv| !kv.starts_with("hxlang=")).collect::<Vec<_>>().join("&");
-    let page = match (uri.path(), lang_of(query)) {
-        ("/catalog/", None | Some("en")) => EN,
-        ("/catalogue/", Some("fr")) => FR,
-        _ => return proxy::pass(app, req).await,
+    let page = match hxweb::catalog::composed_page(uri.path(), query) {
+        Some(Lang::En) => EN,
+        Some(Lang::Fr) => FR,
+        None => return proxy::pass(app, req).await,
     };
     let nav = headers.contains_key("x-hx-nav");
+    let peer = req.extensions().get::<ConnectInfo<SocketAddr>>().cloned();
     let start = Instant::now();
-    match compose(app, page, query, flag_click, nav, &headers).await {
+    match compose(app, page, query, flag_click, nav, &headers, peer).await {
         Ok(resp) => {
             tracing::info!("{} composed in {:?}", uri, start.elapsed());
             resp
@@ -82,10 +97,6 @@ pub async fn handle(app: &App, req: Request) -> Response<Body> {
             proxy::pass(app, req).await
         }
     }
-}
-
-fn lang_of(query: &str) -> Option<&str> {
-    query.split('&').find_map(|kv| kv.strip_prefix("lang="))
 }
 
 /// The request URI as WordPress sees it: WPML redirects the default language's `lang=en` away, French keeps
@@ -127,12 +138,13 @@ fn json_response(v: serde_json::Value, cookies: Vec<HeaderValue>) -> Response<Bo
 
 /// `nav`: the request comes from hx-nav.js (in-page navigation) and gets only the catalog markup and the flag links
 /// as JSON; the browser keeps the page around it.
-async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool, headers: &HeaderMap) -> Result<Response<Body>, String> {
+async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool, headers: &HeaderMap, peer: Option<ConnectInfo<SocketAddr>>) -> Result<Response<Body>, String> {
     let uri = page_uri(page, query);
     let page_url = format!("https://{}{}", app.site, uri);
 
     let mut jar = CookieJar::from_request(headers);
     let mut set_cookies: Vec<HeaderValue> = Vec::new();
+    let from = Caller { incoming: headers, peer, page_url: &page_url };
 
     let form = [
         ("action", "initial"),
@@ -147,7 +159,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     .map(|(k, v)| format!("{k}={}", percent_encoding::utf8_percent_encode(v, percent_encoding::NON_ALPHANUMERIC)))
     .collect::<Vec<_>>()
     .join("&");
-    let (status, loader_headers, loader_body) = internal(app, Method::POST, "/scscpq_wp.php", headers, &jar, &page_url, form).await?;
+    let (status, loader_headers, loader_body) = internal(app, &from, Method::POST, "/scscpq_wp.php", &jar, form).await?;
     if !status.is_success() {
         return Err(format!("loader status {status}"));
     }
@@ -178,7 +190,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
 
     // The loader recorded the page's language in the visit, which the fragment request reads through the same session
     // cookie the jar carries, and the browser's own language choice is left alone.
-    let (status, frag_headers, frag_body) = internal(app, Method::GET, link_path, headers, &jar, &page_url, String::new()).await?;
+    let (status, frag_headers, frag_body) = internal(app, &from, Method::GET, link_path, &jar, String::new()).await?;
     if status != StatusCode::OK {
         return Err(format!("fragment status {status}"));
     }
@@ -246,15 +258,65 @@ pub fn without_fa_kit(app: &App, html: &str) -> String {
     html.replacen("</head>", &format!("{FA_CSS}</head>"), 1)
 }
 
-/// The page around the catalog: from the static export when it has the page (WordPress's render, kept in step by
-/// the export), else WordPress itself. Only the menu's current-item marker and the form actions follow the request
-/// URI; the export's form islands take the URI directly, the WordPress fallback is patched.
-async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
-    if let Some(html) = app.pages.assemble(app, page.path, page.lang, uri).await? {
-        let base_uri = page_uri(page, "");
-        return Ok(if uri == base_uri { html } else { app.re.current.replace_all(&html, "").into_owned() });
+/// The catalog pages as the cms holds them (the wordpress area renders them from there), and the site's forms.
+pub struct Cms {
+    content: Content,
+    forms: OrdersForms,
+}
+
+/// One form of a page, as the cms import recorded it in the page's `islands` meta.
+#[derive(serde::Deserialize)]
+struct Island {
+    form: u32,
+    #[serde(default)]
+    ajax: bool,
+    #[serde(default)]
+    theme: String,
+    #[serde(default)]
+    styles: String,
+    #[serde(default)]
+    in_content: bool,
+}
+
+impl Cms {
+    pub fn new(core: Arc<Auth>) -> Cms {
+        Cms { content: Content::new(core.pool.clone()), forms: OrdersForms { orders: Arc::new(Orders::from_env(core)), fallback: Islands::from_env() } }
     }
+
+    /// The page in the theme's markup with its forms in place, or None when the cms lacks it or its template.
+    async fn page(&self, page: Page, uri: &str) -> Result<Option<String>, String> {
+        let site = self.content.site().await.map_err(|e| format!("cms: {e}"))?;
+        let lang = if page.lang == "fr" { cms::Lang::Fr } else { cms::Lang::En };
+        let Some(found) = site.find(lang, page.path).filter(|p| p.status == cms::Status::Publish) else { return Ok(None) };
+        let Some(html) = cms::theme::render(&site, found, uri) else { return Ok(None) };
+        let islands: Vec<Island> = serde_json::from_str(site.meta(found.id).get("islands").map_or("[]", String::as_str)).unwrap_or_default();
+        let filled = cms::forms::fill(&html, |form, index| {
+            let island = islands.get(index).filter(|i| i.form == form);
+            async move {
+                let i = island.ok_or_else(|| format!("form {form} is not in the page's islands"))?;
+                let embed = FormEmbed { form, lang, page_uri: uri, ajax: i.ajax, theme: &i.theme, styles: &i.styles, in_content: i.in_content, user_agent: "" };
+                self.forms.markup(&embed).await
+            }
+        })
+        .await?;
+        Ok(Some(filled))
+    }
+}
+
+/// The page around the catalog: from the cms tables, else the static export (WordPress's render, kept in step by
+/// the export), else WordPress itself. Only the menu's current-item marker and the form actions follow the request
+/// URI: the forms are rendered for it, the WordPress fallback is patched.
+async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
     let base_uri = page_uri(page, "");
+    let current = |html: String| if uri == base_uri { html } else { app.re.current.replace_all(&html, "").into_owned() };
+    if let Some(cms) = &app.cms {
+        if let Some(html) = cms.page(page, uri).await? {
+            return Ok(current(html));
+        }
+    }
+    if let Some(html) = app.pages.assemble(app, page.path, page.lang, uri).await? {
+        return Ok(current(html));
+    }
     let cached = app.shells.read().await.get(page.path).filter(|(at, _)| at.elapsed() < SHELL_TTL).map(|(_, s)| s.clone());
     let base = match cached {
         Some(s) => s,
@@ -283,17 +345,28 @@ async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
     Ok(app.re.current.replace_all(&base, "").replace(&from, &to))
 }
 
-/// A request to the library's own routes, in-process: the browser's language and agent headers, the cookies as
-/// updated so far, the page as referer.
-async fn internal(app: &App, method: Method, path: &str, incoming: &HeaderMap, jar: &CookieJar, page_url: &str, body: String) -> Result<(StatusCode, HeaderMap, axum::body::Bytes), String> {
+/// The browser request a composed page answers: what the internal calls carry over from it.
+struct Caller<'a> {
+    incoming: &'a HeaderMap,
+    /// The connection's peer, so the library's routes see the same client (and sign in by company address).
+    peer: Option<ConnectInfo<SocketAddr>>,
+    page_url: &'a str,
+}
+
+/// A request to the library's own routes, in-process: the browser's language and agent headers, its connection,
+/// the cookies as updated so far, the page as referer.
+async fn internal(app: &App, from: &Caller<'_>, method: Method, path: &str, jar: &CookieJar, body: String) -> Result<(StatusCode, HeaderMap, axum::body::Bytes), String> {
     use tower::ServiceExt;
     let lib = app.lib.clone().ok_or("no database: the catalog is served by PHP")?;
     let mut req = axum::http::Request::builder().method(method.clone()).uri(path);
-    for (k, v) in forward_headers(app, incoming, jar, page_url).iter() {
+    for (k, v) in forward_headers(app, from.incoming, jar, from.page_url).iter() {
         req = req.header(k, v);
     }
     if method == Method::POST {
         req = req.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    }
+    if let Some(peer) = from.peer {
+        req = req.extension(peer);
     }
     let req = req.body(Body::from(body)).map_err(|e| e.to_string())?;
     let resp = lib.oneshot(req).await.map_err(|e| format!("internal {path}: {e}"))?;

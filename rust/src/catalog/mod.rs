@@ -29,6 +29,16 @@ pub mod strings;
 pub mod tabs;
 pub mod viewer;
 
+/// The WordPress catalog pages hxweb composes around the catalog (compose.rs): /catalog/ in English (no `lang`, or
+/// `lang=en`) and /catalogue/ with `lang=fr`. Any other request for those paths is WordPress's to answer.
+pub fn composed_page(path: &str, query: &str) -> Option<viewer::Lang> {
+    match (path, query.split('&').find_map(|kv| kv.strip_prefix("lang="))) {
+        ("/catalog/", None | Some("en")) => Some(viewer::Lang::En),
+        ("/catalogue/", Some("fr")) => Some(viewer::Lang::Fr),
+        _ => None,
+    }
+}
+
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .merge(pages::router())

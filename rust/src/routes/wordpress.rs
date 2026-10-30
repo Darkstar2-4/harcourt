@@ -36,6 +36,8 @@ use crate::{
 const PAGES: &[&str] = &[
     "/",
     "/boxjoint-inquiry-form/",
+    "/catalog/",
+    "/catalogue/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
@@ -374,6 +376,11 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
 }
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+    // The catalog page in its own language is composed around the catalog (compose.rs); WordPress's answers to the
+    // rest (its redirects, a form post) stay here.
+    if crate::catalog::composed_page(uri.path(), uri.query().unwrap_or("")).is_some() {
+        return legacy();
+    }
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     serve(&wp, &uri, agent, None, true).await
 }
