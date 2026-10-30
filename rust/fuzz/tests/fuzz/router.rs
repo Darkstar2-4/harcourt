@@ -18,7 +18,7 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use hxweb::{api::Auth, config::Secret, db, identity::UserId, routes, session, staff::csrf::CsrfToken, visitor::apache_paths};
-use hxweb_fuzz::{gen, shard};
+use hxweb_fuzz::{cut, gen, shard};
 use proptest::{prelude::*, sample::select, test_runner::TestRunner};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -367,21 +367,25 @@ fn origin_of(target: &str) -> String {
 /// fails as its PHP did, or a database error), for a person to read.
 fn run_shard(n: u64) {
     let statuses = Mutex::new(BTreeMap::<u16, u64>::new());
-    let failing = Mutex::new(BTreeMap::<String, u64>::new());
+    let failing = Mutex::new(BTreeMap::<String, (u64, String)>::new());
     let mut runner = TestRunner::new(shard(1000, 5, n));
     let result = runner.run(&request(), |s| {
         let status = send(&s)?;
         *statuses.lock().unwrap().entry(status.as_u16()).or_default() += 1;
         if status.is_server_error() {
-            *failing.lock().unwrap().entry(format!("{} {} {}", status.as_u16(), s.method, origin_of(&s.target))).or_default() += 1;
+            let mut failing = failing.lock().unwrap();
+            let seen = failing.entry(format!("{} {} {}", status.as_u16(), s.method, origin_of(&s.target))).or_insert_with(|| {
+                (0, cut(&format!("{} {} persona {} headers {:?} body {:?}", s.method, s.target, s.persona, s.headers, String::from_utf8_lossy(&s.body))))
+            });
+            seen.0 += 1;
         }
         Ok(())
     });
     eprintln!("router shard {n}: {} paths, {} field names; statuses {:?}", claimed().len(), field_names().len(), statuses.lock().unwrap());
-    let mut failing: Vec<(String, u64)> = failing.into_inner().unwrap().into_iter().collect();
-    failing.sort_by_key(|f| std::cmp::Reverse(f.1));
-    for (f, count) in failing.iter().take(60) {
-        eprintln!("router shard {n}: {count} x {f}");
+    let mut failing: Vec<(String, (u64, String))> = failing.into_inner().unwrap().into_iter().collect();
+    failing.sort_by_key(|f| std::cmp::Reverse(f.1 .0));
+    for (f, (count, example)) in failing.iter().take(60) {
+        eprintln!("router shard {n}: {count} x {f}, as in {example}");
     }
     if let Err(e) = result {
         panic!("{e}");
