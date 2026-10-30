@@ -16,6 +16,10 @@ name = "hx-import"
 path = "src/bin/hx-import.rs"
 required-features = ["import"]
 
+[[bin]]
+name = "hx-diff"
+path = "src/bin/hx-diff.rs"
+
 [features]
 import = ["sqlx/mysql", "dep:futures-util"]
 
@@ -36,6 +40,7 @@ rand = "0.8"
 base64 = "0.22"
 hex = "0.4"
 percent-encoding = "2"
+similar = "2"
 futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]
