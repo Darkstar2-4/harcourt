@@ -28,7 +28,7 @@ use crate::{
         forms::{FormSource, Islands, OrdersForms},
         theme,
         url::{http_build_query, urldecode, with_query, Arg},
-        Content, FormEmbed, Lang, Page, PostType, Site, Status,
+        Content, FormEmbed, Lang, Page, PostType, Site, Status, Taxonomy, Term,
     },
     orders::{
         forms::{model, render, submit::Outcome},
@@ -254,8 +254,8 @@ async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Op
     };
     let raw_query = uri.query().unwrap_or("");
     match feed::parse(&site, path, q.lang)? {
-        feed::Feed::Missing(kind) => Some(typed(kind, respond(wp, &site, None, uri, q, agent, None, true).await)),
-        feed::Feed::None => Some(respond(wp, &site, None, uri, q, agent, None, true).await),
+        feed::Feed::Missing(kind) => Some(typed(kind, respond(wp, &site, Shown::NotFound, uri, q, agent, None, true).await)),
+        feed::Feed::None => Some(respond(wp, &site, Shown::NotFound, uri, q, agent, None, true).await),
         feed::Feed::Moved(to, kind) => Some(typed(kind, redirect(&wp.core.public_origin, &with_query(&to, raw_query)))),
         feed::Feed::Show(of, kind) => {
             let canonical = with_query(path, raw_query);
@@ -388,6 +388,8 @@ pub fn query(q: &str) -> Query {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Answer<'a> {
     Render(&'a Page),
+    /// A term's archive.
+    Archive(&'a Term),
     /// 301 to a path on this site.
     Redirect(String),
     /// WPML's 302 away from `lang=en`, with the relative Location it sends.
@@ -419,6 +421,9 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
             Some(t) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
             None => Answer::Legacy,
         };
+    }
+    if let Some(answer) = faq_type_archive(site, path) {
+        return answer;
     }
     if unported_rewrite(path) {
         return Answer::Legacy;
@@ -461,6 +466,19 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
         (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
         (Lang::Fr, _) => Answer::NotFound,
     }
+}
+
+/// The FAQ type rewrite rule, `/faq_type/<slug>/`: the type's archive, its slug found in any case (MySQL's
+/// collation), or the 404 page for no such type.
+fn faq_type_archive<'a>(site: &'a Site, path: &str) -> Option<Answer<'a>> {
+    let slug = path.strip_prefix("/faq_type/")?.strip_suffix('/')?;
+    if slug.is_empty() || slug.contains('/') {
+        return None;
+    }
+    Some(match site.terms.iter().find(|t| t.taxonomy == Taxonomy::FaqType && t.slug.eq_ignore_ascii_case(slug)) {
+        Some(t) => Answer::Archive(t),
+        None => Answer::NotFound,
+    })
 }
 
 /// A post's slug. Rows imported before the cms kept slugs (migration 0501) have none; for those the path ends
@@ -738,6 +756,8 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         (Answer::Render(p), None) => Answer::Render(p),
         (Answer::Render(p), Some(_)) if raw_query.is_empty() => Answer::Redirect(p.path.clone()),
         (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
+        // redirect_canonical() adds the slash to the archive's address as asked.
+        (Answer::Archive(_), Some(to)) => Answer::Redirect(if raw_query.is_empty() { to } else { format!("{to}?{raw_query}") }),
         // redirect_canonical() never sends a visitor to the URL they asked for: the 404 stands, and its sidebar is
         // the guessed page's widgets in the request's language, which the cms does not hold.
         (Answer::Redirect(to), slashed) => {
@@ -848,8 +868,9 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Answer::Legacy => resolve(&site, &path, q.lang),
         other => other,
     };
-    let page = match answer_of {
-        Answer::Render(p) => Some(p),
+    let shown = match answer_of {
+        Answer::Render(p) => Shown::Page(p),
+        Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::Found(to) => return found(&wp.core.public_origin, &to),
         Answer::FeedRedirect(to, kind) => {
@@ -861,22 +882,41 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str());
             return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers).await;
         }
-        _ => None,
+        Answer::NotFound | Answer::Legacy => Shown::NotFound,
     };
-    respond(wp, &site, page, uri, &q, agent, answer, replay).await
+    respond(wp, &site, shown, uri, &q, agent, answer, replay).await
 }
 
-/// `page` as WordPress printed it at `uri`, or WordPress's 404 page.
+/// What a response shows.
+#[derive(Debug, Clone, Copy)]
+enum Shown<'a> {
+    Page(&'a Page),
+    Archive(&'a Term),
+    NotFound,
+}
+
+/// What `shown` is as WordPress printed it at `uri`.
 #[allow(clippy::too_many_arguments)]
-async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
+async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
+    let page = match shown {
+        Shown::Page(p) => Some(p),
+        _ => None,
+    };
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
     // Only pages were in the static export; WordPress printed every other post as it is.
     let finished = q.neutral && replay && exact && page.is_some_and(|p| p.kind == PostType::Page);
     let agent = if finished { "" } else { agent };
-    let (status, html, islands, lang, wp_uri) = match page {
-        Some(page) => {
+    let (status, html, islands, lang, wp_uri) = match shown {
+        Shown::Archive(term) => {
+            let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
+            let Some(html) = theme::archive::faq_type(site, term, q.lang, &request_uri) else {
+                return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
+            };
+            (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri)
+        }
+        Shown::Page(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
             let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
             // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded; a post it
@@ -893,10 +933,10 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
             (StatusCode::OK, html, islands(site, page), page.lang, wp_uri)
         }
         // An export without WordPress's 404 page left nothing to render it from.
-        None if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
+        Shown::NotFound if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
             return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
         }
-        None => {
+        Shown::NotFound => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
             let html = theme::not_found(site, q.lang, &request_uri);
             (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
@@ -1152,6 +1192,7 @@ mod tests {
             Answer::Legacy => "legacy".into(),
             Answer::FeedRedirect(to, _) => format!("feed {to}"),
             Answer::Search { s, paged, page } => format!("search {s:?} {paged} {page}"),
+            Answer::Archive(t) => format!("archive {}", t.slug),
         };
         assert_eq!(r("/product/alignment/", "lang=en"), "render 1");
         assert_eq!(r("/product/alignment/", "lang=en&x=1"), "302 /product/alignment/?x=1");
@@ -1186,6 +1227,27 @@ mod tests {
         assert_eq!(r("/gamme-de-produits/centrage", "lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
         assert_eq!(r("/gamme-de-produits/centrage/", "lang=x"), "/product/alignment/?lang=x");
         assert_eq!(r("/nowhere", ""), "404");
+    }
+
+    #[test]
+    fn an_faq_type_is_found_by_its_slug_in_any_case() {
+        let mut site = Site::new(vec![page(1, 10, Lang::En, "/legal/", Status::Publish)]);
+        site.terms.push(Term { id: 17, taxonomy: Taxonomy::FaqType, slug: "general".into(), name: "General".into(), lang: Some(Lang::En), group_id: None, modified_at: String::new(), pages: vec![] });
+        let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
+            Answer::Archive(t) => format!("archive {}", t.slug),
+            Answer::Redirect(to) => to,
+            Answer::Found(to) => format!("302 {to}"),
+            other => format!("{other:?}"),
+        };
+        assert_eq!(r("/faq_type/general/", ""), "archive general");
+        assert_eq!(r("/faq_type/General/", "lang=fr&utm_source=x"), "archive general");
+        assert_eq!(r("/faq_type/general", ""), "/faq_type/general/");
+        assert_eq!(r("/faq_type/general", "lang=fr"), "/faq_type/general/?lang=fr");
+        assert_eq!(r("/faq_type/general/", "lang=en"), "302 /faq_type/general/");
+        assert_eq!(r("/faq_type/nosuch/", ""), "NotFound");
+        assert_eq!(r("/faq_type/general/", "paged=2"), "Legacy");
+        assert_eq!(r("/faq_type/general/feed/", ""), "Legacy");
+        assert_eq!(r("/FAQ_TYPE/general/", ""), "Legacy", "the rewrite rule's base is matched as written");
     }
 
     #[test]
