@@ -224,7 +224,7 @@ pub fn select(field: &str, choices: &[(String, String)], selected: &str, blank: 
     }
     for (value, label) in choices {
         let sel = if value == selected { " selected" } else { "" };
-        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc(label)));
+        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc_text(label)));
     }
     out.push_str("</select>\n");
     out

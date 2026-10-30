@@ -115,23 +115,28 @@ pub fn fn_text(s: &str, upper: bool) -> String {
     if upper { out.to_uppercase() } else { out }
 }
 
-/// Which address fields the registry's `address` module requires for a table (`orderhd`, `orderhd_billing`).
-/// Without registry rows PHP stops; here the production settings apply.
-async fn required(pool: &SqlitePool, table: &str) -> sqlx::Result<Vec<String>> {
-    let listed = sqlx::query_scalar!(
-        r#"SELECT item AS "item!: String" FROM registry WHERE module = 'address' AND field = ?1 AND data = 'required' AND domain IN ('', 'global')"#,
+/// The address fields the registry's `address` module lists for a table (`orderhd`, `orderhd_billing`), each with
+/// whether it is required. Without registry rows PHP stops; here the production settings apply.
+async fn address_fields(pool: &SqlitePool, table: &str) -> sqlx::Result<Vec<(String, bool)>> {
+    let listed = sqlx::query!(
+        r#"SELECT item AS "item!: String", coalesce(data, '') AS "data!: String" FROM registry
+           WHERE module = 'address' AND field = ?1 AND item <> '' AND domain IN ('', 'global') ORDER BY rowid"#,
         table
     )
     .fetch_all(pool)
     .await?;
     if !listed.is_empty() {
-        return Ok(listed);
+        return Ok(listed.into_iter().map(|r| (r.item, r.data == "required")).collect());
     }
     let defaults: &[&str] = match table {
         "orderhd" => &["name", "company_name", "address", "city", "state", "zip", "country_code", "email", "phone"],
         _ => &["address", "city", "state", "zip", "country_code"],
     };
-    Ok(defaults.iter().map(|s| s.to_string()).collect())
+    Ok(defaults.iter().map(|s| (s.to_string(), true)).collect())
+}
+
+async fn required(pool: &SqlitePool, table: &str) -> sqlx::Result<Vec<String>> {
+    Ok(address_fields(pool, table).await?.into_iter().filter_map(|(f, required)| required.then_some(f)).collect())
 }
 
 fn state_field(country: &str) -> &'static str {
@@ -229,8 +234,9 @@ pub async fn read_form(pool: &SqlitePool, p: &HashMap<String, String>, order: &m
     Ok(errors)
 }
 
-/// The prefill: this account's last order placed with the same signed-in address, else what the session knows.
-async fn prefill(pool: &SqlitePool, shopper: &Shopper) -> sqlx::Result<Order> {
+/// The prefill: this account's last order placed with the same signed-in address. Without one, as ecommerce_class
+/// did without its cookie: the address the browser remembers (`harcourt`) and the account's company.
+async fn prefill(pool: &SqlitePool, shopper: &Shopper, remembered: &str) -> sqlx::Result<Order> {
     let email = shopper.email.clone().unwrap_or_default();
     let last = sqlx::query!(
         r#"SELECT coalesce(name_first, '') AS "name_first!: String", coalesce(name_last, '') AS "name_last!: String",
@@ -245,9 +251,10 @@ async fn prefill(pool: &SqlitePool, shopper: &Shopper) -> sqlx::Result<Order> {
     )
     .fetch_optional(pool)
     .await?;
-    let mut order = Order { email, currency_code: shopper.currency.code.clone(), ..Order::default() };
+    let mut order = Order { email: remembered.to_string(), currency_code: shopper.currency.code.clone(), ..Order::default() };
     match last {
         Some(l) => {
+            order.email = email;
             order.name_first = l.name_first;
             order.name_last = l.name_last;
             order.name = l.name;
@@ -331,11 +338,14 @@ pub struct Choices {
     pub us: Vec<(String, String)>,
     pub ca: Vec<(String, String)>,
     pub carriers: Vec<(String, String)>,
+    /// The fields the registry's `address` module lists for `orderhd` and `orderhd_billing`, and which it requires.
+    pub ship_fields: Vec<(String, bool)>,
+    pub billing_fields: Vec<(String, bool)>,
 }
 
 impl Choices {
     pub fn none() -> Self {
-        Choices { names: HashMap::new(), countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new() }
+        Choices { names: HashMap::new(), countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new(), ship_fields: Vec::new(), billing_fields: Vec::new() }
     }
 
     /// Only the names the given addresses need, for an order shown rather than edited.
@@ -358,10 +368,14 @@ impl Choices {
         Ok(c)
     }
 
+    /// What the entry form offers, as country_class::select() and carrier_class::select() listed it: active
+    /// countries with the US and Canada first, every US state and Canadian province, every carrier after the
+    /// blank "Shipping Carrier".
     pub async fn load(pool: &SqlitePool) -> sqlx::Result<Self> {
         let rows = sqlx::query!(
             r#"SELECT country AS "country!: String", state AS "state!: String", coalesce(name, '') AS "name!: String" FROM country
-               WHERE active = 1 AND (state = '' OR country IN ('US', 'CA')) ORDER BY name"#
+               WHERE (state = '' AND active = 1) OR (state <> '' AND country IN ('US', 'CA'))
+               ORDER BY CASE country WHEN 'US' THEN 1 WHEN 'CA' THEN 2 ELSE 3 END, name"#
         )
         .fetch_all(pool)
         .await?;
@@ -373,12 +387,17 @@ impl Choices {
                 (false, _) => c.ca.push((r.state, r.name)),
             }
         }
-        c.carriers = sqlx::query_scalar!(r#"SELECT name AS "name!: String" FROM carrier WHERE name IS NOT NULL ORDER BY name"#)
-            .fetch_all(pool)
-            .await?
-            .into_iter()
-            .map(|n| (n.clone(), n))
+        c.carriers = std::iter::once((String::new(), "Shipping Carrier".to_string()))
+            .chain(
+                sqlx::query_scalar!(r#"SELECT name AS "name!: String" FROM carrier WHERE name IS NOT NULL ORDER BY name"#)
+                    .fetch_all(pool)
+                    .await?
+                    .into_iter()
+                    .map(|n| (n.clone(), n)),
+            )
             .collect();
+        c.ship_fields = address_fields(pool, "orderhd").await?;
+        c.billing_fields = address_fields(pool, "orderhd_billing").await?;
         Ok(c)
     }
 }
@@ -387,23 +406,55 @@ fn row(label: &str, value: &str) -> String {
     format!("<tr><td width='20%'>{label}</td><td width='80%'>{value}</td></tr>")
 }
 
-fn address_input(table: &str, a: &Address, choices: &Choices, errors: &Errors) -> String {
+/// The order address_class lays its fields out in.
+const ADDRESS_ORDER: [&str; 11] = ["company_name", "name", "title", "address", "city", "state", "zip", "country_code", "phone", "fax", "email"];
+
+const STAR: &str = "<font color=red><b>*</b></font>";
+
+/// address_class::js(), which shows the state input and labels for the chosen country.
+const COUNTRY_JS: &str = "function fn_country_address(table) {\njQuery('#' + table + '_state_us').hide();\njQuery('#' + table + '_state_ca').hide();\njQuery('#' + table + '_state_other').hide();\njQuery('#' + table + '_state_us_div').hide();\njQuery('#' + table + '_state_ca_div').hide();\njQuery('#' + table + '_state_other_div').hide();\nvar state;\nvar zip='Postal Code';\ncountry_code=jQuery('#' + table + '_country_code').val();\nswitch (true) {\ncase (country_code == 'US'):\njQuery('#' + table + '_state_us').show();\njQuery('#' + table + '_state_us_div').show();\nstate='State';\nzip='ZIP Code';\nbreak;\ncase (country_code == 'CA'):\njQuery('#' + table + '_state_ca').show();\njQuery('#' + table + '_state_ca_div').show();\nstate='Province';\nbreak;\ndefault:\njQuery('#' + table + '_state_other').show();\njQuery('#' + table + '_state_other_div').show();\nstate='Province/State';\n}\njQuery('#' + table + '_state_text').html(state);\njQuery('#' + table + '_zip_text').html(zip);\n}";
+
+/// address_class::input(): a row for each field the registry lists for `table` and the block does not omit,
+/// starred when required, then the legend and the script that fits the state input to the country.
+fn address_input<'a>(table: &str, fields: &[(String, bool)], omit: &[&str], value: impl Fn(&str) -> &'a str, choices: &Choices, errors: &Errors) -> String {
     let f = |name: &str| format!("{table}_{name}");
-    let state = [
-        html::select(&f("state_us"), &choices.us, &a.state, Some("Select State"), "", errors.has(&f("state_us"))),
-        html::select(&f("state_ca"), &choices.ca, &a.state, Some("Select Province"), "", errors.has(&f("state_ca"))),
-        html::text_input("text", &f("state_other"), &a.state, 40, 40, "Province/State", errors.has(&f("state_other"))),
-    ];
-    let onchange = format!("fn_country_address({});", html::js_str(table));
-    [
-        row("Address", &html::text_input("text", &f("address"), &a.address, 40, 100, "Address", errors.has(&f("address")))),
-        row("City", &html::text_input("text", &f("city"), &a.city, 40, 40, "City", errors.has(&f("city")))),
-        row(&format!("<span id={}></span>", f("state_text")), &state.join(" ")),
-        row(&format!("<span id={}></span>", f("zip_text")), &html::text_input("text", &f("zip"), &a.zip, 25, 40, "Zip/Postal Code/Zip Code", errors.has(&f("zip")))),
-        row("Country", &html::select(&f("country_code"), &choices.countries, &a.country_code, Some("Select Country"), &onchange, errors.has(&f("country_code")))),
-        format!("\n<script>\nfn_country_address({});\n\n</script>\n", html::js_str(table)),
-    ]
-    .concat()
+    let text = |kind: &str, name: &str, size: u32, max: u32, placeholder: &str| html::text_input(kind, &f(name), value(name), size, max, placeholder, errors.has(&f(name)));
+    let mut out = String::new();
+    for field in ADDRESS_ORDER.iter().filter(|f| !omit.contains(f)) {
+        let Some(required) = fields.iter().find(|(name, _)| name == field).map(|(_, required)| *required) else { continue };
+        let star = if required { STAR } else { "&nbsp;" };
+        let mut row = |title: &str, content: String| out.push_str(&format!("<tr ><td width='20%'>{star}{title}</td><td width='80%'>{content}</td></tr>"));
+        match *field {
+            "company_name" => row("Company Name", text("text", "company_name", 40, 40, "Company Name")),
+            "name" => {
+                row("First Name", text("text", "name_first", 40, 40, "First Name"));
+                row("Last Name", text("text", "name_last", 40, 40, "Last Name"));
+            }
+            "title" => row("Title", text("text", "title", 40, 40, "Title")),
+            "address" => row("Address", text("text", "address", 40, 100, "Address")),
+            "city" => row("City", text("text", "city", 40, 40, "City")),
+            "state" => {
+                let state = value("state");
+                let inputs = [
+                    html::select(&f("state_us"), &choices.us, state, Some("Select State"), "", errors.has(&f("state_us"))),
+                    html::select(&f("state_ca"), &choices.ca, state, Some("Select Province"), "", errors.has(&f("state_ca"))),
+                    html::text_input("text", &f("state_other"), state, 40, 40, "Province/State", errors.has(&f("state_other"))),
+                ];
+                row(&format!("<span id={}></span>", f("state_text")), inputs.join(" "));
+            }
+            "zip" => row(&format!("<span id={}></span>", f("zip_text")), text("text", "zip", 25, 40, "Zip/Postal Code/Zip Code")),
+            "country_code" => {
+                let onchange = format!("fn_country_address({});", html::js_str(table));
+                row("Country", html::select(&f("country_code"), &choices.countries, value("country_code"), Some("Select Country"), &onchange, errors.has(&f("country_code"))));
+            }
+            "phone" => row("Phone", text("text", "phone", 40, 40, "Phone")),
+            "fax" => row("Fax", text("text", "fax", 40, 40, "Fax")),
+            _ => row("Email", text("email", "email", 40, 60, "Email")),
+        }
+    }
+    out.push_str(&format!("<tr ><td colspan=2>{STAR}Indicates mandatory fields</td></tr>"));
+    out.push_str(&format!("\n<script>\n\nfn_country_address({});\n{COUNTRY_JS}\n\n</script>\n", html::js_str(table)));
+    out
 }
 
 /// `address_class::output("table")`: the non-empty fields in the class's order, state and country by name.
@@ -444,25 +495,41 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Customer Information</td></tr>".into());
     let t = |field: &str, value: &str, max: u32, ph: &str| html::text_input("text", field, value, 40, max, ph, errors.has(field));
+    let ship = |field: &str| -> &str {
+        match field {
+            "company_name" => &o.company_name,
+            "name_first" => &o.name_first,
+            "name_last" => &o.name_last,
+            "phone" => &o.phone,
+            "email" => &o.email,
+            "address" => &o.ship.address,
+            "city" => &o.ship.city,
+            "state" => &o.ship.state,
+            "zip" => &o.ship.zip,
+            "country_code" => &o.ship.country_code,
+            _ => "",
+        }
+    };
+    let billing = |field: &str| -> &str {
+        match field {
+            "address" => &o.billing.address,
+            "city" => &o.billing.city,
+            "state" => &o.billing.state,
+            "zip" => &o.billing.zip,
+            "country_code" => &o.billing.country_code,
+            _ => "",
+        }
+    };
     if o.punchout_id != 0 {
         r.push(format!("<tr><td width='20%'>Company Name</td><td width='80%'>{}</td></tr>", esc_text(&o.company_name)));
     } else if entry {
-        r.push(
-            [
-                row("Company Name", &t("orderhd_company_name", &o.company_name, 40, "Company Name")),
-                row("First Name", &t("orderhd_name_first", &o.name_first, 40, "First Name")),
-                row("Last Name", &t("orderhd_name_last", &o.name_last, 40, "Last Name")),
-                row("Phone", &t("orderhd_phone", &o.phone, 40, "Phone")),
-                row("Email", &html::text_input("email", "orderhd_email", &o.email, 40, 60, "Email", errors.has("orderhd_email"))),
-            ]
-            .concat(),
-        );
+        r.push(address_input("orderhd", &choices.ship_fields, &["company_name", "address", "city", "state", "zip", "country_code"], ship, choices, errors));
     } else {
         r.push(address_output(&[("Name", o.name.clone()), ("Phone", o.phone.clone()), ("Email", o.email.clone())]));
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Shipping Address</td></tr>".into());
     r.push(if entry {
-        address_input("orderhd", &o.ship, choices, errors)
+        address_input("orderhd", &choices.ship_fields, &["name", "title", "email", "phone", "fax"], ship, choices, errors)
     } else {
         let mut rows = vec![("Company Name", o.company_name.clone())];
         rows.extend(place_rows(&o.ship, choices));
@@ -473,7 +540,11 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
         let checked = if billing_same { " checked" } else { "" };
         r.push(format!("<tr><td colspan=2><input type=checkbox name='billing_same_as_shipping' id='billing_same_as_shipping' value='1' onclick=\"javascript:fn_billing_same_as_shipping(this.checked);\"{checked}> Same as shipping address</td></tr>"));
     }
-    r.push(if entry { address_input("orderhd_billing", &o.billing, choices, errors) } else { address_output(&place_rows(&o.billing, choices)) });
+    r.push(if entry {
+        address_input("orderhd_billing", &choices.billing_fields, &["name", "title", "email", "phone", "fax", "company_name"], billing, choices, errors)
+    } else {
+        address_output(&place_rows(&o.billing, choices))
+    });
     r.push("<tr><td class='checkout_caption' colspan=2>Order Information</td></tr>".into());
     if entry {
         r.push(format!("<tr><td>PO#</td><td>{}</td></tr>", t("po", &o.po, 45, "PO# (Optional)")));
@@ -496,7 +567,7 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Shipping Method</td></tr>".into());
     if entry {
-        r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", html::select("carrier_name", &choices.carriers, &o.carrier_name, Some("Shipping Carrier"), "", errors.has("carrier_name"))));
+        r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", html::select("carrier_name", &choices.carriers, &o.carrier_name, None, "", errors.has("carrier_name"))));
         r.push(format!("<tr><td>Collect Account#</td><td>{}</td></tr>", html::text_input("text", "carrier_account", &o.carrier_account, 40, 60, "Collect Account# (Optional)", false)));
     } else {
         if !o.carrier_name.is_empty() {
@@ -636,7 +707,8 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(i
     }
     let params = form_params(uri.query(), &body);
     let local = Registry::load(pool, "local").await?;
-    let mut order = prefill(pool, &shopper).await?;
+    let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).unwrap_or_default();
+    let mut order = prefill(pool, &shopper, &remembered).await?;
     let mut errors = Errors::default();
     let completing = params.get("action").is_some_and(|a| a == "complete");
     let mut placed = None;

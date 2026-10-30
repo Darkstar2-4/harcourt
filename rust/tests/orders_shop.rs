@@ -275,6 +275,26 @@ async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
 }
 
 #[tokio::test]
+async fn the_checkout_form_stars_what_the_registry_requires() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'address', 'orderhd', 'name', 'required'), ('', 'address', 'orderhd', 'company_name', 'allowed'), ('', 'address', 'orderhd', 'email', 'required')")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let c = format!("{}; harcourt=remembered@example.com", cookie(&h.pool, 1).await);
+    add(&h, &c, "SKU-1", "1").await;
+    let (_, _, page) = send(&h.app, request(Method::GET, "/checkout.php", &c, &[], false)).await;
+    assert!(page.contains("<tr ><td width='20%'><font color=red><b>*</b></font>First Name</td>"), "{page}");
+    assert!(page.contains("<tr ><td width='20%'>&nbsp;Company Name</td>"));
+    assert!(!page.contains("orderhd_phone"), "a field the registry does not list is not shown");
+    assert!(page.contains("value='remembered@example.com'"));
+    assert!(page.contains("<option value='' selected>Shipping Carrier</option>"));
+    assert_eq!(page.matches("Indicates mandatory fields").count(), 3);
+}
+
+#[tokio::test]
 async fn the_po_manager_is_for_executives() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
