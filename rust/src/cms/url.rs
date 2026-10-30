@@ -42,11 +42,36 @@ pub enum Arg {
 /// collect into a list numbered from 0, dots and spaces in a name become underscores.
 pub fn parse_str(query: &str) -> Vec<(String, Arg)> {
     let mut args: Vec<(String, Arg)> = Vec::new();
+    // The index `[]` takes next in each array: past the largest integer index, none after the largest integer.
+    let mut next: std::collections::HashMap<String, Option<i64>> = std::collections::HashMap::new();
     for kv in query.split('&').filter(|kv| !kv.is_empty()).take(MAX_INPUT_VARS) {
         let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
         match variable(&urldecode(k)) {
             Variable::Set(name, indexes) => {
-                let sub = indexes.into_iter().next().map(Option::unwrap_or_default);
+                let sub = match indexes.into_iter().next() {
+                    None => None,
+                    Some(index) => {
+                        if !args.iter().any(|(k, a)| *k == name && matches!(a, Arg::List(_))) {
+                            next.insert(name.clone(), Some(0));
+                        }
+                        let slot = next.entry(name.clone()).or_insert(Some(0));
+                        match index {
+                            None => {
+                                let Some(i) = *slot else { continue };
+                                *slot = i.checked_add(1);
+                                Some(i.to_string())
+                            }
+                            Some(s) => {
+                                if let (Some(i), Some(n)) = (int_index(&s), *slot) {
+                                    if i >= n {
+                                        *slot = i.checked_add(1);
+                                    }
+                                }
+                                Some(s)
+                            }
+                        }
+                    }
+                };
                 set(&mut args, name, sub, urldecode(v));
             }
             Variable::TooDeep(name) => args.retain(|(k, _)| *k != name),
@@ -56,6 +81,7 @@ pub fn parse_str(query: &str) -> Vec<(String, Arg)> {
     args
 }
 
+/// Sets `name`, or `name[sub]` (an array then, whatever it was).
 fn set(args: &mut Vec<(String, Arg)>, name: String, sub: Option<String>, v: String) {
     let slot = args.iter().position(|(key, _)| *key == name);
     match (sub, slot) {
@@ -70,14 +96,6 @@ fn set(args: &mut Vec<(String, Arg)>, name: String, sub: Option<String>, v: Stri
                 args[i].1 = Arg::List(Vec::new());
             }
             if let Arg::List(list) = &mut args[i].1 {
-                let sub = if sub.is_empty() {
-                    // PHP appends after the largest integer index, and refuses to after the largest integer.
-                    let last = list.iter().filter_map(|(s, _)| int_index(s)).max();
-                    let Some(next) = last.map_or(Some(0), |n| n.checked_add(1)) else { return };
-                    next.max(0).to_string()
-                } else {
-                    sub
-                };
                 match list.iter_mut().find(|(s, _)| *s == sub) {
                     Some(e) => e.1 = v,
                     None => list.push((sub, v)),
