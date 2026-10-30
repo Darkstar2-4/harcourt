@@ -184,6 +184,14 @@ fn unported_rewrite(path: &str) -> bool {
 /// an unclaimed path gets.
 async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
+    // WordPress's own front controller: redirect_canonical() drops it from the URL, except under a search.
+    if let Some(rest) = path.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
+        let raw_query = uri.query().unwrap_or("");
+        if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
+            return legacy();
+        }
+        return redirect(&wp.core.public_origin, &with_query(if rest.is_empty() { "/" } else { rest }, raw_query));
+    }
     match docroot::owner(&path, docroot()) {
         Owner::Legacy => legacy(),
         Owner::File(file, kind) => static_file(file, kind).await,

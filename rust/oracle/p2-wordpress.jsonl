@@ -94,3 +94,9 @@
 {"name":"fq--name-legal","path":"/?name=legal","language":"en"}
 {"name":"fq--page-2","path":"/?page=2","language":"en"}
 {"name":"fq--p-213-lang-fr","path":"/?p=213&lang=fr","language":"fr"}
+{"name":"ix-index-php","path":"/index.php"}
+{"name":"ix-index-php-p-1","path":"/index.php?p=1"}
+{"name":"ix-index-php-lang-fr","path":"/index.php?lang=fr"}
+{"name":"ix-index-php","path":"/index.php/"}
+{"name":"ix-index-php-foo","path":"/index.php/foo"}
+{"name":"ix-index-php-a-b-c","path":"/index.php?a=b+c"}
