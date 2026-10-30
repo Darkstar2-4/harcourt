@@ -15,6 +15,8 @@ pub struct Chrome {
     title_prefix: String,
     icon: String,
     css: Vec<String>,
+    /// Whole `<meta>` tags from the registry, printed as stored (operator configuration, not request data).
+    meta: Vec<String>,
     js: Vec<String>,
 }
 
@@ -61,6 +63,7 @@ impl Chrome {
                 ("title_prefix", true) => c.title_prefix = data,
                 ("icon", true) => c.icon = data,
                 ("css", _) if !data.is_empty() && !c.css.contains(&data) => c.css.push(data),
+                ("meta", _) if !data.is_empty() => c.meta.push(data),
                 ("js", _) if !data.is_empty() && !c.js.contains(&data) => c.js.push(data),
                 _ => {}
             }
@@ -68,11 +71,12 @@ impl Chrome {
         c
     }
 
-    fn head(&self, title: &str, description: Option<&str>) -> String {
+    fn head(&self, title: &str, description: Option<&str>, wp: bool) -> String {
         let full = if self.title_prefix.is_empty() { title.to_string() } else { format!("{} {title}", self.title_prefix) };
         let mut out = vec!["<!DOCTYPE html>".to_string(), "<html>".into(), "<head>".into()];
         out.push(format!("<title>{}</title>", esc(&full)));
         out.push(format!("<meta name=\"description\" content=\"{}\">", esc(description.unwrap_or(&full))));
+        out.extend(self.meta.iter().cloned());
         out.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
         out.push("<meta charset=\"utf-8\">".into());
         if !self.icon.is_empty() {
@@ -82,7 +86,9 @@ impl Chrome {
             out.push(format!("<link rel='stylesheet' type='text/css' href='{}'>", esc(css)));
         }
         let mut scripts = self.js.clone();
-        scripts.push("/scs_scripts/scscpq_wp.js?v=LOCAL".into());
+        if !wp {
+            scripts.push("/scs_scripts/scscpq_wp.js?v=LOCAL".into());
+        }
         for js in &scripts {
             out.push(format!("<script type='text/javascript' src='{}'></script>", esc(js)));
         }
@@ -123,16 +129,29 @@ fn ribbon(role: Role) -> String {
     out
 }
 
+/// Who the page is drawn for: the role decides the ribbon's dashboard link, and inside WordPress there is no
+/// ribbon and no scscpq_wp.js, because the WordPress page around it has its own.
+#[derive(Clone, Copy)]
+pub struct View {
+    pub role: Role,
+    pub wp: bool,
+}
+
 /// A whole staff page: head, ribbon, the body the page built, and the closing divs.
-pub async fn page(pool: &SqlitePool, role: Role, title: &str, body: &str) -> Response {
-    described(pool, role, title, None, body).await
+pub async fn page(pool: &SqlitePool, view: View, title: &str, body: &str) -> Response {
+    described(pool, view, title, None, body).await
 }
 
 /// `page` with the meta description a page sets itself (`$forms->html->meta("description", …)`).
-pub async fn described(pool: &SqlitePool, role: Role, title: &str, description: Option<&str>, body: &str) -> Response {
+pub async fn described(pool: &SqlitePool, view: View, title: &str, description: Option<&str>, body: &str) -> Response {
     let chrome = Chrome::load(pool).await;
-    let mut html = chrome.head(title, description);
-    html.push_str(&["<div id='scs_body' >".to_string(), ribbon(role), "<div id='scs_content' >".to_string()].join("\n"));
+    let mut html = chrome.head(title, description, view.wp);
+    let mut top = vec!["<div id='scs_body' >".to_string()];
+    if !view.wp {
+        top.push(ribbon(view.role));
+    }
+    top.push("<div id='scs_content' >".to_string());
+    html.push_str(&top.join("\n"));
     html.push_str(body);
     html.push_str("</div> <!-- #scs_content -->\n</div> <!-- #scs_body -->");
     html.push_str("</body>\n</html>\n");

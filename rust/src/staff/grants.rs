@@ -144,7 +144,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Administrator>, ip: &str, field
     out.push("</tbody>".into());
     out.push("</table>".into());
     out.push(close().into());
-    Ok(shell::page(pool, actor.user.role, TITLE, &out.join("\n")).await)
+    Ok(shell::page(pool, staff.view(), TITLE, &out.join("\n")).await)
 }
 
 async fn show(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, staff: Staff<Administrator>) -> Response {
