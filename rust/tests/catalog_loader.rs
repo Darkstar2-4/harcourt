@@ -73,6 +73,17 @@ async fn other_methods_and_actions_answer_401() {
     let (status, _, v) = load(&h, None, "action=delete").await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
     assert_eq!(v["error"], "delete: 104");
+    let put = catalog_support::request(
+        axum::http::Method::PUT,
+        "/scscpq_wp.php",
+        None,
+        &[("content-type", "application/x-www-form-urlencoded")],
+        axum::body::Body::from(FORM),
+    );
+    let (status, _, body) = send(&h.app, put).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["error"], ": 102", "only a POST's body is read, as PHP filled $_POST");
 }
 
 #[tokio::test]
