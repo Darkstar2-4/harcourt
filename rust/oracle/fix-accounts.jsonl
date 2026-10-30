@@ -1,0 +1,32 @@
+# Accounts pages inside a visit (warm), from the site's own pages. Synthetic personas only; GET only, so the
+# PHP session each case runs in is left as it was.
+{"name": "newuser-ref-anonymous-en", "path": "/newuser.php", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-anonymous-en", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-anonymous-fr", "path": "/newuser.php", "persona": "anonymous", "language": "fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/demande-dacces/"}}
+{"name": "newuser-ref-framed-anonymous-fr", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/demande-dacces/"}}
+{"name": "newuser-ref-customer-active-en", "path": "/newuser.php", "persona": "customer-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-customer-active-en", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-customer-pending-en", "path": "/newuser.php", "persona": "customer-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-customer-pending-en", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-customer-denied-en", "path": "/newuser.php", "persona": "customer-denied", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-customer-denied-en", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-denied", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-external-pending-en", "path": "/newuser.php", "persona": "external-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-external-pending-en", "path": "/newuser.php?scscpq_wp=1", "persona": "external-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-internal-active-en", "path": "/newuser.php", "persona": "internal-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-internal-active-en", "path": "/newuser.php?scscpq_wp=1", "persona": "internal-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-executive-active-en", "path": "/newuser.php", "persona": "executive-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-executive-active-en", "path": "/newuser.php?scscpq_wp=1", "persona": "executive-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-administrator-active-en", "path": "/newuser.php", "persona": "administrator-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-administrator-active-en", "path": "/newuser.php?scscpq_wp=1", "persona": "administrator-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-superuser-denied-en", "path": "/newuser.php", "persona": "superuser-denied", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-framed-superuser-denied-en", "path": "/newuser.php?scscpq_wp=1", "persona": "superuser-denied", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/request-access/"}}
+{"name": "newuser-ref-customer-active-fr-fr", "path": "/newuser.php", "persona": "customer-active-fr", "language": "fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/demande-dacces/"}}
+{"name": "newuser-ref-framed-customer-active-fr-fr", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-active-fr", "language": "fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/demande-dacces/"}}
+{"name": "user-impersonate-ref-anonymous", "path": "/user_impersonate.php", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-customer-active", "path": "/user_impersonate.php", "persona": "customer-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-customer-pending", "path": "/user_impersonate.php", "persona": "customer-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-executive-active", "path": "/user_impersonate.php", "persona": "executive-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-administrator-active", "path": "/user_impersonate.php", "persona": "administrator-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-administrator-pending", "path": "/user_impersonate.php", "persona": "administrator-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "user-impersonate-ref-superuser-active", "path": "/user_impersonate.php", "persona": "superuser-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "newuser-xhr-get-anonymous", "path": "/newuser.php", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"X-Requested-With": "XMLHttpRequest", "Referer": "https://www.harcourt.co/request-access/"}}
