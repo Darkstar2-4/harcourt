@@ -80,7 +80,7 @@ fn request_query() -> impl Strategy<Value = String> {
 }
 
 proptest! {
-    #![proptest_config(config(4096))]
+    #![proptest_config(config(16384))]
 
     /// Every answer is a page that is published, a 404, the legacy stack, or a redirect to a path of this site.
     #[test]

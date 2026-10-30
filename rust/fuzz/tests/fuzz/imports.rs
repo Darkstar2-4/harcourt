@@ -98,7 +98,7 @@ fn edit(bytes: &mut Vec<u8>, edits: &[(usize, u8, u8)]) {
 }
 
 proptest! {
-    #![proptest_config(config(1024))]
+    #![proptest_config(config(4096))]
 
     #[test]
     fn text_files_read_in_bounded_time_and_memory(bytes in prop_oneof![gen::bytes(4000), gen::text_of("ab,\t\"\\\r\n é", 0..4000).prop_map(String::into_bytes)], tab in any::<bool>()) {
@@ -127,7 +127,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(heavy(96, 200))]
+    #![proptest_config(heavy(192, 200))]
 
     /// A workbook Excel would write reads back cell for cell.
     #[test]

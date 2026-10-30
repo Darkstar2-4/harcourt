@@ -23,7 +23,7 @@ fn alnum_pairs() -> impl Strategy<Value = Vec<(String, String)>> {
 }
 
 proptest! {
-    #![proptest_config(config(2048))]
+    #![proptest_config(config(8192))]
 
     #[test]
     fn php_encoders_round_trip_through_urldecode(s in gen::text(200)) {
@@ -175,7 +175,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(heavy(24, 2000))]
+    #![proptest_config(heavy(32, 2000))]
 
     /// A big form posted to a URL with a long query: reading `$_REQUEST` stays linear.
     #[test]

@@ -87,7 +87,7 @@ fn header_problem(message: &[u8]) -> Option<String> {
 }
 
 proptest! {
-    #![proptest_config(heavy(256, 5))]
+    #![proptest_config(heavy(1024, 5))]
 
     #[test]
     fn queued_mail_builds_messages_with_one_line_headers(

@@ -16,7 +16,7 @@ fn token_text() -> impl Strategy<Value = String> {
 }
 
 proptest! {
-    #![proptest_config(config(4096))]
+    #![proptest_config(config(16384))]
 
     #[test]
     fn email_parse_is_total_and_its_output_is_canonical(s in gen::text(80)) {

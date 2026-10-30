@@ -41,7 +41,7 @@ fn one_tag(html: &str) -> bool {
 }
 
 proptest! {
-    #![proptest_config(config(2048))]
+    #![proptest_config(config(8192))]
 
     #[test]
     fn full_escapers_leave_no_markup_and_read_back(s in gen::text(200)) {

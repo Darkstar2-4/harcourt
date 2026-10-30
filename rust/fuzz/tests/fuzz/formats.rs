@@ -37,7 +37,7 @@ fn grouped_well(s: &str) -> bool {
 }
 
 proptest! {
-    #![proptest_config(config(4096))]
+    #![proptest_config(config(16384))]
 
     #[test]
     fn number_formats_are_total(n in number(), dp in 0usize..6) {

@@ -368,7 +368,7 @@ fn origin_of(target: &str) -> String {
 fn run_shard(n: u64) {
     let statuses = Mutex::new(BTreeMap::<u16, u64>::new());
     let failing = Mutex::new(BTreeMap::<String, (u64, String)>::new());
-    let mut runner = TestRunner::new(shard(1000, 5, n));
+    let mut runner = TestRunner::new(shard(2500, 5, n));
     let result = runner.run(&request(), |s| {
         let status = send(&s)?;
         *statuses.lock().unwrap().entry(status.as_u16()).or_default() += 1;

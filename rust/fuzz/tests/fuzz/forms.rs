@@ -104,7 +104,7 @@ fn draw(form: &Form, values: &HashMap<String, String>, errors: &HashMap<i64, Str
 }
 
 proptest! {
-    #![proptest_config(config(1024))]
+    #![proptest_config(config(4096))]
 
     #[test]
     fn form_definitions_parse_or_are_refused(meta in prop_oneof![gen::text(200), json_value().prop_map(|v| v.to_string())], n in gen::text(40), c in json_value()) {

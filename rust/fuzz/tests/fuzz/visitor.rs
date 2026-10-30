@@ -26,7 +26,7 @@ fn encoded_script() -> impl Strategy<Value = String> {
 }
 
 proptest! {
-    #![proptest_config(config(4096))]
+    #![proptest_config(config(16384))]
 
     #[test]
     fn the_clean_up_is_total_idempotent_and_names_a_script(path in prop_oneof![with_script(), encoded_script(), gen::path(), gen::url_text(12).prop_map(|t| format!("/{t}"))], q in proptest::option::of(gen::query())) {

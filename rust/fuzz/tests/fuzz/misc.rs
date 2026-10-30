@@ -24,7 +24,7 @@ fn insert_line() -> impl Strategy<Value = String> {
 }
 
 proptest! {
-    #![proptest_config(config(2048))]
+    #![proptest_config(config(8192))]
 
     #[test]
     fn request_readers_are_total(q in gen::query(), word in gen::text(30)) {

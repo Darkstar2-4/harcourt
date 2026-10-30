@@ -97,7 +97,7 @@ fn read_all(s: &str) {
 }
 
 proptest! {
-    #![proptest_config(config(2048))]
+    #![proptest_config(config(8192))]
 
     #[test]
     fn serialized_values_read_back_in_every_reader(v in php()) {
@@ -123,7 +123,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(heavy(48, 500))]
+    #![proptest_config(heavy(96, 500))]
 
     /// Nesting of any depth, and a declared size of any size, read on a worker's stack in bounded memory.
     #[test]
