@@ -1,7 +1,6 @@
 //! scs_ajax.php without its table-name dispatch. The search box's own request (`table=search`) is answered as live
-//! hxweb answered it, before PHP. Of the rest, only the staff autocompletes the site's pages call are served, to
-//! staff; any other table or caller gets the PHP's refusal, a bare 401. portal_ajax.php, the old welcome pages'
-//! sign-in form, is here as well.
+//! hxweb answered it, before PHP. Of the rest, only the company autocomplete staff pages call is served, to staff;
+//! any other table or caller gets the PHP's refusal, a bare 401.
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -18,26 +17,19 @@ use super::{search, viewer};
 use crate::{
     api::Auth,
     identity::Role,
-    visitor::{Identity, Visitor, PHP_CONTENT_TYPE},
+    visitor::{Visitor, PHP_CONTENT_TYPE},
 };
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/scs_ajax.php", get(scs_ajax)).route("/portal_ajax.php", get(portal_ajax).post(portal_ajax))
-}
-
-/// The autocompletes behind scs_ajax.php that Rust still answers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Source {
-    /// user ajax_source_company_name(): design_partner_agreement.php and remote_access.php.
-    Companies,
-    /// inventory ajax_sku(): suppliersku.php.
-    Skus,
+    Router::new().route("/scs_ajax.php", get(scs_ajax))
 }
 
 /// ajax_class's request, as its constructor read $_REQUEST: values trimmed, empty ones ignored.
 struct AjaxRequest {
     action: String,
-    source: Option<Source>,
+    /// user ajax_source_company_name(), for design_partner_agreement.php and remote_access.php: the only source
+    /// besides the search box that is still answered.
+    companies: bool,
     terms: Vec<String>,
     limit: i64,
 }
@@ -45,16 +37,11 @@ struct AjaxRequest {
 impl AjaxRequest {
     fn parse(q: &HashMap<String, String>) -> AjaxRequest {
         let get = |k: &str| q.get(k).map(|v| v.trim()).filter(|v| !v.is_empty());
-        let source = match (get("table").unwrap_or("").to_lowercase().as_str(), get("source"), get("detail")) {
-            ("user", Some("company_name"), _) => Some(Source::Companies),
-            ("inventory", _, Some("sku")) => Some(Source::Skus),
-            _ => None,
-        };
         AjaxRequest {
             action: get("action").unwrap_or("search").to_lowercase(),
             terms: get("term").map(|t| t.split_whitespace().map(str::to_string).collect()).unwrap_or_default(),
             limit: get("limit").and_then(|l| l.parse::<i64>().ok()).filter(|l| *l > 0).unwrap_or(10).min(100),
-            source,
+            companies: get("table").is_some_and(|t| t.eq_ignore_ascii_case("user")) && get("source") == Some("company_name"),
         }
     }
 }
@@ -105,52 +92,20 @@ async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc
     }
     let result = async {
         let req = AjaxRequest::parse(&q);
-        let Some(source) = req.source.filter(|_| req.action == "search" && !req.terms.is_empty() && from_site_script(&headers)) else {
+        if !(req.companies && req.action == "search" && !req.terms.is_empty() && from_site_script(&headers)) {
             return Ok(refused());
-        };
+        }
         let v = viewer::load(&core.pool, &visitor, viewer::Lang::En).await?;
         if !(v.active() && v.at_least(Role::Internal)) {
             return Ok(refused());
         }
-        let list = match source {
-            Source::Companies => companies(&core, &req).await?,
-            Source::Skus => skus(&core, &req).await?,
-        };
-        Ok::<_, sqlx::Error>(php_json(&list))
+        Ok::<_, sqlx::Error>(php_json(&companies(&core, &req).await?))
     }
     .await;
     result.unwrap_or_else(|e| {
         tracing::error!("scs_ajax: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
     })
-}
-
-/// The sign-in form portal_ajax.php handed the old welcome pages, posting the email to the catalog.
-const WELCOME_FORM: &str = "<form name='scs_form' id='scs_form' target='_top' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n<input type=hidden name='action' id='action' value='email'>\n<div class='entry' id='firstentry'>Email Address: <input name='email' type='text' /></div><div class='submitbutton'><input type=image id='Image1' src='/scs_images/continuebutton.gif' width='140' height='31' border='0' onmouseover=\"javascript:MM_swapImage('Image1','','images/continuebuttonover.gif',1)\" onmouseout=\"javascript:MM_swapImgRestore();\"></div></form>";
-const FORM_HOLDER: &str = "<form name='scs_form' id='scs_form' target='_top' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n<input type=hidden name='action' id='action' value='email'>\n<div id='text-entry'><input type='text' name='email' id='email' /></div><div id='email-address'>E-mail Address: </div><div id='continue'><img src='/welcome-pages/continuebutton.gif' width='140' height='31' id='Image1' onmouseover='MM_swapImage('Image1','','/welcome-pages/continuebuttonover.gif',1)' onmouseout='MM_swapImgRestore()' onclick='document.scs_form.submit();' border='0'/></div><img src='/welcome-pages/formbackground2.gif' width='393' height='133' /></form>";
-
-/// portal_ajax.php: for a script's request with action catalog or products, the visitor's company and the two
-/// sign-in forms; for another action an empty list; for anything but a script's request, a refusal.
-async fn portal_ajax(visitor: Visitor, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> Response {
-    let html = |body: String| (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE)], body).into_response();
-    if !headers.get("x-requested-with").and_then(|v| v.to_str().ok()).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest")) {
-        return html("Direct request".into());
-    }
-    if !matches!(q.get("action").map(String::as_str), Some("catalog" | "products")) {
-        return html("[]".into());
-    }
-    let company = match &visitor.identity {
-        Identity::Account(s) => s.account.user.company_name.clone(),
-        Identity::Bot(b) => Some(b.name.clone()),
-        Identity::Anonymous => None,
-    };
-    let php = super::loader::php_json;
-    html(format!(
-        "{{\"welcome_company_name\":{},\"userformwelcome\":{},\"form-holder\":{}}}",
-        php(&company.map_or(Value::Null, Value::String)),
-        php(&json!(WELCOME_FORM)),
-        php(&json!(FORM_HOLDER))
-    ))
 }
 
 /// Company names containing every word of the term, one per name, in MySQL's case-blind order.
@@ -165,32 +120,6 @@ async fn companies(core: &Auth, req: &AjaxRequest) -> sqlx::Result<Vec<String>> 
     .fetch_all(&core.pool)
     .await?;
     Ok(names.into_iter().filter(|n| words.iter().all(|w| n.to_lowercase().contains(w))).take(req.limit as usize).map(|n| object(&[("value", json!(n))])).collect())
-}
-
-/// Active part numbers starting with the term's first word, with their category and family names.
-async fn skus(core: &Auth, req: &AjaxRequest) -> sqlx::Result<Vec<String>> {
-    let prefix = format!("{}%", req.terms.first().map_or("", String::as_str));
-    let rows = sqlx::query!(
-        r#"SELECT i.sku AS "sku!", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id
-           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id
-           WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku COLLATE NOCASE LIMIT ?2"#,
-        prefix,
-        req.limit
-    )
-    .fetch_all(&core.pool)
-    .await?;
-    let id = |v: Option<i64>| v.map(|v| v.to_string()).unwrap_or_default();
-    Ok(rows
-        .into_iter()
-        .map(|r| {
-            object(&[
-                ("label", json!(r.sku)),
-                ("category_name", json!(r.category_name)),
-                ("subcategory_name", json!(r.subcategory_name)),
-                ("category_subcategory_id", json!(format!("{}:{}", id(r.category_id), id(r.subcategory_id)))),
-            ])
-        })
-        .collect())
 }
 
 #[cfg(test)]
@@ -216,16 +145,16 @@ mod tests {
     #[test]
     fn requests_parse_as_ajax_class_read_them() {
         let r = AjaxRequest::parse(&q(&[("table", " User "), ("source", "company_name"), ("term", " acme  tool "), ("limit", "0")]));
-        assert_eq!((r.source, r.action.as_str(), r.terms.clone(), r.limit), (Some(Source::Companies), "search", vec!["acme".to_string(), "tool".to_string()], 10));
-        assert_eq!(AjaxRequest::parse(&q(&[("table", "inventory"), ("detail", "sku")])).source, Some(Source::Skus));
-        assert_eq!(AjaxRequest::parse(&q(&[("table", "user")])).source, None, "full user rows are not served");
+        assert_eq!((r.companies, r.action.as_str(), r.terms.clone(), r.limit), (true, "search", vec!["acme".to_string(), "tool".to_string()], 10));
+        assert!(!AjaxRequest::parse(&q(&[("table", "inventory"), ("detail", "sku")])).companies, "the supplier pages' part list is gone");
+        assert!(!AjaxRequest::parse(&q(&[("table", "user")])).companies, "full user rows are not served");
     }
 
     #[test]
     fn the_caller_must_be_a_script_on_this_host() {
         let mut h = HeaderMap::new();
         h.insert("host", HeaderValue::from_static("www.harcourt.co"));
-        h.insert("referer", HeaderValue::from_static("https://www.harcourt.co/suppliersku.php"));
+        h.insert("referer", HeaderValue::from_static("https://www.harcourt.co/remote_access.php"));
         assert!(!from_site_script(&h));
         h.insert("x-requested-with", HeaderValue::from_static("XMLHttpRequest"));
         assert!(from_site_script(&h));

@@ -287,22 +287,37 @@ async fn search_results_open_the_pick_or_list_the_matches() {
     assert!(body.contains("<p class=center>No results for search term: <b>zzz</b></p>"));
 }
 
+/// Pages the catalog dropped: alternative and beta catalogs, the staff maintenance pages and the endpoints with no
+/// traffic. The catalog no longer claims them, so they get the site's answer for a path nothing serves.
 #[tokio::test]
-async fn the_old_pages_answer_as_their_php_did() {
-    let h = harness().await;
-    seed(&h.pool).await;
-    exec(&h.pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('document', 156, '', 'EN', 'Sign in', 'html', '{\"mime\":\"text/html\"}', '<p>Enter your email</p>')").await;
-    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", None)).await;
-    assert!(body.contains("<div id='scs_content' ><p>Please request access</p>") && !body.contains("<!-- #scs_content -->"), "{body}");
-    let cookie = signed_in(&h.pool, &Account::customer(29)).await;
-    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", Some(&cookie))).await;
-    assert_eq!(body, "<p>Enter your email</p>", "a browser that never gave its address gets the sign-in document");
-    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", Some(&format!("{cookie}; harcourt=someone%40example.com")))).await;
-    assert!(body.contains("Ball Lock Pins"), "{body}");
-    let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=%2Fcatalog%2F", None)).await;
-    assert!(body.contains("</head>\n<body>\n<p class='center large'><a href='/catalog/' target='_top'>Click here to continue</a></p>\n</body>\n</html>\n"), "{body}");
-    let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=javascript%3Aalert(1)", None)).await;
-    assert!(!body.contains("Click here"), "only an address on this site is linked");
+async fn dropped_pages_are_not_served() {
+    let app = catalog_support::catalog_only().await;
+    for path in [
+        "/new_catalog.php?scscpq_wp=1",
+        "/beta.php",
+        "/document_viewer.php",
+        "/search.php",
+        "/inventory_info.php?sku=HBLT-1&action=features",
+        "/catalog_metric_filter.php",
+        "/configure.php",
+        "/cad_lookup.php",
+        "/category.php",
+        "/industry.php",
+        "/document.php",
+        "/hero.php",
+        "/scs_api.php",
+        "/stock.php",
+        "/portal_ajax.php?action=catalog",
+        "/solutions.php",
+        "/catalog-api/search?term=hblt",
+    ] {
+        for method in [Method::GET, Method::POST] {
+            let (status, _, _) = send(&app, catalog_support::request(method.clone(), path, None, &[], Body::empty())).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{method} {path}");
+        }
+    }
+    let (status, _, _) = send(&app, get("/catalog.php?scscpq_wp=1", None)).await;
+    assert_ne!(status, StatusCode::NOT_FOUND, "the catalog itself is still served");
 }
 
 #[tokio::test]

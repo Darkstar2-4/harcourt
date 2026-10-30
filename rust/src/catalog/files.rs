@@ -1,6 +1,6 @@
 //! Files the catalog links to and the bare SCS pages around them. scs_file.php serves a `content` row (an overview
-//! image, a datasheet) by its encoded id; scs_index.php and beta.php are the SCS home, a loader the catalog script
-//! fills; customer_portal.php frames the customer portal.
+//! image, a datasheet) by its encoded id; scs_index.php is the SCS home, a loader the catalog script fills;
+//! customer_portal.php frames the customer portal.
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -30,7 +30,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/scs_file.php", get(scs_file))
         .route("/customer_portal.php", get(customer_portal).post(customer_portal))
         .route("/scs_index.php", get(scs_index).post(scs_index))
-        .route("/beta.php", get(scs_index).post(scs_index))
 }
 
 /// What a content row is attached to, which decides who may fetch it.
@@ -260,7 +259,7 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
     file_response(found.bytes, if mime.is_empty() { "application/octet-stream" } else { &mime }, &name, asked_inline == inline)
 }
 
-/// The script scs_index.php and beta.php print: a spinner until the catalog script replaces #scscpq_page.
+/// The script scs_index.php prints: a spinner until the catalog script replaces #scscpq_page.
 const LOADER: &str = r#"<script>
 content=new Array();
 content.push("<style>");
@@ -297,8 +296,8 @@ async fn scs_page(core: &Auth, visitor: &Visitor, title: &str, description: Opti
     })
 }
 
-/// scs_index.php and beta.php. Both set the description to an undefined variable, which moves the default after
-/// the registry's meta lines.
+/// scs_index.php. It set the description to an undefined variable, which moves the default after the registry's
+/// meta lines.
 async fn scs_index(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
     scs_page(&core, &visitor, "Harcourt", Some(""), LOADER).await
 }
