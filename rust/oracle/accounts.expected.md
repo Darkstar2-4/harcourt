@@ -28,11 +28,12 @@ cannot be compared by `hx-diff`, and has no case.
   token's nonce and audience are checked for both providers. A callback from a browser with no OAuth cookie goes
   to /request-access without a message, as the PHP did for a browser with no session.
 - **Impersonation** is stored against the Administrator's session and never shows a role above the
-  Administrator's own. The form is drawn without the SCS page chrome.
-- **language_change.php** goes back only to a page on this site (else `/`) and saves the choice to the account only
-  when the request comes from one of the site's pages.
+  Administrator's own. Only an Active Administrator may impersonate; the PHP checked the role alone.
+- **language_change.php** goes back only to a page on this site, else to `/`, and saves the choice to the account
+  only when the request comes from one of the site's pages. Without a Referer the PHP answered 302 with an empty
+  Location, which browsers show as a blank page; Rust sends the visitor home.
 - **Staff notice mails** escape the values visitors and providers supplied.
 - **Sign-in by company address** believes X-Real-IP only from a trusted proxy, and never signs anyone in from a
   proxy or loopback address. Bots are matched only on a reverse DNS name that resolves forward to the same address.
-- **cookie_reset.php** always clears `harcourt`, as the PHP did, and also the session, language and campaign
-  cookies when the browser has them, which the PHP kept in its session.
+- **cookie_reset.php** always clears `harcourt` and forgets the visit, as the PHP did, and also ends a sign-in by
+  emailed code or provider (`__Host-hx_session`).
