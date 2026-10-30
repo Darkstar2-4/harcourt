@@ -8,6 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use axum::response::IntoResponse;
 use tokio::sync::RwLock;
 
 use super::{FormEmbed, Lang};
@@ -24,8 +25,8 @@ pub struct Islands {
     cache: RwLock<Cache>,
 }
 
-/// (form, language, page URI) -> (fetched at, markup).
-type Cache = HashMap<(u32, Lang, String), (Instant, String)>;
+/// (form, language, page URI, Gravity Forms browser class) -> (fetched at, markup).
+type Cache = HashMap<(u32, Lang, String, String), (Instant, String)>;
 
 impl Islands {
     pub fn new(legacy: String, site: String) -> Option<Islands> {
@@ -45,7 +46,8 @@ impl Islands {
     }
 
     pub async fn markup(&self, form: &FormEmbed<'_>) -> Result<String, String> {
-        let key = (form.form, form.lang, form.page_uri.to_string());
+        let agent = if form.user_agent.is_empty() { "hxweb/0.1 island" } else { form.user_agent };
+        let key = (form.form, form.lang, form.page_uri.to_string(), crate::orders::forms::render::browser_class(agent));
         if let Some((at, html)) = self.cache.read().await.get(&key) {
             if at.elapsed() < TTL {
                 return Ok(html.clone());
@@ -57,7 +59,7 @@ impl Islands {
             .get(format!("{}/", self.legacy))
             .query(&[("hx_form", id.as_str()), ("hx_lang", form.lang.code()), ("hx_page", form.page_uri)])
             .header(reqwest::header::HOST, &self.site)
-            .header(reqwest::header::USER_AGENT, "hxweb/0.1 island")
+            .header(reqwest::header::USER_AGENT, agent)
             .send()
             .await
             .map_err(|e| format!("island {id}: {e}"))?;
@@ -74,6 +76,33 @@ impl Islands {
         }
         cache.insert(key, (Instant::now(), html.clone()));
         Ok(html)
+    }
+}
+
+impl Islands {
+    /// Sends a request on to WordPress as main.rs's proxy would (same headers, the site's Host) and returns its
+    /// answer: a form post whose form only WordPress knows.
+    pub async fn forward(&self, parts: &axum::http::request::Parts, body: axum::body::Bytes) -> axum::response::Response {
+        use axum::http::header;
+        let hop = [header::CONNECTION, header::TRANSFER_ENCODING, header::UPGRADE, header::TE, header::HOST, header::CONTENT_LENGTH];
+        let uri = parts.uri.path_and_query().map(|p| p.as_str()).unwrap_or("/");
+        let mut out = self.http.request(parts.method.clone(), format!("{}{uri}", self.legacy)).body(body);
+        for (k, v) in parts.headers.iter().filter(|(k, _)| !hop.contains(k)) {
+            out = out.header(k, v);
+        }
+        let r = match out.header(header::HOST, &self.site).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("legacy {} {uri}: {e}", parts.method);
+                return (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response();
+            }
+        };
+        let mut b = axum::http::Response::builder().status(r.status());
+        for (k, v) in r.headers().iter().filter(|(k, _)| !hop.contains(k)) {
+            b = b.header(k, v);
+        }
+        let bytes = r.bytes().await.unwrap_or_default();
+        b.body(axum::body::Body::from(bytes)).unwrap_or_else(|_| (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response())
     }
 }
 
@@ -104,7 +133,7 @@ impl FormSource for OrdersForms {
                 Lang::En => crate::orders::forms::model::Lang::En,
                 Lang::Fr => crate::orders::forms::model::Lang::Fr,
             };
-            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri, "").await {
+            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri, form.user_agent).await {
                 Ok(Some(html)) => return Ok(html),
                 Ok(None) => {}
                 Err(e) => tracing::warn!("form {}: {e}", form.form),

@@ -44,4 +44,6 @@ pub struct FormEmbed<'a> {
     pub styles: &'a str,
     /// Rendered inside post content, where WordPress rewrites `]]>` as `]]&gt;`.
     pub in_content: bool,
+    /// The User-Agent Gravity Forms read its browser class from.
+    pub user_agent: &'a str,
 }

@@ -192,12 +192,17 @@ fn urlencode(s: &str) -> String {
     out
 }
 
+/// wp_get_shortlink(): `/?p=N`, or the home URL for the front page.
 fn shortlink_oembed(page: &Page) -> String {
-    let lang = if page.lang == Lang::Fr { "&#038;lang=fr" } else { "" };
+    let short = match (is_front(page), page.lang) {
+        (true, Lang::En) => format!("{ORIGIN}/"),
+        (true, Lang::Fr) => format!("{ORIGIN}/?lang=fr"),
+        (false, Lang::En) => format!("{ORIGIN}/?p={}", page.id.0),
+        (false, Lang::Fr) => format!("{ORIGIN}/?p={}&#038;lang=fr", page.id.0),
+    };
     let url = urlencode(&page.url(ORIGIN));
     format!(
-        "<link rel='shortlink' href='{ORIGIN}/?p={}{lang}' />\n<link rel=\"alternate\" title=\"oEmbed (JSON)\" type=\"application/json+oembed\" href=\"{ORIGIN}/wp-json/oembed/1.0/embed?url={url}\" />\n<link rel=\"alternate\" title=\"oEmbed (XML)\" type=\"text/xml+oembed\" href=\"{ORIGIN}/wp-json/oembed/1.0/embed?url={url}&#038;format=xml\" />\n",
-        page.id.0
+        "<link rel='shortlink' href='{short}' />\n<link rel=\"alternate\" title=\"oEmbed (JSON)\" type=\"application/json+oembed\" href=\"{ORIGIN}/wp-json/oembed/1.0/embed?url={url}\" />\n<link rel=\"alternate\" title=\"oEmbed (XML)\" type=\"text/xml+oembed\" href=\"{ORIGIN}/wp-json/oembed/1.0/embed?url={url}&#038;format=xml\" />\n"
     )
 }
 

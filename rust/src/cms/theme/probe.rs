@@ -84,7 +84,7 @@ pub fn extract(skeleton: &str, target: &str) -> Result<Vec<(usize, String)>, Mis
             Piece::Text(text) => match open.take() {
                 Some(h) => {
                     let Some(found) = target[pos..].find(text) else {
-                        return Err(Mismatch { at: pos, expected: snippet(text, 0, 120), found: snippet(target, pos, 160) });
+                        return Err(longest_prefix_mismatch(text, target, pos));
                     };
                     out.push((h, target[pos..pos + found].to_string()));
                     pos += found + text.len();
@@ -104,6 +104,28 @@ pub fn extract(skeleton: &str, target: &str) -> Result<Vec<(usize, String)>, Mis
         return Err(Mismatch { at: pos, expected: "end of page".into(), found: snippet(target, pos, 120) });
     }
     Ok(out)
+}
+
+/// Where a literal that follows a value stops matching: the longest prefix of it found after `pos`, and the bytes
+/// that differ there.
+fn longest_prefix_mismatch(text: &str, target: &str, pos: usize) -> Mismatch {
+    let rest = &target[pos..];
+    let fits = |n: usize| text.is_char_boundary(n) && rest.contains(&text[..n]);
+    let (mut lo, mut hi) = (0, text.len());
+    while lo < hi {
+        let mid = (lo + hi).div_ceil(2);
+        let mut m = mid;
+        while !text.is_char_boundary(m) {
+            m -= 1;
+        }
+        if m > lo && fits(m) {
+            lo = m;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    let at = pos + rest.find(&text[..lo]).unwrap_or(0) + lo;
+    Mismatch { at, expected: snippet(text, lo, 120), found: snippet(target, at, 120) }
 }
 
 /// The value each slot took, checking that a slot printed in several places showed the same text everywhere.

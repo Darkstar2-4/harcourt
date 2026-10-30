@@ -12,6 +12,18 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Scscpq => scscpq,
         Template::Digest => digest,
         Template::Page => default_page,
+        Template::History => super::company::history,
+        Template::Why => super::company::why,
+        Template::About => super::company::about,
+        Template::Career => super::company::career,
+        Template::ThankYou => super::simple::thank_you,
+        Template::Faq => super::simple::faq,
+        Template::Contact => super::contact::contact,
+        Template::ContactUk => super::contact::contact_uk,
+        Template::ContactFrance | Template::ContactIndia => super::contact::contact_region,
+        Template::Locations => super::contact::locations,
+        Template::Home => super::home::home,
+        Template::Builder => super::builder::builder,
         _ => return None,
     })
 }
@@ -48,7 +60,7 @@ fn page_content(c: &mut Ctx) {
 
 /// sidebar.php, for pages (FAQ posts use another widget area). The widgets of the page's widget area are stored
 /// with the page as WordPress printed them: their menus mark the current page.
-fn sidebar(c: &mut Ctx) {
+pub(super) fn sidebar(c: &mut Ctx) {
     let fr = c.lang() == Lang::Fr;
     c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n            ");
     let id = c.page.id;
@@ -65,14 +77,14 @@ fn sidebar(c: &mut Ctx) {
 const WHY_PAGE: PageId = PageId(214);
 
 /// layouts/sections/global/breadcrumbs.php
-fn breadcrumbs(c: &mut Ctx) {
+pub(super) fn breadcrumbs(c: &mut Ctx) {
     c.push("<div class=\"breadcrumb-section\">\n  ");
     c.breadcrumbs();
     c.push("</div>\n");
 }
 
 /// layouts/sections/global/cta.php
-fn cta(c: &mut Ctx) {
+pub(super) fn cta(c: &mut Ctx) {
     c.push("\n<section class=\"cta-section scscpq_newuser\">\n\n  <div class=\"container\">\n\n    <div class=\"row\">\n\n      <div class=\"background-image has-overlay\">\n\n        <div class=\"cta-content-container\">\n\n          <div data-aos-offset=\"400\" data-aos-duration=\"1000\" data-aos=\"fade-up\" class=\"cta-content\">\n\n            <div class=\"heading d-flex align-items-center justify-content-center\">\n              <h2>");
     c.option_html("cta_title");
     c.push("</h2>\n              ");
@@ -115,7 +127,7 @@ fn product_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("bg_image"));
+    let bg = c.image_url("bg_image");
     c.push(&bg);
     c.push("')\">\n  <div class=\"background-overlay\">\n    <div class=\"container\">\n      <div class=\"row\">\n\n        <div data-aos-duration=\"1500\" data-aos=\"fade-right\" class=\"col-lg-6 content-half\">\n          <div class=\"site-padding pr-md-5\">\n            ");
     breadcrumbs(c);
@@ -250,7 +262,7 @@ fn digest(c: &mut Ctx) {
 }
 
 /// An ACF relationship value: a JSON list of ids, or one bare id (acf_get_array()).
-fn id_list(v: &str) -> Vec<i64> {
+pub(super) fn id_list(v: &str) -> Vec<i64> {
     match serde_json::from_str::<Vec<String>>(v) {
         Ok(list) => list.iter().filter_map(|s| s.parse().ok()).collect(),
         Err(_) => v.trim().parse().ok().into_iter().collect(),
@@ -258,7 +270,7 @@ fn id_list(v: &str) -> Vec<i64> {
 }
 
 /// layouts/sections/global/grid-items.php
-fn grid_items(c: &mut Ctx) {
+pub(super) fn grid_items(c: &mut Ctx) {
     c.push("\n<div class=\"grid-items\" id=\"");
     c.html("grid_id");
     c.push("\">\n  <div class=\"row ");
