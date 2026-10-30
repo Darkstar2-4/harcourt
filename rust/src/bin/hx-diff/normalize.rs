@@ -21,7 +21,7 @@ pub struct Rule {
 
 pub const NEAR_NOW_SECS: i64 = 2 * 86_400;
 
-pub static RULES: [Rule; 9] = [
+pub static RULES: [Rule; 12] = [
     Rule {
         name: "host",
         removes: "Absolute origins of the two stacks under test and of www.harcourt.co / harcourt.co, with or without \
@@ -58,6 +58,25 @@ pub static RULES: [Rule; 9] = [
         removes: "The hash= value inside the gform_ajax hidden input, which Gravity Forms derives from the WordPress \
                   salts. The rest of that input and every other input stay.",
         apply: gform_ajax,
+    },
+    Rule {
+        name: "loader-script",
+        removes: "The value of \"script\" inside the \"meta\" object of scscpq_wp.php's JSON (and the loader the \
+                  /catalog/ page inlines). PHP prints its own server file path there; Rust never will.",
+        apply: loader_script,
+    },
+    Rule {
+        name: "zero-spam-token",
+        removes: "The \"fallbackToken\" value in Gravity Forms Zero Spam's script config, which WordPress mints on \
+                  every live render.",
+        apply: zero_spam_token,
+    },
+    Rule {
+        name: "embed-id",
+        removes: "WordPress embed pages' per-render randoms: the number after the post id in the \
+                  wp-embed-share-{tab,description}-{wordpress,html}-<post>- ids, and the 10-character embed secret \
+                  in data-secret= and #?secret= (plain, HTML-escaped or JSON-escaped).",
+        apply: embed_id,
     },
     Rule {
         name: "time-near-now",
@@ -167,6 +186,24 @@ fn gform_ajax(text: &str, _: &Ctx) -> String {
             }
         })
         .into_owned()
+}
+
+fn loader_script(text: &str, _: &Ctx) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| re(r#"("meta"\s*:\s*\{[^{}]*?"script"\s*:\s*")(?:[^"\\]|\\.)*""#));
+    RE.replace_all(text, "${1}{SCRIPT}\"").into_owned()
+}
+
+fn zero_spam_token(text: &str, _: &Ctx) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| re(r#"("fallbackToken"\s*:\s*")(?:[^"\\]|\\.)*""#));
+    RE.replace_all(text, "${1}{ZEROSPAM}\"").into_owned()
+}
+
+fn embed_id(text: &str, _: &Ctx) -> String {
+    static SHARE: LazyLock<Regex> = LazyLock::new(|| re(r"\b(wp-embed-share-(?:tab|description)-(?:wordpress|html)-\d+-)\d+\b"));
+    static SECRET: LazyLock<Regex> =
+        LazyLock::new(|| re(r#"(data-secret=(?:"|'|&quot;|\\")|#\?secret=)[A-Za-z0-9]{10}\b"#));
+    let out = SHARE.replace_all(text, "${1}{RAND}");
+    SECRET.replace_all(&out, "${1}{SECRET}").into_owned()
 }
 
 /// Days from 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's days_from_civil).
@@ -320,6 +357,69 @@ mod tests {
     }
 
     #[test]
+    fn only_the_loader_script_path_goes() {
+        let c = ctx();
+        let inline = r#"window.hxweb_loader = {"error":"","meta":{"referrer":"https://HOST/catalog/","script":"/home/harcourt/public_html/scscpq_wp.php","version":"10/01/2025"},"token":"x"};"#;
+        assert_eq!(
+            loader_script(inline, &c),
+            r#"window.hxweb_loader = {"error":"","meta":{"referrer":"https://HOST/catalog/","script":"{SCRIPT}","version":"10/01/2025"},"token":"x"};"#
+        );
+        let php = r#"{"meta":{"script":"\/home\/harcourt\/public_html\/scscpq_wp.php","version":"1"}}"#;
+        assert_eq!(loader_script(php, &c), r#"{"meta":{"script":"{SCRIPT}","version":"1"}}"#);
+        assert_eq!(loader_script(r#"{"meta":{"script":"/scscpq_wp.php"}}"#, &c), r#"{"meta":{"script":"{SCRIPT}"}}"#);
+        for stays in [
+            r#"{"script":"/home/x.php"}"#,
+            r#"{"meta":{"version":"1"},"script":"/home/x.php"}"#,
+            r#"{"meta":{"inner":{"a":1},"version":"1"},"other":{"script":"/x"}}"#,
+            r#"<script src="/x.js"></script>"#,
+        ] {
+            assert_eq!(loader_script(stays, &c), stays);
+        }
+    }
+
+    #[test]
+    fn only_the_zero_spam_token_goes() {
+        let c = ctx();
+        let config = r#"var gfZeroSpamConfig = {"ajaxUrl":"https:\/\/HOST\/wp-admin\/admin-ajax.php","fallbackToken":"M3wxNzkzMzM5Nzk3fDE3OTM5NDQ1OTd8NTY5MGU2Ym","key":"gf_zero_spam_key"};"#;
+        assert_eq!(
+            zero_spam_token(config, &c),
+            r#"var gfZeroSpamConfig = {"ajaxUrl":"https:\/\/HOST\/wp-admin\/admin-ajax.php","fallbackToken":"{ZEROSPAM}","key":"gf_zero_spam_key"};"#
+        );
+        for stays in [r#"{"token":"abc"}"#, r#"{"fallbackTokens":"abc"}"#, "fallbackToken=abc"] {
+            assert_eq!(zero_spam_token(stays, &c), stays);
+        }
+    }
+
+    #[test]
+    fn embed_randoms_go_and_post_ids_stay() {
+        let c = ctx();
+        assert_eq!(
+            embed_id(r#"<div id="wp-embed-share-tab-wordpress-1287-2425952220" aria-describedby="wp-embed-share-description-html-1287-787585279">"#, &c),
+            r#"<div id="wp-embed-share-tab-wordpress-1287-{RAND}" aria-describedby="wp-embed-share-description-html-1287-{RAND}">"#
+        );
+        assert_ne!(
+            embed_id("wp-embed-share-tab-html-169-1", &c),
+            embed_id("wp-embed-share-tab-html-170-1", &c),
+            "the post id is data"
+        );
+        assert_eq!(
+            embed_id(r#"<blockquote data-secret="S00nT0GHiw"><iframe src="https://HOST/x/embed/#?secret=S00nT0GHiw" data-secret="S00nT0GHiw">"#, &c),
+            r#"<blockquote data-secret="{SECRET}"><iframe src="https://HOST/x/embed/#?secret={SECRET}" data-secret="{SECRET}">"#
+        );
+        assert_eq!(embed_id("data-secret=&quot;rpmt6lPsGM&quot;", &c), "data-secret=&quot;{SECRET}&quot;");
+        assert_eq!(embed_id(r#"data-secret=\"1Xb4RMWUMW\""#, &c), r#"data-secret=\"{SECRET}\""#);
+        for stays in [
+            r#"data-secret="short""#,
+            r#"data-secret="ElevenChars1""#,
+            "wp-embed-share-tab-wordpress-",
+            r#"<input name="secret" value="S00nT0GHiw">"#,
+            "?secret=S00nT0GHiw",
+        ] {
+            assert_eq!(embed_id(stays, &c), stays);
+        }
+    }
+
+    #[test]
     fn only_the_gform_ajax_hash_goes() {
         let c = ctx();
         let input = "<input type='hidden' name='gform_ajax' value='form_id=1&amp;title=&amp;theme=legacy&amp;hash=d2234b66e616f050984016021d094b0b' />";
@@ -404,6 +504,9 @@ mod tests {
                 "csrf",
                 "gform-honeypot",
                 "gform-ajax",
+                "loader-script",
+                "zero-spam-token",
+                "embed-id",
                 "time-near-now",
                 "asset-version",
                 "whitespace"
