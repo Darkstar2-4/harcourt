@@ -119,7 +119,7 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
         .inspect_err(|e| tracing::error!("not starting: cannot open {}: {e}", config.db_path.display()))
         .ok()?;
     if config.secret.is_none() {
-        tracing::warn!("HXWEB_SECRET is not set: emailed-code sign-in answers 503");
+        tracing::warn!("HXWEB_SECRET is not set: sign-in sends no code and form posts are not checked for the anti-spam token");
     }
     let accounts = hxweb::accounts::Services::from_env(|k| std::env::var(k).ok())
         .inspect_err(|e| tracing::error!("not starting: {e}"))
