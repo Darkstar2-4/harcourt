@@ -14,6 +14,8 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Page => default_page,
         Template::History => super::company::history,
         Template::Why => super::company::why,
+        Template::About => super::company::about,
+        Template::Career => super::company::career,
         _ => return None,
     })
 }
