@@ -322,7 +322,7 @@ pub const PHP_CONTENT_TYPE: &str = "text/html; charset=UTF-8";
 /// A request that arrives from outside the site begins a visit. The PHP started a session on it and sent the
 /// visitor to their home page unless they had asked for it (scs_header.php menu_class::page(TRUE)). A request
 /// from one of the site's own pages, a script on them, or a browser that still has a PHP session is mid-visit.
-fn begins_visit(headers: &HeaderMap, public_origin: &str) -> bool {
+pub fn begins_visit(headers: &HeaderMap, public_origin: &str) -> bool {
     let from_page = header_str(headers, header::REFERER).strip_prefix(public_origin).is_some_and(|rest| rest.starts_with('/'));
     let same_origin = header_str(headers, HeaderName::from_static("sec-fetch-site")) == "same-origin";
     let script = headers.contains_key("x-requested-with");

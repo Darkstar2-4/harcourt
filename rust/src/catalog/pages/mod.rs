@@ -30,12 +30,12 @@ use super::{
     tabs::Tabs,
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, db::unix_now, pricing::PriceBook, visitor::Visitor};
+use crate::{api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .route("/catalog.php", get(catalog_php))
-        .route("/new_catalog.php", get(catalog_php))
+        .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
 }
 
@@ -63,6 +63,11 @@ pub struct Request {
     pub search_id: i64,
     pub debug: bool,
     pub scscpq_wp: Option<String>,
+    /// $_SERVER['REQUEST_URI']: where the profile gate returns to.
+    pub uri: String,
+    /// The visit came through the WordPress frame ($_SESSION['scscpq_wp']): links go to the catalog page, and the
+    /// page has no menu ribbon of its own.
+    pub framed: bool,
 }
 
 fn int(s: Option<&String>) -> i64 {
@@ -83,13 +88,16 @@ impl Request {
             _ => sku_param,
         };
         let unit = get("unit_type");
+        let source = get("search_source");
+        let ids_given = !matches!(source.as_str(), "search" | "lookup" | "sku" | "name") && get("action") != "related";
+        let id = |k: &str| if ids_given { int(q.get(k)) } else { 0 };
         Request {
             action: get("action"),
             page: int(q.get("scs_page")),
             item: int(q.get("item")),
             document: int(q.get("document")),
             new_date: int(q.get("new_date")) != 0,
-            search_source: get("search_source"),
+            search_source: source,
             portal_category: get("portal_category"),
             unit_type: if unit == "metric" || unit == "imperial" { unit.clone() } else { String::new() },
             unit_type_given: q.get("unit_type").cloned(),
@@ -100,11 +108,13 @@ impl Request {
             search_complete: get("search_complete"),
             sku,
             related: get("related"),
-            category_id: int(q.get("category_id")),
-            subcategory_id: int(q.get("subcategory_id")),
+            category_id: id("category_id"),
+            subcategory_id: id("subcategory_id"),
             search_id: int(q.get("search_id")),
             debug: q.get("debug").is_some_and(|d| !d.is_empty() && d != "0"),
             scscpq_wp: q.get("scscpq_wp").cloned(),
+            uri: String::new(),
+            framed: true,
         }
     }
 }
@@ -157,13 +167,17 @@ impl Ctx<'_> {
     }
 }
 
-pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap, email: Option<&str>) -> sqlx::Result<Ctx<'a>> {
+pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap) -> sqlx::Result<Ctx<'a>> {
     let registry = registry::load(pool).await?;
     let catalog = model::load(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
-    let profile = super::profile::load(pool, viewer, cookies, email).await?;
-    let php_self = if viewer.lang == Lang::Fr { "/catalogue/" } else { "/catalog/" };
+    let profile = super::profile::load(pool, viewer, cookies).await?;
+    let php_self = match (req.framed, viewer.lang) {
+        (false, _) => "/catalog.php",
+        (true, Lang::Fr) => "/catalogue/",
+        (true, Lang::En) => "/catalog/",
+    };
     let (category_id, subcategory_id) = (req.category_id, req.subcategory_id);
     Ok(Ctx { pool, viewer, req, catalog, registry, strings, book, profile, php_self, category_id, subcategory_id, part: None, related_sku: String::new(), search: None })
 }
@@ -173,13 +187,18 @@ enum View {
     Document(i64),
     Profile,
     Family,
-    Lookup(String),
-    Search,
+    Lookup(Option<results::Hit>),
+    Search(Option<results::Hit>),
     Home,
 }
 
 async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
     let req = ctx.req.clone();
+    let found = results::resolve(ctx).await?;
+    if let Some(hit) = &found {
+        ctx.category_id = hit.category_id;
+        ctx.subcategory_id = hit.subcategory_id;
+    }
     match req.search_source.as_str() {
         "sku" if req.action == "search" => {
             ctx.part = model::part_by_sku(ctx.pool, &req.search_code).await?;
@@ -220,8 +239,8 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
         }
     }
     match req.search_source.as_str() {
-        "lookup" => return Ok(View::Lookup(req.raw_search_code.clone())),
-        "search" => return Ok(View::Search),
+        "lookup" => return Ok(View::Lookup(found)),
+        "search" => return Ok(View::Search(found)),
         _ => {}
     }
     let family_view = req.search_source == "name" || (matches!(ctx.req.action.as_str(), "subcategory" | "sku") && ctx.family().is_some());
@@ -251,19 +270,16 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     }
     match view {
         View::Document(id) => body.push_str(&document_html(ctx.pool, id, ctx.viewer.lang).await?.unwrap_or_default()),
-        View::Profile => body.push_str(&super::profile::enter(ctx, true).await?),
+        View::Profile => body.push_str(&super::profile::enter(ctx, Some(&ctx.req.uri)).await?),
         View::Family => family::page(ctx).await?.write_to(&mut body),
-        View::Lookup(code) => body.push_str(&family::lookup(ctx, &code).await?),
-        View::Search => body.push_str(&results::search(ctx).await?),
+        View::Lookup(found) => body.push_str(&family::lookup(ctx, found).await?),
+        View::Search(found) => body.push_str(&results::search(ctx, found).await?),
         View::Home => body.push_str(&home::page(ctx).await?),
     }
     body.push_str("</form>");
-    Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body))
-}
-
-/// An SCS view in the site's page chrome, for the other catalog entry points.
-pub fn chrome_document(reg: &Registry, title: &str, body: &str) -> String {
-    chrome::document(reg, title, &[], body)
+    let ribbon = (!ctx.req.framed).then(|| chrome::ribbon(ctx.viewer.at_least(Role::Executive).then(|| ctx.strings.get("menu_dashboard"))));
+    let css = [catalog_css(&ctx.registry)];
+    Ok(chrome::document(&ctx.registry, &chrome::Head { css: &css, ..chrome::Head::titled(title) }, &body, ribbon.as_deref()))
 }
 
 fn catalog_css(reg: &Registry) -> String {
@@ -353,11 +369,34 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    let lang = viewer::lang_for(&visitor, q.get("lang").map(String::as_str));
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
+    catalog_view(&core, cache, &visitor, &headers, &uri, &q).await
+}
+
+/// scs_header.php's first-visit redirect for an SCS page, or None to answer the request.
+async fn landing(core: &Auth, visitor: &Visitor, uri: &axum::http::Uri, headers: &HeaderMap) -> Option<Response> {
+    match crate::visitor::landing(core, visitor, uri.path(), uri.query(), headers).await {
+        Ok(r) => r,
+        Err(e) => Some(failed(e)),
+    }
+}
+
+/// Whether the PHP session was inside the WordPress frame: the query says so, or the request is inside a visit,
+/// and the site's visits come through the catalog page.
+fn framed(core: &Auth, q: &Params, headers: &HeaderMap) -> bool {
+    q.get("scscpq_wp").is_some_and(|v| !v.is_empty() && v != "0") || !crate::visitor::begins_visit(headers, &core.public_origin)
+}
+
+type Params = std::collections::HashMap<String, String>;
+
+async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &axum::http::Uri, q: &Params) -> Response {
     let result = async {
-        let viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string());
-        let mut ctx = load_ctx(&core.pool, &viewer, Request::parse(&q), &headers, email.as_deref()).await?;
+        let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
+        let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
+        let req = Request { uri, framed: framed(core, q, headers), ..Request::parse(q) };
+        let mut ctx = load_ctx(&core.pool, &viewer, req, headers).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
     }
@@ -368,16 +407,64 @@ async fn catalog_php(
     }
 }
 
-/// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown.
-async fn document_viewer(State(core): State<Arc<Auth>>, Query(q): Query<std::collections::HashMap<String, String>>) -> Response {
-    let lang = Lang::from_param(q.get("lang").map(String::as_str));
+/// new_catalog.php, the 2020 catalog, kept for old links: its own gate (the access document for visitors who
+/// are not signed in, the sign-in document for a browser that never gave its address), then the catalog.
+async fn new_catalog(
+    State(core): State<Arc<Auth>>,
+    Extension(cache): Extension<Arc<super::search::Cache>>,
+    visitor: Visitor,
+    headers: HeaderMap,
+    uri: axum::http::Uri,
+    Query(q): Query<Params>,
+) -> Response {
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
+    let gate = async {
+        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
+        let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).is_some_and(|e| !e.is_empty());
+        Ok::<_, sqlx::Error>(match viewer.kind {
+            viewer::Kind::Anonymous => {
+                let reg = registry::load(&core.pool).await?;
+                let ribbon = (!framed(&core, &q, &headers)).then(|| chrome::ribbon(None));
+                let doc = document_html(&core.pool, 157, viewer.lang).await?.unwrap_or_default();
+                Some(format!("{}{doc}", chrome::open(&reg, &chrome::Head::titled("Products"), ribbon.as_deref())))
+            }
+            viewer::Kind::Account(_) if !remembered => Some(document_html(&core.pool, viewer.login_document_id.unwrap_or(156), viewer.lang).await?.unwrap_or_default()),
+            _ => None,
+        })
+    }
+    .await;
+    match gate {
+        Ok(Some(body)) => html_response(body),
+        Ok(None) => catalog_view(&core, cache, &visitor, &headers, &uri, &q).await,
+        Err(e) => failed(e),
+    }
+}
+
+/// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown. With a login_url it
+/// is a page linking there, which is followed only to an address on this site.
+async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(q): Query<Params>) -> Response {
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
     let id = q
         .get("document")
         .and_then(|d| html::base64_fields_decode(d))
         .and_then(|f| f.first().map(|s| super::php::Value::Str(s.clone()).int()))
         .unwrap_or(0);
-    match document_html(&core.pool, id, lang).await {
-        Ok(body) => html_response(body.unwrap_or_default()),
+    let login_url = q.get("login_url").filter(|u| u.starts_with('/') && !u.starts_with("//") && !u.starts_with("/\\"));
+    let result = async {
+        if let Some(url) = login_url {
+            let reg = registry::load(&core.pool).await?;
+            let link = format!("<p class='center large'><a href='{}' target='_top'>Click here to continue</a></p>\n", html::esc_attr(url));
+            return Ok(format!("{}{link}{}", chrome::html_open(&reg, &chrome::Head::titled(""), false), chrome::HTML_CLOSE));
+        }
+        Ok(document_html(&core.pool, id, viewer::lang_for(&visitor)).await?.unwrap_or_default())
+    }
+    .await;
+    match result {
+        Ok(body) => html_response(body),
         Err(e) => failed(e),
     }
 }
@@ -399,6 +486,8 @@ mod tests {
         assert_eq!((r.search_code.as_str(), r.search_term.as_str()), ("abc", "def"));
         assert_eq!(r.unit_type, "");
         assert_eq!(Request::parse(&q(&[("sku", "HBLT 3")])).sku, "HBLT 3");
+        assert_eq!(Request::parse(&q(&[("subcategory_id", "664")])).subcategory_id, 664);
+        assert_eq!(Request::parse(&q(&[("subcategory_id", "664"), ("search_source", "search")])).subcategory_id, 0, "a search reads its ids from the search table");
     }
 
     #[test]

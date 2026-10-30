@@ -176,7 +176,7 @@ pub async fn part_page(ctx: &mut Ctx<'_>, part: Part) -> sqlx::Result<Page> {
 /// tabs_output(): the quick-CAD status line and, except for crawlers, the Profile tab.
 async fn finish(ctx: &Ctx<'_>, tabs: &mut Tabs) -> sqlx::Result<String> {
     if !ctx.viewer.is_bot() {
-        let form = crate::catalog::profile::enter(ctx, false).await?;
+        let form = crate::catalog::profile::enter(ctx, None).await?;
         let form = form.trim();
         tabs.item(ctx.strings.get("catalog_profile"), (!form.is_empty()).then(|| form.to_string()), Some("catalog_profile"), None);
     }
@@ -646,16 +646,14 @@ fn cad(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
 
 /// lookup(): a part number typed into the search box. Found in the search table, it opens its family's page;
 /// otherwise the visitor is told it was not found.
-pub async fn lookup(ctx: &mut Ctx<'_>, code: &str) -> sqlx::Result<String> {
-    let wanted = code.trim().to_uppercase();
+pub async fn lookup(ctx: &mut Ctx<'_>, found: Option<super::results::Hit>) -> sqlx::Result<String> {
+    let wanted = ctx.req.raw_search_code.trim().to_uppercase();
     if wanted.is_empty() {
         return Ok("<p class=center>Blank SKU</p>".into());
     }
-    let Some(hit) = super::results::exact(ctx, &wanted).await? else {
+    let Some(hit) = found else {
         return Ok(format!("<p class=center>Part# <b>{}</b> not found</p>", esc_text(&wanted)));
     };
-    ctx.category_id = hit.category_id;
-    ctx.subcategory_id = hit.subcategory_id;
     ctx.part = hit.part;
     if ctx.family().is_none() {
         return Ok(String::new());

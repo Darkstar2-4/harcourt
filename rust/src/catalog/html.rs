@@ -26,10 +26,10 @@ pub fn esc(s: &str) -> String {
     out
 }
 
-/// Element text from the catalog's tables, which hold names with entities (`&trade;`) and quotes as the PHP printed
-/// them: only `<` and `>` are escaped, so no stored value can open a tag.
+/// Element text from the catalog's tables, which hold names with entities (`&trade;`), quotes and `>=` as the PHP
+/// printed them: only `<` is escaped, which is all it takes in element text for no value to open a tag.
 pub fn esc_text(s: &str) -> String {
-    escape_only(s, &['<', '>'])
+    escape_only(s, &['<'])
 }
 
 /// A single-quoted attribute value as the PHP wrote it, with only what could end the attribute or open a tag
@@ -213,6 +213,7 @@ mod tests {
     #[test]
     fn escapes_markup_and_quotes() {
         assert_eq!(esc(r#"<a href="x">Tom's & Co</a>"#), "&lt;a href=&quot;x&quot;&gt;Tom&#039;s &amp; Co&lt;/a&gt;");
+        assert_eq!(esc_text("Catia >=V5 <script>&trade;"), "Catia >=V5 &lt;script>&trade;");
     }
 
     #[test]

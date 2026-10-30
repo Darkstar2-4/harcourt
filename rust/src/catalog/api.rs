@@ -68,16 +68,15 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         let action = get("action").trim();
         return match action {
             "download" => download(get("url")).await,
-            _ => text(format!("function: html_{action}")),
+            _ => text(format!("function: html_{}", html::esc(action))),
         };
     }
     let result = async {
-        let lang = viewer::lang_for(&visitor, None);
+        let lang = viewer::lang_for(&visitor);
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
         let reg = registry::load(&core.pool).await?;
         let strings = strings::load(&core.pool, lang).await?;
-        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string());
-        let profile = profile::load(&core.pool, &viewer, &headers, email.as_deref()).await?;
+        let profile = profile::load(&core.pool, &viewer, &headers).await?;
         let ctx = Api { pool: &core.pool, viewer: &viewer, reg: &reg, strings: &strings, profile };
         let mut out = Map::new();
         let mut trace = vec!["json"];

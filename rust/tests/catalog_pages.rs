@@ -2,9 +2,17 @@
 
 mod catalog_support;
 
-use axum::http::StatusCode;
-use catalog_support::{get, harness, send, signed_in, Account};
+use axum::{
+    body::Body,
+    http::{Method, Request, StatusCode},
+};
+use catalog_support::{harness, send, signed_in, Account};
 use sqlx::SqlitePool;
+
+/// What the catalog page's script fetched, inside a visit.
+fn get(path: &str, cookie: Option<&str>) -> Request<Body> {
+    catalog_support::request(Method::GET, path, cookie, &[("x-requested-with", "XMLHttpRequest")], Body::empty())
+}
 
 const PARAMS: &str = r#"a:2:{i:0;O:27:"subcategory_parameter_class":4:{s:2:"id";i:0;s:4:"name";s:8:"Diameter";s:4:"type";s:9:"Decimal:2";s:9:"hyperlink";i:0;}i:1;O:27:"subcategory_parameter_class":4:{s:2:"id";i:1;s:4:"name";s:4:"Mate";s:4:"type";s:9:"Uppercase";s:9:"hyperlink";i:1;}}"#;
 
@@ -147,6 +155,9 @@ async fn french_pages_use_french_names_and_links() {
     seed(&h.pool).await;
     let cookie = signed_in(&h.pool, &Account::customer(26)).await;
     let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(!body.contains("<h1>Goupilles à billes</h1>"), "the link's lang= is not the session's language");
+    let french = format!("{cookie}; hx_lang=FR");
+    let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&french))).await;
     assert!(body.contains("<h1>Goupilles à billes</h1>"), "{body}");
     assert!(body.contains("Détails du produit</a>"));
     assert!(body.contains("href=\"/catalogue/?lang=fr&action=sku"));
@@ -169,8 +180,30 @@ async fn a_lookup_opens_the_family_or_says_not_found() {
     let cookie = signed_in(&h.pool, &Account::customer(27)).await;
     let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=hblt-2"), Some(&cookie))).await;
     assert!(body.contains("<h1>Ball Lock Pins</h1>"));
+    assert!(body.contains("<input type=hidden name='category_id' id='category_id' value='1'>\n<input type=hidden name='subcategory_id' id='subcategory_id' value='7'>"), "the form carries the part's family: {body}");
     let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope%3Cb%3E"), Some(&cookie))).await;
-    assert!(body.contains("<p class=center>Part# <b>NOPE&lt;B&gt;</b> not found</p>"), "{body}");
+    assert!(body.contains("<p class=center>Part# <b>NOPE&lt;B></b> not found</p>"), "{body}");
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_the_fragment_goes_where_scs_header_sent_it() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let first = |path: &str, cookie: Option<&str>| catalog_support::request(Method::GET, path, cookie, &[], Body::empty());
+    let location = |headers: &axum::http::HeaderMap| headers.get("location").map(|v| v.to_str().unwrap().to_string());
+    let (status, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=7", None)).await;
+    assert_eq!((status, location(&headers).as_deref()), (StatusCode::FOUND, Some("/")));
+    let (_, headers, _) = send(&h.app, first("/catalog.php", None)).await;
+    assert_eq!(location(&headers).as_deref(), Some("/scs_index.php"));
+    let cookie = signed_in(&h.pool, &Account::customer(28)).await;
+    let (_, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1", Some(&cookie))).await;
+    assert_eq!(location(&headers).as_deref(), Some("/catalog/"));
+    let (status, _, body) = send(&h.app, first("/catalog.php", Some(&cookie))).await;
+    assert_eq!(status, StatusCode::OK, "an active customer asked for the catalog itself");
+    assert!(body.contains("src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>") && body.contains("<div id='scs_menu' >"), "outside the frame the page draws its own menu: {body}");
+    assert!(body.contains("href=\"/catalog.php?lang=en&action=subcategory&subcategory_id=7\""), "and links to itself: {body}");
+    let (_, _, body) = send(&h.app, get("/catalog.php", Some(&cookie))).await;
+    assert!(!body.contains("<div id='scs_menu' >"), "a request inside a visit came through the frame");
 }
 
 #[tokio::test]
@@ -225,4 +258,22 @@ async fn search_results_open_the_pick_or_list_the_matches() {
     assert!(body.contains("<h2>Pins</h2>") && body.contains("<h2>Clamps</h2>"), "matches in several families list them");
     let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=zzz"), Some(&cookie))).await;
     assert!(body.contains("<p class=center>No results for search term: <b>zzz</b></p>"));
+}
+
+#[tokio::test]
+async fn the_old_pages_answer_as_their_php_did() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('document', 156, '', 'EN', 'Sign in', 'html', '{\"mime\":\"text/html\"}', '<p>Enter your email</p>')").await;
+    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", None)).await;
+    assert!(body.contains("<div id='scs_content' ><p>Please request access</p>") && !body.contains("<!-- #scs_content -->"), "{body}");
+    let cookie = signed_in(&h.pool, &Account::customer(29)).await;
+    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", Some(&cookie))).await;
+    assert_eq!(body, "<p>Enter your email</p>", "a browser that never gave its address gets the sign-in document");
+    let (_, _, body) = send(&h.app, get("/new_catalog.php?scscpq_wp=1", Some(&format!("{cookie}; harcourt=someone%40example.com")))).await;
+    assert!(body.contains("Ball Lock Pins"), "{body}");
+    let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=%2Fcatalog%2F", None)).await;
+    assert!(body.contains("</head>\n<body>\n<p class='center large'><a href='/catalog/' target='_top'>Click here to continue</a></p>\n</body>\n</html>\n"), "{body}");
+    let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=javascript%3Aalert(1)", None)).await;
+    assert!(!body.contains("Click here"), "only an address on this site is linked");
 }

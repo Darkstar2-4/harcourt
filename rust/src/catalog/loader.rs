@@ -64,8 +64,14 @@ impl Loader {
 
 /// The meta object, keys in the PHP's order; the referrer is null when the request had none.
 fn meta(referrer: Option<&str>) -> String {
-    let referrer = referrer.map_or(Value::Null, |r| json!(r));
-    format!("{{\"script\":{},\"referrer\":{},\"version\":{}}}", php_json(&json!("/scscpq_wp.php")), php_json(&referrer), php_json(&json!(VERSION)))
+    let referrer = referrer.map_or_else(|| "null".to_string(), echoed);
+    format!("{{\"script\":{},\"referrer\":{referrer},\"version\":{}}}", php_json(&json!("/scscpq_wp.php")), php_json(&json!(VERSION)))
+}
+
+/// json_encode() of a value the request supplied. The answer is text/html as the PHP's was, so `<` and `>` are
+/// written as < and >: the same string to a JSON reader, never markup to a browser.
+fn echoed(s: &str) -> String {
+    php_json(&json!(s)).replace('<', "\\u003c").replace('>', "\\u003e")
 }
 
 /// json_encode() of one value.
@@ -158,7 +164,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
         }
         None => Value::Null,
     });
-    out.set("token", json!(token));
+    out.set_encoded("token", echoed(&token));
     out.set("error", json!(""));
     out.set("trace", json!(trace));
     Ok(out)
@@ -175,7 +181,7 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
             for (k, v) in url_query(req.url) {
                 query.set(&k, v);
             }
-            ("/catalog.php", true)
+            (if req.url.to_ascii_lowercase().contains("beta") { "/beta_catalog.php" } else { "/catalog.php" }, true)
         }
         "campaign" => {
             for (k, v) in url_query(req.url) {
@@ -238,7 +244,7 @@ fn portal_link(strings: &Strings, lang: Lang) -> String {
 }
 
 fn json_response(status: StatusCode, body: String) -> Response {
-    (status, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], body).into_response()
+    (status, [(header::CONTENT_TYPE, crate::visitor::PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response()
 }
 
 fn form(body: &Bytes) -> HashMap<String, String> {
@@ -272,13 +278,21 @@ async fn scscpq_wp(
         let mut out = Loader::default();
         out.set_encoded("meta", meta(referrer));
         out.set("scscpq_document", Value::Null);
-        out.set("error", json!(format!("{action}: {code}")));
+        out.set_encoded("error", echoed(&format!("{action}: {code}")));
         out.set("trace", json!(["__construct", "document"]));
         return json_response(StatusCode::UNAUTHORIZED, out.to_json());
     }
     let lang = language(get("language"));
+    let remember = !matches!(get("remember"), "" | "0");
     let result = async {
-        let viewer = viewer::load(&core.pool, &visitor, lang).await?;
+        let mut viewer = viewer::load(&core.pool, &visitor, lang).await?;
+        let chosen = Lang::from_code(&get("language").trim().chars().take(2).collect::<String>());
+        if let (true, Some(id), Some(account), Some(chosen)) = (remember, viewer.account_id(), viewer.account_lang, chosen) {
+            if account != chosen {
+                crate::accounts::account::set_language(&core.pool, id, chosen.code()).await?;
+                viewer.account_lang = Some(chosen);
+            }
+        }
         let req = Initial { page: get("page"), document: get("document"), token: get("token"), url: get("url"), origin: &core.public_origin, referrer };
         initial(&core.pool, &viewer, &req).await
     }
@@ -310,9 +324,9 @@ jQuery(function() {
         source: function(request, response) {
             var term=this.term.trim();
             if (term.length < 2) return;
-            var query={ limit: 20, term: term };
+            var query={ table: "search", limit: 20, term: term };
             jQuery.ajax({
-                url: "/catalog-api/search?" + jQuery.param(query),
+                url: "/scs_ajax.php?" + jQuery.param(query),
                 dataType: 'json',
                 success: function (data) {
                     // Enter opens the first suggestion when it is the part number or name typed, or starts with it
@@ -339,6 +353,31 @@ jQuery(function() {
         }
     });
 });
+/*
+jQuery(function() {
+    jQuery("#scscpq_search_text").autocomplete({
+        source: function(request, response) {
+            var term=this.term.trim();
+            if (term.length < 2) return;
+            var query={ table: "search", limit: 20, term: term };
+            jQuery.ajax({
+                url: "/scs_ajax.php?" + jQuery.param(query),
+                dataType: 'json',
+                success: function (data) {
+                    if (data.items.length > 0) {
+                        response(data.items);
+                        } else {
+                        response([{ label: 'No results found.', val: '', id: 0 }]);
+                    }
+                }
+            })
+        },
+        select: function(event, ui) {
+            if (ui.item['id']) search_content(ui.item['id'], '')
+        }
+    });
+});
+*/
 function search_content(id, code, search_source="search") {
     code=code.trim();
     if ( (!id) && (code.length < 2) ) {
@@ -374,6 +413,8 @@ mod tests {
         let req = Initial { page: "catalog", document: "", token: "", url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
+        let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
+        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
         assert_eq!(language("fr-CA"), Lang::Fr);
         assert_eq!(language(""), Lang::En);
     }

@@ -74,7 +74,8 @@ async fn an_entered_term_the_keyword_search_misses_opens_the_best_suggestion() {
     seed(&h.pool).await;
     sqlx::query("INSERT INTO language (code, name, active) VALUES ('EN', 'English', 1)").execute(&h.pool).await.unwrap();
     let cookie = signed_in(&h.pool, &Account::customer(42)).await;
-    let (_, _, body) = send(&h.app, catalog_support::get("/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=hblt%201", Some(&cookie))).await;
+    let req = request(Method::GET, "/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=hblt%201", Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty());
+    let (_, _, body) = send(&h.app, req).await;
     assert!(body.contains("Part number: HBLT-1"), "{body}");
 }
 

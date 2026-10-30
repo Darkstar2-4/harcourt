@@ -5,7 +5,8 @@
 use axum::http::{header, HeaderMap};
 use sqlx::SqlitePool;
 
-use super::{forms, html::{esc, esc_attr, esc_text}, pages::Ctx, registry::Registry, strings::Strings, viewer::Viewer};
+use super::{forms, html::esc_text, pages::Ctx, registry::Registry, strings::Strings, viewer::Viewer};
+use crate::accounts::profile::{address_rows, legend, Layout, Profile as AddressProfile};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Profile {
@@ -65,6 +66,22 @@ impl Profile {
         let format = s.label("catalog_cad_format_msg", "CAD Format: {format}.", &[("format", &format)]);
         format!("{format} {delivery} {}", s.label("catalog_cad_click_profile", "Click PROFILE to change.", &[]))
     }
+
+    /// The fields the address form draws, as accounts::profile has them.
+    fn address(&self) -> AddressProfile {
+        AddressProfile {
+            email: self.email.clone(),
+            name_first: self.name_first.clone(),
+            name_last: self.name_last.clone(),
+            company_name: self.company_name.clone(),
+            address: self.address.clone(),
+            city: self.city.clone(),
+            state: self.state.clone(),
+            zip: self.zip.clone(),
+            country_code: self.country_code.clone(),
+            ..AddressProfile::default()
+        }
+    }
 }
 
 fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
@@ -78,7 +95,9 @@ fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
         .map(|(_, v)| percent_encoding::percent_decode_str(v).decode_utf8_lossy().into_owned())
 }
 
-pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap, email: Option<&str>) -> sqlx::Result<Profile> {
+/// profile_class::load(): the remembered profile, its email else the address the browser signed in with (the
+/// `harcourt` cookie), and a signed-in account's address.
+pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap) -> sqlx::Result<Profile> {
     let json: serde_json::Value = cookie(headers, "harcourt_profile").and_then(|c| serde_json::from_str(&c).ok()).unwrap_or_default();
     let text = |k: &str| match json.get(k) {
         Some(serde_json::Value::String(s)) => s.trim().to_string(),
@@ -86,7 +105,7 @@ pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap, email
         _ => String::new(),
     };
     let mut p = Profile {
-        email: Some(text("email")).filter(|e| !e.is_empty()).or_else(|| email.map(str::to_string)).unwrap_or_default(),
+        email: Some(text("email")).filter(|e| !e.is_empty()).or_else(|| cookie(headers, "harcourt")).unwrap_or_default(),
         name_first: text("name_first"),
         name_last: text("name_last"),
         generate: json.get("generate").is_some_and(|g| g.as_i64().unwrap_or(0) != 0 || g.as_str().is_some_and(|s| s.trim() != "0" && !s.trim().is_empty())),
@@ -118,32 +137,43 @@ pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap, email
     Ok(p)
 }
 
-/// profile_class::enter(): the profile form, as the catalog shows it in its Profile tab and at the gate.
-pub async fn enter(ctx: &Ctx<'_>, notice: bool) -> sqlx::Result<String> {
+/// profile_class::address(): an account's own company is not asked for, and when the account lacks nothing the
+/// address fields are left out as well.
+fn omitted(p: &Profile, account: bool, layout: &Layout) -> Vec<&'static str> {
+    let own = |v: &str| if account { !v.is_empty() } else { false };
+    let mut omit = Vec::new();
+    let mut lacking = !own(&p.company_name);
+    if own(&p.company_name) {
+        omit.push("company_name");
+    }
+    lacking |= !own(&p.country_code);
+    lacking |= [("address", &p.address), ("city", &p.city), ("state", &p.state), ("zip", &p.zip)].iter().any(|(f, v)| layout.required(f) && !own(v));
+    if !lacking {
+        omit.extend(["address", "city", "state", "zip", "country_code"]);
+    }
+    omit
+}
+
+/// profile_class::enter(): the profile form, as the catalog shows it in its Profile tab and, with the page's own
+/// address to return to, at the gate.
+pub async fn enter(ctx: &Ctx<'_>, gate: Option<&str>) -> sqlx::Result<String> {
     let p = &ctx.profile;
     let mut out = String::new();
     let s = &ctx.strings;
-    out.push_str(ENTER_CSS);
-    out.push_str(&ENTER_JS.replace("Internal Error Detected", &s.label("catalog_profile_internal_error", "Internal Error Detected", &[])));
-    out.push_str(&forms::hidden_class("success_url", if notice { "/catalog/" } else { "" }, "scscpq_input"));
+    let error = super::loader::php_json(&serde_json::Value::from(s.label("catalog_profile_internal_error", "Internal Error Detected", &[])));
+    out.push_str(&ENTER_CSS.replace('\n', "\r\n"));
+    out.push_str(&ENTER_JS.replace('\n', "\r\n").replace("\"Internal Error Detected\"", &error));
+    out.push_str(&forms::hidden_class("success_url", gate.unwrap_or(""), "scscpq_input"));
     out.push_str(&forms::hidden_class("profile_tab", "", "scscpq_input"));
     if !p.company_name.is_empty() {
         out.push_str(&format!("<p class=profile_welcome>{}</p>", s.label("catalog_profile_welcome", "Welcome {company}!", &[("company", &esc_text(&p.company_name))])));
     }
     out.push_str("<div class=profile_box><div id=profile_message></div><table class=noborder>");
-    if notice {
+    if gate.is_some() {
         out.push_str(&format!("<div>{}</div>", ctx.registry.get("local", "profile_notice")));
     }
-    let row = |label: &str, field: &str, value: &str, size: &str, max: &str| {
-        let input = forms::text(&format!("profile_{field}"), value, size, max, &[("class", "scscpq_input"), ("placeholder", label)]);
-        format!("<tr><td width='20%'>{label}</td><td width='80%'>{input}</td></tr>")
-    };
-    out.push_str(&row("Email", "email", &p.email, "40", "60"));
-    out.push_str(&row("First Name", "name_first", &p.name_first, "40", "40"));
-    out.push_str(&row("Last Name", "name_last", &p.name_last, "40", "40"));
-    if ctx.viewer.account_id().is_none() || p.company_name.is_empty() {
-        out.push_str(&row("Company Name", "company_name", &p.company_name, "40", "40"));
-    }
+    let layout = Layout::load(ctx.pool).await?;
+    out.push_str(&address_rows(ctx.pool, &layout, &p.address(), &omitted(p, ctx.viewer.account_id().is_some(), &layout)).await?);
     out.push_str(&format!("<tr><td>{} ", s.label("catalog_profile_email_cad", "Email CAD?", &[])));
     out.push_str(&forms::checkbox("profile_generate", "1", if p.generate { "1" } else { "0" }, &[("class", "scscpq_input")]));
     let lines = [
@@ -163,7 +193,7 @@ pub async fn enter(ctx: &Ctx<'_>, notice: bool) -> sqlx::Result<String> {
     out.push_str(&format!("<tr><td><span id=cad_code_error>{}</span></td><td>", s.label("catalog_profile_cad_format", "CAD Format", &[])));
     out.push_str(&cad_picklist(ctx, &p.cad_code).await?);
     out.push_str("</td></tr>");
-    out.push_str(&format!("<tr><td colspan=2>{}</td></tr>", forms::font("red", "<b>*</b>", "Indicates mandatory fields")));
+    out.push_str(&legend());
     out.push_str("</table>");
     let label = if ctx.viewer.account_id().is_some() { s.label("catalog_profile_update", "Update Profile", &[]) } else { s.label("catalog_profile_submit", "Submit", &[]) };
     out.push_str(&format!("<p>{}</p>", forms::button(&label, &[("class", "small_button"), ("onclick", "profile_ajax('profile');")])));
@@ -185,13 +215,7 @@ async fn cad_picklist(ctx: &Ctx<'_>, selected: &str) -> sqlx::Result<String> {
     let mut groups: Vec<(String, Vec<String>)> = Vec::new();
     for r in rows.into_iter().filter(|r| all || r.direct == 0) {
         let id = super::html::base64_fields(&["cad_code", &r.code]);
-        let radio = format!(
-            "<input type=radio value='{}' name='cad_code' class='scscpq_input' id='{}'{}>\n {}",
-            esc(&r.code),
-            esc_attr(&id),
-            if r.code == selected { " checked" } else { "" },
-            esc_text(&r.name)
-        );
+        let radio = format!("{} {}", forms::radio("cad_code", &r.code, selected, &[("class", "scscpq_input"), ("id", &id)]), esc_text(&r.name));
         match groups.iter_mut().find(|(t, _)| *t == r.ty) {
             Some((_, list)) => list.push(radio),
             None => groups.push((r.ty, vec![radio])),

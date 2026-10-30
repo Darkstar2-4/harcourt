@@ -56,22 +56,27 @@ async fn hit(ctx: &Ctx<'_>, row: Option<Row>) -> sqlx::Result<Option<Hit>> {
     Ok(Some(Hit { table, category_id: category_id.unwrap_or(0), subcategory_id: subcategory_id.unwrap_or(0), part }))
 }
 
-/// search_source=search: with a search_id the row picked from the suggestions, without one an exact part number,
-/// else the keyword results.
-pub async fn search(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
+/// What catalog.php's constructor read for search_source=search and lookup, before anything is printed: the row
+/// picked from the suggestions (search_id), else the exact part number.
+pub async fn resolve(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
     let id = ctx.req.search_id;
-    let found = if id != 0 {
-        let row = sqlx::query!(
-            r#"SELECT table_name, category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64" FROM search WHERE id = ?1"#,
-            id
-        )
-        .fetch_optional(ctx.pool)
-        .await?;
-        hit(ctx, row.map(|r| (r.table_name.unwrap_or_default(), r.category_id, r.subcategory_id, r.inventory_id))).await?
-    } else {
-        let code = ctx.req.raw_search_code.clone();
-        exact(ctx, &code).await?
-    };
+    match ctx.req.search_source.as_str() {
+        "search" if id != 0 => {
+            let row = sqlx::query!(
+                r#"SELECT table_name, category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64" FROM search WHERE id = ?1"#,
+                id
+            )
+            .fetch_optional(ctx.pool)
+            .await?;
+            hit(ctx, row.map(|r| (r.table_name.unwrap_or_default(), r.category_id, r.subcategory_id, r.inventory_id))).await
+        }
+        "search" | "lookup" if !ctx.req.raw_search_code.trim().is_empty() => exact(ctx, &ctx.req.raw_search_code).await,
+        _ => Ok(None),
+    }
+}
+
+/// search_source=search: the resolved row's page, else the keyword results.
+pub async fn search(ctx: &mut Ctx<'_>, found: Option<Hit>) -> sqlx::Result<String> {
     let Some(hit) = found else { return search_code(ctx).await };
     open(ctx, hit).await
 }

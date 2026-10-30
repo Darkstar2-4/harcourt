@@ -152,8 +152,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         return Err(format!("loader status {status}"));
     }
     collect_cookies(&loader_headers, &mut jar, &mut set_cookies);
-    let loader_raw = String::from_utf8_lossy(&loader_body).into_owned();
-    let loader_json: serde_json::Value = serde_json::from_str(&loader_raw).map_err(|e| format!("loader json: {e}"))?;
+    let loader_json: serde_json::Value = serde_json::from_slice(&loader_body).map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
     // account's language; only a flag click changes it.
     let account = loader_json.get("account_language").and_then(|v| v.as_str()).and_then(page_for);
@@ -177,6 +176,9 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         .ok_or("loader returned no scscpq_link")?;
     let link_path = link.split_once("://").and_then(|(_, rest)| rest.find('/').map(|i| &rest[i..])).ok_or_else(|| format!("unexpected link {link}"))?;
 
+    // The loader put the page's language in the PHP session, where catalog.php read it; the fragment is told the
+    // same way, and the browser's own language choice is left alone.
+    jar.set(hxweb::accounts::cookies::LANGUAGE, &page.lang.to_ascii_uppercase());
     let (status, frag_headers, frag_body) = internal(app, Method::GET, link_path, headers, &jar, &page_url, String::new()).await?;
     if status != StatusCode::OK {
         return Err(format!("fragment status {status}"));
@@ -201,7 +203,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let shell = shell_for(app, page, &uri).await?;
     let open_tag = app.re.placeholder.captures(&shell).ok_or("placeholder missing from shell")?[1].to_string();
 
-    let mut inline = format!("<script>window.hxweb_loader = {};</script>\n", loader_raw.replace("</", "<\\/"));
+    let mut inline = format!("<script>window.hxweb_loader = {};</script>\n", loader_json.to_string().replace("</", "<\\/"));
     if flag_click {
         inline.push_str(&format!("<script>history.replaceState(null, '', {});</script>\n", serde_json::Value::from(uri.as_str())));
     }
