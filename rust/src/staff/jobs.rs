@@ -1,62 +1,23 @@
-//! `hxweb job <name>`: the work cron.php used to start over HTTP with an API key, run as a command by a systemd
-//! timer instead. Nothing here is reachable from the web.
+//! `hxweb job <name>`: the work cron.php used to start over HTTP with an API key (search_utility, image_filmstrip,
+//! cad_toolbox), run as a command by a systemd timer instead, and the price increase inventory_increase.php ran.
+//! Nothing here is reachable from the web.
 
 use std::{
     fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::OpenOptionsExt,
     path::Path,
+    str::FromStr,
 };
 
+use rust_decimal::{Decimal, RoundingStrategy};
 use sqlx::SqlitePool;
 
-use super::time;
-use crate::{config::Config, db};
-
-const USAGE: &str = "usage: hxweb job search_utility | search_export <dir> | search_export --log <file> | image_filmstrip <docroot>";
-
-pub async fn cli(args: &[String]) -> i32 {
-    let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let config = match Config::from_env(|k| std::env::var(k).ok()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("{e}");
-            return 2;
-        }
-    };
-    let result = match args[..] {
-        ["search_utility"] => match db::open(&config.db_path).await {
-            Ok(pool) => search_utility(&pool, db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["search_export", "--log", file] => match db::open(&config.db_path).await {
-            Ok(pool) => search_log(&pool, Path::new(file), db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["image_filmstrip", docroot] => match db::open(&config.db_path).await {
-            Ok(pool) => super::filmstrip::run(&pool, Path::new(docroot), db::unix_now()).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        ["search_export", dir] => match db::open(&config.db_path).await {
-            Ok(pool) => search_export(&pool, Path::new(dir)).await,
-            Err(e) => Err(format!("cannot open {}: {e}", config.db_path.display())),
-        },
-        _ => {
-            eprintln!("{USAGE}");
-            return 2;
-        }
-    };
-    match result {
-        Ok(summary) => {
-            print!("{summary}");
-            0
-        }
-        Err(e) => {
-            eprintln!("{e}");
-            1
-        }
-    }
-}
+use super::{
+    data::{pricing, pricing_text},
+    html::number,
+    time,
+};
 
 /// One TSV cell: tabs and line breaks become spaces, NULL is empty.
 fn cell(v: impl Into<Option<String>>) -> String {
@@ -368,7 +329,7 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     .map_err(fail)?;
     let unique = sqlx::query_scalar!(r#"SELECT count(*) AS "n!: i64" FROM search"#).fetch_one(&mut *tx).await.map_err(fail)?;
 
-    let n = |v: i64| super::html::number(v);
+    let n = number;
     let lines = [
         format!("Subcategory: {}", n(families)),
         format!("Category Languages: {}", n(names.len() as i64)),
@@ -400,9 +361,241 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     Ok(comment + "\n")
 }
 
+/// One CAD format PARTcommunity offers, as the `cad` table keeps it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CadFormat {
+    pub code: String,
+    pub name: String,
+    pub qualifier: String,
+    pub version: String,
+    pub kind: String,
+    pub native: bool,
+    pub has_macro: bool,
+    pub direct: bool,
+}
+
+fn xml_text(s: &str) -> String {
+    s.trim().replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&")
+}
+
+/// The `<format>` elements of cadqualifier.asp's answer: attributes `type` and `cad`, children `qualifier` (the
+/// code), `name`, `version`, `macro` and `directintocad`. None when it is not that list.
+pub fn cad_formats(xml: &str) -> Option<Vec<CadFormat>> {
+    static RE: std::sync::OnceLock<(regex::Regex, regex::Regex, regex::Regex)> = std::sync::OnceLock::new();
+    let (format, attr, child) = RE.get_or_init(|| {
+        (
+            regex::Regex::new(r"(?s)<format\b([^>]*?)(?:/>|>(.*?)</format>)").expect("format"),
+            regex::Regex::new(r#"([A-Za-z_]+)\s*=\s*"([^"]*)""#).expect("attribute"),
+            regex::Regex::new(r"(?s)<([A-Za-z_]+)\s*(?:/>|>([^<]*)</[A-Za-z_]+>)").expect("child"),
+        )
+    });
+    if !xml.contains("<format") {
+        return None;
+    }
+    let mut out: Vec<CadFormat> = Vec::new();
+    for f in format.captures_iter(xml) {
+        let attrs: Vec<(String, String)> = attr.captures_iter(&f[1]).map(|a| (a[1].to_string(), xml_text(&a[2]))).collect();
+        let children: Vec<(String, String)> = f.get(2).map_or(Vec::new(), |b| child.captures_iter(b.as_str()).map(|c| (c[1].to_string(), c.get(2).map_or(String::new(), |v| xml_text(v.as_str())))).collect());
+        let attr = |k: &str| attrs.iter().find(|(n, _)| n == k).map_or("", |(_, v)| v.as_str());
+        let get = |k: &str| children.iter().find(|(n, _)| n == k).map_or("", |(_, v)| v.as_str());
+        let direct = get("directintocad").eq_ignore_ascii_case("true") || get("directintocad") == "1";
+        let format = CadFormat {
+            code: get("qualifier").to_string(),
+            name: format!("{} {}", get("name"), get("version")).trim().to_string(),
+            qualifier: get("name").to_string(),
+            version: get("version").to_string(),
+            kind: if direct { "PART2CAD".into() } else { attr("cad").to_uppercase() },
+            native: attr("type") == "native",
+            has_macro: get("macro") == "true",
+            direct,
+        };
+        match out.iter_mut().find(|o| o.code == format.code) {
+            Some(o) => *o = format,
+            None => out.push(format),
+        }
+    }
+    Some(out)
+}
+
+/// cad_toolbox.php's cron job: the CAD formats PARTcommunity offers for the site's portal (or catalog), which
+/// replace the `cad` table. A failed or empty answer leaves the table as it was.
+pub async fn cad_refresh(pool: &SqlitePool, now: i64) -> Result<String, String> {
+    let fail = |e: sqlx::Error| format!("cad: {e}");
+    let portal = crate::accounts::registry::get(pool, "cad", "portal").await.map_err(fail)?;
+    let catalog = crate::accounts::registry::get(pool, "cad", "catalog").await.map_err(fail)?;
+    let query = match (portal, catalog) {
+        (Some(p), _) => [("portal", p)],
+        (None, Some(c)) => [("firm", c)],
+        (None, None) => return Err("registry cad.portal or cad.catalog is not set".into()),
+    };
+    let url = "https://www.partcommunity.com/cadqualifier.asp";
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().map_err(|e| e.to_string())?;
+    let answer = client.get(url).query(&query).send().await.and_then(reqwest::Response::error_for_status);
+    let message = match answer {
+        Err(e) => format!("Import Error: {}", e.status().map_or("no answer".to_string(), |s| format!("HTTP Code: {}", s.as_u16()))),
+        Ok(r) => match cad_formats(&r.text().await.unwrap_or_default()) {
+            None => "Malformed XML response".into(),
+            Some(f) if f.is_empty() => "No records found".into(),
+            Some(f) => {
+                replace_cad(pool, &f).await.map_err(fail)?;
+                format!("CAD formats: {}", f.len())
+            }
+        },
+    };
+    let comment = format!("{message}\nURL: {url}?{}={}", query[0].0, query[0].1);
+    sqlx::query!("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('', ?1, 0, '', 'CRON', 'CAD', ?2)", now, comment)
+        .execute(pool)
+        .await
+        .map_err(fail)?;
+    Ok(comment + "\n")
+}
+
+pub async fn replace_cad(pool: &SqlitePool, formats: &[CadFormat]) -> sqlx::Result<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query!("DELETE FROM cad").execute(&mut *tx).await?;
+    for f in formats {
+        sqlx::query!(
+            r#"INSERT INTO cad (code, name, qualifier, version, "type", instructions, "macro", native, direct, active) VALUES (?1, ?2, ?3, ?4, ?5, '', ?6, ?7, ?8, 1)"#,
+            f.code,
+            f.name,
+            f.qualifier,
+            f.version,
+            f.kind,
+            f.has_macro,
+            f.native,
+            f.direct
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await
+}
+
+/// How inventory_increase.php raised prices: by a fixed amount or a percentage of each break, to the cent.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Increase {
+    Fixed(Decimal),
+    Percent(Decimal),
+}
+
+impl Increase {
+    /// A fixed amount above $0.00, or a percentage above 0 and below 100.
+    pub fn parse(kind: &str, value: &str) -> Result<Increase, String> {
+        let amount = Decimal::from_str(value.trim().trim_start_matches('$').trim_end_matches('%')).map_err(|_| format!("not an amount: {value}"))?;
+        match kind {
+            "fixed" if amount > Decimal::ZERO => Ok(Increase::Fixed(amount)),
+            "percent" if amount > Decimal::ZERO && amount < Decimal::ONE_HUNDRED => Ok(Increase::Percent(amount)),
+            "fixed" => Err("a fixed increase must be > $0.00".into()),
+            _ => Err("a percent increase must be > 0.00% and < 100.00%".into()),
+        }
+    }
+
+    fn kind(self) -> &'static str {
+        match self {
+            Increase::Fixed(_) => "Fixed Amount",
+            Increase::Percent(_) => "Percent",
+        }
+    }
+
+    fn apply(self, price: Decimal) -> Decimal {
+        match self {
+            Increase::Fixed(add) => price + add,
+            Increase::Percent(pct) => price + (price * pct / Decimal::ONE_HUNDRED).round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero),
+        }
+    }
+
+    fn describe(self) -> String {
+        match self {
+            Increase::Fixed(d) => format!("${:.2}", d),
+            Increase::Percent(d) => format!("{:.2}%", d),
+        }
+    }
+}
+
+/// The subcategories a price increase may touch: active, not smart, in a category.
+async fn raisable(pool: &SqlitePool) -> sqlx::Result<Vec<i64>> {
+    sqlx::query_scalar!(
+        r#"SELECT DISTINCT s.id AS "id!: i64" FROM inventory i JOIN category c ON c.id = i.category_id JOIN subcategory s ON s.id = i.subcategory_id
+           WHERE s.output <> 'smart' AND s.status = 'Active' COLLATE NOCASE AND c.id <> 0 AND s.id <> 0 ORDER BY s.id"#
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// inventory_increase.php: raise every price break of the parts in these subcategories (all that may be raised when
+/// none are named). It cannot be rolled back. Each subcategory is raised in one transaction and stamped with the
+/// time; a part with no base price is skipped.
+pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories: &[i64], now: i64) -> Result<String, String> {
+    let fail = |e: sqlx::Error| format!("price increase: {e}");
+    let allowed = raisable(pool).await.map_err(fail)?;
+    if let Some(id) = subcategories.iter().find(|id| !allowed.contains(id)) {
+        return Err(format!("subcategory {id} is not an active, priced subcategory"));
+    }
+    let chosen = if subcategories.is_empty() { allowed } else { subcategories.to_vec() };
+    let (mut updated, mut skipped) = (0i64, 0i64);
+    for &id in &chosen {
+        let mut tx = pool.begin().await.map_err(fail)?;
+        let parts = sqlx::query!(r#"SELECT id AS "id!: i64", pricing FROM inventory WHERE subcategory_id = ?1"#, id).fetch_all(&mut *tx).await.map_err(fail)?;
+        for part in parts {
+            let mut breaks = part.pricing.as_deref().map(pricing).unwrap_or_default();
+            if breaks.first().is_none_or(|b| b.price.is_zero()) {
+                skipped += 1;
+                continue;
+            }
+            for b in &mut breaks {
+                b.price = increase.apply(b.price);
+            }
+            let stored = pricing_text(&breaks);
+            sqlx::query!("UPDATE inventory SET pricing = ?2 WHERE id = ?1", part.id, stored).execute(&mut *tx).await.map_err(fail)?;
+            updated += 1;
+        }
+        sqlx::query!("UPDATE subcategory SET price_increase = ?2 WHERE id = ?1", id, now).execute(&mut *tx).await.map_err(fail)?;
+        tx.commit().await.map_err(fail)?;
+    }
+    let comment = [
+        format!("Subcategories: {}", number(chosen.len() as i64)),
+        format!("Increase: {}", increase.describe()),
+        format!("SKUs updated: {} SKUs skipped: {}", number(updated), number(skipped)),
+    ]
+    .join("\n");
+    let subtype = format!("Price Increase: {}", increase.kind());
+    sqlx::query!("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('', ?1, 0, '', 'Import Table', ?2, ?3)", now, subtype, comment)
+        .execute(pool)
+        .await
+        .map_err(fail)?;
+    Ok(comment + "\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn increases_round_each_break_to_the_cent() {
+        let d = |s: &str| Decimal::from_str(s).unwrap();
+        assert_eq!(Increase::Percent(d("2.5")).apply(d("12.30")), d("12.61"));
+        assert_eq!(Increase::Percent(d("10")).apply(d("0.05")), d("0.06"));
+        assert_eq!(Increase::Fixed(d("1.25")).apply(d("12.30")), d("13.55"));
+        assert_eq!(Increase::Percent(d("12.5")).describe(), "12.50%");
+        assert_eq!(Increase::parse("fixed", "$1.50"), Ok(Increase::Fixed(d("1.50"))));
+        assert!(Increase::parse("percent", "100").is_err());
+        assert!(Increase::parse("fixed", "0").is_err());
+    }
+
+    #[test]
+    fn cad_formats_read_from_the_qualifier_list() {
+        let xml = r#"<?xml version="1.0"?><formats>
+            <format type="native" cad="solidworks"><qualifier>SWX</qualifier><name>SolidWorks</name><version>2024</version><macro>true</macro><directintocad>true</directintocad></format>
+            <format type="neutral" cad="step"><qualifier>STEP-AP214</qualifier><name>STEP &amp; more</name><version/><macro>false</macro><directintocad>false</directintocad></format>
+            <format type="neutral" cad="step"><qualifier>STEP-AP214</qualifier><name>STEP AP214</name><version>2</version></format>
+        </formats>"#;
+        let f = cad_formats(xml).unwrap();
+        assert_eq!(f.len(), 2, "one row per code, the last kept");
+        assert_eq!((f[0].code.as_str(), f[0].name.as_str(), f[0].kind.as_str(), f[0].native, f[0].has_macro, f[0].direct), ("SWX", "SolidWorks 2024", "PART2CAD", true, true, true));
+        assert_eq!((f[1].name.as_str(), f[1].kind.as_str(), f[1].native), ("STEP AP214 2", "STEP", false));
+        assert_eq!(cad_formats("<html>maintenance</html>"), None);
+        assert_eq!(cad_formats("<formats><format/></formats>").map(|f| f.len()), Some(1));
+    }
 
     #[test]
     fn category_names_lose_entities_and_words_are_filtered() {

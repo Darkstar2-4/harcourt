@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE subcategory SET sort_order = ?2 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ba632e54a29d2cd0829b8cdb48e631f112ae1341e273a71c8a25f538d7cd8125"
+}

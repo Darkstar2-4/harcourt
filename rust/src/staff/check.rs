@@ -67,20 +67,6 @@ pub fn posted_number(s: &str, decimals: u32) -> Decimal {
     }
 }
 
-/// verify_file(): a site path of the given type. Blank is fine; anything else must be `/….type`.
-pub fn site_file(path: &str, kind: &str) -> Option<String> {
-    if path.is_empty() {
-        return None;
-    }
-    if !path.to_ascii_lowercase().ends_with(&format!(".{kind}")) {
-        return Some(format!("{path} not type {kind}"));
-    }
-    if !path.starts_with('/') {
-        return Some(format!("{path} must begin with /"));
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,13 +82,5 @@ mod tests {
         assert_eq!(email("a@x.c", false).1, Some("Invalid domain"));
         assert_eq!(email("a@x.c0m", false).1, Some("Email format error"));
         assert_eq!(email("first.last@sub.example.org", false).1, None);
-    }
-
-    #[test]
-    fn site_files_must_be_rooted_and_typed() {
-        assert_eq!(site_file("", "css"), None);
-        assert_eq!(site_file("/a/b.css", "css"), None);
-        assert_eq!(site_file("a.css", "css").as_deref(), Some("a.css must begin with /"));
-        assert_eq!(site_file("/a.js", "css").as_deref(), Some("/a.js not type css"));
     }
 }
