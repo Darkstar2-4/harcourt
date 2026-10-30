@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COALESCE(code, '') AS \"code!: String\", COALESCE(name, '') AS \"name!: String\", COALESCE(\"type\", '') AS \"ty!: String\"\n           FROM cad WHERE ?1 OR COALESCE(direct, 0) = 0\n           ORDER BY CASE WHEN direct = 1 THEN 1 WHEN \"type\" = '3D' THEN 2 ELSE 3 END, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ty!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "15d3db73dd95f7819db1b9222e1280f243ba3561fd75e6c3e7c0ad255b579a49"
+}

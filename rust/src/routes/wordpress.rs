@@ -173,9 +173,11 @@ fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc
     let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, legacy, core: core.clone() });
     let mut r = Router::new().route("/robots.txt", get(robots));
     for path in PAGES {
-        r = r.route(path, get(page).post(page_post));
+        // The search pages answer any other method as a GET, as WordPress did.
+        let methods = || if crate::catalog::wp_search::page::is_search_page(path) { get(page).post(page_post).fallback(page_other_method) } else { get(page).post(page_post) };
+        r = r.route(path, methods());
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
-            r = r.route(bare, get(page).post(page_post));
+            r = r.route(bare, methods());
         }
     }
     let front = Router::new().route("/{*path}", get(front)).with_state(wp.clone());
@@ -673,6 +675,16 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         return Answer::Found(front_without_lang(site, raw_query));
     }
     if q.wordpress {
+        if let Some(v) = crate::catalog::wp_search::page::vars(site, path, raw_query) {
+            use crate::catalog::wp_search::page::Vars;
+            return match v {
+                Vars::Show(p) => Answer::Render(p),
+                Vars::NotFound => Answer::NotFound,
+                Vars::Moved(to) => Answer::Redirect(to),
+                Vars::FeedMoved(to, kind) => Answer::FeedRedirect(to, kind),
+                Vars::Found(to) => Answer::Found(to),
+            };
+        }
         // Under a doubled slash WordPress resolves a post id its own way (a 301 to the permalink): not ported.
         return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
     }
@@ -714,6 +726,12 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         }
         (other, _) => other,
     }
+}
+
+/// A method other than GET, HEAD and POST: WordPress answered it as a GET, with the page as it printed it.
+async fn page_other_method(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+    let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+    serve(&wp, &uri, agent, None, false).await
 }
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {

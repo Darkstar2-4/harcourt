@@ -69,6 +69,21 @@ async fn anonymous_visitors_see_the_access_document() {
 }
 
 #[tokio::test]
+async fn any_method_gets_the_page_a_get_gets() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(21)).await;
+    let path = page("action=subcategory&subcategory_id=7");
+    let (_, _, want) = send(&h.app, get(&path, Some(&cookie))).await;
+    for method in [Method::PUT, Method::OPTIONS, Method::DELETE] {
+        let req = catalog_support::request(method.clone(), &path, Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::from("a=1"));
+        let (status, _, body) = send(&h.app, req).await;
+        assert_eq!(status, StatusCode::OK, "{method}");
+        assert_eq!(body, want, "{method}");
+    }
+}
+
+#[tokio::test]
 async fn a_customer_sees_the_family_with_its_parts_and_tabs() {
     let h = harness().await;
     seed(&h.pool).await;

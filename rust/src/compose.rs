@@ -114,6 +114,21 @@ fn page_uri(page: Page, query: &str) -> String {
     if q.is_empty() { page.path.to_string() } else { format!("{}?{}", page.path, q) }
 }
 
+/// The loader's link as a request target: the PHP wrote the page's query names as they came (a quote, a brace),
+/// which the browser's URL parser percent-encoded before asking.
+fn request_target(link: &str) -> String {
+    const KEEP: &[u8] = b"-._~:/?#[]@!$&'()*+,;=%";
+    let mut out = String::with_capacity(link.len());
+    for b in link.bytes() {
+        if b.is_ascii_alphanumeric() || KEEP.contains(&b) {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
 fn without_lang(query: &str) -> String {
     query.split('&').filter(|kv| !kv.is_empty() && !kv.starts_with("lang=")).collect::<Vec<_>>().join("&")
 }
@@ -187,6 +202,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         .and_then(|v| v.as_str())
         .ok_or("loader returned no scscpq_link")?;
     let link_path = link.split_once("://").and_then(|(_, rest)| rest.find('/').map(|i| &rest[i..])).ok_or_else(|| format!("unexpected link {link}"))?;
+    let link_path = &request_target(link_path);
 
     // The loader recorded the page's language in the visit, which the fragment request reads through the same session
     // cookie the jar carries, and the browser's own language choice is left alone.
@@ -467,5 +483,12 @@ mod tests {
         assert_eq!(flag_href(FR, "lang=en&action=subcategory&subcategory_id=658"), "/catalogue/?lang=fr&action=subcategory&subcategory_id=658&hxlang=fr");
         assert_eq!(flag_href(EN, "lang=fr&action=subcategory&subcategory_id=658"), "/catalog/?action=subcategory&subcategory_id=658&hxlang=en");
         assert_eq!(flag_href(EN, "lang=fr"), "/catalog/?hxlang=en");
+    }
+
+    #[test]
+    fn links_become_valid_request_targets() {
+        assert_eq!(request_target("/catalog.php?action=sku&sku=A%2FB&scscpq_wp=1"), "/catalog.php?action=sku&sku=A%2FB&scscpq_wp=1");
+        assert_eq!(request_target("/catalog.php?a\"b{c}=1&é=2"), "/catalog.php?a%22b%7Bc%7D=1&%C3%A9=2");
+        assert!(axum::http::Uri::try_from(request_target("/catalog.php?a b|c^=1")).is_ok());
     }
 }

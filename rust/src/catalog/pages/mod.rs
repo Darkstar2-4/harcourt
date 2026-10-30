@@ -16,7 +16,7 @@ use axum::{
     Extension,
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{any, get},
     Router,
 };
 use sqlx::SqlitePool;
@@ -43,7 +43,8 @@ use crate::{
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/catalog.php", get(catalog_php).post(catalog_php))
+        // PHP answered every method alike.
+        .route("/catalog.php", any(catalog_php))
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
         .route("/search.php", get(search_php).post(search_php))

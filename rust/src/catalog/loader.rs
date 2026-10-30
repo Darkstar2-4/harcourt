@@ -362,19 +362,21 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
     Some((format!("{}{path}{}", req.origin, query.encoded()), link))
 }
 
-/// The page's own query, as parse_str() reads it.
+/// The page's own query, as parse_str() reads it: `.` and spaces in a name become `_`, a repeated name keeps its first
+/// place and its last value. The PHP failed on a name that made an array (`a[]`); those are left out.
 fn url_query(url: &str) -> Vec<(String, String)> {
     let query = url.split_once('?').map_or("", |(_, q)| q);
     let query = query.split_once('#').map_or(query, |(q, _)| q);
-    query
-        .split('&')
-        .filter(|p| !p.is_empty())
-        .map(|p| {
-            let (k, v) = p.split_once('=').unwrap_or((p, ""));
-            let decode = |s: &str| percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
-            (decode(k), decode(v))
-        })
-        .collect()
+    match super::php::parse_str(query) {
+        super::php::Value::Map(entries) => entries
+            .into_iter()
+            .filter_map(|(k, v)| match v {
+                super::php::Value::Str(s) => Some((k.as_string(), s)),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
 }
 
 /// scscpq_wp_class::document(): the sign-in welcome document for an account whose person is not known yet.
@@ -425,8 +427,11 @@ async fn scscpq_wp(
     Query(query): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Response {
+    // $_REQUEST: the query, then the body of a POST only, as PHP fills $_POST for nothing else.
     let mut params = query;
-    params.extend(form(&body));
+    if method == Method::POST {
+        params.extend(form(&body));
+    }
     let get = |k: &str| params.get(k).map(String::as_str).unwrap_or("");
     let named = get("action");
     let action = Action::parse(named);
@@ -601,6 +606,8 @@ mod tests {
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
         let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
         assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
+        let odd = Initial { url: "https://www.harcourt.co/catalog/?a%20b=1&c.d=2&e%5B%5D=3&a_b=4", ..req };
+        assert_eq!(page_url(&v, &odd), Some(("https://www.harcourt.co/catalog.php?a_b=4&c_d=2&scscpq_wp=1".into(), true)), "names as parse_str() made them");
         assert_eq!(language(" fr-CA"), Some(Lang::Fr));
         assert_eq!(language("en"), Some(Lang::En));
         assert_eq!(language(""), None);
