@@ -17,7 +17,7 @@ use axum::{
     extract::{Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{any, get},
     Extension, Router,
 };
 use serde_json::{json, Value};
@@ -1058,7 +1058,14 @@ fn first_row(ix: &Index, term: &str, ctx: &Ctx) -> Option<u64> {
 }
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/catalog-api/search", get(suggest))
+    Router::new().route("/catalog-api/search", get(suggest)).route("/hx_search_ctx.php", any(not_served))
+}
+
+/// hx_search_ctx.php answered live hxweb's own calls behind the front; prod's nginx refused it from outside with its
+/// own page. The scope now comes from the Rust visitor, so nothing calls it.
+async fn not_served() -> Response {
+    let page = "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n";
+    (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/html")], page).into_response()
 }
 
 #[derive(serde::Deserialize)]

@@ -63,6 +63,9 @@ async fn the_box_answers_any_visitor_but_only_its_own_scripts() {
         let (status, _, body) = send(&h.app, request(Method::GET, "/scs_ajax.php?table=search&limit=20&term=hblt", None, &headers, Body::empty())).await;
         assert_eq!((status, body.as_str()), (StatusCode::FORBIDDEN, r#"{"error":"External access","items":[]}"#));
     }
+    let (status, _, body) = send(&h.app, from_page("/hx_search_ctx.php", None, "/catalog/")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "the PHP scope endpoint is not served");
+    assert!(body.contains("<center>nginx</center>"));
 }
 
 #[tokio::test]
