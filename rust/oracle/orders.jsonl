@@ -1,0 +1,44 @@
+# The orders area's pages. Run with --rust-session against ORACLE_FRONT. Synthetic personas and made-up values only.
+{"name": "cart-framed-customer-active-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
+{"name": "cart-framed-customer-active-fr-fr", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active-fr", "language": "fr"}
+{"name": "cart-framed-anonymous-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
+{"name": "cart-framed-anonymous-fr", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "anonymous", "language": "fr"}
+{"name": "cart-framed-customer-pending-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-pending", "language": "en"}
+{"name": "cart-direct", "method": "GET", "path": "/cart.php", "persona": "customer-active", "language": "en"}
+{"name": "cart-direct-anonymous", "method": "GET", "path": "/cart.php", "persona": "anonymous", "language": "en"}
+{"name": "cart-clear", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=clear"}
+{"name": "cart-update-empty", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=update"}
+{"name": "cart-to-checkout", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=checkout"}
+{"name": "checkout-empty-cart-customer-active", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
+{"name": "checkout-empty-cart-anonymous", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
+{"name": "checkout-empty-cart-customer-denied", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-denied", "language": "en"}
+{"name": "checkout-direct-anonymous", "method": "GET", "path": "/checkout.php", "persona": "anonymous", "language": "en"}
+{"name": "checkout-complete-empty-cart", "method": "POST", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=complete&orderhd_name_first=Test&orderhd_name_last=Persona"}
+{"name": "orderhd-anonymous", "method": "GET", "path": "/orderhd.php", "persona": "anonymous", "language": "en"}
+{"name": "orderhd-customer-active", "method": "GET", "path": "/orderhd.php", "persona": "customer-active", "language": "en"}
+{"name": "orderhd-internal-active", "method": "GET", "path": "/orderhd.php", "persona": "internal-active", "language": "en"}
+{"name": "orderhd-executive-active", "method": "GET", "path": "/orderhd.php", "persona": "executive-active", "language": "en"}
+{"name": "orderhd-administrator-active", "method": "GET", "path": "/orderhd.php", "persona": "administrator-active", "language": "en"}
+{"name": "orderhd-superuser-active", "method": "GET", "path": "/orderhd.php", "persona": "superuser-active", "language": "en"}
+{"name": "orderhd-executive-pending", "method": "GET", "path": "/orderhd.php", "persona": "executive-pending", "language": "en"}
+{"name": "orderhd-list", "method": "POST", "path": "/orderhd.php", "persona": "executive-active", "language": "en", "body": "action=list"}
+{"name": "orderhd-list-rejected", "method": "POST", "path": "/orderhd.php", "persona": "executive-active", "language": "en", "body": "action=list&report_status=Reject"}
+{"name": "orderhd-cancel", "method": "POST", "path": "/orderhd.php", "persona": "executive-active", "language": "en", "body": "action=cancel"}
+{"name": "orderhd-cancel-return", "method": "POST", "path": "/orderhd.php", "persona": "administrator-active", "language": "en", "body": "action=cancel&return_url=%2Fdashboard.php"}
+{"name": "contact-anonymous-en", "method": "GET", "path": "/contact.php", "persona": "anonymous", "language": "en"}
+{"name": "contact-anonymous-fr", "method": "GET", "path": "/contact.php", "persona": "anonymous", "language": "fr"}
+{"name": "contact-customer-active-en", "method": "GET", "path": "/contact.php", "persona": "customer-active", "language": "en"}
+{"name": "contact-customer-active-fr-fr", "method": "GET", "path": "/contact.php", "persona": "customer-active-fr", "language": "fr"}
+{"name": "contact-executive-active-en", "method": "GET", "path": "/contact.php", "persona": "executive-active", "language": "en"}
+{"name": "contact-customer-pending-en", "method": "GET", "path": "/contact.php", "persona": "customer-pending", "language": "en"}
+{"name": "carrier-anonymous", "method": "GET", "path": "/carrier.php", "persona": "anonymous", "language": "en"}
+{"name": "carrier-customer-active", "method": "GET", "path": "/carrier.php", "persona": "customer-active", "language": "en"}
+{"name": "carrier-executive-active", "method": "GET", "path": "/carrier.php", "persona": "executive-active", "language": "en"}
+{"name": "carrier-administrator-active", "method": "GET", "path": "/carrier.php", "persona": "administrator-active", "language": "en"}
+{"name": "carrier-superuser-active", "method": "GET", "path": "/carrier.php", "persona": "superuser-active", "language": "en"}
+{"name": "carrier-add-form", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "language": "en", "body": "action=maintain&record_id=0"}
+{"name": "carrier-cancel", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "language": "en", "body": "action=cancel"}
+{"name": "carrier-update-blank", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "language": "en", "body": "action=update&record_id=0&name="}
+{"name": "dpa-anonymous", "method": "GET", "path": "/design_partner_agreement.php", "persona": "anonymous", "language": "en"}
+{"name": "dpa-customer-active", "method": "GET", "path": "/design_partner_agreement.php", "persona": "customer-active", "language": "en"}
+{"name": "dpa-administrator-active", "method": "GET", "path": "/design_partner_agreement.php", "persona": "administrator-active", "language": "en"}

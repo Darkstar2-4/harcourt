@@ -1,0 +1,22 @@
+# Gravity Forms islands. Run with --oracle "$ORACLE_LEGACY" --rust http://127.0.0.1:PORT/hx/forms/island:
+# the oracle answers /?hx_form= from WordPress (nginx refuses it from outside), Rust answers /hx/forms/island/.
+{"name": "form-island-1-en", "path": "/?hx_form=1&hx_lang=en&hx_page=%2Fcompany%2Fabout-harcourt%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-1-fr", "path": "/?hx_form=1&hx_lang=fr&hx_page=%2Fsociete%2Fa-propos-dharcourt%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-2-en", "path": "/?hx_form=2&hx_lang=en&hx_page=%2Fresources%2Flunch-learns%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-2-fr", "path": "/?hx_form=2&hx_lang=fr&hx_page=%2Fressources%2Fdejeuners-et-causeries%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-3-en", "path": "/?hx_form=3&hx_lang=en&hx_page=%2Fcontact-form%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-3-fr", "path": "/?hx_form=3&hx_lang=fr&hx_page=%2Fformulaire-de-contact%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-4-en", "path": "/?hx_form=4&hx_lang=en&hx_page=%2Fcontact-uk%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-4-fr", "path": "/?hx_form=4&hx_lang=fr&hx_page=%2Fnous-contacter-uk%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-5-en", "path": "/?hx_form=5&hx_lang=en&hx_page=%2Fcontact-france%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-5-fr", "path": "/?hx_form=5&hx_lang=fr&hx_page=%2Fnous-contacter-france%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-6-en", "path": "/?hx_form=6&hx_lang=en&hx_page=%2Fcontact-india%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-6-fr", "path": "/?hx_form=6&hx_lang=fr&hx_page=%2Fnous-contacter-inde%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-9-en", "path": "/?hx_form=9&hx_lang=en&hx_page=%2Finnovations%2Fblackboard%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-9-fr", "path": "/?hx_form=9&hx_lang=fr&hx_page=%2Finnovations%2Fblackboard%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-11-en", "path": "/?hx_form=11&hx_lang=en&hx_page=%2Fboxjoint-inquiry-form%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-12-en", "path": "/?hx_form=12&hx_lang=en&hx_page=%2Fcontact-form-madison-heights-mi%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-13-en", "path": "/?hx_form=13&hx_lang=en&hx_page=%2Fcontact-form-troy-mi%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-14-en", "path": "/?hx_form=14&hx_lang=en&hx_page=%2Fcontact-form-hwy-madison-heights-mi%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-15-en", "path": "/?hx_form=15&hx_lang=en&hx_page=%2Finnovations%2Fhbox%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-unlisted", "path": "/?hx_form=3&hx_lang=en&hx_page=%2Fno-such-page%2F", "persona": "anonymous", "language": "en"}

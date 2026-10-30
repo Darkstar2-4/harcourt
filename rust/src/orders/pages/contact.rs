@@ -40,7 +40,7 @@ pub async fn language(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap)
 /// What `tab_viewer()` prints for the page at `url`, and the page's type and name for the log.
 pub async fn tab_viewer(pool: &SqlitePool, url: &str, language: &str) -> sqlx::Result<(String, Option<(String, String)>)> {
     let row = sqlx::query!(
-        r#"SELECT p.record_type AS "kind!: String", p.name AS "name!: String", coalesce(CAST(c.content AS TEXT), '') AS "content!: String"
+        r#"SELECT p.record_type AS "kind!: String", p.name AS "name!: String", CASE WHEN c.filetype IN ('html', 'hyperlink') THEN coalesce(c.html_content, '') ELSE coalesce(CAST(c.content AS TEXT), '') END AS "content!: String"
            FROM pages p JOIN content c ON c.record_type = 'document' AND c.record_id = p.document_id AND c.language_code IN ('EN', ?2)
            WHERE p.url = ?1
            ORDER BY CASE WHEN c.language_code = 'EN' THEN 2 ELSE 1 END LIMIT 1"#,

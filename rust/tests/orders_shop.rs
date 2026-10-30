@@ -262,7 +262,7 @@ async fn the_po_manager_is_for_executives() {
     send(&h.app, request(Method::POST, "/checkout.php", &buyer, &order_form(true), false)).await;
     let id: i64 = sqlx::query_scalar("SELECT id FROM orderhd").fetch_one(&h.pool).await.unwrap();
     let (status, headers, _) = send(&h.app, request(Method::GET, "/orderhd.php", &buyer, &[], false)).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/"));
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"));
     let exec = cookie(&h.pool, 9).await;
     let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "list")], false)).await;
     assert!(page.contains(&format!(">{id}</a>")) && page.contains("<td>Test Co</td>"));

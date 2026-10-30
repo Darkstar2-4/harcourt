@@ -8,7 +8,7 @@ use sqlx::SqlitePool;
 
 use super::{
     model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient},
-    render::{self, FieldErrors, Render, Values, SUMMARY},
+    render::{self, FieldErrors, Render, Values},
     spam::Submission,
     Services, RECAPTCHA_FORMS,
 };
@@ -34,7 +34,7 @@ pub struct Context<'a> {
     pub page_title: Option<String>,
     pub ip: &'a str,
     pub user_agent: &'a str,
-    pub ajax: bool,
+    pub embed: super::render::Embed,
     pub now: i64,
 }
 
@@ -52,7 +52,7 @@ fn read(form: &Form, params: &HashMap<String, String>) -> Values {
     let mut v = Values::new();
     for f in form.fields.iter().filter(|f| f.takes_input()) {
         match &f.kind {
-            Kind::Address(inputs) => {
+            Kind::Address { inputs, .. } => {
                 for sub in inputs.iter().filter(|s| !s.hidden) {
                     let name = format!("input_{}", sub.id);
                     let typed = params.get(&name).or_else(|| params.get(&name.replace('.', "_")));
@@ -70,13 +70,13 @@ fn read(form: &Form, params: &HashMap<String, String>) -> Values {
 
 fn value(values: &Values, f: &Field) -> String {
     match &f.kind {
-        Kind::Address(inputs) => inputs.iter().filter_map(|s| values.get(&format!("input_{}", s.id))).filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(", "),
+        Kind::Address { inputs, .. } => inputs.iter().filter_map(|s| values.get(&format!("input_{}", s.id))).filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(", "),
         _ => values.get(&format!("input_{}", f.id)).cloned().unwrap_or_default(),
     }
 }
 
-fn valid_date(s: &str) -> bool {
-    ["%m/%d/%Y", "%d/%m/%Y"].iter().any(|f| chrono::NaiveDate::parse_from_str(s, f).is_ok())
+fn valid_date(s: &str, dmy: bool) -> bool {
+    chrono::NaiveDate::parse_from_str(s, if dmy { "%d/%m/%Y" } else { "%m/%d/%Y" }).is_ok()
 }
 
 /// GFFormDisplay::validate for the field types these forms use.
@@ -89,7 +89,7 @@ pub fn validate(form: &Form, values: &Values) -> FieldErrors {
             _ if v.is_empty() => None,
             Kind::Email if Email::parse(&v).is_none() => Some(BAD_EMAIL),
             Kind::Phone(format) if !render::phone_ok(*format, &v) => Some(BAD_PHONE),
-            Kind::Date if !valid_date(&v) => Some(BAD_DATE),
+            Kind::Date { dmy } if !valid_date(&v, *dmy) => Some(BAD_DATE),
             _ => None,
         };
         if let Some(m) = message {
@@ -283,16 +283,17 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
         render::form(&Render {
             form,
             page_uri: ctx.page_uri,
-            ajax: ctx.ajax,
+            embed: &ctx.embed,
             values: &values,
             errors,
             summary: Some(summary),
             token: token.as_deref(),
-            recaptcha: services.recaptcha.is_some() && RECAPTCHA_FORMS.contains(&form.id),
+            recaptcha: RECAPTCHA_FORMS.contains(&form.id),
+            browser: &render::browser_class(ctx.user_agent),
         })
     };
     if !errors.is_empty() {
-        return Ok(Outcome::Invalid(render_invalid(&errors, SUMMARY)));
+        return Ok(Outcome::Invalid(render_invalid(&errors, &render::summary(form.id))));
     }
     if !recaptcha_passes(pool, services, form, &values, params, ctx.ip, ctx.now).await? {
         return Ok(Outcome::Invalid(render_invalid(&FieldErrors::new(), BLOCKED)));
@@ -308,7 +309,7 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
     let mut spam = honeypot_filled && form.honeypot == Honeypot::Spam;
     if !spam {
         if let Some(key) = &services.token_key {
-            spam = !params.get("gf_zero_spam_token").is_some_and(|t| key.valid(t, form.id, ctx.now));
+            spam = !params.get(&format!("state_{}", form.id)).is_some_and(|t| key.valid(t, form.id, ctx.now));
         }
     }
     if !spam {
@@ -336,7 +337,7 @@ mod tests {
     use crate::orders::forms::model::{parse, tests::*};
 
     fn ctx() -> Context<'static> {
-        Context { page_uri: "/contact-us/", page_url: "https://www.example.com/contact-us/".into(), page_title: Some("Contact Us".into()), ip: "192.0.2.1", user_agent: "test", ajax: false, now: 1_700_000_000 }
+        Context { page_uri: "/contact-us/", page_url: "https://www.example.com/contact-us/".into(), page_title: Some("Contact Us".into()), ip: "192.0.2.1", user_agent: "test", embed: super::super::render::Embed::default_for(3), now: 1_700_000_000 }
     }
 
     fn values(pairs: &[(&str, &str)]) -> Values {

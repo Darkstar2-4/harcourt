@@ -78,7 +78,7 @@ async fn harness(akismet: Option<Arc<dyn Akismet>>, recaptcha: Option<Arc<dyn Re
     }
     sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'recaptcha', 'score_spam', '', '0.5')").execute(&pool).await.unwrap();
     let core = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
-    let forms = Services { admin_email: Email::parse("web@example.com"), token_key: Some(TokenKey::new(&KEY)), akismet, recaptcha };
+    let forms = Services { admin_email: Email::parse("web@example.com"), token_key: Some(TokenKey::new(&KEY)), akismet, recaptcha, manifest: None };
     let state = Orders { core, pricing: Arc::new(Unpriced), docroot: PathBuf::from("/nonexistent"), forms };
     let app = hxweb::orders::router(Arc::new(state)).layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 20], 40000))));
     Harness { app, pool }
@@ -102,7 +102,7 @@ fn token() -> String {
 
 async fn post(h: &Harness, extra: &[(&str, &str)]) -> (StatusCode, String) {
     let t = token();
-    let mut form = vec![("gform_submit", "3"), ("is_submit_3", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Please quote 10 units."), ("gf_zero_spam_token", t.as_str())];
+    let mut form = vec![("gform_submit", "3"), ("is_submit_3", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Please quote 10 units."), ("state_3", t.as_str())];
     for (k, v) in extra {
         form.retain(|(name, _)| name != k);
         form.push((k, v));
@@ -120,7 +120,7 @@ async fn the_island_renders_active_forms_only() {
     let (status, html) = call(&h.app, Method::GET, "/hx/forms/island?hx_form=3&hx_lang=fr&hx_page=%2Fcontact-us%2F", &[]).await;
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("id='gform_wrapper_3'") && html.contains("action='/contact-us/'") && html.contains(">Nom<"), "{html}");
-    assert!(html.contains("value='Envoyer'") && html.contains("gf_zero_spam_token"));
+    assert!(html.contains(">Envoyer</button>") && html.contains("name='state_3' value='"));
     let (status, _) = call(&h.app, Method::GET, "/hx/forms/island?hx_form=7&hx_lang=en&hx_page=%2F", &[]).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "trashed");
     let (status, _) = call(&h.app, Method::GET, "/hx/forms/island?hx_form=3&hx_lang=en&hx_page=https%3A%2F%2Fexample.com%2F", &[]).await;
@@ -151,7 +151,7 @@ async fn invalid_input_comes_back_with_errors_and_nothing_is_kept() {
     let h = harness(None, None).await;
     let (_, html) = post(&h, &[("input_10", "nope"), ("input_4", "")]).await;
     assert!(html.contains("There was a problem with your submission."));
-    assert!(html.contains("validation_message_3_10") && html.contains("This field is required."));
+    assert!(html.contains("gfield_validation_message'>This field is required."));
     assert!(html.contains("value='Pat Buyer'"), "input is kept");
     assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 0);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 0);
@@ -161,8 +161,8 @@ async fn invalid_input_comes_back_with_errors_and_nothing_is_kept() {
 async fn spam_is_kept_as_spam_and_sends_nothing() {
     let h = harness(None, None).await;
     post(&h, &[("input_11", "filled by a robot")]).await;
-    post(&h, &[("gf_zero_spam_token", "")]).await;
-    post(&h, &[("gf_zero_spam_token", "1.00")]).await;
+    post(&h, &[("state_3", "")]).await;
+    post(&h, &[("state_3", "1.00")]).await;
     assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry WHERE status = 'spam'").await, 3);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 0);
     let h = harness(Some(Arc::new(FixedAkismet(true, Mutex::new(Vec::new())))), None).await;

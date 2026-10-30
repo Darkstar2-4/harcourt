@@ -80,7 +80,8 @@ pub async fn page(State(state): State<Arc<Orders>>, _staff: Staff<Administrator>
         out.push_str("<table class='large noborder'><tr><td width='30%'>Name</td>");
         out.push_str(&format!("<td width='70%'>{}</td>", html::text_input("text", "name", &carrier.name, 45, 45, "", name_error)));
         out.push_str(&format!("</tr><tr><td>Active?</td><td><input type=checkbox name='active' id='active' value='1'{checked}></td></tr></table>"));
-        let buttons = [html::button("Update", &format!("fn_action(this,'update',{},'');", js_str(&carrier.id.to_string())), "nav_button"), html::button("Cancel", "fn_action(this,'cancel','','');", "nav_button")];
+        let id = if carrier.id == 0 { String::new() } else { carrier.id.to_string() };
+        let buttons = [html::button("Update", &format!("fn_action(this,'update',{},'');", js_str(&id)), "nav_button"), html::button("Cancel", "fn_action(this,'cancel','','');", "nav_button")];
         out.push_str(&format!("<p class='standard'>{}</p>\n", buttons.join("\n")));
     } else {
         out.push_str("<table class='standard border'>\n<caption>&nbsp;</caption>\n<tr>\n<th width='90%'>Name</th>\n<th width='10%'>Del?</th>\n</tr>\n<tr>\n");
@@ -88,7 +89,7 @@ pub async fn page(State(state): State<Arc<Orders>>, _staff: Staff<Administrator>
         let rows = sqlx::query!(r#"SELECT id AS "id!: i64", coalesce(name, '') AS "name!: String", coalesce(active, 0) AS "active!: i64" FROM carrier ORDER BY name"#).fetch_all(pool).await?;
         for r in rows {
             let id = js_str(&r.id.to_string());
-            out.push_str(&format!("<tr>\n<td><a href=\"javascript:fn_action(this,'maintain',{},'');\" >{}</a></td>\n", html::esc_dq(&id), esc(&r.name)));
+            out.push_str(&format!("<tr>\n<td><a href=\"javascript:fn_action(this,'maintain',{},'');\" >{}</a></td>\n", html::esc_dq(&id), html::esc_text(&r.name)));
             let delete = if r.active != 0 {
                 String::new()
             } else {

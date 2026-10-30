@@ -106,7 +106,7 @@ impl MinRole for SuperUser {
 }
 
 /// The gate of a staff page: `Authed<R>`, answered on refusal the way PHP's `$database->user->access()` does, with
-/// a redirect to the home page.
+/// a redirect to the home page (`/` inside the WordPress frame, `/scs_index.php` outside it).
 pub struct Staff<R: MinRole>(pub Authed<R>);
 
 impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
@@ -115,7 +115,9 @@ impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
         match Authed::<R>::from_request_parts(parts, &state.core).await {
             Ok(a) => Ok(Staff(a)),
-            Err(ApiError::Unauthenticated | ApiError::Forbidden) => Err(html::redirect("/")),
+            Err(ApiError::Unauthenticated | ApiError::Forbidden) => {
+                Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" }))
+            }
             Err(e) => Err(e.into_response()),
         }
     }

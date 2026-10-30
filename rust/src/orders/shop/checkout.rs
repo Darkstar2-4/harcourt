@@ -26,7 +26,7 @@ use crate::{
     identity::{Email, Role},
     orders::{
         form_params,
-        html::{self, esc},
+        html::{self, esc, esc_text},
         mail::{self, Mailbox},
         mailform::{self, Letterhead, Merge, Registry},
         Orders,
@@ -325,6 +325,8 @@ pub async fn place(pool: &SqlitePool, user_id: i64, order: &Order, lines: &[Line
 }
 
 pub struct Choices {
+    /// Country and state names by `US` and `US/MI`, for showing an address.
+    pub names: HashMap<String, String>,
     pub countries: Vec<(String, String)>,
     pub us: Vec<(String, String)>,
     pub ca: Vec<(String, String)>,
@@ -332,6 +334,30 @@ pub struct Choices {
 }
 
 impl Choices {
+    pub fn none() -> Self {
+        Choices { names: HashMap::new(), countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new() }
+    }
+
+    /// Only the names the given addresses need, for an order shown rather than edited.
+    pub async fn names_for(pool: &SqlitePool, addresses: &[&Address]) -> sqlx::Result<Self> {
+        let mut c = Choices::none();
+        for a in addresses {
+            let rows = sqlx::query!(
+                r#"SELECT country AS "country!: String", state AS "state!: String", coalesce(name, '') AS "name!: String" FROM country
+                   WHERE country = ?1 AND (state = '' OR state = ?2)"#,
+                a.country_code,
+                a.state
+            )
+            .fetch_all(pool)
+            .await?;
+            for r in rows {
+                let key = if r.state.is_empty() { r.country } else { format!("{}/{}", r.country, r.state) };
+                c.names.insert(key, r.name);
+            }
+        }
+        Ok(c)
+    }
+
     pub async fn load(pool: &SqlitePool) -> sqlx::Result<Self> {
         let rows = sqlx::query!(
             r#"SELECT country AS "country!: String", state AS "state!: String", coalesce(name, '') AS "name!: String" FROM country
@@ -339,7 +365,7 @@ impl Choices {
         )
         .fetch_all(pool)
         .await?;
-        let mut c = Choices { countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new() };
+        let mut c = Choices::none();
         for r in rows {
             match (r.state.is_empty(), r.country.as_str()) {
                 (true, _) => c.countries.push((r.country, r.name)),
@@ -380,8 +406,22 @@ fn address_input(table: &str, a: &Address, choices: &Choices, errors: &Errors) -
     .concat()
 }
 
-fn address_output(a: &Address) -> String {
-    [row("Address", &esc(&a.address).replace('\n', "<br>")), row("City", &esc(&a.city)), row("State/Province", &esc(&a.state)), row("Zip/Postal Code", &esc(&a.zip)), row("Country", &esc(&a.country_code))].concat()
+/// `address_class::output("table")`: the non-empty fields in the class's order, state and country by name.
+fn address_output(rows: &[(&str, String)]) -> String {
+    rows.iter()
+        .filter(|(_, v)| !v.is_empty())
+        .map(|(label, v)| {
+            let shown = if *label == "Address" { esc_text(v).replace('\n', "<br>") } else { esc_text(v) };
+            row(label, &shown)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn place_rows(a: &Address, choices: &Choices) -> Vec<(&'static str, String)> {
+    let state = choices.names.get(&format!("{}/{}", a.country_code, a.state)).cloned().unwrap_or_else(|| a.state.clone());
+    let country = choices.names.get(&a.country_code).cloned().unwrap_or_else(|| a.country_code.clone());
+    vec![("Address", a.address.clone()), ("City", a.city.clone()), ("State/Province", state), ("Zip/Postal Code", a.zip.clone()), ("Country", country)]
 }
 
 fn date(ts: i64) -> String {
@@ -396,7 +436,7 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
         r.push(format!("<tr><td>{}Order #</td><td>{}</tr>", if o.punchout_id != 0 { "Punchout " } else { "" }, o.id));
         r.push(format!("<tr><td>Order Date/ Time</td><td>{}</tr>", date(o.order_date)));
         if status {
-            r.push(format!("<tr><td>Status</td><td>{}</td></tr>", esc(&o.status)));
+            r.push(format!("<tr><td>Status</td><td>{}</td></tr>", esc_text(&o.status)));
             if o.status_date != 0 {
                 r.push(format!("<tr><td>Status Date/ Time</td><td>{}</td></tr>", date(o.status_date)));
             }
@@ -405,7 +445,7 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
     r.push("<tr><td class='checkout_caption' colspan=2>Customer Information</td></tr>".into());
     let t = |field: &str, value: &str, max: u32, ph: &str| html::text_input("text", field, value, 40, max, ph, errors.has(field));
     if o.punchout_id != 0 {
-        r.push(format!("<tr><td width='20%'>Company Name</td><td width='80%'>{}</td></tr>", esc(&o.company_name)));
+        r.push(format!("<tr><td width='20%'>Company Name</td><td width='80%'>{}</td></tr>", esc_text(&o.company_name)));
     } else if entry {
         r.push(
             [
@@ -418,16 +458,22 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
             .concat(),
         );
     } else {
-        r.push([row("Company Name", &esc(&o.company_name)), row("Name", &esc(&o.name)), row("Phone", &esc(&o.phone)), row("Email", &esc(&o.email))].concat());
+        r.push(address_output(&[("Name", o.name.clone()), ("Phone", o.phone.clone()), ("Email", o.email.clone())]));
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Shipping Address</td></tr>".into());
-    r.push(if entry { address_input("orderhd", &o.ship, choices, errors) } else { address_output(&o.ship) });
+    r.push(if entry {
+        address_input("orderhd", &o.ship, choices, errors)
+    } else {
+        let mut rows = vec![("Company Name", o.company_name.clone())];
+        rows.extend(place_rows(&o.ship, choices));
+        address_output(&rows)
+    });
     r.push("<tr><td class='checkout_caption' colspan=2>Billing Address</td></tr>".into());
     if entry {
         let checked = if billing_same { " checked" } else { "" };
         r.push(format!("<tr><td colspan=2><input type=checkbox name='billing_same_as_shipping' id='billing_same_as_shipping' value='1' onclick=\"javascript:fn_billing_same_as_shipping(this.checked);\"{checked}> Same as shipping address</td></tr>"));
     }
-    r.push(if entry { address_input("orderhd_billing", &o.billing, choices, errors) } else { address_output(&o.billing) });
+    r.push(if entry { address_input("orderhd_billing", &o.billing, choices, errors) } else { address_output(&place_rows(&o.billing, choices)) });
     r.push("<tr><td class='checkout_caption' colspan=2>Order Information</td></tr>".into());
     if entry {
         r.push(format!("<tr><td>PO#</td><td>{}</td></tr>", t("po", &o.po, 45, "PO# (Optional)")));
@@ -439,13 +485,13 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
         r.extend(["<tr>".to_string(), "<td>Credit Card on File</td>".to_string(), format!("<td>{}</td>", cc.join("<br>")), "</tr>".to_string()]);
     } else {
         if !o.po.is_empty() {
-            r.push(format!("<tr><td>PO#</td><td>{}</td></tr>", esc(&o.po)));
+            r.push(format!("<tr><td>PO#</td><td>{}</td></tr>", esc_text(&o.po)));
         }
         if !o.comment.is_empty() {
-            r.push(format!("<tr><td>Comment</td><td>{}</td></tr>", esc(&o.comment).replace('\n', "<br>")));
+            r.push(format!("<tr><td>Comment</td><td>{}</td></tr>", esc_text(&o.comment).replace('\n', "<br>")));
         }
         if !o.cc.is_empty() {
-            r.push(format!("<tr><td>Credit Card on File</td><td>.... {}</td></tr>", esc(&o.cc)));
+            r.push(format!("<tr><td>Credit Card on File</td><td>.... {}</td></tr>", esc_text(&o.cc)));
         }
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Shipping Method</td></tr>".into());
@@ -454,10 +500,10 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
         r.push(format!("<tr><td>Collect Account#</td><td>{}</td></tr>", html::text_input("text", "carrier_account", &o.carrier_account, 40, 60, "Collect Account# (Optional)", false)));
     } else {
         if !o.carrier_name.is_empty() {
-            r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", esc(&o.carrier_name)));
+            r.push(format!("<tr><td>Shipping Carrier</td><td>{}</td></tr>", esc_text(&o.carrier_name)));
         }
         if !o.carrier_account.is_empty() {
-            r.push(format!("<tr><td>Collect Account#</td><td>{}</td></tr>", esc(&o.carrier_account)));
+            r.push(format!("<tr><td>Collect Account#</td><td>{}</td></tr>", esc_text(&o.carrier_account)));
         }
     }
     r.push("</table>".into());
@@ -523,7 +569,7 @@ async fn complete(state: &Orders, shopper: &Shopper, ip: &str, order: &mut Order
     order.order_date = now;
     order.status = "Pending".into();
     order.id = place(pool, shopper.user.id.0, order, lines, now).await?;
-    let choices = Choices { countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new() };
+    let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
     let labels = Labels::load(pool, &shopper.language).await?;
     let thumb = local.get("thumbnail").to_string();
