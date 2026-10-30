@@ -72,3 +72,10 @@
 {"name":"wp-contact-madison","path":"/contact-form-madison-heights-mi/","language":"en"}
 {"name":"wp-boxjoint-form","path":"/boxjoint-inquiry-form/","language":"en"}
 {"name":"wp-contact-bare","path":"/contact","language":"en"}
+{"name":"wp-home","path":"/","language":"en"}
+{"name":"wp-home-fr","path":"/?lang=fr","language":"fr"}
+{"name":"wp-home-utm","path":"/?utm_source=x&hxlang=en","language":"en"}
+{"name":"wp-home-unknown","path":"/?ref=x","language":"en"}
+{"name":"wp-home-search","path":"/?s=clamp","language":"en"}
+{"name":"wp-home-lang-en","path":"/?lang=en","language":"en"}
+{"name":"wp-contact-post","method":"POST","path":"/contact/","body":"a=1","language":"en"}

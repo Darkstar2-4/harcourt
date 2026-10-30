@@ -34,6 +34,7 @@ use crate::{
 /// Every path of a page whose template Rust renders, in both languages. `hxweb-cms check` proves each renders as
 /// WordPress did.
 const PAGES: &[&str] = &[
+    "/",
     "/boxjoint-inquiry-form/",
     "/company/",
     "/company/about-harcourt/",
@@ -112,22 +113,24 @@ pub struct Wp {
     content: Content,
     forms: Option<Arc<dyn FormSource>>,
     orders: Arc<Orders>,
+    /// WordPress, for a form post whose form the orders tables lack.
+    legacy: Option<Islands>,
 }
 
 pub fn router(core: Arc<Auth>) -> Router {
     let orders = Arc::new(Orders::from_env(core.clone()));
     let forms = OrdersForms { orders: orders.clone(), fallback: Islands::from_env() };
-    router_with(core, Some(Arc::new(forms)), orders)
+    router_with(core, Some(Arc::new(forms)), orders, Islands::from_env())
 }
 
 /// The router with the given source of form markup (tests pass a fixed one).
 pub fn router_with_forms(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>) -> Router {
     let orders = Arc::new(Orders::from_env(core.clone()));
-    router_with(core, forms, orders)
+    router_with(core, forms, orders, None)
 }
 
-fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>) -> Router {
-    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, core: core.clone() });
+fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>, legacy: Option<Islands>) -> Router {
+    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, legacy, core: core.clone() });
     let mut r = Router::new().route("/robots.txt", get(robots));
     for path in PAGES {
         r = r.route(path, get(page).post(page_post));
@@ -144,9 +147,11 @@ fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<
 const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
 
 /// Query keys WordPress acts on (WP::$public_query_vars, this site's post types and taxonomies, Yoast's and WP Job
-/// Manager's vars, and the ones redirect_canonical() and the comment and preview code read). A page asked for with
-/// one of them is WordPress's to answer: another post, a search, a feed, a redirect.
+/// Manager's vars, the ones redirect_canonical() and the comment and preview code read, and the form-island
+/// endpoint of mu-plugins/hx-form-island.php). A page asked for with one of them is WordPress's to answer: another
+/// post, a search, a feed, a redirect.
 const WP_KEYS: &[&str] = &[
+    "hx_form",
     "m", "p", "posts", "w", "cat", "withcomments", "withoutcomments", "s", "search", "exact", "sentence", "calendar", "page", "paged", "more", "tb",
     "pb", "author", "order", "orderby", "year", "monthnum", "day", "hour", "minute", "second", "name", "category_name", "tag", "feed", "author_name",
     "pagename", "page_id", "error", "attachment", "attachment_id", "subpost", "subpost_id", "preview", "robots", "favicon", "taxonomy", "term", "cpage",
@@ -343,6 +348,17 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         return Answer::Found(if q.without_lang.is_empty() { to.to_string() } else { format!("{to}?{}", q.without_lang) });
     }
     match (answer, slashed) {
+        // redirect_canonical() points the static front page at home_url('/') with the query rebuilt, and moves the
+        // visitor when that differs from what was asked (?a= becomes ?a, a repeated key collapses).
+        (Answer::Render(p), None) if p.path == "/" => {
+            let canonical = with_query(&format!("/{}", p.lang.query()), raw_query);
+            let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
+            if canonical == asked {
+                Answer::Render(p)
+            } else {
+                Answer::Redirect(canonical)
+            }
+        }
         (Answer::Render(p), None) => Answer::Render(p),
         (Answer::Render(p), Some(_)) if raw_query.is_empty() => Answer::Redirect(p.path.clone()),
         (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
@@ -357,8 +373,8 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
 }
 
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
-/// the page (an ajax form gets the iframe postback document instead). Any other post shows the page, as WordPress
-/// did.
+/// the page (an ajax form gets the iframe postback document instead); a form the orders tables lack goes on to
+/// WordPress. Any other post shows the page, as WordPress did.
 async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let (mut parts, body) = req.into_parts();
     let Ok(ClientIp(ip)) = ClientIp::from_request_parts(&mut parts, &wp.core).await;
@@ -388,7 +404,10 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
         }
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h)), false).await,
-        Ok(None) => serve(&wp, &parts.uri, agent, None, false).await,
+        Ok(None) => match &wp.legacy {
+            Some(legacy) => legacy.forward(&parts, body).await,
+            None => serve(&wp, &parts.uri, agent, None, false).await,
+        },
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
@@ -402,8 +421,8 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 }
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
-/// neutral request gets the page as hxweb finished the static pages; any other gets it as WordPress printed it,
-/// forms marked for the visitor's browser. Only a GET or HEAD (`replay`) can be handed back to the legacy stack; a
+/// neutral GET gets the page as hxweb finished the static pages; anything else (a post, other query keys) went to
+/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET or HEAD (`replay`) can be handed back to the legacy stack; a
 /// post that would be handed back gets the page at its path, or a 404.
 async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
@@ -416,7 +435,8 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    let agent = if q.neutral { "" } else { agent };
+    let finished = q.neutral && replay;
+    let agent = if finished { "" } else { agent };
     let page = match route(&site, &path, &q, raw_query) {
         Answer::Render(p) => p,
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
@@ -455,7 +475,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
     })
     .await;
     match filled {
-        Ok(html) => html_response(public(&wp.core.public_origin, &html), q.neutral),
+        Ok(html) => html_response(public(&wp.core.public_origin, &html), finished),
         Err(e) => {
             tracing::error!("{path}: {e}");
             (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
@@ -642,6 +662,18 @@ mod tests {
         assert_eq!(r("/product/alignment/", "p=212"), "legacy");
         assert_eq!(r("/product/alignment", "s=x"), "legacy");
         assert_eq!(r("/product/alignment/", "theme=light"), "render 1");
+        assert_eq!(r("/product/alignment/", "quot="), "render 1");
+        let home = Site::new(vec![page(8, 70, Lang::En, "/", Status::Publish), page(9, 70, Lang::Fr, "/", Status::Publish)]);
+        let h = |q: &str| match route(&home, "/", &query(q), q) {
+            Answer::Render(p) => format!("render {}", p.id.0),
+            Answer::Redirect(to) => to,
+            _ => "other".into(),
+        };
+        assert_eq!(h("ref=x"), "render 8");
+        assert_eq!(h("utm_source=a+b"), "render 8");
+        assert_eq!(h("lang=fr"), "render 9");
+        assert_eq!(h("phpinfo="), "/?phpinfo");
+        assert_eq!(h("r=/x&r=/x"), "/?r=%2Fx");
         assert_eq!(r("/product/alignment/", ""), "render 1");
         assert_eq!(r("/product/alignment", "utm_source=a+b"), "/product/alignment/?utm_source=a+b");
         assert_eq!(r("/gamme-de-produits/centrage", ""), "/product/alignment/");

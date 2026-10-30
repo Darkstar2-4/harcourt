@@ -8,6 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use axum::response::IntoResponse;
 use tokio::sync::RwLock;
 
 use super::{FormEmbed, Lang};
@@ -75,6 +76,33 @@ impl Islands {
         }
         cache.insert(key, (Instant::now(), html.clone()));
         Ok(html)
+    }
+}
+
+impl Islands {
+    /// Sends a request on to WordPress as main.rs's proxy would (same headers, the site's Host) and returns its
+    /// answer: a form post whose form only WordPress knows.
+    pub async fn forward(&self, parts: &axum::http::request::Parts, body: axum::body::Bytes) -> axum::response::Response {
+        use axum::http::header;
+        let hop = [header::CONNECTION, header::TRANSFER_ENCODING, header::UPGRADE, header::TE, header::HOST, header::CONTENT_LENGTH];
+        let uri = parts.uri.path_and_query().map(|p| p.as_str()).unwrap_or("/");
+        let mut out = self.http.request(parts.method.clone(), format!("{}{uri}", self.legacy)).body(body);
+        for (k, v) in parts.headers.iter().filter(|(k, _)| !hop.contains(k)) {
+            out = out.header(k, v);
+        }
+        let r = match out.header(header::HOST, &self.site).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("legacy {} {uri}: {e}", parts.method);
+                return (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response();
+            }
+        };
+        let mut b = axum::http::Response::builder().status(r.status());
+        for (k, v) in r.headers().iter().filter(|(k, _)| !hop.contains(k)) {
+            b = b.header(k, v);
+        }
+        let bytes = r.bytes().await.unwrap_or_default();
+        b.body(axum::body::Body::from(bytes)).unwrap_or_else(|_| (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response())
     }
 }
 
