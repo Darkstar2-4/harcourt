@@ -65,6 +65,15 @@ impl Strings {
         self.0.as_ref().and_then(|m| m.get(field)).map_or(field, String::as_str)
     }
 
+    /// scs_lbl(): the language's text for `key` when it has one, else `default`, with `{name}` placeholders filled.
+    pub fn label(&self, key: &str, default: &str, vars: &[(&str, &str)]) -> String {
+        let mut text = self.0.as_ref().and_then(|m| m.get(key)).filter(|t| !t.is_empty() && t.as_str() != key).map_or(default, String::as_str).to_string();
+        for (k, v) in vars {
+            text = text.replace(&format!("{{{k}}}"), v);
+        }
+        text
+    }
+
     /// From an active language row's `menu` column; None for a language with no active row.
     pub fn from_menu(menu: Option<Option<&str>>) -> Strings {
         let Some(menu) = menu else { return Strings(None) };

@@ -347,6 +347,9 @@ async fn catalog_php(
     if let Some(redirect) = fragment_as_page(uri.query().unwrap_or(""), &headers) {
         return redirect;
     }
+    if headers.contains_key("x-hx-view") {
+        return StatusCode::NO_CONTENT.into_response();
+    }
     let lang = viewer::lang_for(&visitor, q.get("lang").map(String::as_str));
     let result = async {
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;

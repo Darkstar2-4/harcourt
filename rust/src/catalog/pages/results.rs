@@ -12,6 +12,11 @@ pub struct Hit {
     pub part: Option<Part>,
 }
 
+/// search_class::normalize_code(): upper case without separators, so "hb-lt 1" finds HBLT1.
+pub fn normalize_code(s: &str) -> String {
+    s.chars().filter(|c| !c.is_whitespace() && !"-_./".contains(*c)).collect::<String>().to_uppercase()
+}
+
 /// lookup()'s first step: the part number as typed, without its spaces, or with them as underscores, matched
 /// exactly against parts first and competitor numbers second.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
@@ -24,13 +29,15 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
         }
     }
     let (a, b, c) = (codes[0].clone(), codes.get(1).cloned().unwrap_or_default(), codes.get(2).cloned().unwrap_or_default());
+    let normalized = normalize_code(&wanted);
     let row = sqlx::query!(
         r#"SELECT table_name AS "table_name!", category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64"
-           FROM search WHERE table_name IN ('inventory', 'competitor_sku') AND code IN (?1, ?2, ?3) COLLATE NOCASE
-           ORDER BY CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
+           FROM search WHERE table_name IN ('inventory', 'competitor_sku') AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
+           ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
         a,
         b,
-        c
+        c,
+        normalized
     )
     .fetch_optional(ctx.pool)
     .await?;
@@ -114,7 +121,7 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let within = ctx.subcategory_id;
     let rows = sqlx::query!(
         r#"SELECT table_name AS "table_name!", code AS "code!", category_id AS "category_id!: i64", subcategory_id AS "subcategory_id!: i64",
-                  inventory_id AS "inventory_id: i64"
+                  inventory_id AS "inventory_id: i64", coalesce(ranking, 0) AS "ranking!: i64"
            FROM search
            WHERE code LIKE ?1 AND coalesce(language_code, '') IN ('', ?2) AND (?3 = 0 OR subcategory_id = ?3)
              AND table_name IS NOT NULL AND code IS NOT NULL AND category_id IS NOT NULL AND subcategory_id IS NOT NULL
@@ -130,14 +137,16 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         category_id: i64,
         subcategory_id: i64,
         table: String,
+        ranking: i64,
     }
     let mut groups: Vec<Group> = Vec::new();
     for r in &rows {
         match groups.iter_mut().find(|g| g.category_id == r.category_id && g.subcategory_id == r.subcategory_id) {
-            Some(_) => {}
-            None => groups.push(Group { category_id: r.category_id, subcategory_id: r.subcategory_id, table: r.table_name.clone() }),
+            Some(g) => g.ranking = g.ranking.min(r.ranking),
+            None => groups.push(Group { category_id: r.category_id, subcategory_id: r.subcategory_id, table: r.table_name.clone(), ranking: r.ranking }),
         }
     }
+    groups.sort_by_key(|g| g.ranking);
     if groups.is_empty() {
         if let Some(hit) = best_match(ctx).await? {
             return open(ctx, hit).await;

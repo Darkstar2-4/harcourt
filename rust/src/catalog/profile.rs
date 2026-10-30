@@ -5,7 +5,7 @@
 use axum::http::{header, HeaderMap};
 use sqlx::SqlitePool;
 
-use super::{forms, html::{esc, esc_attr, esc_text}, pages::Ctx, registry::Registry, viewer::Viewer};
+use super::{forms, html::{esc, esc_attr, esc_text}, pages::Ctx, registry::Registry, strings::Strings, viewer::Viewer};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Profile {
@@ -49,15 +49,21 @@ impl Profile {
     }
 
     /// profile_class::quick_cad_message().
-    pub fn quick_cad_message(&self, viewer: &Viewer) -> String {
+    pub fn quick_cad_message(&self, viewer: &Viewer, s: &Strings) -> String {
         if !viewer.active || !viewer.cad {
             return String::new();
         }
         if self.cad_name.is_empty() || self.email.is_empty() {
-            return "Please complete profile to download CAD".into();
+            return s.label("catalog_cad_profile_incomplete", "Please complete profile to download CAD", &[]);
         }
-        let delivery = if self.generate { format!("CAD emailed to {} when complete.", esc_text(&self.email)) } else { "CAD downloaded when complete.".into() };
-        format!("CAD Format: {}. {delivery} Click PROFILE to change.", esc_text(&self.cad_name))
+        let (email, format) = (esc_text(&self.email), esc_text(&self.cad_name));
+        let delivery = if self.generate {
+            s.label("catalog_cad_emailed_msg", "CAD emailed to {email} when complete.", &[("email", &email)])
+        } else {
+            s.label("catalog_cad_downloaded_msg", "CAD downloaded when complete.", &[])
+        };
+        let format = s.label("catalog_cad_format_msg", "CAD Format: {format}.", &[("format", &format)]);
+        format!("{format} {delivery} {}", s.label("catalog_cad_click_profile", "Click PROFILE to change.", &[]))
     }
 }
 
@@ -116,12 +122,13 @@ pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap, email
 pub async fn enter(ctx: &Ctx<'_>, notice: bool) -> sqlx::Result<String> {
     let p = &ctx.profile;
     let mut out = String::new();
+    let s = &ctx.strings;
     out.push_str(ENTER_CSS);
-    out.push_str(ENTER_JS);
+    out.push_str(&ENTER_JS.replace("Internal Error Detected", &s.label("catalog_profile_internal_error", "Internal Error Detected", &[])));
     out.push_str(&forms::hidden_class("success_url", if notice { "/catalog/" } else { "" }, "scscpq_input"));
     out.push_str(&forms::hidden_class("profile_tab", "", "scscpq_input"));
     if !p.company_name.is_empty() {
-        out.push_str(&format!("<p class=profile_welcome>Welcome {}!</p>", esc_text(&p.company_name)));
+        out.push_str(&format!("<p class=profile_welcome>{}</p>", s.label("catalog_profile_welcome", "Welcome {company}!", &[("company", &esc_text(&p.company_name))])));
     }
     out.push_str("<div class=profile_box><div id=profile_message></div><table class=noborder>");
     if notice {
@@ -137,17 +144,31 @@ pub async fn enter(ctx: &Ctx<'_>, notice: bool) -> sqlx::Result<String> {
     if ctx.viewer.account_id().is_none() || p.company_name.is_empty() {
         out.push_str(&row("Company Name", "company_name", &p.company_name, "40", "40"));
     }
-    out.push_str("<tr><td>Email CAD? ");
+    out.push_str(&format!("<tr><td>{} ", s.label("catalog_profile_email_cad", "Email CAD?", &[])));
     out.push_str(&forms::checkbox("profile_generate", "1", if p.generate { "1" } else { "0" }, &[("class", "scscpq_input")]));
-    out.push_str("</td><td>Email CAD Checked:<br>&bull; Continue browsing immediately, CAD will be emailed to you.<br>&bull; Check your spam folder for messages from partserver@partcommunity.com<br>&bull; Best used when you can wait for CAD.<br><br>Email CAD Unchecked:<br>&bull; CAD will be downloaded when complete.<br>&bull; Pause browsing until generated.<br>&bull; Best used when you need CAD <b>now</b><br><br>CAD generations takes around 30 seconds to over 2 minutes to complete.</td></tr>");
-    out.push_str("<tr><td><span id=cad_code_error>CAD Format</span></td><td>");
+    let lines = [
+        s.label("catalog_profile_checked", "Email CAD Checked:", &[]),
+        s.label("catalog_profile_checked_1", "&bull; Continue browsing immediately, CAD will be emailed to you.", &[]),
+        s.label("catalog_profile_checked_2", "&bull; Check your spam folder for messages from partserver@partcommunity.com", &[]),
+        s.label("catalog_profile_checked_3", "&bull; Best used when you can wait for CAD.", &[]),
+        String::new(),
+        s.label("catalog_profile_unchecked", "Email CAD Unchecked:", &[]),
+        s.label("catalog_profile_unchecked_1", "&bull; CAD will be downloaded when complete.", &[]),
+        s.label("catalog_profile_unchecked_2", "&bull; Pause browsing until generated.", &[]),
+        s.label("catalog_profile_unchecked_3", "&bull; Best used when you need CAD <b>now</b>", &[]),
+        String::new(),
+        s.label("catalog_profile_duration", "CAD generations takes around 30 seconds to over 2 minutes to complete.", &[]),
+    ];
+    out.push_str(&format!("</td><td>{}</td></tr>", lines.join("<br>")));
+    out.push_str(&format!("<tr><td><span id=cad_code_error>{}</span></td><td>", s.label("catalog_profile_cad_format", "CAD Format", &[])));
     out.push_str(&cad_picklist(ctx, &p.cad_code).await?);
     out.push_str("</td></tr>");
     out.push_str(&format!("<tr><td colspan=2>{}</td></tr>", forms::font("red", "<b>*</b>", "Indicates mandatory fields")));
     out.push_str("</table>");
-    let label = if ctx.viewer.account_id().is_some() { "Update Profile" } else { "Submit" };
-    out.push_str(&format!("<p>{}</p>", forms::button(label, &[("class", "small_button"), ("onclick", "profile_ajax('profile');")])));
-    out.push_str("<p>Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b></p></div>");
+    let label = if ctx.viewer.account_id().is_some() { s.label("catalog_profile_update", "Update Profile", &[]) } else { s.label("catalog_profile_submit", "Submit", &[]) };
+    out.push_str(&format!("<p>{}</p>", forms::button(&label, &[("class", "small_button"), ("onclick", "profile_ajax('profile');")])));
+    let note = "Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b>";
+    out.push_str(&format!("<p>{}</p></div>", s.label("catalog_profile_note", note, &[])));
     Ok(out)
 }
 
@@ -264,12 +285,13 @@ mod tests {
     fn quick_cad_message_follows_the_profile() {
         let mut v = Viewer { kind: Kind::Account(UserId(1)), active: true, cad: true, ..Viewer::anonymous(Lang::En) };
         let mut p = Profile { email: "someone@example.com".into(), ..Profile::default() };
-        assert_eq!(p.quick_cad_message(&v), "Please complete profile to download CAD");
+        let s = Strings::from_menu(Some(Some(r#"{"catalog_cad_click_profile":"Cliquez sur PROFIL."}"#)));
+        assert_eq!(p.quick_cad_message(&v, &s), "Please complete profile to download CAD");
         p.cad_name = "STEP AP214".into();
-        assert_eq!(p.quick_cad_message(&v), "CAD Format: STEP AP214. CAD downloaded when complete. Click PROFILE to change.");
+        assert_eq!(p.quick_cad_message(&v, &s), "CAD Format: STEP AP214. CAD downloaded when complete. Cliquez sur PROFIL.");
         p.generate = true;
-        assert_eq!(p.quick_cad_message(&v), "CAD Format: STEP AP214. CAD emailed to someone@example.com when complete. Click PROFILE to change.");
+        assert_eq!(p.quick_cad_message(&v, &s), "CAD Format: STEP AP214. CAD emailed to someone@example.com when complete. Cliquez sur PROFIL.");
         v.cad = false;
-        assert_eq!(p.quick_cad_message(&v), "");
+        assert_eq!(p.quick_cad_message(&v, &s), "");
     }
 }

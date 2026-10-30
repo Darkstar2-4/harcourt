@@ -180,7 +180,7 @@ async fn finish(ctx: &Ctx<'_>, tabs: &mut Tabs) -> sqlx::Result<String> {
         let form = form.trim();
         tabs.item(ctx.strings.get("catalog_profile"), (!form.is_empty()).then(|| form.to_string()), Some("catalog_profile"), None);
     }
-    Ok(format!("<div class=center id=quick_cad_status>{}</div>", ctx.profile.quick_cad_message(ctx.viewer)))
+    Ok(format!("<div class=center id=quick_cad_status>{}</div>", ctx.profile.quick_cad_message(ctx.viewer, &ctx.strings)))
 }
 
 fn url_base(ctx: &Ctx, family: &Family, action: &str) -> Query {
@@ -328,7 +328,8 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
             let field_list = html::base64_fields(&["list", &part.sku]);
             out.push(format!("<td class=center>{}</td>", esc_text(&part.leadtime(family))));
             out.push(format!("<td class=center>{}</td>", forms::text(&field_list, "", "6", "6", &[("class", "products_quantity")])));
-            let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", "Add to Cart")]).map(|i| i.replacen("<img", "<img id=''", 1)).unwrap_or_default();
+            let add = ctx.strings.label("catalog_cart_add", "Add to Cart", &[]);
+            let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", &add)]).map(|i| i.replacen("<img", "<img id=''", 1)).unwrap_or_default();
             out.push(format!("<td class=center>{}</td>", href(&icon, &format!("javascript:cart_update(this,{},{})", forms::js_quote(&field_list), forms::js_quote(&field_sku)))));
             if !family.prj.is_empty() {
                 let field = html::base64_fields(&["inventory", &part.sku]);
@@ -431,7 +432,7 @@ async fn overview(ctx: &Ctx<'_>, family: &Family, tabs: &mut Tabs) -> sqlx::Resu
         }
         out.push("<hr>".into());
     }
-    tabs.item("Overview", Some(out.join("\n")), Some("catalog_overview"), None);
+    tabs.item(ctx.strings.get("catalog_overview"), Some(out.join("\n")), Some("catalog_overview"), None);
     Ok(())
 }
 
@@ -556,11 +557,12 @@ fn sku_details(ctx: &Ctx, family: &Family, part: Option<&Part>) -> String {
         out.push(format!(
             "<p>{} {}</p>",
             forms::text(&field_sku, "", "6", "6", &[("class", "products_sku_quantity")]),
-            forms::button("Add to Cart", &[("class", "cart_button"), ("onclick", &onclick)])
+            forms::button(&ctx.strings.label("catalog_cart_add", "Add to Cart", &[]), &[("class", "cart_button"), ("onclick", &onclick)])
         ));
         if !family.prj.is_empty() {
             let onclick = format!("quick_cad('', {}, 0);", forms::js_quote(sku));
-            out.push(format!("<p>{}</p>", forms::button("Download CAD", &[("title", "Download CAD"), ("class", "quick_cad_button"), ("onclick", &onclick)])));
+            let label = ctx.strings.label("catalog_cad_download", "Download CAD", &[]);
+            out.push(format!("<p>{}</p>", forms::button(&label, &[("title", &label), ("class", "quick_cad_button"), ("onclick", &onclick)])));
         }
     }
     out.push("</td>".into());
@@ -632,7 +634,7 @@ fn cad(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
     url.push_str("hidePortlets=briefcase&hidePortlets=searchHeader");
     let content = [
         "<div id=products_cad_configurator>".to_string(),
-        format!("<iframe id=scscpq_configurator_id src={} onload='javascript:scscpq_initial(this.id, false);'>IFrame support required to view content</iframe>", html::bare_attr(&url)),
+        format!("<iframe id=scscpq_configurator_id src={} onload='javascript:scscpq_initial(this.id, false);'>{}</iframe>", html::bare_attr(&url), ctx.strings.label("catalog_iframe_required", "IFrame support required to view content", &[])),
         "</div>".into(),
         "<div id=products_cad_price>".into(),
         "<span id=products_cad_html></span>".into(),
