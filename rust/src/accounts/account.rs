@@ -167,12 +167,9 @@ pub async fn set_language(pool: &SqlitePool, id: UserId, code: &str) -> sqlx::Re
     Ok(())
 }
 
-/// Record a sign-in. False when this account already signed in within `window` seconds, so a caller that runs on
-/// every request logs once per visit, as the PHP did once per session.
-pub async fn touch_login(pool: &SqlitePool, id: UserId, now: i64, window: i64) -> sqlx::Result<bool> {
-    let floor = now - window;
-    let done = sqlx::query!(r#"UPDATE "user" SET last_login = ?2 WHERE id = ?1 AND last_login <= ?3"#, id.0, now, floor)
-        .execute(pool)
-        .await?;
+/// Record a sign-in at the start of a visit, as login_update() did at the start of every PHP session. False when
+/// the account is gone.
+pub async fn touch_login(pool: &SqlitePool, id: UserId, now: i64) -> sqlx::Result<bool> {
+    let done = sqlx::query!(r#"UPDATE "user" SET last_login = ?2 WHERE id = ?1"#, id.0, now).execute(pool).await?;
     Ok(done.rows_affected() == 1)
 }
