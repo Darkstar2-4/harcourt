@@ -488,7 +488,7 @@ async fn portals_keep_their_headlines_and_subcategories() {
     exec(&h.pool, "UPDATE portal SET active = 0 WHERE id = 4").await;
     let admin = person(&h.pool, 1, "Administrator").await;
     let (_, _, page) = send(&h.app, get("/portal.php", Some(&admin))).await;
-    assert!(!page.contains("<p class='message left'>"));
+    assert!(page.contains("<p class='message left'>Customer Portal Manager (03/28/2025)</p>"));
     assert!(page.contains("<input type=hidden name='record_id' id='record_id'>\n</tr></tr><table class='standard border tablesorter'>"));
     assert!(page.contains("onclick=\"javascript:fn_action('delete','4','Example Auto');\""));
     let (_, _, page) = submit(&h, "/portal.php", &admin, &[("action", "maintain"), ("record_id", "4")]).await;
