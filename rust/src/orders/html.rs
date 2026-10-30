@@ -6,7 +6,7 @@
 //! (`scscpq_wp.php` gives `/cart.php?scscpq_wp=1`); there the ribbon is left out.
 
 use axum::{
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use sqlx::SqlitePool;
@@ -66,13 +66,6 @@ impl Chrome {
         }
         Ok(chrome)
     }
-}
-
-/// Whether the page is inside the WordPress iframe. PHP remembers `?scscpq_wp=1` in the session; a stateless
-/// server sees it on the first request and, for the form posts and links inside the frame, in `Sec-Fetch-Dest`.
-pub fn framed(query: Option<&str>, headers: &HeaderMap) -> bool {
-    let flagged = query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"));
-    flagged || headers.get("sec-fetch-dest").is_some_and(|v| v.as_bytes() == b"iframe")
 }
 
 /// What differs between pages in the chrome.
@@ -286,15 +279,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn framed_comes_from_the_flag_or_the_iframe_fetch() {
-        let mut h = HeaderMap::new();
-        assert!(framed(Some("scscpq_wp=1"), &h));
-        assert!(!framed(Some("scscpq_wp=0&x=1"), &h));
-        assert!(!framed(None, &h));
-        h.insert("sec-fetch-dest", HeaderValue::from_static("iframe"));
-        assert!(framed(None, &h));
-    }
 
     #[test]
     fn the_document_wraps_the_page_like_scs_header() {
