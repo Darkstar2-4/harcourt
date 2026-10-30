@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use axum::{
-    routing::{any, get},
+    routing::get,
     Router,
 };
 
@@ -25,10 +25,6 @@ pub fn router(core: Arc<Auth>) -> Router {
         .route("/oauth/callback.php", get(oauth::microsoft_callback))
         .route("/oauth/google_init.php", get(oauth::google_init))
         .route("/oauth/google_callback.php", get(oauth::google_callback))
-        .route("/oauth/session.php", any(oauth::include_file))
-        .route("/oauth/MicrosoftAuth.php", any(oauth::include_file))
-        .route("/oauth/GoogleAuth.php", any(oauth::include_file))
-        .route("/oauth/PkceTrait.php", any(oauth::include_file))
         .merge(manage::router())
         .merge(static_dirs::routes())
         .with_state(core)

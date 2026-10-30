@@ -210,8 +210,6 @@ async fn paths_apache_ran_a_script_for_reach_the_script() {
 async fn the_old_docroot_directories_answer_as_apache_did() {
     let pool = pool().await;
     let app = app(&pool);
-    let (status, _, body) = send(&app, Method::GET, "/oauth/MicrosoftAuth.php", "", None).await;
-    assert_eq!((status, body.as_str()), (StatusCode::OK, ""), "an include file prints nothing");
     for uri in ["/campaign/", "/campaign/slide/css/", "/welcome-pages/xwelcomel.php", "/oauth/"] {
         let (status, headers, body) = send(&app, Method::GET, uri, "", None).await;
         assert_eq!(status, StatusCode::FORBIDDEN, "{uri}");
