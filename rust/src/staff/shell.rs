@@ -68,11 +68,11 @@ impl Chrome {
         c
     }
 
-    fn head(&self, title: &str) -> String {
+    fn head(&self, title: &str, description: Option<&str>) -> String {
         let full = if self.title_prefix.is_empty() { title.to_string() } else { format!("{} {title}", self.title_prefix) };
         let mut out = vec!["<!DOCTYPE html>".to_string(), "<html>".into(), "<head>".into()];
         out.push(format!("<title>{}</title>", esc(&full)));
-        out.push(format!("<meta name=\"description\" content=\"{}\">", esc(&full)));
+        out.push(format!("<meta name=\"description\" content=\"{}\">", esc(description.unwrap_or(&full))));
         out.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
         out.push("<meta charset=\"utf-8\">".into());
         if !self.icon.is_empty() {
@@ -125,8 +125,13 @@ fn ribbon(role: Role) -> String {
 
 /// A whole staff page: head, ribbon, the body the page built, and the closing divs.
 pub async fn page(pool: &SqlitePool, role: Role, title: &str, body: &str) -> Response {
+    described(pool, role, title, None, body).await
+}
+
+/// `page` with the meta description a page sets itself (`$forms->html->meta("description", …)`).
+pub async fn described(pool: &SqlitePool, role: Role, title: &str, description: Option<&str>, body: &str) -> Response {
     let chrome = Chrome::load(pool).await;
-    let mut html = chrome.head(title);
+    let mut html = chrome.head(title, description);
     html.push_str(&["<div id='scs_body' >".to_string(), ribbon(role), "<div id='scs_content' >".to_string()].join("\n"));
     html.push_str(body);
     html.push_str("</div> <!-- #scs_content -->\n</div> <!-- #scs_body -->");

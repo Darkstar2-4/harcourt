@@ -259,6 +259,30 @@ async fn administrators_mint_list_and_revoke_grants_within_their_role() {
 }
 
 #[tokio::test]
+async fn the_company_page_shows_its_cms_document_in_the_accounts_language() {
+    let h = harness().await;
+    let (status, headers, _) = send(&h.app, get("/company.php", None)).await;
+    assert_eq!((status, &headers[header::LOCATION]), (StatusCode::FOUND, &"/scs_index.php".parse().unwrap()));
+    let customer = person(&h.pool, 8, "Customer").await;
+    sqlx::query(r#"UPDATE "user" SET language_code = 'FR' WHERE id = 8"#).execute(&h.pool).await.unwrap();
+    sqlx::query("INSERT INTO pages (id, record_type, name, url, document_id) VALUES (1, 'general', 'Company', '/company.php', 30)").execute(&h.pool).await.unwrap();
+    for (lang, body) in [("EN", "<h1>About us</h1>"), ("FR", "<h1>Qui sommes-nous</h1>")] {
+        sqlx::query("INSERT INTO content (record_type, record_id, language_code, content) VALUES ('document', 30, ?1, ?2)")
+            .bind(lang)
+            .bind(body.as_bytes())
+            .execute(&h.pool)
+            .await
+            .unwrap();
+    }
+    let (status, _, page) = send(&h.app, get("/company.php", Some(&customer))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<title>Harcourt | Engineering Productivity Solutions | Company</title>"));
+    assert!(page.contains("\n<!-- Body Content -->\n<h1>Qui sommes-nous</h1>\n<!-- End Body Content -->\n"));
+    let views: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'Page' AND subtype = 'General' AND comment = 'Company'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(views, 1);
+}
+
+#[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
