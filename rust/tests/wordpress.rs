@@ -182,6 +182,8 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     let (status, location, _) = send(&app, Method::GET, "/index.php?lang=en").await;
     assert_eq!((status, location.as_deref()), (StatusCode::FOUND, Some("/index.php/")), "WPML's 302 comes before the front controller's");
     assert_eq!(send(&app, Method::GET, "/index.php?x=1").await.1.as_deref(), Some("https://www.harcourt.co/?x=1"));
+    assert_eq!(send(&app, Method::GET, "/index.php/?lang=en").await.1.as_deref(), Some("/index.php/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=en").await.1.as_deref(), Some("/sitemap.xml/"));
     let blog = app.clone().oneshot(Request::builder().uri("/sitemap.xml?order=asc").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(blog.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "any other query is the blog query's 404");
 }

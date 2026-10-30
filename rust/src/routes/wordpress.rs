@@ -215,7 +215,7 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
         }
         // WPML's 302 away from lang=en comes first, to the address as asked with a slash.
         let q = query(raw_query);
-        if rest.is_empty() && q.lang_en {
+        if (rest.is_empty() || rest == "/") && q.lang_en {
             return found(&wp.core.public_origin, &format!("/index.php/{}", if q.without_lang.is_empty() { String::new() } else { format!("?{}", q.without_lang) }));
         }
         return redirect(&wp.core.public_origin, &with_query(if rest.is_empty() { "/" } else { rest }, raw_query));
@@ -282,9 +282,13 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
         return Some(xml(sitemap::XSL.to_string()));
     }
     if name == "sitemap.xml" {
-        // Yoast moves the bare address only, keeping WPML's lang; with any other query it is the 404 over the blog
-        // query, which is not ported.
-        return Some(if q.without_lang.is_empty() { redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())) } else { legacy() });
+        // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang; with any
+        // other query it is the 404 over the blog query, which is not ported.
+        return Some(match (q.without_lang.is_empty(), q.lang_en) {
+            (true, true) => found(&wp.core.public_origin, "/sitemap.xml/"),
+            (true, false) => redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())),
+            (false, _) => legacy(),
+        });
     }
     // Yoast's own rules match the path with its trailing slash trimmed, as WordPress does.
     let name = name.strip_suffix('/').unwrap_or(name);
@@ -583,7 +587,8 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
         if !rest.is_empty() {
             return None;
         }
-        return match site.translation(p, lang).filter(|t| t.status == Status::Publish && lang == Lang::Fr) {
+        // From English WPML sends a post to its own language's URL, but a page to its English translation.
+        return match site.translation(p, lang).filter(|t| t.status == Status::Publish && (lang == Lang::Fr || key == "page_id")) {
             Some(t) => Some(Answer::Found(with_id(key, t.id.0))),
             None => other_language(key, id, p.lang),
         };
@@ -1089,6 +1094,7 @@ mod tests {
         assert_eq!(r("/", "p=2&lang="), "302 /?p=1&lang=", "an empty lang is the default language and stays");
         assert_eq!(r("/", "p=1&lang=fr&lang=FR"), "/company/history/?lang=FR");
         assert_eq!(r("/", "p=2"), "302 /?p=2&lang=fr");
+        assert_eq!(r("/", "page_id=2"), "302 /?page_id=1", "a page goes to its English translation");
     }
 
     #[test]
