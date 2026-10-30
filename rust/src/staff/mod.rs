@@ -15,7 +15,9 @@ use axum::{
 
 use crate::api::{ApiError, Auth, Authed, MinRole};
 
+pub mod address;
 pub mod check;
+pub mod choices;
 pub mod csrf;
 pub mod html;
 pub mod maintain;
@@ -28,6 +30,7 @@ pub mod grants;
 pub mod jobs;
 pub mod log;
 pub mod mailer;
+pub mod user;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
 pub const HOME: &str = "/scs_index.php";
@@ -80,4 +83,5 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(dashboard::routes())
         .merge(grants::routes())
         .merge(log::routes())
+        .merge(user::routes())
 }

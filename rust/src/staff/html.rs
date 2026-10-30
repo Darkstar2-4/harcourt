@@ -299,7 +299,7 @@ impl Form<'_> {
         let mut opts = opts;
         opts.push_default("checked", if checked { " checked" } else { "" });
         let opts = opts.set("value", esc(value));
-        let html = format!("<input type=checkbox {}>", attrs(field, opts, false).trim());
+        let html = format!("<input type=checkbox {}>", attrs(field, opts, self.notes.is_error(field)).trim());
         if self.notes.is_error(field) {
             format!("<span style='background-color: #ff0000'>{html}</span>\n")
         } else {
@@ -340,11 +340,32 @@ impl Form<'_> {
         lines.join("\n")
     }
 
+    /// `optgroup()`: options under group labels, empty groups skipped. Unlike `select()` it ends without a newline.
+    pub fn optgroup(&self, field: &str, groups: &[OptGroup], selected: &str, blank: bool, opts: Opts) -> String {
+        let mut lines = vec![format!("<select{}>", attrs(field, opts, self.notes.is_error(field)))];
+        if blank {
+            lines.push("<option></option>".into());
+        }
+        for (label, options) in groups.iter().filter(|(_, o)| !o.is_empty()) {
+            lines.push(format!("<optgroup label='{}'>", esc(label)));
+            for (value, text) in options {
+                let sel = if value == selected { " selected" } else { "" };
+                lines.push(format!("<option value='{}'{sel}>{text}</option>", esc(value)));
+            }
+            lines.push("</optgroup>".into());
+        }
+        lines.push("</select>".into());
+        lines.join("\n")
+    }
+
     pub fn file(&self, field: &str, size: u32, opts: Opts) -> String {
         let opts = opts.set("size", size.to_string());
         format!("<input type=file {}>\n", attrs(field, opts, self.notes.is_error(field)).trim())
     }
 }
+
+/// An `<optgroup>`: its label and its (value, label markup) options.
+pub type OptGroup = (String, Vec<(String, String)>);
 
 #[derive(Clone, Copy)]
 pub enum Blank {
@@ -401,7 +422,7 @@ pub fn close() -> &'static str {
 }
 
 /// PHP's string form of a float (precision 14, no trailing zeros), for the textarea row count it computes.
-fn php_float(v: f64) -> String {
+pub fn php_float(v: f64) -> String {
     if v.fract() == 0.0 {
         return format!("{}", v as i64);
     }
@@ -426,17 +447,27 @@ fn esc_html401(s: &str) -> String {
 }
 
 /// jquery_tab_class: tabs of content, one landing tab, rendered with its loader, hidden fields and script.
+///
+/// Every `item()` call takes a slot, as `$this->meta->item++` did, even when its content is empty and it adds no
+/// tab. Slots number the content ids, and each slot past the real tabs prints an empty `<li>`, as the PHP did.
 pub struct Tabs {
     name: &'static str,
-    tabs: Vec<(String, String)>,
+    tabs: Vec<Tab>,
+    slots: usize,
     landing_name: Option<String>,
     landing: usize,
     lineheight: &'static str,
 }
 
+struct Tab {
+    title: String,
+    content: String,
+    slot: usize,
+}
+
 impl Tabs {
     pub fn new() -> Self {
-        Tabs { name: "scs_jquery", tabs: Vec::new(), landing_name: None, landing: 0, lineheight: "content" }
+        Tabs { name: "scs_jquery", tabs: Vec::new(), slots: 0, landing_name: None, landing: 0, lineheight: "content" }
     }
 
     /// `landing_tab($name, TRUE)`: open on the tab with this title (`?tab=` on the dashboard).
@@ -458,16 +489,22 @@ impl Tabs {
         }
     }
 
-    /// `item($name, $contents)`. Title and content are markup; an empty content adds no tab.
+    /// `item($name, $contents)`. Title and content are markup; an empty content takes a slot but adds no tab.
     pub fn item(&mut self, title: &str, content: String) {
+        self.slots += 1;
         if content.is_empty() {
             return;
         }
-        self.tabs.push((title.to_string(), content));
+        self.tabs.push(Tab { title: title.to_string(), content, slot: self.slots });
         let index = self.tabs.len() - 1;
         if self.landing == 0 && self.landing_name.as_deref() == Some(title.trim()) {
             self.landing = index;
         }
+    }
+
+    /// `item($name, $lines)` with an array: the lines joined by newlines.
+    pub fn lines(&mut self, title: &str, lines: &[String]) {
+        self.item(title, lines.join("\n"));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -480,31 +517,34 @@ impl Tabs {
         }
         let n = self.name;
         let header = format!("{n}_header");
-        let content_id = |i: usize| format!("{header}_{}", i + 1);
+        let content_id = |t: &Tab| format!("{header}_{}", t.slot);
         let mut out: Vec<String> = Vec::new();
-        for i in 0..self.tabs.len() {
-            out.push(hidden(&format!("tab_{}_no", content_id(i)), &i.to_string()));
+        for (i, t) in self.tabs.iter().enumerate() {
+            out.push(hidden(&format!("tab_{}_no", content_id(t)), &i.to_string()));
         }
         out.push(format!("<div id='{n}_loader' class='{n}_loader'><span class=jquery_loader></span><span class=jquery_loader_text>Loading ...</span></div>"));
         out.push(format!("<div id='{n}_div' class='{n}_div' style='display:none;'>"));
         out.push(format!("<div id='{header}' class='{header}'>"));
         out.push(format!("<ul id='{n}_tabs' class='{n}_tabs'>"));
         let mut landing_key = 0;
-        for (i, (title, _)) in self.tabs.iter().enumerate() {
-            let id = content_id(i);
+        for i in 0..self.slots {
+            let Some(t) = self.tabs.get(i) else {
+                out.push(hidden("tab__content", &i.to_string()));
+                out.push(format!("<li id='' class='{n}_tabs'></li>"));
+                continue;
+            };
+            let id = content_id(t);
             out.push(hidden(&format!("tab_{id}_content"), &i.to_string()));
             if self.landing != 0 && i == self.landing {
                 landing_key = i;
             }
-            out.push(format!(
-                "<li id='tab_{id}' class='{n}_tabs'><a href='#{id}' id='href_{id}' class='{n}_tabs'>{title}</a></li>"
-            ));
+            out.push(format!("<li id='tab_{id}' class='{n}_tabs'><a href='#{id}' id='href_{id}' class='{n}_tabs'>{}</a></li>", t.title));
         }
         out.push("</ul>".into());
         out.push(format!("</div> <!-- {header} -->"));
-        for (i, (title, content)) in self.tabs.iter().enumerate() {
-            let tab_field = format!("jquerytab_{}", STANDARD.encode(title.trim()));
-            out.push(format!("{}<div id='{}' class='{n}_content'>\n{}\n</div>\n", hidden(&tab_field, title), content_id(i), content.trim()));
+        for t in &self.tabs {
+            let tab_field = format!("jquerytab_{}", STANDARD.encode(t.title.trim()));
+            out.push(format!("{}<div id='{}' class='{n}_content'>\n{}\n</div>\n", hidden(&tab_field, &t.title), content_id(t), t.content.trim()));
         }
         out.push("</div> <!--  -->".into());
         out.push(String::new());
@@ -627,6 +667,40 @@ pub fn page_break(found_rows: i64, page: i64, script: &str) -> String {
     format!("<p style='text-align: center'>{}</p>", parts.join("<br>"))
 }
 
+/// page_item_break::page(): the pager under a list whose page number is 1-based. First / Previous / Next / Last run
+/// `script` with `%page%` replaced; the row count always shows, "Page n of m" only when a button is live.
+pub fn page_items(found_rows: i64, page: i64, script: &str) -> String {
+    let current = page.max(1);
+    let last = (found_rows + PAGE_ROWS - 1) / PAGE_ROWS;
+    let back = (current > 1).then_some(current);
+    let ahead = (last > current).then_some(current);
+    let targets = [
+        ("<< First", back.map(|_| 1)),
+        ("< Previous", back.map(|c| c - 1)),
+        ("Next >", ahead.map(|c| c + 1)),
+        ("Last >>", ahead.map(|_| last)),
+    ];
+    let live = |t: Option<i64>| t.filter(|&t| t <= last && t != current);
+    let buttons: String = targets
+        .iter()
+        .map(|(name, target)| match live(*target) {
+            Some(t) => button(name, Opts::new().onclick(script.replace("%page%", &t.to_string()))),
+            None => button(name, Opts::new().class("nav_button_disabled")),
+        })
+        .collect();
+    let mut out = vec!["<p class='standard center'>".to_string()];
+    let any_live = targets.iter().any(|(_, t)| live(*t).is_some());
+    if any_live {
+        out.push(buttons);
+    }
+    out.push(format!("<br>{} Records Found", number(found_rows)));
+    if any_live {
+        out.push(format!("<br>Page {} of {}", number(current), number(last)));
+    }
+    out.push("</p>".into());
+    out.join("\n")
+}
+
 /// number_format() with no decimals.
 pub fn number(n: i64) -> String {
     let digits = n.unsigned_abs().to_string();
@@ -673,6 +747,27 @@ mod tests {
         assert!(page_break(120, 2, "go(%page%);").contains("<input type=button class='nav_button_disabled' value='Last &gt;&gt;'>"));
         assert_eq!(number_dp(1234.5, 2), "1,234.50");
         assert_eq!(number_dp(-0.001, 2), "0.00");
+    }
+
+    #[test]
+    fn item_pager_counts_from_one() {
+        assert_eq!(page_items(16, 0, "go(%page%);"), "<p class='standard center'>\n<br>16 Records Found\n</p>");
+        assert_eq!(page_items(0, 1, "go(%page%);"), "<p class='standard center'>\n<br>0 Records Found\n</p>");
+        let p = page_items(120, 1, "go(%page%);");
+        assert!(p.starts_with("<p class='standard center'>\n<input type=button class='nav_button_disabled' value='&lt;&lt; First'>\n<input type=button class='nav_button_disabled' value='&lt; Previous'>\n<input type=button class='nav_button' value='Next &gt;' onclick=\"javascript:go(2);\">\n<input type=button class='nav_button' value='Last &gt;&gt;' onclick=\"javascript:go(3);\">\n"));
+        assert!(p.ends_with("\n<br>120 Records Found\n<br>Page 1 of 3\n</p>"));
+        assert!(page_items(120, 3, "go(%page%);").contains("value='&lt; Previous' onclick=\"javascript:go(2);\""));
+    }
+
+    #[test]
+    fn optgroups_skip_empty_groups_and_end_without_a_newline() {
+        let notes = quiet();
+        let f = Form { notes: &notes };
+        let groups = vec![("Priced".to_string(), vec![("USD".to_string(), "US Dollar".to_string())]), ("No Price".to_string(), vec![])];
+        assert_eq!(
+            f.optgroup("currency_code", &groups, "USD", true, Opts::new()),
+            "<select name='currency_code' id='currency_code'>\n<option></option>\n<optgroup label='Priced'>\n<option value='USD' selected>US Dollar</option>\n</optgroup>\n</select>"
+        );
     }
 
     fn quiet() -> Notes {
@@ -743,9 +838,10 @@ mod tests {
         t.item("Empty", String::new());
         t.item("Orders", "b".into());
         let html = t.render();
-        assert!(html.contains("<li id='tab_scs_jquery_header_2' class='scs_jquery_tabs'><a href='#scs_jquery_header_2' id='href_scs_jquery_header_2' class='scs_jquery_tabs'>Orders</a></li>"));
+        assert!(html.contains("<input type=hidden name='tab_scs_jquery_header_3_content' id='tab_scs_jquery_header_3_content' value='1'>\n\n<li id='tab_scs_jquery_header_3' class='scs_jquery_tabs'><a href='#scs_jquery_header_3' id='href_scs_jquery_header_3' class='scs_jquery_tabs'>Orders</a></li>"));
+        assert!(html.contains("<input type=hidden name='tab__content' id='tab__content' value='2'>\n\n<li id='' class='scs_jquery_tabs'></li>\n</ul>"));
         assert!(html.contains("active: 1 }"));
-        assert!(html.contains("<input type=hidden name='jquerytab_T3JkZXJz' id='jquerytab_T3JkZXJz' value='Orders'>\n<div id='scs_jquery_header_2' class='scs_jquery_content'>\nb\n</div>\n"));
+        assert!(html.contains("<input type=hidden name='jquerytab_T3JkZXJz' id='jquerytab_T3JkZXJz' value='Orders'>\n<div id='scs_jquery_header_3' class='scs_jquery_content'>\nb\n</div>\n"));
     }
 
     #[test]

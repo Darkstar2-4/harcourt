@@ -36,6 +36,24 @@ fn email_error(address: &str, required: bool) -> Option<&'static str> {
     (!ok).then_some("Email format error")
 }
 
+/// fn_text(): posted text trimmed, with each line's `<script` … `>` run removed as the PHP's
+/// `/(<script)(.*)(>)/i` removed it.
+pub fn posted_text(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for line in input.split_inclusive('\n') {
+        let start = line.to_ascii_lowercase().find("<script");
+        let end = start.and_then(|s| line[s..].rfind('>').map(|e| s + e + 1));
+        match (start, end) {
+            (Some(s), Some(e)) => {
+                out.push_str(&line[..s]);
+                out.push_str(&line[e..]);
+            }
+            _ => out.push_str(line),
+        }
+    }
+    out.trim().to_string()
+}
+
 /// verify_file(): a site path of the given type. Blank is fine; anything else must be `/….type`.
 pub fn site_file(path: &str, kind: &str) -> Option<String> {
     if path.is_empty() {

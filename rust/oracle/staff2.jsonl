@@ -1,0 +1,15 @@
+# Staff maintenance pages. Run with --rust-session. Signed-in cases are warm, so the oracle does not send the persona
+# to its landing page, and carry ?scscpq_wp=1 because the warm-up request leaves the PHP session in WordPress mode.
+# POST bodies carry the persona session's CSRF token, which the PHP ignores. Every account shown or edited is a persona.
+{"name":"user-anonymous","path":"/user.php","persona":"anonymous"}
+{"name":"user-executive","path":"/user.php?scscpq_wp=1","persona":"executive-active","session":"warm"}
+{"name":"user-administrator","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"user-superuser","path":"/user.php?scscpq_wp=1","persona":"superuser-active","session":"warm"}
+{"name":"user-list-personas","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=list&report_option_field=ip&report_option_value=198.51.100.&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-list-pending-internal","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=list&report_type=Internal&report_status=Pending&report_option_field=company_name&report_option_value=Persona&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-maintain","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=990008&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-maintain-from-dashboard","path":"/user.php?scscpq_wp=1&action=maintain&record_id=990008&return_url=%2Fdashboard.php%3Ftab%3DPending","persona":"administrator-active","session":"warm"}
+{"name":"user-copy-from","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=0&ajax_user_id=990009&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-cancel","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-update-errors","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=990008&ip=198.51.100.18&profile_company_name=Persona+Internal+Pending&profile_country_code=US&status=Pending&type=Internal&currency_code=USD&language_code=EN&cad=1&price_type=discount&price_pct=150&portal_id=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"user-update-bad-address","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=990008&ip=198.51.100.018&profile_company_name=&profile_country_code=CA&status=Pending&type=Internal&currency_code=&language_code=EN&catalog=1&price_type=plus&price_pct=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
