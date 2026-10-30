@@ -1,0 +1,23 @@
+# More orders cases, from the fixer. Run with --warm --rust-session, and once more without --rust-session (staff and
+# shoppers signed in by company address). Synthetic personas and made-up values only; the record ids are row numbers.
+{"name": "orderhd-maintain-from-dashboard", "path": "/orderhd.php?action=maintain&record_id=2242&return_url=/dashboard.php%3Ftab%3DPending%2BPO%2B%25281%2529", "persona": "executive-active"}
+{"name": "orderhd-maintain-post", "method": "POST", "path": "/orderhd.php", "persona": "administrator-active", "body": "action=maintain&record_id=1500"}
+{"name": "orderhd-list-since", "method": "POST", "path": "/orderhd.php", "persona": "superuser-active", "body": "action=list&report_status=&report_order_date=10/01/2026"}
+{"name": "orderhd-email", "method": "POST", "path": "/orderhd.php", "persona": "executive-active", "body": "action=email&record_id=2242"}
+{"name": "orderhd-update-unchanged", "method": "POST", "path": "/orderhd.php", "persona": "executive-active", "body": "action=update&record_id=2242&status=Accept"}
+{"name": "carrier-maintain-existing", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "body": "action=maintain&record_id=3"}
+{"name": "carrier-maintain-missing", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "body": "action=maintain&record_id=999999"}
+{"name": "dpa-load-unknown-company", "method": "POST", "path": "/design_partner_agreement.php", "persona": "administrator-active", "body": "action=load&company_name=No+Such+Company+Example", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "dpa-superuser", "path": "/design_partner_agreement.php", "persona": "superuser-active"}
+{"name": "cart-ajax-anonymous", "method": "POST", "path": "/cart.php", "persona": "anonymous", "body": "json_code=eA&json_quantity=1", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "cart-ajax-invalid-code", "method": "POST", "path": "/cart.php", "persona": "customer-active", "body": "json_code=eA&json_quantity=1", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "cart-ajax-remove-unknown", "method": "POST", "path": "/cart.php", "persona": "customer-active", "body": "json_code=YwlOTy1TVUNILVNLVQ&json_quantity=0", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "cart-ajax-get", "path": "/cart.php?json_code=eA&json_quantity=2", "persona": "customer-active", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "checkout-post-anonymous", "method": "POST", "path": "/checkout.php", "persona": "anonymous", "body": "action=complete"}
+{"name": "checkout-post-denied", "method": "POST", "path": "/checkout.php", "persona": "customer-denied", "body": "action=complete"}
+{"name": "contact-internal", "path": "/contact.php", "persona": "internal-active"}
+# A visit's first request, carrying what a browser sends from a page: PHP sent it to the landing page all the same.
+{"name": "first-visit-with-referer-orderhd", "path": "/orderhd.php", "persona": "executive-active", "session": "cold", "headers": {"Referer": "https://www.harcourt.co/dashboard.php"}}
+{"name": "first-visit-with-referer-cart", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "session": "cold", "headers": {"Referer": "https://www.harcourt.co/cart/"}}
+{"name": "first-visit-cart-ajax", "method": "POST", "path": "/cart.php", "persona": "customer-active", "session": "cold", "body": "json_code=eA&json_quantity=1", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "first-visit-carrier-post", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "session": "cold", "body": "action=cancel", "headers": {"Origin": "https://www.harcourt.co"}}
