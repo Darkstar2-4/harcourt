@@ -4,7 +4,7 @@
 //! the path (`paged`, `feed`) or drops (`page`). WPML moves a request in the other language to the translation the
 //! same way. Combinations this does not know are left to the caller.
 
-use super::{fold, parse_terms, post_content, field, urlencode};
+use super::{field, fold, parse_terms, post_content, urlencode};
 use crate::{
     catalog::php::{self, Value},
     cms::{feed::Kind, Lang, Page, PostType, Site, Status},
@@ -23,7 +23,7 @@ const TAXONOMY: &[&str] = &["cat", "category_name", "tag", "taxonomy", "term", "
 /// Public query vars this module does not answer for (dates, authors, other posts, endpoints).
 const OTHER_VARS: &[&str] = &[
     "preview", "m", "w", "year", "monthnum", "day", "hour", "minute", "second", "author", "author_name", "attachment", "subpost", "subpost_id", "post_format",
-    "case_study", "faq", "testimonials", "tb", "robots", "favicon", "replytocom", "rest_route", "sitemap", "embed", "hx_form", "feed_type", "paged_type",
+    "case_study", "faq", "testimonials", "tb", "robots", "favicon", "replytocom", "rest_route", "sitemap", "embed", "hx_form",
 ];
 /// What redirect_canonical() removes after guessing a 404's page, unless the guessed URL carries it.
 const GUESS_DROPS: &[&str] = &["page", "feed", "p", "page_id", "attachment_id", "pagename", "name", "post_type"];
@@ -56,10 +56,14 @@ pub(super) fn absint(v: &str) -> u64 {
 /// add_query_arg() of rawurlencoded pairs onto a permalink: the link's own vars keep their place.
 fn with_args(permalink: &str, rest: &[(String, String)]) -> String {
     let (path, own) = permalink.split_once('?').unwrap_or((permalink, ""));
-    let mut pairs: Vec<(String, String)> = own.split('&').filter(|kv| !kv.is_empty()).map(|kv| {
-        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        (k.to_string(), v.to_string())
-    }).collect();
+    let mut pairs: Vec<(String, String)> = own
+        .split('&')
+        .filter(|kv| !kv.is_empty())
+        .map(|kv| {
+            let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
+            (k.to_string(), v.to_string())
+        })
+        .collect();
     for (k, v) in rest {
         let (k, v) = (urlencode(k, true), urlencode(v, true));
         match pairs.iter_mut().find(|(have, _)| *have == k) {
@@ -122,7 +126,6 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
             return None;
         }
     }
-    let truthy = |v: Option<&str>| v.is_some_and(|v| !v.is_empty() && v != "0");
     // pagename and name can only name this page; another name is a different query.
     if get("pagename").is_some_and(|v| v != page.name) || get("name").is_some_and(|v| !v.is_empty() && v != page.name) {
         return None;
@@ -140,7 +143,7 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
         "rdf" => Some(("feed/rdf/", Kind::Rdf)),
         _ => return None,
     };
-    let page_var = get("page").filter(|v| truthy(Some(v)));
+    let page_var = get("page").filter(|v| !v.is_empty() && *v != "0");
     let paged = absint(get("paged").unwrap_or(""));
     let s = get("s").unwrap_or("");
     let not_found = translated
