@@ -27,7 +27,7 @@ pub fn is_retired(raw_path: &str) -> bool {
             s => segments.push(s),
         }
     }
-    segments.iter().any(|s| RETIRED.iter().any(|r| s.eq_ignore_ascii_case(r)))
+    segments.iter().any(|s| RETIRED.iter().any(|r| s.eq_ignore_ascii_case(r))) || crate::routes::wordpress::retired(&segments)
 }
 
 /// The answer for a request path, or None when the request may go on. This is the whole of main.rs's check.

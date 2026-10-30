@@ -77,6 +77,19 @@ impl Islands {
     }
 }
 
+pub type Markup<'a> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send + 'a>>;
+
+/// Where a page's form markup comes from: the island endpoint now, the orders area's `forms::embed` later.
+pub trait FormSource: Send + Sync {
+    fn markup<'a>(&'a self, form: &'a FormEmbed<'a>) -> Markup<'a>;
+}
+
+impl FormSource for Islands {
+    fn markup<'a>(&'a self, form: &'a FormEmbed<'a>) -> Markup<'a> {
+        Box::pin(Islands::markup(self, form))
+    }
+}
+
 /// Replaces each `{{gform:N}}` in `page`, in order, with `markup(N)`. A hole whose form has no markup is an error,
 /// so a page never goes out with a form missing.
 pub async fn fill<F, Fut>(page: &str, mut markup: F) -> Result<String, String>
