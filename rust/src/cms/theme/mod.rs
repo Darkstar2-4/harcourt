@@ -35,8 +35,35 @@ pub enum Slot {
     MenuLabel(i64),
 }
 
+/// What WordPress's main query found: a page, or nothing (index.php's 404 loop, with WordPress's 404 head).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum View {
+    Page,
+    NotFound,
+}
+
+/// Where the import keeps the 404 page's chrome values: `cms_option` rows `@404:<hole>` per language.
+pub const NOT_FOUND_OPTION: &str = "@404:";
+
+/// The holes of the 404 page that pages compute from their post; the import keeps the 404's own values for
+/// them, next to its CHROME_PLACEHOLDERS.
+pub const NOT_FOUND_HOLES: [&str; 10] = [
+    "islands",
+    "body_class",
+    "hreflang",
+    "rest_link",
+    "shortlink_oembed",
+    "wpml_hidden_switcher",
+    "lang_switcher",
+    "logo_link",
+    "seo_description_canonical",
+    "seo_og_description_url",
+];
+
 pub struct Ctx<'a> {
     pub site: &'a Site,
+    pub view: View,
+    /// The page rendered; for another view a stand-in with no post (id 0) in the request's language.
     pub page: &'a Page,
     /// The request URI WordPress saw: path plus query.
     pub uri: &'a str,
@@ -50,7 +77,7 @@ pub struct Ctx<'a> {
 
 impl<'a> Ctx<'a> {
     pub fn new(site: &'a Site, page: &'a Page, uri: &'a str) -> Ctx<'a> {
-        Ctx { site, page, uri, out: String::with_capacity(64 * 1024), images: Images::default(), slots: None, unported: None }
+        Ctx { site, view: View::Page, page, uri, out: String::with_capacity(64 * 1024), images: Images::default(), slots: None, unported: None }
     }
 
     pub fn unported(&mut self, what: &str) {
@@ -274,6 +301,41 @@ pub fn render_parts(site: &Site, page: &Page, uri: &str) -> Option<[String; 4]> 
     let footer = chrome::fill(&mut c, chrome::Part::Footer);
     Some([head, header, body_ctx.out, footer])
 }
+
+/// The page with no post that WordPress serves for a request it finds nothing for (index.php's loop, 404), in
+/// `lang`, with `{{gform:N}}` holes for the footer's form.
+pub fn not_found(site: &Site, lang: Lang, uri: &str) -> String {
+    let page = Page {
+        id: PageId(0),
+        kind: super::model::PostType::Page,
+        name: String::new(),
+        group_id: 0,
+        lang,
+        path: String::new(),
+        template: Template::Page,
+        status: super::model::Status::Publish,
+        title: String::new(),
+        parent_id: None,
+        menu_order: 0,
+        published_at: String::new(),
+        modified_at: String::new(),
+    };
+    let mut c = Ctx { view: View::NotFound, ..Ctx::new(site, &page, uri) };
+    c.set_phase(Phase::Header);
+    let head = chrome::fill(&mut c, chrome::Part::Head);
+    let header = chrome::fill(&mut c, chrome::Part::Header);
+    c.set_phase(Phase::Loop);
+    c.push(NOT_FOUND_LOOP);
+    templates::sidebar(&mut c);
+    c.push("\n  </div><!-- /.row -->\n</main><!-- /.container -->\n\n");
+    let body = std::mem::take(&mut c.out);
+    c.set_phase(Phase::After);
+    let footer = chrome::fill(&mut c, chrome::Part::Footer);
+    [head, header, body, footer].concat()
+}
+
+/// index.php around loops/index-loop.php when the query found nothing (loops/404.php).
+const NOT_FOUND_LOOP: &str = "\n\n<main class=\"container mt-5\">\n  <div class=\"row\">\n\n    <div class=\"col-sm\">\n      <div id=\"content\" role=\"main\"> 1\n\n        \n<div id=\"content\" role=\"main\">\n    <div class=\"alert alert-warning\">\n        <h1>\n            <i class=\"fas fa-exclamation-triangle\"></i> Error 404\n        </h1>\n        <p class=\"mt-4\">Sorry, we can&rsquo;t find what you were looking for.</p>\n    </div>\n</div><!-- /#content -->\n      </div><!-- /#content -->\n    </div>\n\n    ";
 
 /// A page of another area (catalog, cart, ...) inside this page's chrome: what WordPress served for the
 /// scscpq templates, with `body` in place of the template's placeholder div.

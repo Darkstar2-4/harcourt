@@ -19,6 +19,7 @@
 //! the static pages do today.
 
 pub mod admin;
+pub mod docroot;
 pub mod edit;
 pub mod forms;
 pub mod html;
@@ -45,6 +46,10 @@ pub struct FormEmbed<'a> {
     pub styles: &'a str,
     /// Rendered inside post content, where WordPress rewrites `]]>` as `]]&gt;`.
     pub in_content: bool,
+    /// Rendered inside content that wptexturize() ran over.
+    pub texturize: bool,
+    /// Where the form is among the page's forms, from 1.
+    pub position: usize,
     /// The User-Agent Gravity Forms read its browser class from.
     pub user_agent: &'a str,
 }

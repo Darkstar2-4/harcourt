@@ -9,7 +9,7 @@ use super::{
     php::{self, Php},
     Import,
 };
-use crate::cms::model::{Field, Fields, Kind, Lang, Media, MediaId, MediaSize, Menu, MenuItem, Page, PageId, Status, Template};
+use crate::cms::model::{Field, Fields, Kind, Lang, Media, MediaId, MediaSize, Menu, MenuItem, Page, PageId, PostType, Status, Template};
 
 /// (WPML element type, element id) -> (language, translation group).
 type LangOf = HashMap<(String, i64), (Lang, i64)>;
@@ -94,17 +94,32 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
 
     let mut out = Import::default();
     let path_of = |id: i64| page_path(id, &posts, front_group.map(|g| (g, &lang_of)));
-    for p in posts.values().filter(|p| p.kind == "page" && (p.status == "publish" || p.status == "draft")) {
-        let Some(&(lang, group)) = lang_of.get(&("post_page".into(), p.id)) else { continue };
-        let template_file = meta_value(&meta, p.id, "_wp_page_template").unwrap_or("");
-        let template = Template::parse(template_file).ok_or_else(|| format!("page {} uses unknown template {template_file:?}", p.id))?;
+    for p in posts.values().filter(|p| p.status == "publish" || p.status == "draft") {
+        let Some(kind) = PostType::parse(&p.kind) else { continue };
+        let Some(&(lang, group)) = lang_of.get(&(format!("post_{}", p.kind), p.id)) else { continue };
+        let template = match kind {
+            PostType::Page => {
+                let file = meta_value(&meta, p.id, "_wp_page_template").unwrap_or("");
+                Template::parse(file).ok_or_else(|| format!("page {} uses unknown template {file:?}", p.id))?
+            }
+            PostType::Faq => Template::SingleFaq,
+            _ => Template::Single,
+        };
         let draft = p.status == "draft";
+        // A draft's permalink is its ?page_id= (or ?p=) link; WPML redirects to it, so it is kept for that.
+        let path = match (draft, kind) {
+            (true, PostType::Page) => format!("/?page_id={}", p.id),
+            (true, _) => format!("/?p={}", p.id),
+            (false, PostType::Page) => path_of(p.id),
+            (false, _) => format!("{}/{}/", kind.base(), p.name),
+        };
         out.pages.push(Page {
             id: PageId(p.id),
+            kind,
+            name: p.name.clone(),
             group_id: group,
             lang,
-            // A draft's permalink is its ?page_id= link; WPML redirects to it, so it is kept for that.
-            path: if draft { format!("/?page_id={}", p.id) } else { path_of(p.id) },
+            path,
             template,
             status: if draft { Status::Draft } else { Status::Publish },
             title: p.title.clone(),
@@ -134,7 +149,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         out.options.entry(Lang::En).or_default().insert("@privacy_page".into(), Field { kind: Kind::Choice, value: privacy.clone() });
     }
 
-    out.media = posts.values().filter(|p| p.kind == "attachment").filter_map(|p| media(p, &meta)).collect();
+    out.media = posts.values().filter(|p| p.kind == "attachment").filter_map(|p| media(p, &meta, &lang_of)).collect();
     out.media.sort_by_key(|m| m.id.0);
 
     out.menus = menus(tables, &posts, &meta, &options, &lang_of, &out.pages)?;
@@ -221,7 +236,8 @@ fn page_path(id: i64, posts: &HashMap<i64, Post>, front: Option<(i64, &LangOf)>)
     format!("/{}/", parts.join("/"))
 }
 
-fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>) -> Option<Media> {
+fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>, lang_of: &LangOf) -> Option<Media> {
+    let translation = lang_of.get(&("post_attachment".to_string(), p.id)).copied();
     let file = meta_value(meta, p.id, "_wp_attached_file")?.to_string();
     let info = meta_value(meta, p.id, "_wp_attachment_metadata").and_then(|m| php::unserialize(m).ok());
     let int = |k: &str| info.as_ref().and_then(|i| i.get(k)).and_then(Php::as_int).unwrap_or(0);
@@ -250,6 +266,10 @@ fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>) -> Option<Media> 
         height: int("height"),
         alt: meta_value(meta, p.id, "_wp_attachment_image_alt").unwrap_or("").to_string(),
         sizes,
+        name: p.name.clone(),
+        parent_id: (p.parent != 0).then_some(PageId(p.parent)),
+        lang: translation.map(|t| t.0),
+        group_id: translation.map(|t| t.1),
     })
 }
 

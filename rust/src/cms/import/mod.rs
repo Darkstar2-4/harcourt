@@ -58,12 +58,14 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
     for p in &import.pages {
         let (lang, template, status) = (p.lang.code(), p.template.file(), p.status.as_str());
         let parent = p.parent_id.map(|id| id.0);
+        let kind = p.kind.as_str();
         sqlx::query!(
-            "INSERT INTO cms_page (id, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+            "INSERT INTO cms_page (id, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, post_type, name)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
              ON CONFLICT (id) DO UPDATE SET group_id = excluded.group_id, lang = excluded.lang, path = excluded.path,
                  template = excluded.template, status = excluded.status, title = excluded.title, parent_id = excluded.parent_id,
-                 menu_order = excluded.menu_order, published_at = excluded.published_at, modified_at = excluded.modified_at",
+                 menu_order = excluded.menu_order, published_at = excluded.published_at, modified_at = excluded.modified_at,
+                 post_type = excluded.post_type, name = excluded.name",
             p.id.0,
             p.group_id,
             lang,
@@ -74,7 +76,9 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             parent,
             p.menu_order,
             p.published_at,
-            p.modified_at
+            p.modified_at,
+            kind,
+            p.name
         )
         .execute(&mut *tx)
         .await?;
@@ -124,15 +128,20 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
     }
     for m in &import.media {
         let sizes = serde_json::to_string(&m.sizes).unwrap_or_else(|_| "[]".into());
+        let (parent, lang) = (m.parent_id.map(|p| p.0), m.lang.map(Lang::code));
         sqlx::query!(
-            "INSERT INTO cms_media (id, file, mime, width, height, alt, sizes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO cms_media (id, file, mime, width, height, alt, sizes, name, parent_id, lang, group_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             m.id.0,
             m.file,
             m.mime,
             m.width,
             m.height,
             m.alt,
-            sizes
+            sizes,
+            m.name,
+            parent,
+            lang,
+            m.group_id
         )
         .execute(&mut *tx)
         .await?;

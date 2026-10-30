@@ -20,6 +20,8 @@ pub struct Export {
     pub pages: BTreeMap<(i64, Lang), serde_json::Map<String, Json>>,
     pub bodies: BTreeMap<(i64, Lang), String>,
     pub chrome: BTreeMap<(Lang, &'static str), String>,
+    /// The manifest's values for WordPress's 404 page, which has no post.
+    pub not_found: BTreeMap<Lang, serde_json::Map<String, Json>>,
 }
 
 const PARTS: [(Part, &str); 3] = [(Part::Head, "head"), (Part::Header, "header"), (Part::Footer, "footer")];
@@ -28,7 +30,7 @@ pub fn read(root: &Path) -> Result<Export, String> {
     let read = |rel: &str| std::fs::read_to_string(root.join(rel)).map_err(|e| format!("{rel}: {e}"));
     let manifest: Json = serde_json::from_str(&read("manifest.json")?).map_err(|e| format!("manifest.json: {e}"))?;
     let exported_year = manifest["exported_at"].as_str().unwrap_or("").get(..4).unwrap_or("").to_string();
-    let mut out = Export { exported_year, pages: BTreeMap::new(), bodies: BTreeMap::new(), chrome: BTreeMap::new() };
+    let mut out = Export { exported_year, pages: BTreeMap::new(), bodies: BTreeMap::new(), chrome: BTreeMap::new(), not_found: BTreeMap::new() };
     for lang in Lang::ALL {
         for (part, name) in PARTS {
             let text = read(&format!("chrome/{}/{name}.html", lang.code()))?;
@@ -39,6 +41,10 @@ pub fn read(root: &Path) -> Result<Export, String> {
     for page in manifest["pages"].as_array().ok_or("manifest has no pages")? {
         for lang in Lang::ALL {
             let Some(obj) = page.get(lang.code()).and_then(Json::as_object) else { continue };
+            if obj.get("status").and_then(Json::as_i64) == Some(404) {
+                out.not_found.insert(lang, obj.clone());
+                continue;
+            }
             let Some(id) = obj.get("post_id").and_then(Json::as_i64) else { continue };
             if let Some(file) = obj.get("file").and_then(Json::as_str) {
                 out.bodies.insert((id, lang), read(file)?);
@@ -94,6 +100,17 @@ pub fn apply(import: &mut Import, export: &Export) -> Report {
         }
         if let Some(islands) = values.get("islands") {
             meta.insert("islands".into(), islands.to_string());
+        }
+    }
+    for (lang, values) in &export.not_found {
+        let options = import.options.entry(*lang).or_default();
+        for name in CHROME_PLACEHOLDERS.iter().chain(&theme::NOT_FOUND_HOLES) {
+            let value = match values.get(*name) {
+                Some(Json::String(s)) => s.clone(),
+                Some(Json::Null) | None => continue,
+                Some(other) => other.to_string(),
+            };
+            options.insert(format!("{}{name}", theme::NOT_FOUND_OPTION), Field { kind: Kind::Html, value });
         }
     }
     chrome_values(import, export, &mut report);

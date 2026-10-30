@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at\n               FROM cms_page ORDER BY id",
+  "query": "SELECT id AS \"id!\", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at\n               FROM cms_page ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -9,53 +9,63 @@
         "type_info": "Integer"
       },
       {
-        "name": "group_id",
+        "name": "post_type",
         "ordinal": 1,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "lang",
+        "name": "name",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "path",
+        "name": "group_id",
         "ordinal": 3,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "template",
+        "name": "lang",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "status",
+        "name": "path",
         "ordinal": 5,
         "type_info": "Text"
       },
       {
-        "name": "title",
+        "name": "template",
         "ordinal": 6,
         "type_info": "Text"
       },
       {
-        "name": "parent_id",
+        "name": "status",
         "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 9,
         "type_info": "Integer"
       },
       {
         "name": "menu_order",
-        "ordinal": 8,
+        "ordinal": 10,
         "type_info": "Integer"
       },
       {
         "name": "published_at",
-        "ordinal": 9,
+        "ordinal": 11,
         "type_info": "Text"
       },
       {
         "name": "modified_at",
-        "ordinal": 10,
+        "ordinal": 12,
         "type_info": "Text"
       }
     ],
@@ -70,11 +80,13 @@
       false,
       false,
       false,
+      false,
+      false,
       true,
       false,
       false,
       false
     ]
   },
-  "hash": "94af1d2224079150eb0fd4c77279a663b64c706f98ecc810a3b5a5d110c53588"
+  "hash": "0e24ac8050d8f69bf7d81efa41b499d653e35d4ab6563abf5956a618edf21887"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", file, mime, width, height, alt, sizes FROM cms_media",
+  "query": "SELECT id AS \"id!\", file, mime, width, height, alt, sizes, name, parent_id, lang, group_id FROM cms_media",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,26 @@
         "name": "sizes",
         "ordinal": 6,
         "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lang",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 10,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -49,8 +69,12 @@
       false,
       false,
       false,
-      false
+      false,
+      false,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "4fe815cbe2da207cbbd8baff5bc0ceebdbb1bcac6cfbac8eefe8ad92f658492b"
+  "hash": "5609de6e5eae756ee883b8306d962da974e09f155ed94f4d771c42afa4b0320d"
 }

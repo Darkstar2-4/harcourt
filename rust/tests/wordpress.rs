@@ -126,6 +126,28 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
 }
 
 #[tokio::test]
+async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
+    let (app, pool) = harness().await;
+    for lang in ["en", "fr"] {
+        for (name, value) in [("title", "Page not found - Example"), ("robots", "noindex, follow"), ("body_class", "error404"), ("islands", ISLANDS)] {
+            sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES (?1, ?2, 'html', ?3)").bind(lang).bind(format!("@404:{name}")).bind(value).execute(&pool).await.unwrap();
+        }
+    }
+    sqlx::query("INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES ('en', 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, html) = send(&app, Method::GET, "/product/clamping/").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("<title>Page not found - Example</title>"));
+    assert!(html.contains("<body data-cmplz=1 class=\"error404\">"));
+    assert!(html.contains("</i> Error 404\n"));
+    assert!(html.contains("<form id=stub-1 data-page=\"/product/clamping/\"></form>"), "the footer form posts to the path asked for");
+    let (status, _, html) = send(&app, Method::GET, "/no/such-page/?lang=fr").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("lang=\"fr-FR\""));
+    let deep = app.clone().oneshot(Request::builder().uri("/a/b/c/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(deep.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "three segments list the blog under a 404, not ported");
+}
+
+#[tokio::test]
 async fn robots_txt_is_the_docroot_file() {
     let (app, _) = harness().await;
     let (status, _, body) = send(&app, Method::GET, "/robots.txt").await;

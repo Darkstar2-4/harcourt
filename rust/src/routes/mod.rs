@@ -18,12 +18,13 @@ pub mod staff;
 pub mod wordpress;
 
 pub fn all(core: Arc<Auth>) -> Router {
+    let wordpress = wordpress::routers(core.clone());
     let pages = Router::new()
         .merge(accounts::router(core.clone()))
         .merge(catalog::router(core.clone()))
         .merge(orders::router(core.clone()))
         .merge(staff::router(core.clone()))
-        .merge(wordpress::router(core.clone()))
+        .merge(wordpress.pages)
         .layer(middleware::from_fn_with_state(core.clone(), visitor::layer));
-    Router::new().nest_service("/api", api::router(core)).merge(pages)
+    Router::new().nest_service("/api", api::router(core)).merge(pages).merge(wordpress.front)
 }

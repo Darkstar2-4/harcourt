@@ -233,6 +233,10 @@ mod tests {
             height: h,
             alt: String::new(),
             sizes: sizes.iter().map(|(f, w, h)| MediaSize { name: String::new(), file: f.to_string(), width: *w, height: *h }).collect(),
+            name: String::new(),
+            parent_id: None,
+            lang: None,
+            group_id: None,
         }
     }
 
