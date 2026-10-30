@@ -1,6 +1,7 @@
 #!/bin/bash
 # Start your own build of hxweb on hxport for differential testing: a fresh copy of the imported database with the
-# persona sessions seeded, unported paths passed to the oracle's PHP, listening on 127.0.0.1:<port>.
+# persona sessions seeded and, when hxweb-cms is built next to hxweb, the cms content imported from the oracle's
+# WordPress tables; unported paths go to the oracle's PHP. Listens on 127.0.0.1:<port>.
 #   cd ~/w/<area>/rust && cargo build --release --bin hxweb && /home/ubuntu/oracle-data/bin/hx-serve.sh <area> <port>
 # Then, from another shell: $ORACLE_DATA/bin/hx-diff run --oracle "$ORACLE_FRONT" --rust http://127.0.0.1:<port> ...
 # HX_DIFF overrides which hx-diff seeds the copy (default: the published one next to this script).
@@ -22,6 +23,15 @@ db=/tmp/hx_${area}_${port}.db
 rm -f "$db" "$db-wal" "$db-shm"
 cp "$ORACLE_DATA/hx.db" "$db"
 "$hxdiff" seed --db "$db"
+if [ -x $bin/hxweb-cms ]; then
+    log=/tmp/hx_${area}_${port}.cms.log
+    if ! $bin/hxweb-cms import --dump "$ORACLE_DATA/wp.sql" --export "$ORACLE_DATA/static_site" --db "$db" > "$log" 2>&1; then
+        echo "hxweb-cms import failed; see $log" >&2
+        tail -5 "$log" >&2
+        exit 1
+    fi
+    echo "cms imported from $ORACLE_DATA/wp.sql: $(tail -1 "$log")"
+fi
 export HXWEB_LISTEN=127.0.0.1:$port HXWEB_DB=$db HXWEB_LEGACY=$ORACLE_LEGACY HXWEB_SITE=www.harcourt.co \
     HXWEB_EXPORT=$ORACLE_DATA/static_site HXWEB_SEARCH=$ORACLE_DATA/search_index HXWEB_DOCROOT=$ORACLE_DATA/docroot \
     HXWEB_SECRET=$(openssl rand -hex 32) HXWEB_TRUSTED_PROXIES=127.0.0.1,::1 RUST_LOG=${RUST_LOG:-info}
