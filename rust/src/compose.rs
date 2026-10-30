@@ -310,8 +310,10 @@ async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
     let base_uri = page_uri(page, "");
     let current = |html: String| if uri == base_uri { html } else { app.re.current.replace_all(&html, "").into_owned() };
     if let Some(cms) = &app.cms {
-        if let Some(html) = cms.page(page, uri).await? {
-            return Ok(current(html));
+        match cms.page(page, uri).await {
+            Ok(Some(html)) => return Ok(current(html)),
+            Ok(None) => {}
+            Err(e) => tracing::warn!("{uri}: the cms page failed, trying the export: {e}"),
         }
     }
     if let Some(html) = app.pages.assemble(app, page.path, page.lang, uri).await? {
