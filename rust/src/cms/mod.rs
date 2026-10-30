@@ -21,6 +21,7 @@
 pub mod admin;
 pub mod docroot;
 pub mod edit;
+pub mod feed;
 pub mod forms;
 pub mod html;
 pub mod import;

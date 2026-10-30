@@ -23,7 +23,7 @@ use crate::{
     api::{Auth, ClientIp},
     cms::{
         docroot::{self, Owner},
-        sitemap,
+        feed, sitemap,
         forms::{FormSource, Islands, OrdersForms},
         theme,
         url::{urldecode, with_query},
@@ -188,11 +188,47 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) 
         Owner::Legacy => legacy(),
         Owner::File(file, kind) => static_file(file, kind).await,
         Owner::WordPress => {
-            if let Some(r) = sitemap(&wp, &path, query(uri.query().unwrap_or("")).lang).await {
+            let q = query(uri.query().unwrap_or(""));
+            let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+            if let Some(r) = sitemap(&wp, &path, q.lang).await {
                 return r;
             }
-            let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+            if let Some(r) = feed(&wp, &uri, &path, &q, agent).await {
+                return r;
+            }
             serve(&wp, &uri, agent, None, true).await
+        }
+    }
+}
+
+/// WordPress's feed rules: a redirect to the canonical feed URL (with the query rebuilt), a comments feed, or the
+/// 404 page for a feed of no post. The posts feeds are handed back.
+async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Option<Response<Body>> {
+    let site = match wp.content.site().await {
+        Ok(s) => s,
+        Err(e) => return Some(unavailable(e)),
+    };
+    let typed = |kind: feed::Kind, mut r: Response<Body>| {
+        r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind.content_type()));
+        r
+    };
+    let raw_query = uri.query().unwrap_or("");
+    match feed::parse(&site, path, q.lang)? {
+        feed::Feed::Missing(kind) => Some(typed(kind, respond(wp, &site, None, uri, q, agent, None, true).await)),
+        feed::Feed::Moved(to, kind) => Some(typed(kind, redirect(&wp.core.public_origin, &with_query(&to, raw_query)))),
+        feed::Feed::Show(of, kind) => {
+            let canonical = with_query(path, raw_query);
+            let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
+            if canonical != asked {
+                return Some(typed(kind, redirect(&wp.core.public_origin, &canonical)));
+            }
+            let body = feed::comments(&site, of, kind, q.lang, uri.path_and_query().map_or(path, |p| p.as_str()));
+            let Some(body) = body else { return Some(legacy()) };
+            let mut r = typed(kind, (StatusCode::OK, public(&wp.core.public_origin, &body)).into_response());
+            if kind == feed::Kind::Rss2 {
+                r.headers_mut().insert(HeaderName::from_static("x-robots-tag"), HeaderValue::from_static("noindex, follow"));
+            }
+            Some(r)
         }
     }
 }
@@ -540,6 +576,13 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         Answer::Found(to) => return found(&to),
         _ => None,
     };
+    respond(wp, &site, page, uri, &q, agent, answer, replay).await
+}
+
+/// `page` as WordPress printed it at `uri`, or WordPress's 404 page.
+#[allow(clippy::too_many_arguments)]
+async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &Query, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
+    let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
     let finished = q.neutral && replay && exact;
@@ -548,14 +591,14 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         Some(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
             let wp_uri = format!("{asked}{}", q.form_uri_query);
-            let Some(html) = theme::render(&site, page, &wp_uri) else {
+            let Some(html) = theme::render(site, page, &wp_uri) else {
                 if replay {
                     return legacy();
                 }
                 tracing::error!("{path} is claimed but its template is not ported");
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
             };
-            (StatusCode::OK, html, islands(&site, page), page.lang, wp_uri)
+            (StatusCode::OK, html, islands(site, page), page.lang, wp_uri)
         }
         // An export without WordPress's 404 page left nothing to render it from.
         None if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
@@ -563,8 +606,8 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         }
         None => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-            let html = theme::not_found(&site, q.lang, &request_uri);
-            (StatusCode::NOT_FOUND, html, not_found_islands(&site, q.lang), q.lang, request_uri)
+            let html = theme::not_found(site, q.lang, &request_uri);
+            (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
         }
     };
     let answered = answer.as_ref().and_then(|(form, _)| islands.iter().find(|(_, i)| i.form == *form).map(|(index, _)| *index));
