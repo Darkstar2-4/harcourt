@@ -46,6 +46,13 @@ fn template(lang: Lang, part: Part) -> &'static str {
     }
 }
 
+/// The site icon's 32-pixel image, as wp_site_icon() prints it in the head (the feeds' channel image).
+pub fn site_icon() -> Option<&'static str> {
+    let head = template(Lang::En, Part::Head);
+    let tag = head.split("<link rel=\"icon\" href=\"").skip(1).find(|t| t.split_once("/>").is_some_and(|(attrs, _)| attrs.contains("sizes=\"32x32\"")))?;
+    tag.split_once('"').map(|(url, _)| url)
+}
+
 /// header.php's cache-buster for scscpq_wp.js, which an older static export may not have yet.
 fn script_version() -> &'static str {
     let head = template(Lang::En, Part::Head);

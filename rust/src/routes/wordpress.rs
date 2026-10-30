@@ -263,10 +263,12 @@ async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Op
             if canonical != asked {
                 return Some(typed(kind, redirect(&wp.core.public_origin, &canonical)));
             }
-            let body = feed::comments(&site, of, kind, q.lang, uri.path_and_query().map_or(path, |p| p.as_str()));
+            let asked = uri.path_and_query().map_or(path, |p| p.as_str());
+            let comments = matches!(of, feed::Of::Comments | feed::Of::PostComments(_));
+            let body = if comments { feed::comments(&site, of, kind, q.lang, asked) } else { feed::posts(&site, of, kind, q.lang, asked) };
             let Some(body) = body else { return Some(legacy()) };
             let mut r = typed(kind, (StatusCode::OK, public(&wp.core.public_origin, &body)).into_response());
-            if kind == feed::Kind::Rss2 {
+            if comments && kind == feed::Kind::Rss2 {
                 r.headers_mut().insert(HeaderName::from_static("x-robots-tag"), HeaderValue::from_static("noindex, follow"));
             }
             Some(r)

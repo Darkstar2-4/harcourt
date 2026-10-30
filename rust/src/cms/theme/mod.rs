@@ -378,4 +378,4 @@ pub fn probe_chrome(site: &Site, page: &Page, uri: &str, part: chrome::Part) -> 
     (text, c.slots.unwrap_or_default())
 }
 
-pub use chrome::{dropdown_switcher, menu_switcher, with_current_script_version, Part, CHROME_PLACEHOLDERS};
+pub use chrome::{dropdown_switcher, menu_switcher, site_icon, with_current_script_version, Part, CHROME_PLACEHOLDERS};

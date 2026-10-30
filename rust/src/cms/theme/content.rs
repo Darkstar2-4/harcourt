@@ -51,7 +51,7 @@ pub fn paragraphs(raw: &str, lang: Lang) -> Option<String> {
 }
 
 /// the_content() of a post of paragraphs and images, at its place in the page (the image loading attributes).
-fn post_content(site: &Site, p: &Page, images: &mut Images) -> Option<String> {
+pub fn post_content(site: &Site, p: &Page, images: &mut Images) -> Option<String> {
     let raw = &site.fields(p.id).get("@post_content")?.value;
     let html = texturize(&blocks(raw, &["paragraph", "image"])?, p.lang);
     Some(images.filter_content_tags(&html, &site.media, super::UPLOADS))

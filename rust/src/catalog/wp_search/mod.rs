@@ -640,7 +640,7 @@ fn excerpt(site: &Site, p: &Page) -> String {
 }
 
 /// wpautop() of an excerpt: paragraphs at blank lines, single line breaks as `<br />`.
-fn autop(s: &str) -> String {
+pub fn autop(s: &str) -> String {
     let s = s.trim();
     if s.is_empty() {
         return String::new();

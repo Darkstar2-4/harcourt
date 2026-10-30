@@ -71,6 +71,9 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
     // The hand-written excerpt the_excerpt() prints instead of the content's first words (a dump may lack it).
     let excerpts: HashMap<i64, String> =
         rows(tables, "wp_posts", &["ID", "post_excerpt"]).unwrap_or_default().into_iter().filter(|r| !r[1].str().is_empty()).map(|r| (r[0].int(), r[1].str().into())).collect();
+    // The guid the feeds print for a post.
+    let guids: HashMap<i64, String> =
+        rows(tables, "wp_posts", &["ID", "guid"]).unwrap_or_default().into_iter().filter(|r| !r[1].str().is_empty()).map(|r| (r[0].int(), r[1].str().into())).collect();
     let mut meta: HashMap<i64, Vec<(String, String)>> = HashMap::new();
     for r in rows(tables, "wp_postmeta", &["post_id", "meta_key", "meta_value"])? {
         meta.entry(r[0].int()).or_default().push((r[1].str().into(), r[2].str().into()));
@@ -141,6 +144,9 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         if let Some(excerpt) = excerpts.get(&p.id) {
             fields.insert("@excerpt".into(), Field { kind: Kind::Choice, value: excerpt.clone() });
         }
+        if let Some(guid) = guids.get(&p.id).filter(|_| kind != PostType::Page) {
+            fields.insert("@guid".into(), Field { kind: Kind::Choice, value: guid.clone() });
+        }
         if let Some(thumb) = meta_value(&meta, p.id, "_thumbnail_id") {
             fields.insert("@thumbnail".into(), Field { kind: Kind::Media, value: thumb.to_string() });
         }
@@ -167,6 +173,9 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
     let en = out.options.entry(Lang::En).or_default();
     if let Some(name) = options.get("blogname") {
         en.insert("@blogname".into(), Field { kind: Kind::Choice, value: name.clone() });
+    }
+    if let Some(tagline) = options.get("blogdescription") {
+        en.insert("@blogdescription".into(), Field { kind: Kind::Choice, value: tagline.clone() });
     }
     if let Some(titles) = options.get("wpseo_titles").and_then(|v| php::unserialize(v).ok()) {
         for (k, v) in titles.items() {

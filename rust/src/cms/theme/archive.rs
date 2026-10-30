@@ -24,8 +24,19 @@ const PER_PAGE: usize = 10;
 const TERM_TITLE: &str = "%%term_title%% Archives %%page%% %%sep%% %%sitename%%";
 const TERM_TITLE_FR: &str = "Archives %%term_title%% %%page%% %%sep%% %%sitename%%";
 
+/// Yoast's title for the archive of `term` in `lang`, on its first page.
+pub fn term_title(site: &Site, term: &Term, lang: Lang) -> Option<String> {
+    let english = yoast::setting(site, &format!("title-tax-{}", term.taxonomy.as_str()))?;
+    let template = match lang {
+        Lang::En => english,
+        Lang::Fr if english == TERM_TITLE => TERM_TITLE_FR,
+        Lang::Fr => return None,
+    };
+    yoast::fill(site, template, &[("term_title", &term.name)])
+}
+
 /// The published posts among `posts` in `lang`, newest first, as the main query lists them.
-fn listed<'a>(posts: impl Iterator<Item = &'a Page>, lang: Lang) -> Vec<&'a Page> {
+pub fn listed<'a>(posts: impl Iterator<Item = &'a Page>, lang: Lang) -> Vec<&'a Page> {
     let mut posts: Vec<&Page> = posts.filter(|p| p.status == Status::Publish && p.lang == lang).collect();
     posts.sort_by(|a, b| (b.published_at.as_str(), b.id).cmp(&(a.published_at.as_str(), a.id)));
     posts
@@ -125,13 +136,7 @@ fn last_sidebar(site: &Site, last: &Page) -> Option<String> {
 /// The holes of the archive's head and header that differ from the 404 page's.
 fn holes(site: &Site, term: &Term, lang: Lang, posts: &[&Page], alternates: &[(Lang, &Term, String)]) -> Option<BTreeMap<&'static str, String>> {
     let tax = term.taxonomy.as_str();
-    let english = yoast::setting(site, &format!("title-tax-{tax}"))?;
-    let template = match lang {
-        Lang::En => english,
-        Lang::Fr if english == TERM_TITLE => TERM_TITLE_FR,
-        Lang::Fr => return None,
-    };
-    let title = yoast::fill(site, template, &[("term_title", &term.name)])?;
+    let title = term_title(site, term, lang)?;
     let noindex = yoast::setting(site, &format!("noindex-tax-{tax}")) == Some("1");
     // Yoast's indexable is the English term's: its address and name stand for every translation.
     let (english_term, url) = alternates.iter().find(|(l, _, _)| *l == Lang::En).map(|(_, t, u)| (*t, u.clone())).unwrap_or((term, format!("{ORIGIN}{}", term.path())));
