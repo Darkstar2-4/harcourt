@@ -277,8 +277,16 @@ async fn scscpq_wp(
         return json_response(StatusCode::UNAUTHORIZED, out.to_json());
     }
     let lang = language(get("language"));
+    let remember = !matches!(get("remember"), "" | "0");
     let result = async {
-        let viewer = viewer::load(&core.pool, &visitor, lang).await?;
+        let mut viewer = viewer::load(&core.pool, &visitor, lang).await?;
+        let chosen = Lang::from_code(&get("language").trim().chars().take(2).collect::<String>());
+        if let (true, Some(id), Some(account), Some(chosen)) = (remember, viewer.account_id(), viewer.account_lang, chosen) {
+            if account != chosen {
+                crate::accounts::account::set_language(&core.pool, id, chosen.code()).await?;
+                viewer.account_lang = Some(chosen);
+            }
+        }
         let req = Initial { page: get("page"), document: get("document"), token: get("token"), url: get("url"), origin: &core.public_origin, referrer };
         initial(&core.pool, &viewer, &req).await
     }

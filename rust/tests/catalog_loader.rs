@@ -74,3 +74,15 @@ async fn other_methods_and_actions_answer_401() {
     assert_eq!(status, StatusCode::UNAUTHORIZED);
     assert_eq!(v["error"], "delete: 104");
 }
+
+#[tokio::test]
+async fn a_flag_click_saves_the_page_language_to_the_account() {
+    let h = harness().await;
+    let cookie = signed_in(&h.pool, &Account::customer(51)).await;
+    let (_, _, v) = load(&h, Some(&cookie), &FORM.replace("language=en&remember=0", "language=fr&remember=0")).await;
+    assert_eq!(v["account_language"], "EN", "following a link changes nothing");
+    let (_, _, v) = load(&h, Some(&cookie), &FORM.replace("language=en&remember=0", "language=fr&remember=1")).await;
+    assert_eq!(v["account_language"], "FR");
+    let saved: String = sqlx::query_scalar(r#"SELECT language_code FROM "user" WHERE id = 51"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(saved, "FR");
+}
