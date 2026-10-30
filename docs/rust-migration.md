@@ -1,8 +1,8 @@
 # Moving www.harcourt.co off PHP and WordPress
 
-The goal is one compiled program and no PHP runtime on the server. Rust serves every request. sqlx talks to the database. The browser runs strict TypeScript. SQLite replaces MySQL once the last PHP page is gone.
+The goal is one compiled program and no PHP runtime on the server. Rust serves every request. sqlx talks to the database. The browser runs strict TypeScript. SQLite replaces MySQL. This PR deletes the PHP, WordPress and the Apache configuration from the repository.
 
-This repository is public and the PHP still serves most of the site, so this document describes security problems by class and does not name the entry points involved. The details are in a private note to the site owner.
+This repository is public and the PHP still serves the site until this PR is deployed, so this document describes security problems by class and does not name the entry points involved. The details are in a private note to the site owner.
 
 ## Why leave PHP
 
@@ -10,13 +10,13 @@ A PHP site has two kinds of exposure. One is the runtime and the code you did no
 
 ### The runtime and WordPress cost a patch every few weeks, forever
 
-The server runs Apache, PHP 8.4, WordPress core and 30 plugins. Eighteen plugins come from wordpress.org. Twelve are premium and have no public checksums to verify against, so the only check on them is that they match the copy someone downloaded. WordPress and its plugins are 19,028 of the 32,004 files in this repository. Each file is a place a vulnerability can appear, and each needs a patch the day the vendor ships it.
+The server runs Apache, PHP 8.4, WordPress core and 30 plugins. Eighteen plugins come from wordpress.org. Twelve are premium and have no public checksums to verify against, so the only check on them is that they match the copy someone downloaded. Before this PR, WordPress and its plugins were 19,028 of the 32,004 files in this repository. Each file is a place a vulnerability can appear, and each needs a patch the day the vendor ships it.
 
 Any `.php` file under the document root is a URL, and Apache runs it. An upload directory, a stray backup or a plugin test file becomes code the moment it lands there. The server carries 728 `.htaccess` files that exist only to stop PHP from running in directories where it should never run.
 
 ### The logs show who is knocking
 
-In the six days after the move to AWS (2026-10-23 to 2026-10-29), 145,027 requests for `.php` paths reached Apache. `tools/php_route_inventory.py` regenerates these figures from the server's logs.
+In the six days after the move to AWS (2026-10-23 to 2026-10-29), 145,027 requests for `.php` paths reached Apache.
 
 - 5,345 distinct `.php` paths that do not exist in this repository were requested 10,281 times. These are probes for web shells and known-vulnerable scripts.
 - 68,253 requests went to WordPress entry points. 65,063 of them were `xmlrpc.php`, and 62,708 of those got a 2xx answer. That is the pattern of password guessing batched through XML-RPC. The 1,238 requests to `wp-login.php` are the same traffic.
@@ -26,7 +26,7 @@ Only 90 of this repository's PHP files received any web request in those six day
 
 ### The application's own PHP has design problems a patch does not fix
 
-The SCS application is about 79,000 lines in the root, `includes/`, `classes/`, `scsps/` and `oauth/`, with another 74,000 in `includes_legacy/`, `xincludes/`, `xincludes_legacy/` and `xscsps/`. Reading its core turned up these classes of problem.
+The SCS application was about 79,000 lines in the root, `includes/`, `classes/`, `scsps/` and `oauth/`, with another 74,000 in `includes_legacy/`, `xincludes/`, `xincludes_legacy/` and `xscsps/`. Reading its core turned up these classes of problem.
 
 - **Identity.** A visitor is signed in by IP address, and the address comes from `X-Real-IP` or `X-Forwarded-For` before the socket (`harcourt_remote_addr()` in `scs_header.php`). The `user` table has `ip varchar(15)`, so an IPv6 address does not fit.
 - **Entry points that decide who you are without asking.** Some scripts set or change the session user, or a user's domain, with no sign-in check, or check after they have answered. One of them is replaced and removed in this PR.
@@ -52,7 +52,7 @@ It does not remove logic bugs. A port that copies the PHP flow also copies its f
 
 ## What this PR changes
 
-The PR moves the site's request handling into one Rust program, `hxweb`. It brings in the front that already served the catalog, static pages and search, and adds Rust versions of the account, catalog, order, staff and WordPress behavior. Anything a Rust module does not claim still goes to Apache and PHP, so the move can be checked and deployed in steps.
+The PR moves the site's request handling into one Rust program, `hxweb`. It brings in the front that already served the catalog, static pages and search, adds Rust versions of the account, catalog, order, staff and WordPress behavior, and deletes the PHP, WordPress, the PHPUnit suite, the Composer trees and the Apache files. Nothing is passed to another stack: a path no route claims gets the 404 page, and the old stack's addresses answer 410 by one rule (`src/retired.rs`). The styles, scripts, fonts, images and PDFs the pages use are in `public/` with their URL paths, and hxweb serves them (`src/assets.rs`).
 
 | Area | Where | What it replaces |
 |---|---|---|
@@ -60,9 +60,10 @@ The PR moves the site's request handling into one Rust program, `hxweb`. It brin
 | Catalog | `src/catalog/`, `src/compose.rs`, `src/pricing.rs` | `catalog.php`, `scscpq_wp.php`, `scscpq_api.php`, `scs_file.php`, `scs_ajax.php`, search, the catalog page's composition. |
 | Orders | `src/orders/` | `cart.php`, `checkout.php`, `orderhd.php`, carriers, contact, every live Gravity Forms form, and the sender that drains the `outbox` table. |
 | Staff | `src/staff/` | The dashboard, the log viewer, the maintenance pages for users, inventory, subcategories, campaigns and portals, the import and export framework, and the cron jobs as `hxweb job <name>`. |
-| WordPress | `src/cms/`, `src/routes/wordpress.rs`, `docs/cms.md` | The theme, the page content, menus, redirects, sitemaps, the 404 page, and editing page text from the staff dashboard. |
+| WordPress | `src/cms/`, `src/routes/wordpress.rs`, `docs/cms.md` | The theme, the page content, FAQs, menus, redirects, sitemaps, the 404 page, and editing page text from the staff dashboard. |
+| Static files | `public/`, `src/assets.rs` | The document root's styles, scripts, fonts, images, videos and PDFs that a page, a table or a week of requests still uses. |
 | Database | `migrations/` | SQLite schema for all 37 application tables, generated from the MySQL schema, plus the tables Rust adds (`session`, `visit`, `access_code`, `remote_grant`, `outbox`, `cart`, `staff_draft`, the `cms_*` tables). |
-| Browser | `web/` | `hx/hx-nav.js` and `scs_scripts/scscpq_wp.js`, now generated from strict TypeScript. |
+| Browser | `web/` | `public/hx/hx-nav.js` and `public/scs_scripts/scscpq_wp.js`, now generated from strict TypeScript. |
 
 Pages are rendered by Rust functions that write the same HTML, classes and ids the PHP wrote, so the existing CSS and scripts keep working. Every value a page prints is escaped. Queries are `sqlx::query!` with bound values, checked against `migrations/` when the program compiles, and `rust/.sqlx/` lets CI build without a database.
 
@@ -73,7 +74,8 @@ These are not bugs. Each is listed with its reason in the `rust/oracle/*.expecte
 - **Staff pages need a real sign-in.** An emailed code or OAuth, not a company's address. Pending and Denied staff accounts are turned away, and the role is checked before any AJAX call.
 - **State-changing forms need a token.** Every staff form carries a per-session token. A GET never changes data.
 - **The emailed code is random.** 8 characters from the system random source, 15 minutes, five tries counted in the database. The PHP code was derived from the clock.
-- **Retired paths answer 410.** `scs_remote.php` is deleted and replaced by `remote_grant.rs`. The web SQL consoles, PHP diagnostics, developer toolboxes and `scs_filemanager.php` have no replacement. The list is `src/retired.rs`.
+- **The old stack's addresses answer 410.** A `.php` path no route claims, WordPress's `wp-*` files and endpoints (sign-in, admin, REST, `admin-ajax.php`), `xmlrpc` and `?rest_route=` answer 410 from one rule in `src/retired.rs`. `scs_remote.php` is replaced by `remote_grant.rs`. The web SQL consoles, PHP diagnostics, developer toolboxes and `scs_filemanager.php` have no replacement.
+- **The blog is gone.** WordPress's blog, its feeds, the category, author and date archives, post, case-study and testimonial singles, attachments and embeds answer the 404 page. The sitemaps list the pages, FAQs and FAQ types.
 - **Errors are not printed to visitors.** `login.php` failed on every request and printed the database's error; Rust prints a plain message.
 - **Files are served by id to whoever may see them.** `scs_file.php` no longer serves a file by name.
 - **Outside services are opt-in.** ipstack lookups at sign-up run only with `HXWEB_IPSTACK=on`. Spam checks and mail read their keys from the environment and skip with a warning when absent.
@@ -87,50 +89,43 @@ The PHP site runs unchanged on a private box (the oracle), with a copy of the pr
 
 `.github/workflows/rust-web.yml` runs the Rust tests and clippy, the tool builds, the property tests in `rust/fuzz`, the TypeScript checks and the Python tool tests.
 
-## How the rest moves
+## Cut-over
 
-PHP files stay in the tree until their routes have held up under the checks above and a week of traffic shows no request for them. When the last one is gone, `proxy.rs` and the Apache, PHP-FPM and MariaDB services go with it.
+Nothing is handed to PHP any more, so the deploy replaces the stack in one step.
 
-What is still handed to PHP is listed in each area's expected-differences file. In short, it is the blog home, author archives, post singles and search feeds of the WordPress front controller (the FAQ pages, category archives, feeds and `?s=` search on the front page are in Rust), a few catalog leftovers, the cron jobs that call outside services (`cad_toolbox`), and attachments on mail from the staff pages.
-
-The order of a deploy is the order of risk.
-
-1. Stand the program up beside PHP with the `rust/` build and the SQLite file, and confirm the log shows no `/api disabled`.
-2. Import `user`, `remote` and the other tables with `hx-import`, and the page content with `hxweb-cms import`. Without the content import every page the cms claims answers 404.
-3. Send read-only traffic first (the catalog and the static pages), then accounts and orders, then the staff pages.
-4. Turn `HXWEB_RETIRE_WORDPRESS=1` on when no one needs WordPress admin.
-5. Stop Apache, PHP-FPM and MariaDB when the legacy handoff count in the log has stayed at zero.
+1. While WordPress still runs, dump its content tables and capture the singles the static export lacks (`hxweb-cms capture`, see `docs/cms.md`), and dump MySQL for `hx-import`. Keep the MySQL dump: a table no kept feature reads is not imported.
+2. Build `hxweb` and `hxweb-cms`, import the tables with `hx-import` and the page content with `hxweb-cms import`. Without the content import every content page answers 404.
+3. Make the asset directory: `public/` from this repository, plus the files that live only on the server, copied from the old document root: `wp-content/uploads/`, `overview_documents/` and `images_subcategory/`. Point `HXWEB_DOCROOT` at it.
+4. Start hxweb behind nginx, check the log for `not starting`, and send every request to it. nginx may keep serving the asset directory's static files itself.
+5. Stop Apache, PHP-FPM and MariaDB, and remove the PHP document root.
 
 ## Deploy notes
 
 1. Build the `hxweb` and `hxweb-cms` binaries in release mode from `rust/` with `SQLX_OFFLINE=true`. The `.sqlx/` directory lets the build run without a database.
 2. In `hxweb.service`, add `StateDirectory=hxweb` and `Environment=HXWEB_DB=/var/lib/hxweb/hx.db`. Put `HXWEB_SECRET` (at least 32 bytes as hex, for example `openssl rand -hex 32`) in a root-only `EnvironmentFile`. The other settings are in the next section.
-3. If the database cannot open or a core setting is malformed, hxweb mounts none of its own routes: `/api` answers 503, every other request goes to the legacy stack, and the log says `/api disabled` with the reason.
+3. If the database cannot open or a core setting is malformed, hxweb does not start, and the log says `not starting` with the reason.
 4. Until the `user` table is imported into SQLite, no email domain matches a company, so sign-in sends nothing.
-5. The static pages bake in `scscpq_wp.js?ver=`. Re-run the static export after deploy so they load the new script.
-6. Roll back by restoring the previous `hxweb` binary. Do not restore `scs_remote.php`.
+5. Roll back by restoring the previous document root, services and `hxweb` binary. Do not restore `scs_remote.php`.
 
 ## Deploy settings
 
-hxweb reads these from its environment once, at start. Put the secrets (`HXWEB_SECRET`, the SMTP password, the OAuth client secrets, the Akismet key, the reCAPTCHA secret) in a root-only `EnvironmentFile`; the rest can go in `hxweb.service`. After a deploy, check the log: a missing optional setting logs a warning naming it, and a malformed core setting logs `/api disabled`.
+hxweb reads these from its environment once, at start. Put the secrets (`HXWEB_SECRET`, the SMTP password, the OAuth client secrets, the Akismet key, the reCAPTCHA secret) in a root-only `EnvironmentFile`; the rest can go in `hxweb.service`. After a deploy, check the log: a missing optional setting logs a warning naming it, and a malformed core setting stops it with `not starting`.
 
-A malformed value in the core group (marked core below) is not a warning. hxweb then mounts none of its own routes, so every page goes to the legacy stack, and once PHP is gone that is an outage.
+A malformed value in the core group (marked core below) is not a warning: hxweb does not start.
 
 | Variable | Default | What it is for | Without it |
 |---|---|---|---|
 | `HXWEB_LISTEN` | `127.0.0.1:8090` | Address hxweb listens on, behind nginx. | Listens on the default; nginx must point there. |
-| `HXWEB_DB` (core) | `/var/lib/hxweb/hx.db` | The SQLite database. | If it cannot be opened, no Rust route is mounted. |
-| `HXWEB_SECRET` (core) | none | At least 32 bytes as hex. Keys the emailed sign-in codes and the Gravity Forms anti-spam token. | Emailed-code sign-in answers 503, sign-up sends no code, and form posts are not checked for the anti-spam token. Not hex or under 32 bytes: no Rust route is mounted. |
-| `HXWEB_PUBLIC_ORIGIN` (core) | `https://www.harcourt.co` | The one origin browsers may post from; absolute redirects; the blog URL sent to Akismet. | Must be `https://host` with no path, or no Rust route is mounted. A wrong host refuses every form post from the real site (403). |
-| `HXWEB_TRUSTED_PROXIES` (core) | `127.0.0.1,::1` | Proxies whose `X-Real-IP` is believed, comma-separated. | Not a list of addresses: no Rust route is mounted. Without nginx's address, every visitor is seen as nginx: no sign-in by company address, and logs record the proxy. |
-| `HXWEB_LEGACY` | `https://127.0.0.1:8443` | The Apache and PHP stack, for paths Rust does not claim yet and for a form the orders tables lack. | Those requests answer 502. |
-| `HXWEB_SITE` | `www.harcourt.co` | Host header sent to the legacy stack; the host the exported pages link to. | Default host. |
+| `HXWEB_DB` (core) | `/var/lib/hxweb/hx.db` | The SQLite database. | If it cannot be opened, hxweb does not start. |
+| `HXWEB_SECRET` (core) | none | At least 32 bytes as hex. Keys the emailed sign-in codes and the Gravity Forms anti-spam token. | Emailed-code sign-in answers 503, sign-up sends no code, and form posts are not checked for the anti-spam token. Not hex or under 32 bytes: hxweb does not start. |
+| `HXWEB_PUBLIC_ORIGIN` (core) | `https://www.harcourt.co` | The one origin browsers may post from; absolute redirects; the blog URL sent to Akismet. | Must be `https://host` with no path, or hxweb does not start. A wrong host refuses every form post from the real site (403). |
+| `HXWEB_TRUSTED_PROXIES` (core) | `127.0.0.1,::1` | Proxies whose `X-Real-IP` is believed, comma-separated. | Not a list of addresses: hxweb does not start. Without nginx's address, every visitor is seen as nginx: no sign-in by company address, and logs record the proxy. |
+| `HXWEB_SITE` | `www.harcourt.co` | The host the pages link to, and the Host of the composer's in-process calls. | Default host. |
 | `HXWEB_PUBLIC_HOST` | `HXWEB_SITE` | Host written into page links instead of `HXWEB_SITE`, for a staging copy. | Links name `HXWEB_SITE`. |
-| `HXWEB_EXPORT` | `/home/harcou6/static_site` | The static WordPress export and its `manifest.json`, which says how each page embeds its forms. | Pages not yet rendered from the cms fall to the legacy stack, and every form is embedded with Gravity Forms' defaults. |
-| `HXWEB_DOCROOT` | `/home/harcou6/public_html` | The PHP document root: vendored scripts and styles, mail stylesheets, flag images, and the image files the catalog, campaign and subcategory pages check for. | The vendored assets and mail styles are read from the default path; the image checks count every file as present. |
+| `HXWEB_EXPORT` | `/home/harcou6/static_site` | The static WordPress export and its `manifest.json`, which says how each page embeds its forms; the catalog page's shell when the cms lacks it. | Every form is embedded with Gravity Forms' defaults. |
+| `HXWEB_DOCROOT` | `/home/harcou6/public_html` | The asset directory: `public/` plus the uploads, overview documents and subcategory images that live only on the server (see Cut-over). hxweb serves its static files by URL path, and reads the vendored scripts and styles, mail stylesheets and flag images from it, and the image files the catalog, campaign and subcategory pages check for. | Static files, vendored assets and mail styles are looked for at the default path. |
 | `HXWEB_SEARCH` | none | Directory of search click data (`build_learned.py`). | Search ranks without what earlier searchers opened. |
 | `HXWEB_OFF` | empty | Page rewrites to switch off without a build: `tabs`, `repeats`, `dead-assets`, `preload`, `aos`, `fa-static`, `bg-preload`, `fonts-css`. | Every rewrite is on. |
-| `HXWEB_RETIRE_WORDPRESS` | unset | `1` makes `wp-login.php`, `wp-admin/*` (except `admin-ajax.php`) and `wp-json/*` answer 410. | WordPress admin stays reachable through the legacy stack. |
 | `HXWEB_ADMIN_EMAIL` | none | WordPress's `admin_email`, which form notifications address as `{admin_email}`. | That address is left out; a notification with no other recipient is not sent. |
 | `HXWEB_AKISMET_KEY` | none | Akismet key for the form spam check. | Akismet is skipped, with a warning. The honeypot and the anti-spam token still apply. |
 | `HXWEB_RECAPTCHA_SECRET` | none | reCAPTCHA v3 secret that scores the token the contact forms (3, 4, 5, 6, 12, 13 and 14) send. The site key comes from the `registry` table. | The score is not checked, with a warning. A post without the browser's token is still refused, as the PHP did. |
@@ -140,9 +135,9 @@ A malformed value in the core group (marked core below) is not a warning. hxweb 
 | `HXWEB_SMTP_PORT` | `587` | SMTP port. | Default port. Not a number: the sender does not start. |
 | `HXWEB_SMTP_FROM` | `HXWEB_SMTP_USER` | From address of the site's mail. | The mailbox's own address. Not an address: the sender does not start. |
 | `HXWEB_SMTP_FROM_NAME` | `Harcourt` | From name, where a form notification does not set one. | `Harcourt`. |
-| `HXWEB_MICROSOFT_CLIENT_ID`, `_CLIENT_SECRET`, `_TENANT` (core) | none | Microsoft sign-in, the PHP `.env` `MICROSOFT_*` values. All three or none. | No Microsoft sign-in. Only some of the three, or a tenant that is not an id or domain: no Rust route is mounted. |
-| `HXWEB_GOOGLE_CLIENT_ID`, `_CLIENT_SECRET` (core) | none | Google sign-in. Both or neither. | No Google sign-in. Only one of the two: no Rust route is mounted. |
-| `HXWEB_IPSTACK` (core) | `off` | `on` looks each new account's address up at IPStack (URL and key from the `registry` table), as the PHP did. Off keeps a test or staging server from calling the paid service. | New accounts get no IPStack data or currency from it. Anything but `on` or `off`: no Rust route is mounted. |
+| `HXWEB_MICROSOFT_CLIENT_ID`, `_CLIENT_SECRET`, `_TENANT` (core) | none | Microsoft sign-in, the PHP `.env` `MICROSOFT_*` values. All three or none. | No Microsoft sign-in. Only some of the three, or a tenant that is not an id or domain: hxweb does not start. |
+| `HXWEB_GOOGLE_CLIENT_ID`, `_CLIENT_SECRET` (core) | none | Google sign-in. Both or neither. | No Google sign-in. Only one of the two: hxweb does not start. |
+| `HXWEB_IPSTACK` (core) | `off` | `on` looks each new account's address up at IPStack (URL and key from the `registry` table), as the PHP did. Off keeps a test or staging server from calling the paid service. | New accounts get no IPStack data or currency from it. Anything but `on` or `off`: hxweb does not start. |
 
 `hxweb job` (the cron jobs) reads `HXWEB_DB`, `HXWEB_SECRET`, `HXWEB_PUBLIC_ORIGIN` and `HXWEB_TRUSTED_PROXIES` the same way and stops on a malformed one.
 
@@ -150,5 +145,4 @@ A malformed value in the core group (marked core below) is not a warning. hxweb 
 
 - The PHP signs a company in automatically from its IP address. The Rust model keeps that for customers browsing and using the cart, and asks staff for an emailed code or OAuth. Keeping address sign-in for staff pages would need an explicit allow-list of company addresses.
 - Which Microsoft 365 mailbox sends the site's mail (`HXWEB_SMTP_USER`)? Until one is set, mail waits in `outbox`.
-- Whether `HXWEB_RETIRE_WORDPRESS=1` goes on at cut-over or later depends on whether anyone still edits pages in WordPress admin.
 - Production's PHP is not the `aws-production` branch. It is an upstream version with local edits (32 code files differ). Commit that drift upstream before comparing this PR to the repository's PHP.

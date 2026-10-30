@@ -6,8 +6,8 @@ on:
       - "rust/**"
       - "web/**"
       - "tools/**"
-      - "hx/hx-nav.js"
-      - "scs_scripts/scscpq_wp.js"
+      - "public/hx/hx-nav.js"
+      - "public/scs_scripts/scscpq_wp.js"
       - ".github/workflows/rust-web.yml"
   push:
     branches: [aws-production]
@@ -15,8 +15,8 @@ on:
       - "rust/**"
       - "web/**"
       - "tools/**"
-      - "hx/hx-nav.js"
-      - "scs_scripts/scscpq_wp.js"
+      - "public/hx/hx-nav.js"
+      - "public/scs_scripts/scscpq_wp.js"
 
 jobs:
   rust:
