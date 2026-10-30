@@ -27,6 +27,12 @@ pub fn esc(s: &str) -> String {
     out
 }
 
+/// Escapes text between tags. Only `<` and `>` can start markup there; quotes and ampersands are left as the
+/// PHP printed them, since an entity in text only ever shows as text.
+pub fn esc_text(s: &str) -> String {
+    s.replace('<', "&lt;").replace('>', "&gt;")
+}
+
 /// The registry's `www` module: the stylesheets, scripts and meta lines every SCS page carries.
 #[derive(Debug, Clone, Default)]
 pub struct Chrome {
@@ -211,8 +217,10 @@ pub fn select(field: &str, choices: &[(String, String)], selected: &str, blank: 
         out.push_str(ERROR_STYLE);
     }
     out.push_str(">\n");
-    if let Some(b) = blank {
-        out.push_str(&format!("<option value=''>{}</option>\n", esc(b)));
+    match blank {
+        Some("") => out.push_str("<option></option>\n"),
+        Some(b) => out.push_str(&format!("<option value=''>{}</option>\n", esc(b))),
+        None => {}
     }
     for (value, label) in choices {
         let sel = if value == selected { " selected" } else { "" };

@@ -50,7 +50,7 @@ async fn carriers_are_maintained_by_administrators() {
     let (app, pool) = harness().await;
     let customer = cookie(&pool, 1, "Customer").await;
     let (status, headers, _) = send(&app, Method::GET, "/carrier.php", Some(&customer), "", None).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/"));
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"));
     let admin = cookie(&pool, 2, "Administrator").await;
     let (_, _, page) = send(&app, Method::POST, "/carrier.php", Some(&admin), "action=update&record_id=0&name=Test+Freight&active=1", None).await;
     assert!(page.contains("Record maintained"));
@@ -73,7 +73,7 @@ async fn the_contact_page_shows_its_document_in_the_visitors_language() {
     let (app, pool) = harness().await;
     sqlx::query("INSERT INTO language (code, country_code, name, active) VALUES ('EN', 'US', 'English', 1), ('FR', 'FR', 'Français', 1)").execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO pages (record_type, name, url, document_id) VALUES ('general', 'Contact Us', '/contact.php', 42)").execute(&pool).await.unwrap();
-    sqlx::query("INSERT INTO content (record_type, record_id, language_code, content) VALUES ('document', 42, 'EN', '<p>Call us</p>'), ('document', 42, 'FR', '<p>Appelez-nous</p>')")
+    sqlx::query("INSERT INTO content (record_type, record_id, language_code, filetype, html_content) VALUES ('document', 42, 'EN', 'html', '<p>Call us</p>'), ('document', 42, 'FR', 'html', '<p>Appelez-nous</p>')")
         .execute(&pool)
         .await
         .unwrap();

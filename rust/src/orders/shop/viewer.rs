@@ -23,7 +23,7 @@ use crate::{
     db::unix_now,
     orders::{
         form_params,
-        html::{self, esc, js_str},
+        html::{self, esc, esc_text, js_str},
         mailform::Registry,
         pricing::Price,
         Executive, Orders, Staff,
@@ -184,8 +184,8 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             out.push_str(&html::hidden("report_status", report_status.map_or("", Status::as_str)));
             out.push_str(&html::hidden("report_order_date", report_date.as_ref().map_or("", |d| d.0.as_str())));
             let local = Registry::load(pool, "local").await?;
-            let none = Choices { countries: Vec::new(), us: Vec::new(), ca: Vec::new(), carriers: Vec::new() };
-            out.push_str(&checkout::header(o, false, true, &none, &Errors::default(), &local, false));
+            let names = Choices::names_for(pool, &[&o.ship, &o.billing]).await?;
+            out.push_str(&checkout::header(o, false, true, &names, &Errors::default(), &local, false));
             let staff_currency = sqlx::query_scalar!(r#"SELECT currency_code AS "c!: String" FROM "user" WHERE id = ?1"#, staff.user.id.0).fetch_optional(pool).await?.unwrap_or_else(|| "USD".into());
             let order_currency = Currency::load(pool, &o.currency_code).await?;
             let money = MoneyFormat { order: &order_currency, viewer: &staff_currency };
@@ -204,7 +204,7 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             out.push_str("</tr><tr><td width='30%'>Order Date</td>");
             let shown = report_date.as_ref().map_or("", |d| d.0.as_str());
             let value = if shown.is_empty() { String::new() } else { format!(" value='{}'", esc(shown)) };
-            out.push_str(&format!("<td width='70%'><input type=text name='report_order_date' id='report_order_date' class='datepicker' size='10' maxlength='10'{value}>\n</td>"));
+            out.push_str(&format!("<td width='70%'><input type=text class='datepicker' name='report_order_date' id='report_order_date' size='10' maxlength='10'{value}>\n</td>"));
             out.push_str("</tr></table>");
             out.push_str(&format!("<p>{}</p>", html::button("List", "fn_action(this,'list','');", "nav_button")));
             if action == "list" {
@@ -240,12 +240,12 @@ async fn list(pool: &SqlitePool, status: Option<Status>, since: Option<i64>) -> 
             "<tr><td class=center><a href=\"javascript:fn_action(this,'maintain',{});\" >{}</a></td><td>{}</td><td>{}</td><td>{}</td><td class=center>{when}</td>",
             html::esc_dq(&js_str(&r.id.to_string())),
             r.id,
-            esc(&r.company),
-            esc(&r.name),
-            esc(&r.email)
+            esc_text(&r.company),
+            esc_text(&r.name),
+            esc_text(&r.email)
         ));
         if status.is_none() {
-            out.push_str(&format!("<td>{}</td>", esc(&r.status)));
+            out.push_str(&format!("<td>{}</td>", esc_text(&r.status)));
         }
         out.push_str("</tr>");
     }

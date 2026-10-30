@@ -19,7 +19,7 @@ use crate::{
     db::unix_now,
     orders::{
         form_params,
-        html::{self, esc, js_str},
+        html::{self, esc, esc_text, js_str},
         pricing::Price,
         Orders,
     },
@@ -147,14 +147,14 @@ pub fn table(lines: &[Line], entry: bool, money: &MoneyFormat, labels: &Labels, 
             let onclick = format!("cart_delete({},{});", js_str(&line.sku), js_str(&row_id));
             r.push(format!("<td class=center>{}</td>", html::button("X", &onclick, "cart_delete")));
         }
-        r.push(format!("<td class=nobr>{}</td>", esc(&line.sku)));
+        r.push(format!("<td class=nobr>{}</td>", esc_text(&line.sku)));
         let img = line.thumbnail.as_ref().map_or(String::new(), |src| format!("<img src='{}' width='{thumb_size}' height='{thumb_size}' border='0'>", esc(src)));
         r.push(format!("<td class=center>{img}</td>"));
-        let mut content = vec![esc(&line.description).replace('\n', "<br>")];
+        let mut content = vec![esc_text(&line.description).replace('\n', "<br>")];
         if entry {
             content.push(format!("<br>{}", html::text_input("text", &comment_field, &line.comment, 40, 60, "Comment (optional)", false)));
         } else if !line.comment.is_empty() {
-            content.push(format!("<br>Comment: {}", esc(&line.comment)));
+            content.push(format!("<br>Comment: {}", esc_text(&line.comment)));
         }
         r.push(format!("<td>{}</td>", content.join("\n")));
         r.push("</td>".into());
