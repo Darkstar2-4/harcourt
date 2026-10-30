@@ -119,7 +119,7 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/product/alignment/")));
     assert_eq!(send(&app, Method::GET, "/product/clamping/").await.0, StatusCode::NOT_FOUND);
     assert_eq!(send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/users").await.0, StatusCode::GONE);
-    assert_eq!(send(&app, Method::POST, "/product/alignment/").await.0, StatusCode::METHOD_NOT_ALLOWED);
+    assert_eq!(send(&app, Method::POST, "/product/alignment/").await.0, StatusCode::OK);
 }
 
 #[tokio::test]
@@ -172,59 +172,96 @@ async fn admin_cookie(pool: &SqlitePool, role: &str) -> String {
     format!("{}={}", hxweb::session::COOKIE, token.as_str())
 }
 
-fn admin_app(pool: &SqlitePool) -> Router {
-    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
-    Router::new().nest("/dashboard/cms", hxweb::cms::admin::router(auth))
-}
-
-async fn admin(app: &Router, method: Method, uri: &str, cookie: &str, origin: Option<&str>, form: &str) -> (StatusCode, Option<String>, String) {
-    let mut req = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
-    if let Some(o) = origin {
-        req = req.header(header::ORIGIN, o);
-    }
+async fn admin(app: &Router, method: Method, uri: &str, cookie: &str, form: &str) -> (StatusCode, Option<String>, String) {
+    let req = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     let res = app.clone().oneshot(req.body(Body::from(form.to_string())).unwrap()).await.unwrap();
     let status = res.status();
     let location = res.headers().get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
     (status, location, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
 }
 
+fn csrf_of(page: &str) -> String {
+    let start = page.find("name='csrf' id='csrf' value='").expect("csrf field") + "name='csrf' id='csrf' value='".len();
+    page[start..].split('\'').next().unwrap().to_string()
+}
+
 #[tokio::test]
 async fn staff_edit_page_text_from_the_dashboard_screens() {
-    let (site, pool) = harness().await;
+    let (app, pool) = harness().await;
     let cookie = admin_cookie(&pool, "Administrator").await;
-    let app = admin_app(&pool);
-    let (status, location, _) = admin(&app, Method::GET, "/dashboard/cms", &cookie, None, "").await;
-    assert_eq!((status, location.as_deref()), (StatusCode::SEE_OTHER, Some("/dashboard/cms/pages")));
-    let (status, _, list) = admin(&app, Method::GET, "/dashboard/cms/pages", &cookie, None, "").await;
+    let (status, _, list) = admin(&app, Method::GET, "/staff/cms", &cookie, "").await;
     assert_eq!(status, StatusCode::OK);
-    assert!(list.contains("<a href=\"page/165\">/product/alignment/</a>"));
-    let (status, _, form) = admin(&app, Method::GET, "/dashboard/cms/page/165", &cookie, None, "").await;
+    assert!(list.contains("<a href=\"/staff/cms/page/165\">/product/alignment/</a>"));
+    let (status, _, form) = admin(&app, Method::GET, "/staff/cms/page/165", &cookie, "").await;
     assert_eq!(status, StatusCode::OK);
     assert!(form.contains("name=\"hero_title\" rows=\"2\">Synthetic Alignment &lt;b&gt;hero&lt;/b&gt;</textarea>"));
     assert!(!form.contains("name=\"block_one\""), "structure is not editable");
 
     let post = "hero_title=Dashboard+%3Cem%3Eedit%3C%2Fem%3E&meta%3Atitle=Tab&note=from+the+test";
-    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://evil.example"), post).await.0, StatusCode::FORBIDDEN);
-    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, None, post).await.0, StatusCode::FORBIDDEN);
-    let (status, location, _) = admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://www.harcourt.co"), post).await;
-    assert_eq!((status, location.as_deref()), (StatusCode::SEE_OTHER, Some("../page/165")));
-    let (_, _, html) = send(&site, Method::GET, "/product/alignment/").await;
+    assert_eq!(admin(&app, Method::POST, "/staff/cms/page/165", &cookie, &format!("{post}&csrf=forged")).await.0, StatusCode::FORBIDDEN);
+    assert_eq!(admin(&app, Method::POST, "/staff/cms/page/165", &cookie, post).await.0, StatusCode::FORBIDDEN);
+    let token = csrf_of(&form);
+    let (status, location, _) = admin(&app, Method::POST, "/staff/cms/page/165", &cookie, &format!("{post}&csrf={token}")).await;
+    assert_eq!((status, location.as_deref()), (StatusCode::SEE_OTHER, Some("/staff/cms/page/165")));
+    let (_, _, html) = send(&app, Method::GET, "/product/alignment/").await;
     assert!(html.contains("<h1 class=\"mt-5\">Dashboard <em>edit</em></h1>"));
     let history = edit::page_revisions(&pool, PageId(165)).await.unwrap();
     assert_eq!((history[0].saved_by, history[0].note.as_str()), (500, "from the test"));
 
-    let (status, _, _) = admin(&app, Method::POST, "/dashboard/cms/options/en", &cookie, Some("https://www.harcourt.co"), "website_notification=Closed+Friday").await;
+    let (status, _, _) = admin(&app, Method::POST, "/staff/cms/options/en", &cookie, &format!("website_notification=Closed+Friday&csrf={token}")).await;
     assert_eq!(status, StatusCode::SEE_OTHER);
-    assert!(send(&site, Method::GET, "/product/alignment/").await.2.contains("Closed Friday"));
+    assert!(send(&app, Method::GET, "/product/alignment/").await.2.contains("Closed Friday"));
 }
 
 #[tokio::test]
 async fn only_administrators_reach_the_dashboard_screens() {
-    let (_, pool) = harness().await;
+    let (app, pool) = harness().await;
     let cookie = admin_cookie(&pool, "Internal").await;
-    let app = admin_app(&pool);
-    assert_eq!(admin(&app, Method::GET, "/dashboard/cms/pages", &cookie, None, "").await.0, StatusCode::FORBIDDEN);
-    assert_eq!(admin(&app, Method::GET, "/dashboard/cms/page/165", "", None, "").await.0, StatusCode::UNAUTHORIZED);
-    let post = "hero_title=x";
-    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://www.harcourt.co"), post).await.0, StatusCode::FORBIDDEN);
+    let home = Some("/scs_index.php");
+    let (status, location, _) = admin(&app, Method::GET, "/staff/cms", &cookie, "").await;
+    assert_eq!((status, location.as_deref()), (StatusCode::FOUND, home));
+    let (status, location, _) = admin(&app, Method::GET, "/staff/cms/page/165", "", "").await;
+    assert_eq!((status, location.as_deref()), (StatusCode::FOUND, home));
+    let (status, location, _) = admin(&app, Method::POST, "/staff/cms/page/165", &cookie, "hero_title=x").await;
+    assert_eq!((status, location.as_deref()), (StatusCode::FOUND, home));
+    assert!(edit::page_revisions(&pool, PageId(165)).await.unwrap().len() == 1, "nothing was saved");
+}
+
+const FORM: &str = r#"{"id":1,"title":"Request access","button":{"text":"Submit"},"enableHoneypot":false,"requiredIndicator":"asterisk",
+    "fields":[{"type":"text","id":1,"label":"Name","isRequired":true,"size":"large"}]}"#;
+const CONFIRM: &str = r#"{"c":{"name":"Default","isDefault":true,"type":"message","message":"<strong>Thanks, we will be in touch.</strong>"}}"#;
+
+async fn seed_form(pool: &SqlitePool) {
+    sqlx::query("INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (1, 'Request access', '2020-01-01 00:00:00', 1, 0)").execute(pool).await.unwrap();
+    sqlx::query("INSERT INTO wp_gf_form_meta (form_id, display_meta, notifications, confirmations) VALUES (1, ?1, '{}', ?2)").bind(FORM).bind(CONFIRM).execute(pool).await.unwrap();
+}
+
+async fn post_form(app: &Router, uri: &str, form: &str) -> (StatusCode, String) {
+    let req = Request::builder().method(Method::POST).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(Body::from(form.to_string())).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    (status, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
+}
+
+#[tokio::test]
+async fn a_form_posted_to_a_page_is_answered_where_the_form_was() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    let (status, html) = post_form(&app, "/product/alignment/", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<title>Alignment - Example</title>"), "the page itself");
+    assert!(html.contains("Thanks, we will be in touch."));
+    assert!(!html.contains("<form id=stub-1"), "the answer replaced the form");
+
+    let (status, html) = post_form(&app, "/product/alignment/", "gform_submit=1&input_1=").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<title>Alignment - Example</title>") && !html.contains("Thanks, we will be in touch."));
+
+    let (status, postback) = post_form(&app, "/product/alignment/", "gform_submit=1&gform_ajax=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(postback.contains("Thanks, we will be in touch.") && !postback.contains("<title>Alignment - Example</title>"));
+
+    let (status, html) = post_form(&app, "/product/alignment/", "s=anything").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<form id=stub-1"), "a post without a form shows the page");
 }

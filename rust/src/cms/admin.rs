@@ -1,23 +1,18 @@
-//! The staff screens for page text and banners: list the pages, edit a page's text and its SEO title and
-//! description, edit each language's site-wide texts (the header notice banner, the call-to-action block, footer
-//! texts), see every revision and restore one. Administrators only. The staff area mounts it:
+//! The staff screens for page text and banners under `/staff/cms`: list the pages, edit a page's text and its SEO
+//! title and description, edit each language's site-wide texts (the header notice banner, the call-to-action block,
+//! footer texts), see every revision and restore one.
 //!
-//! ```ignore
-//! Router::new().nest("/dashboard/cms", hxweb::cms::admin::router(core.clone()))
-//! ```
-//!
-//! Links are relative to the mount point, so any prefix works. Saves are form posts; a post whose Origin (or,
-//! failing that, Referer) is not this site is refused.
+//! Behind the staff gate like every staff page: `Staff<Administrator>` (others are sent home, as the PHP pages did)
+//! and a `Posted` form whose CSRF token matches the session (staff/csrf.rs).
 
 use std::sync::Arc;
 
 use axum::{
-    extract::{OriginalUri, Path, Request, State},
-    http::{header, HeaderMap, StatusCode},
-    middleware::{self, Next},
+    extract::{Path, State},
+    http::StatusCode,
     response::{Html, IntoResponse, Redirect, Response},
     routing::{get, post},
-    Form, Router,
+    Router,
 };
 
 use super::{
@@ -26,34 +21,22 @@ use super::{
     Lang, PageId,
 };
 use crate::{
-    api::{Administrator, Auth, Authed},
+    api::{Administrator, Auth},
     db::unix_now,
+    staff::{
+        csrf::{self, Posted},
+        Staff,
+    },
 };
 
-pub fn router(core: Arc<Auth>) -> Router {
+pub const PATH: &str = "/staff/cms";
+
+pub fn routes() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/", get(to_pages))
-        .route("/pages", get(index))
-        .route("/page/{id}", get(page_form).post(page_save))
-        .route("/options/{lang}", get(options_form).post(options_save))
-        .route("/revision/{id}/restore", post(restore))
-        .layer(middleware::from_fn_with_state(core.clone(), same_site_posts))
-        .with_state(core)
-}
-
-/// Form posts must come from this site's own pages.
-async fn same_site_posts(State(core): State<Arc<Auth>>, req: Request, next: Next) -> Response {
-    if req.method() != axum::http::Method::POST || from_this_site(req.headers(), &core.public_origin) {
-        return next.run(req).await;
-    }
-    (StatusCode::FORBIDDEN, "Forbidden").into_response()
-}
-
-fn from_this_site(h: &HeaderMap, origin: &str) -> bool {
-    if let Some(o) = h.get(header::ORIGIN) {
-        return o.as_bytes() == origin.as_bytes();
-    }
-    h.get(header::REFERER).and_then(|r| r.to_str().ok()).is_some_and(|r| r == origin || r.starts_with(&format!("{origin}/")))
+        .route(PATH, get(index))
+        .route("/staff/cms/page/{id}", get(page_form).post(page_save))
+        .route("/staff/cms/options/{lang}", get(options_form).post(options_save))
+        .route("/staff/cms/revision/{id}/restore", post(restore))
 }
 
 fn page_html(title: &str, body: &str) -> Html<String> {
@@ -73,20 +56,22 @@ fn failed(e: EditError) -> Response {
     }
 }
 
-/// The mount point itself: links are relative, so send the browser to a path below it.
-async fn to_pages(OriginalUri(uri): OriginalUri) -> Redirect {
-    Redirect::to(&format!("{}/pages", uri.path().trim_end_matches('/')))
+/// A form posting to `action` with the session's CSRF token.
+fn form_open(action: &str, csrf: &str) -> String {
+    format!("<form method=\"post\" action=\"{}\">{}", esc(action), crate::staff::html::hidden(csrf::FIELD, csrf))
 }
 
-async fn index(State(core): State<Arc<Auth>>, _who: Authed<Administrator>) -> Response {
+async fn index(State(core): State<Arc<Auth>>, _staff: Staff<Administrator>) -> Response {
     let pages = match edit::list_pages(&core.pool).await {
         Ok(p) => p,
         Err(e) => return failed(e.into()),
     };
-    let mut body = String::from("<h1>Site content</h1><p>Banners and footer texts: <a href=\"options/en\">English</a> · <a href=\"options/fr\">French</a></p><table><tr><th>Page</th><th>Language</th><th>Title</th><th>Template</th></tr>");
+    let mut body = format!(
+        "<h1>Site content</h1><p>Banners and footer texts: <a href=\"{PATH}/options/en\">English</a> · <a href=\"{PATH}/options/fr\">French</a></p><table><tr><th>Page</th><th>Language</th><th>Title</th><th>Template</th></tr>"
+    );
     for p in pages {
         body.push_str(&format!(
-            "<tr><td><a href=\"page/{}\">{}</a></td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            "<tr><td><a href=\"{PATH}/page/{}\">{}</a></td><td>{}</td><td>{}</td><td>{}</td></tr>",
             p.id,
             esc(&p.path),
             esc(&p.lang),
@@ -98,16 +83,16 @@ async fn index(State(core): State<Arc<Auth>>, _who: Authed<Administrator>) -> Re
     page_html("Pages", &body).into_response()
 }
 
-fn revisions_table(revs: &[edit::RevisionSummary], back: &str) -> String {
+fn revisions_table(revs: &[edit::RevisionSummary], csrf: &str) -> String {
     let mut out = String::from("<h2>Revisions</h2><table><tr><th>#</th><th>Saved</th><th>By user</th><th>Note</th><th></th></tr>");
     for r in revs {
         out.push_str(&format!(
-            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td><form method=\"post\" action=\"{back}revision/{}/restore\"><button>Restore</button></form></td></tr>",
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}<button>Restore</button></form></td></tr>",
             r.id,
             r.saved_at,
             r.saved_by,
             esc(&r.note),
-            r.id
+            form_open(&format!("{PATH}/revision/{}/restore", r.id), csrf)
         ));
     }
     out.push_str("</table>");
@@ -119,14 +104,15 @@ fn textarea(name: &str, label: &str, value: &str) -> String {
     format!("<label for=\"{0}\">{1}</label><textarea id=\"{0}\" name=\"{0}\" rows=\"{rows}\">{2}</textarea>", esc(name), esc(label), esc(value))
 }
 
-async fn page_form(State(core): State<Arc<Auth>>, _who: Authed<Administrator>, Path(id): Path<i64>) -> Response {
+async fn page_form(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(id): Path<i64>) -> Response {
     let page = match edit::load_page(&core.pool, PageId(id)).await {
         Ok(Some(p)) => p,
         Ok(None) => return failed(EditError::NotFound),
         Err(e) => return failed(e.into()),
     };
     let revs = edit::page_revisions(&core.pool, PageId(id)).await.unwrap_or_default();
-    let mut body = format!("<p><a href=\"../pages\">All pages</a></p><h1>{} ({})</h1><form method=\"post\">", esc(&page.page.path), esc(&page.page.lang));
+    let csrf = staff.csrf.as_str();
+    let mut body = format!("<p><a href=\"{PATH}\">All pages</a></p><h1>{} ({})</h1>{}", esc(&page.page.path), esc(&page.page.lang), form_open(&format!("{PATH}/page/{id}"), csrf));
     for (name, value) in &page.meta {
         body.push_str(&textarea(&format!("meta:{name}"), &format!("SEO {name}"), value));
     }
@@ -134,60 +120,66 @@ async fn page_form(State(core): State<Arc<Auth>>, _who: Authed<Administrator>, P
         body.push_str(&textarea(name, name, value));
     }
     body.push_str("<label for=\"note\">Note</label><input id=\"note\" name=\"note\" size=\"60\"><p><button>Save</button></p></form>");
-    body.push_str(&revisions_table(&revs, "../"));
+    body.push_str(&revisions_table(&revs, csrf));
     page_html(&page.page.path, &body).into_response()
 }
 
-/// Form fields other than `note`, as changes. Unchanged values are saved too; the revision records the state.
-fn changes(form: Vec<(String, String)>) -> (Vec<Change>, String) {
+/// The posted fields other than the token and the note, as changes. Unchanged values are saved too; the revision
+/// records the state.
+fn changes<'a>(fields: impl Iterator<Item = (&'a str, &'a str)>) -> (Vec<Change>, String) {
     let mut note = String::new();
     let mut out = Vec::new();
-    for (name, value) in form {
-        if name == "note" {
-            note = value;
-        } else {
-            out.push(Change { name, value: value.replace("\r\n", "\n") });
+    for (name, value) in fields {
+        match name {
+            "note" => note = value.to_string(),
+            csrf::FIELD => {}
+            _ => out.push(Change { name: name.to_string(), value: value.replace("\r\n", "\n") }),
         }
     }
     (out, note)
 }
 
-async fn page_save(State(core): State<Arc<Auth>>, who: Authed<Administrator>, Path(id): Path<i64>, Form(form): Form<Vec<(String, String)>>) -> Response {
-    let (changes, note) = changes(form);
-    match edit::save_page(&core.pool, PageId(id), &changes, who.user.id, &note, unix_now()).await {
-        Ok(_) => Redirect::to(&format!("../page/{id}")).into_response(),
+async fn page_save(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(id): Path<i64>, posted: Posted) -> Response {
+    let (changes, note) = changes(posted.fields.iter());
+    match edit::save_page(&core.pool, PageId(id), &changes, staff.who.user.id, &note, unix_now()).await {
+        Ok(_) => Redirect::to(&format!("{PATH}/page/{id}")).into_response(),
         Err(e) => failed(e),
     }
 }
 
-async fn options_form(State(core): State<Arc<Auth>>, _who: Authed<Administrator>, Path(code): Path<String>) -> Response {
+async fn options_form(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(code): Path<String>) -> Response {
     let Some(l) = Lang::parse(&code) else { return failed(EditError::NotFound) };
     let options = match edit::load_options(&core.pool, l).await {
         Ok(o) => o,
         Err(e) => return failed(e.into()),
     };
     let revs = edit::option_revisions(&core.pool, l).await.unwrap_or_default();
-    let mut body = format!("<p><a href=\"../pages\">All pages</a></p><h1>Site-wide texts ({})</h1><p>website_notification is the banner under the header; leave it empty to hide it.</p><form method=\"post\">", l.code());
+    let csrf = staff.csrf.as_str();
+    let mut body = format!(
+        "<p><a href=\"{PATH}\">All pages</a></p><h1>Site-wide texts ({})</h1><p>website_notification is the banner under the header; leave it empty to hide it.</p>{}",
+        l.code(),
+        form_open(&format!("{PATH}/options/{}", l.code()), csrf)
+    );
     for (name, value) in options.iter().filter(|(n, _)| !n.starts_with('@')) {
         body.push_str(&textarea(name, name, value));
     }
     body.push_str("<label for=\"note\">Note</label><input id=\"note\" name=\"note\" size=\"60\"><p><button>Save</button></p></form>");
-    body.push_str(&revisions_table(&revs, "../"));
+    body.push_str(&revisions_table(&revs, csrf));
     page_html("Site-wide texts", &body).into_response()
 }
 
-async fn options_save(State(core): State<Arc<Auth>>, who: Authed<Administrator>, Path(code): Path<String>, Form(form): Form<Vec<(String, String)>>) -> Response {
+async fn options_save(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(code): Path<String>, posted: Posted) -> Response {
     let Some(l) = Lang::parse(&code) else { return failed(EditError::NotFound) };
-    let (changes, note) = changes(form);
-    match edit::save_options(&core.pool, l, &changes, who.user.id, &note, unix_now()).await {
-        Ok(_) => Redirect::to(&format!("../options/{}", l.code())).into_response(),
+    let (changes, note) = changes(posted.fields.iter());
+    match edit::save_options(&core.pool, l, &changes, staff.who.user.id, &note, unix_now()).await {
+        Ok(_) => Redirect::to(&format!("{PATH}/options/{}", l.code())).into_response(),
         Err(e) => failed(e),
     }
 }
 
-async fn restore(State(core): State<Arc<Auth>>, who: Authed<Administrator>, Path(id): Path<i64>) -> Response {
-    match edit::restore(&core.pool, id, who.user.id, unix_now()).await {
-        Ok(_) => Redirect::to("../../pages").into_response(),
+async fn restore(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(id): Path<i64>, _posted: Posted) -> Response {
+    match edit::restore(&core.pool, id, staff.who.user.id, unix_now()).await {
+        Ok(_) => Redirect::to(PATH).into_response(),
         Err(e) => failed(e),
     }
 }
@@ -197,23 +189,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn posts_must_name_this_site() {
-        let origin = "https://www.harcourt.co";
-        let h = |k: header::HeaderName, v: &str| {
-            let mut m = HeaderMap::new();
-            m.insert(k, v.parse().unwrap());
-            m
-        };
-        assert!(from_this_site(&h(header::ORIGIN, origin), origin));
-        assert!(!from_this_site(&h(header::ORIGIN, "https://evil.example"), origin));
-        assert!(from_this_site(&h(header::REFERER, "https://www.harcourt.co/dashboard/cms/page/1"), origin));
-        assert!(!from_this_site(&h(header::REFERER, "https://www.harcourt.co.evil.example/"), origin));
-        assert!(!from_this_site(&HeaderMap::new(), origin));
-    }
-
-    #[test]
     fn form_fields_become_changes_and_a_note() {
-        let (c, note) = changes(vec![("hero_title".into(), "a\r\nb".into()), ("note".into(), "typo".into()), ("meta:title".into(), "T".into())]);
+        let fields = [("hero_title", "a\r\nb"), ("note", "typo"), (csrf::FIELD, "token"), ("meta:title", "T")];
+        let (c, note) = changes(fields.into_iter());
         assert_eq!(note, "typo");
         assert_eq!(c, vec![Change { name: "hero_title".into(), value: "a\nb".into() }, Change { name: "meta:title".into(), value: "T".into() }]);
     }

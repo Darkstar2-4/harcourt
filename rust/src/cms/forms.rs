@@ -93,7 +93,7 @@ impl FormSource for Islands {
 /// Gravity Forms as the orders area renders them from SQLite, falling back to the WordPress island endpoint for a
 /// form that is not imported there.
 pub struct OrdersForms {
-    pub orders: crate::orders::Orders,
+    pub orders: std::sync::Arc<crate::orders::Orders>,
     pub fallback: Option<Islands>,
 }
 

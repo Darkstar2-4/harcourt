@@ -2,14 +2,16 @@
 //! Register every route here and nowhere else; mod.rs only merges this router.
 //!
 //! A page listed in PAGES is rendered from the cms tables (rust/src/cms); every other WordPress page is still
-//! served from the static export by pages.rs. Deleting a path from PAGES hands it back. GET and HEAD only: form
-//! posts to page URLs still reach WordPress until Gravity Forms is ported.
+//! served from the static export by pages.rs. Deleting a path from PAGES hands it back. A Gravity Forms post to a
+//! page goes to orders::forms::handle, and its answer takes the form's place in the page.
+//!
+//! The staff screens that edit this content (cms::admin) are mounted here, under /staff/cms.
 
 use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     body::Body,
-    extract::State,
+    extract::{FromRequestParts, Request, State},
     http::{header, HeaderValue, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::get,
@@ -18,10 +20,14 @@ use axum::{
 use percent_encoding::percent_decode_str;
 
 use crate::{
-    api::Auth,
+    api::{Auth, ClientIp},
     cms::{
         forms::{FormSource, Islands, OrdersForms},
         theme, Content, FormEmbed, Lang, Page, Site, Status,
+    },
+    orders::{
+        forms::{model, render, submit::Outcome},
+        Orders,
     },
 };
 
@@ -78,24 +84,31 @@ pub struct Wp {
     core: Arc<Auth>,
     content: Content,
     forms: Option<Arc<dyn FormSource>>,
+    orders: Arc<Orders>,
 }
 
 pub fn router(core: Arc<Auth>) -> Router {
-    let forms = OrdersForms { orders: crate::orders::Orders::from_env(core.clone()), fallback: Islands::from_env() };
-    router_with_forms(core, Some(Arc::new(forms)))
+    let orders = Arc::new(Orders::from_env(core.clone()));
+    let forms = OrdersForms { orders: orders.clone(), fallback: Islands::from_env() };
+    router_with(core, Some(Arc::new(forms)), orders)
 }
 
 /// The router with the given source of form markup (tests pass a fixed one).
 pub fn router_with_forms(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>) -> Router {
-    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, core });
+    let orders = Arc::new(Orders::from_env(core.clone()));
+    router_with(core, forms, orders)
+}
+
+fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>) -> Router {
+    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, core: core.clone() });
     let mut r = Router::new().route("/robots.txt", get(robots));
     for path in PAGES {
-        r = r.route(path, get(page));
+        r = r.route(path, get(page).post(page_post));
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
             r = r.route(bare, get(add_slash));
         }
     }
-    r.with_state(wp)
+    r.with_state(wp).merge(crate::cms::admin::routes().with_state(core))
 }
 
 /// Which page a request asks for, from its query: WPML's `lang`, and whether it is the REST API's `rest_route`.
@@ -153,6 +166,56 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
 }
 
 async fn page(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
+    serve(&wp, &uri, None).await
+}
+
+/// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
+/// the page (an ajax form gets the iframe postback document instead). Any other post shows the page, as WordPress
+/// did.
+async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
+    let (mut parts, body) = req.into_parts();
+    let Ok(ClientIp(ip)) = ClientIp::from_request_parts(&mut parts, &wp.core).await;
+    let Ok(body) = axum::body::to_bytes(body, 8 << 20).await else {
+        return (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large").into_response();
+    };
+    let params = crate::orders::form_params(None, &body);
+    let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
+        return serve(&wp, &parts.uri, None).await;
+    };
+    let site = match wp.content.site().await {
+        Ok(s) => s,
+        Err(e) => return unavailable(e),
+    };
+    let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
+    let q = query(parts.uri.query().unwrap_or(""));
+    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, None).await };
+    let wp_uri = format!("{}{}", page.path, q.form_uri_query);
+    let lang = match page.lang {
+        Lang::En => model::Lang::En,
+        Lang::Fr => model::Lang::Fr,
+    };
+    let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+    match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, Some(page.title.clone())).await {
+        Ok(Some((Outcome::Redirect(url), _))) => crate::orders::html::redirect(&url),
+        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
+            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
+        }
+        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, Some((form, h))).await,
+        Ok(None) => serve(&wp, &parts.uri, None).await,
+        Err(e) => {
+            tracing::error!("{path}: form {form} submit: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
+        }
+    }
+}
+
+fn unavailable(e: sqlx::Error) -> Response<Body> {
+    tracing::error!("cms content unavailable: {e}");
+    (StatusCode::SERVICE_UNAVAILABLE, "Service unavailable").into_response()
+}
+
+/// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form.
+async fn serve(wp: &Arc<Wp>, uri: &Uri, answer: Option<(u32, String)>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let q = query(uri.query().unwrap_or(""));
     if q.rest_route {
@@ -160,10 +223,7 @@ async fn page(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
     }
     let site = match wp.content.site().await {
         Ok(s) => s,
-        Err(e) => {
-            tracing::error!("cms content unavailable: {e}");
-            return (StatusCode::SERVICE_UNAVAILABLE, "Service unavailable").into_response();
-        }
+        Err(e) => return unavailable(e),
     };
     let page = match resolve(&site, &path, q.lang) {
         Answer::Render(p) => p,
@@ -176,12 +236,17 @@ async fn page(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
         return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
     };
     let islands = islands(&site, page);
+    let answered = answer.as_ref().and_then(|(form, _)| islands.iter().find(|(_, i)| i.form == *form).map(|(index, _)| *index));
     let filled = crate::cms::forms::fill(&html, |form, index| {
         let embed = islands.get(&index).filter(|e| e.form == form).cloned();
+        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|(_, h)| h.clone());
         let wp = wp.clone();
         let wp_uri = wp_uri.clone();
         let lang = page.lang;
         async move {
+            if let Some(h) = answer {
+                return Ok(h);
+            }
             let e = embed.ok_or_else(|| format!("form {form} is not in the page's islands"))?;
             let embed = FormEmbed { form, lang, page_uri: &wp_uri, ajax: e.ajax, theme: &e.theme, styles: &e.styles, in_content: e.in_content };
             match &wp.forms {
