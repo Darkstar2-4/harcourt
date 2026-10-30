@@ -148,6 +148,17 @@ async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
 }
 
 #[tokio::test]
+async fn a_post_the_export_left_out_stays_with_wordpress() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let res = app.clone().oneshot(Request::builder().uri("/faq/example-question/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "no recorded head, no page");
+}
+
+#[tokio::test]
 async fn sitemaps_list_the_pages_as_wpml_links_them() {
     let (app, _) = harness().await;
     let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
@@ -161,6 +172,20 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
     let none = app.clone().oneshot(Request::builder().uri("/post-sitemap.xml").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(none.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"));
+
+    let (status, _, xml) = send(&app, Method::GET, "/page-sitemap.xml/").await;
+    assert_eq!(status, StatusCode::OK, "Yoast's rules match without the trailing slash");
+    assert!(xml.contains("<loc>https://www.harcourt.co/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap_index.xml?lang=en").await.1.as_deref(), Some("/sitemap_index.xml/"), "WPML's 302 away from lang=en");
+    assert_eq!(send(&app, Method::GET, "/page-sitemap.xml?lang=en").await.1.as_deref(), Some("/page-sitemap.xml/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml?lang=fr"));
+    let (status, location, _) = send(&app, Method::GET, "/index.php?lang=en").await;
+    assert_eq!((status, location.as_deref()), (StatusCode::FOUND, Some("/index.php/")), "WPML's 302 comes before the front controller's");
+    assert_eq!(send(&app, Method::GET, "/index.php?x=1").await.1.as_deref(), Some("https://www.harcourt.co/?x=1"));
+    assert_eq!(send(&app, Method::GET, "/index.php/?lang=en").await.1.as_deref(), Some("/index.php/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=en").await.1.as_deref(), Some("/sitemap.xml/"));
+    let blog = app.clone().oneshot(Request::builder().uri("/sitemap.xml?order=asc").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(blog.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "any other query is the blog query's 404");
 }
 
 #[tokio::test]

@@ -27,7 +27,7 @@ use crate::{
         feed, sitemap,
         forms::{FormSource, Islands, OrdersForms},
         theme,
-        url::{urldecode, with_query},
+        url::{http_build_query, urldecode, with_query, Arg},
         Content, FormEmbed, Lang, Page, PostType, Site, Status,
     },
     orders::{
@@ -213,15 +213,21 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
         if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
             return legacy();
         }
+        // WPML's 302 away from lang=en comes first, to the address as asked with a slash.
+        let q = query(raw_query);
+        if (rest.is_empty() || rest == "/") && q.lang_en {
+            return found(&wp.core.public_origin, &format!("/index.php/{}", if q.without_lang.is_empty() { String::new() } else { format!("?{}", q.without_lang) }));
+        }
         return redirect(&wp.core.public_origin, &with_query(if rest.is_empty() { "/" } else { rest }, raw_query));
     }
     match docroot::owner(&path, docroot()) {
         Owner::Legacy => legacy(),
+        Owner::NotFound => crate::accounts::static_dirs::not_found(&wp.core.public_origin),
         Owner::File(file, kind) => static_file(file, kind).await,
         Owner::WordPress => {
             let q = query(uri.query().unwrap_or(""));
             let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
-            if let Some(r) = sitemap(&wp, &path, q.lang).await {
+            if let Some(r) = sitemap(&wp, &path, &q).await {
                 return r;
             }
             if let Some(r) = feed(&wp, &uri, &path, &q, agent).await {
@@ -267,7 +273,7 @@ async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Op
 
 /// Yoast's sitemap rewrite rules: the index, one sitemap per type (`page-sitemap.xml`, page 1 only), its XSL, and
 /// WordPress's own /sitemap.xml, which Yoast redirects to its index. None for any other path.
-async fn sitemap(wp: &Arc<Wp>, path: &str, lang: Lang) -> Option<Response<Body>> {
+async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> {
     let xml = |body: String| -> Response<Body> {
         ([(header::CONTENT_TYPE, "text/xml; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex, follow")], public(&wp.core.public_origin, &body)).into_response()
     };
@@ -276,24 +282,37 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, lang: Lang) -> Option<Response<Body>>
         return Some(xml(sitemap::XSL.to_string()));
     }
     if name == "sitemap.xml" {
-        return Some(redirect(&wp.core.public_origin, "/sitemap_index.xml"));
+        // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang; with any
+        // other query it is the 404 over the blog query, which is not ported.
+        return Some(match (q.without_lang.is_empty(), q.lang_en) {
+            (true, true) => found(&wp.core.public_origin, "/sitemap.xml/"),
+            (true, false) => redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())),
+            (false, _) => legacy(),
+        });
+    }
+    // Yoast's own rules match the path with its trailing slash trimmed, as WordPress does.
+    let name = name.strip_suffix('/').unwrap_or(name);
+    let is_sitemap = name == "sitemap_index.xml" || name.strip_suffix(".xml").and_then(|n| n.split_once("-sitemap")).is_some_and(|(_, page)| page.bytes().all(|b| b.is_ascii_digit()));
+    if is_sitemap && q.lang_en {
+        // WPML's 302 away from lang=en, to the address with a trailing slash.
+        return Some(found(&wp.core.public_origin, &format!("/{name}/{}", if q.without_lang.is_empty() { String::new() } else { format!("?{}", q.without_lang) })));
     }
     let site = match wp.content.site().await {
         Ok(s) => s,
         Err(e) => return Some(unavailable(e)),
     };
-    if name == "sitemap_index.xml" || name == "sitemap_index.xml/" {
-        return Some(xml(sitemap::index(&site, lang)));
+    if name == "sitemap_index.xml" {
+        return Some(xml(sitemap::index(&site, q.lang)));
     }
     let (map, page) = name.strip_suffix(".xml")?.split_once("-sitemap")?;
     if !page.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
     // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts: not ported.
-    let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, lang));
+    let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
-        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("{}{}", &path[..path.len() - 5], ".xml"))),
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml"))),
         _ => Some(legacy()),
     }
 }
@@ -515,11 +534,25 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
     if args.iter().any(|(k, _)| WP_KEYS.contains(&k.as_str()) && !FRONT_VARS.contains(&k.as_str())) {
         return None;
     }
+    // A `lang` that names no WPML language (empty, `FR`) leaves the default one, and redirects keep it like any arg.
+    let unknown_lang = one("lang").is_some_and(|v| v != "fr" && v != "en");
     let without = |drop: &[&str]| {
-        raw_query.split('&').filter(|kv| !kv.is_empty() && !drop.contains(&urldecode(kv.split('=').next().unwrap_or("")).as_str())).collect::<Vec<_>>().join("&")
+        raw_query
+            .split('&')
+            .filter(|kv| {
+                let k = urldecode(kv.split('=').next().unwrap_or(""));
+                !kv.is_empty() && !(drop.contains(&k.as_str()) && !(unknown_lang && k == "lang"))
+            })
+            .collect::<Vec<_>>()
+            .join("&")
     };
     let rest = without(&FRONT_VARS);
     let moved = |to: String| Answer::Redirect(with_query(&to, &rest));
+    // WPML's redirect to another post: the query as PHP parsed it, the id swapped, through http_build_query().
+    let with_id = |key: &str, id: i64| {
+        let swapped: Vec<(String, Arg)> = args.iter().map(|(k, a)| (k.clone(), if k == key { Arg::One(id.to_string()) } else { a.clone() })).collect();
+        format!("/?{}", http_build_query(&swapped))
+    };
     let other_language = |key: &str, id: i64, own: Lang| match lang {
         Lang::En => Some(Answer::Found(format!("/?{key}={id}&lang={}", own.code()))),
         Lang::Fr => None,
@@ -543,16 +576,22 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
             return site
                 .translation(p, lang)
                 .filter(|t| t.status == Status::Publish && lang == Lang::Fr && t.lang == Lang::Fr && rest.is_empty())
-                .map(|t| Answer::Found(format!("/?{key}={}&lang=fr", t.id.0)));
+                .map(|t| Answer::Found(with_id(key, t.id.0)));
         }
         if p.lang == lang {
             return Some(moved(format!("{}{}", p.path, p.lang.query())));
         }
+        if unknown_lang {
+            return site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).map(|t| Answer::Found(with_id(key, t.id.0)));
+        }
         if !rest.is_empty() {
             return None;
         }
-        return match site.translation(p, lang).filter(|t| t.status == Status::Publish && lang == Lang::Fr) {
-            Some(t) => Some(Answer::Found(format!("/?{key}={}&lang=fr", t.id.0))),
+        // From English WPML sends a post to its own language's URL, but a page id to its English translation's,
+        // published or not (/?page_id=1997 to the draft 203).
+        let english_page = lang == Lang::En && key == "page_id";
+        return match site.translation(p, lang).filter(|t| english_page || (t.status == Status::Publish && lang == Lang::Fr)) {
+            Some(t) => Some(Answer::Found(with_id(key, t.id.0))),
             None => other_language(key, id, p.lang),
         };
     }
@@ -574,8 +613,8 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
     if let Some(m) = one("m") {
         // A date archive with no post 404s; the canonical URL exists only for one that lists something.
         let (prefix, to) = match m.len() {
-            4 if numeric(m).is_some() => (m.to_string(), format!("/{m}/")),
-            6 if numeric(m).is_some() => (format!("{}-{}", &m[..4], &m[4..]), format!("/{}/{}/", &m[..4], &m[4..])),
+            4 if numeric(m).is_some() => (m.to_string(), format!("/{m}/{}", lang.query())),
+            6 if numeric(m).is_some() => (format!("{}-{}", &m[..4], &m[4..]), format!("/{}/{}/{}", &m[..4], &m[4..], lang.query())),
             _ => return None,
         };
         let any = site.pages.iter().any(|p| p.kind == PostType::Post && p.status == Status::Publish && p.published_at.starts_with(&prefix));
@@ -598,6 +637,26 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
     }
 }
 
+/// WPML's 302 away from `lang=en` on the front page: the query without `lang` as PHP parsed it (a key at its first
+/// place with its last value), a post or page of the other language swapped for its English translation, through
+/// http_build_query().
+fn front_without_lang(site: &Site, raw_query: &str) -> String {
+    let args: Vec<(String, Arg)> = crate::cms::url::parse_str(raw_query)
+        .into_iter()
+        .filter(|(k, _)| k != "lang")
+        .map(|(k, a)| {
+            let english = match (k.as_str(), &a) {
+                ("p" | "page_id", Arg::One(v)) => v.parse::<i64>().ok().and_then(|id| site.page(crate::cms::PageId(id))).and_then(|p| site.translation(p, Lang::En)),
+                _ => None,
+            };
+            let a = english.map_or(a, |t| Arg::One(t.id.0.to_string()));
+            (k, a)
+        })
+        .collect();
+    let q = http_build_query(&args);
+    if q.is_empty() { "/".to_string() } else { format!("/?{q}") }
+}
+
 /// The answer for a request path, with or without its trailing slash, as prod answered it. A neutral request for a
 /// page in its own language got the exported page. Everything else was WordPress's: WPML drops `lang=en` with a
 /// 302, redirect_canonical() adds a missing slash keeping the query as sent, and a page asked for in the other
@@ -608,16 +667,20 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
     if q.neutral && slashed.is_none() && matches!(answer, Answer::Render(_)) {
         return answer;
     }
+    // The front page, however many slashes: WPML's 302 away from lang=en comes before any query var.
+    let front = path.bytes().all(|b| b == b'/');
+    if front && q.lang_en {
+        return Answer::Found(front_without_lang(site, raw_query));
+    }
     if q.wordpress {
-        return match path {
-            // WPML's 302 away from lang=en comes before any query var.
-            "/" if q.lang_en => Answer::Found(if q.without_lang.is_empty() { "/".into() } else { format!("/?{}", q.without_lang) }),
-            "/" => front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy),
-            _ => Answer::Legacy,
-        };
+        // Under a doubled slash WordPress resolves a post id its own way (a 301 to the permalink): not ported.
+        return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
     }
     if q.lang_en && answer != Answer::NotFound {
-        let to = slashed.as_deref().unwrap_or(path);
+        // WPML moves to the path WordPress parsed, its slashes trimmed and one put back; a path that began with two
+        // was a host to parse_url(), which wp_safe_redirect() refuses (`found`).
+        let parsed = format!("/{}/", path.trim_matches('/'));
+        let to = if path.starts_with("//") { path } else { parsed.as_str() };
         return Answer::Found(if q.without_lang.is_empty() { to.to_string() } else { format!("{to}?{}", q.without_lang) });
     }
     match (answer, slashed) {
@@ -638,7 +701,10 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         // redirect_canonical() never sends a visitor to the URL they asked for: the 404 stands, and its sidebar is
         // the guessed page's widgets in the request's language, which the cms does not hold.
         (Answer::Redirect(to), slashed) => {
-            let to = with_query(&to, raw_query);
+            // redirect_canonical() mending only the slashes keeps the query as sent; WPML's move to a translation
+            // rebuilds it.
+            let mended = format!("/{}/", path.split('/').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("/"));
+            let to = if to == mended && !raw_query.is_empty() { format!("{to}?{raw_query}") } else { with_query(&to, raw_query) };
             let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
             if slashed.is_none() && to == asked {
                 Answer::Legacy
@@ -742,7 +808,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<render::Answ
     let page = match answer_of {
         Answer::Render(p) => Some(p),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
-        Answer::Found(to) => return found(&to),
+        Answer::Found(to) => return found(&wp.core.public_origin, &to),
         Answer::FeedRedirect(to, kind) => {
             let mut r = redirect(&wp.core.public_origin, &to);
             r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind));
@@ -766,7 +832,11 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
         Some(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
             let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
-            let Some(html) = theme::render(site, page, &wp_uri) else {
+            // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded; a post it
+            // left out (an FAQ) has none to print, so WordPress keeps it.
+            let recorded = site.meta(page.id).contains_key("title");
+            let rendered = if recorded { theme::render(site, page, &wp_uri) } else { None };
+            let Some(html) = rendered else {
                 if replay {
                     return legacy();
                 }
@@ -890,8 +960,12 @@ fn redirect(origin: &str, to: &str) -> Response<Body> {
     }
 }
 
-/// WPML's redirect: a 302 with the Location relative, as WordPress's wp_redirect() leaves it.
-fn found(to: &str) -> Response<Body> {
+/// WPML's redirect: a 302 with the Location relative, as WordPress's wp_redirect() leaves it. It went through
+/// wp_safe_redirect(), which sends a Location naming another host (`//catalog/...` from a path that began with two
+/// slashes) to the admin URL instead.
+fn found(origin: &str, to: &str) -> Response<Body> {
+    let admin = format!("{origin}/wp-admin/");
+    let to = if to.starts_with("//") || to.starts_with("/\\") { admin.as_str() } else { to };
     match HeaderValue::from_str(to) {
         Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
@@ -999,6 +1073,39 @@ mod tests {
     }
 
     #[test]
+    fn wpml_redirects_stay_on_the_site() {
+        let location = |to: &str| found("https://www.harcourt.co", to).headers()[header::LOCATION].to_str().unwrap().to_string();
+        assert_eq!(location("/catalog/?unit_type=all"), "/catalog/?unit_type=all");
+        assert_eq!(location("//catalog/?unit_type=all"), "https://www.harcourt.co/wp-admin/");
+    }
+
+    #[test]
+    fn front_page_redirects_rebuild_the_query_as_wpml_did() {
+        let site = Site::new(vec![page(1, 10, Lang::En, "/company/history/", Status::Publish), page(2, 10, Lang::Fr, "/societe/histoire/", Status::Publish)]);
+        let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
+            Answer::Redirect(to) => to,
+            Answer::Found(to) => format!("302 {to}"),
+            other => format!("{other:?}"),
+        };
+        assert_eq!(r("/", "p=2&lang=en"), "302 /?p=1", "lang=en sends a French post to its English translation");
+        assert_eq!(r("/", "lang=en&p=7&p=2"), "302 /?p=1", "the last p counts");
+        assert_eq!(r("/", "s=pin&lang=en&s=alignment%20pin"), "302 /?s=alignment+pin");
+        assert_eq!(r("//", "lang=en"), "302 /");
+        assert_eq!(r("//", "p=1&lang=fr"), "Legacy", "a post id under a doubled slash is not ported");
+        assert_eq!(r("/", "lang=fr&p=1"), "302 /?lang=fr&p=2", "the query keeps its order");
+        assert_eq!(r("/", "p=2&lang="), "302 /?p=1&lang=", "an empty lang is the default language and stays");
+        assert_eq!(r("/", "p=1&lang=fr&lang=FR"), "/company/history/?lang=FR");
+        assert_eq!(r("/", "p=2"), "302 /?p=2&lang=fr");
+        assert_eq!(r("/", "page_id=2"), "302 /?page_id=1", "a page goes to its English translation");
+        let drafted = Site::new(vec![page(5, 20, Lang::En, "/?page_id=5", Status::Draft), page(6, 20, Lang::Fr, "/industries/lourde/", Status::Publish)]);
+        let found = |q: &str| match route(&drafted, "/", &query(q), q) {
+            Answer::Found(to) => to,
+            other => format!("{other:?}"),
+        };
+        assert_eq!(found("page_id=6"), "/?page_id=5", "even to a draft");
+    }
+
+    #[test]
     fn a_path_without_its_slash_goes_straight_to_the_page_url() {
         let site = Site::new(vec![page(1, 10, Lang::En, "/product/alignment/", Status::Publish), page(2, 10, Lang::Fr, "/gamme-de-produits/centrage/", Status::Publish)]);
         let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
@@ -1013,6 +1120,13 @@ mod tests {
         assert_eq!(r("/product/alignment/", "lang=en&x=1"), "302 /product/alignment/?x=1");
         assert_eq!(r("/gamme-de-produits/centrage/", "lang=en"), "302 /gamme-de-produits/centrage/");
         assert_eq!(r("/gamme-de-produits/centrage", "lang=en"), "302 /gamme-de-produits/centrage/");
+        assert_eq!(r("/product/alignment//", "lang=en&x=1"), "302 /product/alignment/?x=1", "the path as WordPress parsed it");
+        let legal = Site::new(vec![page(3, 12, Lang::En, "/legal/", Status::Publish)]);
+        let mended = |path: &str, q: &str| match route(&legal, path, &query(q), q) {
+            Answer::Redirect(to) => to,
+            other => format!("{other:?}"),
+        };
+        assert_eq!(mended("/legal//", "a=1&a=2&b="), "/legal/?a=1&a=2&b=", "mending the slashes keeps the query as sent");
         assert_eq!(r("/product/alignment/", "lang=en&lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
         assert_eq!(r("/product/alignment/", "p=212"), "legacy");
         assert_eq!(r("/product/alignment", "s=x"), "legacy");

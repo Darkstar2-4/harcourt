@@ -10,6 +10,9 @@ pub enum Owner {
     File(PathBuf, &'static str),
     /// PHP, a file or directory Apache served, or a path main.rs gives another area: the legacy stack's.
     Legacy,
+    /// A static file asked for with a slash after it. nginx's static location matched the extension at the end of
+    /// the path, so the request reached Apache, which refused the PATH_INFO with its 404.
+    NotFound,
     WordPress,
 }
 
@@ -98,7 +101,7 @@ pub fn owner(path: &str, root: Option<&Path>) -> Owner {
     let ext = last.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase()).unwrap_or_default();
     if let Some((_, kind)) = STATIC.iter().find(|(e, _)| *e == ext) {
         if let Some(f) = file.as_ref().filter(|f| f.is_file()) {
-            return Owner::File(f.clone(), kind);
+            return if path.ends_with('/') { Owner::NotFound } else { Owner::File(f.clone(), kind) };
         }
         let lower = path.to_ascii_lowercase();
         let nginx_only = (lower.starts_with("/wp-content/uploads/") && matches!(ext.as_str(), "png" | "jpg" | "jpeg"))
@@ -124,6 +127,7 @@ mod tests {
         std::fs::write(root.join("notes.md"), "x").unwrap();
         let r = Some(root.as_path());
         assert_eq!(owner("/wp-content/themes/t/a.css", r), Owner::File(root.join("wp-content/themes/t/a.css"), "text/css"));
+        assert_eq!(owner("/wp-content/themes/t/a.css/", r), Owner::NotFound);
         assert_eq!(owner("/wp-content/themes/t/b.css", r), Owner::Legacy);
         assert_eq!(owner("/wp-content/zzz.css", r), Owner::WordPress);
         assert_eq!(owner("/wp-content/uploads/x.png", r), Owner::Legacy);

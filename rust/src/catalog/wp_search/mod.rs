@@ -730,14 +730,24 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
     h.insert("wpml_hidden_switcher", links(not_found("wpml_hidden_switcher")));
     h.insert("title", title);
     h.insert("sidebar", sidebar(site, lang, last));
+    // A menu that area printed first numbers the footer's copy, as it did on the page the area came from.
+    if let Some(suffix) = last.filter(|p| p.kind != PostType::Faq).and_then(|p| site.meta(p.id).get("footer_menu_id_suffix")) {
+        h.insert("footer_menu_id_suffix", suffix.clone());
+    }
     h
 }
 
 /// sidebar.php after the loop, where `$post` is the last result shown: a FAQ shows the FAQ widget area, the
 /// `[location]` widget (custom_html-3); any other post its own `sidebar_select` area, which the export recorded as
 /// the page's `sidebar`; no result shows none. custom_html-2 is the same widget, and the export holds its output.
+/// The export recorded a page's area on that page, where its own menu item was the current one; a search has no
+/// current item.
 fn sidebar(site: &Site, lang: Lang, last: Option<&Page>) -> String {
-    let own = |p: &Page| site.meta(p.id).get("sidebar").cloned();
+    let own = |p: &Page| {
+        site.meta(p.id).get("sidebar").map(|s| {
+            s.replace(&format!(" current-menu-item page_item page-item-{} current_page_item", p.id.0), "").replace(" aria-current=\"page\"", "")
+        })
+    };
     match last {
         Some(p) if p.kind == PostType::Faq => site
             .pages
@@ -935,6 +945,35 @@ mod tests {
         let t = parse_terms("\"Ball Lock\" -pin", Lang::En);
         assert_eq!((t.include.clone(), t.exclude.clone(), t.sentence.is_none()), (vec!["ball lock".to_string()], vec!["pin".to_string()], true));
         assert_eq!(parse_terms("Élément", Lang::Fr).include, vec!["element".to_string()]);
+    }
+
+    #[test]
+    fn the_last_results_area_has_no_current_item_and_numbers_the_footer_menu() {
+        let p = Page {
+            id: PageId(7),
+            kind: PostType::Page,
+            name: "automobile".into(),
+            group_id: 7,
+            lang: Lang::Fr,
+            path: "/industries/automobile/".into(),
+            template: crate::cms::Template::Page,
+            status: crate::cms::Status::Publish,
+            title: String::new(),
+            parent_id: None,
+            menu_order: 0,
+            published_at: String::new(),
+            modified_at: String::new(),
+            author_id: None,
+        };
+        let mut site = Site::new(vec![p]);
+        let area = "<li id=\"menu-item-3\" class=\"menu-item current-menu-item page_item page-item-7 current_page_item menu-item-3\"><a href=\"/x/\" aria-current=\"page\">X</a></li>";
+        let meta = site.meta.entry(PageId(7)).or_default();
+        meta.insert("sidebar".into(), area.into());
+        meta.insert("footer_menu_id_suffix".into(), "-1".into());
+        let last = site.page(PageId(7));
+        assert_eq!(sidebar(&site, Lang::Fr, last), "<li id=\"menu-item-3\" class=\"menu-item menu-item-3\"><a href=\"/x/\">X</a></li>");
+        let h = holes(&site, &Shown { s: "le", lang: Lang::Fr, paged: 1, pages: 1, page: 0, ajax: false }, &[site.page(PageId(7)).unwrap()]);
+        assert_eq!(h.get("footer_menu_id_suffix").map(String::as_str), Some("-1"));
     }
 
     #[test]
