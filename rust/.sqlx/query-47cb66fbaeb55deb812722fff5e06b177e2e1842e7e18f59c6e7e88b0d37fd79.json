@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE content SET record_id = ?2, name = ?3, description = ?4, revised = ?5 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "47cb66fbaeb55deb812722fff5e06b177e2e1842e7e18f59c6e7e88b0d37fd79"
+}

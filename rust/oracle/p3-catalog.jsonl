@@ -56,3 +56,5 @@
 {"name": "wp-search-shape-page", "path": "/search/products?page=2"}
 {"name": "wp-search-shape-q-empty", "path": "/search/products?q="}
 {"name": "wp-search-shape-accept-json", "path": "/search/products?q=pin", "headers": {"Accept": "application/json"}}
+{"name": "category", "path": "/category.php"}
+{"name": "category-wp", "path": "/category.php?scscpq_wp=1"}

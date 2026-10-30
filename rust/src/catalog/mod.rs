@@ -15,6 +15,7 @@ use crate::api::Auth;
 pub mod ajax;
 pub mod api;
 pub mod callbacks;
+pub mod category;
 pub mod configure;
 pub mod files;
 pub mod forms;
@@ -55,5 +56,6 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(configure::router())
         .merge(callbacks::router())
         .merge(metric_filter::router())
+        .merge(category::router())
         .layer(Extension(search::Cache::new()))
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO content (record_type, record_id, language_code, name, description, revised) VALUES ('category', ?1, ?2, ?3, ?4, ?5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "e64544204434862886938e816f16f8cdb4035849f4e3a78eed6017693f829b86"
+}
