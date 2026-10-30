@@ -50,8 +50,9 @@ impl Fields {
         Fields(query.map(|q| form_urlencoded::parse(q.as_bytes()).into_owned().collect()).unwrap_or_default())
     }
 
+    /// The last value sent under the name, as parse_str() kept it.
     pub fn get(&self, name: &str) -> &str {
-        self.0.iter().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str())
+        self.0.iter().rev().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str())
     }
 
     pub fn has(&self, name: &str) -> bool {
@@ -181,6 +182,14 @@ mod tests {
         let mut h = HeaderMap::new();
         h.insert(header::COOKIE, HeaderValue::from_str(cookie).unwrap());
         h
+    }
+
+    #[test]
+    fn a_repeated_field_reads_as_its_last_value() {
+        let f = Fields::from_query(Some("campaign=SLIDE&campaign=KIT&x=1"));
+        assert_eq!((f.get("campaign"), f.get("x"), f.get("y")), ("KIT", "1", ""));
+        let posted = Fields::of(&[("visible", "0"), ("visible", "1")]).with_query(&Fields::from_query(Some("visible=2&page=3")));
+        assert_eq!((posted.get("visible"), posted.get("page")), ("1", "3"));
     }
 
     #[test]
