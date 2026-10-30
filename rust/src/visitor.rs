@@ -37,7 +37,7 @@ use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
 use axum::{
     extract::{FromRequestParts, Request, State},
-    http::{header, request::Parts, HeaderMap, StatusCode},
+    http::{header, request::Parts, HeaderMap, HeaderName, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -52,6 +52,7 @@ use crate::{
         clock, cookies,
         locale::{Currencies, CurrencyCode, LanguageCode, Languages},
         log::{self, Kind, Subject},
+        profile::{self, Profile},
     },
     api::{self, Auth},
     db::unix_now,
@@ -315,6 +316,71 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
     Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session }, effects })
 }
 
+/// What PHP labelled every answer it gave, redirects included.
+pub const PHP_CONTENT_TYPE: &str = "text/html; charset=UTF-8";
+
+/// A request that arrives from outside the site begins a visit. The PHP started a session on it and sent the
+/// visitor to their home page unless they had asked for it (scs_header.php menu_class::page(TRUE)). A request
+/// from one of the site's own pages, a script on them, or a browser that still has a PHP session is mid-visit.
+fn begins_visit(headers: &HeaderMap, public_origin: &str) -> bool {
+    let from_page = header_str(headers, header::REFERER).strip_prefix(public_origin).is_some_and(|rest| rest.starts_with('/'));
+    let same_origin = header_str(headers, HeaderName::from_static("sec-fetch-site")) == "same-origin";
+    let script = headers.contains_key("x-requested-with");
+    let php_session = cookies::get(headers, "PHPSESSID").is_some();
+    !(from_page || same_origin || script || php_session)
+}
+
+/// Where scs_header.php sent a visit that began on an SCS page: the dashboard for Executives and above, the
+/// catalog for an Active account that can see a category, otherwise the home page. Inside the WordPress frame
+/// (`?scscpq_wp=1`) home is `/` and the catalog is the WordPress catalog page in the account's language.
+async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> sqlx::Result<&'static str> {
+    if visitor.user().is_some_and(|u| u.role >= Role::Executive) {
+        return Ok("/dashboard.php");
+    }
+    let home = if framed { "/" } else { "/scs_index.php" };
+    let Some(account) = visitor.account().filter(|a| a.user.is_active()) else { return Ok(home) };
+    let with_pending = account.role() >= Role::Administrator;
+    let industry = (account.industry_id != 0).then(|| format!("%^{}^%", account.industry_id));
+    let portal = (account.portal_id != 0).then(|| format!("%^{}^%", account.portal_id));
+    let filtered = industry.is_some() || portal.is_some();
+    let visible = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM subcategory
+               WHERE (status = 'Active' OR (?1 AND status = 'Pending'))
+                 AND (NOT ?2 OR industry LIKE ?3 OR portal LIKE ?4)) AS "visible!: bool""#,
+        with_pending,
+        filtered,
+        industry,
+        portal
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(match (visible, framed, account.language_code.eq_ignore_ascii_case("FR")) {
+        (false, _, _) => home,
+        (true, false, _) => "/catalog.php",
+        (true, true, true) => "/catalogue/",
+        (true, true, false) => "/catalog/",
+    })
+}
+
+/// scs_header.php's landing redirect for an SCS page at `path`, when this request begins a visit. Campaign
+/// visitors and bots were never redirected. The PHP wrote the browser's profile cookie on the way.
+pub async fn landing(core: &Auth, visitor: &Visitor, path: &str, query: Option<&str>, headers: &HeaderMap) -> sqlx::Result<Option<Response>> {
+    if !begins_visit(headers, &core.public_origin) || visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
+        return Ok(None);
+    }
+    let framed = query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"));
+    let target = landing_target(&core.pool, visitor, framed).await?;
+    if target.to_ascii_lowercase().starts_with(&path.to_ascii_lowercase()) {
+        return Ok(None);
+    }
+    let profile = Profile::load(headers, visitor.account(), visitor.account().map_or(visitor.language.as_str(), |a| a.language_code.as_str()));
+    let mut r = (StatusCode::FOUND, [(header::LOCATION, target), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response();
+    if let Some(c) = cookies::set(profile::COOKIE, &profile.to_cookie(), cookies::Life::Year) {
+        r.headers_mut().append(header::SET_COOKIE, c);
+    }
+    Ok(Some(r))
+}
+
 fn may_sign_in_by_address(ip: IpAddr, trusted_proxies: &[IpAddr]) -> bool {
     !ip.is_loopback() && !ip.is_unspecified() && !trusted_proxies.contains(&ip)
 }
@@ -431,7 +497,7 @@ pub async fn layer(State(core): State<Arc<Auth>>, req: Request, next: Next) -> R
     parts.extensions.insert(visitor);
     let req = Request::from_parts(parts, body);
     let mut response =
-        if denied_bot { (StatusCode::FOUND, [(header::LOCATION, "/index.php")]).into_response() } else { next.run(req).await };
+        if denied_bot { (StatusCode::FOUND, [(header::LOCATION, "/index.php"), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response() } else { next.run(req).await };
     for c in set_cookies {
         response.headers_mut().append(header::SET_COOKIE, c);
     }

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -21,6 +21,7 @@ use crate::{
         cookies,
         html::{self, escape, Opts},
         log::{self, Kind, Subject},
+        locale::Labels,
         oauth::{self, Outcome},
         profile::{self, Layout, Profile},
         recaptcha::{self, Recaptcha, Score},
@@ -29,7 +30,7 @@ use crate::{
     api::Auth,
     db::unix_now,
     identity::{Email, Status},
-    visitor::{Identity, Visitor},
+    visitor::{self, Identity, Visitor},
 };
 
 /// newuser.php allowed two wrong codes; the third try is refused until a new code is sent.
@@ -75,7 +76,12 @@ fn request(visitor: Visitor, headers: HeaderMap) -> Request {
     Request { visitor, headers, ip, now: unix_now() }
 }
 
-pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap) -> Response {
+pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Response {
+    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => return internal(e),
+    }
     let req = request(visitor, headers);
     match render_page(&core, &req).await {
         Ok((body, set)) => html_response(body, set),
@@ -83,9 +89,14 @@ pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: Head
     }
 }
 
-pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Form(posted): Form<Vec<(String, String)>>) -> Response {
+pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
     if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
         return StatusCode::FORBIDDEN.into_response();
+    }
+    match visitor::landing(&core, &visitor, "/newuser.php", uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => return internal(e),
     }
     let xhr = headers.contains_key("x-requested-with");
     let req = request(visitor, headers);
@@ -416,7 +427,7 @@ async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sq
         OAUTH_BUTTONS.into(),
         "<hr style='margin: 20px 0; border: 0; border-top: 1px solid #ccc;'>".into(),
         "<p style='font-weight:bold;'>Or complete the form below:</p>".into(),
-        profile::form(pool, &layout, &req.profile()).await?,
+        profile::form(pool, &layout, &req.profile(), &Labels::load(pool, &req.visitor.language).await?).await?,
         recaptcha::button(rc, "Submit", "red-button", None, None),
         "<div id=recaptcha_status></div>".into(),
         "</div>".into(),

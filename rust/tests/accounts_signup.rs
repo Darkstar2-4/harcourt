@@ -83,8 +83,9 @@ impl Answer {
     }
 }
 
+/// A request from the /request-access page, as the browser sends it.
 async fn send(app: &Router, method: Method, uri: &str, cookie: &str, form: Option<&str>, xhr: bool) -> Answer {
-    let mut req = Request::builder().method(method).uri(uri);
+    let mut req = Request::builder().method(method).uri(uri).header(header::REFERER, format!("{ORIGIN}/request-access"));
     if !cookie.is_empty() {
         req = req.header(header::COOKIE, cookie);
     }

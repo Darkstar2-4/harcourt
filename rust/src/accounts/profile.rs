@@ -9,6 +9,7 @@ use sqlx::SqlitePool;
 
 use crate::accounts::{
     html::{self, escape, Blank, Opts},
+    locale::Labels,
     registry,
 };
 
@@ -110,6 +111,29 @@ impl Profile {
 
     pub fn to_cookie(&self) -> String {
         serde_json::to_string(self).unwrap_or_default()
+    }
+
+    /// classes/profile.php load(): the remembered profile, with the address and company of a signed-in account
+    /// and the remembered address when the profile has none.
+    pub fn load(headers: &axum::http::HeaderMap, account: Option<&crate::accounts::account::Account>, language: &str) -> Profile {
+        let mut p = Profile::from_cookie(crate::accounts::cookies::get(headers, COOKIE).as_deref());
+        if p.email.is_empty() {
+            p.email = crate::accounts::cookies::get(headers, crate::accounts::cookies::EMAIL).unwrap_or_default();
+        }
+        p.name = format!("{} {}", p.name_first, p.name_last);
+        if p.language_code.is_empty() {
+            p.language_code = language.to_string();
+        }
+        if let Some(a) = account {
+            let text = |s: &Option<String>| s.clone().unwrap_or_default();
+            p.company_name = text(&a.user.company_name);
+            p.address = text(&a.address);
+            p.city = text(&a.city);
+            p.state = text(&a.state);
+            p.zip = text(&a.zip);
+            p.country_code = text(&a.country_code);
+        }
+        p
     }
 
     fn get(&self, key: &str) -> &str {
@@ -227,13 +251,15 @@ fn row(layout: &Layout, f: Field, title: &str, content: &str) -> String {
     format!("<tr ><td width='20%'>{star}{title}</td><td width='80%'>{content}</td></tr>")
 }
 
-/// classes/profile.php enter(array("register"=>TRUE)): the address block of the sign-up form.
-pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile) -> sqlx::Result<String> {
+/// classes/profile.php enter(array("register"=>TRUE)): the address block of the sign-up form, with prod's
+/// translated welcome and note.
+pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile, labels: &Labels) -> sqlx::Result<String> {
     let mut out = vec![ENTER_CSS.to_string(), ENTER_JS.to_string()];
     out.push(html::hidden("success_url", "", "scscpq_input"));
     out.push(html::hidden("profile_tab", "", "scscpq_input"));
     if !p.company_name.is_empty() {
-        out.push(format!("<p class=profile_welcome>Welcome {}!</p>", escape(&p.company_name)));
+        let welcome = labels.get("catalog_profile_welcome", "Welcome {company}!").replace("{company}", &escape(&p.company_name));
+        out.push(format!("<p class=profile_welcome>{welcome}</p>"));
     }
     out.push("<div id=profile_message></div>".into());
     out.push("<table class=noborder>".into());
@@ -272,7 +298,11 @@ pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile) -> sqlx::Resu
     out.push(format!("\n<script>\n\nfn_country_address('profile');\n{}\n\n</script>\n", country_js(layout.jquery)));
     out.push(format!("<tr >{}</tr>", format_args!("<td colspan=2>{}</td>", html::font("red", "<b>*</b>", "Indicates mandatory fields"))));
     out.push("</table>".into());
-    out.push("<p>Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b></p>".into());
+    let note = labels.get(
+        "catalog_profile_note",
+        "Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b>",
+    );
+    out.push(format!("<p>{note}</p>"));
     Ok(out.concat())
 }
 
@@ -588,7 +618,16 @@ mod tests {
         let pool = crate::db::open_memory().await.unwrap();
         let l = layout(&[("company_name", Need::Required), ("name", Need::Allowed)]);
         let p = Profile { email: "x'@example.com".into(), ..Default::default() };
-        let out = form(&pool, &l, &p).await.unwrap();
+        sqlx::query(r#"INSERT INTO language (code, country_code, name, active, menu) VALUES ('FR', 'CA', 'Français', 1, '{"catalog_profile_welcome":"Bienvenue {company} !"}')"#)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let fr = crate::accounts::locale::Languages::load(&pool).await.unwrap().get("fr").unwrap();
+        let labels = Labels::load(&pool, &fr).await.unwrap();
+        let named = Profile { company_name: "A&B".into(), ..p.clone() };
+        let out = form(&pool, &l, &named, &labels).await.unwrap();
+        assert!(out.contains("<p class=profile_welcome>Bienvenue A&amp;B !</p>"), "a translated label, with the value escaped");
+        assert!(out.contains("<p>Note: This should be a one-time verification only."), "no translation: the English default");
         assert!(out.contains("<tr ><td width='20%'><font color=red><b>*</b></font>Email</td><td width='80%'><input type=email class='scscpq_input' name='profile_email' id='profile_email' size='40' maxlength='60' value='x&#039;@example.com' placeholder='Email'>\n</td></tr>"), "{out}");
         assert!(out.contains("<td width='20%'>&nbsp;First Name</td>"));
         assert!(!out.contains("profile_city"));

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
 };
 use serde::Deserialize;
@@ -15,7 +15,7 @@ use crate::{
     accounts::{account, cookies, locale::LanguageCode, locale::Languages},
     api::{self, Auth},
     session,
-    visitor::Visitor,
+    visitor::{self, Visitor},
 };
 
 /// Make `code` this browser's language. `save` (a flag click, or language_change.php) also stores it on the
@@ -50,14 +50,22 @@ fn back(origin: &str, headers: &HeaderMap) -> String {
 }
 
 fn found(to: &str, set: Vec<HeaderValue>) -> Response {
-    let mut r = (StatusCode::FOUND, [(header::LOCATION, to.to_string())]).into_response();
+    let mut r = (StatusCode::FOUND, [(header::LOCATION, to), (header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE)]).into_response();
     for c in set {
         r.headers_mut().append(header::SET_COOKIE, c);
     }
     r
 }
 
-pub async fn language_change(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<LanguageChange>) -> Response {
+pub async fn language_change(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Query(q): Query<LanguageChange>) -> Response {
+    match visitor::landing(&core, &visitor, "/language_change.php", uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => {
+            tracing::error!("language_change: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
+        }
+    }
     let to = back(&core.public_origin, &headers);
     let has_referer = headers.contains_key(header::REFERER);
     let languages = match Languages::load(&core.pool).await {
@@ -107,16 +115,23 @@ if (!sessionStorage['scscpq_cookie']) {
 </html>
 "#;
 
-/// cookie_reset.php: end this browser's sign-in and forget what it chose, then say so.
+/// cookie_reset.php: end this browser's sign-in and forget what it chose, then say so. The PHP always cleared
+/// `harcourt` and destroyed the session; what the session held lives in cookies here, cleared when the browser has them.
 pub async fn cookie_reset(State(core): State<Arc<Auth>>, headers: HeaderMap) -> Response {
+    let mut gone = vec![cookies::set(cookies::EMAIL, "", cookies::Life::Gone)];
     if let Some(token) = api::session_cookie(&headers) {
         if let Err(e) = session::destroy(&core.pool, &token).await {
             tracing::error!("cookie_reset: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
         }
+        gone.push(cookies::session_gone());
+    }
+    for name in [cookies::LANGUAGE, cookies::CAMPAIGN] {
+        if cookies::get(&headers, name).is_some() {
+            gone.push(cookies::set(name, "", cookies::Life::Gone));
+        }
     }
     let mut r = ([(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], RESET_PAGE).into_response();
-    let gone = [cookies::session_gone(), cookies::set(cookies::EMAIL, "", cookies::Life::Gone), cookies::set(cookies::LANGUAGE, "", cookies::Life::Gone), cookies::set(cookies::CAMPAIGN, "", cookies::Life::Gone)];
     for c in gone.into_iter().flatten() {
         r.headers_mut().append(header::SET_COOKIE, c);
     }
