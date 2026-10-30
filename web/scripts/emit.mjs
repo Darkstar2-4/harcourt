@@ -3,8 +3,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const targets = [
-  { built: 'build/hx-nav.js', committed: '../hx/hx-nav.js', source: 'src/hx-nav.ts' },
-  { built: 'build/scscpq_wp.js', committed: '../scs_scripts/scscpq_wp.js', source: 'src/scscpq_wp.ts' },
+  { built: 'build/hx-nav.js', committed: '../public/hx/hx-nav.js', source: 'src/hx-nav.ts' },
+  { built: 'build/scscpq_wp.js', committed: '../public/scs_scripts/scscpq_wp.js', source: 'src/scscpq_wp.ts' },
 ];
 const check = process.argv.includes('--check');
 let drift = false;

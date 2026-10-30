@@ -1,7 +1,7 @@
 {
   "name": "harcourt-web",
   "private": true,
-  "description": "Strict TypeScript sources for the browser scripts of www.harcourt.co. Output is committed at hx/hx-nav.js and scs_scripts/scscpq_wp.js.",
+  "description": "Strict TypeScript sources for the browser scripts of www.harcourt.co. Output is committed at public/hx/hx-nav.js and public/scs_scripts/scscpq_wp.js.",
   "type": "module",
   "scripts": {
     "build": "tsc -p . && node scripts/emit.mjs",

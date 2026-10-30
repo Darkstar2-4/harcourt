@@ -4,7 +4,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 
 const require = createRequire(import.meta.url);
 
-export const committed = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+export const committed = (path) => readFileSync(new URL(`../../public/${path}`, import.meta.url), 'utf8');
 export const jquerySource = () => readFileSync(require.resolve('jquery/dist/jquery.js'), 'utf8');
 
 /** A page at the production origin. `errors` collects what jsdom reports, e.g. a navigation it cannot perform. */
