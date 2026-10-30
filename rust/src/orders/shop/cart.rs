@@ -13,7 +13,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 use sqlx::SqlitePool;
 
-use super::{fn_base64, number_format, quoted, shopper, Labels, MoneyFormat, Shopper};
+use super::{fn_base64, number_format, quoted, shopper, CartKey, Labels, MoneyFormat, Shopper};
 use crate::{
     api::ApiError,
     db::unix_now,
@@ -23,7 +23,6 @@ use crate::{
         pricing::Price,
         Orders,
     },
-    token::TokenHash,
     visitor::Visitor,
 };
 
@@ -44,8 +43,8 @@ pub struct Line {
     pub thumbnail: Option<String>,
 }
 
-pub async fn items(pool: &SqlitePool, session: &TokenHash) -> sqlx::Result<Vec<Item>> {
-    let hash = session.as_slice();
+pub async fn items(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<Vec<Item>> {
+    let hash = key.as_slice();
     let rows = sqlx::query!(
         r#"SELECT sku, quantity AS "quantity!: i64", comment FROM cart_item WHERE session_hash = ?1 ORDER BY added_at, rowid"#,
         hash
@@ -55,9 +54,14 @@ pub async fn items(pool: &SqlitePool, session: &TokenHash) -> sqlx::Result<Vec<I
     Ok(rows.into_iter().map(|r| Item { sku: r.sku, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment }).collect())
 }
 
+/// How long a cart kept in a PHP session lasts; a session's cart goes with the session.
+const PHP_CART_SECS: i64 = 86400;
+
 /// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
-async fn put(pool: &SqlitePool, session: &TokenHash, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
-    let hash = session.as_slice();
+async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
+    let stale = now - PHP_CART_SECS;
+    sqlx::query!("DELETE FROM cart_item WHERE added_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
+    let hash = key.as_slice();
     let quantity = i64::from(quantity);
     let initial = comment.unwrap_or("");
     let replace_comment = comment.is_some();
@@ -77,14 +81,14 @@ async fn put(pool: &SqlitePool, session: &TokenHash, sku: &str, quantity: u32, c
     Ok(())
 }
 
-async fn remove(pool: &SqlitePool, session: &TokenHash, sku: &str) -> sqlx::Result<()> {
-    let hash = session.as_slice();
+async fn remove(pool: &SqlitePool, key: &CartKey, sku: &str) -> sqlx::Result<()> {
+    let hash = key.as_slice();
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1 AND sku = ?2", hash, sku).execute(pool).await?;
     Ok(())
 }
 
-pub async fn clear(pool: &SqlitePool, session: &TokenHash) -> sqlx::Result<()> {
-    let hash = session.as_slice();
+pub async fn clear(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<()> {
+    let hash = key.as_slice();
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(pool).await?;
     Ok(())
 }
@@ -93,13 +97,14 @@ pub async fn clear(pool: &SqlitePool, session: &TokenHash) -> sqlx::Result<()> {
 pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>> {
     let pool = &state.core.pool;
     let mut out = Vec::new();
-    for item in items(pool, &shopper.session).await? {
+    let Some(key) = &shopper.cart else { return Ok(out) };
+    for item in items(pool, key).await? {
         match state.pricing.price(pool, shopper.user.id, &item.sku, item.quantity).await? {
             Some(priced) => {
                 let thumbnail = thumbnail(state, &item.sku).await?;
                 out.push(Line { sku: item.sku, description: priced.description, quantity: item.quantity, comment: item.comment, price: priced.price, thumbnail });
             }
-            None => remove(pool, &shopper.session, &item.sku).await?,
+            None => remove(pool, key, &item.sku).await?,
         }
     }
     Ok(out)
@@ -242,10 +247,13 @@ struct AjaxAnswer {
     cart_extended: String,
 }
 
-/// PHP answers the quantity as a float (`5.0`); it is a count, never money.
+/// PHP's quantity is a float, which json_encode writes without a fraction when it has none (`5`, `0.5`).
 fn php_float<S: serde::Serializer>(d: &Decimal, s: S) -> Result<S::Ok, S::Error> {
     use rust_decimal::prelude::ToPrimitive;
-    s.serialize_f64(d.to_f64().unwrap_or(0.0))
+    match d.fract().is_zero().then(|| d.to_i64()).flatten() {
+        Some(whole) => s.serialize_i64(whole),
+        None => s.serialize_f64(d.to_f64().unwrap_or(0.0)),
+    }
 }
 
 async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::HashMap<String, String>) -> Result<Response, ApiError> {
@@ -259,13 +267,15 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
     let sku = parts.next();
     let requested = fn_number(params.get("json_quantity").map_or("", String::as_str)).abs();
     let sku_text = sku.clone().unwrap_or_default();
-    let status = match quantity(requested) {
-        None if requested.is_zero() => {
-            remove(pool, &shopper.session, &sku_text).await?;
+    let status = match (quantity(requested), &shopper.cart) {
+        (None, key) if requested.is_zero() => {
+            if let Some(key) = key {
+                remove(pool, key, &sku_text).await?;
+            }
             format!("{sku_text} removed from cart")
         }
-        Some(q) if !sku_text.is_empty() && state.pricing.price(pool, shopper.user.id, &sku_text, q).await?.is_some() => {
-            put(pool, &shopper.session, &sku_text, q, None, unix_now()).await?;
+        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, shopper.user.id, &sku_text, q).await?.is_some() => {
+            put(pool, key, &sku_text, q, None, unix_now()).await?;
             format!("{sku_text} cart updated")
         }
         _ => format!("{sku_text} invalid"),
@@ -312,7 +322,7 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: H
     let pool = &state.core.pool;
     let framed = html::framed(uri.query(), &headers);
     let params = form_params(uri.query(), &body);
-    let shopper = shopper(pool, visitor).await?;
+    let shopper = shopper(pool, &visitor, &headers).await?;
     if headers.contains_key("x-requested-with") {
         return match shopper {
             Some(s) => ajax(&state, &s, &params).await,
@@ -321,19 +331,23 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: H
     }
     let Some(shopper) = shopper else { return Ok(html::redirect(if framed { "/" } else { "/scs_index.php" })) };
     let mut messages = vec!["Shopping Cart".to_string()];
-    match params.get("action").map(String::as_str) {
-        Some("checkout") => return Ok(html::redirect("/checkout.php")),
-        Some("clear") => {
-            clear(pool, &shopper.session).await?;
+    match (params.get("action").map(String::as_str), &shopper.cart) {
+        (Some("checkout"), _) => return Ok(html::redirect("/checkout.php")),
+        (Some("clear"), key) => {
+            if let Some(key) = key {
+                clear(pool, key).await?;
+            }
             messages.push("Shopping Cart Cleared".into());
         }
-        Some("update") => {
-            for item in items(pool, &shopper.session).await? {
-                let typed = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
-                let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
-                match typed.trim().parse::<u32>().ok().filter(|q| *q > 0) {
-                    Some(q) => put(pool, &shopper.session, &item.sku, q, comment.as_deref(), unix_now()).await?,
-                    None => remove(pool, &shopper.session, &item.sku).await?,
+        (Some("update"), key) => {
+            if let Some(key) = key {
+                for item in items(pool, key).await? {
+                    let typed = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
+                    let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
+                    match typed.trim().parse::<u32>().ok().filter(|q| *q > 0) {
+                        Some(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
+                        None => remove(pool, key, &item.sku).await?,
+                    }
                 }
             }
             messages.push("Shopping Cart Updated".into());
@@ -382,6 +396,15 @@ mod tests {
         assert_eq!(quantity(Decimal::from(5)), Some(5));
         assert_eq!(quantity(Decimal::ZERO), None);
         assert_eq!(quantity(Decimal::from(5_000_000_000_i64)), None);
+    }
+
+    #[test]
+    fn quantities_print_as_php_json_does() {
+        #[derive(Serialize)]
+        struct Q(#[serde(serialize_with = "php_float")] Decimal);
+        assert_eq!(serde_json::to_string(&Q(Decimal::from(2))).unwrap(), "2");
+        assert_eq!(serde_json::to_string(&Q(Decimal::ZERO)).unwrap(), "0");
+        assert_eq!(serde_json::to_string(&Q(Decimal::new(5, 1))).unwrap(), "0.5");
     }
 
     #[test]

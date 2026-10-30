@@ -33,7 +33,11 @@ async fn cookie(pool: &SqlitePool, id: i64, role: &str) -> String {
 }
 
 async fn send(app: &Router, method: Method, uri: &str, cookie: Option<&str>, form: &str, lang: Option<&str>) -> (StatusCode, HeaderMap, String) {
-    let mut r = Request::builder().method(method).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    let mut r = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::REFERER, "https://www.harcourt.co/contact-us/")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if let Some(c) = cookie {
         r = r.header(header::COOKIE, c);
     }
@@ -43,6 +47,18 @@ async fn send(app: &Router, method: Method, uri: &str, cookie: Option<&str>, for
     let res = app.clone().oneshot(r.body(Body::from(form.to_string())).unwrap()).await.unwrap();
     let (parts, body) = res.into_parts();
     (parts.status, parts.headers, String::from_utf8_lossy(&body.collect().await.unwrap().to_bytes()).into_owned())
+}
+
+#[tokio::test]
+async fn staff_pages_admit_an_active_account_signed_in_by_company_address() {
+    let (app, pool) = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", ip) VALUES (7, 'Active', 'Administrator', '192.0.2.30')"#).execute(&pool).await.unwrap();
+    let (status, _, page) = send(&app, Method::GET, "/carrier.php", None, "", None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("Carrier Codes"));
+    sqlx::query(r#"UPDATE "user" SET status = 'Pending' WHERE id = 7"#).execute(&pool).await.unwrap();
+    let (status, _, _) = send(&app, Method::GET, "/carrier.php", None, "", None).await;
+    assert_eq!(status, StatusCode::FOUND, "a Pending staff account waits for approval");
 }
 
 #[tokio::test]
@@ -121,4 +137,19 @@ async fn design_partner_blocks_are_saved_per_company() {
     assert_eq!(blocked, [2], "inactive categories are never blocked");
     let a = ajax(&app, &admin, "action=save&company_name=").await;
     assert_eq!(a["status"].as_str(), Some("error"));
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
+    let (app, pool) = harness().await;
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let first = |path: &str, cookie: &str| Request::builder().uri(path).header(header::COOKIE, cookie).body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(first("/carrier.php", &admin)).await.unwrap();
+    assert_eq!(res.status(), StatusCode::FOUND);
+    assert_eq!(res.headers()[header::LOCATION], "/dashboard.php");
+    assert_eq!(res.headers()[header::CONTENT_TYPE], "text/html; charset=UTF-8");
+    let res = app.clone().oneshot(first("/carrier.php", &format!("{admin}; PHPSESSID=mid-visit"))).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let res = app.clone().oneshot(first("/contact.php", "")).await.unwrap();
+    assert_eq!(res.headers()[header::LOCATION], "/scs_index.php");
 }

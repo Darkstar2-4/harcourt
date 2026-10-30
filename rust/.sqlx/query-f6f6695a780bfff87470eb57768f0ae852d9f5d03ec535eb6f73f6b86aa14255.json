@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT item AS \"item!: String\", coalesce(data, '') AS \"data!: String\" FROM registry\n           WHERE module = 'address' AND field = ?1 AND item <> '' AND domain IN ('', 'global') ORDER BY rowid",
+  "describe": {
+    "columns": [
+      {
+        "name": "item!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "data!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "f6f6695a780bfff87470eb57768f0ae852d9f5d03ec535eb6f73f6b86aa14255"
+}

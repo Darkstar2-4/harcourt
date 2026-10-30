@@ -1,19 +1,22 @@
 //! The cart (cart.php), checkout (checkout.php) and the order viewer (orderhd.php).
 //!
 //! PHP kept the cart in `$_SESSION['cart']` with the price worked out when an item was added. Here the cart is a
-//! table keyed by the browser session, and every price comes from `Pricing` when the cart is shown or ordered.
+//! table keyed by the browser's visit (`CartKey`), and every price comes from `Pricing` when the cart is shown or
+//! ordered.
 
 use std::{collections::HashMap, sync::Arc};
 
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{http::HeaderMap, routing::get, Router};
 use rust_decimal::{Decimal, RoundingStrategy};
+use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
 use super::{pricing::Price, Orders};
-use crate::{identity::User, token::TokenHash, visitor::Visitor};
+use crate::{
+    accounts::cookies,
+    identity::{User, UserId},
+    visitor::Visitor,
+};
 
 pub mod cart;
 mod checkout;
@@ -30,9 +33,29 @@ pub fn routes() -> Router<Arc<Orders>> {
 pub struct Shopper {
     pub user: User,
     pub email: Option<String>,
-    pub session: TokenHash,
+    pub cart: Option<CartKey>,
     pub currency: Currency,
     pub language: String,
+}
+
+/// Which cart is the shopper's. With a session it is the session's, and goes with it. An account signed in by
+/// company address has no session; PHP kept its cart in the PHP session, so the PHP session id the browser carries
+/// names it, together with the account. A browser with neither has no cart to keep.
+pub struct CartKey([u8; 32]);
+
+impl CartKey {
+    fn of(visitor: &Visitor, user: UserId, headers: &HeaderMap) -> Option<Self> {
+        if let Some(session) = &visitor.session {
+            return session.as_slice().try_into().ok().map(CartKey);
+        }
+        let php = cookies::get(headers, "PHPSESSID").filter(|id| !id.is_empty())?;
+        let digest = Sha256::new().chain_update(b"hx cart\0").chain_update(user.0.to_be_bytes()).chain_update(php.as_bytes()).finalize();
+        Some(CartKey(digest.into()))
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,16 +81,15 @@ impl Currency {
     }
 }
 
-/// The visitor, when signed in with a session to an Active account that may shop.
-pub async fn shopper(pool: &SqlitePool, visitor: Visitor) -> sqlx::Result<Option<Shopper>> {
-    let (Some(session), true) = (visitor.session.clone(), visitor.ecommerce()) else { return Ok(None) };
-    let Some(signed_in) = visitor.signed_in() else { return Ok(None) };
+/// The visitor, when signed in to an Active account that may shop.
+pub async fn shopper(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap) -> sqlx::Result<Option<Shopper>> {
+    let Some(signed_in) = visitor.signed_in().filter(|_| visitor.ecommerce()) else { return Ok(None) };
     let account = &signed_in.account;
     let currency = Currency::load(pool, &account.currency_code).await?;
     Ok(Some(Shopper {
         user: account.user.clone(),
         email: signed_in.email.as_ref().map(|e| e.as_str().to_string()),
-        session,
+        cart: CartKey::of(visitor, account.user.id, headers),
         currency,
         language: account.language_code.clone(),
     }))

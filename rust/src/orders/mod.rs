@@ -2,7 +2,7 @@
 //! (`pages`), and outgoing mail (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the session
 //! extractors reach the shared `Auth` through it.
 
-use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, marker::PhantomData, path::PathBuf, sync::Arc};
 
 use percent_encoding::percent_decode_str;
 
@@ -15,8 +15,8 @@ use axum::{
 };
 
 use crate::{
-    api::{ApiError, Auth, Authed, ClientIp, MinRole},
-    identity::Role,
+    api::{ApiError, Auth, ClientIp, MinRole},
+    identity::{Role, User},
     visitor::Visitor,
 };
 
@@ -51,10 +51,22 @@ impl Orders {
 pub fn router(state: Arc<Orders>) -> Router {
     Router::new()
         .merge(shop::routes())
-        .merge(forms::routes())
         .merge(pages::routes())
+        .route_layer(middleware::from_fn_with_state(state.clone(), first_visit))
+        .merge(forms::routes())
         .layer(middleware::from_fn_with_state(state.clone(), same_origin))
         .with_state(state)
+}
+
+/// Every SCS page loaded scs_header.php, which sends a visit that begins on it to the visitor's home page first.
+async fn first_visit(State(state): State<Arc<Orders>>, req: Request, next: Next) -> Response {
+    let (mut parts, body) = req.into_parts();
+    let visitor = Visitor::from_request_parts(&mut parts, &state).await.unwrap_or_else(|e| match e {});
+    match crate::visitor::landing(&state.core, &visitor, parts.uri.path(), parts.uri.query(), &parts.headers).await {
+        Ok(Some(home)) => home,
+        Ok(None) => next.run(Request::from_parts(parts, body)).await,
+        Err(e) => ApiError::from(e).into_response(),
+    }
 }
 
 /// A form posted from another site carries that site's Origin. Refuse it; the SameSite session cookie is the second
@@ -73,14 +85,6 @@ impl FromRequestParts<Arc<Orders>> for Visitor {
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Infallible> {
         Visitor::from_request_parts(parts, &state.core).await
-    }
-}
-
-impl<R: MinRole> FromRequestParts<Arc<Orders>> for Authed<R> {
-    type Rejection = ApiError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, ApiError> {
-        Authed::<R>::from_request_parts(parts, &state.core).await
     }
 }
 
@@ -105,20 +109,22 @@ impl MinRole for SuperUser {
     const ROLE: Role = Role::SuperUser;
 }
 
-/// The gate of a staff page: `Authed<R>`, answered on refusal the way PHP's `$database->user->access()` does, with
-/// a redirect to the home page (`/` inside the WordPress frame, `/scs_index.php` outside it).
-pub struct Staff<R: MinRole>(pub Authed<R>);
+/// The gate of a staff page, PHP's `$database->user->access()`: the visitor's account, signed in by session or by
+/// company address, at role R or above. Refused, it redirects home (`/` inside the WordPress frame, `/scs_index.php`
+/// outside it). Unlike the PHP, which read the role alone, the account must also be Active.
+pub struct Staff<R: MinRole> {
+    pub user: User,
+    role: PhantomData<R>,
+}
 
 impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
-        match Authed::<R>::from_request_parts(parts, &state.core).await {
-            Ok(a) => Ok(Staff(a)),
-            Err(ApiError::Unauthenticated | ApiError::Forbidden) => {
-                Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" }))
-            }
-            Err(e) => Err(e.into_response()),
+        let visitor = Visitor::from_request_parts(parts, state).await.unwrap_or_else(|e| match e {});
+        match visitor.user().filter(|u| u.is_active() && u.role >= R::ROLE) {
+            Some(user) => Ok(Staff { user: user.clone(), role: PhantomData }),
+            None => Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" })),
         }
     }
 }

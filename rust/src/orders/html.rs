@@ -224,7 +224,7 @@ pub fn select(field: &str, choices: &[(String, String)], selected: &str, blank: 
     }
     for (value, label) in choices {
         let sel = if value == selected { " selected" } else { "" };
-        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc(label)));
+        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc_text(label)));
     }
     out.push_str("</select>\n");
     out
@@ -240,9 +240,10 @@ pub fn page_response(html: String) -> Response {
     r
 }
 
-/// `fn_url_redirect()`: a 302 with no body.
+/// `fn_url_redirect()`: a 302 with no body, labelled as PHP labels every answer.
 pub fn redirect(location: &str) -> Response {
     let mut r = StatusCode::FOUND.into_response();
+    r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(crate::visitor::PHP_CONTENT_TYPE));
     if let Ok(v) = HeaderValue::from_str(location) {
         r.headers_mut().insert(header::LOCATION, v);
     }
