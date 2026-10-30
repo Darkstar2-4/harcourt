@@ -21,3 +21,7 @@
 {"name": "first-visit-with-referer-cart", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "session": "cold", "headers": {"Referer": "https://www.harcourt.co/cart/"}}
 {"name": "first-visit-cart-ajax", "method": "POST", "path": "/cart.php", "persona": "customer-active", "session": "cold", "body": "json_code=eA&json_quantity=1", "headers": {"X-Requested-With": "XMLHttpRequest"}}
 {"name": "first-visit-carrier-post", "method": "POST", "path": "/carrier.php", "persona": "administrator-active", "session": "cold", "body": "action=cancel", "headers": {"Origin": "https://www.harcourt.co"}}
+# A visit that arrives from a campaign link is never sent to the landing page.
+{"name": "campaign-visit-cart", "path": "/cart.php?campaign=KIT", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-visit-orderhd", "path": "/orderhd.php?campaign=KIT", "persona": "executive-active", "session": "cold"}
+{"name": "campaign-visit-contact", "path": "/contact.php?campaign=KIT", "persona": "anonymous", "session": "cold"}
