@@ -12,7 +12,7 @@ use axum::{
 use percent_encoding::percent_decode_str;
 
 /// scs_remote.php: `action=access` set the session user from an unsigned code with no sign-in. Replaced by
-/// remote_grant.rs (POST /api/remote/grants, POST /api/remote/redeem).
+/// remote_grant.rs (minted by staff, redeemed at POST /api/remote/redeem).
 /// beta_authorize.php: a diagnostic script with no traffic and no replacement. image_viewer.php: served a file named
 /// in the PHP session, which no longer exists.
 ///
@@ -22,6 +22,10 @@ use percent_encoding::percent_decode_str;
 /// showed the unlock code of an address; sign-in no longer uses those codes (accounts::admission, the emailed
 /// code), and staff give access from /staff/remote-grants. punchout.php needs a class file prod no longer has, so
 /// every request to it ended in a PHP fatal error; its table is empty and nothing links to it.
+///
+/// Sign-in and order pages with no traffic or replaced: login.php (sign-in is the emailed code, OAuth and company
+/// address), the impersonation pages (remote grants), language_change.php, the staff code tables and lists (the
+/// database itself), the order viewer, carrier codes, the Design Partner Agreement and the mail testers.
 const RETIRED: &[&str] = &[
     "scs_filemanager.php",
     "filemanager_rev0.php",
@@ -47,6 +51,23 @@ const RETIRED: &[&str] = &[
     "bot_apache.php",
     "remote_code.php",
     "punchout.php",
+    "login.php",
+    "user_impersonate.php",
+    "bot_impersonate.php",
+    "language_change.php",
+    "currency.php",
+    "language.php",
+    "bot.php",
+    "blacklist.php",
+    "captcha_bypass.php",
+    "remote_access.php",
+    "remote_token.php",
+    "orderhd.php",
+    "carrier.php",
+    "design_partner_agreement.php",
+    "mailer_output.php",
+    "scs_mail.php",
+    "scs_mailform.php",
 ];
 
 pub fn is_retired(raw_path: &str) -> bool {

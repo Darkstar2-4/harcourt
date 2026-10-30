@@ -88,7 +88,6 @@ async fn probe(v: Visitor) -> Json<serde_json::Value> {
         "email": v.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string()),
         "language": v.language.as_str(), "currency": v.currency.as_str(),
         "campaign": v.campaign.as_ref().map(|c| c.code.clone()),
-        "impersonator": v.impersonator.as_ref().map(|i| i.id.0),
     }))
 }
 
@@ -291,46 +290,6 @@ async fn an_external_referer_is_logged() {
     let host: String = sqlx::query_scalar("SELECT comment FROM log WHERE type = 'Initial' AND subtype = 'Referer'").fetch_one(&pool).await.unwrap();
     assert_eq!(host, "search.example");
     assert_eq!(log_count(&pool, "Initial", "Referer").await, 1);
-}
-
-async fn impersonate(pool: &SqlitePool, cookie: &str, user_id: Option<i64>, role: &str, status: &str) {
-    let token = cookie.split_once('=').unwrap().1;
-    let hash = hxweb::token::Token::parse(token).unwrap().hash();
-    sqlx::query(r#"INSERT INTO impersonation (session_hash, user_id, "type", status, catalog, language_code, currency_code, created_at) VALUES (?1, ?2, ?3, ?4, 1, 'FR', 'USD', 0)"#)
-        .bind(hash.as_slice())
-        .bind(user_id)
-        .bind(role)
-        .bind(status)
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
-#[tokio::test]
-async fn an_impersonation_shows_the_chosen_view_but_never_above_the_administrator() {
-    let pool = pool().await;
-    seed(&pool, 1, "Active", "Administrator", None).await;
-    seed(&pool, 2, "Pending", "Customer", None).await;
-    let admin = cookie_for(&pool, 1, Some("admin@example.com")).await;
-    impersonate(&pool, &admin, Some(2), "Super User", "Active").await;
-    let (_, _, v) = ask(&app(&pool, "198.51.100.1"), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["id"].as_i64(), v["status"].as_str(), v["catalog"].as_bool()), (Some(2), Some("Active"), Some(true)));
-    assert_eq!(v["role"], "Administrator", "capped at the impersonator's role");
-    assert_eq!((v["impersonator"].as_i64(), v["language"].as_str()), (Some(1), Some("FR")));
-
-    sqlx::query(r#"UPDATE "user" SET "type" = 'Executive' WHERE id = 1"#).execute(&pool).await.unwrap();
-    let (_, _, v) = ask(&app(&pool, "198.51.100.1"), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["id"].as_i64(), v["impersonator"].is_null()), (Some(1), true), "a demoted Administrator impersonates no one");
-}
-
-#[tokio::test]
-async fn an_impersonated_visitor_is_anonymous() {
-    let pool = pool().await;
-    seed(&pool, 1, "Active", "Administrator", Some(COMPANY_IP)).await;
-    let admin = cookie_for(&pool, 1, None).await;
-    impersonate(&pool, &admin, None, "Customer", "Pending").await;
-    let (_, _, v) = ask(&app(&pool, COMPANY_IP), &[("cookie", admin.as_str())]).await;
-    assert_eq!((v["kind"].as_str(), v["impersonator"].as_i64()), (Some("anonymous"), Some(1)));
 }
 
 #[tokio::test]

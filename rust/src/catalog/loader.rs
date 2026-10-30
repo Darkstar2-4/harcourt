@@ -463,7 +463,7 @@ async fn scscpq_wp(
             origin: &core.public_origin,
             referrer,
             ecommerce,
-            impersonating: visitor.impersonator.is_some(),
+            impersonating: false,
             email_cookie,
         };
         let (Some(action), None) = (action, refused) else {

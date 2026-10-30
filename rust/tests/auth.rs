@@ -7,11 +7,12 @@ use axum::{
     body::Body,
     extract::connect_info::MockConnectInfo,
     http::{header, HeaderMap, Method, Request, StatusCode},
+    routing::get as get_route,
     Router,
 };
 use http_body_util::BodyExt;
 use hxweb::{
-    api::{self, Auth},
+    api::{self, Administrator, Auth, Authed},
     config::Secret,
     db,
     identity::UserId,
@@ -27,6 +28,7 @@ struct Harness {
     pool: SqlitePool,
 }
 
+/// The /api routes, and `/admin`: a page that takes `Authed<Administrator>`, as the staff pages do.
 async fn harness() -> Harness {
     let pool = db::open_memory().await.unwrap();
     let auth = Arc::new(Auth {
@@ -36,7 +38,8 @@ async fn harness() -> Harness {
         trusted_proxies: vec!["127.0.0.1".parse().unwrap()],
         accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
     });
-    let app = Router::new().nest_service("/api", api::router(auth)).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
+    let admin = Router::new().route("/admin", get_route(|who: Authed<Administrator>| async move { who.user.id.0.to_string() })).with_state(auth.clone());
+    let app = Router::new().nest_service("/api", api::router(auth)).merge(admin).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
     Harness { app, pool }
 }
 
@@ -90,27 +93,45 @@ fn json_field(body: &str, key: &str) -> String {
 }
 
 #[tokio::test]
-async fn grant_without_a_session_is_rejected_and_mints_nothing() {
+async fn a_request_without_a_live_session_is_refused() {
     let h = harness().await;
     seed(&h.pool, 2, "Active", "Customer", None).await;
     let unknown_but_well_formed = format!("{}={}", session::COOKIE, "A".repeat(43));
     for cookie in [None, Some("garbage"), Some("__Host-hx_session=not-a-token"), Some(unknown_but_well_formed.as_str())] {
-        let (status, headers, _) = send(&h.app, post("/api/remote/grants", cookie, r#"{"user_id":2}"#)).await;
-        assert_eq!(status, StatusCode::UNAUTHORIZED, "cookie {cookie:?}");
-        assert!(headers.get(header::SET_COOKIE).is_none());
+        for path in ["/api/me", "/admin"] {
+            let (status, headers, _) = send(&h.app, get(path, cookie)).await;
+            assert_eq!(status, StatusCode::UNAUTHORIZED, "{path} with cookie {cookie:?}");
+            assert!(headers.get(header::SET_COOKIE).is_none());
+        }
     }
-    assert_eq!(count(&h.pool, "remote_grant").await, 0);
     assert_eq!(count(&h.pool, "session").await, 0);
 }
 
 #[tokio::test]
-async fn a_customer_session_cannot_grant() {
+async fn a_session_below_the_pages_role_is_forbidden() {
     let h = harness().await;
     seed(&h.pool, 1, "Active", "Customer", None).await;
+    seed(&h.pool, 2, "Active", "Executive", None).await;
+    seed(&h.pool, 3, "Active", "Administrator", None).await;
+    for (id, expected) in [(1, StatusCode::FORBIDDEN), (2, StatusCode::FORBIDDEN), (3, StatusCode::OK)] {
+        let cookie = cookie_for(&h.pool, id).await;
+        let (status, _, body) = send(&h.app, get("/admin", Some(&cookie))).await;
+        assert_eq!(status, expected, "user {id}");
+        if status == StatusCode::OK {
+            assert_eq!(body, "3");
+        }
+    }
+}
+
+/// Minting is the remote-grants command's; the API keeps only redeeming, and the old minting route is gone.
+#[tokio::test]
+async fn grants_are_not_minted_over_the_web() {
+    let h = harness().await;
+    seed(&h.pool, 1, "Active", "Administrator", None).await;
     seed(&h.pool, 2, "Active", "Customer", None).await;
-    let cookie = cookie_for(&h.pool, 1).await;
-    let (status, _, _) = send(&h.app, post("/api/remote/grants", Some(&cookie), r#"{"user_id":2}"#)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
+    let admin = cookie_for(&h.pool, 1).await;
+    let (status, _, _) = send(&h.app, post("/api/remote/grants", Some(&admin), r#"{"user_id":2}"#)).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
     assert_eq!(count(&h.pool, "remote_grant").await, 0);
 }
 
@@ -119,13 +140,9 @@ async fn an_administrator_grant_redeems_once() {
     let h = harness().await;
     seed(&h.pool, 1, "Active", "Administrator", None).await;
     seed(&h.pool, 2, "Active", "Customer", None).await;
-    let admin = cookie_for(&h.pool, 1).await;
+    let grant = remote_grant::mint(&h.pool, UserId(2), UserId(1), db::unix_now()).await.unwrap().0;
 
-    let (status, _, body) = send(&h.app, post("/api/remote/grants", Some(&admin), r#"{"user_id":2}"#)).await;
-    assert_eq!(status, StatusCode::CREATED);
-    let grant = json_field(&body, "token");
-
-    let redeem_body = format!(r#"{{"token":"{grant}"}}"#);
+    let redeem_body = format!(r#"{{"token":"{}"}}"#, grant.as_str());
     let (status, headers, _) = send(&h.app, post("/api/remote/redeem", None, &redeem_body)).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
     let set_cookie = headers.get(header::SET_COOKIE).unwrap().to_str().unwrap().to_string();
@@ -143,19 +160,6 @@ async fn an_administrator_grant_redeems_once() {
 }
 
 #[tokio::test]
-async fn an_administrator_cannot_grant_above_their_role_and_cannot_probe_ids() {
-    let h = harness().await;
-    seed(&h.pool, 1, "Active", "Administrator", None).await;
-    seed(&h.pool, 3, "Active", "Super User", None).await;
-    let admin = cookie_for(&h.pool, 1).await;
-    let (above, _, above_body) = send(&h.app, post("/api/remote/grants", Some(&admin), r#"{"user_id":3}"#)).await;
-    let (missing, _, missing_body) = send(&h.app, post("/api/remote/grants", Some(&admin), r#"{"user_id":999}"#)).await;
-    assert_eq!((above, missing), (StatusCode::FORBIDDEN, StatusCode::FORBIDDEN));
-    assert_eq!(above_body, missing_body);
-    assert_eq!(count(&h.pool, "remote_grant").await, 0);
-}
-
-#[tokio::test]
 async fn redeem_rejects_unknown_malformed_expired_and_orphaned_tokens() {
     let h = harness().await;
     seed(&h.pool, 1, "Active", "Administrator", None).await;
@@ -166,7 +170,7 @@ async fn redeem_rejects_unknown_malformed_expired_and_orphaned_tokens() {
     sqlx::query(r#"UPDATE "user" SET status = 'Denied' WHERE id = 2"#).execute(&h.pool).await.unwrap();
 
     let unknown = "B".repeat(43);
-    for token in ["", "nope", "' OR 1=1 --", unknown.as_str(), expired.as_str(), orphaned.as_str()] {
+    for token in ["", "nope", "two words", unknown.as_str(), expired.as_str(), orphaned.as_str()] {
         let body = serde_json::json!({ "token": token }).to_string();
         let (status, headers, _) = send(&h.app, post("/api/remote/redeem", None, &body)).await;
         assert_eq!(status, StatusCode::UNAUTHORIZED, "token {token:?}");
@@ -188,7 +192,7 @@ async fn sessions_of_pending_and_denied_accounts_are_refused() {
         assert_eq!(status, StatusCode::UNAUTHORIZED, "user {id}");
     }
     let admin_cookie = cookie_for(&h.pool, 1).await;
-    let (status, _, _) = send(&h.app, post("/api/remote/grants", Some(&admin_cookie), r#"{"user_id":2}"#)).await;
+    let (status, _, _) = send(&h.app, get("/admin", Some(&admin_cookie))).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
 

@@ -1,5 +1,5 @@
-//! The cart, checkout and the PO Manager through the orders router, with an in-memory database, synthetic accounts
-//! and a fixed price list. Mail is only queued; nothing here sends any.
+//! The cart and checkout through the orders router, with an in-memory database, synthetic accounts and a fixed price
+//! list. Mail is only queued; nothing here sends any.
 
 use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc};
 
@@ -292,45 +292,4 @@ async fn the_checkout_form_stars_what_the_registry_requires() {
     assert!(page.contains("value='remembered@example.com'"));
     assert!(page.contains("<option value='' selected>Shipping Carrier</option>"));
     assert_eq!(page.matches("Indicates mandatory fields").count(), 3);
-}
-
-#[tokio::test]
-async fn the_po_manager_is_for_executives() {
-    let h = harness().await;
-    account(&h.pool, 1, "Customer", 1).await;
-    account(&h.pool, 9, "Executive", 0).await;
-    checkout_fixtures(&h.pool).await;
-    let buyer = cookie(&h.pool, 1).await;
-    add(&h, &buyer, "SKU-1", "2").await;
-    send(&h.app, request(Method::POST, "/checkout.php", &buyer, &order_form(true), false)).await;
-    let id: i64 = sqlx::query_scalar("SELECT id FROM orderhd").fetch_one(&h.pool).await.unwrap();
-    let (status, headers, _) = send(&h.app, request(Method::GET, "/orderhd.php", &buyer, &[], false)).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"));
-    let exec = cookie(&h.pool, 9).await;
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "list")], false)).await;
-    assert!(page.contains(&format!(">{id}</a>")) && page.contains("<td>Test Co</td>"));
-    let id_text = id.to_string();
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", &id_text)], false)).await;
-    assert!(page.contains("<td class=right>$20.00</td>") && page.contains("<tr><td>Status</td><td>Pending</td></tr>"));
-    let mut jar = HeaderMap::new();
-    jar.insert(header::COOKIE, exec.parse().unwrap());
-    let token = hxweb::staff::csrf::CsrfToken::for_request(&jar).unwrap().as_str().to_string();
-    let accept: [(&str, &str); 4] = [("action", "update"), ("record_id", &id_text), ("status", "Accept"), ("return_url", "/orderhd.php")];
-    let (status, _, _) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &accept, false)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN, "a change needs the form's token");
-    let get = format!("/orderhd.php?action=update&record_id={id}&status=Accept&csrf={token}");
-    let (status, _, _) = send(&h.app, request(Method::GET, &get, &exec, &[], false)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN, "a GET changes nothing");
-    let (status, headers, _) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[accept.as_slice(), &[("csrf", token.as_str())]].concat(), false)).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/orderhd.php"));
-    let (st, by): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
-    assert_eq!((st.as_str(), by), ("Accept", 9));
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", &id_text), ("status", "Accept")], false)).await;
-    assert!(page.contains("Correct 1 error(s)"), "same status is an error");
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", "999999")], false)).await;
-    assert!(page.contains("<option value='Pending' selected>") && page.contains("fn_action(this,'update','999999','');"), "a missing order shows as a blank one");
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", "999999"), ("status", "Reject"), ("csrf", token.as_str())], false)).await;
-    assert!(page.contains("Record maintained"));
-    let (st, _): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
-    assert_eq!(st, "Accept");
 }

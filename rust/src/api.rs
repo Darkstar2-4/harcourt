@@ -19,7 +19,7 @@ use crate::{
     audit::{self, Entry},
     config::Secret,
     db::unix_now,
-    identity::{self, Email, Role, User, UserId},
+    identity::{self, Email, Role, User},
     remote_grant, session,
     token::Token,
 };
@@ -38,7 +38,6 @@ pub fn router(auth: Arc<Auth>) -> Router {
         .route("/auth/verify", post(verify_code))
         .route("/auth/logout", post(logout))
         .route("/me", get(me))
-        .route("/remote/grants", post(grant))
         .route("/remote/redeem", post(redeem))
         .layer(DefaultBodyLimit::max(4096))
         .layer(middleware::from_fn_with_state(auth.clone(), same_origin))
@@ -265,41 +264,11 @@ async fn me(who: Authed<AnyUser>) -> Json<MeResponse> {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct GrantRequest {
-    user_id: i64,
-}
-
-#[derive(Serialize)]
-struct GrantResponse {
-    token: String,
-    expires_at: i64,
-}
-
-/// Missing and out-of-reach targets get the same answer, so ids cannot be probed through this route.
-async fn grant(
-    State(auth): State<Arc<Auth>>,
-    ClientIp(ip): ClientIp,
-    actor: Authed<Administrator>,
-    Json(body): Json<GrantRequest>,
-) -> Result<(StatusCode, Json<GrantResponse>), ApiError> {
-    let target = identity::load_user(&auth.pool, UserId(body.user_id)).await?;
-    let Some(target) = target.filter(|t| remote_grant::may_grant(&actor.user, t)) else {
-        audit::record(&auth.pool, Entry { subtype: "remote_grant_denied", user_id: actor.user.id.0, email: actor.email.as_deref(), ip: &ip, comment: "" }).await;
-        return Err(ApiError::Forbidden);
-    };
-    let (token, expires_at) = remote_grant::mint(&auth.pool, target.id, actor.user.id, unix_now()).await?;
-    let comment = format!("for user {}", target.id.0);
-    audit::record(&auth.pool, Entry { subtype: "remote_granted", user_id: actor.user.id.0, email: actor.email.as_deref(), ip: &ip, comment: &comment }).await;
-    Ok((StatusCode::CREATED, Json(GrantResponse { token: token.as_str().to_string(), expires_at })))
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct RedeemRequest {
     token: String,
 }
 
-/// The grant token is the credential here: only a signed-in Administrator can mint one, it is random, and it works once.
+/// The grant token is the credential here: only staff can mint one, it is random, and it works once.
 async fn redeem(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, Json(body): Json<RedeemRequest>) -> Result<Response, ApiError> {
     let now = unix_now();
     let redeemed = match Token::parse(&body.token) {
