@@ -240,9 +240,10 @@ pub fn page_response(html: String) -> Response {
     r
 }
 
-/// `fn_url_redirect()`: a 302 with no body.
+/// `fn_url_redirect()`: a 302 with no body, labelled as PHP labels every answer.
 pub fn redirect(location: &str) -> Response {
     let mut r = StatusCode::FOUND.into_response();
+    r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(crate::visitor::PHP_CONTENT_TYPE));
     if let Ok(v) = HeaderValue::from_str(location) {
         r.headers_mut().insert(header::LOCATION, v);
     }
