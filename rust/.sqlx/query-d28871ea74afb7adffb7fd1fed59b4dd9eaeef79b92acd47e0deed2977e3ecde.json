@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT language_code AS \"c!: String\" FROM \"user\" WHERE id = ?1",
+  "query": "SELECT COALESCE(name, '') AS \"name!: String\" FROM subcategory WHERE id = ?1",
   "describe": {
     "columns": [
       {
-        "name": "c!: String",
+        "name": "name!: String",
         "ordinal": 0,
         "type_info": "Text"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "0b8bf06ca5525798ecb21fb0cfd473b485334bd9ee11f8b298f545faec74710e"
+  "hash": "d28871ea74afb7adffb7fd1fed59b4dd9eaeef79b92acd47e0deed2977e3ecde"
 }

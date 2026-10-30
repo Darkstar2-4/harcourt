@@ -5,8 +5,8 @@ use std::sync::Arc;
 use axum::{
     body::Bytes,
     extract::State,
-    http::Uri,
-    response::Response,
+    http::{Method, Uri},
+    response::{IntoResponse, Response},
 };
 use chrono::{NaiveDate, TimeZone};
 use chrono_tz::America::Detroit;
@@ -25,9 +25,11 @@ use crate::{
         form_params,
         html::{self, esc_text, js_str},
         mailform::Registry,
+        may_change,
         pricing::Price,
-        Executive, Orders, Staff,
+        Executive, Orders, Rejected, Staff,
     },
+    staff::csrf::FIELD,
 };
 
 /// `orderhd_constant_class::$status`.
@@ -147,7 +149,7 @@ fn local_path(url: &str) -> Option<&str> {
 
 const SCRIPT: &str = "<script>\nfunction fn_action(obj,action,id) {\n\tdocument.scs_form.action.value=action;\n\tdocument.scs_form.record_id.value=id;\n\tdocument.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, method: Method, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let p = form_params(uri.query(), &body);
     let get = |k: &str| p.get(k).map_or("", String::as_str);
@@ -166,6 +168,9 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, uri
         "cancel" => messages.push("Request cancelled".into()),
         "update" => match Status::parse(get("status")) {
             Some(new) if new.as_str() != stored_status => {
+                if !may_change(&method, &staff, &p) {
+                    return Ok(Rejected::Token.into_response());
+                }
                 let now = unix_now();
                 let status = new.as_str();
                 sqlx::query!("UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4", status, now, staff.who.user.id.0, order.id)
@@ -189,6 +194,7 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, uri
     out.push_str(&html::message(&messages, errors.len()));
     out.push_str(SCRIPT);
     out.push_str(&html::form_open("/orderhd.php"));
+    out.push_str(&html::hidden(FIELD, staff.csrf.as_str()));
     out.push_str(&html::hidden("action", ""));
     out.push_str(&html::hidden("record_id", ""));
     out.push_str(&html::hidden("page", ""));

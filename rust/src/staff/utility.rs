@@ -21,7 +21,7 @@ use super::{
     html::{button, close, esc, hidden, open, Blank, Form, Notes, Opts},
     inventory::{pricing, pricing_text, Break},
     map::{self, Carried, Counts, Draft, Export, Field, FileType, Header, Kind, Map, Rejected, Review},
-    shell, Staff,
+    shell, smart, Staff,
 };
 use crate::{
     api::{Administrator, Auth, Executive, MinRole},
@@ -460,15 +460,16 @@ async fn email_export(pool: &SqlitePool, map: &Map, source: EmailSource, from: &
 // ---------------------------------------------------------------------------------------------------------------
 
 /// The table an import writes, with what it looked up once for every row (`$this->map->constant`, `->subcategory`).
-enum Target {
+pub(super) enum Target {
     Inventory { subcategory_id: i64, subcategory: Option<(i64, i64)>, names: HashMap<String, (i64, i64)> },
     Erp,
     Subcategory { ids: Vec<i64> },
     Xref { stamp: i64 },
     User { lookups: Box<UserLookups>, viewer: Role },
+    Pricing { module: Option<&'static smart::Module>, subcategory_id: String, only: Option<&'static smart::RecordType> },
 }
 
-struct UserLookups {
+pub(super) struct UserLookups {
     currencies: Vec<String>,
     languages: Vec<String>,
     portals: Vec<i64>,
@@ -477,7 +478,7 @@ struct UserLookups {
 }
 
 /// A line of an import: field key to the value read.
-type Line = HashMap<String, String>;
+pub(super) type Line = HashMap<String, String>;
 
 fn has(line: &Line, key: &str) -> bool {
     line.contains_key(key)
@@ -497,7 +498,7 @@ fn prj_ok(prj: &str) -> bool {
     prj.is_empty() || form_urlencoded::parse(prj.as_bytes()).any(|(k, _)| k == "info")
 }
 
-type Errors = Vec<(String, String)>;
+pub(super) type Errors = Vec<(String, String)>;
 
 impl Target {
     /// import_update() for one line. `complete`: the file has every column of the map, so a new record may be added.
@@ -508,6 +509,7 @@ impl Target {
             Target::Subcategory { ids } => subcategory_line(tx, line, update, ids).await,
             Target::Xref { stamp } => xref_line(tx, line, update, *stamp).await,
             Target::User { lookups, viewer } => user_line(tx, line, update, lookups, *viewer).await,
+            Target::Pricing { module, subcategory_id, only } => super::pricing_utility::line(tx, line, update, *module, subcategory_id, *only).await,
         }
     }
 
@@ -1114,7 +1116,7 @@ async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) 
 // ---------------------------------------------------------------------------------------------------------------
 
 /// What an upload screen shows after upload() read the file.
-struct Uploaded {
+pub(super) struct Uploaded {
     header: Header,
     counts: Counts,
     external_file: String,
@@ -1122,8 +1124,9 @@ struct Uploaded {
 }
 
 /// upload(): read the posted file, check its header, keep its rows for the update. `None` when the page shows its
-/// form again; the messages say why.
-async fn upload(pool: &SqlitePool, session: &crate::token::TokenHash, page: &str, map: &Map, posted: &Posted, notes: &mut Notes, update: bool) -> sqlx::Result<Option<Uploaded>> {
+/// form again; the messages say why. `worksheet` names the sheet an Excel file is read from (the first otherwise).
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn upload(pool: &SqlitePool, session: &crate::token::TokenHash, page: &str, map: &Map, posted: &Posted, notes: &mut Notes, update: bool, worksheet: Option<&str>) -> sqlx::Result<Option<Uploaded>> {
     let file: Option<&Upload> = posted.uploads.iter().find(|u| u.field == "upload");
     let name = file.map_or("", |f| f.file_name.as_str());
     notes.say_html(format!("Upload file: <b>{}</b>", esc(name)));
@@ -1131,7 +1134,7 @@ async fn upload(pool: &SqlitePool, session: &crate::token::TokenHash, page: &str
         notes.say("File mising or empty");
         return Ok(None);
     };
-    let sheet = match map::read_upload(&file.file_name, &file.bytes, None) {
+    let sheet = match map::read_upload(&file.file_name, &file.bytes, worksheet) {
         Ok(s) => s,
         Err(message) => {
             notes.say_html(message);
@@ -1173,8 +1176,8 @@ async fn upload(pool: &SqlitePool, session: &crate::token::TokenHash, page: &str
 }
 
 /// What import() reports.
-struct Imported {
-    message: String,
+pub(super) struct Imported {
+    pub(super) message: String,
     summary: Vec<String>,
     rejected: Vec<Rejected>,
     /// The upload's name, as posted back; empty when there was nothing to import.
@@ -1184,7 +1187,7 @@ struct Imported {
 /// import(): apply the kept rows, saving them when `update`, in one transaction that a failed row rolls back when
 /// the page asks for that (`transaction`).
 #[allow(clippy::too_many_arguments)]
-async fn import(pool: &SqlitePool, staff: &Staff<impl MinRole>, page: &str, table: &str, group: &str, map: &Map, target: &Target, update: bool, transaction: bool, external_file: &str) -> sqlx::Result<Imported> {
+pub(super) async fn import(pool: &SqlitePool, staff: &Staff<impl MinRole>, page: &str, table: &str, group: &str, map: &Map, target: &Target, update: bool, transaction: bool, external_file: &str) -> sqlx::Result<Imported> {
     let Some(draft) = Draft::take(pool, &staff.session, page).await? else {
         return Ok(Imported { message: "Internal file missing".into(), summary: Vec::new(), rejected: Vec::new(), external_file: String::new() });
     };
@@ -1412,7 +1415,7 @@ fn carried(f: &Fields, keys: &[&'static str], file_type: FileType, extra: &[(&'s
     out
 }
 
-fn upload_screen(u: &Uploaded, map: &Map, report: &[(&'static str, Carried)], add_option: bool, update: bool) -> String {
+pub(super) fn upload_screen(u: &Uploaded, map: &Map, report: &[(&'static str, Carried)], add_option: bool, update: bool) -> String {
     let mut fields = vec![("external_file", Carried::One(u.external_file.clone()))];
     for (k, v) in report {
         let v = match v {
@@ -1427,7 +1430,7 @@ fn upload_screen(u: &Uploaded, map: &Map, report: &[(&'static str, Carried)], ad
     map::upload_html(&hidden, &Review { map, header: &u.header, counts: u.counts, errors: &errors, update, add_option, omit: &[] })
 }
 
-fn import_screen(i: &Imported, map: &Map, report: &[(&'static str, Carried)]) -> String {
+pub(super) fn import_screen(i: &Imported, map: &Map, report: &[(&'static str, Carried)]) -> String {
     let mut fields = vec![("external_file", Carried::One(i.external_file.clone()))];
     for (k, v) in report {
         fields.push((k, match v {
@@ -1478,7 +1481,7 @@ async fn inventory_page(u: &mut Utility<'_, Administrator>) -> sqlx::Result<Resp
             let update = f.get("function") == "upload";
             let posted = u.posted;
             match posted {
-                Some(p) => match upload(u.pool, &u.staff.session, INVENTORY_PATH, &map, p, &mut u.notes, update).await? {
+                Some(p) => match upload(u.pool, &u.staff.session, INVENTORY_PATH, &map, p, &mut u.notes, update, None).await? {
                     Some(up) => view = Some(upload_screen(&up, &map, &report, false, update)),
                     None => u.notes.error("upload", None),
                 },
@@ -1617,7 +1620,7 @@ async fn erp_page(u: &mut Utility<'_, Administrator>) -> sqlx::Result<Response> 
     match f.get("action") {
         "cancel" => u.notes.say("Request Cancelled"),
         "prelist" if handled => match u.posted {
-            Some(p) => match upload(u.pool, &u.staff.session, ERP_PATH, &map, p, &mut u.notes, update).await? {
+            Some(p) => match upload(u.pool, &u.staff.session, ERP_PATH, &map, p, &mut u.notes, update, None).await? {
                 Some(up) => {
                     report.push(("file_type", Carried::One(up.file_type.suffix().into())));
                     view = Some(upload_screen(&up, &map, &report, false, update));
@@ -1685,7 +1688,7 @@ async fn subcategory_page(u: &mut Utility<'_, Administrator>) -> sqlx::Result<Re
         Step::Upload => {
             let update = f.get("function") == "upload";
             match u.posted {
-                Some(p) => match upload(u.pool, &u.staff.session, SUBCATEGORY_PATH, &map, p, &mut u.notes, update).await? {
+                Some(p) => match upload(u.pool, &u.staff.session, SUBCATEGORY_PATH, &map, p, &mut u.notes, update, None).await? {
                     Some(up) => view = Some(upload_screen(&up, &map, &report, true, update)),
                     None => u.notes.error("upload", None),
                 },
@@ -1750,7 +1753,7 @@ async fn xref_page(u: &mut Utility<'_, Administrator>) -> sqlx::Result<Response>
             Some(p) => {
                 let converted = if f.checked("custom_format") { p.uploads.iter().find(|x| x.field == "upload").map(xr_lines) } else { None };
                 let source = converted.as_ref().map(|(name, bytes)| Posted { fields: p.fields.clone(), uploads: vec![Upload { field: "upload".into(), file_name: name.clone(), bytes: bytes.clone().into() }] });
-                match upload(u.pool, &u.staff.session, XREF_PATH, &map, source.as_ref().unwrap_or(p), &mut u.notes, update).await? {
+                match upload(u.pool, &u.staff.session, XREF_PATH, &map, source.as_ref().unwrap_or(p), &mut u.notes, update, None).await? {
                     Some(up) => view = Some(upload_screen(&up, &map, &report, false, update)),
                     None => u.notes.error("upload", None),
                 }
@@ -1973,7 +1976,7 @@ async fn user_page(u: &mut Utility<'_, Administrator>) -> sqlx::Result<Response>
         Step::Upload => {
             let update = f.get("function") == "upload";
             match u.posted {
-                Some(p) => match upload(u.pool, &u.staff.session, USER_PATH, &map, p, &mut u.notes, update).await? {
+                Some(p) => match upload(u.pool, &u.staff.session, USER_PATH, &map, p, &mut u.notes, update, None).await? {
                     Some(up) => view = Some(upload_screen(&up, &map, &report, false, update)),
                     None => u.notes.error("upload", None),
                 },

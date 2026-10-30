@@ -180,6 +180,48 @@ async fn login_answers_a_plain_message_not_a_database_error() {
 }
 
 #[tokio::test]
+async fn paths_apache_ran_a_script_for_reach_the_script() {
+    let pool = pool().await;
+    let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(app(&pool));
+    let get = |uri: &str, cookie: Option<&str>| {
+        let mut req = Request::builder().uri(uri);
+        if let Some(c) = cookie {
+            req = req.header(header::COOKIE, c);
+        }
+        app.clone().oneshot(req.body(Body::empty()).unwrap())
+    };
+    for uri in ["//login.php", "/login.php/x", "/login.php/", "/login%2Ephp?return_url=/products.php"] {
+        let res = get(uri, Some(VISIT)).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "{uri}");
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(&body[..], b"<p>Sign-in is by emailed code on the Request Access page.</p>\n", "{uri}");
+    }
+
+    let res = get("/campaign.php/more?campaign=OPEN", Some(VISIT)).await.unwrap();
+    let page = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(page.contains("method=post action='/campaign.php/more'"), "the form posts back to PHP_SELF: {page}");
+
+    let landing = |res: axum::response::Response| res.headers().get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
+    assert_eq!(landing(get("/scs_index.php/x", None).await.unwrap()).as_deref(), Some("/scs_index.php"));
+    assert_eq!(landing(get("//scs_index.php", None).await.unwrap()), None);
+}
+
+#[tokio::test]
+async fn the_old_docroot_directories_answer_as_apache_did() {
+    let pool = pool().await;
+    let app = app(&pool);
+    for uri in ["/campaign/", "/campaign/slide/css/", "/welcome-pages/xwelcomel.php", "/oauth/"] {
+        let (status, headers, body) = send(&app, Method::GET, uri, "", None).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{uri}");
+        assert_eq!(headers.get(header::CONTENT_TYPE).unwrap(), "text/html; charset=iso-8859-1");
+        assert!(body.contains("<h1>Forbidden</h1>\n<p>You don't have permission to access this resource.</p>"), "{body}");
+    }
+    let (status, headers, body) = send(&app, Method::GET, "/welcome-pages?a=1&b", "", None).await;
+    assert_eq!((status, location(&headers)), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/welcome-pages/?a=1&b")));
+    assert!(body.contains("<a href=\"https://www.harcourt.co/welcome-pages/?a=1&amp;b\">here</a>"), "{body}");
+}
+
+#[tokio::test]
 async fn currency_codes_are_kept_by_administrators() {
     let pool = pool().await;
     let app = app(&pool);

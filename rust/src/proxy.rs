@@ -14,7 +14,8 @@ const HOP_BY_HOP: [HeaderName; 4] = [header::CONNECTION, header::TRANSFER_ENCODI
 
 pub async fn pass(app: &App, req: Request) -> Response<Body> {
     let (parts, body) = req.into_parts();
-    let uri = parts.uri.path_and_query().map(|p| p.as_str()).unwrap_or("/").to_string();
+    let sent = parts.extensions.get::<hxweb::visitor::SentPath>().map_or(&parts.uri, |s| &s.uri);
+    let uri = sent.path_and_query().map(|p| p.as_str()).unwrap_or("/").to_string();
     let staging = app.public_host != app.site;
     let mut out = app
         .legacy_http

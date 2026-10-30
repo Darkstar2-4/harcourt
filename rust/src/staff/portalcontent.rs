@@ -6,7 +6,12 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use axum::{extract::State, response::Response, routing::get, Router};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
 use base64::{
     engine::general_purpose::{STANDARD, STANDARD_NO_PAD},
     Engine,
@@ -17,7 +22,7 @@ use sqlx::SqlitePool;
 
 use super::{
     choices,
-    csrf::Posted,
+    csrf::{Posted, Unchecked},
     html::{button, close, hidden, href, js, list_options, open, text, Blank, Form, Notes, Opts, Tabs},
     inventory::{file_kind, languages},
     map, shell, time, Staff,
@@ -481,8 +486,11 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>) -> Res
     page(&auth.pool, &staff, None).await.unwrap_or_else(shell::internal)
 }
 
-async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, posted: Posted) -> Response {
-    page(&auth.pool, &staff, Some(&posted)).await.unwrap_or_else(shell::internal)
+async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, form: Unchecked) -> Response {
+    match form.accept_by_action() {
+        Ok(posted) => page(&auth.pool, &staff, Some(&posted)).await.unwrap_or_else(shell::internal),
+        Err(rejected) => rejected.into_response(),
+    }
 }
 
 pub fn routes() -> Router<Arc<Auth>> {

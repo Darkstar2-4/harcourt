@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO pricing (subcategory_id, record_type, options, price_type, price0, price1, price2, price3, price4, update_timestamp)\n         VALUES (?1, ?2, ?3, '', ?4, ?5, ?6, ?7, ?8, ?9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "71cb7454405fb374ff33bbfb5ca9d297e6d39d6b9579bf53992617bd9e13f6c5"
+}

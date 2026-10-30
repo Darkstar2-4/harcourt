@@ -312,8 +312,16 @@ async fn the_po_manager_is_for_executives() {
     let id_text = id.to_string();
     let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", &id_text)], false)).await;
     assert!(page.contains("<td class=right>$20.00</td>") && page.contains("<tr><td>Status</td><td>Pending</td></tr>"));
-    let (status, headers, _) =
-        send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", &id_text), ("status", "Accept"), ("return_url", "/orderhd.php")], false)).await;
+    let mut jar = HeaderMap::new();
+    jar.insert(header::COOKIE, exec.parse().unwrap());
+    let token = hxweb::staff::csrf::CsrfToken::for_request(&jar).unwrap().as_str().to_string();
+    let accept: [(&str, &str); 4] = [("action", "update"), ("record_id", &id_text), ("status", "Accept"), ("return_url", "/orderhd.php")];
+    let (status, _, _) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &accept, false)).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "a change needs the form's token");
+    let get = format!("/orderhd.php?action=update&record_id={id}&status=Accept&csrf={token}");
+    let (status, _, _) = send(&h.app, request(Method::GET, &get, &exec, &[], false)).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "a GET changes nothing");
+    let (status, headers, _) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[accept.as_slice(), &[("csrf", token.as_str())]].concat(), false)).await;
     assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/orderhd.php"));
     let (st, by): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
     assert_eq!((st.as_str(), by), ("Accept", 9));
@@ -321,7 +329,7 @@ async fn the_po_manager_is_for_executives() {
     assert!(page.contains("Correct 1 error(s)"), "same status is an error");
     let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", "999999")], false)).await;
     assert!(page.contains("<option value='Pending' selected>") && page.contains("fn_action(this,'update','999999','');"), "a missing order shows as a blank one");
-    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", "999999"), ("status", "Reject")], false)).await;
+    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", "999999"), ("status", "Reject"), ("csrf", token.as_str())], false)).await;
     assert!(page.contains("Record maintained"));
     let (st, _): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
     assert_eq!(st, "Accept");

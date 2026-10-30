@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!: String\", COALESCE(name, '') AS \"name!: String\", COALESCE(plural, '') AS \"plural!: String\",\n                  exchange_rate AS \"exchange_rate!: f64\", COALESCE(adder_pct, 0) AS \"adder_pct!: f64\", COALESCE(update_timestamp, 0) AS \"updated!: i64\"\n           FROM currency WHERE exchange_rate > 0 AND active = 1 ORDER BY code <> 'USD', name COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "plural!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "exchange_rate!: f64",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "adder_pct!: f64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "15e78023cfbf8102719d25017e6f293e00774a7968f4ffb9708073949bc61cb5"
+}

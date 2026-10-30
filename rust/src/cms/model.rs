@@ -230,7 +230,7 @@ impl Template {
 
     /// A WordPress shell another area fills in the browser (scscpq_wp.js): WordPress read nothing from its query.
     pub fn is_scscpq_shell(self) -> bool {
-        matches!(self, Template::Scscpq | Template::ScscpqBeta | Template::ScscpqCustomerPortal)
+        matches!(self, Template::Scscpq | Template::ScscpqBeta | Template::ScscpqCustomerPortal | Template::ScscpqDashboard)
     }
 
     /// The file name, "" for page.php.

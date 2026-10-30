@@ -7,12 +7,17 @@
 
 use std::sync::Arc;
 
-use axum::{extract::State, response::Response, routing::get, Router};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
 use sqlx::SqlitePool;
 
 use super::{
     catalog,
-    csrf::{php_intval, Fields, Posted},
+    csrf::{php_intval, Fields, Unchecked},
     dashboard::content_key,
     html::{button, close, hidden, href, js, list_options, open, text, url_query, Blank, Form, Notes, Opts, Tabs},
     inventory::languages,
@@ -350,8 +355,11 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>) -> Res
     run(&auth.pool, &staff, &Fields::default()).await.unwrap_or_else(shell::internal)
 }
 
-async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, posted: Posted) -> Response {
-    run(&auth.pool, &staff, &posted.fields).await.unwrap_or_else(shell::internal)
+async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, form: Unchecked) -> Response {
+    match form.accept_by_action() {
+        Ok(posted) => run(&auth.pool, &staff, &posted.fields).await.unwrap_or_else(shell::internal),
+        Err(rejected) => rejected.into_response(),
+    }
 }
 
 pub fn routes() -> Router<Arc<Auth>> {

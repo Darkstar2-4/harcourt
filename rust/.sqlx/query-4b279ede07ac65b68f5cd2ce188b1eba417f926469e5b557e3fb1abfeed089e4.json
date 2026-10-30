@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT currency, COALESCE(leadtime_option, '') AS \"leadtime_option!: String\", COALESCE(leadtime_text, '') AS \"leadtime_text!: String\" FROM subcategory WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "currency",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_option!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_text!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "4b279ede07ac65b68f5cd2ce188b1eba417f926469e5b557e3fb1abfeed089e4"
+}

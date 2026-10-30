@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record_type, count(*) AS \"n!: i64\",\n                  (SELECT p2.update_timestamp FROM pricing p2 WHERE p2.subcategory_id = p.subcategory_id AND p2.record_type = p.record_type\n                   ORDER BY p2.options LIMIT 1) AS \"stamp!: i64\"\n           FROM pricing p WHERE subcategory_id = ?1 GROUP BY record_type ORDER BY record_type",
+  "describe": {
+    "columns": [
+      {
+        "name": "record_type",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "stamp!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "a8035fbd7a4d4ec10143d29ad56792499261e35d900cdb2b3593f07d2257b72c"
+}

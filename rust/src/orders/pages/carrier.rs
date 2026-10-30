@@ -5,7 +5,8 @@ use std::sync::Arc;
 use axum::{
     body::Bytes,
     extract::State,
-    response::Response,
+    http::Method,
+    response::{IntoResponse, Response},
 };
 
 use crate::{
@@ -13,8 +14,9 @@ use crate::{
     orders::{
         form_params,
         html::{self, esc, js_str},
-        Orders, Staff,
+        may_change, Orders, Rejected, Staff,
     },
+    staff::csrf::FIELD,
 };
 
 struct Carrier {
@@ -25,7 +27,7 @@ struct Carrier {
 
 const SCRIPT: &str = "<script type='text/javascript'>\nfunction fn_action(obj,action,id,name) {\n\tif (action=='delete') {\n\t    if (!confirm(\"Delete: #\" + id + \" \" + name)) {\n\t        obj.checked=false;\n            return;\n\t    }\n    }\n\tdocument.scs_form.action.value=action;\n\tdocument.scs_form.record_id.value=id;\n\tdocument.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>, method: Method, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let p = form_params(None, &body);
     let get = |k: &str| p.get(k).map_or("", String::as_str);
@@ -41,6 +43,9 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>,
         "cancel" => messages.push("Request cancelled".into()),
         "delete" if carrier.id == 0 || !carrier.active => {
             if carrier.id != 0 {
+                if !may_change(&method, &staff, &p) {
+                    return Ok(Rejected::Token.into_response());
+                }
                 sqlx::query!("DELETE FROM carrier WHERE id = ?1", carrier.id).execute(pool).await?;
             }
             messages.push(format!("Carrier {} deleted", esc(&carrier.name)));
@@ -50,6 +55,9 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>,
             carrier.active = p.contains_key("active");
             name_error = carrier.name.is_empty();
             if !name_error {
+                if !may_change(&method, &staff, &p) {
+                    return Ok(Rejected::Token.into_response());
+                }
                 let active = i64::from(carrier.active);
                 let saved = if carrier.id != 0 {
                     sqlx::query!("UPDATE carrier SET name = ?1, active = ?2 WHERE id = ?3", carrier.name, active, carrier.id).execute(pool).await.map(|_| ())
@@ -74,6 +82,7 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>,
     out.push_str(&html::message(&messages, usize::from(name_error)));
     out.push_str(SCRIPT);
     out.push_str(&html::form_open("/carrier.php").replace(" autocomplete=on>", " enctype='multipart/form-data' autocomplete=on>"));
+    out.push_str(&html::hidden(FIELD, staff.csrf.as_str()));
     out.push_str(&html::hidden("action", ""));
     out.push_str(&html::hidden("record_id", ""));
     if action == "maintain" || (action == "update" && name_error) {

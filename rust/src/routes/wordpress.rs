@@ -11,7 +11,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     body::Body,
-    extract::{FromRequestParts, Request, State},
+    extract::{Extension, FromRequestParts, Request, State},
     http::{header, HeaderName, HeaderValue, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::get,
@@ -21,6 +21,7 @@ use percent_encoding::percent_decode_str;
 
 use crate::{
     api::{Auth, ClientIp},
+    visitor::SentPath,
     cms::{
         docroot::{self, Owner},
         feed, sitemap,
@@ -41,8 +42,10 @@ const PAGES: &[&str] = &[
     "/",
     "/beta_catalog/",
     "/boxjoint-inquiry-form/",
+    "/cart/",
     "/catalog/",
     "/catalogue/",
+    "/checkout/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
@@ -58,6 +61,8 @@ const PAGES: &[&str] = &[
     "/contact-india/",
     "/contact-uk/",
     "/customer_portal/",
+    "/dashboard/",
+    "/demande-dacces/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -70,6 +75,7 @@ const PAGES: &[&str] = &[
     "/gamme-de-produits/percage/",
     "/gamme-de-produits/positionnements/",
     "/gamme-de-produits/stockage-et-transport-doutils/",
+    "/impersonate/",
     "/industries/",
     "/industries/automobile/",
     "/industries/industrie-lourde/",
@@ -87,6 +93,8 @@ const PAGES: &[&str] = &[
     "/innovations/tooling-configurators/",
     "/legal/",
     "/news/",
+    "/newuser/",
+    "/nouvel-utilisateur/",
     "/portail-clients/",
     "/privacy/",
     "/product/",
@@ -105,7 +113,10 @@ const PAGES: &[&str] = &[
     "/nous-contacter-france/",
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
+    "/panier/",
+    "/panier-2/",
     "/recherche/",
+    "/request-access/",
     "/resources/",
     "/resources/faq/",
     "/resources/lunch-learns/",
@@ -113,12 +124,15 @@ const PAGES: &[&str] = &[
     "/ressources/dejeuners-et-causeries/",
     "/ressources/faq/",
     "/search/",
+    "/shopping-cart/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
     "/societe/opportunites-de-carriere/",
     "/societe/pourquoi-harcourt/",
+    "/tableau-de-bord/",
     "/thank-you/",
+    "/valider-mon-panier/",
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.
@@ -161,7 +175,7 @@ fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc
     for path in PAGES {
         r = r.route(path, get(page).post(page_post));
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
-            r = r.route(bare, get(page));
+            r = r.route(bare, get(page).post(page_post));
         }
     }
     let front = Router::new().route("/{*path}", get(front)).with_state(wp.clone());
@@ -189,10 +203,12 @@ fn unported_rewrite(path: &str) -> bool {
 
 /// Any GET no route claims: a static file as nginx served it, WordPress's answer when WordPress gave one, else what
 /// an unclaimed path gets.
-async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
-    // WordPress's own front controller: redirect_canonical() drops it from the URL, except under a search.
-    if let Some(rest) = path.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
+    // WordPress's own front controller: redirect_canonical() drops it from the URL as sent (the front routes
+    // /index.php/more as /index.php), except under a search.
+    let asked = sent.map_or(path.clone(), |Extension(s)| percent_decode_str(s.uri.path()).decode_utf8_lossy().into_owned());
+    if let Some(rest) = asked.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
         let raw_query = uri.query().unwrap_or("");
         if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
             return legacy();
@@ -422,8 +438,13 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
+/// A post's slug. Rows imported before the cms kept slugs (migration 0501) have none; for those the path ends
+/// with it, except the front page's and a draft's.
 fn slug(p: &Page) -> &str {
-    &p.name
+    if !p.name.is_empty() || p.path == "/" || p.path.starts_with("/?") {
+        return &p.name;
+    }
+    p.path.trim_end_matches('/').rsplit('/').next().unwrap_or("")
 }
 
 /// A one-segment path that is no top-level page in the request's language: WordPress's post rule (`name=`). WPML
@@ -639,6 +660,16 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     serve(&wp, &uri, agent, None, true).await
 }
 
+/// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
+/// a post to the bare path at the page itself, and Gravity Forms points the form back at the bare path.
+fn slashed(path: &str) -> String {
+    if path.ends_with('/') {
+        path.to_string()
+    } else {
+        format!("{path}/")
+    }
+}
+
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
 /// the page (an ajax form gets the iframe postback document instead); a form the orders tables lack goes on to
 /// WordPress. Any other post shows the page, as WordPress did.
@@ -656,12 +687,9 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
+    let Answer::Render(page) = resolve(&site, &slashed(&path), q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
-            _ => serve(&wp, &parts.uri, agent, None, false).await,
-        };
+        return serve(&wp, &parts.uri, agent, None, false).await;
     };
     let wp_uri = format!("{}{}", page.path, q.wordpress_form_query);
     let lang = match page.lang {
@@ -1040,6 +1068,14 @@ mod tests {
         assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/product/alignment/feed/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
+        let carts = Site::new(vec![
+            page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
+            page(12, 70, Lang::Fr, "/panier-2/", Status::Publish),
+            page(13, 80, Lang::En, "/cart/", Status::Publish),
+            page(14, 80, Lang::Fr, "/panier/", Status::Publish),
+        ]);
+        assert_eq!(resolve(&carts, "/panier/", Lang::En), Answer::Redirect("/cart/".into()), "the exact slug, not the oldest page it starts");
+        assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/cart/".into()), "a prefix guess lands on the first slug by name, as the oracle answers /pan/");
     }
 
     #[test]
