@@ -36,11 +36,18 @@ pub fn router() -> Router<Arc<Auth>> {
 pub struct Initial<'a> {
     pub page: &'a str,
     pub document: &'a str,
-    pub token: &'a str,
+    /// The request's token, when it sent one.
+    pub token: Option<&'a str>,
     pub url: &'a str,
     /// The site origin links are built on, e.g. https://www.harcourt.co.
     pub origin: &'a str,
     pub referrer: Option<&'a str>,
+    /// The cart flag of the session's user: a Pending account's stored one, which PHP re-read without clearing.
+    pub ecommerce: bool,
+    /// An Administrator is viewing the site as this visitor.
+    pub impersonating: bool,
+    /// The browser sent an `email` cookie: the person is known, so no welcome document.
+    pub email_cookie: bool,
 }
 
 /// The answer, keys in the order the PHP set them (json_encode keeps it), each value already encoded.
@@ -115,38 +122,180 @@ fn catalog(viewer: &Viewer) -> bool {
     viewer.may_browse()
 }
 
-/// action=initial for this viewer, in the viewer's language. The /catalog/ composer inlines it in the page as
-/// `window.hxweb_loader`.
-pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> sqlx::Result<Loader> {
+/// The methods of scscpq_wp_class a request may name as its `action` (the PHP called any method by name, case
+/// blind). Those that only answer are answered as the PHP answered; the constructor, url() and the version table,
+/// which crashed the PHP when called this way, count as unknown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Action {
+    Initial,
+    Token,
+    Language,
+    User,
+    Impersonate,
+    Dashboard,
+    Newuser,
+    Catalog,
+    Search,
+    Cart,
+    Portal,
+    SearchCss,
+    SearchJs,
+    Page,
+    Document,
+}
+
+impl Action {
+    pub fn parse(action: &str) -> Option<Action> {
+        Some(match action.to_ascii_lowercase().as_str() {
+            "initial" => Action::Initial,
+            "token" => Action::Token,
+            "language" => Action::Language,
+            "user" => Action::User,
+            "impersonate" => Action::Impersonate,
+            "dashboard" => Action::Dashboard,
+            "newuser" => Action::Newuser,
+            "catalog" => Action::Catalog,
+            "search" => Action::Search,
+            "cart" => Action::Cart,
+            "portal" => Action::Portal,
+            "search_css" => Action::SearchCss,
+            "search_js" => Action::SearchJs,
+            "page" => Action::Page,
+            "document" => Action::Document,
+            _ => return None,
+        })
+    }
+
+    /// The request's language applies: initial() and language() read it.
+    pub fn reads_language(self) -> bool {
+        matches!(self, Action::Initial | Action::Language)
+    }
+}
+
+/// What the called method handed back, which the PHP kept as `$this->fatal`: nothing (null, false) lets the request
+/// go on; anything else is printed as the error with a 401, and a 0 also lets page() run first.
+enum Returned {
+    Nothing,
+    Int(i32),
+    Text(String),
+}
+
+impl Returned {
+    fn lets_page_run(&self) -> bool {
+        matches!(self, Returned::Nothing | Returned::Int(0))
+    }
+
+    fn error(&self) -> Option<String> {
+        match self {
+            Returned::Nothing => None,
+            Returned::Int(n) => Some(n.to_string()),
+            Returned::Text(t) => Some(t.clone()),
+        }
+    }
+}
+
+fn new_token() -> String {
+    hex::encode(rand::random::<[u8; 32]>()) + &hex::encode(rand::random::<[u8; 8]>())
+}
+
+/// The answer to `action` for this viewer, in the viewer's language, and whether it was refused. The /catalog/
+/// composer inlines the answer to initial in the page as `window.hxweb_loader`.
+pub async fn answer(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>, action: Action, named: &str) -> sqlx::Result<(bool, Loader)> {
     let strings = strings::load(pool, viewer.lang).await?;
-    let mut trace = vec!["__construct", "initial"];
-    let token = if req.token.is_empty() {
-        trace.push("token");
-        hex::encode(rand::random::<[u8; 32]>()) + &hex::encode(rand::random::<[u8; 8]>())
-    } else {
-        req.token.to_string()
-    };
-    trace.push("language");
+    let mut trace = vec!["__construct"];
+    let mut token = req.token.map(str::to_string);
     let mut out = Loader::default();
-    trace.push("newuser");
     let newuser = !(viewer.account_id().is_some() && viewer.status != Status::Pending) && !viewer.is_bot();
-    out.set("scscpq_newuser", json!(i32::from(newuser)));
-    trace.push("impersonate");
-    out.set("scscpq_impersonate", json!(0));
-    trace.push("catalog");
-    out.set("scscpq_catalog", json!(i32::from(catalog(viewer))));
-    trace.extend(["search", "catalog"]);
-    out.set("scscpq_search", if catalog(viewer) && !viewer.is_bot() { json!(search_box(&strings)) } else { Value::Null });
-    trace.extend(["cart", "catalog"]);
-    out.set("scscpq_cart", if catalog(viewer) && viewer.ecommerce && !viewer.is_bot() { json!(cart_link(&strings, 0)) } else { Value::Null });
-    trace.push("portal");
-    out.set("scscpq_portal", json!(portal_link(&strings, viewer.lang)));
-    trace.push("dashboard");
-    out.set("scscpq_dashboard", json!(i32::from(viewer.at_least(Role::Executive) && viewer.active())));
-    out.set("scscpq_products", json!(i32::from(catalog(viewer))));
-    let account_language = viewer.account_lang.filter(|_| viewer.account_id().is_some()).map_or("", Lang::code);
-    out.set("account_language", json!(account_language));
-    if !req.page.is_empty() {
+    let dashboard = viewer.at_least(Role::Executive) && viewer.active();
+    let search = catalog(viewer) && !viewer.is_bot();
+    let cart = catalog(viewer) && viewer.ecommerce && !viewer.is_bot();
+    let returned = match action {
+        Action::Initial => {
+            trace.push("initial");
+            if token.as_deref().is_none_or(str::is_empty) {
+                trace.push("token");
+                token = Some(new_token());
+            }
+            trace.extend(["language", "newuser"]);
+            out.set("scscpq_newuser", json!(i32::from(newuser)));
+            trace.push("impersonate");
+            out.set("scscpq_impersonate", json!(i32::from(req.impersonating)));
+            trace.push("catalog");
+            out.set("scscpq_catalog", json!(i32::from(catalog(viewer))));
+            trace.extend(["search", "catalog"]);
+            out.set("scscpq_search", if search { json!(search_box(&strings)) } else { Value::Null });
+            trace.extend(["cart", "catalog"]);
+            out.set("scscpq_cart", if cart { json!(cart_link(&strings, 0)) } else { Value::Null });
+            trace.push("portal");
+            out.set("scscpq_portal", json!(portal_link(&strings, viewer.lang)));
+            trace.push("dashboard");
+            out.set("scscpq_dashboard", json!(i32::from(dashboard)));
+            out.set("scscpq_products", json!(i32::from(catalog(viewer))));
+            let account_language = viewer.account_lang.filter(|_| viewer.account_id().is_some()).map_or("", Lang::code);
+            out.set("account_language", json!(account_language));
+            Returned::Nothing
+        }
+        Action::Token => {
+            trace.push("token");
+            token = Some(new_token());
+            Returned::Nothing
+        }
+        Action::Language => {
+            trace.push("language");
+            Returned::Nothing
+        }
+        Action::User => {
+            trace.push("user");
+            Returned::Nothing
+        }
+        Action::Impersonate => {
+            trace.push("impersonate");
+            Returned::Int(i32::from(req.impersonating))
+        }
+        Action::Dashboard => {
+            trace.push("dashboard");
+            Returned::Int(i32::from(dashboard))
+        }
+        Action::Newuser => {
+            trace.push("newuser");
+            Returned::Int(i32::from(newuser))
+        }
+        Action::Catalog => {
+            trace.push("catalog");
+            Returned::Int(i32::from(catalog(viewer)))
+        }
+        Action::Search => {
+            trace.extend(["search", "catalog"]);
+            if search { Returned::Text(search_box(&strings)) } else { Returned::Nothing }
+        }
+        Action::Cart => {
+            trace.extend(["cart", "catalog"]);
+            if cart { Returned::Text(cart_link(&strings, 0)) } else { Returned::Nothing }
+        }
+        Action::Portal => {
+            trace.push("portal");
+            Returned::Text(portal_link(&strings, viewer.lang))
+        }
+        Action::SearchCss => Returned::Text(SEARCH_CSS.to_string()),
+        Action::SearchJs => Returned::Text(SEARCH_JS.to_string()),
+        Action::Page => {
+            if page_url(viewer, req).is_some() {
+                trace.push("url");
+            }
+            Returned::Nothing
+        }
+        Action::Document => {
+            trace.push("document");
+            match document_url(viewer, req) {
+                Some(url) => {
+                    trace.push("url");
+                    Returned::Text(url)
+                }
+                None => Returned::Nothing,
+            }
+        }
+    };
+    if returned.lets_page_run() && !req.page.trim().is_empty() {
         match page_url(viewer, req) {
             Some((url, true)) => {
                 trace.push("url");
@@ -159,6 +308,21 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
             None => out.set("scscpq_page", json!("")),
         }
     }
+    let fatal = returned.error();
+    tail(&mut out, &mut trace, viewer, req);
+    match &fatal {
+        Some(e) => out.set("error", json!(format!("{named}: {e}"))),
+        None => {
+            out.set_encoded("token", token.as_deref().map_or_else(|| "null".to_string(), echoed));
+            out.set("error", json!(""));
+        }
+    }
+    out.set("trace", json!(trace));
+    Ok((fatal.is_some(), out))
+}
+
+/// What the constructor added to every answer after the method ran: meta and the welcome document.
+fn tail(out: &mut Loader, trace: &mut Vec<&'static str>, viewer: &Viewer, req: &Initial) {
     out.set_encoded("meta", meta(req.referrer));
     trace.push("document");
     out.set("scscpq_document", match document_url(viewer, req) {
@@ -168,10 +332,6 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
         }
         None => Value::Null,
     });
-    out.set_encoded("token", echoed(&token));
-    out.set("error", json!(""));
-    out.set("trace", json!(trace));
-    Ok(out)
 }
 
 /// scscpq_wp_class::page(): the SCS view the page loads, as a link (`true`) or an iframe.
@@ -193,8 +353,9 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
             }
             ("/campaign.php", false)
         }
+        "impersonate" if req.impersonating => ("/user_impersonate.php", false),
         "customer_portal" => ("/customer_portal.php", true),
-        "cart" if viewer.ecommerce => ("/cart.php", false),
+        "cart" if req.ecommerce => ("/cart.php", false),
         _ => return None,
     };
     query.set("scscpq_wp", "1");
@@ -218,7 +379,7 @@ fn url_query(url: &str) -> Vec<(String, String)> {
 
 /// scscpq_wp_class::document(): the sign-in welcome document for an account whose person is not known yet.
 fn document_url(viewer: &Viewer, req: &Initial) -> Option<String> {
-    if req.document.trim().to_lowercase() != "document_email" || viewer.account_id().is_none() {
+    if req.document.trim().to_lowercase() != "document_email" || viewer.account_id().is_none() || req.email_cookie {
         return None;
     }
     let id = viewer.login_document_id.unwrap_or(156);
@@ -255,7 +416,7 @@ fn form(body: &Bytes) -> HashMap<String, String> {
     url_query(&format!("?{}", String::from_utf8_lossy(body))).into_iter().collect()
 }
 
-/// POST with action=initial. Any other method or action answers 401 with the PHP's error codes.
+/// A POST naming one of the class's methods as its action. Anything else answers 401 with the PHP's error codes.
 async fn scscpq_wp(
     State(core): State<Arc<Auth>>,
     visitor: Visitor,
@@ -267,42 +428,61 @@ async fn scscpq_wp(
     let mut params = query;
     params.extend(form(&body));
     let get = |k: &str| params.get(k).map(String::as_str).unwrap_or("");
-    let action = get("action");
-    let referrer = headers.get(header::REFERER).and_then(|v| v.to_str().ok());
-    let fatal = if method != Method::POST {
+    let named = get("action");
+    let action = Action::parse(named);
+    let refused = if method != Method::POST {
         Some("102")
-    } else if action.is_empty() {
+    } else if named.is_empty() {
         Some("103")
-    } else if action != "initial" {
+    } else if action.is_none() {
         Some("104")
     } else {
         None
     };
-    if let Some(code) = fatal {
-        let mut out = Loader::default();
-        out.set_encoded("meta", meta(referrer));
-        out.set("scscpq_document", Value::Null);
-        out.set_encoded("error", echoed(&format!("{action}: {code}")));
-        out.set("trace", json!(["__construct", "document"]));
-        return json_response(StatusCode::UNAUTHORIZED, out.to_json());
-    }
-    let lang = language(get("language"));
+    let chosen = action.filter(|a| a.reads_language()).and_then(|_| language(get("language")));
     let remember = !matches!(get("remember"), "" | "0");
+    let cookie = |name: &str| crate::accounts::cookies::get(&headers, name).is_some_and(|s| !s.is_empty() && s != "0");
+    let (inside_visit, email_cookie) = (cookie("PHPSESSID"), cookie("email"));
+    let referrer = headers.get(header::REFERER).and_then(|v| v.to_str().ok());
     let result = async {
-        let mut viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let chosen = Lang::from_code(&get("language").trim().chars().take(2).collect::<String>());
+        let mut viewer = viewer::load(&core.pool, &visitor, chosen.unwrap_or_else(|| viewer::lang_for(&visitor))).await?;
+        let ecommerce = match visitor.account() {
+            Some(a) if a.user.status == Status::Pending && inside_visit => a.grants.ecommerce,
+            _ => viewer.ecommerce,
+        };
+        let req = Initial {
+            page: get("page"),
+            document: get("document"),
+            token: params.get("token").map(String::as_str),
+            url: get("url"),
+            origin: &core.public_origin,
+            referrer,
+            ecommerce,
+            impersonating: visitor.impersonator.is_some(),
+            email_cookie,
+        };
+        let (Some(action), None) = (action, refused) else {
+            let mut out = Loader::default();
+            let mut trace = vec!["__construct"];
+            tail(&mut out, &mut trace, &viewer, &req);
+            out.set_encoded("error", echoed(&format!("{named}: {}", refused.unwrap_or_default())));
+            out.set("trace", json!(trace));
+            return Ok((true, out));
+        };
+        if let (Some(chosen), Some(visit), false) = (chosen, &visitor.visit, viewer.status == Status::Pending) {
+            crate::accounts::visit::set_language(&core.pool, visit, chosen.code(), crate::db::unix_now()).await?;
+        }
         if let (true, Some(id), Some(account), Some(chosen)) = (remember, viewer.account_id(), viewer.account_lang, chosen) {
             if account != chosen {
                 crate::accounts::account::set_language(&core.pool, id, chosen.code()).await?;
                 viewer.account_lang = Some(chosen);
             }
         }
-        let req = Initial { page: get("page"), document: get("document"), token: get("token"), url: get("url"), origin: &core.public_origin, referrer };
-        initial(&core.pool, &viewer, &req).await
+        answer(&core.pool, &viewer, &req, action, named).await
     }
     .await;
     match result {
-        Ok(out) => json_response(StatusCode::OK, out.to_json()),
+        Ok((refused, out)) => json_response(if refused { StatusCode::UNAUTHORIZED } else { StatusCode::OK }, out.to_json()),
         Err(e) => {
             tracing::error!("scscpq_wp: {e}");
             json_response(StatusCode::INTERNAL_SERVER_ERROR, "{\"error\":\"internal\"}".into())
@@ -310,9 +490,11 @@ async fn scscpq_wp(
     }
 }
 
-/// The page's language (document.documentElement.lang, two letters): French or English.
-fn language(code: &str) -> Lang {
-    Lang::from_code(&code.chars().take(2).collect::<String>()).unwrap_or(Lang::En)
+/// The page's language (document.documentElement.lang, its first two letters), when it names one. Without it the
+/// visit keeps its language. A visit whose user PHP re-read on every page (anyone not signed in, a Pending account)
+/// lost the choice on the next page, so it is kept only for the others.
+fn language(code: &str) -> Option<Lang> {
+    Lang::from_code(&code.trim().chars().take(2).collect::<String>())
 }
 
 const SEARCH_CSS: &str = "\n<style>\n.ui-autocomplete {\n    z-index: 1000;\n    position: absolute;\n    overflow: visible;\n}\n</style>";
@@ -414,12 +596,13 @@ mod tests {
     #[test]
     fn the_catalog_page_links_its_own_query_back() {
         let v = Viewer::anonymous(Lang::En);
-        let req = Initial { page: "catalog", document: "", token: "", url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None };
+        let req = Initial { page: "catalog", document: "", token: None, url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None, ecommerce: false, impersonating: false, email_cookie: false };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
         let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
         assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
-        assert_eq!(language("fr-CA"), Lang::Fr);
-        assert_eq!(language(""), Lang::En);
+        assert_eq!(language(" fr-CA"), Some(Lang::Fr));
+        assert_eq!(language("en"), Some(Lang::En));
+        assert_eq!(language(""), None);
     }
 }
