@@ -688,7 +688,10 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         // redirect_canonical() never sends a visitor to the URL they asked for: the 404 stands, and its sidebar is
         // the guessed page's widgets in the request's language, which the cms does not hold.
         (Answer::Redirect(to), slashed) => {
-            let to = with_query(&to, raw_query);
+            // redirect_canonical() mending only the slashes keeps the query as sent; WPML's move to a translation
+            // rebuilds it.
+            let mended = format!("/{}/", path.split('/').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("/"));
+            let to = if to == mended && !raw_query.is_empty() { format!("{to}?{raw_query}") } else { with_query(&to, raw_query) };
             let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
             if slashed.is_none() && to == asked {
                 Answer::Legacy
@@ -1111,6 +1114,12 @@ mod tests {
         assert_eq!(r("/gamme-de-produits/centrage/", "lang=en"), "302 /gamme-de-produits/centrage/");
         assert_eq!(r("/gamme-de-produits/centrage", "lang=en"), "302 /gamme-de-produits/centrage/");
         assert_eq!(r("/product/alignment//", "lang=en&x=1"), "302 /product/alignment/?x=1", "the path as WordPress parsed it");
+        let legal = Site::new(vec![page(3, 12, Lang::En, "/legal/", Status::Publish)]);
+        let mended = |path: &str, q: &str| match route(&legal, path, &query(q), q) {
+            Answer::Redirect(to) => to,
+            other => format!("{other:?}"),
+        };
+        assert_eq!(mended("/legal//", "a=1&a=2&b="), "/legal/?a=1&a=2&b=", "mending the slashes keeps the query as sent");
         assert_eq!(r("/product/alignment/", "lang=en&lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
         assert_eq!(r("/product/alignment/", "p=212"), "legacy");
         assert_eq!(r("/product/alignment", "s=x"), "legacy");
