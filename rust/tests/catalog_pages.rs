@@ -198,8 +198,12 @@ async fn a_visit_that_begins_on_the_fragment_goes_where_scs_header_sent_it() {
     let cookie = signed_in(&h.pool, &Account::customer(28)).await;
     let (_, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1", Some(&cookie))).await;
     assert_eq!(location(&headers).as_deref(), Some("/catalog/"));
-    let (status, _, _) = send(&h.app, first("/catalog.php", Some(&cookie))).await;
+    let (status, _, body) = send(&h.app, first("/catalog.php", Some(&cookie))).await;
     assert_eq!(status, StatusCode::OK, "an active customer asked for the catalog itself");
+    assert!(body.contains("src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>") && body.contains("<div id='scs_menu' >"), "outside the frame the page draws its own menu: {body}");
+    assert!(body.contains("href=\"/catalog.php?lang=en&action=subcategory&subcategory_id=7\""), "and links to itself: {body}");
+    let (_, _, body) = send(&h.app, get("/catalog.php", Some(&cookie))).await;
+    assert!(!body.contains("<div id='scs_menu' >"), "a request inside a visit came through the frame");
 }
 
 #[tokio::test]

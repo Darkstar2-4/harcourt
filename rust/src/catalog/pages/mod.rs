@@ -30,7 +30,7 @@ use super::{
     tabs::Tabs,
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, db::unix_now, pricing::PriceBook, visitor::Visitor};
+use crate::{api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
@@ -65,6 +65,9 @@ pub struct Request {
     pub scscpq_wp: Option<String>,
     /// $_SERVER['REQUEST_URI']: where the profile gate returns to.
     pub uri: String,
+    /// The visit came through the WordPress frame ($_SESSION['scscpq_wp']): links go to the catalog page, and the
+    /// page has no menu ribbon of its own.
+    pub framed: bool,
 }
 
 fn int(s: Option<&String>) -> i64 {
@@ -111,6 +114,7 @@ impl Request {
             debug: q.get("debug").is_some_and(|d| !d.is_empty() && d != "0"),
             scscpq_wp: q.get("scscpq_wp").cloned(),
             uri: String::new(),
+            framed: true,
         }
     }
 }
@@ -169,7 +173,11 @@ pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
     let profile = super::profile::load(pool, viewer, cookies).await?;
-    let php_self = if viewer.lang == Lang::Fr { "/catalogue/" } else { "/catalog/" };
+    let php_self = match (req.framed, viewer.lang) {
+        (false, _) => "/catalog.php",
+        (true, Lang::Fr) => "/catalogue/",
+        (true, Lang::En) => "/catalog/",
+    };
     let (category_id, subcategory_id) = (req.category_id, req.subcategory_id);
     Ok(Ctx { pool, viewer, req, catalog, registry, strings, book, profile, php_self, category_id, subcategory_id, part: None, related_sku: String::new(), search: None })
 }
@@ -269,12 +277,13 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         View::Home => body.push_str(&home::page(ctx).await?),
     }
     body.push_str("</form>");
-    Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body))
+    let ribbon = (!ctx.req.framed).then(|| chrome::ribbon(ctx.viewer.at_least(Role::Executive).then(|| ctx.strings.get("menu_dashboard"))));
+    Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body, ribbon.as_deref()))
 }
 
 /// An SCS view in the site's page chrome, for the other catalog entry points.
 pub fn chrome_document(reg: &Registry, title: &str, body: &str) -> String {
-    chrome::document(reg, title, &[], body)
+    chrome::document(reg, title, &[], body, None)
 }
 
 fn catalog_css(reg: &Registry) -> String {
@@ -372,7 +381,8 @@ async fn catalog_php(
     let lang = viewer::lang_for(&visitor);
     let result = async {
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let req = Request { uri: uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string()), ..Request::parse(&q) };
+        let framed = q.get("scscpq_wp").is_some_and(|v| !v.is_empty() && v != "0") || !crate::visitor::begins_visit(&headers, &core.public_origin);
+        let req = Request { uri: uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string()), framed, ..Request::parse(&q) };
         let mut ctx = load_ctx(&core.pool, &viewer, req, &headers).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
