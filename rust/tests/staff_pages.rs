@@ -162,6 +162,10 @@ async fn only_a_post_that_writes_needs_the_form_token() {
         let (status, _, _) = send(&h.app, post("/user.php", &admin, &writes)).await;
         assert_eq!(status, StatusCode::FORBIDDEN);
     }
+    let turned_back: Vec<(&str, &str)> = user_form(&[("record_id", "10")]).into_iter().filter(|(k, _)| *k != "currency_code").collect();
+    let (status, _, page) = send(&h.app, post("/user.php", &admin, &turned_back)).await;
+    assert_eq!(status, StatusCode::OK, "an update its checks turn back writes nothing, so it needs no token");
+    assert!(page.contains("Correct 1 error(s)"), "{page}");
     let row: (String, String) = sqlx::query_as(r#"SELECT ip, status FROM "user" WHERE id = 10"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(row, ("198.51.100.10".into(), "Pending".into()));
     let (status, _, _) = send(&h.app, post("/inventory.php", &admin, &[("action", "delete"), ("record_id", "1")])).await;
