@@ -59,3 +59,12 @@
 {"name": "stock-none", "path": "/stock.php"}
 {"name": "stock-partial", "path": "/stock.php?name=990001%7CPat+Example&sku=1&cad=STEP&email=someone%40example.com"}
 {"name": "stock-no-name", "path": "/stock.php?name=990001&sku=1&cad=STEP&email=someone%40example.com"}
+# The search pages around the catalog's search (WordPress scscpq pages).
+{"name": "search-page", "path": "/search/"}
+{"name": "search-page-q", "path": "/search/?q=alignment+pin"}
+{"name": "search-page-q2", "path": "/search/?q=configurable+angle+bracket+017+004000"}
+{"name": "search-page-fr", "path": "/recherche/?lang=fr", "language": "fr"}
+{"name": "search-page-fr-q", "path": "/recherche/?lang=fr&q=goupille", "language": "fr"}
+{"name": "search-page-lang", "path": "/search/?lang=fr", "language": "fr"}
+{"name": "search-bare", "path": "/search"}
+{"name": "search-bare-q", "path": "/search?q=pin"}

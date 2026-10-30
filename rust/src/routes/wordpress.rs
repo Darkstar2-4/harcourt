@@ -98,12 +98,14 @@ const PAGES: &[&str] = &[
     "/nous-contacter-france/",
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
+    "/recherche/",
     "/resources/",
     "/resources/faq/",
     "/resources/lunch-learns/",
     "/ressources/",
     "/ressources/dejeuners-et-causeries/",
     "/ressources/faq/",
+    "/search/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
@@ -466,7 +468,9 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
             _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
         },
     };
-    if !finished && replay && answer.is_none() && wp.legacy.is_some() && !islands(&site, page).is_empty() {
+    // A shell other areas fill (scscpq) has nothing WordPress reads the query for; its footer form posts here.
+    let shell = page.template == crate::cms::model::Template::Scscpq;
+    if !finished && replay && answer.is_none() && !shell && wp.legacy.is_some() && !islands(&site, page).is_empty() {
         return legacy();
     }
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
