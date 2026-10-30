@@ -242,10 +242,13 @@ struct AjaxAnswer {
     cart_extended: String,
 }
 
-/// PHP answers the quantity as a float (`5.0`); it is a count, never money.
+/// PHP's quantity is a float, which json_encode writes without a fraction when it has none (`5`, `0.5`).
 fn php_float<S: serde::Serializer>(d: &Decimal, s: S) -> Result<S::Ok, S::Error> {
     use rust_decimal::prelude::ToPrimitive;
-    s.serialize_f64(d.to_f64().unwrap_or(0.0))
+    match d.fract().is_zero().then(|| d.to_i64()).flatten() {
+        Some(whole) => s.serialize_i64(whole),
+        None => s.serialize_f64(d.to_f64().unwrap_or(0.0)),
+    }
 }
 
 async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::HashMap<String, String>) -> Result<Response, ApiError> {
@@ -382,6 +385,15 @@ mod tests {
         assert_eq!(quantity(Decimal::from(5)), Some(5));
         assert_eq!(quantity(Decimal::ZERO), None);
         assert_eq!(quantity(Decimal::from(5_000_000_000_i64)), None);
+    }
+
+    #[test]
+    fn quantities_print_as_php_json_does() {
+        #[derive(Serialize)]
+        struct Q(#[serde(serialize_with = "php_float")] Decimal);
+        assert_eq!(serde_json::to_string(&Q(Decimal::from(2))).unwrap(), "2");
+        assert_eq!(serde_json::to_string(&Q(Decimal::ZERO)).unwrap(), "0");
+        assert_eq!(serde_json::to_string(&Q(Decimal::new(5, 1))).unwrap(), "0.5");
     }
 
     #[test]
