@@ -14,6 +14,7 @@ use axum::{
 
 use crate::{
     api::{ApiError, Auth, Authed, ClientIp, MinRole},
+    identity::Role,
     visitor::Visitor,
 };
 
@@ -78,6 +79,31 @@ impl<R: MinRole> FromRequestParts<Arc<Orders>> for Authed<R> {
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, ApiError> {
         Authed::<R>::from_request_parts(parts, &state.core).await
+    }
+}
+
+pub struct Executive;
+pub struct SuperUser;
+impl MinRole for Executive {
+    const ROLE: Role = Role::Executive;
+}
+impl MinRole for SuperUser {
+    const ROLE: Role = Role::SuperUser;
+}
+
+/// The gate of a staff page: `Authed<R>`, answered on refusal the way PHP's `$database->user->access()` does, with
+/// a redirect to the home page.
+pub struct Staff<R: MinRole>(pub Authed<R>);
+
+impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
+        match Authed::<R>::from_request_parts(parts, &state.core).await {
+            Ok(a) => Ok(Staff(a)),
+            Err(ApiError::Unauthenticated | ApiError::Forbidden) => Err(html::redirect("/")),
+            Err(e) => Err(e.into_response()),
+        }
     }
 }
 
