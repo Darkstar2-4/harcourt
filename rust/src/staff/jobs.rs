@@ -6,18 +6,12 @@ use std::{
     io::Write,
     os::unix::fs::OpenOptionsExt,
     path::Path,
-    sync::Arc,
 };
 
-use axum::Router;
 use sqlx::SqlitePool;
 
 use super::time;
-use crate::{api::Auth, config::Config, db};
-
-pub fn routes() -> Router<Arc<Auth>> {
-    Router::new()
-}
+use crate::{config::Config, db};
 
 const USAGE: &str = "usage: hxweb job search_export <dir> | search_export --log <file>";
 
