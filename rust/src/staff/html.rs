@@ -573,9 +573,93 @@ impl MenuGroup {
     }
 }
 
+/// Rows per page, `$database->query_limit`.
+pub const PAGE_ROWS: i64 = 50;
+
+/// page_break_class::output() for a page-type pager: First / Previous / Next / Last buttons running `script` with
+/// `%page%` replaced, the row count and "Page n of m".
+pub fn page_break(found_rows: i64, page: i64, script: &str) -> String {
+    if found_rows <= 0 {
+        return String::new();
+    }
+    let last = (found_rows + PAGE_ROWS - 1) / PAGE_ROWS - 1;
+    let current = page;
+    let targets = [
+        ("<< First", if current == 0 { -1 } else { 0 }),
+        ("< Previous", if current == 0 { -1 } else { current - 1 }),
+        ("Next >", if current == last { -1 } else { current + 1 }),
+        ("Last >>", if current == last { -1 } else { last }),
+    ];
+    let buttons: Vec<String> = targets
+        .iter()
+        .map(|(name, target)| match *target {
+            -1 => button(name, Opts::new().class("nav_button_disabled")),
+            t => button(name, Opts::new().onclick(script.replace("%page%", &t.to_string())).class("nav_button")),
+        })
+        .collect();
+    let mut parts = Vec::new();
+    if last > 0 {
+        parts.push(buttons.join(" "));
+    }
+    if found_rows > 1 {
+        parts.push(format!("{} Records Found", number(found_rows)));
+    }
+    if last > 0 {
+        parts.push(format!("Page {} of {}", number(current + 1), number(last + 1)));
+    }
+    if parts.is_empty() {
+        return String::new();
+    }
+    format!("<p style='text-align: center'>{}</p>", parts.join("<br>"))
+}
+
+/// number_format() with no decimals.
+pub fn number(n: i64) -> String {
+    let digits = n.unsigned_abs().to_string();
+    let mut out = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    if n < 0 {
+        format!("-{out}")
+    } else {
+        out
+    }
+}
+
+/// number_format($n, $decimals) for money and percentages.
+pub fn number_dp(n: f64, decimals: usize) -> String {
+    let s = format!("{:.*}", decimals, n.abs());
+    let (int, frac) = s.split_once('.').map_or((s.as_str(), ""), |(i, f)| (i, f));
+    let int = number(int.parse::<i64>().unwrap_or(0));
+    let sign = if n < 0.0 && s.bytes().any(|b| b.is_ascii_digit() && b != b'0') { "-" } else { "" };
+    if frac.is_empty() {
+        format!("{sign}{int}")
+    } else {
+        format!("{sign}{int}.{frac}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pager_disables_the_ends_and_counts() {
+        assert_eq!(page_break(0, 0, "go(%page%);"), "");
+        assert_eq!(page_break(1, 0, "go(%page%);"), "");
+        assert_eq!(page_break(7, 0, "go(%page%);"), "<p style='text-align: center'>7 Records Found</p>");
+        let p = page_break(1234, 1, "go(%page%);");
+        assert!(p.starts_with("<p style='text-align: center'><input type=button class='nav_button' value='&lt;&lt; First' onclick=\"javascript:go(0);\">\n <input"));
+        assert!(p.contains("value='Next &gt;' onclick=\"javascript:go(2);\""));
+        assert!(p.ends_with("<br>1,234 Records Found<br>Page 2 of 25</p>"));
+        assert!(page_break(120, 2, "go(%page%);").contains("<input type=button class='nav_button_disabled' value='Last &gt;&gt;'>"));
+        assert_eq!(number_dp(1234.5, 2), "1,234.50");
+        assert_eq!(number_dp(-0.001, 2), "0.00");
+    }
 
     fn quiet() -> Notes {
         Notes::new("T", "")

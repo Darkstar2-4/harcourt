@@ -118,6 +118,71 @@ async fn a_post_without_the_session_token_changes_nothing() {
     assert_eq!(mailform_count(&h.pool).await, 0);
 }
 
+async fn event(pool: &SqlitePool, user_id: i64, age_secs: i64, kind: &str, subtype: &str, comment: &str) {
+    sqlx::query("INSERT INTO log (ip, date_time, user_id, email, type, subtype, sku, comment) VALUES ('192.0.2.1', ?1, ?2, 'someone@example.com', ?3, ?4, 'SKU-1', ?5)")
+        .bind(db::unix_now() - age_secs)
+        .bind(user_id)
+        .bind(kind)
+        .bind(subtype)
+        .bind(comment)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn the_event_log_is_for_executives_and_above() {
+    let h = harness().await;
+    let internal = person(&h.pool, 4, "Internal").await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    for cookie in [None, Some(internal.as_str())] {
+        let (status, _, _) = send(&h.app, get("/scs_log.php", cookie)).await;
+        assert_eq!(status, StatusCode::FOUND);
+    }
+    let (status, _, page) = send(&h.app, get("/scs_log.php", Some(&exec))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Event Log (09/25/2025)</p>"));
+    assert!(page.contains("<input type=text class='datepicker' name='from_date' id='from_date' size='10' maxlength='10' value='"));
+    assert!(page.contains("<option value='VXNlcglMb2dpbg'>&nbsp;Login</option>"));
+    assert!(!page.contains(">Results</a>"));
+}
+
+#[tokio::test]
+async fn the_login_link_lists_one_accounts_recent_events_escaped() {
+    let h = harness().await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    person(&h.pool, 7, "Customer").await;
+    event(&h.pool, 7, 3600, "Search", "SKU", "looked <b>for</b>\nwidgets").await;
+    event(&h.pool, 7, 30 * 86400, "Search", "SKU", "too old").await;
+    event(&h.pool, 2, 60, "User", "Login", "someone else").await;
+    let (_, _, page) = send(&h.app, get("/scs_log.php?action=login&user_id=7", Some(&exec))).await;
+    assert!(page.contains(">Results</a>"));
+    assert!(page.contains("active: 1 }"));
+    assert!(page.contains("<td>looked &lt;b&gt;for&lt;/b&gt;<br>widgets</td>"));
+    assert!(page.contains("<td>Test company 7</td>"));
+    assert!(!page.contains("too old") && !page.contains("someone else"));
+}
+
+#[tokio::test]
+async fn the_event_log_exports_csv_with_the_php_columns() {
+    let h = harness().await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    event(&h.pool, 2, 60, "User", "Login", "said \"hi\", twice").await;
+    let (_, _, page) = send(&h.app, get("/scs_log.php", Some(&exec))).await;
+    let csrf = csrf_of(&page);
+    let fields = [("action", "list"), ("from_date", ""), ("thru_date", ""), ("type_subtype", ""), ("ajax_user_id", ""), ("output", "csv"), ("csrf", csrf.as_str())];
+    let (status, headers, body) = send(&h.app, post("/scs_log.php", &exec, &fields)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(headers[header::CONTENT_DISPOSITION], "attachment; filename=log.csv");
+    let mut lines = body.lines();
+    assert_eq!(lines.next(), Some("\"IP Address\",Email,\"Company Name\",Date/Time,Type,Subtype,SKU,Comment"));
+    let row = lines.next().unwrap();
+    assert!(row.starts_with("192.0.2.1,someone@example.com,\"Test company 2\","), "{row}");
+    assert!(row.ends_with(",User,Login,SKU-1,\"said \"\"hi\"\", twice\""), "{row}");
+    let (status, _, _) = send(&h.app, post("/scs_log.php", &exec, &fields[..6])).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
 #[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
