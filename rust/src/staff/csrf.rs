@@ -79,7 +79,8 @@ impl Fields {
 
     /// Fields from the form, then the query string for names the form did not send (`$_REQUEST` order).
     pub fn with_query(mut self, query: &Fields) -> Fields {
-        let missing: Vec<(String, String)> = query.0.iter().filter(|(k, _)| !self.has(k)).cloned().collect();
+        let posted: std::collections::HashSet<&str> = self.0.iter().map(|(k, _)| k.as_str()).collect();
+        let missing: Vec<(String, String)> = query.0.iter().filter(|(k, _)| !posted.contains(k.as_str())).cloned().collect();
         self.0.extend(missing);
         self
     }
@@ -94,14 +95,22 @@ impl Fields {
     }
 }
 
+/// PHP 8's intval() of a string: its leading number, a decimal or exponent form truncated, and a number past the
+/// 64-bit range held at the end of the range.
 pub fn php_intval(s: &str) -> i64 {
-    let s = s.trim_start();
-    let (sign, digits) = match s.strip_prefix('-') {
-        Some(rest) => (-1, rest),
-        None => (1, s.strip_prefix('+').unwrap_or(s)),
-    };
-    let end = digits.bytes().take_while(u8::is_ascii_digit).count();
-    digits[..end].parse::<i64>().map_or(0, |n| sign * n)
+    let s = s.trim_start_matches([' ', '\t', '\n', '\r', '\x0b', '\x0c']);
+    let b = s.as_bytes();
+    let signed = usize::from(matches!(b.first(), Some(b'+' | b'-')));
+    let int_end = signed + b[signed..].iter().take_while(|c| c.is_ascii_digit()).count();
+    let exponent = |at: usize| matches!(b.get(at), Some(b'e' | b'E')) && b.get(at + 1 + usize::from(matches!(b.get(at + 1), Some(b'+' | b'-')))).is_some_and(u8::is_ascii_digit);
+    if b.get(int_end) == Some(&b'.') || exponent(int_end) {
+        let f = super::catalog::php_floatval(s);
+        return if f.is_finite() { f as i64 } else { 0 };
+    }
+    if int_end == signed {
+        return 0;
+    }
+    s[..int_end].parse().unwrap_or(if b[0] == b'-' { i64::MIN } else { i64::MAX })
 }
 
 pub struct Upload {
@@ -258,5 +267,15 @@ mod tests {
         assert_eq!(f.all("ids[]").collect::<Vec<_>>(), ["1", "2"]);
         assert_eq!(php_intval(" -7abc"), -7);
         assert_eq!(php_intval("abc"), 0);
+    }
+
+    #[test]
+    fn intval_reads_numbers_as_php_8_does() {
+        assert_eq!(php_intval("2.9"), 2);
+        assert_eq!(php_intval("1e3"), 1000);
+        assert_eq!(php_intval("12e"), 12);
+        assert_eq!(php_intval("99999999999999999999"), i64::MAX);
+        assert_eq!(php_intval("-99999999999999999999"), i64::MIN);
+        assert_eq!(php_intval("\u{a0}5"), 0);
     }
 }
