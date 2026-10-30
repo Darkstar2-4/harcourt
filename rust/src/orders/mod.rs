@@ -110,21 +110,12 @@ impl MinRole for SuperUser {
     const ROLE: Role = Role::SuperUser;
 }
 
-/// The gate of a staff page, answered on refusal the way PHP's `$database->user->access()` does: a redirect to the
-/// home page, `/` when the visit is inside the WordPress frame (PHP kept that in the session), else `/scs_index.php`.
+/// The gate of a staff page is the staff module's: `Staff<R>` over the same core state.
 impl<R: MinRole + Send + Sync + 'static> FromRequestParts<Arc<Orders>> for Staff<R> {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
-        let Ok(visitor) = Visitor::from_request_parts(parts, &state.core).await;
-        let home = || html::redirect(if visitor.framed { "/" } else { "/scs_index.php" });
-        let who = match Authed::<R>::from_request_parts(parts, &state.core).await {
-            Ok(who) => who,
-            Err(ApiError::Unauthenticated | ApiError::Forbidden) => return Err(home()),
-            Err(e) => return Err(e.into_response()),
-        };
-        let csrf = CsrfToken::for_request(&parts.headers).ok_or_else(home)?;
-        Ok(Staff { who, csrf, wp: visitor.framed })
+        Staff::<R>::from_request_parts(parts, &state.core).await
     }
 }
 
