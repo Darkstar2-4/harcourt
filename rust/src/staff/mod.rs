@@ -35,6 +35,7 @@ pub mod time;
 pub mod company;
 pub mod dashboard;
 pub mod grants;
+pub mod hero_preview;
 pub mod increase;
 pub mod inventory;
 pub mod jobs;
@@ -46,6 +47,7 @@ pub mod portalitem;
 pub mod prj;
 pub mod subcategory;
 pub mod subcategory_order;
+pub mod track_log;
 pub mod user;
 pub mod utility;
 
@@ -105,6 +107,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(company::routes())
         .merge(dashboard::routes())
         .merge(grants::routes())
+        .merge(hero_preview::routes())
         .merge(increase::routes())
         .merge(inventory::routes())
         .merge(log::routes())
@@ -114,6 +117,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(prj::routes())
         .merge(subcategory::routes())
         .merge(subcategory_order::routes())
+        .merge(track_log::routes())
         .merge(user::routes())
         .merge(utility::routes())
 }
