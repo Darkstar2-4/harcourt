@@ -17,6 +17,7 @@ pub mod api;
 pub mod callbacks;
 pub mod category;
 pub mod configure;
+pub mod document;
 pub mod files;
 pub mod forms;
 pub mod hero;
@@ -61,5 +62,6 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(category::router())
         .merge(industry::router())
         .merge(hero::router())
+        .merge(document::router())
         .layer(Extension(search::Cache::new()))
 }

@@ -68,3 +68,5 @@
 {"name": "solutions-slide", "path": "/solutions.php?campaign=SLIDE"}
 {"name": "solutions-kit", "path": "/solutions.php?campaign=kit"}
 {"name": "solutions-remote", "path": "/solutions.php?campaign=CAPTIVE"}
+{"name": "document", "path": "/document.php"}
+{"name": "document-wp", "path": "/document.php?scscpq_wp=1"}
