@@ -1075,7 +1075,7 @@ mod tests {
             page(14, 80, Lang::Fr, "/panier/", Status::Publish),
         ]);
         assert_eq!(resolve(&carts, "/panier/", Lang::En), Answer::Redirect("/cart/".into()), "the exact slug, not the oldest page it starts");
-        assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/shopping-cart/".into()));
+        assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/cart/".into()), "a prefix guess lands on the first slug by name, as the oracle answers /pan/");
     }
 
     #[test]
