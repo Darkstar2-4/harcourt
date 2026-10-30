@@ -10,6 +10,9 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
   mode, so those cases also carry `?scscpq_wp=1`, which puts the Rust page in the same mode.
 - **POST bodies** carry `csrf=<token>` for the persona's seeded session (SHA-256 of the session cookie under the
   staff form label, base64url). The PHP ignores the field.
+- **Run with `--jobs 1`.** The PHP inventory and portal category editors keep the record being edited in the PHP
+  session and refuse a save without it ("Refresh not allowed"), and a cancel clears it. Their update cases follow
+  the matching maintain case and come before any cancel, so the file must run in order.
 - Only persona accounts are listed, viewed or edited. Update cases post errors, so the oracle's database is not
   changed.
 
@@ -71,3 +74,10 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
 
 - **Scoped update.** A save changes the sort order only of subcategories in the chosen category, in one
   transaction; the PHP updated any id posted. No case saves an order on the oracle.
+
+### portalcategory.php (`/portalcategory.php`)
+
+- **No session state**, as for inventory.php: a save reads the stored names and headlines and applies the post.
+- **Delete removes the category's own portal items.** The PHP deleted the items whose `portal_id` equalled the
+  category's id, which belong to another portal.
+- No case saves or deletes on the oracle.

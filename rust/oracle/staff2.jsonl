@@ -40,3 +40,9 @@
 {"name":"subcategory-order-cancel","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=&report_category_id=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"subcategory-prj-anonymous","path":"/subcategory_prj.php","persona":"anonymous"}
 {"name":"subcategory-prj","path":"/subcategory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"portalcategory-anonymous","path":"/portalcategory.php","persona":"anonymous"}
+{"name":"portalcategory","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"portalcategory-maintain","method":"POST","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=21&report_portal_id=2&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portalcategory-new","method":"POST","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=0&report_portal_id=2&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portalcategory-update-errors","method":"POST","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=21&report_portal_id=2&bmFtZQlFTg%3D%3D=&output_order=3&active=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"portalcategory-cancel","method":"POST","path":"/portalcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=&report_portal_id=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}

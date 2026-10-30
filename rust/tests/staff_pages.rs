@@ -414,3 +414,41 @@ async fn subcategories_sharing_a_project_file_are_listed_together() {
     assert!(page.contains("<tbody><tr><td rowspan=2>pins.prj</td><td class=right>51</td><td>Old Pins</td><td></td><td>harcourt/b/pins.prj</td></tr><tr><td class=right>50</td><td>Test Pins</td><td>TP-100</td><td>harcourt/a/pins.prj</td></tr></tbody></table>"));
     assert!(!page.contains("alone.prj"));
 }
+
+async fn portal_seed(pool: &SqlitePool) {
+    exec(pool, "INSERT INTO portal (id, name, active) VALUES (3, 'Example Aero', 1), (4, 'Example Auto', 1)").await;
+    exec(pool, "INSERT INTO portalcategory (id, portal_id, name, output_order, subcategory_id, active) VALUES (30, 3, 'Fixtures', 1, 50, 0), (31, 4, 'Gauges', 1, 0, 1)").await;
+    exec(pool, "INSERT INTO portalitem (id, portal_id, portalcategory_id, name) VALUES (40, 3, 30, 'Item A'), (41, 30, 99, 'Unrelated')").await;
+    exec(pool, "INSERT INTO portalcontent (id, portal_id, name, form) VALUES (60, 0, 'Banner', 'Category HTML'), (61, 3, 'Aero head', 'Category HTML')").await;
+    exec(pool, "INSERT INTO content (record_type, record_id, language_code, name, description) VALUES ('portalcategory', 30, 'EN', 'Fixtures', 'Old headline')").await;
+}
+
+#[tokio::test]
+async fn portal_categories_are_listed_and_edited_per_language() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    portal_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/portalcategory.php", Some(&admin))).await;
+    assert!(page.contains("<h3>Example Aero</h3>\n<div><table class='standard border'>"));
+    assert!(page.contains("<td><a href=\"javascript:fn_action(this,'maintain','30','3');\" >Fixtures</a></td>\n\n<td>Test Pins</td>\n\n<td class=center><input type=radio value='30' id='delete_30'"));
+    let (_, _, page) = submit(&h, "/portalcategory.php", &admin, &[("action", "maintain"), ("record_id", "30"), ("report_portal_id", "3")]).await;
+    assert!(page.contains("<td width='70%'><b>Example Aero</b></td>"));
+    assert!(page.contains("<select name='headline_portalcontent_id' id='headline_portalcontent_id'>\n<option></option>\n<option value='61'>Aero head</option>\n<option value='60'>Banner (Generic)</option>\n</select>"));
+    let (en_name, en_desc, fr_name, fr_desc) = (b64("name\tEN"), b64("description\tEN"), b64("name\tFR"), b64("description\tFR"));
+    let form = [("action", "update"), ("record_id", "30"), ("report_portal_id", "3"), (en_name.as_str(), "Fixtures 2"), (en_desc.as_str(), "New"), (fr_name.as_str(), ""), (fr_desc.as_str(), "Titre"), ("output_order", "4"), ("active", "1")];
+    let (_, _, page) = submit(&h, "/portalcategory.php", &admin, &form).await;
+    assert!(page.contains("Correct 1 error(s)"));
+    let mut fixed = form.to_vec();
+    fixed[5] = (fr_name.as_str(), "Fixations");
+    let (_, _, page) = submit(&h, "/portalcategory.php", &admin, &fixed).await;
+    assert!(page.contains("<br>Record maintained"));
+    let row: (String, String, i64) = sqlx::query_as("SELECT name, headline, output_order FROM portalcategory WHERE id = 30").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("Fixtures 2".into(), "New".into(), 4));
+    let names: Vec<String> = sqlx::query_scalar("SELECT name FROM content WHERE record_type = 'portalcategory' AND record_id = 30 ORDER BY language_code").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(names, ["Fixtures 2", "Fixations"]);
+    let (_, _, page) = submit(&h, "/portalcategory.php", &admin, &[("action", "delete"), ("record_id", "31")]).await;
+    assert!(page.contains("<br>Portal Category Gauges deleted"));
+    let items: Vec<i64> = sqlx::query_scalar("SELECT id FROM portalitem ORDER BY id").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(items, [40, 41]);
+}

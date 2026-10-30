@@ -290,7 +290,7 @@ fn file_kind(name: &str) -> (&'static str, &'static str) {
     }
 }
 
-async fn languages(pool: &SqlitePool) -> sqlx::Result<Vec<(String, String)>> {
+pub(super) async fn languages(pool: &SqlitePool) -> sqlx::Result<Vec<(String, String)>> {
     let rows = sqlx::query!("SELECT code, name FROM language WHERE active = 1 ORDER BY priority, name COLLATE NOCASE").fetch_all(pool).await?;
     Ok(rows.into_iter().map(|r| (r.code, r.name)).collect())
 }
