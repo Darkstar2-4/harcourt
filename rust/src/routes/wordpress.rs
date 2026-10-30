@@ -222,7 +222,7 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
         Owner::WordPress => {
             let q = query(uri.query().unwrap_or(""));
             let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
-            if let Some(r) = sitemap(&wp, &path, q.lang).await {
+            if let Some(r) = sitemap(&wp, &path, &q).await {
                 return r;
             }
             if let Some(r) = feed(&wp, &uri, &path, &q, agent).await {
@@ -268,7 +268,7 @@ async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Op
 
 /// Yoast's sitemap rewrite rules: the index, one sitemap per type (`page-sitemap.xml`, page 1 only), its XSL, and
 /// WordPress's own /sitemap.xml, which Yoast redirects to its index. None for any other path.
-async fn sitemap(wp: &Arc<Wp>, path: &str, lang: Lang) -> Option<Response<Body>> {
+async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> {
     let xml = |body: String| -> Response<Body> {
         ([(header::CONTENT_TYPE, "text/xml; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex, follow")], public(&wp.core.public_origin, &body)).into_response()
     };
@@ -277,24 +277,33 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, lang: Lang) -> Option<Response<Body>>
         return Some(xml(sitemap::XSL.to_string()));
     }
     if name == "sitemap.xml" {
-        return Some(redirect(&wp.core.public_origin, "/sitemap_index.xml"));
+        // Yoast moves the bare address only, keeping WPML's lang; with any other query it is the 404 over the blog
+        // query, which is not ported.
+        return Some(if q.without_lang.is_empty() { redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())) } else { legacy() });
+    }
+    // Yoast's own rules match the path with its trailing slash trimmed, as WordPress does.
+    let name = name.strip_suffix('/').unwrap_or(name);
+    let is_sitemap = name == "sitemap_index.xml" || name.strip_suffix(".xml").and_then(|n| n.split_once("-sitemap")).is_some_and(|(_, page)| page.bytes().all(|b| b.is_ascii_digit()));
+    if is_sitemap && q.lang_en {
+        // WPML's 302 away from lang=en, to the address with a trailing slash.
+        return Some(found(&wp.core.public_origin, &format!("/{name}/{}", if q.without_lang.is_empty() { String::new() } else { format!("?{}", q.without_lang) })));
     }
     let site = match wp.content.site().await {
         Ok(s) => s,
         Err(e) => return Some(unavailable(e)),
     };
-    if name == "sitemap_index.xml" || name == "sitemap_index.xml/" {
-        return Some(xml(sitemap::index(&site, lang)));
+    if name == "sitemap_index.xml" {
+        return Some(xml(sitemap::index(&site, q.lang)));
     }
     let (map, page) = name.strip_suffix(".xml")?.split_once("-sitemap")?;
     if !page.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
     // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts: not ported.
-    let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, lang));
+    let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
-        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("{}{}", &path[..path.len() - 5], ".xml"))),
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml"))),
         _ => Some(legacy()),
     }
 }

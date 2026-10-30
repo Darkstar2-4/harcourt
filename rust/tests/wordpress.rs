@@ -161,6 +161,15 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
     let none = app.clone().oneshot(Request::builder().uri("/post-sitemap.xml").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(none.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"));
+
+    let (status, _, xml) = send(&app, Method::GET, "/page-sitemap.xml/").await;
+    assert_eq!(status, StatusCode::OK, "Yoast's rules match without the trailing slash");
+    assert!(xml.contains("<loc>https://www.harcourt.co/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap_index.xml?lang=en").await.1.as_deref(), Some("/sitemap_index.xml/"), "WPML's 302 away from lang=en");
+    assert_eq!(send(&app, Method::GET, "/page-sitemap.xml?lang=en").await.1.as_deref(), Some("/page-sitemap.xml/"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml?lang=fr"));
+    let blog = app.clone().oneshot(Request::builder().uri("/sitemap.xml?order=asc").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(blog.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "any other query is the blog query's 404");
 }
 
 #[tokio::test]
