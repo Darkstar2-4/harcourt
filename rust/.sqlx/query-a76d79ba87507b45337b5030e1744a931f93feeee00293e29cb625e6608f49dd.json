@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT category.id AS \"category_id!: i64\", subcategory.id AS \"id!: i64\", subcategory.name, subcategory.thumbnail_url\n           FROM inventory\n           JOIN subcategory ON subcategory.id = inventory.subcategory_id\n           JOIN category ON category.id = subcategory.category_id\n           WHERE category.active = 1 AND subcategory.status = 'Active' AND inventory.active = 1\n             AND inventory.subcategory_id IN (SELECT value FROM json_each(?1))\n           GROUP BY subcategory.id\n           ORDER BY category.sort_order, category.name, subcategory.sort_order, subcategory.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "category_id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "thumbnail_url",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a76d79ba87507b45337b5030e1744a931f93feeee00293e29cb625e6608f49dd"
+}

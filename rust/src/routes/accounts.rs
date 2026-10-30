@@ -9,13 +9,15 @@ use axum::{
 };
 
 use crate::{
-    accounts::{choice, impersonate, oauth, signup},
+    accounts::{campaign_page, choice, impersonate, login, manage, oauth, signup},
     api::Auth,
 };
 
 pub fn router(core: Arc<Auth>) -> Router {
     Router::new()
         .route("/newuser.php", get(signup::page).post(signup::action))
+        .route("/campaign.php", get(campaign_page::page).post(campaign_page::post))
+        .route("/login.php", get(login::page).post(login::page))
         .route("/user_impersonate.php", get(impersonate::page).post(impersonate::submit))
         .route("/language_change.php", get(choice::language_change))
         .route("/cookie_reset.php", get(choice::cookie_reset).post(choice::cookie_reset))
@@ -23,5 +25,6 @@ pub fn router(core: Arc<Auth>) -> Router {
         .route("/oauth/callback.php", get(oauth::microsoft_callback))
         .route("/oauth/google_init.php", get(oauth::google_init))
         .route("/oauth/google_callback.php", get(oauth::google_callback))
+        .merge(manage::router())
         .with_state(core)
 }

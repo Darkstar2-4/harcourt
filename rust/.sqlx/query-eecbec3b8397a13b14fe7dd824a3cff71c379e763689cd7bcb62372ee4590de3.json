@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", code, name, symbol, exchange_rate, adder_pct, update_timestamp, active FROM currency\n               ORDER BY CASE WHEN code = 'USD' THEN 1 WHEN exchange_rate > 0 THEN 2 ELSE 3 END, name",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "code",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "symbol",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "exchange_rate",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "adder_pct",
+        "ordinal": 5,
+        "type_info": "Float"
+      },
+      {
+        "name": "update_timestamp",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "active",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "eecbec3b8397a13b14fe7dd824a3cff71c379e763689cd7bcb62372ee4590de3"
+}

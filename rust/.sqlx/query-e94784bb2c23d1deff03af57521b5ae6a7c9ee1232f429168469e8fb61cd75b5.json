@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", code, country_code, name, local_name, priority, image_url FROM language\n               WHERE active = 1 ORDER BY code <> 'EN', priority, name",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "code",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "local_name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "image_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e94784bb2c23d1deff03af57521b5ae6a7c9ee1232f429168469e8fb61cd75b5"
+}
