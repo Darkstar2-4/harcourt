@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use axum::{
     body::Bytes,
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
     routing::any,
     Router,
@@ -24,7 +24,12 @@ use super::{
     strings::{self, Strings},
     viewer::{self, Viewer},
 };
-use crate::{api::Auth, identity::Role, pricing, visitor::Visitor};
+use crate::{
+    api::Auth,
+    identity::Role,
+    pricing,
+    visitor::{self, Visitor, PHP_CONTENT_TYPE},
+};
 
 /// The only hosts quick CAD talks to or downloads from.
 const CAD_HOST: &str = ".partcommunity.com";
@@ -50,7 +55,15 @@ fn params(query: HashMap<String, String>, body: &Bytes) -> HashMap<String, Strin
     p
 }
 
-async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
+async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Query(query): Query<HashMap<String, String>>, body: Bytes) -> Response {
+    match visitor::landing(&core, &visitor, "/scscpq_api.php", uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => {
+            tracing::error!("scscpq_api: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
+        }
+    }
     let p = params(query, &body);
     let get = |k: &str| p.get(k).map(String::as_str).unwrap_or("");
     if !headers.contains_key("x-requested-with") {
@@ -97,7 +110,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     .await;
     match result {
         Ok((v, cookie)) => {
-            let mut resp = (StatusCode::OK, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], php_json(&v)).into_response();
+            let mut resp = (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], php_json(&v)).into_response();
             if let Some(c) = cookie.and_then(|c| HeaderValue::from_str(&c).ok()) {
                 resp.headers_mut().insert(header::SET_COOKIE, c);
             }

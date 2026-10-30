@@ -55,6 +55,8 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
 #[tokio::test]
 async fn page_requests_name_the_missing_function() {
     let h = harness().await;
-    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[], Body::empty())).await;
+    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[("referer", "https://www.harcourt.co/catalog/")], Body::empty())).await;
     assert_eq!(body, "function: html_html");
+    let (status, headers, _) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[], Body::empty())).await;
+    assert_eq!((status.as_u16(), &headers["location"]), (302, &"/scs_index.php".parse().unwrap()), "a visit that begins here goes home");
 }
