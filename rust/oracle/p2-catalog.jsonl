@@ -52,3 +52,10 @@
 {"name": "wp-action-case-bogus_name", "method": "POST", "path": "/scscpq_wp.php", "body": "action=bogus_name&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-action-case-url", "method": "POST", "path": "/scscpq_wp.php", "body": "action=url&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-get-document", "path": "/scscpq_wp.php?document=document_email"}
+{"name": "api-none", "path": "/scs_api.php"}
+{"name": "api-email", "path": "/scs_api.php?email=someone%40example.com&campaign=remote"}
+{"name": "api-bad-email", "path": "/scs_api.php?email=not-an-email&campaign=remote"}
+{"name": "api-post", "method": "POST", "path": "/scs_api.php", "body": "email=someone%40example.com&campaign=nothing"}
+{"name": "stock-none", "path": "/stock.php"}
+{"name": "stock-partial", "path": "/stock.php?name=990001%7CPat+Example&sku=1&cad=STEP&email=someone%40example.com"}
+{"name": "stock-no-name", "path": "/stock.php?name=990001&sku=1&cad=STEP&email=someone%40example.com"}
