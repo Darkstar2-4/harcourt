@@ -4,9 +4,12 @@
 
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{middleware, Router};
 
-use crate::api::{self, Auth};
+use crate::{
+    api::{self, Auth},
+    visitor,
+};
 
 pub mod accounts;
 pub mod catalog;
@@ -15,11 +18,12 @@ pub mod staff;
 pub mod wordpress;
 
 pub fn all(core: Arc<Auth>) -> Router {
-    Router::new()
-        .nest_service("/api", api::router(core.clone()))
+    let pages = Router::new()
         .merge(accounts::router(core.clone()))
         .merge(catalog::router(core.clone()))
         .merge(orders::router(core.clone()))
         .merge(staff::router(core.clone()))
-        .merge(wordpress::router(core))
+        .merge(wordpress::router(core.clone()))
+        .layer(middleware::from_fn_with_state(core.clone(), visitor::layer));
+    Router::new().nest_service("/api", api::router(core)).merge(pages)
 }
