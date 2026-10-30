@@ -175,7 +175,7 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
             for (k, v) in url_query(req.url) {
                 query.set(&k, v);
             }
-            ("/catalog.php", true)
+            (if req.url.to_ascii_lowercase().contains("beta") { "/beta_catalog.php" } else { "/catalog.php" }, true)
         }
         "campaign" => {
             for (k, v) in url_query(req.url) {
@@ -407,6 +407,8 @@ mod tests {
         let req = Initial { page: "catalog", document: "", token: "", url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
+        let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
+        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
         assert_eq!(language("fr-CA"), Lang::Fr);
         assert_eq!(language(""), Lang::En);
     }
