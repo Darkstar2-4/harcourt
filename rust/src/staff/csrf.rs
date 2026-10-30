@@ -36,7 +36,7 @@ impl CsrfToken {
         &self.0
     }
 
-    fn matches(&self, given: &str) -> bool {
+    pub fn matches(&self, given: &str) -> bool {
         self.0.as_bytes().ct_eq(given.as_bytes()).into()
     }
 }
