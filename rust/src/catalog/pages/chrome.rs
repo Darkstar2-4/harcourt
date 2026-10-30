@@ -39,25 +39,45 @@ pub fn ribbon(dashboard: Option<&str>) -> String {
     out
 }
 
-/// The whole document: head, then the view between the scs_body and scs_content divs. A page outside the
-/// WordPress frame (`ribbon` given) also loads the loader script and draws the ribbon.
-pub fn document(reg: &Registry, title: &str, extra_css: &[String], body: &str, ribbon: Option<&str>) -> String {
+/// What forms_class::html_open() writes for a page: its title, and whether the page set the description meta
+/// itself (it then follows the robots meta instead of the title).
+pub struct Head<'a> {
+    pub title: &'a str,
+    pub css: &'a [String],
+    pub own_description: bool,
+}
+
+impl<'a> Head<'a> {
+    pub fn titled(title: &'a str) -> Head<'a> {
+        Head { title, css: &[], own_description: false }
+    }
+}
+
+/// forms_class::html_open(): through `<body>`. A page outside the WordPress frame also loads the loader script.
+pub fn html_open(reg: &Registry, head: &Head<'_>, own_frame: bool) -> String {
     let prefix = reg.get("www", "title_prefix").trim();
-    let full = match (title.trim().is_empty(), prefix.is_empty()) {
+    let full = match (head.title.trim().is_empty(), prefix.is_empty()) {
         (true, _) => "Untitled Page".to_string(),
-        (false, true) => title.to_string(),
-        (false, false) => format!("{prefix} {title}"),
+        (false, true) => head.title.to_string(),
+        (false, false) => format!("{prefix} {}", head.title),
     };
-    let mut meta = vec![format!("<title>{}</title>", esc(&full)), format!("<meta name=\"description\" content=\"{}\">", esc(full.trim()))];
+    let description = format!("<meta name=\"description\" content=\"{}\">", esc(full.trim()));
+    let mut meta = vec![format!("<title>{}</title>", esc(&full))];
+    if !head.own_description {
+        meta.push(description.clone());
+    }
     meta.extend(reg.items("www", "meta").iter().map(|(_, v)| v.trim().to_string()).filter(|v| !v.is_empty()));
     meta.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
+    if head.own_description {
+        meta.push(description);
+    }
     meta.push("<meta charset=\"utf-8\">".into());
     let icon = reg.get("www", "icon").trim();
     if !icon.is_empty() {
         meta.push(format!("<link rel='icon' href='{}' type='image/x-icon'>", esc(icon)));
     }
     let mut css: Vec<String> = Vec::new();
-    for href in listed(reg, "www", "css").into_iter().chain(extra_css.iter().cloned()) {
+    for href in listed(reg, "www", "css").into_iter().chain(head.css.iter().cloned()) {
         let tag = format!("<link rel='stylesheet' type='text/css' href='{}'>", esc(&href));
         if !css.contains(&tag) {
             css.push(tag);
@@ -65,7 +85,7 @@ pub fn document(reg: &Registry, title: &str, extra_css: &[String], body: &str, r
     }
     let js_async = !reg.get("www", "js_async").is_empty();
     let mut js: Vec<String> = Vec::new();
-    let own = ribbon.map(|_| "/scs_scripts/scscpq_wp.js?v=LOCAL".to_string());
+    let own = own_frame.then(|| "/scs_scripts/scscpq_wp.js?v=LOCAL".to_string());
     for src in listed(reg, "www", "js").into_iter().chain(own) {
         let tag = format!("<script type='text/javascript' src='{}'{}></script>", esc(&src), if js_async && absolute(&src) { " async" } else { "" });
         if !js.contains(&tag) {
@@ -79,15 +99,32 @@ pub fn document(reg: &Registry, title: &str, extra_css: &[String], body: &str, r
             out.push('\n');
         }
     }
-    out.push_str("</head>\n<body>\n<div id='scs_body' >\n");
+    out.push_str("</head>\n<body>\n");
+    out
+}
+
+/// forms_class::html_close().
+pub const HTML_CLOSE: &str = "</body>\n</html>\n";
+
+/// menu_class::head(): the document through the opening of scs_content. A page outside the WordPress frame
+/// (`ribbon` given) also loads the loader script and draws the ribbon.
+pub fn open(reg: &Registry, head: &Head<'_>, ribbon: Option<&str>) -> String {
+    let mut out = html_open(reg, head, ribbon.is_some());
+    out.push_str("<div id='scs_body' >\n");
     if let Some(r) = ribbon {
         out.push_str(r);
         out.push('\n');
     }
     out.push_str("<div id='scs_content' >");
-    out.push_str(body);
-    out.push_str("</div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n");
     out
+}
+
+/// menu_class::copyright(): the menu divs closed, then html_close().
+pub const CLOSE: &str = "</div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n";
+
+/// The whole document: head, then the view between the scs_body and scs_content divs.
+pub fn document(reg: &Registry, head: &Head<'_>, body: &str, ribbon: Option<&str>) -> String {
+    format!("{}{body}{CLOSE}", open(reg, head, ribbon))
 }
 
 #[cfg(test)]
@@ -102,11 +139,14 @@ mod tests {
             ("", "www", "js", "1", Some("/scs_scripts/jquery.js")),
             ("", "www", "js", "2", Some("/scs_scripts/scscpq.js")),
         ]);
-        let doc = document(&reg, "Products", &["/scs_scripts/catalog.css?v=7".into()], "<p>x</p>", None);
+        let css = ["/scs_scripts/catalog.css?v=7".to_string()];
+        let doc = document(&reg, &Head { css: &css, ..Head::titled("Products") }, "<p>x</p>", None);
         assert!(doc.starts_with("<!DOCTYPE html>\n<html>\n<head>\n<title>Harcourt | Products</title>\n<meta name=\"description\" content=\"Harcourt | Products\">\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n"));
         assert!(doc.contains("<link rel='stylesheet' type='text/css' href='/scs_scripts/a.css'>\n<link rel='stylesheet' type='text/css' href='/scs_scripts/catalog.css?v=7'>\n<script type='text/javascript' src='/scs_scripts/jquery.js'></script>\n<script type='text/javascript' src='/scs_scripts/scscpq.js'></script>\n</head>"));
         assert!(doc.ends_with("<div id='scs_content' ><p>x</p></div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n"));
-        let own = document(&reg, "Products", &[], "<p>x</p>", Some("<div id='scs_menu' ></div> <!-- #scs_menu -->"));
+        let own = document(&reg, &Head::titled("Products"), "<p>x</p>", Some("<div id='scs_menu' ></div> <!-- #scs_menu -->"));
+        let late = html_open(&reg, &Head { own_description: true, ..Head::titled("Harcourt") }, false);
+        assert!(late.contains("<title>Harcourt | Harcourt</title>\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n<meta name=\"description\" content=\"Harcourt | Harcourt\">\n<meta charset"), "{late}");
         assert!(own.contains("<script type='text/javascript' src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>"));
         assert!(own.contains("<div id='scs_body' >\n<div id='scs_menu' ></div> <!-- #scs_menu -->\n<div id='scs_content' ><p>x</p>"));
         assert!(ribbon(Some("Dashboard")).contains("<div class=scs_menu_left><a href=\"/dashboard.php\" >Dashboard</a></div><div class='scs_menu_left scscpq_impersonate'>"));

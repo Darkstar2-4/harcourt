@@ -69,7 +69,10 @@ async fn named_files_outside_images_are_refused() {
 #[tokio::test]
 async fn the_portal_page_and_the_old_home() {
     let h = harness().await;
-    let (status, _, body) = send(&h.app, get("/customer_portal.php?scscpq_wp=1", None)).await;
+    let (status, headers, _) = send(&h.app, get("/customer_portal.php?scscpq_wp=1", None)).await;
+    assert_eq!((status, headers["location"].to_str().unwrap()), (StatusCode::FOUND, "/"), "a visit that begins here goes home, as scs_header.php sent it");
+    let inside = catalog_support::request(axum::http::Method::GET, "/customer_portal.php?scscpq_wp=1", None, &[("x-requested-with", "XMLHttpRequest")], axum::body::Body::empty());
+    let (status, _, body) = send(&h.app, inside).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("<title>Untitled Page</title>") && body.contains("<iframe src='https://portal.harcourt.co'"));
     let (status, headers, _) = send(&h.app, get("/scs_index.php", None)).await;

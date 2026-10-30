@@ -35,8 +35,9 @@ use crate::{api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .route("/catalog.php", get(catalog_php))
-        .route("/new_catalog.php", get(catalog_php))
+        .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
+        .route("/beta.php", get(beta))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
@@ -278,12 +279,13 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     }
     body.push_str("</form>");
     let ribbon = (!ctx.req.framed).then(|| chrome::ribbon(ctx.viewer.at_least(Role::Executive).then(|| ctx.strings.get("menu_dashboard"))));
-    Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body, ribbon.as_deref()))
+    let css = [catalog_css(&ctx.registry)];
+    Ok(chrome::document(&ctx.registry, &chrome::Head { css: &css, ..chrome::Head::titled(title) }, &body, ribbon.as_deref()))
 }
 
 /// An SCS view in the site's page chrome, for the other catalog entry points.
 pub fn chrome_document(reg: &Registry, title: &str, body: &str) -> String {
-    chrome::document(reg, title, &[], body, None)
+    chrome::document(reg, &chrome::Head::titled(title), body, None)
 }
 
 fn catalog_css(reg: &Registry) -> String {
@@ -373,17 +375,34 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    match crate::visitor::landing(&core, &visitor, uri.path(), uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => return failed(e),
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
     }
-    let lang = viewer::lang_for(&visitor);
+    catalog_view(&core, cache, &visitor, &headers, &uri, &q).await
+}
+
+/// scs_header.php's first-visit redirect for an SCS page, or None to answer the request.
+async fn landing(core: &Auth, visitor: &Visitor, uri: &axum::http::Uri, headers: &HeaderMap) -> Option<Response> {
+    match crate::visitor::landing(core, visitor, uri.path(), uri.query(), headers).await {
+        Ok(r) => r,
+        Err(e) => Some(failed(e)),
+    }
+}
+
+/// Whether the PHP session was inside the WordPress frame: the query says so, or the request is inside a visit,
+/// and the site's visits come through the catalog page.
+fn framed(core: &Auth, q: &Params, headers: &HeaderMap) -> bool {
+    q.get("scscpq_wp").is_some_and(|v| !v.is_empty() && v != "0") || !crate::visitor::begins_visit(headers, &core.public_origin)
+}
+
+type Params = std::collections::HashMap<String, String>;
+
+async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &axum::http::Uri, q: &Params) -> Response {
     let result = async {
-        let viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let framed = q.get("scscpq_wp").is_some_and(|v| !v.is_empty() && v != "0") || !crate::visitor::begins_visit(&headers, &core.public_origin);
-        let req = Request { uri: uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string()), framed, ..Request::parse(&q) };
-        let mut ctx = load_ctx(&core.pool, &viewer, req, &headers).await?;
+        let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
+        let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
+        let req = Request { uri, framed: framed(core, q, headers), ..Request::parse(q) };
+        let mut ctx = load_ctx(&core.pool, &viewer, req, headers).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
     }
@@ -394,16 +413,93 @@ async fn catalog_php(
     }
 }
 
-/// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown.
-async fn document_viewer(State(core): State<Arc<Auth>>, Query(q): Query<std::collections::HashMap<String, String>>) -> Response {
-    let lang = Lang::from_param(q.get("lang").map(String::as_str));
+/// new_catalog.php, the 2020 catalog, kept for old links: its own gate (the access document for visitors who
+/// are not signed in, the sign-in document for a browser that never gave its address), then the catalog.
+async fn new_catalog(
+    State(core): State<Arc<Auth>>,
+    Extension(cache): Extension<Arc<super::search::Cache>>,
+    visitor: Visitor,
+    headers: HeaderMap,
+    uri: axum::http::Uri,
+    Query(q): Query<Params>,
+) -> Response {
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
+    let gate = async {
+        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
+        let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).is_some_and(|e| !e.is_empty());
+        Ok::<_, sqlx::Error>(match viewer.kind {
+            viewer::Kind::Anonymous => {
+                let reg = registry::load(&core.pool).await?;
+                let ribbon = (!framed(&core, &q, &headers)).then(|| chrome::ribbon(None));
+                let doc = document_html(&core.pool, 157, viewer.lang).await?.unwrap_or_default();
+                Some(format!("{}{doc}", chrome::open(&reg, &chrome::Head::titled("Products"), ribbon.as_deref())))
+            }
+            viewer::Kind::Account(_) if !remembered => Some(document_html(&core.pool, viewer.login_document_id.unwrap_or(156), viewer.lang).await?.unwrap_or_default()),
+            _ => None,
+        })
+    }
+    .await;
+    match gate {
+        Ok(Some(body)) => html_response(body),
+        Ok(None) => catalog_view(&core, cache, &visitor, &headers, &uri, &q).await,
+        Err(e) => failed(e),
+    }
+}
+
+/// document_viewer.php: `document` is fn_base64(id, timestamp); without it nothing is shown. With a login_url it
+/// is a page linking there, which is followed only to an address on this site.
+async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(q): Query<Params>) -> Response {
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
     let id = q
         .get("document")
         .and_then(|d| html::base64_fields_decode(d))
         .and_then(|f| f.first().map(|s| super::php::Value::Str(s.clone()).int()))
         .unwrap_or(0);
-    match document_html(&core.pool, id, lang).await {
-        Ok(body) => html_response(body.unwrap_or_default()),
+    let login_url = q.get("login_url").filter(|u| u.starts_with('/') && !u.starts_with("//") && !u.starts_with("/\\"));
+    let result = async {
+        if let Some(url) = login_url {
+            let reg = registry::load(&core.pool).await?;
+            let link = format!("<p class='center large'><a href='{}' target='_top'>Click here to continue</a></p>\n", html::esc_attr(url));
+            return Ok(format!("{}{link}{}", chrome::html_open(&reg, &chrome::Head::titled(""), false), chrome::HTML_CLOSE));
+        }
+        Ok(document_html(&core.pool, id, viewer::lang_for(&visitor)).await?.unwrap_or_default())
+    }
+    .await;
+    match result {
+        Ok(body) => html_response(body),
+        Err(e) => failed(e),
+    }
+}
+
+const BETA: &str = "<script>
+content=new Array();
+content.push(\"<style>\");
+content.push(\".scscpq_loader {display: inline-block; border: 10px solid #f3f3f3; border-radius: 50%; border-top: 10px solid #DC2536; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; animation: spin 2s linear infinite; }\");
+content.push(\".scscpq_loader_text { display: inline-block; vertical-align: top; margin-left: 10px; margin-top: 18px; }\");
+content.push(\"@-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }\");
+content.push(\"@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }\");
+content.push(\"</style>\");
+content.push(\"<div style='margin-top: 50px;text-align: center;'><div class=scscpq_loader></div><div class=scscpq_loader_text>Loading ...</div></div>\");
+jQuery(document).ready(function() {
+\tjQuery('#scscpq_page').html(content.join('\\n'));
+});
+</script>
+<div id=scscpq_page></div>";
+
+/// beta.php: the SCS page with a spinner in the place the beta catalog loaded into.
+async fn beta(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(q): Query<Params>) -> Response {
+    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
+        return r;
+    }
+    match registry::load(&core.pool).await {
+        Ok(reg) => {
+            let ribbon = (!framed(&core, &q, &headers)).then(|| chrome::ribbon(None));
+            html_response(chrome::document(&reg, &chrome::Head { own_description: true, ..chrome::Head::titled("Harcourt") }, BETA, ribbon.as_deref()))
+        }
         Err(e) => failed(e),
     }
 }

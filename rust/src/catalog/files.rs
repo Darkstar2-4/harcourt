@@ -26,7 +26,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/scs_file.php", get(scs_file))
         .route("/customer_portal.php", get(customer_portal))
         .route("/scs_index.php", get(|| async { Redirect::permanent("/") }))
-        .route("/beta.php", get(|| async { Redirect::permanent("/") }))
 }
 
 /// What a content row is attached to, which decides who may fetch it.
@@ -215,7 +214,12 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
 }
 
 /// customer_portal.php in the site's page: the portal in a frame.
-async fn customer_portal(State(core): State<Arc<Auth>>) -> Response {
+async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor, headers: axum::http::HeaderMap, uri: axum::http::Uri) -> Response {
+    match crate::visitor::landing(&core, &visitor, uri.path(), uri.query(), &headers).await {
+        Ok(Some(r)) => return r,
+        Ok(None) => {}
+        Err(e) => tracing::error!("customer_portal: {e}"),
+    }
     match registry::load(&core.pool).await {
         Ok(reg) => {
             let body = "<iframe src='https://portal.harcourt.co' width='100%' frameBorder='0' style='height: 1000px;'></iframe>";
