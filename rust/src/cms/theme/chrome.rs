@@ -556,7 +556,12 @@ fn footer_menu(c: &mut Ctx) {
     let items: Vec<&MenuItem> = c.site.menu(Menu::Footer, c.lang()).collect();
     let classes = menu_classes(c, &items);
     let slug = if c.lang() == Lang::Fr { "footer-french" } else { "footer" };
-    let suffix = c.site.meta(c.page.id).get("footer_menu_id_suffix").cloned().unwrap_or_default();
+    let suffix = c
+        .holes
+        .and_then(|h| h.get("footer_menu_id_suffix"))
+        .or_else(|| c.site.meta(c.page.id).get("footer_menu_id_suffix"))
+        .cloned()
+        .unwrap_or_default();
     c.push(&format!("<div class=\"menu-{slug}-container\"><ul id=\"menu-{slug}"));
     if probing(c) {
         c.push("{{footer_menu_id_suffix}}");
