@@ -38,3 +38,5 @@
 {"name":"subcategory-order-maintain","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=&report_category_id=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"subcategory-order-unknown-category","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=maintain&record_id=&report_category_id=999999&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"subcategory-order-cancel","method":"POST","path":"/subcategory_order.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=&report_category_id=1&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"subcategory-prj-anonymous","path":"/subcategory_prj.php","persona":"anonymous"}
+{"name":"subcategory-prj","path":"/subcategory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}

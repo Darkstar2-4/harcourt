@@ -401,3 +401,16 @@ async fn subcategories_are_reordered_in_the_order_posted() {
     let orders: Vec<(i64, i64)> = sqlx::query_as("SELECT id, sort_order FROM subcategory ORDER BY id").fetch_all(&h.pool).await.unwrap();
     assert_eq!(orders, [(50, 5), (51, 10), (52, 1)]);
 }
+
+#[tokio::test]
+async fn subcategories_sharing_a_project_file_are_listed_together() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "UPDATE subcategory SET prj = 'info=harcourt/a/pins.prj' WHERE id = 50").await;
+    exec(&h.pool, "UPDATE subcategory SET prj = 'harcourt/b/pins.prj' WHERE id = 51").await;
+    exec(&h.pool, "INSERT INTO subcategory (id, category_id, name, status, prj) VALUES (53, 5, 'Alone', 'Active', 'harcourt/c/alone.prj')").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/subcategory_prj.php", Some(&admin))).await;
+    assert!(page.contains("<tbody><tr><td rowspan=2>pins.prj</td><td class=right>51</td><td>Old Pins</td><td></td><td>harcourt/b/pins.prj</td></tr><tr><td class=right>50</td><td>Test Pins</td><td>TP-100</td><td>harcourt/a/pins.prj</td></tr></tbody></table>"));
+    assert!(!page.contains("alone.prj"));
+}

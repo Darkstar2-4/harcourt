@@ -1,5 +1,5 @@
-//! The PARTsolutions links of the parts (`inventory.prj`): inventory_missing_prj.php lists the parts without one,
-//! and inventory_prj.php imports them from a PARTsolutions export.
+//! The PARTsolutions links (`prj`): inventory_missing_prj.php lists the parts without one, inventory_prj.php imports
+//! them from a PARTsolutions export, and subcategory_prj.php lists subcategories whose project files share a name.
 //!
 //! The PHP import kept the parsed upload in `scs.tmp` in the document root between the review and the update,
 //! one file for every user. Here the review form carries the parsed links back in a hidden field.
@@ -18,6 +18,7 @@ use crate::api::{Administrator, Auth};
 
 const MISSING_PATH: &str = "/inventory_missing_prj.php";
 const IMPORT_PATH: &str = "/inventory_prj.php";
+const REVIEW_PATH: &str = "/subcategory_prj.php";
 
 /// One subcategory's parts without a link, in category and subcategory order.
 struct Missing {
@@ -68,6 +69,66 @@ async fn show_missing(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>
         body.push_str(&format!("<h3>{}: {} ({})</h3>\n<div>\n{}</div>\n", text(&g.category), text(&g.subcategory), skus.len(), skus.join("<br>\n")));
     }
     body.push_str("</div>\n");
+    body.push_str(close());
+    shell::page(pool, staff.view(), title, &body).await
+}
+
+/// ksort() of PHP array keys: numeric keys compare as numbers, anything else as text.
+fn php_key_order(a: &str, b: &str) -> std::cmp::Ordering {
+    match (a.parse::<i64>(), b.parse::<i64>()) {
+        (Ok(x), Ok(y)) => x.cmp(&y),
+        _ => a.cmp(b),
+    }
+}
+
+/// A subcategory with its project path: id, name, first SKU and path.
+type Project = (i64, String, String, String);
+
+/// Subcategories grouped by the file name their project path ends in; only names shared by two or more.
+async fn shared_projects(pool: &SqlitePool) -> sqlx::Result<Vec<(String, Vec<Project>)>> {
+    let rows = sqlx::query!(
+        r#"SELECT s.id AS "id!: i64", s.name, s.prj AS "prj!: String",
+                  (SELECT sku FROM inventory i WHERE i.subcategory_id = s.id ORDER BY i.id LIMIT 1) AS "sku?: String"
+           FROM subcategory s WHERE s.prj IS NOT NULL ORDER BY s.name COLLATE NOCASE"#
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut groups: Vec<(String, Vec<Project>)> = Vec::new();
+    for r in rows {
+        let prj = r.prj.replace("info=", "");
+        let code = prj.rsplit('/').next().unwrap_or("").to_string();
+        let item = (r.id, r.name.unwrap_or_default(), r.sku.unwrap_or_default(), prj);
+        match groups.iter_mut().find(|(c, _)| *c == code) {
+            Some((_, items)) => items.push(item),
+            None => groups.push((code, vec![item])),
+        }
+    }
+    groups.retain(|(_, items)| items.len() > 1);
+    groups.sort_by(|a, b| php_key_order(&a.0, &b.0));
+    Ok(groups)
+}
+
+async fn show_review(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>) -> Response {
+    let pool = &auth.pool;
+    let groups = match shared_projects(pool).await {
+        Ok(g) => g,
+        Err(e) => return shell::internal(e),
+    };
+    let title = "Subcategory PRJ Review";
+    let mut body = Notes::new(title, "").render();
+    body.push_str(&open(REVIEW_PATH, staff.csrf.as_str(), false));
+    body.push_str("<table class='border'><thead><tr><th>Suffix</th><th>Subcategory ID</th><th>Name</th><th>SKU</th><th>Project</th></tr></thead><tbody>");
+    for (code, items) in groups {
+        for (i, (id, name, sku, prj)) in items.iter().enumerate() {
+            body.push_str("<tr>");
+            if i == 0 {
+                body.push_str(&format!("<td rowspan={}>{}</td>", items.len(), text(&code)));
+            }
+            body.push_str(&format!("<td class=right>{id}</td><td>{}</td><td>{}</td><td>{}</td></tr>", text(name), text(sku), text(prj)));
+        }
+        body.push_str("</tbody>");
+    }
+    body.push_str("</table>");
     body.push_str(close());
     shell::page(pool, staff.view(), title, &body).await
 }
@@ -248,7 +309,7 @@ async fn post_import(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>,
 }
 
 pub fn routes() -> Router<Arc<Auth>> {
-    Router::new().route(MISSING_PATH, get(show_missing)).route(IMPORT_PATH, get(show_import).post(post_import))
+    Router::new().route(MISSING_PATH, get(show_missing)).route(IMPORT_PATH, get(show_import).post(post_import)).route(REVIEW_PATH, get(show_review))
 }
 
 #[cfg(test)]
