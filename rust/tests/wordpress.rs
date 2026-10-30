@@ -165,3 +165,66 @@ async fn the_notice_banner_is_a_site_wide_option() {
     let (_, _, fr) = send(&app, Method::GET, "/gamme-de-produits/centrage/?lang=fr").await;
     assert!(!fr.contains("legacy-website"), "each language has its own banner");
 }
+
+async fn admin_cookie(pool: &SqlitePool, role: &str) -> String {
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", domain, company_name) VALUES (500, 'Active', ?1, 'staff.example', 'Example staff')"#).bind(role).execute(pool).await.unwrap();
+    let token = hxweb::session::create(pool, UserId(500), Some("editor@staff.example"), db::unix_now()).await.unwrap();
+    format!("{}={}", hxweb::session::COOKIE, token.as_str())
+}
+
+fn admin_app(pool: &SqlitePool) -> Router {
+    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![] });
+    Router::new().nest("/dashboard/cms", hxweb::cms::admin::router(auth))
+}
+
+async fn admin(app: &Router, method: Method, uri: &str, cookie: &str, origin: Option<&str>, form: &str) -> (StatusCode, Option<String>, String) {
+    let mut req = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    if let Some(o) = origin {
+        req = req.header(header::ORIGIN, o);
+    }
+    let res = app.clone().oneshot(req.body(Body::from(form.to_string())).unwrap()).await.unwrap();
+    let status = res.status();
+    let location = res.headers().get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
+    (status, location, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
+}
+
+#[tokio::test]
+async fn staff_edit_page_text_from_the_dashboard_screens() {
+    let (site, pool) = harness().await;
+    let cookie = admin_cookie(&pool, "Administrator").await;
+    let app = admin_app(&pool);
+    let (status, location, _) = admin(&app, Method::GET, "/dashboard/cms", &cookie, None, "").await;
+    assert_eq!((status, location.as_deref()), (StatusCode::SEE_OTHER, Some("/dashboard/cms/pages")));
+    let (status, _, list) = admin(&app, Method::GET, "/dashboard/cms/pages", &cookie, None, "").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(list.contains("<a href=\"page/165\">/product/alignment/</a>"));
+    let (status, _, form) = admin(&app, Method::GET, "/dashboard/cms/page/165", &cookie, None, "").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(form.contains("name=\"hero_title\" rows=\"2\">Synthetic Alignment &lt;b&gt;hero&lt;/b&gt;</textarea>"));
+    assert!(!form.contains("name=\"block_one\""), "structure is not editable");
+
+    let post = "hero_title=Dashboard+%3Cem%3Eedit%3C%2Fem%3E&meta%3Atitle=Tab&note=from+the+test";
+    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://evil.example"), post).await.0, StatusCode::FORBIDDEN);
+    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, None, post).await.0, StatusCode::FORBIDDEN);
+    let (status, location, _) = admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://www.harcourt.co"), post).await;
+    assert_eq!((status, location.as_deref()), (StatusCode::SEE_OTHER, Some("../page/165")));
+    let (_, _, html) = send(&site, Method::GET, "/product/alignment/").await;
+    assert!(html.contains("<h1 class=\"mt-5\">Dashboard <em>edit</em></h1>"));
+    let history = edit::page_revisions(&pool, PageId(165)).await.unwrap();
+    assert_eq!((history[0].saved_by, history[0].note.as_str()), (500, "from the test"));
+
+    let (status, _, _) = admin(&app, Method::POST, "/dashboard/cms/options/en", &cookie, Some("https://www.harcourt.co"), "website_notification=Closed+Friday").await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    assert!(send(&site, Method::GET, "/product/alignment/").await.2.contains("Closed Friday"));
+}
+
+#[tokio::test]
+async fn only_administrators_reach_the_dashboard_screens() {
+    let (_, pool) = harness().await;
+    let cookie = admin_cookie(&pool, "Internal").await;
+    let app = admin_app(&pool);
+    assert_eq!(admin(&app, Method::GET, "/dashboard/cms/pages", &cookie, None, "").await.0, StatusCode::FORBIDDEN);
+    assert_eq!(admin(&app, Method::GET, "/dashboard/cms/page/165", "", None, "").await.0, StatusCode::UNAUTHORIZED);
+    let post = "hero_title=x";
+    assert_eq!(admin(&app, Method::POST, "/dashboard/cms/page/165", &cookie, Some("https://www.harcourt.co"), post).await.0, StatusCode::FORBIDDEN);
+}

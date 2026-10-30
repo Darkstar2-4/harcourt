@@ -18,6 +18,7 @@
 //! Until that exists, [`forms::Islands`] asks the WordPress island endpoint (mu-plugins/hx-form-island.php), as
 //! the static pages do today.
 
+pub mod admin;
 pub mod edit;
 pub mod forms;
 pub mod html;
