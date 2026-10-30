@@ -397,23 +397,66 @@ fn form_action(uri: &str) -> String {
     let rebuilt = match before_fragment.split_once('?') {
         None => before_fragment.to_string(),
         Some((path, query)) => {
-            let mut pairs: Vec<(String, String)> = Vec::new();
-            for (k, v) in form_urlencoded::parse(query.as_bytes()) {
-                let k = k.replace([' ', '.'], "_");
-                if k == "gf_token" {
-                    continue;
-                }
-                match pairs.iter_mut().find(|(seen, _)| *seen == k) {
-                    Some(slot) => slot.1 = v.into_owned(),
-                    None => pairs.push((k, v.into_owned())),
-                }
-            }
-            let query: Vec<String> = pairs.iter().map(|(k, v)| if v.is_empty() { k.clone() } else { format!("{k}={}", php_urlencode(v)) }).collect();
-            if query.is_empty() { path.to_string() } else { format!("{path}?{}", query.join("&")) }
+            let query = rebuild_query(query, "gf_token");
+            if query.is_empty() { path.to_string() } else { format!("{path}?{query}") }
         }
     };
     let url = if fragment.is_empty() { rebuilt } else { format!("{rebuilt}#{fragment}") };
     esc_url(&url)
+}
+
+/// A query value as PHP's parse_str() reads it: `a=1`, or `a[]=1&a[x]=2` as a list of (subkey, value).
+enum Arg {
+    One(String),
+    List(Vec<(String, String)>),
+}
+
+/// WordPress's add_query_arg() rebuilding a query without `drop`: parse_str() it (a key keeps its first position and
+/// its last value; `.` and spaces in a name become `_`; `a[]` and `a[x]` make an array), urlencode() each value, write
+/// each key as parsed, and drop the `=` of an empty value.
+fn rebuild_query(query: &str, drop: &str) -> String {
+    let mut args: Vec<(String, Arg)> = Vec::new();
+    for (k, v) in form_urlencoded::parse(query.as_bytes()) {
+        let k = k.trim_start();
+        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
+            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
+            None => (k.replace(['.', ' '], "_"), None),
+        };
+        if name.is_empty() {
+            continue;
+        }
+        let v = v.into_owned();
+        let slot = args.iter().position(|(key, _)| *key == name);
+        match (sub, slot) {
+            (None, Some(i)) => args[i].1 = Arg::One(v),
+            (None, None) => args.push((name, Arg::One(v))),
+            (Some(sub), slot) => {
+                let i = slot.unwrap_or_else(|| {
+                    args.push((name, Arg::List(Vec::new())));
+                    args.len() - 1
+                });
+                if let Arg::One(_) = args[i].1 {
+                    args[i].1 = Arg::List(Vec::new());
+                }
+                if let Arg::List(list) = &mut args[i].1 {
+                    let sub = if sub.is_empty() { list.len().to_string() } else { sub };
+                    match list.iter_mut().find(|(s, _)| *s == sub) {
+                        Some(e) => e.1 = v,
+                        None => list.push((sub, v)),
+                    }
+                }
+            }
+        }
+    }
+    let pair = |k: &str, v: &str| if v.is_empty() { k.to_string() } else { format!("{k}={}", php_urlencode(v)) };
+    args.iter()
+        .filter(|(k, _)| k != drop)
+        .flat_map(|(k, a)| match a {
+            Arg::One(v) => vec![pair(k, v)],
+            Arg::List(list) => list.iter().map(|(s, v)| pair(&format!("{k}%5B{s}%5D"), v)).collect(),
+        })
+        .collect::<Vec<_>>()
+        .join("&")
 }
 
 /// PHP's urlencode(): everything but letters, digits and `-_.` as %XX, spaces as `+`.
