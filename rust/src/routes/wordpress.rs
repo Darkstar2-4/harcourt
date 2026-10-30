@@ -333,7 +333,8 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
 /// A one-segment path with no page in the request's language: WordPress takes it for a post name, finds none, and
 /// redirect_guess_404_permalink() sends the visitor to the first published post (in the order the database reads
 /// them, by date) whose slug starts with it, which WPML links in the request's language. So /contact/?lang=fr goes
-/// to the French contact form, not to the translation of /contact/.
+/// to the French contact form, not to the translation of /contact/. WPML links a page with no French translation at
+/// its own path with `?lang=fr`; when that is the URL asked for, route() leaves the 404 alone.
 fn guess<'a>(site: &'a Site, name: &str, lang: Lang) -> Answer<'a> {
     let slug = |p: &Page| p.path.trim_end_matches('/').rsplit('/').next().unwrap_or("").to_string();
     let Some(g) = site.pages.iter().filter(|p| p.status == Status::Publish && slug(p).starts_with(name)).min_by_key(|p| (p.published_at.as_str(), p.id))
@@ -346,8 +347,7 @@ fn guess<'a>(site: &'a Site, name: &str, lang: Lang) -> Answer<'a> {
             Answer::Redirect(format!("{}{}", t.path, t.lang.query()))
         }
         (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
-        // WPML links an untranslated page at the URL asked for, so redirect_canonical() leaves the 404 alone.
-        (Lang::Fr, _) => Answer::NotFound,
+        (Lang::Fr, _) => Answer::Redirect(format!("{}{}", g.path, Lang::Fr.query())),
     }
 }
 
@@ -383,7 +383,15 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         (Answer::Render(p), None) => Answer::Render(p),
         (Answer::Render(p), Some(_)) if raw_query.is_empty() => Answer::Redirect(p.path.clone()),
         (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
-        (Answer::Redirect(to), _) => Answer::Redirect(with_query(&to, raw_query)),
+        (Answer::Redirect(to), _) => {
+            let to = with_query(&to, raw_query);
+            let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
+            if to == asked {
+                Answer::NotFound
+            } else {
+                Answer::Redirect(to)
+            }
+        }
         (other, _) => other,
     }
 }
@@ -748,7 +756,10 @@ mod tests {
         assert_eq!(resolve(&site, "/product/alignment/", Lang::Fr), Answer::Redirect("/gamme-de-produits/centrage/?lang=fr".into()));
         assert_eq!(resolve(&site, "/industries/", Lang::En), Answer::Redirect("/?page_id=4".into()));
         assert_eq!(resolve(&site, "/seulement/", Lang::En), Answer::Redirect("/seulement/?lang=fr".into()));
-        assert_eq!(resolve(&site, "/legal/", Lang::Fr), Answer::NotFound);
+        assert_eq!(resolve(&site, "/legal/", Lang::Fr), Answer::Redirect("/legal/?lang=fr".into()), "an untranslated page, linked in French");
+        assert_eq!(route(&site, "/legal/", &query("lang=fr"), "lang=fr"), Answer::NotFound, "already there: the 404 stays");
+        assert_eq!(route(&site, "/legal", &query("lang=fr"), "lang=fr"), Answer::Redirect("/legal/?lang=fr".into()));
+        assert_eq!(route(&site, "/leg/", &query("lang=fr&x=1"), "lang=fr&x=1"), Answer::Redirect("/legal/?lang=fr&x=1".into()));
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
         let carts = Site::new(vec![
             page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
