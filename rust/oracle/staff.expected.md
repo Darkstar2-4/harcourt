@@ -17,8 +17,8 @@ none of them is an allowed normalization.
   page checked no role. No case exercises it.
 - **Retired paths.** The web SQL consoles, PHP diagnostics and developer toolboxes (`retired.rs`) answer 410 in
   Rust. There are no cases for them.
-- **Dashboard menu.** The links to `/scs_mysql.php`, `/scs_toolbox.php`, `/jquery_toolbox.php` and
-  `/php_toolbox.php` are gone, because those paths answer 410. "Remote Grants" (`/staff/remote-grants`, a page
+- **Dashboard menu.** The links to `/scs_mysql.php`, `/scs_toolbox.php`, `/jquery_toolbox.php`,
+  `/php_toolbox.php` and `/scs_filemanager.php` are gone, because those paths answer 410. "Remote Grants" (`/staff/remote-grants`, a page
   with no PHP original) is added for Administrators.
 - **Stopwatch tab.** The Super User tab that timed the dashboard's queries and printed their SQL is not ported. The
   superuser case shows its absence.

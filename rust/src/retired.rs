@@ -15,8 +15,11 @@ use percent_encoding::percent_decode_str;
 /// remote_grant.rs (POST /api/remote/grants, POST /api/remote/redeem).
 ///
 /// The web SQL consoles, PHP diagnostics and developer toolboxes have no replacement: staff use the SQLite CLI and
-/// the server shell.
+/// the server shell. So has the document-root file manager (scs_filemanager.php), which uploaded, renamed and
+/// deleted any file under the docroot.
 const RETIRED: &[&str] = &[
+    "scs_filemanager.php",
+    "filemanager_rev0.php",
     "scs_remote.php",
     "scs_mysql_remote.php",
     "scs_mysql.php",

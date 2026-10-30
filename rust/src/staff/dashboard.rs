@@ -26,7 +26,7 @@ use crate::{
 const PATH: &str = "/dashboard.php";
 const WEEK: i64 = 7 * 86400;
 
-use Role::{Administrator as A, Executive as E, Internal as I, SuperUser as S};
+use Role::{Administrator as A, Executive as E, Internal as I};
 
 /// The menu: groups of (minimum role, label, path). The last group is titled with the visitor's role.
 type Link = (Role, &'static str, &'static str);
@@ -118,7 +118,6 @@ const MENU: &[(&str, &[Link])] = &[
             (E, "Reset Cookie", "/cookie_reset.php"),
             (A, "Email Documents", "/mailer_maintain.php"),
             (A, "Email Output Tester", "/mailer_output.php"),
-            (S, "File Manager", "/scs_filemanager.php"),
         ],
     ),
 ];
@@ -616,8 +615,8 @@ mod tests {
         assert!(!exec.contains("Remote Access"));
         assert!(exec.contains("<span style='font-size: 140%;'>Executive</span><br>"));
         let admin = menu(Role::Administrator);
-        assert!(admin.contains("/staff/remote-grants") && !admin.contains("/scs_filemanager.php"));
-        assert!(menu(Role::SuperUser).contains("/scs_filemanager.php"));
+        assert!(admin.contains("/staff/remote-grants"));
+        assert!(!menu(Role::SuperUser).contains("/scs_filemanager.php"));
         assert!(exec.contains("<a href=\"/cookie.php\" class='nobr' target='_blank'>Cookie Test</a>"));
         assert!(menu(Role::Executive).contains("<span style='font-size: 140%;'>User & BOT Manager</span>"));
         for gone in ["/scs_mysql.php", "/scs_toolbox.php", "/jquery_toolbox.php", "/php_toolbox.php"] {
