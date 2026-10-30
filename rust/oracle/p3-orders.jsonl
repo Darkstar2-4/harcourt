@@ -77,3 +77,6 @@
 {"name":"p3-french-link-contact-form-troy-mi","path":"/contact-form-troy-mi?lang=fr","language":"fr"}
 {"name":"p3-french-link-boxjoint-inquiry-form","path":"/boxjoint-inquiry-form?lang=fr","language":"fr"}
 {"name":"p3-french-link-contact-form-madison-heights-mi","path":"/contact-form-madison-heights-mi?lang=fr&utm_source=x","language":"fr"}
+{"name":"p3-french-link-empty-value","path":"/contact-form-troy-mi/?x=&lang=fr","language":"fr"}
+{"name":"p3-french-link-bare-order","path":"/contact-form-troy-mi?x=1&lang=fr","language":"fr"}
+{"name":"p3-french-link-repeated","path":"/boxjoint-inquiry-form/?lang=fr&lang=fr","language":"fr"}
