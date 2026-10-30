@@ -345,7 +345,7 @@ const WP_KEYS: &[&str] = &[
 
 /// Which page a request asks for, from its query.
 #[derive(Debug, PartialEq, Eq)]
-struct Query {
+pub struct Query {
     /// WPML's `lang`: the last one counts, and anything but `fr` is English.
     lang: Lang,
     /// That last `lang` says `en`, which WPML redirects away.
@@ -364,7 +364,7 @@ struct Query {
     wordpress_form_query: String,
 }
 
-fn query(q: &str) -> Query {
+pub fn query(q: &str) -> Query {
     let pairs: Vec<&str> = q.split('&').filter(|kv| !kv.is_empty()).collect();
     let key = |kv: &str| kv.split('=').next().unwrap_or("").to_string();
     let neutral = pairs.iter().all(|kv| NEUTRAL_KEYS.contains(&key(kv).as_str()));
@@ -382,7 +382,7 @@ fn query(q: &str) -> Query {
 
 /// What a claimed path answers, given the content and the requested language.
 #[derive(Debug, PartialEq, Eq)]
-enum Answer<'a> {
+pub enum Answer<'a> {
     Render(&'a Page),
     /// 301 to a path on this site.
     Redirect(String),
@@ -398,7 +398,7 @@ enum Answer<'a> {
 /// What WordPress's rewrite rules and main query make of a path (with its slash), in the request's language. Pages
 /// are found by path without regard to case (MySQL's collation), and redirect_canonical() compares paths in lower
 /// case, so a page asked for in other case is shown where it was asked for.
-fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
+pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     let published = |l: Lang| {
         site.find(l, path).or_else(|| site.pages.iter().find(|p| p.lang == l && p.path.eq_ignore_ascii_case(path))).filter(|p| p.status == Status::Publish)
     };
@@ -661,7 +661,7 @@ fn front_without_lang(site: &Site, raw_query: &str) -> String {
 /// page in its own language got the exported page. Everything else was WordPress's: WPML drops `lang=en` with a
 /// 302, redirect_canonical() adds a missing slash keeping the query as sent, and a page asked for in the other
 /// language moves in one 301 to its translation's URL with the query rebuilt (`with_query`).
-fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'a> {
+pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'a> {
     let slashed = if path.ends_with('/') { None } else { Some(format!("{path}/")) };
     let answer = resolve(site, slashed.as_deref().unwrap_or(path), q.lang);
     if q.neutral && slashed.is_none() && matches!(answer, Answer::Render(_)) {

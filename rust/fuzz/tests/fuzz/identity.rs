@@ -1,4 +1,5 @@
 use hxweb::{access_code::normalise, identity::Email, retired::is_retired, token::Token};
+use hxweb_fuzz::{config, gen, within, PURE};
 use proptest::prelude::*;
 
 const CODE_ALPHABET: &str = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -15,10 +16,10 @@ fn token_text() -> impl Strategy<Value = String> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(4096))]
+    #![proptest_config(config(16384))]
 
     #[test]
-    fn email_parse_is_total_and_its_output_is_canonical(s in any::<String>()) {
+    fn email_parse_is_total_and_its_output_is_canonical(s in gen::text(80)) {
         if let Some(e) = Email::parse(&s) {
             let canonical = s.trim().to_ascii_lowercase();
             prop_assert_eq!(e.as_str(), canonical.as_str());
@@ -47,7 +48,7 @@ proptest! {
     }
 
     #[test]
-    fn token_parse_accepts_exactly_the_generated_shape(s in any::<String>()) {
+    fn token_parse_accepts_exactly_the_generated_shape(s in gen::text(60)) {
         let shape = s.len() == 43 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
         prop_assert_eq!(Token::parse(&s).is_some(), shape);
     }
@@ -62,7 +63,7 @@ proptest! {
     }
 
     #[test]
-    fn normalise_is_total_and_yields_only_codes(s in any::<String>()) {
+    fn normalise_is_total_and_yields_only_codes(s in gen::text(40)) {
         if let Some(c) = normalise(&s) {
             prop_assert_eq!(c.len(), 8);
             prop_assert!(c.chars().all(|ch| CODE_ALPHABET.contains(ch)));
@@ -82,12 +83,27 @@ proptest! {
     }
 
     #[test]
-    fn is_retired_is_total_and_never_fires_without_the_name(s in any::<String>()) {
-        let hit = is_retired(&s);
+    fn is_retired_is_total_and_never_fires_without_a_php_segment(s in prop_oneof![gen::url_text(20), gen::path()]) {
+        let hit = within(PURE, "is_retired", || is_retired(&s));
         let decoded = percent_encoding::percent_decode_str(&s).decode_utf8_lossy().to_ascii_lowercase();
-        if !decoded.contains("scs_remote.php") {
-            prop_assert!(!hit);
+        if !decoded.split('/').any(|seg| seg.ends_with(".php")) {
+            prop_assert!(!hit, "{}", s);
         }
+    }
+
+    #[test]
+    fn is_retired_reads_the_path_as_apache_decodes_it(s in gen::path(), upper in any::<bool>(), encode in proptest::collection::vec(any::<bool>(), 64)) {
+        let s = s.replace('%', "");
+        let spelled: String = s
+            .chars()
+            .zip(encode.iter().cycle())
+            .map(|(c, &enc)| match c {
+                c if enc && c.is_ascii() => format!("%{:02X}", c as u32),
+                c if upper => c.to_ascii_uppercase().to_string(),
+                c => c.to_string(),
+            })
+            .collect();
+        prop_assert_eq!(is_retired(&spelled), is_retired(&s), "{} {}", s, spelled);
     }
 
     #[test]

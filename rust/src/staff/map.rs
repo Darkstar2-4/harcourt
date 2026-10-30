@@ -336,13 +336,7 @@ pub fn float_text(v: f64) -> String {
 /// number_format($v, $places, ".", ""): rounded half away from zero, no thousands separator.
 pub fn number_format(v: f64, places: u32) -> String {
     let d: rust_decimal::Decimal = rust_decimal::prelude::FromPrimitive::from_f64(v).unwrap_or_default();
-    let rounded = d.round_dp_with_strategy(places, rust_decimal::RoundingStrategy::MidpointAwayFromZero);
-    let s = format!("{rounded:.*}", places as usize);
-    if s.starts_with('-') && s[1..].bytes().all(|b| b == b'0' || b == b'.') {
-        s[1..].to_string()
-    } else {
-        s
-    }
+    crate::orders::shop::number_format(d, places).replace(',', "")
 }
 
 /// A value of a column in an export (export_data()). Excel gets numbers where the column is numeric.
@@ -652,7 +646,10 @@ pub fn read_upload(file_name: &str, bytes: &[u8], worksheet: Option<&str>) -> Re
         return Err(format!("Upload error #{}", 1));
     }
     match file_type {
-        FileType::Xlsx => read_xlsx(bytes, worksheet).map_err(|_| format!("{} not XLXS format", esc(file_name))),
+        FileType::Xlsx => read_xlsx(bytes, worksheet).map_err(|e| match e {
+            Unread::Format => format!("{} not XLXS format", esc(file_name)),
+            Unread::Size => format!("Upload error #{}", 1),
+        }),
         _ => {
             let text = String::from_utf8_lossy(bytes);
             let delimiter = file_type.delimiter() as char;
@@ -682,29 +679,72 @@ fn fgets_lines(text: &str) -> impl Iterator<Item = &str> {
     })
 }
 
-fn read_xlsx(bytes: &[u8], wanted: Option<&str>) -> Result<Sheet, calamine::XlsxError> {
+/// Why an Excel upload was not read.
+enum Unread {
+    Format,
+    Size,
+}
+
+/// What an Excel upload may unpack to. The zip reader holds each part to the size the archive declares for it.
+const XLSX_UNPACKED: u64 = 512 << 20;
+
+/// The most cells an Excel sheet is read into, counting the blanks before the last cell of each row.
+const XLSX_CELLS: usize = 20_000_000;
+
+/// The sheet's rows from its first row and column with a value, each up to its last value.
+fn read_xlsx(bytes: &[u8], wanted: Option<&str>) -> Result<Sheet, Unread> {
     use calamine::Reader;
-    let mut book = calamine::Xlsx::new(std::io::Cursor::new(bytes.to_vec()))?;
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|_| Unread::Format)?;
+    let mut unpacked = 0u64;
+    for i in 0..zip.len() {
+        unpacked = unpacked.saturating_add(zip.by_index_raw(i).map_err(|_| Unread::Format)?.size());
+    }
+    if unpacked > XLSX_UNPACKED {
+        return Err(Unread::Size);
+    }
+    let mut book = calamine::Xlsx::new(std::io::Cursor::new(bytes)).map_err(|_| Unread::Format)?;
     let names = book.sheet_names();
     let clean = |s: &str| s.chars().map(|c| if "\\/?*:[]".contains(c) { ' ' } else { c }).collect::<String>();
     let name = wanted.map(clean).and_then(|w| names.iter().find(|n| n.eq_ignore_ascii_case(&w)).cloned()).or_else(|| names.first().cloned());
     let Some(name) = name else { return Ok(Sheet { file_type: FileType::Xlsx, rows: Vec::new(), worksheet: None }) };
-    let range = book.worksheet_range(&name)?;
-    let rows = range
-        .rows()
-        .map(|r| {
-            r.iter()
-                .map(|c| match c {
-                    calamine::Data::Empty => String::new(),
-                    calamine::Data::Float(f) => float_text(*f),
-                    calamine::Data::Int(i) => i.to_string(),
-                    calamine::Data::Bool(b) => if *b { "1" } else { "" }.into(),
-                    calamine::Data::DateTime(d) => float_text(d.as_f64()),
-                    other => other.to_string(),
-                })
-                .collect()
-        })
-        .collect();
+    let mut reader = book.worksheet_cells_reader(&name).map_err(|_| Unread::Format)?;
+    let mut cells: Vec<(u32, u32, String)> = Vec::new();
+    while let Some(cell) = reader.next_cell().map_err(|_| Unread::Format)? {
+        if cells.len() == XLSX_CELLS {
+            return Err(Unread::Size);
+        }
+        let (row, col) = cell.get_position();
+        let text = match calamine::Data::from(cell.get_value().clone()) {
+            calamine::Data::Empty => continue,
+            calamine::Data::Float(f) => float_text(f),
+            calamine::Data::Int(i) => i.to_string(),
+            calamine::Data::Bool(b) => if b { "1" } else { "" }.into(),
+            calamine::Data::DateTime(d) => float_text(d.as_f64()),
+            other => other.to_string(),
+        };
+        cells.push((row, col, text));
+    }
+    let (Some(top), Some(bottom), Some(left)) =
+        (cells.iter().map(|c| c.0).min(), cells.iter().map(|c| c.0).max(), cells.iter().map(|c| c.1).min())
+    else {
+        return Ok(Sheet { file_type: FileType::Xlsx, rows: Vec::new(), worksheet: Some(name) });
+    };
+    let height = (bottom - top) as usize + 1;
+    if height > XLS_ROWS {
+        return Err(Unread::Size);
+    }
+    let mut widths = vec![0usize; height];
+    for &(row, col, _) in &cells {
+        let w = &mut widths[(row - top) as usize];
+        *w = (*w).max((col - left) as usize + 1);
+    }
+    if widths.iter().sum::<usize>() > XLSX_CELLS {
+        return Err(Unread::Size);
+    }
+    let mut rows: Vec<Vec<String>> = widths.iter().map(|&w| vec![String::new(); w]).collect();
+    for (row, col, text) in cells {
+        rows[(row - top) as usize][(col - left) as usize] = text;
+    }
     Ok(Sheet { file_type: FileType::Xlsx, rows, worksheet: Some(name) })
 }
 
@@ -1116,6 +1156,29 @@ mod tests {
         assert_eq!(String::from_utf8(line).unwrap(), "A1,\"two words\",\"say \"\"hi\"\"\",\n");
         assert_eq!(parse_csv_line("A1,\"two words\",\"say \"\"hi\"\"\",\n", ','), ["A1", "two words", "say \"hi\"", ""]);
         assert_eq!(parse_csv_line("a\tb\r\n", '\t'), ["a", "b"]);
+    }
+
+    fn workbook(cells: &[(u32, u16, &str)]) -> Vec<u8> {
+        let mut book = rust_xlsxwriter::Workbook::new();
+        let sheet = book.add_worksheet();
+        for &(row, col, text) in cells {
+            sheet.write_string(row, col, text).unwrap();
+        }
+        book.save_to_buffer().unwrap()
+    }
+
+    #[test]
+    fn excel_uploads_read_from_their_first_value() {
+        let sheet = read_upload("parts.xlsx", &workbook(&[(1, 1, "sku"), (1, 2, "name"), (2, 1, "A-1"), (3, 2, "Clamp")]), None).ok().unwrap();
+        assert_eq!(sheet.rows, [vec!["sku", "name"], vec!["A-1"], vec!["", "Clamp"]]);
+        assert_eq!(sheet.worksheet.as_deref(), Some("Sheet1"));
+        assert_eq!(read_upload("parts.xlsx", b"not a workbook", None).err().unwrap(), "parts.xlsx not XLXS format");
+    }
+
+    #[test]
+    fn an_excel_sheet_taller_than_an_import_is_refused() {
+        let tall = workbook(&[(0, 0, "sku"), (1_048_575, 0, "end")]);
+        assert_eq!(read_upload("parts.xlsx", &tall, None).err().unwrap(), "Upload error #1");
     }
 
     #[test]

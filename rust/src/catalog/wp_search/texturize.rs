@@ -328,7 +328,9 @@ fn push_pop(tag: &str, stack: &mut Vec<String>) {
         return;
     }
     let offset = if closing { 2 } else { 1 };
-    let name = &tag[offset..tag.find(' ').unwrap_or(tag.len() - 1).max(offset)];
+    // Up to the first space, else all but the last character (the `>`; the end of an unclosed tag).
+    let end = tag.find(' ').unwrap_or_else(|| tag.char_indices().last().map_or(0, |(i, _)| i));
+    let name = tag.get(offset..end.max(offset)).unwrap_or("");
     if !NO_TEXTURIZE.contains(&name) {
         return;
     }
@@ -372,5 +374,11 @@ mod tests {
         assert_eq!(en("<p class='x'>it's</p>"), "<p class='x'>it&#8217;s</p>");
         assert_eq!(en("<code>it's</code> it's"), "<code>it's</code> it&#8217;s");
         assert_eq!(en("<!-- it's -->"), "<!-- it's -->");
+    }
+
+    #[test]
+    fn text_ending_in_an_unclosed_tag_is_left_as_written() {
+        assert_eq!(en("Prix <é"), "Prix <é");
+        assert_eq!(en("voir </à"), "voir </à");
     }
 }

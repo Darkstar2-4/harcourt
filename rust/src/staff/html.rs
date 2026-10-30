@@ -325,7 +325,7 @@ impl Form<'_> {
 
     pub fn radio(&self, field: &str, value: &str, checked: bool, opts: Opts) -> String {
         let mut opts = opts;
-        opts.push_default("id", format!("{field}_{value}"));
+        opts.push_default("id", format!("{field}_{}", esc(value)));
         let mut a = attrs(field, opts, self.notes.is_error(field)).trim().to_string();
         if checked {
             a.push_str(" checked");
@@ -751,15 +751,7 @@ pub fn number(n: i64) -> String {
 
 /// number_format($n, $decimals) for money and percentages.
 pub fn number_dp(n: f64, decimals: usize) -> String {
-    let s = format!("{:.*}", decimals, n.abs());
-    let (int, frac) = s.split_once('.').map_or((s.as_str(), ""), |(i, f)| (i, f));
-    let int = number(int.parse::<i64>().unwrap_or(0));
-    let sign = if n < 0.0 && s.bytes().any(|b| b.is_ascii_digit() && b != b'0') { "-" } else { "" };
-    if frac.is_empty() {
-        format!("{sign}{int}")
-    } else {
-        format!("{sign}{int}.{frac}")
-    }
+    crate::pricing::number_format(n, decimals)
 }
 
 #[cfg(test)]
@@ -778,6 +770,8 @@ mod tests {
         assert!(page_break(120, 2, "go(%page%);").contains("<input type=button class='nav_button_disabled' value='Last &gt;&gt;'>"));
         assert_eq!(number_dp(1234.5, 2), "1,234.50");
         assert_eq!(number_dp(-0.001, 2), "0.00");
+        assert_eq!(number_dp(449.65, 1), "449.7", "half away from zero, as PHP rounds");
+        assert_eq!(number_dp(0.125, 2), "0.13");
     }
 
     #[test]
@@ -823,6 +817,7 @@ mod tests {
             f.radio("delete", "7", false, Opts::new().onclick("x();")),
             "<input type=radio value='7' id='delete_7' name='delete' onclick=\"javascript:x();\">\n"
         );
+        assert_eq!(f.radio("size", "1/2\" & up", false, Opts::new()), "<input type=radio value='1/2&quot; &amp; up' id='size_1/2&quot; &amp; up' name='size'>\n");
         assert_eq!(href("Add new", "javascript:fn_action(this,'maintain','0','');", Opts::new()), "<a href=\"javascript:fn_action(this,'maintain','0','');\" >Add new</a>");
     }
 
