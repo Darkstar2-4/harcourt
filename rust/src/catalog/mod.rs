@@ -14,6 +14,7 @@ use crate::api::Auth;
 
 pub mod ajax;
 pub mod api;
+pub mod cad_lookup;
 pub mod callbacks;
 pub mod category;
 pub mod configure;
@@ -64,5 +65,6 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(industry::router())
         .merge(hero::router())
         .merge(document::router())
+        .merge(cad_lookup::router())
         .layer(Extension(search::Cache::new()))
 }
