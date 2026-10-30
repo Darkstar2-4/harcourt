@@ -145,8 +145,9 @@ async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
     let (status, _, html) = send(&app, Method::GET, "/no/such-page/?lang=fr").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
     assert!(html.contains("lang=\"fr-FR\""));
-    let deep = app.clone().oneshot(Request::builder().uri("/a/b/c/").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(deep.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "three segments list the blog under a 404, not ported");
+    let (status, _, html) = send(&app, Method::GET, "/a/b/c/").await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "no rule matches three segments: the blog query under a 404");
+    assert!(html.contains("</i> Error 404\n"), "with no post to list, the 404 notice");
 }
 
 #[tokio::test]

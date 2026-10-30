@@ -286,7 +286,8 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
     }
     if name == "sitemap.xml" {
         // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang; with any
-        // other query it is the 404 over the blog query, which is not ported.
+        // other query it is the 404 over the blog query as Yoast's router leaves it (without the footer's menu
+        // widget), which is not ported.
         return Some(match (q.without_lang.is_empty(), q.lang_en) {
             (true, true) => found(&wp.core.public_origin, "/sitemap.xml/"),
             (true, false) => redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())),
@@ -311,7 +312,8 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
     if !page.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
-    // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts: not ported.
+    // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts, as Yoast's router leaves
+    // it (without the footer's menu widget): not ported.
     let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
@@ -394,7 +396,11 @@ pub enum Answer<'a> {
     Redirect(String),
     /// WPML's 302 away from `lang=en`, with the relative Location it sends.
     Found(String),
+    /// WPML's 302 to the translation of a term asked for in the other language, to this path on the site.
+    TranslationFound(String),
     NotFound,
+    /// The 404 page with the blog's posts listed: no rewrite rule matched, and WordPress ran the blog query.
+    BlogNotFound,
     /// A feed's 301, sent with the feed's content type as WordPress sends it.
     FeedRedirect(String, &'static str),
     /// search.php for these terms, this page of results and the `page` query var.
@@ -422,14 +428,14 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
             None => Answer::Legacy,
         };
     }
-    if let Some(answer) = faq_type_archive(site, path) {
+    if let Some(answer) = term_archive(site, path, lang) {
         return answer;
     }
     if unported_rewrite(path) {
         return Answer::Legacy;
     }
     // A doubled slash still matches the page rule (its `.?` takes the extra slash), and redirect_canonical()
-    // fixes the URL; no other rule matches, which is the blog query under a 404, not ported.
+    // fixes the URL; without such a page it redirects by its 404 guess, which is not ported.
     if let Some(rest) = path.strip_prefix('/').filter(|r| r.starts_with('/')) {
         let p = format!("/{}", rest.trim_start_matches('/'));
         return match site.find(lang, &p).filter(|p| p.status == Status::Publish) {
@@ -454,8 +460,8 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
                     guess(site, last, lang, None)
                 }
             }
-            // No rule matches: WordPress runs the blog query under a 404, which lists the posts. Not ported.
-            _ => Answer::Legacy,
+            // No rule matches: WordPress runs the blog query under a 404, which lists the posts.
+            _ => Answer::BlogNotFound,
         };
     };
     match (lang, site.translation(p, lang)) {
@@ -468,17 +474,31 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
-/// The FAQ type rewrite rule, `/faq_type/<slug>/`: the type's archive, its slug found in any case (MySQL's
-/// collation), or the 404 page for no such type.
-fn faq_type_archive<'a>(site: &'a Site, path: &str) -> Option<Answer<'a>> {
-    let slug = path.strip_prefix("/faq_type/")?.strip_suffix('/')?;
+/// The category and FAQ type rewrite rules, `/category/<slug>/` and `/faq_type/<slug>/`: the term's archive, its
+/// slug found in any case (MySQL's collation), or the 404 page for no such term. WPML sends a translated term asked
+/// for in the other language to its translation, dropping the query.
+fn term_archive<'a>(site: &'a Site, path: &str, lang: Lang) -> Option<Answer<'a>> {
+    let (base, slug) = path.strip_prefix('/')?.strip_suffix('/')?.split_once('/')?;
+    let taxonomy = match base {
+        "category" => Taxonomy::Category,
+        "faq_type" => Taxonomy::FaqType,
+        _ => return None,
+    };
     if slug.is_empty() || slug.contains('/') {
         return None;
     }
-    Some(match site.terms.iter().find(|t| t.taxonomy == Taxonomy::FaqType && t.slug.eq_ignore_ascii_case(slug)) {
-        Some(t) => Answer::Archive(t),
-        None => Answer::NotFound,
-    })
+    let Some(t) = site.terms.iter().find(|t| t.taxonomy == taxonomy && t.slug.eq_ignore_ascii_case(slug)) else { return Some(Answer::NotFound) };
+    if t.lang.is_some_and(|l| l != lang) {
+        let translation = site.terms.iter().find(|o| o.taxonomy == taxonomy && o.group_id.is_some() && o.group_id == t.group_id && o.lang == Some(lang));
+        match translation {
+            Some(o) => return Some(Answer::TranslationFound(format!("{}{}", o.path(), lang.query()))),
+            // An FAQ type is not translated and lists the FAQs of the request's language; a category without a
+            // translation is not ported.
+            None if taxonomy == Taxonomy::Category => return Some(Answer::Legacy),
+            None => {}
+        }
+    }
+    Some(Answer::Archive(t))
 }
 
 /// A post's slug. Rows imported before the cms kept slugs (migration 0501) have none; for those the path ends
@@ -734,7 +754,7 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         // Under a doubled slash WordPress resolves a post id its own way (a 301 to the permalink): not ported.
         return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
     }
-    if q.lang_en && answer != Answer::NotFound {
+    if q.lang_en && answer != Answer::NotFound && answer != Answer::BlogNotFound {
         // WPML moves to the path WordPress parsed, its slashes trimmed and one put back; a path that began with two
         // was a host to parse_url(), which wp_safe_redirect() refuses (`found`).
         let parsed = format!("/{}/", path.trim_matches('/'));
@@ -873,6 +893,11 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::Found(to) => return found(&wp.core.public_origin, &to),
+        Answer::TranslationFound(to) => {
+            let mut r = redirect(&wp.core.public_origin, &to);
+            *r.status_mut() = StatusCode::FOUND;
+            return r;
+        }
         Answer::FeedRedirect(to, kind) => {
             let mut r = redirect(&wp.core.public_origin, &to);
             r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind));
@@ -882,6 +907,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str());
             return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers).await;
         }
+        Answer::BlogNotFound => Shown::BlogNotFound,
         Answer::NotFound | Answer::Legacy => Shown::NotFound,
     };
     respond(wp, &site, shown, uri, &q, agent, answer, replay).await
@@ -893,6 +919,7 @@ enum Shown<'a> {
     Page(&'a Page),
     Archive(&'a Term),
     NotFound,
+    BlogNotFound,
 }
 
 /// What `shown` is as WordPress printed it at `uri`.
@@ -911,7 +938,7 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
     let (status, html, islands, lang, wp_uri) = match shown {
         Shown::Archive(term) => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-            let Some(html) = theme::archive::faq_type(site, term, q.lang, &request_uri) else {
+            let Some(html) = theme::archive::term(site, term, q.lang, &request_uri) else {
                 return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
             };
             (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri)
@@ -933,8 +960,15 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
             (StatusCode::OK, html, islands(site, page), page.lang, wp_uri)
         }
         // An export without WordPress's 404 page left nothing to render it from.
-        Shown::NotFound if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
+        Shown::NotFound | Shown::BlogNotFound if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
             return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
+        }
+        Shown::BlogNotFound => {
+            let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
+            let Some(html) = theme::archive::blog_not_found(site, q.lang, &request_uri) else {
+                return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
+            };
+            (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
         }
         Shown::NotFound => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
@@ -1188,7 +1222,9 @@ mod tests {
             Answer::Render(p) => format!("render {}", p.id.0),
             Answer::Redirect(to) => to,
             Answer::Found(to) => format!("302 {to}"),
+            Answer::TranslationFound(to) => format!("302 {to}"),
             Answer::NotFound => "404".into(),
+            Answer::BlogNotFound => "blog 404".into(),
             Answer::Legacy => "legacy".into(),
             Answer::FeedRedirect(to, _) => format!("feed {to}"),
             Answer::Search { s, paged, page } => format!("search {s:?} {paged} {page}"),
@@ -1230,15 +1266,25 @@ mod tests {
     }
 
     #[test]
-    fn an_faq_type_is_found_by_its_slug_in_any_case() {
+    fn a_term_archive_is_found_by_its_slug_in_any_case_and_in_its_language() {
         let mut site = Site::new(vec![page(1, 10, Lang::En, "/legal/", Status::Publish)]);
-        site.terms.push(Term { id: 17, taxonomy: Taxonomy::FaqType, slug: "general".into(), name: "General".into(), lang: Some(Lang::En), group_id: None, modified_at: String::new(), pages: vec![] });
+        let term = |id: i64, taxonomy, slug: &str, lang, group| Term { id, taxonomy, slug: slug.into(), name: slug.into(), lang: Some(lang), group_id: group, modified_at: String::new(), pages: vec![] };
+        site.terms.push(term(17, Taxonomy::FaqType, "general", Lang::En, Some(1747)));
+        site.terms.push(term(1, Taxonomy::Category, "news", Lang::En, Some(1601)));
+        site.terms.push(term(31, Taxonomy::Category, "nouvelles", Lang::Fr, Some(1601)));
+        site.terms.push(term(6, Taxonomy::Category, "solo", Lang::En, Some(1606)));
         let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
             Answer::Archive(t) => format!("archive {}", t.slug),
             Answer::Redirect(to) => to,
-            Answer::Found(to) => format!("302 {to}"),
+            Answer::Found(to) | Answer::TranslationFound(to) => format!("302 {to}"),
             other => format!("{other:?}"),
         };
+        assert_eq!(r("/category/news/", ""), "archive news");
+        assert_eq!(r("/category/nouvelles/", "lang=fr"), "archive nouvelles");
+        assert_eq!(r("/category/news/", "lang=fr&x=1"), "302 /category/nouvelles/?lang=fr", "WPML moves to the translation and drops the query");
+        assert_eq!(r("/category/nouvelles/", ""), "302 /category/news/");
+        assert_eq!(r("/category/solo/", "lang=fr"), "Legacy");
+        assert_eq!(r("/category/news", "lang=x"), "/category/news/?lang=x");
         assert_eq!(r("/faq_type/general/", ""), "archive general");
         assert_eq!(r("/faq_type/General/", "lang=fr&utm_source=x"), "archive general");
         assert_eq!(r("/faq_type/general", ""), "/faq_type/general/");
@@ -1300,7 +1346,8 @@ mod tests {
         assert_eq!(resolve(&site, "/LEGAL/", Lang::En), Answer::Render(&site.pages[4]));
         assert_eq!(resolve(&site, "/seulement/x/", Lang::En), Answer::NotFound);
         assert_eq!(resolve(&site, "/x/contact/", Lang::En), Answer::Redirect("/contact/".into()));
-        assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::Legacy);
+        assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::BlogNotFound);
+        assert_eq!(resolve(&site, "//nowhere/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/product/alignment/feed/", Lang::En), Answer::Legacy);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
         let carts = Site::new(vec![

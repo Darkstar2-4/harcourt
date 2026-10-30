@@ -12,7 +12,7 @@ use crate::{
     cms::{
         html::esc,
         model::{Field, Kind, Lang, Page, PostType, Site, Status},
-        theme::{NOT_FOUND_OPTION, ORIGIN},
+        theme::{content, NOT_FOUND_OPTION, ORIGIN},
         yoast::{self, json},
     },
 };
@@ -29,7 +29,7 @@ pub fn apply(import: &mut Import) {
         .filter(|p| p.kind == PostType::Faq && p.status == Status::Publish && !site.meta(p.id).contains_key("title"))
         .filter_map(|p| {
             let raw = site.fields(p.id).get("@post_content")?;
-            let content = the_content(&raw.value, p.lang)?;
+            let content = content::paragraphs(&raw.value, p.lang)?;
             faq(&site, p).map(|h| (p.id, h, content))
         })
         .collect();
@@ -37,36 +37,6 @@ pub fn apply(import: &mut Import) {
         import.meta.entry(id).or_default().extend(head);
         import.fields.entry(id).or_default().insert("content".into(), Field { kind: Kind::Html, value: content });
     }
-}
-
-/// the_content() of block content made of paragraphs only: do_blocks() prints each block's inner HTML (and the
-/// text between blocks as it is) and leaves wpautop() off, then wptexturize() runs. None for anything else (other
-/// blocks, images, shortcodes, classic content), which this port does not render.
-pub fn the_content(raw: &str, lang: Lang) -> Option<String> {
-    if !raw.contains("<!-- wp:") || raw.contains('[') || raw.contains("<img") {
-        return None;
-    }
-    let close = "<!-- /wp:paragraph -->";
-    let mut out = String::with_capacity(raw.len());
-    let mut rest = raw;
-    while let Some(start) = rest.find("<!-- wp:") {
-        out.push_str(&rest[..start]);
-        let after = &rest[start + "<!-- wp:".len()..];
-        let end = after.find("-->")?;
-        let opener = after[..end].trim_end();
-        if opener.split_whitespace().next() != Some("paragraph") || opener.ends_with('/') {
-            return None;
-        }
-        let inner = &after[end + 3..];
-        let stop = inner.find(close)?;
-        if inner[..stop].contains("<!-- wp:") {
-            return None;
-        }
-        out.push_str(&inner[..stop]);
-        rest = &inner[stop + close.len()..];
-    }
-    out.push_str(rest);
-    Some(texturize(&out, lang))
 }
 
 /// wp_strip_all_tags(): script and style elements dropped with their text, other tags removed, then trimmed.
@@ -162,15 +132,5 @@ mod tests {
         assert_eq!(strip_all_tags(" <p>One <b>two</b></p><script>x()</script>\n<style>p{}</style>three&hellip; "), "One two\nthree&hellip;");
         assert_eq!(strip_all_tags("a\u{a0}"), "a\u{a0}", "PHP's trim keeps a no-break space");
         assert_eq!(strip_all_tags("1 < 2"), "1 < 2");
-    }
-
-    #[test]
-    fn paragraph_blocks_print_their_inner_html_texturized() {
-        let raw = "<!-- wp:paragraph -->\n<p>It's one.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph {\"x\":\"1\"} -->\n<p>Two</p>\n<!-- /wp:paragraph -->";
-        assert_eq!(the_content(raw, Lang::En).as_deref(), Some("\n<p>It&#8217;s one.</p>\n\n\n\n<p>Two</p>\n"));
-        assert_eq!(the_content("<!-- wp:paragraph -->\n<p>L'art</p>\n<!-- /wp:paragraph -->", Lang::Fr).as_deref(), Some("\n<p>L&rsquo;art</p>\n"));
-        assert_eq!(the_content("<!-- wp:image -->\n<figure></figure>\n<!-- /wp:image -->", Lang::En), None);
-        assert_eq!(the_content("<p>classic</p>", Lang::En), None);
-        assert_eq!(the_content("<!-- wp:paragraph -->\n<p>[gallery]</p>\n<!-- /wp:paragraph -->", Lang::En), None);
     }
 }

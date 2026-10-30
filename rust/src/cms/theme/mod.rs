@@ -8,6 +8,7 @@
 pub mod archive;
 mod builder;
 mod chrome;
+pub mod content;
 mod company;
 mod contact;
 mod home;
