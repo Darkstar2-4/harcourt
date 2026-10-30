@@ -902,6 +902,13 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
+    // WordPress serves its REST API at any path that carries rest_route.
+    if q.rest_route && replay {
+        if let Some(reply) = crate::cms::rest::answer(&site, raw_query) {
+            let status = StatusCode::from_u16(reply.status).unwrap_or(StatusCode::NOT_FOUND);
+            return (status, [(header::CONTENT_TYPE, "application/json; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex")], reply.body).into_response();
+        }
+    }
     let answer_of = match route(&site, &path, &q, raw_query) {
         Answer::Legacy if replay => return legacy(),
         Answer::Legacy => resolve(&site, &path, q.lang),
