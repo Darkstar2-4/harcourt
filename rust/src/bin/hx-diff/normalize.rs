@@ -21,7 +21,7 @@ pub struct Rule {
 
 pub const NEAR_NOW_SECS: i64 = 2 * 86_400;
 
-pub static RULES: [Rule; 7] = [
+pub static RULES: [Rule; 9] = [
     Rule {
         name: "host",
         removes: "Absolute origins of the two stacks under test and of www.harcourt.co / harcourt.co, with or without \
@@ -46,6 +46,18 @@ pub static RULES: [Rule; 7] = [
         removes: "Every <input> element whose name attribute is exactly csrf, hidden or not, in any attribute order. \
                   It is the Rust pages' per-session form token, which the PHP lacks on purpose. Other inputs stay.",
         apply: csrf,
+    },
+    Rule {
+        name: "gform-honeypot",
+        removes: "The label text of the Gravity Forms honeypot field (the element with class gform_validation_container), \
+                  which Gravity Forms picks at random on every render. The field itself and its input stay.",
+        apply: gform_honeypot,
+    },
+    Rule {
+        name: "gform-ajax",
+        removes: "The hash= value inside the gform_ajax hidden input, which Gravity Forms derives from the WordPress \
+                  salts. The rest of that input and every other input stay.",
+        apply: gform_ajax,
     },
     Rule {
         name: "time-near-now",
@@ -118,18 +130,41 @@ fn nonce(text: &str, _: &Ctx) -> String {
     out
 }
 
-fn csrf(text: &str, _: &Ctx) -> String {
-    static INPUT: LazyLock<Regex> = LazyLock::new(|| re(r#"(?i)<input\b(?:[^>"']|"[^"]*"|'[^']*')*>"#));
+static INPUT: LazyLock<Regex> = LazyLock::new(|| re(r#"(?i)<input\b(?:[^>"']|"[^"]*"|'[^']*')*>"#));
+
+/// The name attribute of an `<input ...>` tag, read attribute by attribute so a value that merely contains
+/// `name=` does not count.
+fn input_name(tag: &str) -> Option<&str> {
     static ATTR: LazyLock<Regex> =
         LazyLock::new(|| re(r#"\s([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?"#));
+    ATTR.captures_iter(tag.get("<input".len()..)?).find_map(|a| {
+        let value = a.get(2).or(a.get(3)).or(a.get(4)).map(|m| m.as_str()).unwrap_or("");
+        a[1].eq_ignore_ascii_case("name").then_some(value)
+    })
+}
+
+fn csrf(text: &str, _: &Ctx) -> String {
+    INPUT
+        .replace_all(text, |c: &Captures| if input_name(&c[0]) == Some("csrf") { String::new() } else { c[0].to_string() })
+        .into_owned()
+}
+
+fn gform_honeypot(text: &str, _: &Ctx) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| {
+        re(r#"(class=["'][^"']*\bgform_validation_container\b[^"']*["'][^>]*>\s*<label\b[^>]*>(?:\s*<span\b[^>]*>)?)[^<]*"#)
+    });
+    RE.replace_all(text, "${1}{HONEYPOT}").into_owned()
+}
+
+fn gform_ajax(text: &str, _: &Ctx) -> String {
+    static HASH: LazyLock<Regex> = LazyLock::new(|| re(r"\bhash=[0-9A-Za-z]+"));
     INPUT
         .replace_all(text, |c: &Captures| {
-            let tag = &c[0]["<input".len()..];
-            let named_csrf = ATTR.captures_iter(tag).any(|a| {
-                let value = a.get(2).or(a.get(3)).or(a.get(4)).map(|m| m.as_str());
-                a[1].eq_ignore_ascii_case("name") && value == Some("csrf")
-            });
-            if named_csrf { String::new() } else { c[0].to_string() }
+            if input_name(&c[0]) == Some("gform_ajax") {
+                HASH.replace_all(&c[0], "hash={HASH}").into_owned()
+            } else {
+                c[0].to_string()
+            }
         })
         .into_owned()
 }
@@ -264,6 +299,47 @@ mod tests {
     }
 
     #[test]
+    fn the_honeypot_label_goes_and_the_field_stays() {
+        let c = ctx();
+        let field = |label: &str| {
+            format!(
+                "<li id=\"field_3_14\" class=\"gfield gfield--type-honeypot gform_validation_container field_sublabel_below\"  >\
+                 <label class='gfield_label gform-field-label' for='input_3_14'><span class='gform-field-label__text'>{label}</span></label>\
+                 <div class='ginput_container'><input name='input_14' id='input_3_14' type='text' value='' /></div></li>"
+            )
+        };
+        assert_eq!(gform_honeypot(&field("X/Twitter"), &c), gform_honeypot(&field("Phone"), &c));
+        assert!(gform_honeypot(&field("Phone"), &c).contains(">{HONEYPOT}</span>"));
+        assert!(gform_honeypot(&field("Phone"), &c).contains("<input name='input_14' id='input_3_14'"));
+        let bare = "<div class='gfield gform_validation_container'><label class='gfield_label' for='input_1_5'>Email</label>";
+        assert_eq!(gform_honeypot(bare, &c), "<div class='gfield gform_validation_container'><label class='gfield_label' for='input_1_5'>{HONEYPOT}</label>");
+        let ordinary = "<li class=\"gfield gfield--type-text\"><label class='gfield_label' for='input_3_1'><span>Name</span></label>";
+        assert_eq!(gform_honeypot(ordinary, &c), ordinary);
+        let lookalike = "<li class=\"gform_validation_container_x\"><label>Phone</label>";
+        assert_eq!(gform_honeypot(lookalike, &c), lookalike);
+    }
+
+    #[test]
+    fn only_the_gform_ajax_hash_goes() {
+        let c = ctx();
+        let input = "<input type='hidden' name='gform_ajax' value='form_id=1&amp;title=&amp;theme=legacy&amp;hash=d2234b66e616f050984016021d094b0b' />";
+        assert_eq!(
+            gform_ajax(input, &c),
+            "<input type='hidden' name='gform_ajax' value='form_id=1&amp;title=&amp;theme=legacy&amp;hash={HASH}' />"
+        );
+        let reordered = "<input value='form_id=2&amp;hash=abc123' type='hidden' name='gform_ajax'>";
+        assert_eq!(gform_ajax(reordered, &c), "<input value='form_id=2&amp;hash={HASH}' type='hidden' name='gform_ajax'>");
+        for stays in [
+            "<input type='hidden' name='gform_field_values' value='hash=abc'>",
+            "<input type='hidden' name='gform_ajax_x' value='hash=abc'>",
+            "<a href='/x?hash=abc'>",
+            "<iframe name='gform_ajax_frame_1' src='about:blank'>",
+        ] {
+            assert_eq!(gform_ajax(stays, &c), stays);
+        }
+    }
+
+    #[test]
     fn csrf_leaves_every_other_input_alone() {
         let c = ctx();
         for tag in [
@@ -321,7 +397,17 @@ mod tests {
         assert_eq!(apply_all(page, &ctx()), "<a href='https://HOST/x.js?ver={V}'>\n<input name='_wpnonce' value='{NONCE}'> {NOW}");
         assert_eq!(
             RULES.iter().map(|r| r.name).collect::<Vec<_>>(),
-            ["host", "session-id", "nonce", "csrf", "time-near-now", "asset-version", "whitespace"]
+            [
+                "host",
+                "session-id",
+                "nonce",
+                "csrf",
+                "gform-honeypot",
+                "gform-ajax",
+                "time-near-now",
+                "asset-version",
+                "whitespace"
+            ]
         );
     }
 
