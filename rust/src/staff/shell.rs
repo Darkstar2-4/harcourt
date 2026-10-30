@@ -174,6 +174,21 @@ pub struct Head<'a> {
 }
 
 pub async fn document(pool: &SqlitePool, view: View, head: &Head<'_>, body: &str) -> Response {
+    let mut html = opened(pool, view, head).await;
+    html.push_str(body);
+    html.push_str("</div> <!-- #scs_content -->\n</div> <!-- #scs_body -->");
+    html.push_str("</body>\n</html>\n");
+    html_response(StatusCode::OK, html)
+}
+
+/// A page that never called `$menu->copyright()`: its body is the last thing sent, nothing closed after it.
+pub async fn unclosed(pool: &SqlitePool, view: View, title: &str, body: &str) -> Response {
+    let mut html = opened(pool, view, &Head { title, description: None, css: &[], dashboard: None }).await;
+    html.push_str(body);
+    html_response(StatusCode::OK, html)
+}
+
+async fn opened(pool: &SqlitePool, view: View, head: &Head<'_>) -> String {
     let chrome = Chrome::load(pool).await;
     let mut html = chrome.head(head, view.wp);
     let mut top = vec!["<div id='scs_body' >".to_string()];
@@ -182,10 +197,7 @@ pub async fn document(pool: &SqlitePool, view: View, head: &Head<'_>, body: &str
     }
     top.push("<div id='scs_content' >".to_string());
     html.push_str(&top.join("\n"));
-    html.push_str(body);
-    html.push_str("</div> <!-- #scs_content -->\n</div> <!-- #scs_body -->");
-    html.push_str("</body>\n</html>\n");
-    html_response(StatusCode::OK, html)
+    html
 }
 
 pub fn html_response(status: StatusCode, html: String) -> Response {

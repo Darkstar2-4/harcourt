@@ -31,6 +31,12 @@ link never changes data, persona sign-in times and languages drift on the oracle
 - **The AJAX record-type list needs an Administrator**, like the page; the PHP answered anyone.
 - **Excel downloads** differ in their bytes (rust_xlsxwriter); text downloads match.
 
+### inventory_pricebook.php (`/inventory_pricebook.php`)
+
+- **Email output** says it is not available here: the outbox carries no attachments. "Download" builds the
+  workbook (cover sheet, one sheet per category) as before; its bytes differ (rust_xlsxwriter) and number cells
+  hold numbers ("84" where PHP_XLSXWriter wrote "84.00").
+
 ## Not ported
 
 - `supplier.php`, `suppliersku.php`: tables `supplier` and `suppliersku` are missing in production.

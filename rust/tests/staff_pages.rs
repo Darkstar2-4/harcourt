@@ -551,3 +551,28 @@ async fn the_pricing_utility_explains_a_smart_subcategorys_price_tables() {
     let (status, _, _) = send(&h.app, post("/pricing_utility.php", &admin, &[("action", "update"), ("function", "upload"), ("subcategory_id", "549")])).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn the_price_book_lists_priced_subcategories_and_checks_its_terms() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'pricebook_title', '', 'Example Price Book')").await;
+    exec(&h.pool, "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, update_timestamp, active) VALUES ('USD', 'US Dollar', 'US dollars', 1, 0, 0, 1), ('EUR', 'Euro', 'euros', 0.95, 0.5, 1733512860, 1)").await;
+    let internal = person(&h.pool, 2, "Internal").await;
+    let (status, _, page) = send(&h.app, get("/inventory_pricebook.php", Some(&internal))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Price Book<span class=message2><br>Revised: 06/05/2023</span></p>"));
+    assert!(page.contains("value='Example Price Book' placeholder='Mandatory'>"));
+    assert!(page.contains("<option value='USD'>US Dollar</option>\n<option value='EUR'>Euro</option>"));
+    assert!(page.contains("name='c3ViY2F0ZWdvcnkJNTA' id='c3ViY2F0ZWdvcnkJNTA' value='1'> Test Pins (1)</td>"), "{page}");
+    assert!(page.ends_with("onclick=\"javascript:pricebook_create();\">\n</p>"));
+    let (_, _, page) = send(&h.app, post("/inventory_pricebook.php", &internal, &[("action", "update"), ("title", ""), ("ajax_temp_price_type", "plus"), ("ajax_temp_price_pct", "600")])).await;
+    assert!(page.contains("Correct 3 error(s)"));
+    assert!(page.contains("% <b>Price plus must be > 0% and < 500%</b></td>"));
+    assert!(page.contains("<p><b>No subcategories selected</b></p>"));
+    let mut req = post("/inventory_pricebook.php", &internal, &[("action", "currency"), ("currency_code", "EUR")]);
+    req.headers_mut().insert("x-requested-with", "XMLHttpRequest".parse().unwrap());
+    let (_, _, json) = send(&h.app, req).await;
+    assert!(json.starts_with("{\"currency_meta\":\"Revised: 12\\/06\\/2024"), "{json}");
+    assert!(json.ends_with("<br>Exchange rate: 0.9500%<br>Adder percent: 50.0000%\"}"));
+}

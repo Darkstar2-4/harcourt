@@ -164,6 +164,11 @@ impl Unchecked {
         Ok(self.posted)
     }
 
+    /// A page whose posts never write takes them as they come.
+    pub fn read_only(self) -> Posted {
+        self.posted
+    }
+
     /// The maintenance pages' rule: a post whose `action` is `update` or `delete` writes.
     pub fn accept_by_action(self) -> Result<Posted, Rejected> {
         let writes = matches!(self.fields().get("action"), "update" | "delete");

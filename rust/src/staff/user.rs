@@ -241,7 +241,7 @@ fn valid_ip(ip: &str) -> bool {
 }
 
 /// fn_number(): the digits, sign and point of the text as a number, a hundredth of it if it holds `%`.
-fn php_number(s: &str) -> Decimal {
+pub(super) fn php_number(s: &str) -> Decimal {
     let kept: String = s.chars().filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-')).collect();
     let bytes = kept.as_bytes();
     let mut end = usize::from(bytes.first() == Some(&b'-'));

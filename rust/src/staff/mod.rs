@@ -47,6 +47,7 @@ pub mod portal;
 pub mod portalcategory;
 pub mod portalcontent;
 pub mod portalitem;
+pub mod pricebook;
 pub mod pricing_utility;
 pub mod prj;
 pub mod subcategory;
@@ -120,6 +121,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(portalcategory::routes())
         .merge(portalcontent::routes())
         .merge(portalitem::routes())
+        .merge(pricebook::routes())
         .merge(pricing_utility::routes())
         .merge(prj::routes())
         .merge(subcategory::routes())
