@@ -84,20 +84,16 @@ impl Pages {
         }
         let uri = request_uri(path, query, lang);
         match self.assemble(app, path, lang, &uri).await {
-            Ok(Some(html)) => {
-                let html = if crate::on("fa-static") { crate::catalog::without_fa_kit(app, &html) } else { html };
-                let html = if crate::on("bg-preload") { with_hero_bg_preload(&html) } else { html };
-                Some(
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .header(header::CONTENT_TYPE, "text/html; charset=UTF-8")
-                        .header(header::CACHE_CONTROL, "no-cache")
-                        .header("strict-transport-security", "max-age=31536000; includeSubDomains")
-                        .header("x-hxweb", "static")
-                        .body(Body::from(app.public(&app.vendor.localize(&html))))
-                        .unwrap(),
-                )
-            }
+            Ok(Some(html)) => Some(
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, "text/html; charset=UTF-8")
+                    .header(header::CACHE_CONTROL, "no-cache")
+                    .header("strict-transport-security", "max-age=31536000; includeSubDomains")
+                    .header("x-hxweb", "static")
+                    .body(Body::from(finish(app, html)))
+                    .unwrap(),
+            ),
             Ok(None) => None,
             Err(e) => {
                 tracing::warn!("{uri} static page failed, falling back: {e}");
@@ -175,6 +171,14 @@ impl Pages {
         cache.insert(key, (Instant::now(), html.clone()));
         Ok(html)
     }
+}
+
+/// What every former WordPress page gets before it leaves, whether it came from the export or from the cms
+/// tables: the static Font Awesome icons, the hero background preload, vendored assets, the public host.
+pub fn finish(app: &App, html: String) -> String {
+    let html = if crate::on("fa-static") { crate::catalog::without_fa_kit(app, &html) } else { html };
+    let html = if crate::on("bg-preload") { with_hero_bg_preload(&html) } else { html };
+    app.public(&app.vendor.localize(&html))
 }
 
 /// The request URI WordPress would see: WPML redirects `lang=en` away; the hxlang flag marker is the site's own.
