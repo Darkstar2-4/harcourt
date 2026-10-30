@@ -18,9 +18,25 @@ use crate::api::{ApiError, Auth, Authed, MinRole};
 pub mod check;
 pub mod csrf;
 pub mod html;
-pub mod mailer;
 pub mod maintain;
 pub mod shell;
+
+pub mod campaign;
+pub mod company;
+pub mod convert;
+pub mod dashboard;
+pub mod files;
+pub mod grants;
+pub mod hero;
+pub mod import;
+pub mod inventory;
+pub mod jobs;
+pub mod log;
+pub mod mailer;
+pub mod portal;
+pub mod subcategory;
+pub mod users;
+pub mod utilities;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home` outside WordPress.
 pub const HOME: &str = "/scs_index.php";
@@ -51,5 +67,21 @@ fn go_home() -> Response {
 }
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/mailer_maintain.php", maintain::route::<mailer::Mailform>())
+    Router::new()
+        .route("/mailer_maintain.php", maintain::route::<mailer::Mailform>())
+        .merge(campaign::routes())
+        .merge(company::routes())
+        .merge(convert::routes())
+        .merge(dashboard::routes())
+        .merge(files::routes())
+        .merge(grants::routes())
+        .merge(hero::routes())
+        .merge(import::routes())
+        .merge(inventory::routes())
+        .merge(jobs::routes())
+        .merge(log::routes())
+        .merge(portal::routes())
+        .merge(subcategory::routes())
+        .merge(users::routes())
+        .merge(utilities::routes())
 }
