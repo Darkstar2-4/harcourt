@@ -102,6 +102,48 @@ pub async fn verify(pool: &SqlitePool, secret: &Secret, email: &Email, typed: &s
     Ok(consumed.rows_affected() == 1)
 }
 
+/// What one try at the sign-up page's code box came to (newuser.php json_verify).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Attempt {
+    Verified,
+    /// Wrong, and this many tries are now used.
+    Wrong(i64),
+    /// `limit` tries are used up; only a new code helps.
+    Locked,
+    /// No code is waiting for this address, or it ran out of time.
+    Expired,
+}
+
+/// One try against the live code for `email`, counted in the database. `typed` None spends a try without looking
+/// at the code (the PHP counted a failed reCAPTCHA that way). Unlike `verify`, junk costs a try, as it did there.
+pub async fn attempt(pool: &SqlitePool, secret: &Secret, email: &Email, typed: Option<&str>, now: i64, limit: i64) -> sqlx::Result<Attempt> {
+    let email_str = email.as_str();
+    let spent = sqlx::query!(
+        r#"UPDATE access_code SET attempts = attempts + 1
+           WHERE email = ?1 AND expires_at > ?2 AND attempts < ?3
+           RETURNING code_mac AS "code_mac!", attempts AS "attempts!: i64""#,
+        email_str,
+        now,
+        limit
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(spent) = spent else {
+        let live = sqlx::query_scalar!(r#"SELECT 1 AS "x!: i64" FROM access_code WHERE email = ?1 AND expires_at > ?2"#, email_str, now)
+            .fetch_optional(pool)
+            .await?;
+        return Ok(if live.is_some() { Attempt::Locked } else { Attempt::Expired });
+    };
+    let Some(code) = typed.and_then(normalise) else { return Ok(Attempt::Wrong(spent.attempts)) };
+    let expected = mac(secret, email, &code);
+    let expected = expected.as_slice();
+    if !bool::from(spent.code_mac.as_slice().ct_eq(expected)) {
+        return Ok(Attempt::Wrong(spent.attempts));
+    }
+    let consumed = sqlx::query!("DELETE FROM access_code WHERE email = ?1 AND code_mac = ?2", email_str, expected).execute(pool).await?;
+    Ok(if consumed.rows_affected() == 1 { Attempt::Verified } else { Attempt::Expired })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", coalesce(company_name, '') AS \"company!: String\", coalesce(name, '') AS \"name!: String\",\n                  coalesce(email, '') AS \"email!: String\", coalesce(order_date, 0) AS \"order_date!: i64\", status AS \"status!: String\"\n           FROM orderhd WHERE (?1 IS NULL OR status = ?1) AND coalesce(order_date, 0) >= ?2 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "company!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "email!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "order_date!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a6170e884010965f33b099482362906fdbd29d06e79bff2cf24cb2f8a0b38ecc"
+}

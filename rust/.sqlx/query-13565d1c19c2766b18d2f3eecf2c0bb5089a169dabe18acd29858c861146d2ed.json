@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name FROM country WHERE country = ?1 AND state = ?2 AND state <> ''",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "13565d1c19c2766b18d2f3eecf2c0bb5089a169dabe18acd29858c861146d2ed"
+}

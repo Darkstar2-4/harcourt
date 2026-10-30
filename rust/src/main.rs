@@ -112,6 +112,10 @@ pub fn on(feature: &str) -> bool {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().with_target(false).init();
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("job") {
+        std::process::exit(hxweb::staff::jobs::cli(&args[1..]).await);
+    }
     let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());
     let listen = env("HXWEB_LISTEN", "127.0.0.1:8090");
     let app = Arc::new(App {
@@ -172,11 +176,16 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
     if config.secret.is_none() {
         tracing::warn!("HXWEB_SECRET is not set: emailed-code sign-in answers 503");
     }
+    let accounts = hxweb::accounts::Services::from_env(|k| std::env::var(k).ok())
+        .inspect_err(|e| tracing::error!("/api disabled: {e}"))
+        .ok()?;
+    hxweb::orders::mail::start_from_env(pool.clone());
     Some(Arc::new(hxweb::api::Auth {
         pool,
         secret: config.secret,
         public_origin: config.public_origin,
         trusted_proxies: config.trusted_proxies,
+        accounts,
     }))
 }
 

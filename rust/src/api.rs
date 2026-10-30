@@ -4,7 +4,7 @@
 use std::{convert::Infallible, marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
 
 use axum::{
-    extract::{ConnectInfo, DefaultBodyLimit, FromRequestParts, Request, State},
+    extract::{connect_info::MockConnectInfo, ConnectInfo, DefaultBodyLimit, FromRequestParts, Request, State},
     http::{header, request::Parts, HeaderMap, HeaderValue, Method, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -29,6 +29,7 @@ pub struct Auth {
     pub secret: Option<Secret>,
     pub public_origin: String,
     pub trusted_proxies: Vec<IpAddr>,
+    pub accounts: crate::accounts::Services,
 }
 
 pub fn router(auth: Arc<Auth>) -> Router {
@@ -103,16 +104,26 @@ impl FromRequestParts<Arc<Auth>> for ClientIp {
     type Rejection = Infallible;
 
     async fn from_request_parts(parts: &mut Parts, auth: &Arc<Auth>) -> Result<Self, Infallible> {
-        let Some(peer) = parts.extensions.get::<ConnectInfo<SocketAddr>>().map(|c| c.0.ip()) else {
-            return Ok(ClientIp("unknown".into()));
-        };
-        let ip = if auth.trusted_proxies.contains(&peer) {
-            parts.headers.get("x-real-ip").and_then(|v| v.to_str().ok()).and_then(|s| s.trim().parse::<IpAddr>().ok()).unwrap_or(peer)
-        } else {
-            peer
-        };
-        Ok(ClientIp(ip.to_string()))
+        Ok(ClientIp(client_addr(parts, &auth.trusted_proxies).map_or_else(|| "unknown".into(), |ip| ip.to_string())))
     }
+}
+
+/// The rule behind `ClientIp`, for callers that need the address itself. IPv4 peers seen through an IPv6 socket
+/// come back as plain IPv4, the form the `user.ip` column holds.
+pub fn client_addr(parts: &Parts, trusted_proxies: &[IpAddr]) -> Option<IpAddr> {
+    let peer = parts
+        .extensions
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|c| c.0)
+        .or_else(|| parts.extensions.get::<MockConnectInfo<SocketAddr>>().map(|m| m.0))?
+        .ip()
+        .to_canonical();
+    let ip = if trusted_proxies.contains(&peer) {
+        parts.headers.get("x-real-ip").and_then(|v| v.to_str().ok()).and_then(|s| s.trim().parse::<IpAddr>().ok()).unwrap_or(peer)
+    } else {
+        peer
+    };
+    Some(ip.to_canonical())
 }
 
 pub trait MinRole {
@@ -125,6 +136,18 @@ impl MinRole for AnyUser {
 }
 impl MinRole for Administrator {
     const ROLE: Role = Role::Administrator;
+}
+pub struct Internal;
+impl MinRole for Internal {
+    const ROLE: Role = Role::Internal;
+}
+pub struct Executive;
+impl MinRole for Executive {
+    const ROLE: Role = Role::Executive;
+}
+pub struct SuperUser;
+impl MinRole for SuperUser {
+    const ROLE: Role = Role::SuperUser;
 }
 
 /// A request that carries a live session of an Active account whose role is at least `R`.

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.thumbnail_url AS \"url!: String\" FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id\n           WHERE i.sku = ?1 AND s.thumbnail_url IS NOT NULL AND s.thumbnail_url <> ''",
+  "describe": {
+    "columns": [
+      {
+        "name": "url!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6c880d45d4deccc2f605765f241ba3b92815823c2e3506e62af13380153babf2"
+}

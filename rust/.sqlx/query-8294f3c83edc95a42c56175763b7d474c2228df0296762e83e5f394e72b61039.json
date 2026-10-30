@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code, name, subject, recipient, bcc, css, header_html, footer_html, active FROM mailform WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "code",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "recipient",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "bcc",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "css",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "header_html",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "footer_html",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "active",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "8294f3c83edc95a42c56175763b7d474c2228df0296762e83e5f394e72b61039"
+}

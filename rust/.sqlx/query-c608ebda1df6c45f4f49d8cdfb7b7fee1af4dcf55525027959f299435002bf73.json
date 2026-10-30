@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "c608ebda1df6c45f4f49d8cdfb7b7fee1af4dcf55525027959f299435002bf73"
+}

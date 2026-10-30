@@ -13,7 +13,27 @@ use percent_encoding::percent_decode_str;
 
 /// scs_remote.php: `action=access` set the session user from an unsigned code with no sign-in. Replaced by
 /// remote_grant.rs (POST /api/remote/grants, POST /api/remote/redeem).
-const RETIRED: &[&str] = &["scs_remote.php"];
+///
+/// The web SQL consoles, PHP diagnostics and developer toolboxes have no replacement: staff use the SQLite CLI and
+/// the server shell.
+const RETIRED: &[&str] = &[
+    "scs_remote.php",
+    "scs_mysql_remote.php",
+    "scs_mysql.php",
+    "mysql_rev1.php",
+    "query_test.php",
+    "phpinfo.php",
+    "test.php",
+    "x.php",
+    "scs_pdo.php",
+    "scs_php.php",
+    "scs_toolbox.php",
+    "toolbox_rev0.php",
+    "php_toolbox.php",
+    "php_toolbox_rev0.php",
+    "scs_php_toolbox.php",
+    "jquery_toolbox.php",
+];
 
 pub fn is_retired(raw_path: &str) -> bool {
     let decoded = percent_decode_str(raw_path).decode_utf8_lossy();
@@ -67,6 +87,16 @@ mod tests {
             "/a/%2e%2e/scs_remote.php",
         ] {
             assert!(is_retired(p), "{p}");
+        }
+    }
+
+    #[test]
+    fn closes_the_consoles_and_diagnostics() {
+        for p in ["/scs_mysql.php", "/includes/mysql_rev1.php", "/phpinfo.php", "/scs_toolbox.php/x", "/includes/toolbox_rev0.php", "/X.PHP"] {
+            assert!(is_retired(p), "{p}");
+        }
+        for p in ["/scs_log.php", "/dashboard.php", "/phpinfo2.php", "/mailer_maintain.php"] {
+            assert!(!is_retired(p), "{p}");
         }
     }
 

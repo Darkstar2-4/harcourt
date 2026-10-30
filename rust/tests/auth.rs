@@ -34,6 +34,7 @@ async fn harness() -> Harness {
         secret: Some(Secret::from_bytes(vec![7; 32])),
         public_origin: ORIGIN.into(),
         trusted_proxies: vec!["127.0.0.1".parse().unwrap()],
+        accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
     });
     let app = Router::new().nest_service("/api", api::router(auth)).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
     Harness { app, pool }

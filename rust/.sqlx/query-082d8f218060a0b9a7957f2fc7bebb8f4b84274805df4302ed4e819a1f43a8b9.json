@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO oauth_login (token_hash, provider, created_at, outcome, message) VALUES (?1, ?2, ?3, ?4, ?5)\n         ON CONFLICT (token_hash) DO UPDATE SET provider = excluded.provider, state = NULL, verifier = NULL, nonce = NULL,\n             created_at = excluded.created_at, outcome = excluded.outcome, message = excluded.message",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "082d8f218060a0b9a7957f2fc7bebb8f4b84274805df4302ed4e819a1f43a8b9"
+}
