@@ -147,6 +147,30 @@ async fn the_list_holds_accounts_up_to_the_viewers_role() {
 }
 
 #[tokio::test]
+async fn only_a_post_that_writes_needs_the_form_token() {
+    let h = harness().await;
+    user_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    account(&h.pool, 10, "Customer", "Pending", "198.51.100.10").await;
+    let (status, _, page) = send(&h.app, post("/user.php", &admin, &[("action", "list"), ("report_option_field", "ip"), ("report_option_value", "198.51.100.")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<br>1 Records Found"));
+    let (status, _, page) = send(&h.app, post("/user.php", &admin, &[("action", "maintain"), ("record_id", "10")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("value='Test company 10'"));
+    for writes in [user_form(&[("record_id", "10")]), vec![("action", "delete"), ("record_id", "10")]] {
+        let (status, _, _) = send(&h.app, post("/user.php", &admin, &writes)).await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+    let row: (String, String) = sqlx::query_as(r#"SELECT ip, status FROM "user" WHERE id = 10"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("198.51.100.10".into(), "Pending".into()));
+    let (status, _, _) = send(&h.app, post("/inventory.php", &admin, &[("action", "delete"), ("record_id", "1")])).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, _, _) = send(&h.app, post("/inventory.php", &admin, &[("action", "list"), ("report_subcategory_id", "0")])).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test]
 async fn editing_shows_the_address_block_and_category_tabs() {
     let h = harness().await;
     user_seed(&h.pool).await;
@@ -502,4 +526,72 @@ async fn portals_keep_their_headlines_and_subcategories() {
     assert_eq!(portals, [(50, "^4^".to_string()), (51, "^".to_string())]);
     let headline: String = sqlx::query_scalar("SELECT description FROM content WHERE record_type = 'portal' AND record_id = 4").fetch_one(&h.pool).await.unwrap();
     assert_eq!(headline, "Welcome");
+}
+
+#[tokio::test]
+async fn the_pricing_utility_explains_a_smart_subcategorys_price_tables() {
+    let h = harness().await;
+    exec(&h.pool, "INSERT INTO category (id, name, active) VALUES (5, 'Slides', 1)").await;
+    exec(&h.pool, "INSERT INTO subcategory (id, category_id, name, status, output) VALUES (549, 5, 'Test Slides', 'Active', 'smart'), (50, 5, 'Plain Pins', 'Active', '')").await;
+    exec(&h.pool, "INSERT INTO pricing (subcategory_id, record_type, options, price_type, price0, update_timestamp) VALUES ('549', 'carriage_length', 'carriage_length=0', '', 1234.5, 1566835732), ('549', 'carriage_length', 'carriage_length=', '', 0, 1566835732)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php", Some(&admin))).await;
+    assert!(page.contains("<optgroup label='Slides'>\n<option value='549'>Test Slides</option>\n</optgroup>\n</select></td>"), "only smart subcategories: {page}");
+    assert!(page.contains("<td id='record_type_td'></td>"));
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php?subcategory_id=549&function=explain&action=prelist", Some(&admin))).await;
+    assert!(page.contains("<br>Test Slides (549)</span></p>"));
+    assert!(page.contains("<td class=center>2</td>\n<td>code0: carriage_length</td>\n<td>price0: Per Carriage</td>"));
+    assert!(page.contains("<tr style='background-color: #ffff00;'>\n<td><a href=\"javascript:fn_record_type('rail_length');\">rail_length</a></td>"));
+    let (_, _, page) = send(&h.app, post("/pricing_utility.php", &admin, &[("action", "prelist"), ("function", "explain"), ("subcategory_id", "549"), ("record_type", "carriage_length")])).await;
+    assert!(page.contains("<td>0</td>\n<td class=right>$1,234.50</td>"));
+    assert!(page.contains("<td style='background-color: #ffff00;'>Missing</td>"));
+    assert!(page.contains("active: 2 }"));
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php?function=explain&action=prelist", Some(&admin))).await;
+    assert!(page.contains("Correct 1 error(s)"));
+    let (status, _, _) = send(&h.app, post("/pricing_utility.php", &admin, &[("action", "update"), ("function", "upload"), ("subcategory_id", "549")])).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn the_price_book_lists_priced_subcategories_and_checks_its_terms() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'pricebook_title', '', 'Example Price Book')").await;
+    exec(&h.pool, "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, update_timestamp, active) VALUES ('USD', 'US Dollar', 'US dollars', 1, 0, 0, 1), ('EUR', 'Euro', 'euros', 0.95, 0.5, 1733512860, 1)").await;
+    let internal = person(&h.pool, 2, "Internal").await;
+    let (status, _, page) = send(&h.app, get("/inventory_pricebook.php", Some(&internal))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Price Book<span class=message2><br>Revised: 06/05/2023</span></p>"));
+    assert!(page.contains("value='Example Price Book' placeholder='Mandatory'>"));
+    assert!(page.contains("<option value='USD'>US Dollar</option>\n<option value='EUR'>Euro</option>"));
+    assert!(page.contains("name='c3ViY2F0ZWdvcnkJNTA' id='c3ViY2F0ZWdvcnkJNTA' value='1'> Test Pins (1)</td>"), "{page}");
+    assert!(page.ends_with("onclick=\"javascript:pricebook_create();\">\n</p>"));
+    let (_, _, page) = send(&h.app, post("/inventory_pricebook.php", &internal, &[("action", "update"), ("title", ""), ("ajax_temp_price_type", "plus"), ("ajax_temp_price_pct", "600")])).await;
+    assert!(page.contains("Correct 3 error(s)"));
+    assert!(page.contains("% <b>Price plus must be > 0% and < 500%</b></td>"));
+    assert!(page.contains("<p><b>No subcategories selected</b></p>"));
+    let mut req = post("/inventory_pricebook.php", &internal, &[("action", "currency"), ("currency_code", "EUR")]);
+    req.headers_mut().insert("x-requested-with", "XMLHttpRequest".parse().unwrap());
+    let (_, _, json) = send(&h.app, req).await;
+    assert!(json.starts_with("{\"currency_meta\":\"Revised: 12\\/06\\/2024"), "{json}");
+    assert!(json.ends_with("<br>Exchange rate: 0.9500%<br>Adder percent: 50.0000%\"}"));
+}
+
+#[tokio::test]
+async fn the_portal_preview_loads_a_portal_or_says_why_not() {
+    let h = harness().await;
+    portal_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO language (code, name, local_name, priority) VALUES ('EN', 'English', 'English', 1), ('FR', 'French', 'Français', 2)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (status, _, page) = send(&h.app, get("/portal_preview.php", Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Portal Preview (11/18/2025)</p>"));
+    assert!(page.contains("<option value='FR'>Français</option>"));
+    assert!(!page.contains("Debug?"));
+    let (_, _, page) = send(&h.app, post("/portal_preview.php", &admin, &[("action", "load"), ("portal_id", "999"), ("language_code", "EN")])).await;
+    assert!(page.contains("</select>\n Missing or inactive portal</td>"), "{page}");
+    let mut req = post("/portal_preview.php", &admin, &[("action", "nothing")]);
+    req.headers_mut().insert("x-requested-with", "XMLHttpRequest".parse().unwrap());
+    let (_, _, json) = send(&h.app, req).await;
+    assert_eq!(json, "{\"preview_detail\":\"Method not found: json_nothing\"}");
 }

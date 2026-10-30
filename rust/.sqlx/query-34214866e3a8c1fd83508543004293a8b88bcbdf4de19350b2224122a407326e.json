@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE registry SET data = ?1 WHERE domain = '' AND module = 'local' AND field = 'filmstrip_timestamp' AND item = ''",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "34214866e3a8c1fd83508543004293a8b88bcbdf4de19350b2224122a407326e"
+}

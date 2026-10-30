@@ -58,6 +58,7 @@ const PAGES: &[&str] = &[
     "/contact-india/",
     "/contact-uk/",
     "/customer_portal/",
+    "/dashboard/",
     "/demande-dacces/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
@@ -123,6 +124,7 @@ const PAGES: &[&str] = &[
     "/societe/histoire/",
     "/societe/opportunites-de-carriere/",
     "/societe/pourquoi-harcourt/",
+    "/tableau-de-bord/",
     "/thank-you/",
 ];
 

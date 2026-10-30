@@ -51,7 +51,7 @@ fn dst_bounds(year: i64) -> (i64, i64) {
     (start, end)
 }
 
-fn offset_at(unix: i64) -> i64 {
+pub fn offset_at(unix: i64) -> i64 {
     let (year, _, _) = civil_from_days(unix.div_euclid(86400));
     let (start, end) = dst_bounds(year);
     if (start..end).contains(&unix) {

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code, COALESCE(local_name, '') AS \"local!: String\", country_code FROM language ORDER BY priority, local_name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "local!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "142c0589de3e8b66f48a20a798efff8307362dc290cbe107de9d9885bf20a30a"
+}

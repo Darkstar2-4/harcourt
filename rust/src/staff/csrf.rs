@@ -1,5 +1,5 @@
-//! Every staff form carries a token bound to the browser's session, and every POST must return it. The PHP pages
-//! had none, so any site a signed-in staff member visited could post to them.
+//! Every staff form carries a token bound to the browser's session, and every POST that changes something must
+//! return it. The PHP pages had none, so any site a signed-in staff member visited could post to them.
 //!
 //! The token is a SHA-256 of the session cookie under a fixed label. Only the browser holding the cookie can
 //! compute it, it changes with every session, and nothing needs storing. It differs from the hash the `session`
@@ -141,7 +141,47 @@ impl FromRequest<Arc<Auth>> for Posted {
     type Rejection = Rejected;
 
     async fn from_request(req: Request, state: &Arc<Auth>) -> Result<Self, Rejected> {
-        let expected = CsrfToken::for_request(req.headers()).ok_or(Rejected::Token)?;
+        Unchecked::from_request(req, state).await?.accept(true)
+    }
+}
+
+/// A staff form POST before its token is checked, for a page that also posts to only show something (a list, a
+/// record's form, a cancel), as the PHP pages did. A post that changes nothing needs no token; `accept` hands the
+/// post on, and refuses it without the token when the action it carries writes.
+pub struct Unchecked {
+    posted: Posted,
+    token_ok: bool,
+}
+
+impl Unchecked {
+    pub fn fields(&self) -> &Fields {
+        &self.posted.fields
+    }
+
+    pub fn accept(self, writes: bool) -> Result<Posted, Rejected> {
+        if writes && !self.token_ok {
+            return Err(Rejected::Token);
+        }
+        Ok(self.posted)
+    }
+
+    /// A page whose posts never write takes them as they come.
+    pub fn read_only(self) -> Posted {
+        self.posted
+    }
+
+    /// The maintenance pages' rule: a post whose `action` is `update` or `delete` writes.
+    pub fn accept_by_action(self) -> Result<Posted, Rejected> {
+        let writes = matches!(self.fields().get("action"), "update" | "delete");
+        self.accept(writes)
+    }
+}
+
+impl FromRequest<Arc<Auth>> for Unchecked {
+    type Rejection = Rejected;
+
+    async fn from_request(req: Request, state: &Arc<Auth>) -> Result<Self, Rejected> {
+        let expected = CsrfToken::for_request(req.headers());
         let is_multipart = req
             .headers()
             .get(header::CONTENT_TYPE)
@@ -166,10 +206,8 @@ impl FromRequest<Arc<Auth>> for Posted {
             let bytes = Bytes::from_request(req, state).await.map_err(|_| Rejected::Body)?;
             (Fields(form_urlencoded::parse(&bytes).into_owned().collect()), Vec::new())
         };
-        if !expected.matches(fields.get(FIELD)) {
-            return Err(Rejected::Token);
-        }
-        Ok(Posted { fields, uploads })
+        let token_ok = expected.is_some_and(|t| t.matches(fields.get(FIELD)));
+        Ok(Unchecked { posted: Posted { fields, uploads }, token_ok })
     }
 }
 

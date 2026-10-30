@@ -12,6 +12,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Scscpq => scscpq,
         Template::ScscpqBeta => scscpq_beta,
         Template::ScscpqCustomerPortal => scscpq_customer_portal,
+        Template::ScscpqDashboard => scscpq_dashboard,
         Template::Digest => digest,
         Template::Page => default_page,
         Template::History => super::company::history,
@@ -254,6 +255,11 @@ fn scscpq_beta(c: &mut Ctx) {
 /// layouts/template-scscpq-customer_portal.php
 fn scscpq_customer_portal(c: &mut Ctx) {
     scscpq_shell(c, "     ", "customer_portal");
+}
+
+/// layouts/template-scscpq-dashboard.php: the staff dashboard, which the loader fills from /dashboard.php.
+fn scscpq_dashboard(c: &mut Ctx) {
+    scscpq_shell(c, "    ", "dashboard");
 }
 
 /// The scscpq templates differ only in their indent and the view they name.

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\" FROM portalcontent WHERE portal_id = ?1 AND form = 'Portal Image' AND active = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "25d1c6d25041336eeb33a7844ad91305aaff33b62551a847a6b31153edd62b1c"
+}

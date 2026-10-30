@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT i.sku AS \"sku!: String\", c.id AS \"category_id!: i64\", COALESCE(c.name, '') AS \"category!: String\", s.id AS \"subcategory_id!: i64\",\n                      COALESCE(s.name, '') AS \"subcategory!: String\", COALESCE(i.leadtime_option, '') AS \"leadtime_option!: String\",\n                      COALESCE(i.leadtime_text, '') AS \"leadtime_text!: String\", COALESCE(i.pricing, '') AS \"pricing!: String\"\n               FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id\n               WHERE i.subcategory_id = ?1 AND c.active = 1 AND s.status = 'Active' AND s.output <> 'smart' AND COALESCE(i.pricing, '') NOT IN ('', 'a:0:{}')",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category!: String",
+        "ordinal": 2,
+        "type_info": "Null"
+      },
+      {
+        "name": "subcategory_id!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory!: String",
+        "ordinal": 4,
+        "type_info": "Null"
+      },
+      {
+        "name": "leadtime_option!: String",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "leadtime_text!: String",
+        "ordinal": 6,
+        "type_info": "Null"
+      },
+      {
+        "name": "pricing!: String",
+        "ordinal": 7,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      null,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "af806f25e5abf668bdf3f88fd6bd10eee7163cd4d591999420c81df3a0dd1dba"
+}
