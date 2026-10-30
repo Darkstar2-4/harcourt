@@ -74,7 +74,12 @@ async fn cookie(pool: &SqlitePool, id: i64) -> String {
 
 fn request(method: Method, uri: &str, cookie: &str, form: &[(&str, &str)], ajax: bool) -> Request<Body> {
     let body: Vec<String> = form.iter().map(|(k, v)| format!("{}={}", enc(k), enc(v))).collect();
-    let mut r = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    let mut r = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::COOKIE, cookie)
+        .header(header::REFERER, "https://www.harcourt.co/catalog/")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if ajax {
         r = r.header("x-requested-with", "XMLHttpRequest");
     }
