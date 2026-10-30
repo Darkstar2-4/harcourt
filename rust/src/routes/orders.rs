@@ -1,4 +1,4 @@
-//! Owner: the orders agent. Routes for cart, checkout, orders, quotes, punch-out, contact and request forms, and the mail sender that drains the outbox.
+//! Owner: the orders agent. Routes for cart, checkout, the contact page and the site's forms; the mail sender that drains the outbox starts in main.rs.
 //! Register every route here and nowhere else; mod.rs only merges this router.
 
 use std::sync::Arc;

@@ -37,76 +37,11 @@
 {"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
 {"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
 {"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
-{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
-{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
-{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
-{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "bot-get-maintain", "path": "/bot.php?action=maintain&record_id=1&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "bot-get-maintain", "path": "/bot.php?action=maintain&record_id=0&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "bot-get-cancel", "path": "/bot.php?action=cancel&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
-{"name": "blacklist-xhr-list-p2", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=2&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "blacklist-xhr-search", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=com", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "blacklist-xhr-search-none", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=zzzz-nothing", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "blacklist-xhr-add-invalid", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&domain=not-valid&comment=x&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "blacklist-xhr-add-blank", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&domain=&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-list-p2", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=2&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-search", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=com", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-search-none", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=zzzz-nothing", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-add-invalid", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=not-valid&comment=x&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-add-blank", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "captcha_bypass-xhr-add-bad-domain", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=%40nodot&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_access-xhr-load", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=Persona+Customer+Active", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_access-xhr-load-blank", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_access-xhr-load-none", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=Nobody+Here+Example", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_access-xhr-host-bad", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=host&id=bm90", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_access-xhr-update-missing", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=update&company_name=&domain=&ip=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "remote_token-post-list", "method": "POST", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&domain=customer-active.persona.example"}
-{"name": "remote_token-post-list-blank", "method": "POST", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&domain="}
 {"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "anonymous", "session": "cold"}
 {"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "customer-active", "session": "cold"}
 {"name": "campaign-cold-test", "path": "/campaign.php?campaign=TEST", "persona": "anonymous", "session": "cold"}

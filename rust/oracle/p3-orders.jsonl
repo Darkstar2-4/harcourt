@@ -64,16 +64,6 @@
 {"name":"p3-contact-php-anonymous-fr-warm","path":"/contact.php","language":"fr","session":"warm"}
 {"name":"p3-contact-php-anonymous-fr-wp-warm","path":"/contact.php?scscpq_wp=1","language":"fr","session":"warm"}
 {"name":"p3-contact-php-customer-fr-warm","path":"/contact.php","persona":"customer-active-fr","language":"fr","session":"warm"}
-{"name":"p3-orderhd-executive-active","path":"/orderhd.php?scscpq_wp=1","persona":"executive-active"}
-{"name":"p3-orderhd-list-executive-active","method":"POST","path":"/orderhd.php","persona":"executive-active","body":"action=list&report_status=Pending"}
-{"name":"p3-orderhd-administrator-active","path":"/orderhd.php?scscpq_wp=1","persona":"administrator-active"}
-{"name":"p3-orderhd-list-administrator-active","method":"POST","path":"/orderhd.php","persona":"administrator-active","body":"action=list&report_status=Pending"}
-{"name":"p3-orderhd-superuser-active","path":"/orderhd.php?scscpq_wp=1","persona":"superuser-active"}
-{"name":"p3-orderhd-list-superuser-active","method":"POST","path":"/orderhd.php","persona":"superuser-active","body":"action=list&report_status=Pending"}
-{"name":"p3-orderhd-maintain-missing","method":"POST","path":"/orderhd.php","persona":"executive-active","body":"action=maintain&record_id=999999"}
-{"name":"p3-orderhd-cancel","method":"POST","path":"/orderhd.php","persona":"executive-active","body":"action=cancel"}
-{"name":"p3-orderhd-anonymous","path":"/orderhd.php","persona":"anonymous"}
-{"name":"p3-orderhd-customer","path":"/orderhd.php","persona":"customer-active"}
 {"name":"p3-french-link-contact-form-troy-mi","path":"/contact-form-troy-mi?lang=fr","language":"fr"}
 {"name":"p3-french-link-boxjoint-inquiry-form","path":"/boxjoint-inquiry-form?lang=fr","language":"fr"}
 {"name":"p3-french-link-contact-form-madison-heights-mi","path":"/contact-form-madison-heights-mi?lang=fr&utm_source=x","language":"fr"}

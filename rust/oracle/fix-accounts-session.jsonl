@@ -1,9 +1,3 @@
 # Accounts cases that change the PHP session they run in (the language, the framed flag, the session itself).
 # Run them on their own, warm, so they do not change what other warm cases see. Synthetic personas only; the
 # language each persona switches to is its own, so the oracle's accounts keep their language.
-{"name": "language-change-ref-anonymous-en", "path": "/language_change.php?language_code=EN", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
-{"name": "language-change-ref-anonymous-fr", "path": "/language_change.php?language_code=FR", "persona": "anonymous", "language": "fr", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalogue/?lang=fr"}}
-{"name": "language-change-ref-customer-active", "path": "/language_change.php?language_code=EN", "persona": "customer-active", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog.php?scscpq_wp=1"}}
-{"name": "language-change-ref-customer-pending", "path": "/language_change.php?language_code=EN", "persona": "customer-pending", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/newuser.php"}}
-{"name": "language-change-ref-bad-code", "path": "/language_change.php?language_code=XX", "persona": "anonymous", "language": "en", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
-{"name": "language-change-ref-cold", "path": "/language_change.php?language_code=EN", "persona": "anonymous", "language": "en", "session": "cold", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}

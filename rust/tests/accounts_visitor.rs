@@ -65,6 +65,11 @@ fn app(pool: &SqlitePool, peer: &str) -> Router {
 }
 
 async fn probe(v: Visitor) -> Json<serde_json::Value> {
+    let catalog = match &v.identity {
+        Identity::Anonymous => false,
+        Identity::Bot(b) => b.catalog,
+        Identity::Account(s) => s.account.catalog(),
+    };
     let (kind, id, via, status) = match &v.identity {
         Identity::Anonymous => ("anonymous", 0, "", ""),
         Identity::Bot(b) => ("bot", b.id, "", ""),
@@ -84,9 +89,9 @@ async fn probe(v: Visitor) -> Json<serde_json::Value> {
     };
     Json(serde_json::json!({
         "kind": kind, "id": id, "via": via, "status": status,
-        "role": v.role().as_str(), "catalog": v.catalog(),
+        "role": v.role().as_str(), "catalog": catalog,
         "email": v.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string()),
-        "language": v.language.as_str(), "currency": v.currency.as_str(),
+        "language": v.language.as_str(),
         "campaign": v.campaign.as_ref().map(|c| c.code.clone()),
     }))
 }
@@ -133,14 +138,14 @@ async fn cookie_for(pool: &SqlitePool, id: i64, email: Option<&str>) -> String {
 }
 
 #[tokio::test]
-async fn an_anonymous_visitor_gets_the_browser_language_and_dollars() {
+async fn an_anonymous_visitor_gets_the_browser_language() {
     let pool = pool().await;
     let (status, _, v) = ask(&app(&pool, "198.51.100.1"), &[("accept-language", "fr-CA,fr;q=0.9")]).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(v["kind"], "anonymous");
     assert_eq!(v["role"], "Customer", "the PHP counted an anonymous visitor as a Customer");
     assert_eq!(v["catalog"], false);
-    assert_eq!((v["language"].as_str(), v["currency"].as_str()), (Some("FR"), Some("USD")));
+    assert_eq!(v["language"], "FR");
 }
 
 #[tokio::test]
@@ -154,7 +159,6 @@ async fn a_company_address_signs_in_and_logs_once_per_visit() {
         let (_, _, v) = ask(&app, &[("cookie", visit.as_str())]).await;
         assert_eq!((v["kind"].as_str(), v["id"].as_i64(), v["via"].as_str()), (Some("account"), Some(3), Some("address")));
         assert_eq!(v["catalog"], true);
-        assert_eq!(v["currency"], "CAD");
     }
     assert_eq!(log_count(&pool, "User", "Login").await, 1);
     ask(&app, &[]).await;

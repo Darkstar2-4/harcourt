@@ -19,7 +19,6 @@
 //!    is what is stored. The status may be Pending or Denied.
 //!  * `language`: the language to show when the URL does not say. An explicit choice this visit, else the
 //!    account's saved language, else Accept-Language, else English.
-//!  * `currency`: the currency to price in: the account's, if the site offers it, else US dollars.
 //!  * `campaign`: the active campaign this visit began with (`?campaign=CODE` on its first page).
 //!  * `framed`: the visit is inside the WordPress frame (`?scscpq_wp=1` on this or an earlier page of the visit).
 //!  * `client`: the client address.
@@ -27,8 +26,7 @@
 //!  * `php_self`: PHP_SELF, the page's own path with any PATH_INFO (`/campaign.php/more`); the PHP pages' forms
 //!    posted back to it. Escape it when printing: the client chose the PATH_INFO.
 //!
-//! The shortcuts `user()`, `account()`, `bot()`, `role()`, `at_least()`, `catalog()`, `cad()`, `ecommerce()`,
-//! `portal_id()` and `industry_id()` cover the common questions.
+//! The shortcuts `user()`, `account()`, `bot()`, `role()` and `ecommerce()` cover the common questions.
 //!
 //! `layer` resolves the visitor once per request for the page routers and writes what the PHP wrote when a visit
 //! began: an account's sign-in (its `last_login` and log row, by session or by company address), the campaign
@@ -54,7 +52,7 @@ use crate::{
         bot::{self, Bot, BotStatus},
         campaign::{self, Campaign},
         clock, cookies,
-        locale::{Currencies, CurrencyCode, LanguageCode, Languages},
+        locale::{LanguageCode, Languages},
         log::{self, Kind, Subject},
         profile::Profile,
         visit::{self, Visit, VisitId},
@@ -70,7 +68,6 @@ use crate::{
 pub struct Visitor {
     pub identity: Identity,
     pub language: LanguageCode,
-    pub currency: CurrencyCode,
     pub campaign: Option<Campaign>,
     pub client: Option<IpAddr>,
     /// The session this browser is signed in with, as stored: what per-browser state (the cart) hangs off. None
@@ -111,7 +108,6 @@ impl Visitor {
         Visitor {
             identity: Identity::Anonymous,
             language: LanguageCode::english(),
-            currency: CurrencyCode::usd(),
             campaign: None,
             client: None,
             session: None,
@@ -149,38 +145,8 @@ impl Visitor {
         self.user().map_or(Role::Customer, |u| u.role)
     }
 
-    /// classes/user.php access($role, FALSE).
-    pub fn at_least(&self, role: Role) -> bool {
-        self.role() >= role
-    }
-
-    /// A bot sees the catalog when its row says so, whatever its status, as classes/bot.php session() set it.
-    pub fn catalog(&self) -> bool {
-        match &self.identity {
-            Identity::Account(s) => s.account.catalog(),
-            Identity::Bot(b) => b.catalog,
-            Identity::Anonymous => false,
-        }
-    }
-
-    pub fn cad(&self) -> bool {
-        self.account().is_some_and(Account::cad)
-    }
-
     pub fn ecommerce(&self) -> bool {
         self.account().is_some_and(Account::ecommerce)
-    }
-
-    pub fn portal_id(&self) -> i64 {
-        match &self.identity {
-            Identity::Account(s) => s.account.portal_id,
-            Identity::Bot(b) => b.portal_id,
-            Identity::Anonymous => 0,
-        }
-    }
-
-    pub fn industry_id(&self) -> i64 {
-        self.account().map_or(0, |a| a.industry_id)
     }
 
     /// The session user PHP kept for this visitor had the status Pending: a Pending account, or anyone not signed
@@ -328,13 +294,6 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
         })
         .unwrap_or_else(|| languages.from_accept_language(header_str(&parts.headers, header::ACCEPT_LANGUAGE)));
 
-    let currencies = Currencies::load(pool).await?;
-    let currency = match &identity {
-        Identity::Account(s) => currencies.get(&s.account.currency_code),
-        _ => None,
-    }
-    .unwrap_or_else(CurrencyCode::usd);
-
     let today = clock::detroit(now).date;
     let asked = campaign_in_query(parts.uri.query()).filter(|_| php.initial());
     let campaign = match asked {
@@ -362,7 +321,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     let framed = asks_frame || stored.framed;
 
     let php_self = php_self(parts).to_string();
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, client, session, framed, visit: visit_id, php_self }, effects })
+    Ok(Resolved { visitor: Visitor { identity, language, campaign, client, session, framed, visit: visit_id, php_self }, effects })
 }
 
 /// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.

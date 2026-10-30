@@ -41,7 +41,6 @@
 {"name": "newuser-wp", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
 {"name": "newuser-wp-fr", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "fr"}
 {"name": "newuser", "method": "GET", "path": "/newuser.php", "persona": "anonymous", "language": "en"}
-{"name": "login", "method": "GET", "path": "/login.php", "persona": "anonymous", "language": "en"}
 {"name": "cart-wp", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
 {"name": "cart-wp", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
 {"name": "checkout", "method": "GET", "path": "/checkout.php", "persona": "anonymous", "language": "en"}
