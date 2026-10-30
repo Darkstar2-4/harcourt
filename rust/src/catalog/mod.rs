@@ -24,6 +24,7 @@ pub mod hero;
 pub mod html;
 pub mod industry;
 pub mod keywords;
+pub mod learn;
 pub mod loader;
 pub mod metric_filter;
 pub mod model;
