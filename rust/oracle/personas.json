@@ -1,0 +1,22 @@
+[
+  {"name": "customer-active", "ip": "198.51.100.11", "account": {"id": 990001, "role": "Customer", "status": "Active", "language": "EN", "company": "Persona Customer Active", "domain": "customer-active.persona.example"}},
+  {"name": "customer-pending", "ip": "198.51.100.12", "account": {"id": 990002, "role": "Customer", "status": "Pending", "language": "EN", "company": "Persona Customer Pending", "domain": "customer-pending.persona.example"}},
+  {"name": "customer-denied", "ip": "198.51.100.13", "account": {"id": 990003, "role": "Customer", "status": "Denied", "language": "EN", "company": "Persona Customer Denied", "domain": "customer-denied.persona.example"}},
+  {"name": "external-active", "ip": "198.51.100.14", "account": {"id": 990004, "role": "External", "status": "Active", "language": "EN", "company": "Persona External Active", "domain": "external-active.persona.example"}},
+  {"name": "external-pending", "ip": "198.51.100.15", "account": {"id": 990005, "role": "External", "status": "Pending", "language": "EN", "company": "Persona External Pending", "domain": "external-pending.persona.example"}},
+  {"name": "external-denied", "ip": "198.51.100.16", "account": {"id": 990006, "role": "External", "status": "Denied", "language": "EN", "company": "Persona External Denied", "domain": "external-denied.persona.example"}},
+  {"name": "internal-active", "ip": "198.51.100.17", "account": {"id": 990007, "role": "Internal", "status": "Active", "language": "EN", "company": "Persona Internal Active", "domain": "internal-active.persona.example"}},
+  {"name": "internal-pending", "ip": "198.51.100.18", "account": {"id": 990008, "role": "Internal", "status": "Pending", "language": "EN", "company": "Persona Internal Pending", "domain": "internal-pending.persona.example"}},
+  {"name": "internal-denied", "ip": "198.51.100.19", "account": {"id": 990009, "role": "Internal", "status": "Denied", "language": "EN", "company": "Persona Internal Denied", "domain": "internal-denied.persona.example"}},
+  {"name": "executive-active", "ip": "198.51.100.20", "account": {"id": 990010, "role": "Executive", "status": "Active", "language": "EN", "company": "Persona Executive Active", "domain": "executive-active.persona.example"}},
+  {"name": "executive-pending", "ip": "198.51.100.21", "account": {"id": 990011, "role": "Executive", "status": "Pending", "language": "EN", "company": "Persona Executive Pending", "domain": "executive-pending.persona.example"}},
+  {"name": "executive-denied", "ip": "198.51.100.22", "account": {"id": 990012, "role": "Executive", "status": "Denied", "language": "EN", "company": "Persona Executive Denied", "domain": "executive-denied.persona.example"}},
+  {"name": "administrator-active", "ip": "198.51.100.23", "account": {"id": 990013, "role": "Administrator", "status": "Active", "language": "EN", "company": "Persona Administrator Active", "domain": "administrator-active.persona.example"}},
+  {"name": "administrator-pending", "ip": "198.51.100.24", "account": {"id": 990014, "role": "Administrator", "status": "Pending", "language": "EN", "company": "Persona Administrator Pending", "domain": "administrator-pending.persona.example"}},
+  {"name": "administrator-denied", "ip": "198.51.100.25", "account": {"id": 990015, "role": "Administrator", "status": "Denied", "language": "EN", "company": "Persona Administrator Denied", "domain": "administrator-denied.persona.example"}},
+  {"name": "superuser-active", "ip": "198.51.100.26", "account": {"id": 990016, "role": "Super User", "status": "Active", "language": "EN", "company": "Persona Super User Active", "domain": "superuser-active.persona.example"}},
+  {"name": "superuser-pending", "ip": "198.51.100.27", "account": {"id": 990017, "role": "Super User", "status": "Pending", "language": "EN", "company": "Persona Super User Pending", "domain": "superuser-pending.persona.example"}},
+  {"name": "superuser-denied", "ip": "198.51.100.28", "account": {"id": 990018, "role": "Super User", "status": "Denied", "language": "EN", "company": "Persona Super User Denied", "domain": "superuser-denied.persona.example"}},
+  {"name": "customer-active-fr", "ip": "198.51.100.31", "account": {"id": 990031, "role": "Customer", "status": "Active", "language": "FR", "company": "Persona Customer Active FR", "domain": "customer-active-fr.persona.example"}},
+  {"name": "anonymous", "ip": "198.51.100.250", "account": null}
+]
