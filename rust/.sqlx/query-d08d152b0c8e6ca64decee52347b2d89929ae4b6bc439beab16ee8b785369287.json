@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM wp_gf_form_meta",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "d08d152b0c8e6ca64decee52347b2d89929ae4b6bc439beab16ee8b785369287"
+}

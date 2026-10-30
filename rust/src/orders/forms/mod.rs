@@ -1,7 +1,7 @@
 //! The site's Gravity Forms: their markup, validation, spam checks, notifications and stored entries.
 //!
-//! The definitions live in `wp_gf_form`/`wp_gf_form_meta` (imported with tools/gf_dump_to_sqlite.py), so the
-//! recipients stay data. The pages embed a form through `island`, and hand a post back through `handle`:
+//! The definitions live in `wp_gf_form`/`wp_gf_form_meta` (`hxweb-cms import` copies them from the WordPress dump,
+//! `import`), so the recipients stay data. The pages embed a form through `island`, and hand a post back through `handle`:
 //!
 //! - `GET /hx/forms/island?hx_form=N&hx_lang=en|fr&hx_page=/path/` answers the markup, as
 //!   mu-plugins/hx-form-island.php did for the static pages.
@@ -27,6 +27,7 @@ use crate::{api::ClientIp, config::Secret, db::unix_now, identity::Email};
 
 mod ajax_script;
 mod countries;
+pub mod import;
 pub mod model;
 pub mod render;
 pub mod spam;
