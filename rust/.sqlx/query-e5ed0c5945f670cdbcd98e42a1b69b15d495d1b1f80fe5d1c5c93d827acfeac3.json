@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", documents FROM subcategory WHERE prj = ?1 COLLATE NOCASE ORDER BY id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "documents",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "e5ed0c5945f670cdbcd98e42a1b69b15d495d1b1f80fe5d1c5c93d827acfeac3"
+}

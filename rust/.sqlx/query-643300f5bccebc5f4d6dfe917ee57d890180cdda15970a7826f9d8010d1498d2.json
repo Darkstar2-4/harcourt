@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code, name FROM language",
+  "describe": {
+    "columns": [
+      {
+        "name": "code",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "643300f5bccebc5f4d6dfe917ee57d890180cdda15970a7826f9d8010d1498d2"
+}

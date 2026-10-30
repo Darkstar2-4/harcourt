@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM content WHERE record_type = 'category' AND record_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "98d55c7fbea677760d184ab5ca74599f9e4c6395cadcdadb496b674d75ab5724"
+}

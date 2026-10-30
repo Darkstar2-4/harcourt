@@ -4,10 +4,13 @@
 
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{routing::get, Router};
 
-use crate::api::Auth;
+use crate::{accounts::campaign_page, api::Auth};
 
 pub fn router(core: Arc<Auth>) -> Router {
-    crate::catalog::router().with_state(core)
+    crate::catalog::router(core.clone())
+        // solutions.php is a copy of campaign.php, byte for byte: the same campaign landing page.
+        .route("/solutions.php", get(campaign_page::page).post(campaign_page::post))
+        .with_state(core)
 }

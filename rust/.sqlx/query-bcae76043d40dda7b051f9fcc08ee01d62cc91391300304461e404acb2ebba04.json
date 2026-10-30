@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COALESCE(name, '') AS \"name!: String\" FROM document\n           WHERE id = ?1 AND EXISTS (SELECT 1 FROM content WHERE record_type = 'document' AND record_id = ?1 AND language_code IN ('EN', ?2))",
+  "describe": {
+    "columns": [
+      {
+        "name": "name!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bcae76043d40dda7b051f9fcc08ee01d62cc91391300304461e404acb2ebba04"
+}

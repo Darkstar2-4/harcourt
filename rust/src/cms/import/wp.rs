@@ -68,6 +68,9 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         (p.id, p)
     })
     .collect();
+    // The hand-written excerpt the_excerpt() prints instead of the content's first words (a dump may lack it).
+    let excerpts: HashMap<i64, String> =
+        rows(tables, "wp_posts", &["ID", "post_excerpt"]).unwrap_or_default().into_iter().filter(|r| !r[1].str().is_empty()).map(|r| (r[0].int(), r[1].str().into())).collect();
     let mut meta: HashMap<i64, Vec<(String, String)>> = HashMap::new();
     for r in rows(tables, "wp_postmeta", &["post_id", "meta_key", "meta_value"])? {
         meta.entry(r[0].int()).or_default().push((r[1].str().into(), r[2].str().into()));
@@ -133,6 +136,11 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         });
         let mut fields = acf_fields(meta.get(&p.id).map(Vec::as_slice).unwrap_or(&[]), &acf_types, "");
         fields.insert("content".into(), Field { kind: Kind::Html, value: p.content.clone() });
+        // WordPress's search reads the stored post, which the export's rendered `content` replaces for pages.
+        fields.insert("@post_content".into(), Field { kind: Kind::Choice, value: p.content.clone() });
+        if let Some(excerpt) = excerpts.get(&p.id) {
+            fields.insert("@excerpt".into(), Field { kind: Kind::Choice, value: excerpt.clone() });
+        }
         if let Some(thumb) = meta_value(&meta, p.id, "_thumbnail_id") {
             fields.insert("@thumbnail".into(), Field { kind: Kind::Media, value: thumb.to_string() });
         }

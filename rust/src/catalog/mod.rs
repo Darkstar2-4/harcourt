@@ -15,11 +15,16 @@ use crate::api::Auth;
 pub mod ajax;
 pub mod api;
 pub mod callbacks;
+pub mod category;
 pub mod configure;
+pub mod document;
 pub mod files;
 pub mod forms;
+pub mod hero;
 pub mod html;
+pub mod industry;
 pub mod keywords;
+pub mod learn;
 pub mod loader;
 pub mod metric_filter;
 pub mod model;
@@ -31,6 +36,7 @@ pub mod search;
 pub mod strings;
 pub mod tabs;
 pub mod viewer;
+pub mod wp_search;
 
 /// The WordPress catalog pages hxweb composes around the catalog (compose.rs): /catalog/ in English (no `lang`, or
 /// `lang=en`) and /catalogue/ with `lang=fr`. Any other request for those paths is WordPress's to answer.
@@ -42,9 +48,10 @@ pub fn composed_page(path: &str, query: &str) -> Option<viewer::Lang> {
     }
 }
 
-pub fn router() -> Router<Arc<Auth>> {
+pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
     Router::new()
         .merge(pages::router())
+        .merge(wp_search::router(core))
         .merge(search::router())
         .merge(loader::router())
         .merge(files::router())
@@ -53,5 +60,9 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(configure::router())
         .merge(callbacks::router())
         .merge(metric_filter::router())
+        .merge(category::router())
+        .merge(industry::router())
+        .merge(hero::router())
+        .merge(document::router())
         .layer(Extension(search::Cache::new()))
 }

@@ -16,6 +16,8 @@ mod request;
 mod simple;
 mod templates;
 
+use std::collections::BTreeMap;
+
 use super::{
     media::{Images, Phase},
     model::{Field, Kind, Lang, Media, MediaId, Page, PageId, Site, Template},
@@ -71,6 +73,8 @@ pub struct Ctx<'a> {
     pub uri: &'a str,
     pub out: String,
     pub images: Images,
+    /// For a view with no post: chrome holes that differ from the 404 page's (a search's title, links, schema).
+    pub holes: Option<&'a BTreeMap<&'static str, String>>,
     /// In probe mode, the slot behind each sentinel written so far.
     slots: Option<Vec<Slot>>,
     /// Set when the page uses a part of the theme not transcribed yet; such a page is not rendered.
@@ -79,7 +83,7 @@ pub struct Ctx<'a> {
 
 impl<'a> Ctx<'a> {
     pub fn new(site: &'a Site, page: &'a Page, uri: &'a str) -> Ctx<'a> {
-        Ctx { site, view: View::Page, page, uri, out: String::with_capacity(64 * 1024), images: Images::default(), slots: None, unported: None }
+        Ctx { site, view: View::Page, page, uri, out: String::with_capacity(64 * 1024), images: Images::default(), holes: None, slots: None, unported: None }
     }
 
     pub fn unported(&mut self, what: &str) {
@@ -307,6 +311,12 @@ pub fn render_parts(site: &Site, page: &Page, uri: &str) -> Option<[String; 4]> 
 /// The page with no post that WordPress serves for a request it finds nothing for (index.php's loop, 404), in
 /// `lang`, with `{{gform:N}}` holes for the footer's form.
 pub fn not_found(site: &Site, lang: Lang, uri: &str) -> String {
+    without_post(site, lang, uri, &BTreeMap::new(), NOT_FOUND_LOOP)
+}
+
+/// Another view of index.php's templates with no post of its own (a search's results): the 404 page's chrome with
+/// `holes` in place of the 404's values, and `main` (through the content column) ahead of the sidebar.
+pub fn without_post(site: &Site, lang: Lang, uri: &str, holes: &BTreeMap<&'static str, String>, main: &str) -> String {
     let page = Page {
         id: PageId(0),
         kind: super::model::PostType::Page,
@@ -323,12 +333,12 @@ pub fn not_found(site: &Site, lang: Lang, uri: &str) -> String {
         modified_at: String::new(),
         author_id: None,
     };
-    let mut c = Ctx { view: View::NotFound, ..Ctx::new(site, &page, uri) };
+    let mut c = Ctx { view: View::NotFound, holes: Some(holes), ..Ctx::new(site, &page, uri) };
     c.set_phase(Phase::Header);
     let head = chrome::fill(&mut c, chrome::Part::Head);
     let header = chrome::fill(&mut c, chrome::Part::Header);
     c.set_phase(Phase::Loop);
-    c.push(NOT_FOUND_LOOP);
+    c.push(main);
     templates::sidebar(&mut c);
     c.push("\n  </div><!-- /.row -->\n</main><!-- /.container -->\n\n");
     let body = std::mem::take(&mut c.out);

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE subcategory SET industry = CASE WHEN length(industry) > 2 THEN industry || ?1 ELSE ?2 END WHERE id = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d80ec0106fc4368a6bdf8d3f5d84882efdedfe7259eb605bef63172e14562b67"
+}

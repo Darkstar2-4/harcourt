@@ -26,8 +26,8 @@ use sqlx::SqlitePool;
 use super::viewer::{self, Viewer};
 use crate::{api::Auth, identity::Role, visitor::Visitor};
 
-/// What searchers opened (build_learned.py, from the search log). Read from HXWEB_SEARCH when present; without them
-/// the ranking is the catalog's own.
+/// What searchers opened, as the nightly search_learn.sh wrote it into HXWEB_SEARCH. Without those files the index
+/// learns the same from the search log itself (`learn`), once a day.
 const LEARNED_FILES: [&str; 2] = ["learned.tsv", "popular.tsv"];
 /// How long a built index is used before the tables are checked for changes.
 const RECHECK: Duration = Duration::from_secs(30);
@@ -902,7 +902,7 @@ fn page_lang(headers: &HeaderMap) -> Lang {
 
 /// Row counts and highest ids of the tables the index reads: any edit, import or rebuild changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Stamp([i64; 9]);
+struct Stamp([i64; 10]);
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     let r = sqlx::query!(
@@ -915,7 +915,9 @@ async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     )
     .fetch_one(pool)
     .await?;
-    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i]))
+    // The day: what searchers opened is learned again daily.
+    let day = crate::db::unix_now() / 86_400;
+    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, day]))
 }
 
 fn cell(s: &str) -> String {
@@ -1013,10 +1015,16 @@ impl Cache {
             return Ok(b.index.clone());
         }
         let [rows, families, categories, parts] = export(pool).await?;
-        let learned = std::env::var_os("HXWEB_SEARCH").map(|d| {
-            LEARNED_FILES.map(|f| std::fs::read(Path::new(&d).join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default())
-        });
-        let [learned, popular] = learned.unwrap_or_default();
+        let files = std::env::var_os("HXWEB_SEARCH")
+            .filter(|d| Path::new(d).join(LEARNED_FILES[0]).is_file())
+            .map(|d| LEARNED_FILES.map(|f| std::fs::read(Path::new(&d).join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()));
+        let [learned, popular] = match files {
+            Some(files) => files,
+            None => {
+                let (learned, popular) = super::learn::from_log(pool, crate::db::unix_now()).await?;
+                [learned, popular]
+            }
+        };
         let start = Instant::now();
         let result = tokio::task::spawn_blocking(move || Index::build(&rows, &families, &categories, &parts, &learned, &popular)).await;
         let previous = built.as_ref().and_then(|b| b.index.clone());
