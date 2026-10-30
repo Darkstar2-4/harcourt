@@ -16,17 +16,20 @@ use axum::{
 use crate::api::{ApiError, Auth, Authed, MinRole};
 
 pub mod address;
+pub mod catalog;
 pub mod check;
 pub mod choices;
 pub mod csrf;
 pub mod html;
 pub mod maintain;
+pub mod phpser;
 pub mod shell;
 pub mod time;
 
 pub mod company;
 pub mod dashboard;
 pub mod grants;
+pub mod inventory;
 pub mod jobs;
 pub mod log;
 pub mod mailer;
@@ -82,6 +85,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(company::routes())
         .merge(dashboard::routes())
         .merge(grants::routes())
+        .merge(inventory::routes())
         .merge(log::routes())
         .merge(user::routes())
 }

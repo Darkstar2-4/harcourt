@@ -283,8 +283,17 @@ impl Form<'_> {
     }
 
     pub fn textarea(&self, field: &str, value: &str, rows: u32, cols: u32, opts: Opts) -> String {
+        let min_rows = value.len() as f64 / if cols == 0 { 60.0 } else { cols as f64 };
+        self.area(field, value, min_rows, rows, cols, opts)
+    }
+
+    /// `textarea()` given an array: one line per item, at least as many rows as items.
+    pub fn textarea_lines(&self, field: &str, lines: &[String], rows: u32, cols: u32, opts: Opts) -> String {
+        self.area(field, &lines.join("\n"), lines.len() as f64, rows, cols, opts)
+    }
+
+    fn area(&self, field: &str, value: &str, min_rows: f64, rows: u32, cols: u32, opts: Opts) -> String {
         let cols = if cols == 0 { 60 } else { cols };
-        let min_rows = value.len() as f64 / cols as f64;
         let rows = match () {
             _ if rows == 0 => php_float(min_rows + 3.0),
             _ if min_rows < rows as f64 => rows.to_string(),

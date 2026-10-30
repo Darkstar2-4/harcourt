@@ -37,3 +37,15 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
 - **Escaping.** Element text escapes `<`; attributes are fully escaped. Identical for the cases' data.
 - **Document pick list ties.** Documents with the same group, parent and name sort by id, highest first, which is the
   order the oracle returns today (MySQL leaves it undefined).
+
+### inventory.php (`/inventory.php`)
+
+- **No session state.** The PHP kept the descriptions and downloads of the part being edited in the session between
+  the form and the save, and refused a save without them ("Refresh not allowed"). Rust reads them from `content` at
+  save time and applies what was posted, so a resent form saves. `inventory-switch-subcategory` passes on the oracle
+  only when `inventory-maintain` ran earlier in the same warm session.
+- **Duplicate SKU.** The PHP showed MySQL's duplicate-key error; Rust marks the SKU and says
+  "Duplicate entry '<sku>' for key 'sku'".
+- **New date.** A date that is not a calendar date is marked in error instead of stored as typed.
+- **Upload type.** The MIME type and file type of a download come from its suffix with the PHP's tables; image sizes
+  are not recorded.

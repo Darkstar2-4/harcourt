@@ -226,3 +226,92 @@ async fn deleting_takes_a_post_and_returns_go_back_to_the_site_only() {
     assert_eq!(status, StatusCode::OK);
     assert!(page.contains("Record maintained"));
 }
+
+const PARAMS: &str = r#"a:2:{i:0;O:27:"subcategory_parameter_class":5:{s:2:"id";i:0;s:4:"name";s:8:"Material";s:4:"type";s:12:"Alphanumeric";s:7:"numeric";b:0;s:7:"decimal";i:0;}i:1;O:27:"subcategory_parameter_class":5:{s:2:"id";i:1;s:4:"name";s:6:"Length";s:4:"type";s:9:"Decimal:2";s:7:"numeric";b:1;s:7:"decimal";s:1:"2";}}"#;
+
+async fn inventory_seed(pool: &SqlitePool) {
+    exec(pool, "INSERT INTO category (id, name, active) VALUES (5, 'Alignment', 1)").await;
+    sqlx::query("INSERT INTO subcategory (id, category_id, name, status, parameters, download) VALUES (50, 5, 'Test Pins', 'Active', ?1, 'a:2:{i:0;s:10:\"Data Sheet\";i:1;s:0:\"\";}'), (51, 5, 'Old Pins', 'Inactive', 'a:0:{}', '')")
+        .bind(PARAMS)
+        .execute(pool)
+        .await
+        .unwrap();
+    exec(pool, "INSERT INTO language (code, name, local_name, priority) VALUES ('EN', 'English', 'English', 1), ('FR', 'French', 'Français', 2)").await;
+    exec(pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, active, sort_order, parameter0, nparameter1, pricing) VALUES (700, 'TP-100', 5, 50, 1, 1, 'Steel', 1.5, 'a:1:{i:0;O:23:\"inventory_pricing_class\":2:{s:5:\"price\";d:12.5;s:9:\"qty_break\";i:0;}}'), (701, 'TP-200', 5, 50, 0, 2, 'Brass', 0, 'a:0:{}')").await;
+    exec(pool, "INSERT INTO content (record_type, record_id, record_item, language_code, description) VALUES ('inventory', 700, 'overview', 'FR', 'Aperçu')").await;
+}
+
+fn b64(s: &str) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD.encode(s)
+}
+
+#[tokio::test]
+async fn the_inventory_list_shows_a_subcategorys_parts_and_parameters() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &[("action", "list"), ("report_subcategory_id", "50")]).await;
+    assert!(page.contains("enctype='multipart/form-data'"));
+    assert!(page.contains("<optgroup label='Alignment'>\n<option value='51'>Old Pins (Inactive)</option>\n<option value='50' selected>Test Pins</option>\n</optgroup>"));
+    assert!(page.contains("<tr><th>SKU</th><th>Material</th><th>Length</th><th>Del?</th></tr><tr><td colspan=4>"));
+    assert!(page.contains(">TP-100</a></td><td>Steel</td><td></td><td class=center></td></tr>"));
+    assert!(page.contains("onclick=\"javascript:fn_action(this,'delete','701','TP-200');\""));
+}
+
+#[tokio::test]
+async fn a_sku_search_opens_the_part() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &[("ajax_inventory_sku", " tp-100|Test pin ")]).await;
+    assert!(page.contains("<caption class='left'>Alignment: Test Pins</caption>"));
+    assert!(page.contains(&format!("name='{}' id='{}' size='20' maxlength='20' value='1.5'", b64("nparameter\t1"), b64("nparameter\t1"))));
+    assert!(page.contains(&format!("${}", "<input type=text name='cHJpY2UJMA==' id='cHJpY2UJMA==' size='10' maxlength='10' value='12.5000'>")));
+    assert!(page.contains(&format!("<textarea name='{}' id='{}' cols='60' rows='6'>Aperçu</textarea>", b64("overview\tdescription\tFR"), b64("overview\tdescription\tFR"))));
+    assert!(page.contains("<td width='40%'>1. Data Sheet</td>"));
+    assert!(page.contains("value='Update' onclick=\"javascript:fn_action(this,'update','700','');\""));
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &[("ajax_inventory_sku", "NOPE")]).await;
+    assert!(page.contains("name='ajax_inventory_sku' id='ajax_inventory_sku' size='40' maxlength='40' value='NOPE' style='border: 1px solid red !important;'"));
+}
+
+#[tokio::test]
+async fn an_inventory_update_saves_the_part_its_breaks_and_descriptions() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (p0, p1, q1, m, n1) = (b64("price\t0"), b64("price\t1"), b64("qty_break\t1"), b64("parameter\t0"), b64("nparameter\t1"));
+    let (fr, en) = (b64("overview\tdescription\tFR"), b64("features\tdescription\tEN"));
+    let fields = [
+        ("action", "update"), ("record_id", "700"), ("subcategory_id", "50"), ("sku", "tp-100b"), ("sort_order", "3"), ("leadtime_option", "In Stock"),
+        ("active", "1"), ("competitor_sku", "zz-9\nab-1"), (p0.as_str(), "1,200.00"), (p1.as_str(), "1100"), (q1.as_str(), "10"), (m.as_str(), "Steel"),
+        (n1.as_str(), "2.345"), (fr.as_str(), ""), (en.as_str(), "Hardened"),
+    ];
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &fields).await;
+    assert!(page.contains("<br>Record maintained"), "{page}");
+    let row: (String, i64, String, String, f64) = sqlx::query_as("SELECT sku, sort_order, competitor_sku, pricing, nparameter1 FROM inventory WHERE id = 700").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row.0, "TP-100B");
+    assert_eq!(row.1, 3);
+    assert_eq!(row.2, "AB-1,ZZ-9");
+    assert_eq!(row.3, r#"a:2:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:1200;s:9:"qty_break";i:0;}i:1;O:23:"inventory_pricing_class":2:{s:5:"price";d:1100;s:9:"qty_break";d:10;}}"#);
+    assert_eq!(row.4, 2.35);
+    let contents: Vec<(String, String, String)> = sqlx::query_as("SELECT language_code, record_item, name FROM content WHERE record_id = 700 ORDER BY record_item").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(contents, [("EN".into(), "download:0".into(), "Data Sheet".into()), ("EN".into(), "features".into(), "".into())]);
+
+    let rising = [("action", "update"), ("record_id", "700"), ("subcategory_id", "50"), ("sku", "TP-100B"), (p0.as_str(), "10"), (p1.as_str(), "11"), (q1.as_str(), "0")];
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &rising).await;
+    assert!(page.contains("Correct 2 error(s)"));
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &[("action", "update"), ("record_id", "700"), ("subcategory_id", "50"), ("sku", "TP-200")]).await;
+    assert!(page.contains("Duplicate entry"));
+}
+
+#[tokio::test]
+async fn deleting_a_part_takes_its_content_with_it() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = submit(&h, "/inventory.php", &admin, &[("action", "delete"), ("record_id", "700")]).await;
+    assert!(page.contains("<br>SKU TP-100 deleted"));
+    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM content WHERE record_id = 700").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(left, 0);
+}
