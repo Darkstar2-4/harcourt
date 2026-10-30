@@ -62,11 +62,11 @@ struct Harness {
 
 async fn harness(akismet: Option<Arc<dyn Akismet>>, recaptcha: Option<Arc<dyn Recaptcha>>) -> Harness {
     let pool = db::open_memory().await.unwrap();
-    sqlx::query("INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (3, 'Contact', '2020-01-01 00:00:00', 1, 0), (7, 'Old', '2020-01-01 00:00:00', 1, 1)")
+    sqlx::query("INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (1, 'Footer', '2020-01-01 00:00:00', 1, 0), (3, 'Contact', '2020-01-01 00:00:00', 1, 0), (7, 'Old', '2020-01-01 00:00:00', 1, 1)")
         .execute(&pool)
         .await
         .unwrap();
-    for id in [3, 7] {
+    for id in [1, 3, 7] {
         sqlx::query("INSERT INTO wp_gf_form_meta (form_id, display_meta, notifications, confirmations) VALUES (?1, ?2, ?3, ?4)")
             .bind(id)
             .bind(META.replace("\"id\":3,", &format!("\"id\":{id},")))
@@ -133,7 +133,7 @@ async fn a_valid_post_is_stored_and_notifies() {
     let h = harness(Some(akismet.clone()), Some(Arc::new(FixedScore(Some(0.9))))).await;
     let (status, html) = post(&h, &[]).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(html.contains("gform_confirmation_message_3") && html.contains("<strong>Thank you!</strong>"), "{html}");
+    assert!(html.contains("<div id='gform_confirmation_wrapper_3' data-form-theme='legacy' class='gform_confirmation_wrapper gform_legacy_markup_wrapper gform_legacy_confirmation_markup_wrapper gform-theme--no-framework '><div id='gform_confirmation_message_3' class='gform_confirmation_message_3 gform_confirmation_message'><strong>Thank you!</strong></div></div>"), "{html}");
     let (status_text, source, agent): (String, String, String) = sqlx::query_as("SELECT status, source_url, user_agent FROM wp_gf_entry").fetch_one(&h.pool).await.unwrap();
     assert_eq!((status_text.as_str(), source.as_str(), agent.as_str()), ("active", "https://www.harcourt.co/contact-us/", "test-agent"));
     let name: String = sqlx::query_scalar("SELECT meta_value FROM wp_gf_entry_meta WHERE meta_key = '1'").fetch_one(&h.pool).await.unwrap();
@@ -167,7 +167,8 @@ async fn spam_is_kept_as_spam_and_sends_nothing() {
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 0);
     let h = harness(Some(Arc::new(FixedAkismet(true, Mutex::new(Vec::new())))), None).await;
     let (_, html) = post(&h, &[]).await;
-    assert!(html.contains("gform_confirmation_message_3"), "spam still sees the confirmation");
+    assert!(html.contains("gform_confirmation_message'>Thanks for contacting us! We will get in touch with you shortly.</div>"), "spam sees Gravity Forms' default confirmation: {html}");
+    assert!(!html.contains("<strong>Thank you!</strong>"));
     assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry WHERE status = 'spam'").await, 1);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 0);
 }
@@ -186,11 +187,36 @@ async fn a_low_recaptcha_score_blocks_the_contact_form_unless_bypassed() {
 }
 
 #[tokio::test]
-async fn an_ajax_post_answers_the_iframe_postback() {
+async fn a_form_the_page_embeds_with_ajax_answers_the_iframe_postback() {
     let h = harness(None, None).await;
-    let (_, html) = post(&h, &[("gform_ajax", "form_id=3")]).await;
-    assert!(html.starts_with("<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body class='GF_AJAX_POSTBACK'>"));
-    assert!(html.contains("gform_confirmation_wrapper_3"));
+    let t = TokenKey::new(&KEY).issue(1, db::unix_now());
+    let form = [("gform_submit", "1"), ("is_submit_1", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Hello"), ("state_1", t.as_str())];
+    let (_, html) = call(&h.app, Method::POST, "/hx/forms/submit?hx_lang=en&hx_page=%2Fcontact-us%2F", &form).await;
+    assert!(html.starts_with("<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body data-cmplz=1 class='GF_AJAX_POSTBACK'>"), "{html}");
+    assert!(html.contains("gform_confirmation_wrapper_1"));
+    let (_, html) = post(&h, &[]).await;
+    assert!(!html.contains("GF_AJAX_POSTBACK"), "a form embedded without ajax answers with its markup");
+    let ajax = hxweb::orders::forms::render::gform_ajax(3, "legacy");
+    let (_, html) = post(&h, &[("gform_ajax", ajax.as_str())]).await;
+    assert!(html.starts_with("<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body class='GF_AJAX_POSTBACK'><div id='gf_3' class='gform_anchor' tabindex='-1'></div><div id='gform_confirmation_wrapper_3'"), "Gravity Forms' own ajax post: {html}");
+    let entries = count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await;
+    let (_, html) = post(&h, &[("gform_ajax", "form_id=3&hash=0")]).await;
+    assert!(html.contains("<div id='gform_confirmation_message_0' class='gform_confirmation_message_0 gform_confirmation_message'>Thanks for contacting us!"), "a tampered ajax post: {html}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, entries, "keeps nothing");
+}
+
+#[tokio::test]
+async fn a_refused_post_shows_why_in_the_forms_language() {
+    let h = harness(None, Some(Arc::new(FixedScore(Some(0.9))))).await;
+    let (_, html) = post(&h, &[("input_1", ""), ("input_10", "nope")]).await;
+    assert!(html.contains("<div class=\"gform_validation_errors validation_error\" id=\"gform_3_validation_container\" data-js=\"gform-focus-validation-error\" autofocus><h2 class='gform_submission_error hide_summary'><span class='gform-icon gform-icon--circle-error'></span>There was a problem with your submission. Please review the fields below.</h2></div>"), "{html}");
+    assert!(html.contains("aria-describedby=\"validation_message_3_1\"") && html.contains("<div id='validation_message_3_10' class='gfield_description validation_message gfield_validation_message'>The email address entered is invalid"));
+    let (_, html) = call(&h.app, Method::POST, "/hx/forms/submit?hx_lang=fr&hx_page=%2Fnous-contacter%2F", &[("gform_submit", "3"), ("input_1", "")]).await;
+    assert!(html.contains("Une erreur s\u{2019}est produite lors de votre envoi.") && html.contains(">Ce champ est nécessaire.</div>"), "{html}");
+    let blocked = harness(None, Some(Arc::new(FixedScore(Some(0.1))))).await;
+    let (_, html) = post(&blocked, &[("input_1", "")]).await;
+    assert!(html.contains("We were unable to verify your submission.") && html.contains("id='validation_message_3_1'"), "the reCAPTCHA gate replaces the summary, the field errors stay");
+    assert_eq!(count(&blocked.pool, "SELECT count(*) FROM log WHERE type = 'Recaptcha'").await, 1);
 }
 
 /// Run by hand over the output of tools/gf_dump_to_sqlite.py for the production tables:

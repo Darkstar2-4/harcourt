@@ -8,7 +8,7 @@ use sqlx::SqlitePool;
 
 use super::{
     model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient},
-    render::{self, FieldErrors, Render, Values},
+    render::{self, wording, FieldErrors, Render, Summary, Values},
     spam::Submission,
     Services, RECAPTCHA_FORMS,
 };
@@ -21,11 +21,8 @@ use crate::{
     },
 };
 
-pub const REQUIRED: &str = "This field is required.";
-pub const BAD_EMAIL: &str = "The email address entered is invalid, please check the formatting (e.g. email@domain.com).";
+/// Gravity Forms has no French for this one.
 pub const BAD_PHONE: &str = "Phone format: (###) ###-####";
-pub const BAD_DATE: &str = "Please enter a valid date.";
-pub const BLOCKED: &str = "<div class='validation_error'>We were unable to verify your submission. Please try again, or contact us directly at <a href='mailto:sales@harcourt.co'>sales@harcourt.co</a> if the issue continues.</div>";
 
 /// Where the post came from and who sent it.
 pub struct Context<'a> {
@@ -45,6 +42,25 @@ pub enum Outcome {
     /// The confirmation. `entry` is None when nothing was kept (honeypot abort).
     Confirmed { html: String, entry: Option<i64>, spam: bool },
     Redirect(String),
+}
+
+impl Outcome {
+    /// What the page shows for this post of form `form`; None for a redirect.
+    pub fn on_page(self, form: u32) -> Option<render::Answer> {
+        match self {
+            Outcome::Invalid(html) => Some(render::Answer { form, html, confirmed: false, stored: false }),
+            Outcome::Confirmed { html, entry, spam } => Some(render::Answer { form, html, confirmed: true, stored: entry.is_some() && !spam }),
+            Outcome::Redirect(_) => None,
+        }
+    }
+
+    pub fn map_html(self, f: impl FnOnce(String) -> String) -> Outcome {
+        match self {
+            Outcome::Invalid(h) => Outcome::Invalid(f(h)),
+            Outcome::Confirmed { html, entry, spam } => Outcome::Confirmed { html: f(html), entry, spam },
+            redirect => redirect,
+        }
+    }
 }
 
 /// The values a field posts, by input name.
@@ -79,21 +95,22 @@ fn valid_date(s: &str, dmy: bool) -> bool {
     chrono::NaiveDate::parse_from_str(s, if dmy { "%d/%m/%Y" } else { "%m/%d/%Y" }).is_ok()
 }
 
-/// GFFormDisplay::validate for the field types these forms use.
+/// GFFormDisplay::validate for the field types these forms use, in the form's language.
 pub fn validate(form: &Form, values: &Values) -> FieldErrors {
+    let words = wording(form);
     let mut errors = FieldErrors::new();
     for f in form.fields.iter().filter(|f| f.takes_input()) {
         let v = value(values, f);
         let message = match &f.kind {
-            _ if v.is_empty() && f.required => Some(REQUIRED),
+            _ if v.is_empty() && f.required => Some(words.required.to_string()),
             _ if v.is_empty() => None,
-            Kind::Email if Email::parse(&v).is_none() => Some(BAD_EMAIL),
-            Kind::Phone(format) if !render::phone_ok(*format, &v) => Some(BAD_PHONE),
-            Kind::Date { dmy } if !valid_date(&v, *dmy) => Some(BAD_DATE),
+            Kind::Email if Email::parse(&v).is_none() => Some(words.bad_email.to_string()),
+            Kind::Phone(format) if !render::phone_ok(*format, &v) => Some(BAD_PHONE.to_string()),
+            Kind::Date { dmy } if !valid_date(&v, *dmy) => Some(format!("{}{}).", words.bad_date, if *dmy { "dd/mm/yyyy" } else { "mm/dd/yyyy" })),
             _ => None,
         };
         if let Some(m) = message {
-            errors.insert(f.id, m.to_string());
+            errors.insert(f.id, m);
         }
     }
     errors
@@ -117,7 +134,8 @@ fn submission(form: &Form, values: &Values, ctx: &Context<'_>) -> Submission {
     }
 }
 
-/// The registry reCAPTCHA gate on the contact forms. True when the post may go on.
+/// The registry reCAPTCHA gate on the contact forms, which ran with Gravity Forms' validation. True when the post
+/// may go on.
 async fn recaptcha_passes(pool: &SqlitePool, services: &Services, form: &Form, values: &Values, params: &HashMap<String, String>, ip: &str, now: i64) -> sqlx::Result<bool> {
     let Some(verifier) = services.recaptcha.as_ref().filter(|_| RECAPTCHA_FORMS.contains(&form.id)) else { return Ok(true) };
     let threshold = Registry::load(pool, "recaptcha").await?.get("score_spam").trim().parse::<f64>().ok();
@@ -278,7 +296,7 @@ fn notification(n: &Notification, form: &Form, values: &Values, ctx: &Context<'_
 pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params: &HashMap<String, String>, ctx: &Context<'_>) -> sqlx::Result<Outcome> {
     let values = read(form, params);
     let errors = validate(form, &values);
-    let render_invalid = |errors: &FieldErrors, summary: &str| {
+    let render_invalid = |errors: &FieldErrors, summary: Summary| {
         let token = services.token_key.as_ref().map(|k| k.issue(form.id, ctx.now));
         render::form(&Render {
             form,
@@ -292,19 +310,19 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
             browser: &render::browser_class(ctx.user_agent),
         })
     };
+    let passed = recaptcha_passes(pool, services, form, &values, params, ctx.ip, ctx.now).await?;
+    if !passed {
+        return Ok(Outcome::Invalid(render_invalid(&errors, Summary::Blocked)));
+    }
     if !errors.is_empty() {
-        return Ok(Outcome::Invalid(render_invalid(&errors, &render::summary(form.id))));
+        return Ok(Outcome::Invalid(render_invalid(&errors, Summary::Problem)));
     }
-    if !recaptcha_passes(pool, services, form, &values, params, ctx.ip, ctx.now).await? {
-        return Ok(Outcome::Invalid(render_invalid(&FieldErrors::new(), BLOCKED)));
-    }
-    let confirmation = match &form.confirmation {
-        Confirmation::Message(m) => render::confirmation(form.id, m),
-        Confirmation::Redirect(url) => String::from(url.as_str()),
-    };
+    // Gravity Forms showed spam, and a post the honeypot stopped, its default confirmation instead of the form's.
+    let anchor = params.contains_key("gform_ajax");
+    let thanks = || render::confirmation(form, wording(form).thanks, anchor);
     let honeypot_filled = params.get(&format!("input_{}", render::honeypot_id(form))).is_some_and(|v| !v.is_empty());
     if honeypot_filled && form.honeypot == Honeypot::Abort {
-        return Ok(Outcome::Confirmed { html: confirmation, entry: None, spam: true });
+        return Ok(Outcome::Confirmed { html: thanks(), entry: None, spam: true });
     }
     let mut spam = honeypot_filled && form.honeypot == Honeypot::Spam;
     if !spam {
@@ -318,16 +336,17 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
         }
     }
     let entry = store(pool, form, &values, ctx, spam).await?;
-    if !spam {
-        for n in &form.notifications {
-            if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
-                mail::enqueue(pool, &m, ctx.now).await?;
-            }
+    if spam {
+        return Ok(Outcome::Confirmed { html: thanks(), entry: Some(entry), spam });
+    }
+    for n in &form.notifications {
+        if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
+            mail::enqueue(pool, &m, ctx.now).await?;
         }
     }
     Ok(match &form.confirmation {
         Confirmation::Redirect(url) => Outcome::Redirect(url.clone()),
-        Confirmation::Message(_) => Outcome::Confirmed { html: confirmation, entry: Some(entry), spam },
+        Confirmation::Message(m) => Outcome::Confirmed { html: render::confirmation(form, m, anchor), entry: Some(entry), spam },
     })
 }
 
@@ -348,12 +367,20 @@ mod tests {
     fn validation_follows_gravity_forms() {
         let f = parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap();
         let e = validate(&f, &values(&[("input_1", "Pat"), ("input_10", "not-an-address"), ("input_9", "123"), ("input_4", "")]));
-        assert_eq!(e.get(&10).map(String::as_str), Some(BAD_EMAIL));
+        assert_eq!(e.get(&10).map(String::as_str), Some(render::ENGLISH.bad_email));
         assert_eq!(e.get(&9).map(String::as_str), Some(BAD_PHONE));
-        assert_eq!(e.get(&4).map(String::as_str), Some(REQUIRED));
+        assert_eq!(e.get(&4).map(String::as_str), Some(render::ENGLISH.required));
         assert!(!e.contains_key(&1));
         let ok = validate(&f, &values(&[("input_1", "Pat"), ("input_10", "pat@example.com"), ("input_9", "(555) 010-0100"), ("input_4", "Hi")]));
         assert!(ok.is_empty());
+    }
+
+    #[test]
+    fn a_french_form_is_validated_in_french() {
+        let f = crate::orders::forms::model::localize(parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap(), crate::orders::forms::model::Lang::Fr);
+        let e = validate(&f, &values(&[("input_10", "nope")]));
+        assert_eq!(e.get(&1).map(String::as_str), Some("Ce champ est nécessaire."));
+        assert!(e.get(&10).is_some_and(|m| m.starts_with("L\u{2019}adresse e-mail saisie n\u{2019}est pas valide")));
     }
 
     #[test]

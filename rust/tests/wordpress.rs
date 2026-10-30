@@ -260,7 +260,8 @@ async fn a_form_posted_to_a_page_is_answered_where_the_form_was() {
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("<title>Alignment - Example</title>") && !html.contains("Thanks, we will be in touch."));
 
-    let (status, postback) = post_form(&app, "/product/alignment/", "gform_submit=1&gform_ajax=1&input_1=Example+Name").await;
+    let ajax: String = form_urlencoded::byte_serialize(hxweb::orders::forms::render::gform_ajax(1, "legacy").as_bytes()).collect();
+    let (status, postback) = post_form(&app, "/product/alignment/", &format!("gform_submit=1&gform_ajax={ajax}&input_1=Example+Name")).await;
     assert_eq!(status, StatusCode::OK);
     assert!(postback.contains("Thanks, we will be in touch.") && !postback.contains("<title>Alignment - Example</title>"));
 

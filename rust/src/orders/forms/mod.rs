@@ -121,14 +121,22 @@ pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &
     })))
 }
 
-/// A post carrying `gform_submit`, from the page at `page_uri`. None when it names no active form.
+/// A post carrying `gform_submit`, from the page at `page_uri`. None when it names no active form. The flag says the
+/// answer is the form's markup alone: Gravity Forms' own ajax post (with `gform_ajax`) got nothing else. Any other
+/// post gets the page with that markup in the form's place; a form the page embeds with ajax answers there with
+/// the iframe postback document, as get_form() did.
 pub async fn handle(state: &Orders, params: &HashMap<String, String>, lang: model::Lang, page_uri: &str, ip: &str, user_agent: &str, page_title: Option<String>) -> sqlx::Result<Option<(submit::Outcome, bool)>> {
     let Some(form_id) = params.get("gform_submit").and_then(|v| v.trim().parse::<i64>().ok()) else { return Ok(None) };
     let Some(form) = model::load(&state.core.pool, form_id).await? else { return Ok(None) };
     let form = model::localize(form, lang);
-    let ajax = params.contains_key("gform_ajax");
     let mut embed = embed(&state.forms, form_id, lang, page_uri).unwrap_or_else(|| render::Embed::default_for(form_id));
-    embed.ajax = ajax;
+    let posted_ajax = params.get("gform_ajax");
+    if posted_ajax.is_some_and(|v| !render::ajax_args_valid(v, &form)) {
+        return Ok(Some((submit::Outcome::Confirmed { html: render::ajax_postback(&render::tampered(&form), false), entry: None, spam: true }, true)));
+    }
+    let bare = posted_ajax.is_some();
+    embed.ajax |= bare;
+    let ajax = embed.ajax;
     let ctx = submit::Context {
         page_uri,
         page_url: format!("{}{page_uri}", state.core.public_origin),
@@ -138,7 +146,8 @@ pub async fn handle(state: &Orders, params: &HashMap<String, String>, lang: mode
         embed,
         now: unix_now(),
     };
-    Ok(Some((submit::submit(&state.core.pool, &state.forms, &form, params, &ctx).await?, ajax)))
+    let outcome = submit::submit(&state.core.pool, &state.forms, &form, params, &ctx).await?;
+    Ok(Some((if ajax { outcome.map_html(|h| render::ajax_postback(&h, !bare)) } else { outcome }, bare)))
 }
 
 fn page_of(params: &HashMap<String, String>) -> Option<(model::Lang, String)> {
@@ -182,7 +191,7 @@ async fn submit_route(State(state): State<Arc<Orders>>, ClientIp(ip): ClientIp, 
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     match handle(&state, &params, lang, &page, &ip, agent, None).await {
         Ok(Some((submit::Outcome::Redirect(url), _))) => html::redirect(&url),
-        Ok(Some((submit::Outcome::Invalid(h) | submit::Outcome::Confirmed { html: h, .. }, ajax))) => markup(if ajax { render::ajax_postback(&h) } else { h }),
+        Ok(Some((submit::Outcome::Invalid(h) | submit::Outcome::Confirmed { html: h, .. }, _))) => markup(h),
         Ok(None) => text(StatusCode::NOT_FOUND, "no such form\n"),
         Err(e) => {
             tracing::error!("form submit: {e}");
