@@ -1,8 +1,7 @@
 //! portal.php: the Customer Portal Manager. Portals with a headline per language (`content` rows of type
 //! `portal`) and the catalog subcategories each one shows (`subcategory.portal`, a `^id^id^` list).
 //!
-//! As in the PHP, the page prints no message line, delete does nothing, and the list's row ends come out before
-//! the table.
+//! As in the PHP, delete does nothing and the list's row ends come out before the table.
 
 use std::sync::Arc;
 
@@ -21,6 +20,7 @@ use crate::api::{Administrator, Auth};
 
 const PATH: &str = "/portal.php";
 const TITLE: &str = "Customer Portal Manager";
+const VERSION: &str = "03/28/2025";
 
 /// fn_base64(): the field name of tab-joined parts.
 fn field(parts: &[&str]) -> String {
@@ -211,12 +211,13 @@ function fn_subcategory(obj) {
 "##;
 
 async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, f: &Fields) -> sqlx::Result<Response> {
-    let mut notes = Notes::new(TITLE, "");
+    let mut notes = Notes::new(TITLE, VERSION);
     let action = f.get("action");
     let record_id = f.get("record_id");
     let id = php_intval(record_id);
     let mut edit = None;
     match action {
+        "cancel" => notes.say("Request cancelled"),
         "maintain" => edit = Some(load(pool, id).await?),
         "update" => {
             let mut e = Edit { id, name: posted_text(f.get("name")), active: f.int("active") != 0, ..Edit::default() };
@@ -236,6 +237,7 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, f: &Fields) -> sql
                     notes.error("name", Some("Duplicate name"));
                 } else {
                     save(pool, &e).await?;
+                    notes.say(&format!("Portal {} updated", e.name));
                 }
             }
             if notes.has_errors() {
@@ -245,7 +247,8 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, f: &Fields) -> sql
         _ => {}
     }
     let form = Form { notes: &notes };
-    let mut body = SCRIPT.to_string();
+    let mut body = notes.render();
+    body.push_str(SCRIPT);
     body.push_str(&open(PATH, staff.csrf.as_str(), true));
     body.push_str(&hidden("action", ""));
     body.push_str(&hidden("record_id", ""));

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!: String\", name AS \"name!: String\", adder_pct AS \"adder_pct!: f64\" FROM currency\n           WHERE exchange_rate > 0 AND active = 1 AND code <> 'USD' ORDER BY name COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "adder_pct!: f64",
+        "ordinal": 2,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "16cecc7b5e2c7be6d703e20e6593cc4e8a1e6dceb52622894461ee3c18443a4e"
+}

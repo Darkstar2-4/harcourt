@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM staff_draft WHERE token_hash = ?1 AND page = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5ecf97b355d0501b4347bffc15ce839989cea727b96876a68663dd5731da1083"
+}

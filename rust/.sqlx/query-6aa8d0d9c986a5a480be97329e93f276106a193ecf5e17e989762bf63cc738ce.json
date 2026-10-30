@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", language_code, name, filetype, meta, revised, html_content FROM content\n               WHERE record_type = 'portalcontent' AND record_id = ?1 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "filetype",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "meta",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "revised",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "6aa8d0d9c986a5a480be97329e93f276106a193ecf5e17e989762bf63cc738ce"
+}

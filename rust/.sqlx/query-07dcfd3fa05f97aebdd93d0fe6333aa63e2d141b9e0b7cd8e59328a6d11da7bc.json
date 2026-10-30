@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES (?1, '', ?2, ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "07dcfd3fa05f97aebdd93d0fe6333aa63e2d141b9e0b7cd8e59328a6d11da7bc"
+}

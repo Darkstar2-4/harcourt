@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT l.ip AS \"ip!: String\", COALESCE((SELECT company_name FROM \"user\" u WHERE u.ip = l.ip LIMIT 1), 'Unknown') AS \"company!: String\",\n                  l.subtype AS \"subtype!: String\", l.date_time AS \"date_time!: i64\", COALESCE(l.comment, '') AS \"comment!: String\"\n           FROM log l\n           WHERE l.type = ?1 AND (?2 = 0 OR l.date_time >= ?2) AND (?3 = 0 OR l.date_time <= ?3) AND (?4 = '' OR l.subtype = ?4) AND (?5 = '' OR l.ip = ?5)\n           ORDER BY l.ip, l.subtype, l.date_time LIMIT ?6 OFFSET ?7",
+  "describe": {
+    "columns": [
+      {
+        "name": "ip!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "company!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "subtype!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "date_time!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment!: String",
+        "ordinal": 4,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "548f96bd95b0784d259985efc421307a62f5de8c18481449d1d06c0ed4fa96be"
+}

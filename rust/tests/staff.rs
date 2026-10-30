@@ -261,8 +261,6 @@ async fn administrators_mint_list_and_revoke_grants_within_their_role() {
 #[tokio::test]
 async fn the_company_page_shows_its_cms_document_in_the_accounts_language() {
     let h = harness().await;
-    let (status, headers, _) = send(&h.app, get("/company.php", None)).await;
-    assert_eq!((status, &headers[header::LOCATION]), (StatusCode::FOUND, &"/scs_index.php".parse().unwrap()));
     let customer = person(&h.pool, 8, "Customer").await;
     sqlx::query(r#"UPDATE "user" SET language_code = 'FR' WHERE id = 8"#).execute(&h.pool).await.unwrap();
     sqlx::query("INSERT INTO pages (id, record_type, name, url, document_id) VALUES (1, 'general', 'Company', '/company.php', 30)").execute(&h.pool).await.unwrap();
@@ -280,6 +278,10 @@ async fn the_company_page_shows_its_cms_document_in_the_accounts_language() {
     assert!(page.contains("\n<!-- Body Content -->\n<h1>Qui sommes-nous</h1>\n<!-- End Body Content -->\n"));
     let views: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'Page' AND subtype = 'General' AND comment = 'Company'").fetch_one(&h.pool).await.unwrap();
     assert_eq!(views, 1);
+    sqlx::query("UPDATE content SET filetype = 'html', html_content = '<h1>Who we are</h1>', content = NULL WHERE language_code = 'EN'").execute(&h.pool).await.unwrap();
+    let (status, _, page) = send(&h.app, get("/company.php", None)).await;
+    assert_eq!(status, StatusCode::OK, "every visit's session user was a Customer");
+    assert!(page.contains("\n<!-- Body Content -->\n<h1>Who we are</h1>\n<!-- End Body Content -->\n"), "an HTML document is kept as text");
 }
 
 #[tokio::test]

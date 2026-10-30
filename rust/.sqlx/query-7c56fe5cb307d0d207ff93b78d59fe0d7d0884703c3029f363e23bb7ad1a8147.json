@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", s.category_id AS \"category_id!: i64\", c.name AS \"category!: String\", c.sort_order AS \"category_order!: i64\",\n                  COALESCE(s.sort_order, 0) AS \"sort_order!: i64\", COALESCE(s.name, '') AS \"name!: String\"\n           FROM subcategory s LEFT JOIN category c ON c.id = s.category_id\n           WHERE c.active = 1 AND s.status <> 'Inactive' AND c.name IS NOT NULL ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_order!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sort_order!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7c56fe5cb307d0d207ff93b78d59fe0d7d0884703c3029f363e23bb7ad1a8147"
+}

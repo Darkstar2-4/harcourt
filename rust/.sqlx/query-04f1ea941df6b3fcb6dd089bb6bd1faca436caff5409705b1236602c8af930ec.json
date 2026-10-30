@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM content WHERE record_type = 'portalcontent' AND record_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "04f1ea941df6b3fcb6dd089bb6bd1faca436caff5409705b1236602c8af930ec"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT p.record_type AS \"pages_record_type?\", p.name AS \"pages_name?\", c.filetype, c.content, c.html_content\n           FROM content c JOIN pages p ON p.url = ?1 AND c.record_id = p.document_id\n           WHERE c.record_type = 'document' AND c.language_code IN ('EN', ?2)\n           ORDER BY CASE WHEN c.language_code = 'EN' THEN 2 ELSE 1 END LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "pages_record_type?",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "pages_name?",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "filetype",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "content",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "9a99534efe18fd7257796d27fc425f7422c243824c48950db3264b0380f77e7b"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country AS \"country!: String\" FROM country WHERE state = '' AND (country = ?1 OR name = ?1 OR alias LIKE ?2)\n           ORDER BY CASE WHEN country = ?1 THEN 1 WHEN name = ?1 THEN 2 ELSE 3 END LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "country!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7a4b04a65d6ac85d711fb3f0fcf403819077ac3a1bb25233c2e89352ac8950c0"
+}

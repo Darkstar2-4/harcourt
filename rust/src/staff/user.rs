@@ -105,14 +105,15 @@ struct Account {
 }
 
 impl Account {
-    fn new() -> Account {
+    /// user_data_class: a new account starts at the address of whoever opens the form, signed in now.
+    fn new(client: Option<std::net::IpAddr>, now: i64) -> Account {
         Account {
             id: 0,
-            ip: String::new(),
+            ip: client.map(|ip| ip.to_string()).unwrap_or_default(),
             address: Address::default(),
             status: Status::Pending,
             role: Role::Customer,
-            last_login: 0,
+            last_login: now,
             login_document_id: 0,
             landing_document_id: 0,
             comment: String::new(),
@@ -343,11 +344,12 @@ async fn save(pool: &SqlitePool, a: &Account, posted: &Fields) -> sqlx::Result<i
         sqlx::query_scalar!(
             r#"INSERT INTO "user" (ip, company_name, address, city, state, zip, country_code, status, "type", login_document_id, landing_document_id,
                                    portal_id, customer_code, catalog, cad, ecommerce, price_type, price_pct, language_code, currency_code, industry_id,
-                                   leadscore, revenue, employees)
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24) RETURNING id AS "id!: i64""#,
+                                   leadscore, revenue, employees, last_login)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25)
+               RETURNING id AS "id!: i64""#,
             a.ip, ad.company_name, address, city, state, zip, country, status, role, a.login_document_id, a.landing_document_id,
             a.portal_id, a.customer_code, catalog, cad, ecommerce, price_type, pct, a.language_code, a.currency_code, a.industry_id,
-            leadscore, a.revenue, a.employees
+            leadscore, a.revenue, a.employees, a.last_login
         )
         .fetch_one(&mut *tx)
         .await?
@@ -500,8 +502,9 @@ fn parse_object(fields: Vec<(String, &Value)>) -> String {
     out.join("\n")
 }
 
-/// user->recaptcha_score(): the stored score and what it means against the registry thresholds.
-async fn recaptcha_score(pool: &SqlitePool, score: f64) -> sqlx::Result<String> {
+/// user->recaptcha_score(): the score and what it means against the registry thresholds. A stored score prints
+/// as the decimal column held it; a new account's default prints as PHP printed the float.
+async fn recaptcha_score(pool: &SqlitePool, score: f64, stored: bool) -> sqlx::Result<String> {
     let ignore = registry::number(pool, "recaptcha", "score_ignore").await?;
     let spam = registry::number(pool, "recaptcha", "score_spam").await?;
     let verdict = match () {
@@ -509,7 +512,8 @@ async fn recaptcha_score(pool: &SqlitePool, score: f64) -> sqlx::Result<String> 
         _ if spam.is_some_and(|t| score < t) => "(Possible Spam)",
         _ => "(OK)",
     };
-    Ok(format!("{score:.1} {verdict}"))
+    let shown = if stored { format!("{score:.1}") } else { php_float(score) };
+    Ok(format!("{shown} {verdict}"))
 }
 
 fn price_options() -> Vec<(String, String)> {
@@ -584,7 +588,7 @@ async fn info(pool: &SqlitePool, form: &Form<'_>, block: &Block, t: InfoTab<'_>)
         out.extend(row("Do not fax", form.checkbox("sf_fax", "1", sf.fax, Opts::new())));
     }
     if a.last_login != 0 {
-        out.extend(row("reCAPTCHA Score", recaptcha_score(pool, a.recaptcha_score).await?));
+        out.extend(row("reCAPTCHA Score", recaptcha_score(pool, a.recaptcha_score, a.id != 0).await?));
         out.extend(row("Last Login", time::date("m/d/Y h:i A", a.last_login)));
     }
     out.push("</table>".into());
@@ -692,10 +696,10 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, request: &Fields, 
     let lookup = if source != 0 { read(pool, source, viewer).await? } else { Lookup::Missing };
     let mut account = match lookup {
         Lookup::Found(a) => *a,
-        Lookup::Missing => Account::new(),
+        Lookup::Missing => Account::new(staff.client, unix_now()),
         Lookup::Forbidden => {
             action = Action::None;
-            Account::new()
+            Account::new(staff.client, unix_now())
         }
     };
     let block = Block::load(pool, "profile").await;
@@ -750,7 +754,6 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, request: &Fields, 
         }
         let ipstack = parse_object(account.ipstack.iter().map(|(k, v)| (k.clone(), v)).collect());
         let mut tabs = Tabs::new();
-        tabs.in_wordpress(staff.wp);
         let tab = InfoTab { account: &account, salesforce: sf.as_ref(), offer_ipstack: ipstack.is_empty(), viewer };
         tabs.lines("Info", &info(pool, &form, &block, tab).await?);
         tabs.lines("Category Access", &categories(pool, &form, account.id).await?);
@@ -829,7 +832,7 @@ mod tests {
     }
 
     fn priced(catalog: bool, kind: PriceType, pct: &str) -> (Account, Notes) {
-        let mut a = Account::new();
+        let mut a = Account::new(None, 0);
         a.catalog = catalog;
         a.price_type = kind;
         a.price_pct = Decimal::from_str(pct).unwrap();
@@ -851,7 +854,7 @@ mod tests {
 
     #[test]
     fn a_portal_rules_out_landing_documents() {
-        let mut a = Account::new();
+        let mut a = Account::new(None, 0);
         a.portal_id = 3;
         a.landing_document_id = 9;
         let mut notes = Notes::new(TITLE, "");

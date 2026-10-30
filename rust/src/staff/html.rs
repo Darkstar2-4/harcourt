@@ -441,7 +441,8 @@ pub fn php_float(v: f64) -> String {
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
-/// htmlspecialchars(ENT_HTML401) as textarea() uses it: quotes are left alone only for single quotes.
+/// htmlspecialchars($text, ENT_HTML401) as textarea() uses it. ENT_HTML401 is 0, so neither quote is escaped
+/// (ENT_NOQUOTES); inside a textarea only `&` and `<` matter.
 fn esc_html401(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -449,7 +450,6 @@ fn esc_html401(s: &str) -> String {
             '&' => out.push_str("&amp;"),
             '<' => out.push_str("&lt;"),
             '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
             c => out.push(c),
         }
     }

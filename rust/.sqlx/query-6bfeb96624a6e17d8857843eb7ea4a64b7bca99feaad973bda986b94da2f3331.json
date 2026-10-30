@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE inventory SET leadtime_option = ?2, leadtime_text = ?3 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6bfeb96624a6e17d8857843eb7ea4a64b7bca99feaad973bda986b94da2f3331"
+}

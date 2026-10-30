@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT language_code FROM \"user\" WHERE id = ?1",
+  "query": "SELECT name FROM category WHERE id = ?1",
   "describe": {
     "columns": [
       {
-        "name": "language_code",
+        "name": "name",
         "ordinal": 0,
         "type_info": "Text"
       }
@@ -13,8 +13,8 @@
       "Right": 1
     },
     "nullable": [
-      false
+      true
     ]
   },
-  "hash": "bfb9bfac26d8ae7b1acc8ee252f5083ac1a2fa78c39316a3538a895b07437acc"
+  "hash": "7927cd62de607d10204abca74c61abc8c0aed2656ecea3cd08888f2b8278fe36"
 }
