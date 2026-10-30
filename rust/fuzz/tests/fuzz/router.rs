@@ -65,7 +65,7 @@ fn claimed() -> &'static [String] {
 fn field_names() -> &'static [String] {
     static NAMES: OnceLock<Vec<String>> = OnceLock::new();
     NAMES.get_or_init(|| {
-        let get = regex::Regex::new(r#"\.(?:get|has|int|checked|all)\("([a-z][a-z0-9_]{0,30})"\)"#).unwrap();
+        let get = regex::Regex::new(r#"\b(?:get|has|int|checked|all|contains_key)\(&?"([a-z][a-z0-9_]{0,30})"\)"#).unwrap();
         let mut found = BTreeSet::new();
         let mut stack = vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../src")];
         while let Some(dir) = stack.pop() {
@@ -287,6 +287,12 @@ fn body() -> impl Strategy<Value = (Option<String>, Vec<u8>)> {
             (Some("multipart/form-data; boundary=fuzzboundary".to_string()), out)
         }),
         1 => (proptest::option::of(select(vec!["application/json", "text/plain", "multipart/form-data", "application/x-www-form-urlencoded; charset=UTF-8"]).prop_map(str::to_string)), gen::bytes(300)),
+        1 => proptest::collection::vec((select(field_names().to_vec()), prop_oneof![
+            "\"[a-z0-9@.]{0,20}\"".boxed(), "-?[0-9]{1,6}".boxed(), Just("null".to_string()).boxed(), Just("[]".to_string()).boxed(), gen::text(12).prop_map(|t| serde_json::json!(t).to_string()).boxed(),
+        ]), 0..5).prop_map(|kv| {
+            let body = kv.iter().map(|(k, v)| format!("\"{k}\":{v}")).collect::<Vec<_>>().join(",");
+            (Some("application/json".to_string()), format!("{{{body}}}").into_bytes())
+        }),
     ]
 }
 
@@ -349,7 +355,7 @@ fn send(s: &Sent) -> Result<StatusCode, TestCaseError> {
 fn run_shard(n: u64) {
     let statuses = Mutex::new(BTreeMap::<u16, u64>::new());
     let failing = Mutex::new(BTreeSet::<String>::new());
-    let mut runner = TestRunner::new(shard(300, 50, n));
+    let mut runner = TestRunner::new(shard(200, 10, n));
     let result = runner.run(&request(), |s| {
         let status = send(&s)?;
         *statuses.lock().unwrap().entry(status.as_u16()).or_default() += 1;
@@ -358,7 +364,7 @@ fn run_shard(n: u64) {
         }
         Ok(())
     });
-    eprintln!("router shard {n}: {:?}", statuses.lock().unwrap());
+    eprintln!("router shard {n}: {} paths, {} field names; statuses {:?}", claimed().len(), field_names().len(), statuses.lock().unwrap());
     for f in failing.lock().unwrap().iter().take(40) {
         eprintln!("router shard {n}: {f}");
     }
@@ -385,4 +391,24 @@ fn every_claimed_path_answers_3() {
 #[test]
 fn every_claimed_path_answers_4() {
     run_shard(4);
+}
+
+#[test]
+fn every_claimed_path_answers_5() {
+    run_shard(5);
+}
+
+#[test]
+fn every_claimed_path_answers_6() {
+    run_shard(6);
+}
+
+#[test]
+fn every_claimed_path_answers_7() {
+    run_shard(7);
+}
+
+#[test]
+fn every_claimed_path_answers_8() {
+    run_shard(8);
 }

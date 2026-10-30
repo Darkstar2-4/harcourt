@@ -10,11 +10,26 @@ fn with_script() -> impl Strategy<Value = String> {
         .prop_map(|(before, script, after, rest)| if rest { format!("{before}/{script}{after}") } else { format!("{before}/{script}") })
 }
 
+/// A script path with some characters percent-encoded, some of them twice (`%` itself encoded).
+fn encoded_script() -> impl Strategy<Value = String> {
+    (with_script(), proptest::collection::vec((any::<bool>(), any::<bool>()), 40)).prop_map(|(p, how)| {
+        p.chars()
+            .zip(how.iter().cycle())
+            .map(|(c, &(enc, twice))| match c {
+                '/' => c.to_string(),
+                c if enc && c.is_ascii() && twice => format!("%25{:02X}", c as u32),
+                c if enc && c.is_ascii() => format!("%{:02X}", c as u32),
+                c => c.to_string(),
+            })
+            .collect()
+    })
+}
+
 proptest! {
     #![proptest_config(config(4096))]
 
     #[test]
-    fn the_clean_up_is_total_idempotent_and_names_a_script(path in prop_oneof![with_script(), gen::path(), gen::url_text(12).prop_map(|t| format!("/{t}"))], q in proptest::option::of(gen::query())) {
+    fn the_clean_up_is_total_idempotent_and_names_a_script(path in prop_oneof![with_script(), encoded_script(), gen::path(), gen::url_text(12).prop_map(|t| format!("/{t}"))], q in proptest::option::of(gen::query())) {
         let target = match &q {
             Some(q) => format!("{path}?{q}"),
             None => path.clone(),
