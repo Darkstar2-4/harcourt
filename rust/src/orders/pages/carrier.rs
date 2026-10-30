@@ -5,7 +5,6 @@ use std::sync::Arc;
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, Uri},
     response::Response,
 };
 
@@ -26,7 +25,7 @@ struct Carrier {
 
 const SCRIPT: &str = "<script type='text/javascript'>\nfunction fn_action(obj,action,id,name) {\n\tif (action=='delete') {\n\t    if (!confirm(\"Delete: #\" + id + \" \" + name)) {\n\t        obj.checked=false;\n            return;\n\t    }\n    }\n\tdocument.scs_form.action.value=action;\n\tdocument.scs_form.record_id.value=id;\n\tdocument.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, _staff: Staff<Administrator>, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let p = form_params(None, &body);
     let get = |k: &str| p.get(k).map_or("", String::as_str);
@@ -70,7 +69,7 @@ pub async fn page(State(state): State<Arc<Orders>>, _staff: Staff<Administrator>
         _ => {}
     }
     let chrome = html::Chrome::load(pool).await?;
-    let head = html::Head { title: "Carrier Codes", description: None, js: &[], framed: html::framed(uri.query(), &headers), dashboard: true, catalog_url: "/catalog.php" };
+    let head = html::Head { title: "Carrier Codes", description: None, js: &[], framed: staff.wp, dashboard: true, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
     out.push_str(&html::message(&messages, usize::from(name_error)));
     out.push_str(SCRIPT);

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::{header, HeaderMap, Uri},
+    http::{header, HeaderMap},
     response::Response,
 };
 use sqlx::SqlitePool;
@@ -54,7 +54,7 @@ pub async fn tab_viewer(pool: &SqlitePool, url: &str, language: &str) -> sqlx::R
     Ok((html, row.map(|r| (r.kind, r.name))))
 }
 
-pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let lang = language(pool, &visitor, &headers).await?;
     let (body, page) = tab_viewer(pool, "/contact.php", &lang).await?;
@@ -68,7 +68,7 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(i
     }
     let chrome = html::Chrome::load(pool).await?;
     let dashboard = visitor.user().is_some_and(|u| u.role >= Role::Executive);
-    let head = html::Head { title: TITLE, description: Some(DESCRIPTION), js: &[], framed: html::framed(uri.query(), &headers), dashboard, catalog_url: "/catalog.php" };
+    let head = html::Head { title: TITLE, description: Some(DESCRIPTION), js: &[], framed: visitor.framed, dashboard, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
     out.push_str(&body);
     out.push_str(html::close());

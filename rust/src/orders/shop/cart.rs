@@ -320,7 +320,7 @@ const SCRIPT: &str = "<script>\nfunction fn_action(action) {\n    if (action=='c
 
 pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
-    let framed = html::framed(uri.query(), &headers);
+    let framed = visitor.framed;
     let params = form_params(uri.query(), &body);
     let shopper = shopper(pool, &visitor, &headers).await?;
     if headers.contains_key("x-requested-with") {

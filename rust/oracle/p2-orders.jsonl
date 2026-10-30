@@ -1,0 +1,20 @@
+# Round two of the orders area: form pages without PHP, refused Gravity Forms posts (they keep nothing on either
+# side), and the mail pages. Synthetic values only. Run with and without --warm; see orders.expected.md.
+{"name":"p2-form-page-contact","path":"/contact/"}
+{"name":"p2-form-page-cart","path":"/cart/"}
+{"name":"p2-form-page-contact-fr","path":"/nous-contacter/?lang=fr","language":"fr"}
+{"name":"p2-form-page-query","path":"/contact/?x=1"}
+{"name":"p2-form-page-boxjoint-query","path":"/boxjoint-inquiry-form/?x=1"}
+{"name":"p2-form-page-home-query","path":"/?x=1"}
+{"name":"p2-post-boxjoint-empty","method":"POST","path":"/boxjoint-inquiry-form/","body":"gform_submit=11&is_submit_11=1&input_1=&input_2=&input_4=&input_5=&gform_source_page_number_11=1&gform_target_page_number_11=0"}
+{"name":"p2-post-request-access-empty-fr","method":"POST","path":"/nous-contacter/?lang=fr","language":"fr","body":"gform_submit=1&is_submit_1=1&input_1=&input_2=&input_5=&gform_source_page_number_1=1&gform_target_page_number_1=0"}
+{"name":"p2-post-request-access-partial-fr","method":"POST","path":"/nous-contacter/?lang=fr","language":"fr","body":"gform_submit=1&is_submit_1=1&input_1=Test+Persona&input_2=nope&input_5=&gform_source_page_number_1=1&gform_target_page_number_1=0"}
+{"name":"p2-post-lunch-learn-bad","method":"POST","path":"/resources/lunch-learns/","body":"gform_submit=2&is_submit_2=1&input_1=Test+Persona&input_5=nope&input_4=123&input_7=&input_8=x&input_9=13/45/2020&gform_source_page_number_2=1&gform_target_page_number_2=0"}
+{"name":"p2-post-request-access-tampered-ajax","method":"POST","path":"/contact/","body":"gform_submit=1&is_submit_1=1&input_1=&input_2=&input_5=&gform_ajax=form_id%3D1%26title%3D%26description%3D%26tabindex%3D0%26theme%3Dlegacy%26hash%3Dabc&gform_source_page_number_1=1&gform_target_page_number_1=0"}
+{"name":"p2-mailer-output-anonymous","path":"/mailer_output.php"}
+{"name":"p2-mailer-output-customer","path":"/mailer_output.php","persona":"customer-active"}
+{"name":"p2-mailer-output-executive","path":"/mailer_output.php","persona":"executive-active"}
+{"name":"p2-scs-mail-anonymous","path":"/scs_mail.php"}
+{"name":"p2-scs-mail-administrator","path":"/scs_mail.php","persona":"administrator-pending"}
+{"name":"p2-scs-mailform-customer","path":"/scs_mailform.php","persona":"customer-active"}
+{"name":"p2-scs-mailform-internal","path":"/scs_mailform.php","persona":"internal-active"}

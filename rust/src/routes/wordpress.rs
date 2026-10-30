@@ -410,9 +410,9 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, Some(page.title.clone())).await {
         Ok(Some((Outcome::Redirect(url), _))) => crate::orders::html::redirect(&url),
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
-            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
+            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], h).into_response()
         }
-        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h)), false).await,
+        Ok(Some((outcome, false))) => serve(&wp, &parts.uri, agent, outcome.on_page(form), false).await,
         Ok(None) => match &wp.legacy {
             Some(legacy) => legacy.forward(&parts, body).await,
             None => serve(&wp, &parts.uri, agent, None, false).await,
@@ -431,11 +431,10 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
 /// neutral GET gets the page as hxweb finished the static pages; anything else (a post, other query keys) went to
-/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. While
-/// WordPress runs, such a request for a page with forms is still its to answer: its forms carry a fresh Zero Spam
-/// token that WordPress checks on submit. Only a GET or HEAD (`replay`) can be handed back to the legacy stack;
-/// a post that would be handed back gets the page at its path, or a 404.
-async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
+/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET
+/// or HEAD (`replay`) can be handed back to the legacy stack; a post that would be handed back gets the page at its
+/// path, or a 404.
+async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
     let q = query(raw_query);
@@ -459,19 +458,16 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
             _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
         },
     };
-    if !finished && replay && answer.is_none() && wp.legacy.is_some() && !islands(&site, page).is_empty() {
-        return legacy();
-    }
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
         tracing::error!("{path} is claimed but its template is not ported");
         return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
     };
     let islands = islands(&site, page);
-    let answered = answer.as_ref().and_then(|(form, _)| islands.iter().find(|(_, i)| i.form == *form).map(|(index, _)| *index));
+    let answered = answer.as_ref().and_then(|a| islands.iter().find(|(_, i)| i.form == a.form).map(|(index, _)| *index));
     let filled = crate::cms::forms::fill(&html, |form, index| {
         let embed = islands.get(&index).filter(|e| e.form == form).cloned();
-        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|(_, h)| h.clone());
+        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|a| a.html.clone());
         let wp = wp.clone();
         let wp_uri = wp_uri.clone();
         let lang = page.lang;
@@ -487,7 +483,11 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
             }
         }
     })
-    .await;
+    .await
+    .map(|html| match (&answer, answered) {
+        (Some(a), Some(index)) => a.page(&html, index + 1),
+        _ => html,
+    });
     match filled {
         Ok(html) => html_response(public(&wp.core.public_origin, &html), finished),
         Err(e) => {

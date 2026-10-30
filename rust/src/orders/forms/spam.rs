@@ -41,7 +41,7 @@ impl TokenKey {
 
 pub type CheckFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
-/// What Akismet is told about a submission.
+/// What the Gravity Forms Akismet add-on told Akismet about a submission (class-akismet-fields-filter.php).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Submission {
     pub ip: String,
@@ -51,6 +51,13 @@ pub struct Submission {
     pub author: String,
     pub email: String,
     pub content: String,
+    /// The form's title.
+    pub subject: String,
+    /// `en_US` or `fr_FR`.
+    pub lang: String,
+    /// Akismet's own hidden fields: the honeypot textarea and the time its script wrote.
+    pub ak_hp_textarea: String,
+    pub ak_js: String,
 }
 
 pub trait Akismet: Send + Sync {
@@ -79,10 +86,16 @@ impl Akismet for AkismetHttp {
                 ("user_agent", s.user_agent.as_str()),
                 ("referrer", s.referrer.as_str()),
                 ("permalink", s.permalink.as_str()),
-                ("comment_type", "contact-form"),
+                ("comment_type", "gravity_form"),
                 ("comment_author", s.author.as_str()),
                 ("comment_author_email", s.email.as_str()),
                 ("comment_content", s.content.as_str()),
+                ("comment_author_IP", s.ip.as_str()),
+                ("contact_form_subject", s.subject.as_str()),
+                ("blog_lang", s.lang.as_str()),
+                ("blog_charset", "UTF-8"),
+                ("POST_ak_hp_textarea", s.ak_hp_textarea.as_str()),
+                ("POST_ak_js", s.ak_js.as_str()),
             ];
             match self.http.post(url).form(&form).send().await {
                 Ok(r) => r.text().await.map(|t| t.trim() == "true").unwrap_or(false),

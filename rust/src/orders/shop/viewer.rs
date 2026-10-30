@@ -5,7 +5,7 @@ use std::sync::Arc;
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, Uri},
+    http::Uri,
     response::Response,
 };
 use chrono::{NaiveDate, TimeZone};
@@ -147,7 +147,7 @@ fn local_path(url: &str) -> Option<&str> {
 
 const SCRIPT: &str = "<script>\nfunction fn_action(obj,action,id) {\n\tdocument.scs_form.action.value=action;\n\tdocument.scs_form.record_id.value=id;\n\tdocument.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executive>, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let p = form_params(uri.query(), &body);
     let get = |k: &str| p.get(k).map_or("", String::as_str);
@@ -168,7 +168,7 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             Some(new) if new.as_str() != stored_status => {
                 let now = unix_now();
                 let status = new.as_str();
-                sqlx::query!("UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4", status, now, staff.user.id.0, order.id)
+                sqlx::query!("UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4", status, now, staff.who.user.id.0, order.id)
                     .execute(pool)
                     .await?;
                 order.status = status.to_string();
@@ -182,7 +182,7 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
         },
         _ => {}
     }
-    let framed = html::framed(uri.query(), &headers);
+    let framed = staff.wp;
     let chrome = html::Chrome::load(pool).await?;
     let head = html::Head { title: "PO Manager", description: None, js: &[], framed, dashboard: true, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
@@ -204,7 +204,7 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             let local = Registry::load(pool, "local").await?;
             let names = Choices::names_for(pool, &[&o.ship, &o.billing]).await?;
             out.push_str(&checkout::header(o, false, true, &names, &Errors::default(), &local, false));
-            let staff_currency = sqlx::query_scalar!(r#"SELECT currency_code AS "c!: String" FROM "user" WHERE id = ?1"#, staff.user.id.0).fetch_optional(pool).await?.unwrap_or_else(|| "USD".into());
+            let staff_currency = sqlx::query_scalar!(r#"SELECT currency_code AS "c!: String" FROM "user" WHERE id = ?1"#, staff.who.user.id.0).fetch_optional(pool).await?.unwrap_or_else(|| "USD".into());
             let order_currency = Currency::load(pool, &o.currency_code).await?;
             let money = MoneyFormat { order: &order_currency, viewer: &staff_currency };
             let labels = Labels::load(pool, "EN").await?;
