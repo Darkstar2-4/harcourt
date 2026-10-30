@@ -6,9 +6,13 @@ none of them is an allowed normalization.
 
 ## Deliberate changes
 
+- **Personal sign-in for staff.** Staff pages take `Authed<R>`, a session from an emailed code or OAuth that stays
+  valid for the registry's `remote_days` and renews on use. A visitor from a company's office address is not signed
+  in as staff by that address alone, as the PHP did. The oracle signs personas in by address; Rust holds the
+  persona's session (`--rust-session`).
 - **CSRF field.** Every staff form carries `<input type=hidden name='csrf'>`, a token bound to the session, and
   every POST must return it (403 otherwise). The PHP forms had none. Each signed-in dashboard case shows this one
-  added line.
+  added line until hx-diff's normalization rule for it lands.
 - **Event log role.** `/scs_log.php` needs Executive or above, the role the dashboard shows its link to. The PHP
   page checked no role. No case exercises it.
 - **Retired paths.** The web SQL consoles, PHP diagnostics and developer toolboxes (`retired.rs`) answer 410 in
