@@ -431,6 +431,27 @@ mod tests {
         assert!(!mail.subject.contains('\n') && !mail.to.name.contains('\n'));
     }
 
+    #[tokio::test]
+    async fn the_smtp_message_carries_copies_but_hides_bcc() {
+        let config = SmtpConfig::from_env(env(&[("HXWEB_SMTP_USER", "web@example.com"), ("HXWEB_SMTP_PASSWORD", "pw"), ("HXWEB_SMTP_HOST", "smtp.example.com")]))
+            .unwrap()
+            .unwrap();
+        let smtp = Smtp::new(config).unwrap();
+        let mut mail = Mail::new(Mailbox::new(Email::parse("buyer@example.com").unwrap(), "Pat"), "PO #7", Body::Html("<p>x</p>".into()));
+        mail.add(Kind::Cc, Mailbox::bare(Email::parse("cc@example.com").unwrap()));
+        mail.add(Kind::Bcc, Mailbox::bare(Email::parse("hidden@example.com").unwrap()));
+        mail.reply_to = Email::parse("desk@example.com");
+        let message = smtp.message(&mail).unwrap();
+        let envelope: Vec<String> = message.envelope().to().iter().map(|a| a.to_string()).collect();
+        assert_eq!(envelope, ["buyer@example.com", "cc@example.com", "hidden@example.com"]);
+        let text = String::from_utf8_lossy(&message.formatted()).to_string();
+        for header in ["From: Harcourt <web@example.com>", "To: Pat <buyer@example.com>", "Cc: cc@example.com", "Reply-To: desk@example.com", "Subject: PO #7"] {
+            assert!(text.contains(header), "{header} in {text}");
+        }
+        assert!(!text.contains("hidden@example.com"));
+        assert!(text.contains(ALT_BODY) && text.contains("<p>x</p>"));
+    }
+
     #[test]
     fn duplicate_recipients_are_dropped() {
         let a = || Mailbox::bare(Email::parse("a@example.com").unwrap());
