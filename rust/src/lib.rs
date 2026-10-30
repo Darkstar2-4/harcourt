@@ -11,5 +11,6 @@ pub mod remote_grant;
 pub mod retired;
 pub mod routes;
 pub mod session;
+pub mod staff;
 pub mod visitor;
 pub mod token;
