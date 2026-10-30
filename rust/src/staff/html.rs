@@ -22,6 +22,12 @@ pub fn esc(s: &str) -> String {
     out
 }
 
+/// Element text. Only `<` can start markup in text content, so only it is escaped; `&`, quotes and `>` print as the
+/// PHP printed them. Never use this inside an attribute, a <script> or a <style>.
+pub fn text(s: &str) -> String {
+    s.replace('<', "&lt;")
+}
+
 /// A single-quoted JavaScript string literal that is also inert inside an HTML attribute or a <script> block.
 /// Plain text comes out as PHP's fn_escape() wrote it: `'5'`, `'Acme'`.
 pub fn js(s: &str) -> String {
@@ -445,6 +451,13 @@ impl Tabs {
         self.landing = self.tabs.len();
     }
 
+    /// Inside WordPress the tabs size to their content's line height (`lineheight="auto"`).
+    pub fn in_wordpress(&mut self, wp: bool) {
+        if wp {
+            self.lineheight = "auto";
+        }
+    }
+
     /// `item($name, $contents)`. Title and content are markup; an empty content adds no tab.
     pub fn item(&mut self, title: &str, content: String) {
         if content.is_empty() {
@@ -509,7 +522,7 @@ impl Tabs {
         out.push("});".into());
         out.push("function tab_focus(name) {".into());
         out.push("    var field='#tab_' + name + '_no';".into());
-        out.push(format!("    if (jQuery(field).length) jQuery(\"#{{{n}_div}}\").tabs({{ active: jQuery(field).val() }});"));
+        out.push(format!("    if (jQuery(field).length) jQuery(\"#{{{n}_div\").tabs({{ active: jQuery(field).val() }});"));
         out.push("}".into());
         out.push("function tab_visibility(visible, name) {".into());
         out.push("    var field='#tab_' + name;".into());
@@ -548,16 +561,17 @@ impl MenuGroup {
         MenuGroup { class, groups: Vec::new() }
     }
 
-    pub fn group(&mut self, title: &str) {
-        self.groups.push((esc(title), Vec::new()));
+    /// Titles and labels are literals and print as written, `&` included, as the PHP printed them.
+    pub fn group(&mut self, title: &'static str) {
+        self.groups.push((title.to_string(), Vec::new()));
     }
 
     /// A link the caller has already decided this visitor may see.
-    pub fn item(&mut self, name: &str, url: &str, opts: Opts) {
+    pub fn item(&mut self, name: &'static str, url: &'static str, opts: Opts) {
         let mut opts = opts;
         opts.push_default("class", "nobr");
         if let Some((_, items)) = self.groups.last_mut() {
-            items.push(href(&esc(name), url, opts));
+            items.push(href(name, url, opts));
         }
     }
 

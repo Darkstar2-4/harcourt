@@ -158,7 +158,7 @@ async fn the_login_link_lists_one_accounts_recent_events_escaped() {
     let (_, _, page) = send(&h.app, get("/scs_log.php?action=login&user_id=7", Some(&exec))).await;
     assert!(page.contains(">Results</a>"));
     assert!(page.contains("active: 1 }"));
-    assert!(page.contains("<td>looked &lt;b&gt;for&lt;/b&gt;<br>widgets</td>"));
+    assert!(page.contains("<td>looked &lt;b>for&lt;/b><br>widgets</td>"));
     assert!(page.contains("<td>Test company 7</td>"));
     assert!(!page.contains("too old") && !page.contains("someone else"));
 }
@@ -211,7 +211,7 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
 
     let (_, _, page) = send(&h.app, get("/dashboard.php?tab=Campaign", Some(&admin))).await;
     assert!(page.contains(">Pending Access (1)</a>"));
-    assert!(page.contains("<td>Pending &lt;Co&gt;</td>\n<td>Pat Example</td>"));
+    assert!(page.contains("<td>Pending &lt;Co></td>\n<td>Pat Example</td>"));
     assert!(page.contains("href=\"/user.php?action=maintain&record_id=9&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529\""));
     let tab_index = |title: &str| {
         let at = page.find(&format!(">{title}</a></li>")).unwrap();

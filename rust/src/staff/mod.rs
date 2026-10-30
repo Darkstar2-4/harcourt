@@ -29,32 +29,48 @@ pub mod jobs;
 pub mod log;
 pub mod mailer;
 
-/// Where `user->access()` sent a visitor without the role: `$menu->page->home` outside WordPress.
+/// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
 pub const HOME: &str = "/scs_index.php";
+pub const WP_HOME: &str = "/";
 
 /// `Authed<R>` for a page. A visitor without a session, or below R, is redirected home as the PHP did, instead of
-/// the JSON 401/403 the API answers. Carries the session's CSRF token for the page's form.
+/// the JSON 401/403 the API answers. Carries the session's CSRF token for the page's form, and whether the page
+/// is shown inside WordPress (`?scscpq_wp=1`, kept in the PHP session; here it is read from each request).
 pub struct Staff<R: MinRole> {
     pub who: Authed<R>,
     pub csrf: csrf::CsrfToken,
+    pub wp: bool,
+}
+
+impl<R: MinRole> Staff<R> {
+    pub fn view(&self) -> shell::View {
+        shell::View { role: self.who.user.role, wp: self.wp }
+    }
+}
+
+fn in_wordpress(parts: &Parts) -> bool {
+    let wp = csrf::Fields::from_query(parts.uri.query());
+    !matches!(wp.get("scscpq_wp"), "" | "0")
 }
 
 impl<R: MinRole + Send + Sync + 'static> FromRequestParts<Arc<Auth>> for Staff<R> {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, auth: &Arc<Auth>) -> Result<Self, Response> {
+        let wp = in_wordpress(parts);
         let who = match Authed::<R>::from_request_parts(parts, auth).await {
             Ok(who) => who,
-            Err(ApiError::Unauthenticated | ApiError::Forbidden) => return Err(go_home()),
+            Err(ApiError::Unauthenticated | ApiError::Forbidden) => return Err(go_home(wp)),
             Err(other) => return Err(other.into_response()),
         };
-        let csrf = csrf::CsrfToken::for_request(&parts.headers).ok_or_else(go_home)?;
-        Ok(Staff { who, csrf })
+        let csrf = csrf::CsrfToken::for_request(&parts.headers).ok_or_else(|| go_home(wp))?;
+        Ok(Staff { who, csrf, wp })
     }
 }
 
-fn go_home() -> Response {
-    (StatusCode::FOUND, [(header::LOCATION, HOME), (header::CACHE_CONTROL, "no-store")]).into_response()
+fn go_home(wp: bool) -> Response {
+    let home = if wp { WP_HOME } else { HOME };
+    (StatusCode::FOUND, [(header::LOCATION, home), (header::CONTENT_TYPE, "text/html; charset=utf-8"), (header::CACHE_CONTROL, "no-store")]).into_response()
 }
 
 pub fn router() -> Router<Arc<Auth>> {
