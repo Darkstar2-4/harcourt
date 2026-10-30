@@ -276,8 +276,4 @@ async fn the_old_pages_answer_as_their_php_did() {
     assert!(body.contains("</head>\n<body>\n<p class='center large'><a href='/catalog/' target='_top'>Click here to continue</a></p>\n</body>\n</html>\n"), "{body}");
     let (_, _, body) = send(&h.app, get("/document_viewer.php?login_url=javascript%3Aalert(1)", None)).await;
     assert!(!body.contains("Click here"), "only an address on this site is linked");
-    let (status, _, body) = send(&h.app, get("/beta.php", None)).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(body.contains("<title>Harcourt</title>\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n<meta name=\"description\" content=\"Harcourt\">"), "{body}");
-    assert!(body.contains("jQuery('#scscpq_page').html(content.join('\\n'));\n});\n</script>\n<div id=scscpq_page></div></div> <!-- #scs_content -->"), "{body}");
 }

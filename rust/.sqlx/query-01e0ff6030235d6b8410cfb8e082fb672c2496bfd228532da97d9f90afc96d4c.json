@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT i.sku AS \"sku!\", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id\n               FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id\n               WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku LIMIT ?2",
+  "query": "SELECT i.sku AS \"sku!\", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id\n           WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku COLLATE NOCASE LIMIT ?2",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       true
     ]
   },
-  "hash": "6167d0b9d8c98e3d002c88f36305f95fa48d760737f78e3585c7fd6890aa53f0"
+  "hash": "01e0ff6030235d6b8410cfb8e082fb672c2496bfd228532da97d9f90afc96d4c"
 }

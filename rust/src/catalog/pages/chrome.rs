@@ -39,17 +39,15 @@ pub fn ribbon(dashboard: Option<&str>) -> String {
     out
 }
 
-/// What forms_class::html_open() writes for a page: its title, and whether the page set the description meta
-/// itself (it then follows the robots meta instead of the title).
+/// What forms_class::html_open() writes for a page: its title and the page's own stylesheets.
 pub struct Head<'a> {
     pub title: &'a str,
     pub css: &'a [String],
-    pub own_description: bool,
 }
 
 impl<'a> Head<'a> {
     pub fn titled(title: &'a str) -> Head<'a> {
-        Head { title, css: &[], own_description: false }
+        Head { title, css: &[] }
     }
 }
 
@@ -61,16 +59,9 @@ pub fn html_open(reg: &Registry, head: &Head<'_>, own_frame: bool) -> String {
         (false, true) => head.title.to_string(),
         (false, false) => format!("{prefix} {}", head.title),
     };
-    let description = format!("<meta name=\"description\" content=\"{}\">", esc(full.trim()));
-    let mut meta = vec![format!("<title>{}</title>", esc(&full))];
-    if !head.own_description {
-        meta.push(description.clone());
-    }
+    let mut meta = vec![format!("<title>{}</title>", esc(&full)), format!("<meta name=\"description\" content=\"{}\">", esc(full.trim()))];
     meta.extend(reg.items("www", "meta").iter().map(|(_, v)| v.trim().to_string()).filter(|v| !v.is_empty()));
     meta.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
-    if head.own_description {
-        meta.push(description);
-    }
     meta.push("<meta charset=\"utf-8\">".into());
     let icon = reg.get("www", "icon").trim();
     if !icon.is_empty() {
@@ -145,8 +136,6 @@ mod tests {
         assert!(doc.contains("<link rel='stylesheet' type='text/css' href='/scs_scripts/a.css'>\n<link rel='stylesheet' type='text/css' href='/scs_scripts/catalog.css?v=7'>\n<script type='text/javascript' src='/scs_scripts/jquery.js'></script>\n<script type='text/javascript' src='/scs_scripts/scscpq.js'></script>\n</head>"));
         assert!(doc.ends_with("<div id='scs_content' ><p>x</p></div> <!-- #scs_content -->\n</div> <!-- #scs_body --></body>\n</html>\n"));
         let own = document(&reg, &Head::titled("Products"), "<p>x</p>", Some("<div id='scs_menu' ></div> <!-- #scs_menu -->"));
-        let late = html_open(&reg, &Head { own_description: true, ..Head::titled("Harcourt") }, false);
-        assert!(late.contains("<title>Harcourt | Harcourt</title>\n<meta name=\"robots\" content=\"noarchive, noimageindex\">\n<meta name=\"description\" content=\"Harcourt | Harcourt\">\n<meta charset"), "{late}");
         assert!(own.contains("<script type='text/javascript' src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>"));
         assert!(own.contains("<div id='scs_body' >\n<div id='scs_menu' ></div> <!-- #scs_menu -->\n<div id='scs_content' ><p>x</p>"));
         assert!(ribbon(Some("Dashboard")).contains("<div class=scs_menu_left><a href=\"/dashboard.php\" >Dashboard</a></div><div class='scs_menu_left scscpq_impersonate'>"));

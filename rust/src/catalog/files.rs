@@ -1,13 +1,13 @@
-//! Files the catalog links to. scs_file.php serves a `content` row (an overview image, a datasheet) by its
-//! encoded id, or a site image resized; customer_portal.php frames the customer portal; scs_index.php was the SCS
-//! home, now the site's own.
+//! Files the catalog links to and the bare SCS pages around them. scs_file.php serves a `content` row (an overview
+//! image, a datasheet) by its encoded id; scs_index.php and beta.php are the SCS home, a loader the catalog script
+//! fills; customer_portal.php frames the customer portal.
 
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderValue, StatusCode},
-    response::{IntoResponse, Redirect, Response},
+    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    response::{IntoResponse, Response},
     routing::get,
     Router,
 };
@@ -16,16 +16,21 @@ use sqlx::SqlitePool;
 use super::{
     html,
     model::Status,
-    registry,
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, visitor::Visitor};
+use crate::{
+    api::Auth,
+    identity::Role,
+    orders::html::{self as chrome, Chrome, Head},
+    visitor::{self, Visitor, PHP_CONTENT_TYPE},
+};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .route("/scs_file.php", get(scs_file))
         .route("/customer_portal.php", get(customer_portal))
-        .route("/scs_index.php", get(|| async { Redirect::permanent("/") }))
+        .route("/scs_index.php", get(scs_index))
+        .route("/beta.php", get(scs_index))
 }
 
 /// What a content row is attached to, which decides who may fetch it.
@@ -47,7 +52,7 @@ pub fn may_fetch(viewer: &Viewer, owner: Owner) -> bool {
         Owner::Family { status, category_active, category_id } => {
             viewer.may_browse() && status.visible(viewer.sees_pending()) && category_active && !viewer.blocked.contains(category_id)
         }
-        Owner::Portal(id) => viewer.may_browse() && viewer.portal_id == Some(id),
+        Owner::Portal(id) => viewer.may_browse() && (viewer.portal_id == Some(id) || viewer.at_least(Role::Internal)),
         Owner::Unknown => false,
     }
 }
@@ -126,11 +131,17 @@ fn param_u32(q: &HashMap<String, String>, k: &str) -> u32 {
     q.get(k).map_or(0, |v| super::php::Value::Str(v.clone()).int().clamp(0, 10_000) as u32)
 }
 
-fn not_found() -> Response {
-    (StatusCode::NOT_FOUND, [(header::CACHE_CONTROL, "no-store")], "Content missing").into_response()
+fn php_page(status: StatusCode, body: String) -> Response {
+    (status, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")], body).into_response()
 }
 
-/// An image, resized when a smaller width or height is asked for; anything else as stored.
+/// What scs_file.php died with when the id did not decode to content this visitor may fetch. The id is echoed, as
+/// the PHP did, but escaped.
+fn missing(encoded: &str) -> Response {
+    php_page(StatusCode::OK, format!("Content missing: {}", html::esc(encoded)))
+}
+
+/// An image, resized when a smaller width or height is asked for, else the stored bytes.
 fn image_response(bytes: Vec<u8>, mime: &str, name: &str, width: u32, height: u32, attachment: bool) -> Response {
     let mut body = bytes;
     let mut mime = mime.to_string();
@@ -159,35 +170,60 @@ fn file_response(body: Vec<u8>, mime: &str, name: &str, attachment: bool) -> Res
     headers.insert(header::EXPIRES, HeaderValue::from_static("0"));
     headers.insert(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
     if attachment {
-        let safe: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || "._-".contains(c) { c } else { '_' }).collect();
-        if let Ok(v) = HeaderValue::from_str(&format!("attachment; filename={safe}")) {
+        if let Ok(v) = HeaderValue::from_bytes(format!("attachment; filename={name}").as_bytes()) {
             headers.insert(header::CONTENT_DISPOSITION, v);
         }
     }
     resp
 }
 
-/// A site image named by `code`: a jpg, png or gif under the document root, never above it.
-fn site_image(code: &str) -> Option<(Vec<u8>, String)> {
-    let root = PathBuf::from(std::env::var_os("HXWEB_DOCROOT")?);
-    let rel = code.trim_start_matches('/');
-    if rel.split('/').any(|seg| seg == ".." || seg.starts_with('.')) {
-        return None;
-    }
-    let lower = rel.to_ascii_lowercase();
-    let mime = [(".jpg", "image/jpeg"), (".jpeg", "image/jpeg"), (".png", "image/png"), (".gif", "image/gif")].into_iter().find(|(ext, _)| lower.ends_with(ext))?.1;
-    let bytes = std::fs::read(root.join(rel)).ok()?;
-    Some((bytes, mime.to_string()))
+/// A download a family page's link asked scs_file.php to log (`local_log`: base64 of subtype, file name, part
+/// number and family id, tab-separated). The staff dashboard's lead score counts these rows. Only the Download
+/// subtype the links carry is written.
+#[derive(Debug, PartialEq, Eq)]
+struct Download {
+    file: String,
+    sku: String,
+    family_id: i64,
 }
 
+impl Download {
+    fn parse(encoded: &str) -> Option<Download> {
+        let mut fields = html::base64_fields_decode(encoded)?.into_iter();
+        if !fields.next()?.trim().eq_ignore_ascii_case("download") {
+            return None;
+        }
+        let mut next = || fields.next().unwrap_or_default();
+        Some(Download { file: next(), sku: next(), family_id: super::php::Value::Str(next()).int() })
+    }
+
+    async fn record(&self, pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<()> {
+        let ip = visitor.client.map(|ip| ip.to_string()).unwrap_or_default();
+        let (now, user_id, bot_id) = (crate::db::unix_now(), visitor.user().map_or(0, |u| u.id.0), visitor.bot().map_or(0, |b| b.id));
+        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str());
+        sqlx::query!(
+            "INSERT INTO log (ip, date_time, user_id, bot_id, email, type, subtype, sku, subcategory_id, comment) VALUES (?1, ?2, ?3, ?4, ?5, 'User', 'Download', ?6, ?7, ?8)",
+            ip,
+            now,
+            user_id,
+            bot_id,
+            email,
+            self.sku,
+            self.family_id,
+            self.file
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+}
+
+/// scs_file.php. Only content by id is served. Without one the PHP never got past loading its file class (500),
+/// except with `watermark`, where a missing file died empty.
 async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<HashMap<String, String>>) -> Response {
-    let (width, height) = (param_u32(&q, "width"), param_u32(&q, "height"));
-    let override_ = q.get("override").is_some_and(|v| v != "0" && !v.is_empty());
     let Some(encoded) = q.get("content_id") else {
-        return match q.get("code").and_then(|c| site_image(c)) {
-            Some((bytes, mime)) => image_response(bytes, &mime, "", width, height, false),
-            None => not_found(),
-        };
+        let status = if q.contains_key("watermark") { StatusCode::OK } else { StatusCode::INTERNAL_SERVER_ERROR };
+        return php_page(status, String::new());
     };
     let id = html::base64_fields_decode(encoded).and_then(|f| f.first().map(|s| super::php::Value::Str(s.clone()).int())).unwrap_or(0);
     let result = async {
@@ -197,46 +233,98 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
     .await;
     let found = match result {
         Ok(Some(c)) => c,
-        Ok(None) => return not_found(),
+        Ok(None) => return missing(encoded),
         Err(e) => {
             tracing::error!("scs_file: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
         }
     };
+    if let Some(log) = q.get("local_log").and_then(|l| Download::parse(l)).filter(|_| visitor.impersonator.is_none()) {
+        if let Err(e) = log.record(&core.pool, &visitor).await {
+            tracing::warn!("scs_file: download log: {e}");
+        }
+    }
+    if found.bytes.is_empty() {
+        return php_page(StatusCode::OK, String::new());
+    }
     let text = |k: &str| found.meta.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
     let (mime, name) = (text("mime"), text("name"));
+    let override_ = q.get("override").map_or("", String::as_str);
     let is_image = found.meta.get("type").is_some_and(|t| t.as_i64().unwrap_or(0) != 0 || t.as_str().is_some_and(|s| !s.is_empty() && s != "0"));
     if is_image {
-        return image_response(found.bytes, &mime, &name, width, height, override_);
+        let (width, height) = (param_u32(&q, "width"), param_u32(&q, "height"));
+        return image_response(found.bytes, &mime, &name, width, height, !override_.is_empty() && override_ != "0");
     }
     let inline = mime == "text/plain" || mime == "text/html";
-    file_response(found.bytes, if mime.is_empty() { "application/octet-stream" } else { &mime }, &name, override_ == inline)
+    let asked_inline = super::php::Value::Str(override_.to_string()).int() != 0;
+    file_response(found.bytes, if mime.is_empty() { "application/octet-stream" } else { &mime }, &name, asked_inline == inline)
 }
 
-/// customer_portal.php in the site's page: the portal in a frame.
-async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor, headers: axum::http::HeaderMap, uri: axum::http::Uri) -> Response {
-    match crate::visitor::landing(&core, &visitor, uri.path(), uri.query(), &headers).await {
-        Ok(Some(r)) => return r,
-        Ok(None) => {}
-        Err(e) => tracing::error!("customer_portal: {e}"),
-    }
-    match registry::load(&core.pool).await {
-        Ok(reg) => {
-            let body = "<iframe src='https://portal.harcourt.co' width='100%' frameBorder='0' style='height: 1000px;'></iframe>";
-            let html = super::pages::chrome_document(&reg, "", body);
-            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store, no-cache, must-revalidate")], html).into_response()
+/// The script scs_index.php and beta.php print: a spinner until the catalog script replaces #scscpq_page.
+const LOADER: &str = r#"<script>
+content=new Array();
+content.push("<style>");
+content.push(".scscpq_loader {display: inline-block; border: 10px solid #f3f3f3; border-radius: 50%; border-top: 10px solid #DC2536; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; animation: spin 2s linear infinite; }");
+content.push(".scscpq_loader_text { display: inline-block; vertical-align: top; margin-left: 10px; margin-top: 18px; }");
+content.push("@-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }");
+content.push("@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }");
+content.push("</style>");
+content.push("<div style='margin-top: 50px;text-align: center;'><div class=scscpq_loader></div><div class=scscpq_loader_text>Loading ...</div></div>");
+jQuery(document).ready(function() {
+	jQuery('#scscpq_page').html(content.join('\n'));
+});
+</script>
+<div id=scscpq_page></div>"#;
+
+/// An SCS page: scs_header.php's landing redirect when the request begins a visit, else `body` in the SCS chrome.
+async fn scs_page(core: &Auth, visitor: &Visitor, uri: &Uri, headers: &HeaderMap, title: &str, description: Option<&str>, body: &str) -> Response {
+    let result = async {
+        if let Some(r) = visitor::landing(core, visitor, uri.path(), uri.query(), headers).await? {
+            return Ok(r);
         }
-        Err(e) => {
-            tracing::error!("customer_portal: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
-        }
+        let chrome_data = Chrome::load(&core.pool).await?;
+        let head = Head {
+            title,
+            description,
+            js: &[],
+            framed: chrome::framed(uri.query(), headers),
+            dashboard: visitor.user().is_some_and(|u| u.role >= Role::Executive),
+            catalog_url: "/catalog.php",
+        };
+        Ok::<_, sqlx::Error>(php_page(StatusCode::OK, format!("{}{body}{}", chrome::open(&chrome_data, &head), chrome::close())))
     }
+    .await;
+    result.unwrap_or_else(|e| {
+        tracing::error!("{}: {e}", uri.path());
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
+    })
+}
+
+/// scs_index.php and beta.php. Both set the description to an undefined variable, which moves the default after
+/// the registry's meta lines.
+async fn scs_index(State(core): State<Arc<Auth>>, visitor: Visitor, uri: Uri, headers: HeaderMap) -> Response {
+    scs_page(&core, &visitor, &uri, &headers, "Harcourt", Some(""), LOADER).await
+}
+
+/// customer_portal.php: the portal in a frame, in an untitled SCS page.
+async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor, uri: Uri, headers: HeaderMap) -> Response {
+    let body = "<iframe src='https://portal.harcourt.co' width='100%' frameBorder='0' style='height: 1000px;'></iframe>";
+    scs_page(&core, &visitor, &uri, &headers, "", None, body).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{catalog::viewer::Kind, identity::UserId};
+
+    #[test]
+    fn only_download_logs_are_read() {
+        let enc = |s: &str| html::base64_fields(&[s]);
+        assert_eq!(Download::parse(&enc("download\tsheet.pdf\tLS-1\t416")), Some(Download { file: "sheet.pdf".into(), sku: "LS-1".into(), family_id: 416 }));
+        assert_eq!(Download::parse(&format!("{}==", enc("Download"))), Some(Download { file: String::new(), sku: String::new(), family_id: 0 }));
+        assert_eq!(Download::parse(&enc("login\tx\ty\t1")), None);
+        assert_eq!(Download::parse("%%%"), None);
+    }
 
     #[test]
     fn display_sizes_follow_file_class() {
@@ -262,6 +350,7 @@ mod tests {
         assert!(!may_fetch(&blocked, family(Status::Active)));
         assert!(!may_fetch(&customer, Owner::Portal(2)));
         assert!(may_fetch(&Viewer { portal_id: Some(2), ..customer.clone() }, Owner::Portal(2)));
+        assert!(may_fetch(&Viewer { role: Role::Internal, ..customer.clone() }, Owner::Portal(2)), "the dashboard shows portal thumbnails to staff");
         assert!(!may_fetch(&customer, Owner::Unknown));
     }
 }

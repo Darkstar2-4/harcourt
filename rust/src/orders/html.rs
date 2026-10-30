@@ -78,6 +78,8 @@ pub fn framed(query: Option<&str>, headers: &HeaderMap) -> bool {
 /// What differs between pages in the chrome.
 pub struct Head<'a> {
     pub title: &'a str,
+    /// `Some("")` is a page that set the description to nothing: PHP's meta() dropped the line and html_open() put
+    /// the default back after the registry's meta lines.
     pub description: Option<&'a str>,
     /// Scripts the page adds after the registry's.
     pub js: &'a [&'a str],
@@ -92,10 +94,18 @@ pub struct Head<'a> {
 pub fn open(chrome: &Chrome, head: &Head) -> String {
     let title = if chrome.title_prefix.is_empty() { head.title.to_string() } else { format!("{} {}", chrome.title_prefix, head.title) };
     let title = if title.trim().is_empty() { "Untitled Page".to_string() } else { title.trim().to_string() };
+    let emptied = head.description.is_some_and(|d| d.trim().is_empty());
     let description = head.description.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(&title);
-    let mut lines = vec![format!("<title>{}</title>", esc(&title)), format!("<meta name=\"description\" content=\"{}\">", esc(description))];
+    let description = format!("<meta name=\"description\" content=\"{}\">", esc(description));
+    let mut lines = vec![format!("<title>{}</title>", esc(&title))];
+    if !emptied {
+        lines.push(description.clone());
+    }
     lines.extend(chrome.meta.iter().cloned());
     lines.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
+    if emptied {
+        lines.push(description);
+    }
     lines.push("<meta charset=\"utf-8\">".into());
     if !chrome.icon.is_empty() {
         lines.push(format!("<link rel='icon' href='{}' type='image/x-icon'>", chrome.icon));
@@ -224,7 +234,7 @@ pub fn select(field: &str, choices: &[(String, String)], selected: &str, blank: 
     }
     for (value, label) in choices {
         let sel = if value == selected { " selected" } else { "" };
-        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc(label)));
+        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc_text(label)));
     }
     out.push_str("</select>\n");
     out
@@ -240,9 +250,10 @@ pub fn page_response(html: String) -> Response {
     r
 }
 
-/// `fn_url_redirect()`: a 302 with no body.
+/// `fn_url_redirect()`: a 302 with no body, labelled as PHP labels every answer.
 pub fn redirect(location: &str) -> Response {
     let mut r = StatusCode::FOUND.into_response();
+    r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(crate::visitor::PHP_CONTENT_TYPE));
     if let Ok(v) = HeaderValue::from_str(location) {
         r.headers_mut().insert(header::LOCATION, v);
     }

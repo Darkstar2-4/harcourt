@@ -37,7 +37,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/catalog.php", get(catalog_php))
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
-        .route("/beta.php", get(beta))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
@@ -283,11 +282,6 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     Ok(chrome::document(&ctx.registry, &chrome::Head { css: &css, ..chrome::Head::titled(title) }, &body, ribbon.as_deref()))
 }
 
-/// An SCS view in the site's page chrome, for the other catalog entry points.
-pub fn chrome_document(reg: &Registry, title: &str, body: &str) -> String {
-    chrome::document(reg, &chrome::Head::titled(title), body, None)
-}
-
 fn catalog_css(reg: &Registry) -> String {
     format!("/scs_scripts/catalog.css?v={}", reg.get("local", "filmstrip_timestamp"))
 }
@@ -471,35 +465,6 @@ async fn document_viewer(State(core): State<Arc<Auth>>, visitor: Visitor, header
     .await;
     match result {
         Ok(body) => html_response(body),
-        Err(e) => failed(e),
-    }
-}
-
-const BETA: &str = "<script>
-content=new Array();
-content.push(\"<style>\");
-content.push(\".scscpq_loader {display: inline-block; border: 10px solid #f3f3f3; border-radius: 50%; border-top: 10px solid #DC2536; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; animation: spin 2s linear infinite; }\");
-content.push(\".scscpq_loader_text { display: inline-block; vertical-align: top; margin-left: 10px; margin-top: 18px; }\");
-content.push(\"@-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }\");
-content.push(\"@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }\");
-content.push(\"</style>\");
-content.push(\"<div style='margin-top: 50px;text-align: center;'><div class=scscpq_loader></div><div class=scscpq_loader_text>Loading ...</div></div>\");
-jQuery(document).ready(function() {
-\tjQuery('#scscpq_page').html(content.join('\\n'));
-});
-</script>
-<div id=scscpq_page></div>";
-
-/// beta.php: the SCS page with a spinner in the place the beta catalog loaded into.
-async fn beta(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: axum::http::Uri, Query(q): Query<Params>) -> Response {
-    if let Some(r) = landing(&core, &visitor, &uri, &headers).await {
-        return r;
-    }
-    match registry::load(&core.pool).await {
-        Ok(reg) => {
-            let ribbon = (!framed(&core, &q, &headers)).then(|| chrome::ribbon(None));
-            html_response(chrome::document(&reg, &chrome::Head { own_description: true, ..chrome::Head::titled("Harcourt") }, BETA, ribbon.as_deref()))
-        }
         Err(e) => failed(e),
     }
 }

@@ -74,7 +74,12 @@ async fn cookie(pool: &SqlitePool, id: i64) -> String {
 
 fn request(method: Method, uri: &str, cookie: &str, form: &[(&str, &str)], ajax: bool) -> Request<Body> {
     let body: Vec<String> = form.iter().map(|(k, v)| format!("{}={}", enc(k), enc(v))).collect();
-    let mut r = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    let mut r = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::COOKIE, cookie)
+        .header(header::REFERER, "https://www.harcourt.co/catalog/")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if ajax {
         r = r.header("x-requested-with", "XMLHttpRequest");
     }
@@ -139,6 +144,24 @@ async fn carts_belong_to_one_session_and_end_with_it() {
     assert!(!page.contains("scs_menu"), "no ribbon inside the WordPress frame");
     sqlx::query("DELETE FROM session").execute(&h.pool).await.unwrap();
     assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 0);
+}
+
+#[tokio::test]
+async fn an_account_signed_in_by_company_address_keeps_its_cart_in_the_php_session() {
+    let h = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let a = add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-1 cart updated"), Some(1)));
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
+    assert!(page.contains("<td class=nobr>SKU-1</td>"));
+    let (status, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-two", &[], false)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p>Your shopping cart is empty</p>"));
+    let a = add(&h, "", "SKU-1", "1").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-1 invalid"), Some(0)), "no visit, no cart to keep");
 }
 
 #[tokio::test]
@@ -252,6 +275,26 @@ async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
 }
 
 #[tokio::test]
+async fn the_checkout_form_stars_what_the_registry_requires() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'address', 'orderhd', 'name', 'required'), ('', 'address', 'orderhd', 'company_name', 'allowed'), ('', 'address', 'orderhd', 'email', 'required')")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let c = format!("{}; harcourt=remembered@example.com", cookie(&h.pool, 1).await);
+    add(&h, &c, "SKU-1", "1").await;
+    let (_, _, page) = send(&h.app, request(Method::GET, "/checkout.php", &c, &[], false)).await;
+    assert!(page.contains("<tr ><td width='20%'><font color=red><b>*</b></font>First Name</td>"), "{page}");
+    assert!(page.contains("<tr ><td width='20%'>&nbsp;Company Name</td>"));
+    assert!(!page.contains("orderhd_phone"), "a field the registry does not list is not shown");
+    assert!(page.contains("value='remembered@example.com'"));
+    assert!(page.contains("<option value='' selected>Shipping Carrier</option>"));
+    assert_eq!(page.matches("Indicates mandatory fields").count(), 3);
+}
+
+#[tokio::test]
 async fn the_po_manager_is_for_executives() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
@@ -276,4 +319,10 @@ async fn the_po_manager_is_for_executives() {
     assert_eq!((st.as_str(), by), ("Accept", 9));
     let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", &id_text), ("status", "Accept")], false)).await;
     assert!(page.contains("Correct 1 error(s)"), "same status is an error");
+    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", "999999")], false)).await;
+    assert!(page.contains("<option value='Pending' selected>") && page.contains("fn_action(this,'update','999999','');"), "a missing order shows as a blank one");
+    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", "999999"), ("status", "Reject")], false)).await;
+    assert!(page.contains("Record maintained"));
+    let (st, _): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(st, "Accept");
 }

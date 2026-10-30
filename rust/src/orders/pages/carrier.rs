@@ -40,8 +40,10 @@ pub async fn page(State(state): State<Arc<Orders>>, _staff: Staff<Administrator>
     let mut name_error = false;
     match action {
         "cancel" => messages.push("Request cancelled".into()),
-        "delete" if carrier.id != 0 && !carrier.active => {
-            sqlx::query!("DELETE FROM carrier WHERE id = ?1", carrier.id).execute(pool).await?;
+        "delete" if carrier.id == 0 || !carrier.active => {
+            if carrier.id != 0 {
+                sqlx::query!("DELETE FROM carrier WHERE id = ?1", carrier.id).execute(pool).await?;
+            }
             messages.push(format!("Carrier {} deleted", esc(&carrier.name)));
         }
         "update" => {

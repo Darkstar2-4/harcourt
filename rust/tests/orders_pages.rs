@@ -33,7 +33,11 @@ async fn cookie(pool: &SqlitePool, id: i64, role: &str) -> String {
 }
 
 async fn send(app: &Router, method: Method, uri: &str, cookie: Option<&str>, form: &str, lang: Option<&str>) -> (StatusCode, HeaderMap, String) {
-    let mut r = Request::builder().method(method).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    let mut r = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::REFERER, "https://www.harcourt.co/contact-us/")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if let Some(c) = cookie {
         r = r.header(header::COOKIE, c);
     }
@@ -121,4 +125,19 @@ async fn design_partner_blocks_are_saved_per_company() {
     assert_eq!(blocked, [2], "inactive categories are never blocked");
     let a = ajax(&app, &admin, "action=save&company_name=").await;
     assert_eq!(a["status"].as_str(), Some("error"));
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
+    let (app, pool) = harness().await;
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let first = |path: &str, cookie: &str| Request::builder().uri(path).header(header::COOKIE, cookie).body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(first("/carrier.php", &admin)).await.unwrap();
+    assert_eq!(res.status(), StatusCode::FOUND);
+    assert_eq!(res.headers()[header::LOCATION], "/dashboard.php");
+    assert_eq!(res.headers()[header::CONTENT_TYPE], "text/html; charset=UTF-8");
+    let res = app.clone().oneshot(first("/carrier.php", &format!("{admin}; PHPSESSID=mid-visit"))).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let res = app.clone().oneshot(first("/contact.php", "")).await.unwrap();
+    assert_eq!(res.headers()[header::LOCATION], "/scs_index.php");
 }

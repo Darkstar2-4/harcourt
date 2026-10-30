@@ -271,6 +271,15 @@ fn akismet(position: usize) -> String {
     )
 }
 
+/// The `gform_ajax` value. Gravity Forms signs the shortcode attributes with the WordPress salts so a post cannot
+/// change them; these are fixed and never read back, so the hash only keeps the field's shape.
+fn gform_ajax(form_id: i64, theme: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let args = format!("form_id={form_id}&title=&description=&tabindex=0&theme={theme}");
+    let hash = hex::encode(&Sha256::digest(args.as_bytes())[..16]);
+    format!("{args}&hash={hash}")
+}
+
 /// The form, empty or with what was posted and its errors.
 pub fn form(r: &Render) -> String {
     let f = r.form;
@@ -309,7 +318,7 @@ pub fn form(r: &Render) -> String {
         esc(&f.button)
     ));
     if r.embed.ajax {
-        out.push_str(&format!("<input type='hidden' name='gform_ajax' value='form_id={fid}&amp;title=&amp;description=&amp;tabindex=0&amp;theme={theme}' />"));
+        out.push_str(&format!("<input type='hidden' name='gform_ajax' value='{}' />", esc(&gform_ajax(fid, theme))));
     }
     let token = r.token.map(esc).unwrap_or_default();
     out.push_str(&format!(
@@ -412,6 +421,14 @@ mod tests {
         assert_eq!(browser_class("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1"), "gf_browser_safari gf_browser_iphone");
         assert_eq!(browser_class("Mozilla/5.0 (Windows NT 10.0; rv:130.0) Gecko/20100101 Firefox/130.0"), "gf_browser_gecko");
         assert_eq!(browser_class("hxweb/0.1 island"), "gf_browser_unknown");
+    }
+
+    #[test]
+    fn the_ajax_value_ends_in_a_hash_like_gravity_forms() {
+        let value = gform_ajax(1, "legacy");
+        let (args, hash) = value.split_once("&hash=").unwrap();
+        assert_eq!(args, "form_id=1&title=&description=&tabindex=0&theme=legacy");
+        assert!(hash.len() == 32 && hash.bytes().all(|b| b.is_ascii_hexdigit()), "{hash}");
     }
 
     #[test]

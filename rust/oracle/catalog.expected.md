@@ -10,4 +10,4 @@
 - Part-number lookups and quick CAD never call PARTsolutions while a page renders; `scscpq_api.php?action=download` fetches only https URLs on `*.partcommunity.com`.
 - `document_viewer.php` links its `login_url` only when it is a path on this site, escaped.
 - `new_catalog.php` keeps its own gate; past it, it shows the current catalog instead of the 2020 one.
-- `scs_file.php` serves content only to viewers who may see what owns it, and a named file only when it is an image under the document root.
+- `scs_file.php`, `scs_index.php`, `beta.php`, `customer_portal.php`, `scs_ajax.php` and the search box: see `fix-files.expected.md`.

@@ -17,8 +17,8 @@ use axum::{
     extract::{Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
-    Extension, Json, Router,
+    routing::{any, get},
+    Extension, Router,
 };
 use serde_json::{json, Value};
 use sqlx::SqlitePool;
@@ -1058,7 +1058,16 @@ fn first_row(ix: &Index, term: &str, ctx: &Ctx) -> Option<u64> {
 }
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/catalog-api/search", get(suggest))
+    Router::new().route("/catalog-api/search", get(suggest)).route("/hx_search_ctx.php", any(not_served))
+}
+
+/// hx_search_ctx.php answered live hxweb's own calls behind the front; prod's nginx refused it from outside with its
+/// own page (with the padding it adds for browsers over HTTP/1). The scope now comes from the Rust visitor, so nothing
+/// calls it.
+async fn not_served() -> Response {
+    let mut page = String::from("<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n");
+    page.push_str(&"<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n".repeat(6));
+    (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/html")], page).into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -1068,32 +1077,46 @@ struct SuggestQuery {
     limit: Option<String>,
 }
 
-/// The search box's suggestions, for visitors who may browse the catalog (the box is not shown to anyone else).
 async fn suggest(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<SuggestQuery>) -> Response {
     suggestions(&core, &cache, &visitor, &headers, &q.term, q.limit.as_deref()).await
 }
 
-/// The suggestions for `term`, for /catalog-api/search and scs_ajax.php?table=search.
+/// Live's rule: an XMLHttpRequest whose Referer is on http(s)://<Host>. Live accepted any Referer that merely
+/// started with the host name (www.harcourt.co.example.com); here the host must end there.
+fn same_site(headers: &HeaderMap) -> bool {
+    let get = |h| headers.get(h).and_then(|v| v.to_str().ok());
+    let (Some(host), Some(referer)) = (get(header::HOST), get(header::REFERER)) else { return false };
+    let xhr = get(header::HeaderName::from_static("x-requested-with")).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest"));
+    xhr && ["http://", "https://"].iter().any(|s| {
+        referer.strip_prefix(s).and_then(|r| r.strip_prefix(host)).is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', ':', '?']))
+    })
+}
+
+fn respond(status: StatusCode, v: &Value) -> Response {
+    (status, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], v.to_string()).into_response()
+}
+
+/// The search box's suggestions for `term`, for /catalog-api/search and scs_ajax.php?table=search: what live
+/// hxweb answered, for the search box on the site's own pages, in the scope of whoever is searching.
 pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers: &HeaderMap, term: &str, limit: Option<&str>) -> Response {
+    if !same_site(headers) {
+        return respond(StatusCode::FORBIDDEN, &json!({"items": [], "error": "External access"}));
+    }
     let lang = page_lang(headers);
     let viewer_lang = if lang == Lang::Fr { viewer::Lang::Fr } else { viewer::Lang::En };
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer_lang).await?;
-        if !viewer.may_browse() || viewer.is_bot() {
-            return Ok(None);
-        }
         Ok::<_, sqlx::Error>(cache.index(&core.pool).await?.map(|ix| (ix, scope(&viewer, lang))))
     }
     .await;
     let term = term.trim();
     let limit = limit.and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
-    let headers = [(header::CACHE_CONTROL, "no-store")];
     match result {
-        Ok(Some((ix, ctx))) => (StatusCode::OK, headers, Json(answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx))).into_response(),
-        Ok(None) => (StatusCode::FORBIDDEN, headers, Json(json!({"items": [], "error": "Access denied"}))).into_response(),
+        Ok(Some((ix, ctx))) => respond(StatusCode::OK, &answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx)),
+        Ok(None) => respond(StatusCode::SERVICE_UNAVAILABLE, &json!({"items": [], "error": "No index"})),
         Err(e) => {
             tracing::error!("search: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, headers, Json(json!({"items": [], "error": "Internal"}))).into_response()
+            respond(StatusCode::INTERNAL_SERVER_ERROR, &json!({"items": [], "error": "Internal"}))
         }
     }
 }

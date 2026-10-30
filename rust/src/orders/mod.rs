@@ -51,10 +51,22 @@ impl Orders {
 pub fn router(state: Arc<Orders>) -> Router {
     Router::new()
         .merge(shop::routes())
-        .merge(forms::routes())
         .merge(pages::routes())
+        .route_layer(middleware::from_fn_with_state(state.clone(), first_visit))
+        .merge(forms::routes())
         .layer(middleware::from_fn_with_state(state.clone(), same_origin))
         .with_state(state)
+}
+
+/// Every SCS page loaded scs_header.php, which sends a visit that begins on it to the visitor's home page first.
+async fn first_visit(State(state): State<Arc<Orders>>, req: Request, next: Next) -> Response {
+    let (mut parts, body) = req.into_parts();
+    let visitor = Visitor::from_request_parts(&mut parts, &state).await.unwrap_or_else(|e| match e {});
+    match crate::visitor::landing(&state.core, &visitor, parts.uri.path(), parts.uri.query(), &parts.headers).await {
+        Ok(Some(home)) => home,
+        Ok(None) => next.run(Request::from_parts(parts, body)).await,
+        Err(e) => ApiError::from(e).into_response(),
+    }
 }
 
 /// A form posted from another site carries that site's Origin. Refuse it; the SameSite session cookie is the second
