@@ -37,6 +37,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .route("/catalog.php", get(catalog_php).post(catalog_php))
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
+        .route("/search.php", get(search_php).post(search_php))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
@@ -426,6 +427,34 @@ async fn new_catalog(
     match gate {
         Ok(Some(body)) => html_response(body),
         Ok(None) => catalog_view(&core, cache, &visitor, &headers, &uri, &q).await,
+        Err(e) => failed(e),
+    }
+}
+
+const SEARCH_FORM: &str = concat!(
+    "<form name=\"productSearch\" id=\"productSearch\" method=\"get\" action=\"/products.php?action=search\" accept-charset=\"utf-8\" autocomplete=\"on\">\n",
+    "<input type=\"hidden\" name=\"search_source\" id=\"search_source\" value=\"term\">\n",
+    "<input type=\"text\" name=\"search_code\" id=\"ajax_inventory_search\" placeholder=\"Product Search\" class=\"ui-autocomplete-input\" autocomplete=\"off\">\n",
+    "<button type=\"submit\"><img src=\"images/red-magnifier.png\"></button>\n",
+    "</form>\n",
+);
+
+/// search.php: the old product search form in the SCS page.
+async fn search_php(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
+    let page = async {
+        let reg = registry::load(&core.pool).await?;
+        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
+        let dashboard = match viewer.at_least(Role::Executive) {
+            true => Some(strings::load(&core.pool, viewer.lang).await?.get("menu_dashboard").to_string()),
+            false => None,
+        };
+        let ribbon = (!visitor.framed).then(|| chrome::ribbon(dashboard.as_deref()));
+        let body = format!("<p class='message left'>Product Search</p>{SEARCH_FORM}");
+        Ok::<_, sqlx::Error>(chrome::document(&reg, &chrome::Head::titled("Product Search"), &body, ribbon.as_deref()))
+    }
+    .await;
+    match page {
+        Ok(body) => html_response(body),
         Err(e) => failed(e),
     }
 }

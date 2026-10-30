@@ -83,3 +83,9 @@
 {"name": "search-post", "method": "POST", "path": "/search/", "body": "q=pin"}
 {"name": "index-post", "method": "POST", "path": "/scs_index.php", "body": "x=1"}
 {"name": "portal-php-post", "method": "POST", "path": "/customer_portal.php", "body": "x=1"}
+{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-products", "path": "/portal_ajax.php?action=products", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-other", "path": "/portal_ajax.php?action=other", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-direct", "path": "/portal_ajax.php?action=catalog"}
+{"name": "search-php", "path": "/search.php"}
+{"name": "search-php-wp", "path": "/search.php?scscpq_wp=1"}
