@@ -37,6 +37,8 @@ OTHER = [
     {"name": "probe-route", "path": "/CLAUDE.md", "route": "/CLAUDE.md", "hits": 9},
     {"name": "logged", "path": "/catalog/?action=subcategory&subcategory_id=9", "route": "/catalog/", "hits": 50},
     {"name": "probe-slug", "path": "/credentials", "route": "/credentials", "hits": 39},
+    {"name": "island", "path": "/?hx_form=3&hx_lang=en&hx_page=/contact-form/", "route": "/", "hits": 40},
+    {"name": "users-map", "path": "/wp-sitemap-users-1.xml", "route": "/wp-sitemap-users-1.xml", "hits": 4},
     {"name": "logged-feed", "path": "/product/clamping/feed/", "route": "/product/clamping/feed/", "hits": 3},
     {"name": "logged-known", "path": "/societe/?lang=fr", "route": "/societe/", "hits": 40},
 ]
@@ -52,7 +54,7 @@ class MutateTest(unittest.TestCase):
         with open(os.path.join(self.dir, "personas.json"), "w") as f:
             json.dump(PERSONAS, f)
         with open(os.path.join(self.dir, "known.txt"), "w") as f:
-            f.write("https://www.harcourt.co/societe/\n")
+            f.write("https://www.harcourt.co/societe/\nhttps://www.harcourt.co/\n")
         db = os.path.join(self.dir, "hx.db")
         conn = sqlite3.connect(db)
         conn.execute("CREATE TABLE subcategory (id INTEGER PRIMARY KEY)")
@@ -88,7 +90,7 @@ class MutateTest(unittest.TestCase):
             low = {k.lower(): v.lower() for k, v in pairs}
             self.assertNotIn("..", c["path"])
             self.assertNotIn("'", c["path"])
-            for bad in ("delete", "update", "json_code", "cron", "code", "wp_set_current_user", "claude"):
+            for bad in ("delete", "update", "json_code", "cron", "code", "wp_set_current_user", "claude", "hx_form", "users"):
                 self.assertNotIn(bad, c["path"].lower() + c.get("body", "").lower(), c)
             self.assertIn(low.get("action", ""), {"", "list", "maintain", "cancel", "subcategory"}, c)
             if c["method"] == "POST":

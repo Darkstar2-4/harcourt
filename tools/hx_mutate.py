@@ -48,7 +48,11 @@ DENY_PHP = re.compile(
     r"scs_track_log|scs_log|user_email|scs_filemanager|scs_registry|scs_php\w*|\w*toolbox|scs_inc|scs_map|"
     r"legacy_header|scs_header|scs_version|punchout|wp-[\w-]+|xmlrpc)\.php(?:/|$)")
 DENY_PATH = re.compile(r"^/(?:wp-admin|wp-includes/.*\.php|\.|[^/]+/.*\.php)|^/wp-json(?!/oembed/1\.0/embed/?$)|"
-                       r"^/(?:fr/)?imperson")
+                       r"^/(?:fr/)?imperson|sitemap-users")
+# Requests prod's nginx answers before hxweb (the form islands, the search context): the oracle's answer says
+# nothing about Rust's, so they make no seeds.
+NGINX_KEYS = {"hx_form"}
+NGINX_PAGES = {"/hx_search_ctx.php"}
 ACTION_KEYS = {"action", "mode", "op", "do", "task", "cmd", "function", "method", "step"}
 READ_ACTIONS = {"", "subcategory", "sku", "search", "list", "maintain", "cancel", "prelist", "view", "show",
                 "overview", "features", "applications", "price", "specials", "catalog", "products", "other",
@@ -543,7 +547,7 @@ def main(argv=None):
         personas = json.load(f)
     seeds = load_seeds(args.seeds, load_known(args.known))
     names = {p["name"] for p in personas}
-    ok = [s for s in seeds if safe(s, names)]
+    ok = [s for s in seeds if safe(s, names) and not (s.keys() & NGINX_KEYS or page_of(s.path).rstrip("/") in NGINX_PAGES)]
     ctx = Ctx(personas, load_ids(args.db, seed=args.seed), ok)
     cases, stats = generate(ok, ctx, load_weights(args.routes), args.cases, args.seed)
     write(args.out, cases, stats, args.shard_size)
