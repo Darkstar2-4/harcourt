@@ -1,7 +1,8 @@
 //! Differential cases, one JSON object per line:
 //! `{"name":"catalog","method":"GET","path":"/catalog.php?lang=fr","persona":"customer-active","language":"fr","body":null}`.
 //! `method` defaults to GET, `persona` to anonymous, `language` to en. `headers` is an optional object of extra
-//! request headers from a fixed list (`Extra`), sent to both sides. `route` and `hits` are informational (the corpus
+//! request headers from a fixed list (`Extra`), sent to both sides. `session` is `cold` (no cookies, the default unless
+//! `run --warm`) or `warm` (the persona's primed PHP session). `route` and `hits` are informational (the corpus
 //! generator writes them). Blank lines and lines starting with `#` are skipped.
 
 use std::{collections::BTreeMap, path::Path};
@@ -21,6 +22,25 @@ pub struct Case {
     pub body: Option<String>,
     pub content_type: Option<String>,
     pub headers: Vec<(Extra, String)>,
+    /// None: the run's default (`--warm` or cold).
+    pub session: Option<Session>,
+}
+
+/// Whether a case arrives as a first visit (no cookies) or inside a PHP session the run primed for its persona.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Session {
+    Cold,
+    Warm,
+}
+
+impl Session {
+    fn parse(s: &str) -> Option<Session> {
+        match s {
+            "cold" => Some(Session::Cold),
+            "warm" => Some(Session::Warm),
+            _ => None,
+        }
+    }
 }
 
 /// The origin both stacks answer as. Referer and Origin may only point here.
@@ -100,6 +120,7 @@ struct RawCase {
     body: Option<String>,
     content_type: Option<String>,
     headers: Option<BTreeMap<String, String>>,
+    session: Option<String>,
     #[allow(dead_code)]
     route: Option<String>,
     #[allow(dead_code)]
@@ -129,6 +150,10 @@ pub fn parse(text: &str, origin: &str, personas: &Personas) -> Result<Vec<Case>,
             Some(l) => Lang::parse(l).ok_or_else(|| at(format!("language must be en or fr, got {l:?}")))?,
         };
         let headers = parse_headers(raw.headers.unwrap_or_default()).map_err(at)?;
+        let session = match raw.session.as_deref() {
+            None => None,
+            Some(s) => Some(Session::parse(s).ok_or_else(|| at(format!("session must be cold or warm, got {s:?}")))?),
+        };
         out.push(Case {
             name: raw.name,
             method,
@@ -138,6 +163,7 @@ pub fn parse(text: &str, origin: &str, personas: &Personas) -> Result<Vec<Case>,
             body: raw.body,
             content_type: raw.content_type,
             headers,
+            session,
         });
     }
     Ok(out)
@@ -182,6 +208,18 @@ mod tests {
         assert!(parse(r#"{"name":"a","path":"/","language":"de"}"#, "t", &p).is_err());
         assert!(parse(r#"{"name":"a","path":"/","colour":"red"}"#, "t", &p).is_err());
         assert!(parse(r#"{"name":"a","path":"/","method":"GE T"}"#, "t", &p).is_err());
+    }
+
+    #[test]
+    fn session_is_cold_warm_or_left_to_the_run() {
+        let p = personas();
+        let s = |v: &str| parse(&format!(r#"{{"name":"a","path":"/"{v}}}"#), "t", &p).map(|mut c| c.remove(0).session);
+        assert_eq!(s(""), Ok(None));
+        assert_eq!(s(r#","session":"warm""#), Ok(Some(Session::Warm)));
+        assert_eq!(s(r#","session":"cold""#), Ok(Some(Session::Cold)));
+        for bad in [r#","session":"hot""#, r#","session":"Warm""#, r#","session":true"#] {
+            assert!(s(bad).is_err(), "{bad}");
+        }
     }
 
     fn one(headers: &str) -> Result<Vec<(Extra, String)>, String> {

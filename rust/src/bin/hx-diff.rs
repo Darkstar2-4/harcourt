@@ -2,7 +2,8 @@
 //! where the answers differ after the allowed normalizations (`hx-diff rules`).
 //!
 //!     hx-diff run --oracle https://172.31.4.145 --rust http://127.0.0.1:8601 [--personas all|a,b] [--rust-session]
-//!                 [--filter REGEX] [--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR] CORPUS.jsonl...
+//!                 [--warm] [--filter REGEX] [--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR]
+//!                 CORPUS.jsonl...
 //!     hx-diff personas [--sql]       the synthetic personas, or the MySQL that loads them into the oracle
 //!     hx-diff seed --db PATH         sessions for the personas in a copy of the imported SQLite file
 //!     hx-diff rules                  the normalization rules and compared headers
@@ -15,6 +16,8 @@ mod corpus;
 mod normalize;
 #[path = "hx-diff/persona.rs"]
 mod persona;
+#[path = "hx-diff/warm.rs"]
+mod warm;
 
 use std::{
     collections::BTreeSet,
@@ -29,9 +32,9 @@ use reqwest::header::{HeaderMap, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CONTENT_TYPE,
 use sha2::{Digest, Sha256};
 use similar::TextDiff;
 
-use corpus::Case;
+use corpus::{Case, Session};
 use normalize::Ctx;
-use persona::{Persona, Personas};
+use persona::{Lang, Persona, Personas};
 
 const SITE: &str = "www.harcourt.co";
 const UA: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 hx-diff";
@@ -42,6 +45,7 @@ struct RunArgs {
     rust: String,
     personas: Option<Vec<String>>,
     rust_session: bool,
+    warm: bool,
     filter: Option<Regex>,
     jobs: usize,
     context: usize,
@@ -59,8 +63,8 @@ enum Command {
     Rules,
 }
 
-const USAGE: &str = "usage: hx-diff run --oracle URL --rust URL [--personas all|a,b] [--rust-session] [--filter REGEX] \
-[--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR] CORPUS.jsonl...\n       hx-diff personas [--sql]\n       \
+const USAGE: &str = "usage: hx-diff run --oracle URL --rust URL [--personas all|a,b] [--rust-session] [--warm] \
+[--filter REGEX] [--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR] CORPUS.jsonl...\n       hx-diff personas [--sql]\n       \
 hx-diff seed --db PATH\n       hx-diff rules";
 
 fn base_url(s: &str) -> Result<String, String> {
@@ -93,6 +97,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                 rust: String::new(),
                 personas: None,
                 rust_session: false,
+                warm: false,
                 filter: None,
                 jobs: 4,
                 context: 3,
@@ -108,6 +113,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                     "--rust" => rust = Some(base_url(&value("--rust", &mut it)?)?),
                     "--personas" => a.personas = Some(value("--personas", &mut it)?.split(',').map(|s| s.trim().to_string()).collect()),
                     "--rust-session" => a.rust_session = true,
+                    "--warm" => a.warm = true,
                     "--filter" => {
                         let f = value("--filter", &mut it)?;
                         a.filter = Some(Regex::new(&f).map_err(|e| format!("--filter: {e}"))?);
@@ -284,17 +290,22 @@ fn render(status: u16, headers: &HeaderMap, body: &[u8], ctx: &Ctx) -> String {
     doc.join("\n")
 }
 
-async fn fetch(client: &reqwest::Client, base: &str, job: &Job, session: bool, ctx: &Ctx) -> Result<Answer, String> {
-    let c = &job.case;
-    let mut req = client
-        .request(c.method.clone(), format!("{base}{}", c.path))
+/// The headers every request carries: the site's Host, a browser, no compression, and who the persona is.
+fn request(client: &reqwest::Client, method: reqwest::Method, url: String, persona: &Persona, lang: Lang) -> reqwest::RequestBuilder {
+    client
+        .request(method, url)
         .header(HOST, SITE)
         .header(USER_AGENT, UA)
         .header(ACCEPT_ENCODING, "identity")
-        .header(ACCEPT_LANGUAGE, c.language.accept_language())
-        .header("x-real-ip", job.persona.ip.to_string());
-    if session && job.persona.account.is_some() {
-        req = req.header(COOKIE, format!("{}={}", hxweb::session::COOKIE, job.persona.session_token()));
+        .header(ACCEPT_LANGUAGE, lang.accept_language())
+        .header("x-real-ip", persona.ip.to_string())
+}
+
+async fn fetch(client: &reqwest::Client, base: &str, job: &Job, cookie: Option<&str>, ctx: &Ctx) -> Result<Answer, String> {
+    let c = &job.case;
+    let mut req = request(client, c.method.clone(), format!("{base}{}", c.path), &job.persona, c.language);
+    if let Some(cookie) = cookie {
+        req = req.header(COOKIE, cookie);
     }
     for (h, v) in &c.headers {
         req = req.header(h.name(), v);
@@ -309,6 +320,55 @@ async fn fetch(client: &reqwest::Client, base: &str, job: &Job, session: bool, c
     let raw = resp.bytes().await.map_err(|e| format!("{base}: reading body: {e}"))?.to_vec();
     let doc = render(status, &headers, &raw, ctx);
     Ok(Answer { raw, doc, status })
+}
+
+/// One cookie-less GET of `warm::PRIME_PATH` on the oracle as this persona, returning the PHP session it started.
+async fn prime(client: &reqwest::Client, oracle: &str, persona: &Persona, lang: Lang) -> Result<String, String> {
+    let url = format!("{oracle}{}", warm::PRIME_PATH);
+    let resp = request(client, reqwest::Method::GET, url.clone(), persona, lang)
+        .send()
+        .await
+        .map_err(|e| format!("priming {url}: {e}"))?;
+    warm::phpsessid(resp.headers().get_all(SET_COOKIE).iter().filter_map(|v| v.to_str().ok()))
+        .ok_or_else(|| format!("priming {url} as {} did not start a PHP session", persona.name))
+}
+
+/// What every worker of one run shares.
+struct Runner {
+    client: reqwest::Client,
+    oracle: String,
+    rust: String,
+    hosts: Vec<String>,
+    rust_session: bool,
+    warm_by_default: bool,
+    sessions: warm::Sessions,
+}
+
+impl Runner {
+    fn is_warm(&self, job: &Job) -> bool {
+        job.case.session.unwrap_or(if self.warm_by_default { Session::Warm } else { Session::Cold }) == Session::Warm
+    }
+
+    /// Both answers for one job. A warm job first gets its persona's primed PHP session and sends it to both sides.
+    async fn answers(&self, job: &Job) -> Result<(Answer, Answer), String> {
+        let ctx = Ctx { hosts: self.hosts.clone(), now: hxweb::db::unix_now() };
+        let sid = match self.is_warm(job) {
+            true => Some(
+                self.sessions
+                    .sid(&job.persona.name, job.case.language, || prime(&self.client, &self.oracle, &job.persona, job.case.language))
+                    .await?,
+            ),
+            false => None,
+        };
+        let token = (self.rust_session && job.persona.account.is_some()).then(|| job.persona.session_token());
+        let oracle_cookie = warm::cookie_header(sid.as_deref(), None);
+        let rust_cookie = warm::cookie_header(sid.as_deref(), token.as_deref());
+        let (o, r) = tokio::join!(
+            fetch(&self.client, &self.oracle, job, oracle_cookie.as_deref(), &ctx),
+            fetch(&self.client, &self.rust, job, rust_cookie.as_deref(), &ctx)
+        );
+        Ok((o?, r?))
+    }
 }
 
 fn compare(oracle: &Answer, rust: &Answer, context: usize, max_lines: usize) -> Outcome {
@@ -398,29 +458,35 @@ async fn run(a: RunArgs, personas: Personas) -> ExitCode {
         None => u.host_str().unwrap_or("").to_string(),
     });
     let hosts: Vec<String> = [host_of(&a.oracle), host_of(&a.rust)].into_iter().flatten().collect();
-    let shared = Arc::new((client, a.oracle.clone(), a.rust.clone(), hosts));
+    let runner = Arc::new(Runner {
+        client,
+        oracle: a.oracle.clone(),
+        rust: a.rust.clone(),
+        hosts,
+        rust_session: a.rust_session,
+        warm_by_default: a.warm,
+        sessions: warm::Sessions::default(),
+    });
     let gate = Arc::new(tokio::sync::Semaphore::new(a.jobs));
     let mut set = tokio::task::JoinSet::new();
     for (i, job) in jobs.into_iter().enumerate() {
-        let (shared, gate, session) = (shared.clone(), gate.clone(), a.rust_session);
+        let (runner, gate) = (runner.clone(), gate.clone());
         let (context, max_lines, out) = (a.context, a.max_lines, a.out.clone());
         set.spawn(async move {
             let _permit = gate.acquire_owned().await;
-            let (client, oracle, rust, hosts) = &*shared;
-            let ctx = Ctx { hosts: hosts.clone(), now: hxweb::db::unix_now() };
-            let (o, r) = tokio::join!(fetch(client, oracle, &job, false, &ctx), fetch(client, rust, &job, session, &ctx));
-            let outcome = match (o, r) {
-                (Ok(o), Ok(r)) => {
+            let warm = runner.is_warm(&job);
+            let outcome = match runner.answers(&job).await {
+                Ok((o, r)) => {
                     if let Some(dir) = &out {
                         if let Err(e) = save(dir, &job, "oracle", &o).and_then(|_| save(dir, &job, "rust", &r)) {
-                            return (i, job, Outcome::Broken(format!("--out: {e}")));
+                            return (i, job, Outcome::Broken(format!("--out: {e}")), warm);
                         }
                     }
                     compare(&o, &r, context, max_lines)
                 }
-                (Err(e), _) | (_, Err(e)) => Outcome::Broken(e),
+                Err(e) => Outcome::Broken(e),
             };
-            (i, job, outcome)
+            (i, job, outcome, warm)
         });
     }
     let mut results = Vec::new();
@@ -430,21 +496,22 @@ async fn run(a: RunArgs, personas: Personas) -> ExitCode {
             Err(e) => return fail(&format!("worker: {e}")),
         }
     }
-    results.sort_by_key(|(i, _, _)| *i);
+    results.sort_by_key(|(i, _, _, _)| *i);
     let (mut passed, mut failed, mut broken) = (0, 0, 0);
-    for (_, job, outcome) in &results {
+    for (_, job, outcome, warm) in &results {
+        let who = format!("{} {}{}", job.case.name, job.persona.name, if *warm { " (warm)" } else { "" });
         match outcome {
             Outcome::Same => {
                 passed += 1;
-                println!("PASS {} {}", job.case.name, job.persona.name);
+                println!("PASS {who}");
             }
             Outcome::Differs { summary, diff } => {
                 failed += 1;
-                println!("FAIL {} {}: {summary}\n{diff}", job.case.name, job.persona.name);
+                println!("FAIL {who}: {summary}\n{diff}");
             }
             Outcome::Broken(e) => {
                 broken += 1;
-                println!("ERROR {} {}: {e}", job.case.name, job.persona.name);
+                println!("ERROR {who}: {e}");
             }
         }
     }
@@ -535,30 +602,126 @@ mod tests {
         assert_ne!(doc, render(200, &h, b"\x89PNH", &ctx()));
     }
 
-    /// One request against a throwaway local listener, returning the request head it received.
-    fn received(case: &str) -> String {
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        let server = std::thread::spawn(move || {
+    /// A local listener that records every request head (lowercased) and, when `sessions` is set, answers the
+    /// priming page with a new PHPSESSID per request.
+    struct Fake {
+        base: String,
+        heads: Arc<std::sync::Mutex<Vec<String>>>,
+    }
+
+    impl Fake {
+        fn start(sessions: bool) -> Fake {
             use std::io::{Read, Write};
-            let (mut sock, _) = listener.accept().unwrap();
-            let mut head = Vec::new();
-            let mut buf = [0u8; 1024];
-            while !head.windows(4).any(|w| w == b"\r\n\r\n") {
-                let n = sock.read(&mut buf).unwrap();
-                head.extend_from_slice(&buf[..n]);
-            }
-            sock.write_all(b"HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\ncontent-length: 2\r\n\r\nok").unwrap();
-            String::from_utf8(head).unwrap().to_ascii_lowercase()
-        });
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+            let heads = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let seen = heads.clone();
+            std::thread::spawn(move || {
+                for (n, sock) in listener.incoming().enumerate() {
+                    let Ok(mut sock) = sock else { return };
+                    let mut head = Vec::new();
+                    let mut buf = [0u8; 1024];
+                    while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+                        let Ok(k) = sock.read(&mut buf) else { break };
+                        if k == 0 {
+                            break;
+                        }
+                        head.extend_from_slice(&buf[..k]);
+                    }
+                    let head = String::from_utf8_lossy(&head).to_ascii_lowercase();
+                    let priming = head.starts_with(&format!("get {} ", warm::PRIME_PATH));
+                    let cookie = if sessions && priming { format!("set-cookie: PHPSESSID=sid{n}; path=/\r\n") } else { String::new() };
+                    seen.lock().unwrap().push(head);
+                    let reply = format!("HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-type: text/plain\r\n{cookie}content-length: 2\r\n\r\nok");
+                    let _ = sock.write_all(reply.as_bytes());
+                }
+            });
+            Fake { base, heads }
+        }
+
+        fn heads(&self) -> Vec<String> {
+            self.heads.lock().unwrap().clone()
+        }
+    }
+
+    fn cookie_of(head: &str) -> Option<&str> {
+        head.split("\r\n").find_map(|l| l.strip_prefix("cookie: "))
+    }
+
+    fn job(case: &str) -> Job {
         let personas = Personas::embedded().unwrap();
         let case = corpus::parse(case, "t", &personas).unwrap().remove(0);
-        let job = Job { persona: personas.get(&case.persona).unwrap().clone(), case };
+        Job { persona: personas.get(&case.persona).unwrap().clone(), case }
+    }
+
+    fn runner(oracle: &Fake, rust: &Fake, warm_by_default: bool, rust_session: bool) -> Runner {
+        Runner {
+            client: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().build().unwrap(),
+            oracle: oracle.base.clone(),
+            rust: rust.base.clone(),
+            hosts: vec![],
+            rust_session,
+            warm_by_default,
+            sessions: warm::Sessions::default(),
+        }
+    }
+
+    /// One request against a throwaway local listener, returning the request head it received.
+    fn received(case: &str) -> String {
+        let fake = Fake::start(false);
         let client = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().build().unwrap();
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-        let answer = rt.block_on(fetch(&client, &format!("http://127.0.0.1:{port}"), &job, false, &ctx())).unwrap();
+        let answer = rt.block_on(fetch(&client, &fake.base, &job(case), None, &ctx())).unwrap();
         assert_eq!(answer.status, 200);
-        server.join().unwrap()
+        fake.heads().remove(0)
+    }
+
+    #[tokio::test]
+    async fn warm_cases_share_one_primed_session_per_persona_and_language() {
+        let (oracle, rust) = (Fake::start(true), Fake::start(true));
+        let r = runner(&oracle, &rust, false, false);
+        let warm = |path: &str, lang: &str| job(&format!(r#"{{"name":"w","path":"{path}","persona":"customer-active","language":"{lang}","session":"warm"}}"#));
+        for j in [warm("/cart.php", "en"), warm("/checkout.php", "en"), job(r#"{"name":"c","path":"/cold.php","persona":"customer-active"}"#), warm("/cart.php", "fr")] {
+            r.answers(&j).await.unwrap();
+        }
+        let o = oracle.heads();
+        let paths: Vec<&str> = o.iter().map(|h| h.split(' ').nth(1).unwrap()).collect();
+        assert_eq!(paths, [warm::PRIME_PATH, "/cart.php", "/checkout.php", "/cold.php", warm::PRIME_PATH, "/cart.php"]);
+        assert!(cookie_of(&o[0]).is_none() && o[0].contains("\r\nx-real-ip: 198.51.100.11\r\n"), "{}", o[0]);
+        assert!(o[4].contains("\r\naccept-language: fr-ca,fr;q=0.9\r\n"), "{}", o[4]);
+        let en = cookie_of(&o[1]).unwrap();
+        assert!(en.starts_with("phpsessid=sid"), "{en}");
+        assert_eq!(cookie_of(&o[2]), Some(en));
+        assert_eq!(cookie_of(&o[3]), None);
+        let fr = cookie_of(&o[5]).unwrap();
+        assert_ne!(fr, en);
+        let rs = rust.heads();
+        assert_eq!(rs.len(), 4, "the Rust side is never primed");
+        assert_eq!([cookie_of(&rs[0]), cookie_of(&rs[1]), cookie_of(&rs[2]), cookie_of(&rs[3])], [Some(en), Some(en), None, Some(fr)]);
+    }
+
+    #[tokio::test]
+    async fn the_warm_flag_sets_the_default_and_rust_session_rides_along() {
+        let (oracle, rust) = (Fake::start(true), Fake::start(true));
+        let r = runner(&oracle, &rust, true, true);
+        r.answers(&job(r#"{"name":"d","path":"/a.php","persona":"customer-active"}"#)).await.unwrap();
+        r.answers(&job(r#"{"name":"d","path":"/b.php","persona":"customer-active","session":"cold"}"#)).await.unwrap();
+        let (o, rs) = (oracle.heads(), rust.heads());
+        let sid = cookie_of(&o[1]).unwrap();
+        let token = Personas::embedded().unwrap().get("customer-active").unwrap().session_token().to_ascii_lowercase();
+        assert_eq!(cookie_of(&rs[0]).unwrap(), format!("{sid}; __host-hx_session={token}"));
+        assert_eq!(cookie_of(&o[2]), None, "an explicit cold case stays cold under --warm");
+        assert_eq!(cookie_of(&rs[1]).unwrap(), format!("__host-hx_session={token}"));
+    }
+
+    #[tokio::test]
+    async fn a_priming_that_starts_no_session_is_an_error() {
+        let (oracle, rust) = (Fake::start(false), Fake::start(false));
+        let r = runner(&oracle, &rust, true, false);
+        let e = r.answers(&job(r#"{"name":"d","path":"/a.php"}"#)).await.err().unwrap();
+        assert!(e.contains("did not start a PHP session"), "{e}");
+        assert_eq!(oracle.heads().len(), 1);
+        assert!(rust.heads().is_empty());
     }
 
     #[test]
