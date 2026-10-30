@@ -352,7 +352,7 @@ pub fn form(r: &Render) -> String {
     }
     let (target, anchor) = if r.embed.ajax { (format!(" target='gform_ajax_frame_{fid}'"), format!("#gf_{fid}")) } else { (String::new(), String::new()) };
     let css = if f.css_class.is_empty() { String::new() } else { format!(" class='{}'", esc(&f.css_class)) };
-    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}{anchor}' data-formid='{fid}' novalidate>", esc(r.page_uri)));
+    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}' data-formid='{fid}' novalidate>", form_action(&format!("{}{anchor}", r.page_uri))));
     if r.recaptcha {
         out.push_str("<input type='hidden' class='registry_recaptcha_response' name='registry_recaptcha_response' value=''/>");
     }
@@ -388,6 +388,67 @@ pub fn form(r: &Render) -> String {
         out.push_str(&super::ajax_script::script(fid));
     }
     finish(out, r.embed)
+}
+
+/// The form's action as Gravity Forms wrote it: `remove_query_arg('gf_token')` over the request URI, which parses the
+/// query and writes it again (values urlencoded, keys as parsed, `=` dropped from empty values), then `esc_url()`.
+fn form_action(uri: &str) -> String {
+    let (before_fragment, fragment) = uri.split_once('#').map_or((uri, ""), |(u, f)| (u, f));
+    let rebuilt = match before_fragment.split_once('?') {
+        None => before_fragment.to_string(),
+        Some((path, query)) => {
+            let mut pairs: Vec<(String, String)> = Vec::new();
+            for (k, v) in form_urlencoded::parse(query.as_bytes()) {
+                let k = k.replace([' ', '.'], "_");
+                if k == "gf_token" {
+                    continue;
+                }
+                match pairs.iter_mut().find(|(seen, _)| *seen == k) {
+                    Some(slot) => slot.1 = v.into_owned(),
+                    None => pairs.push((k, v.into_owned())),
+                }
+            }
+            let query: Vec<String> = pairs.iter().map(|(k, v)| if v.is_empty() { k.clone() } else { format!("{k}={}", php_urlencode(v)) }).collect();
+            if query.is_empty() { path.to_string() } else { format!("{path}?{}", query.join("&")) }
+        }
+    };
+    let url = if fragment.is_empty() { rebuilt } else { format!("{rebuilt}#{fragment}") };
+    esc_url(&url)
+}
+
+/// PHP's urlencode(): everything but letters, digits and `-_.` as %XX, spaces as `+`.
+fn php_urlencode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' => out.push(b as char),
+            b' ' => out.push('+'),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// WordPress's esc_url() for an attribute: spaces as %20, characters a URL may not hold dropped, `&` and `'` as
+/// entities. An `&amp;` already in the URL is one ampersand, as wp_kses_normalize_entities() read it.
+fn esc_url(url: &str) -> String {
+    let allowed = |c: char| c.is_ascii_alphanumeric() || "-~+_.?#=!&;,/:%@$|*'()[]".contains(c) || !c.is_ascii();
+    let mut out = String::with_capacity(url.len() + 16);
+    let mut rest = url.trim_start();
+    while let Some(c) = rest.chars().next() {
+        rest = &rest[c.len_utf8()..];
+        match c {
+            ' ' => out.push_str("%20"),
+            '&' => {
+                out.push_str("&#038;");
+                rest = rest.strip_prefix("amp;").unwrap_or(rest);
+            }
+            '\'' => out.push_str("&#039;"),
+            c if allowed(c) => out.push(c),
+            _ => {}
+        }
+    }
+    out
 }
 
 /// What WordPress did to a form printed inside post content: curly apostrophes where the export recorded
@@ -569,7 +630,7 @@ mod tests {
         let html = form(&Render { form: &f, page_uri: "/contact-us/?a=1&b=2", embed: &embed, values: &values, errors: &errors, summary: Some(Summary::Blocked), token: Some("1.ab"), recaptcha: true, browser: "gf_browser_unknown" });
         for part in [
             "id='gform_wrapper_3'",
-            "action='/contact-us/?a=1&amp;b=2'",
+            "action='/contact-us/?a=1&#038;b=2'",
             "<ul id='gform_fields_3'",
             "name='input_1' id='input_3_1' type='text' value='Pat &lt;b&gt;'",
             "<div class=\"gform_validation_errors validation_error\" id=\"gform_3_validation_container\" data-js=\"gform-focus-validation-error\" autofocus><div class='validation_error'>We were unable",
@@ -625,6 +686,15 @@ mod tests {
         assert_eq!(answer.page(only, 1), "<script src=\"a.js\"></script>");
         let again = Answer { confirmed: false, ..answer };
         assert_eq!(again.page(page, 1), page, "a form drawn again keeps its scripts");
+    }
+
+    #[test]
+    fn the_action_is_the_request_uri_as_gravity_forms_rebuilt_it() {
+        assert_eq!(form_action("/contact/#gf_1"), "/contact/#gf_1");
+        assert_eq!(form_action("/contact/?utm_source=Master+Screw,+return...+%28Mass%29&utm_medium=Email#gf_1"), "/contact/?utm_source=Master+Screw%2C+return...+%28Mass%29&#038;utm_medium=Email#gf_1");
+        assert_eq!(form_action("/contact/?a=&gf_token=x&b=1&b=2"), "/contact/?a&#038;b=2");
+        assert_eq!(form_action("/p/?q=<x>'"), "/p/?q=%3Cx%3E%27");
+        assert_eq!(form_action("/catalog/?amp;action=subcategory&amp;subcategory_id=7#gf_1"), "/catalog/?amp;action=subcategory&#038;subcategory_id=7#gf_1");
     }
 
     #[test]
