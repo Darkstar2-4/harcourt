@@ -429,8 +429,13 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
+/// A post's slug. Rows imported before the cms kept slugs (migration 0501) have none; for those the path ends
+/// with it, except the front page's and a draft's.
 fn slug(p: &Page) -> &str {
-    &p.name
+    if !p.name.is_empty() || p.path == "/" || p.path.starts_with("/?") {
+        return &p.name;
+    }
+    p.path.trim_end_matches('/').rsplit('/').next().unwrap_or("")
 }
 
 /// A one-segment path that is no top-level page in the request's language: WordPress's post rule (`name=`). WPML
