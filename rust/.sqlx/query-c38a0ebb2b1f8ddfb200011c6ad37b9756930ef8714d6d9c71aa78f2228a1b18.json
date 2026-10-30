@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", language_code, record_item, name, description, filetype, meta, revised FROM content\n               WHERE record_type = 'subcategory' AND record_id = ?1 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "record_item",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "filetype",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "meta",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "revised",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c38a0ebb2b1f8ddfb200011c6ad37b9756930ef8714d6d9c71aa78f2228a1b18"
+}

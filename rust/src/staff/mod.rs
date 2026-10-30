@@ -44,6 +44,7 @@ pub mod portal;
 pub mod portalcategory;
 pub mod portalitem;
 pub mod prj;
+pub mod subcategory;
 pub mod subcategory_order;
 pub mod user;
 pub mod utility;
@@ -111,6 +112,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(portalcategory::routes())
         .merge(portalitem::routes())
         .merge(prj::routes())
+        .merge(subcategory::routes())
         .merge(subcategory_order::routes())
         .merge(user::routes())
         .merge(utility::routes())
