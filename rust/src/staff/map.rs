@@ -336,13 +336,7 @@ pub fn float_text(v: f64) -> String {
 /// number_format($v, $places, ".", ""): rounded half away from zero, no thousands separator.
 pub fn number_format(v: f64, places: u32) -> String {
     let d: rust_decimal::Decimal = rust_decimal::prelude::FromPrimitive::from_f64(v).unwrap_or_default();
-    let rounded = d.round_dp_with_strategy(places, rust_decimal::RoundingStrategy::MidpointAwayFromZero);
-    let s = format!("{rounded:.*}", places as usize);
-    if s.starts_with('-') && s[1..].bytes().all(|b| b == b'0' || b == b'.') {
-        s[1..].to_string()
-    } else {
-        s
-    }
+    crate::orders::shop::number_format(d, places).replace(',', "")
 }
 
 /// A value of a column in an export (export_data()). Excel gets numbers where the column is numeric.
