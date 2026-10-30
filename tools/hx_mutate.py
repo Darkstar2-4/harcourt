@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Structure-aware mutations of ordinary hx-diff cases, for differential runs at scale.
 
-    tools/hx_mutate.py --out DIR [--cases N] [--seed S] [--shard-size N] [--routes routes.tsv] [--db hx.db]
-                       [--personas personas.json] SEEDS...
+    tools/hx_mutate.py --out DIR --personas personas.json [--cases N] [--seed S] [--shard-size N]
+                       [--routes routes.tsv] [--db hx.db] [--known FILE]... SEEDS...
 
 SEEDS are hx-diff corpus files or directories of them: the visible corpora (rust/oracle/*.jsonl) and the corpus built
 from the access logs. Each new case is a seed request with one to three functional mutations: a query (or form)
@@ -74,13 +74,13 @@ KEY_OK = re.compile(
 VALUE_OK = re.compile(r"^[\w .,:/+=\-]{0,120}$")
 TAB_OK = re.compile(r"^[\w .,:/+=\-()]{0,120}$")
 PATH_OK = re.compile(r"^/(?:[\w.\-~+/]|%[89a-fA-F][0-9a-fA-F])*$")
-# The access logs also hold scanners' guesses that some catch-all answered; a logged route is a seed only when it has
-# the shape of one of the site's own: a root PHP page, a lowercase WordPress slug path, a sitemap or a static file
-# under the directories the site serves.
-SITE_ROUTE = re.compile(r"^/(?:[a-z0-9_\-]+\.php|(?:[a-z0-9\-{}]+/)*[a-z0-9\-{}]*|[a-z0-9_\-]*sitemap[a-z0-9_\-]*\.xml|"
-                        r"robots\.txt|favicon\.ico|apple-touch-icon[\w\-]*\.png|wp-json/oembed/1\.0/embed|"
-                        r"(?:wp-content|wp-includes|hx-vendor|hx|scs_scripts|images_subcategory|scs_images|"
-                        r"overview_documents)/[\w\-./{}]+\.[A-Za-z0-9]{1,5})$")
+# The access logs also hold scanners' guesses that a catch-all answered (/credentials, /api-keys, plugin readmes). A
+# logged route is a seed only when it is one of the site's own: a root PHP page, a sitemap, a static file under the
+# directories the site serves, or a page path the visible corpora or --known (sitemaps, the export manifest) name.
+STATIC_ROUTE = re.compile(r"^/(?:[a-z0-9_\-]+\.php|[a-z0-9_\-]*sitemap[a-z0-9_\-]*\.xml|robots\.txt|favicon\.ico|"
+                          r"apple-touch-icon[\w\-]*\.png|wp-json/oembed/1\.0/embed|(?:wp-content|wp-includes|hx-vendor|"
+                          r"hx|scs_scripts|images_subcategory|scs_images|overview_documents)/[\w\-./{}]+\.[A-Za-z0-9]{1,5})$")
+ARCHIVE_TAIL = re.compile(r"(?:/(?:feed(?:/(?:atom|rss2?|rdf))?|embed|amp|page/(?:\d+|\{n\})))*/?$")
 BAD = re.compile(r"(?i)\.\.|<|>|script|select\s|union\s|sleep\s*\(|benchmark|phpinfo|passwd|/etc/|php:|file:|"
                  r"data:|allow_url|prepend|wget\s|curl\s|@")
 FROZEN = {"table", "source", "detail", "url", "return_url", "login_url", "document", "content_id", "code", "sku",
@@ -423,11 +423,17 @@ def mutate(seed, ctx, rng, personas):
     return (settle(r), done) if done else (None, done)
 
 
-def load_seeds(paths):
+def page_key(route):
+    return ARCHIVE_TAIL.sub("", route.partition("?")[0].lower())
+
+
+def load_seeds(paths, known=()):
+    """Seeds from corpus files or directories: every case of a written corpus, and the logged cases (those with
+    `hits`) whose route is the site's own."""
     files = []
     for p in paths:
         files += sorted(glob.glob(os.path.join(p, "**", "*.jsonl"), recursive=True)) if os.path.isdir(p) else [p]
-    out = []
+    written, logged = [], []
     for f in files:
         with open(f) as fh:
             for line in fh:
@@ -435,8 +441,17 @@ def load_seeds(paths):
                 if line and not line.startswith("#"):
                     c = json.loads(line)
                     s = seed_of(c, f)
-                    if s is not None and ("hits" not in c or SITE_ROUTE.match(s.route)):
-                        out.append(s)
+                    if s is not None:
+                        (logged if "hits" in c else written).append(s)
+    pages = {page_key(k) for k in known} | {page_key(s.route) for s in written}
+    return written + [s for s in logged if STATIC_ROUTE.match(s.route) or page_key(s.route) in pages]
+
+
+def load_known(paths):
+    out = []
+    for p in paths:
+        with open(p) as f:
+            out += [line.strip().replace(SITE, "") or "/" for line in f if line.strip()]
     return out
 
 
@@ -520,11 +535,13 @@ def main(argv=None):
     ap.add_argument("--routes", help="routes.tsv of the access-log corpus, for traffic weights")
     ap.add_argument("--db", help="the imported SQLite copy, read only, for valid ids")
     ap.add_argument("--personas", required=True)
+    ap.add_argument("--known", action="append", default=[],
+                    help="file of the site's page paths or URLs, one per line (repeatable)")
     ap.add_argument("seeds", nargs="+")
     args = ap.parse_args(argv)
     with open(args.personas) as f:
         personas = json.load(f)
-    seeds = load_seeds(args.seeds)
+    seeds = load_seeds(args.seeds, load_known(args.known))
     names = {p["name"] for p in personas}
     ok = [s for s in seeds if safe(s, names)]
     ctx = Ctx(personas, load_ids(args.db, seed=args.seed), ok)

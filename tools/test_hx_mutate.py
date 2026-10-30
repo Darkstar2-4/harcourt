@@ -36,6 +36,9 @@ OTHER = [
     {"name": "probe-key", "path": "/?wp_set_current_user=1", "route": "/", "hits": 9},
     {"name": "probe-route", "path": "/CLAUDE.md", "route": "/CLAUDE.md", "hits": 9},
     {"name": "logged", "path": "/catalog/?action=subcategory&subcategory_id=9", "route": "/catalog/", "hits": 50},
+    {"name": "probe-slug", "path": "/credentials", "route": "/credentials", "hits": 39},
+    {"name": "logged-feed", "path": "/product/clamping/feed/", "route": "/product/clamping/feed/", "hits": 3},
+    {"name": "logged-known", "path": "/societe/?lang=fr", "route": "/societe/", "hits": 40},
 ]
 ALLOWED_FIELDS = {"name", "method", "path", "persona", "language", "route", "body", "headers", "session"}
 
@@ -48,6 +51,8 @@ class MutateTest(unittest.TestCase):
                 f.writelines(json.dumps(c) + "\n" for c in cases)
         with open(os.path.join(self.dir, "personas.json"), "w") as f:
             json.dump(PERSONAS, f)
+        with open(os.path.join(self.dir, "known.txt"), "w") as f:
+            f.write("https://www.harcourt.co/societe/\n")
         db = os.path.join(self.dir, "hx.db")
         conn = sqlite3.connect(db)
         conn.execute("CREATE TABLE subcategory (id INTEGER PRIMARY KEY)")
@@ -59,6 +64,7 @@ class MutateTest(unittest.TestCase):
     def run_tool(self, out, seed=0, cases=600):
         hx_mutate.main(["--out", out, "--cases", str(cases), "--seed", str(seed), "--shard-size", "100",
                         "--db", self.db, "--personas", os.path.join(self.dir, "personas.json"),
+                        "--known", os.path.join(self.dir, "known.txt"),
                         os.path.join(self.dir, "p3-staff.jsonl"), os.path.join(self.dir, "other.jsonl")])
         lines = []
         for name in sorted(os.listdir(out)):
@@ -73,7 +79,8 @@ class MutateTest(unittest.TestCase):
         self.assertGreater(len(cases), 300)
         self.assertEqual(len({c["name"] for c in cases}), len(cases))
         routes = {c["route"] for c in cases}
-        self.assertEqual(routes, {"/user.php", "/catalog.php", "/product/clamping/", "/catalog/", "/campaign.php"})
+        self.assertEqual(routes, {"/user.php", "/catalog.php", "/product/clamping/", "/catalog/", "/campaign.php",
+                                  "/product/clamping/feed/", "/societe/"})
         for c in cases:
             self.assertLessEqual(set(c), ALLOWED_FIELDS)
             path, _, query = c["path"].partition("?")
