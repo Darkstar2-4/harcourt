@@ -27,6 +27,8 @@
 //!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
 //!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
+//!  * `php_self`: PHP_SELF, the page's own path with any PATH_INFO (`/campaign.php/more`); the PHP pages' forms
+//!    posted back to it. Escape it when printing: the client chose the PATH_INFO.
 //!
 //! The shortcuts `user()`, `account()`, `bot()`, `role()`, `at_least()`, `catalog()`, `cad()`, `ecommerce()`,
 //! `portal_id()` and `industry_id()` cover the common questions.
@@ -83,6 +85,8 @@ pub struct Visitor {
     pub framed: bool,
     /// The visit (PHP session) this request is part of, for what PHP kept in its session.
     pub visit: Option<VisitId>,
+    /// PHP_SELF: the script asked for and any PATH_INFO after it, which the PHP printed as its forms' action.
+    pub php_self: String,
 }
 
 #[derive(Debug, Clone)]
@@ -126,6 +130,7 @@ impl Visitor {
             session: None,
             framed: false,
             visit: None,
+            php_self: String::new(),
         }
     }
 
@@ -276,7 +281,7 @@ async fn resolve_or_anonymous(core: &Auth, parts: &Parts, php: &Php, now: i64) -
         Ok(r) => r,
         Err(e) => {
             tracing::error!("visitor: database error, treating the request as anonymous: {e}");
-            Resolved { visitor: Visitor::anonymous(), effects: Vec::new() }
+            Resolved { visitor: Visitor { php_self: php_self(parts).to_string(), ..Visitor::anonymous() }, effects: Vec::new() }
         }
     }
 }
@@ -393,7 +398,8 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     }
     let framed = asks_frame || stored.framed;
 
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id }, effects })
+    let php_self = php_self(parts).to_string();
+    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id, php_self }, effects })
 }
 
 /// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.
@@ -470,6 +476,10 @@ pub fn apache_paths(mut req: Request) -> Request {
     let sent = std::mem::replace(req.uri_mut(), uri);
     req.extensions_mut().insert(SentPath { uri: sent, php_self });
     req
+}
+
+fn php_self(parts: &Parts) -> &str {
+    parts.extensions.get::<SentPath>().map_or(parts.uri.path(), |s| s.php_self.as_str())
 }
 
 /// The script Apache ran for the raw path, and PHP_SELF, unless the path already is that script.
@@ -579,8 +589,7 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
     if loads_profile {
         out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.remember(&core.pool, visitor, now).await?);
     }
-    let php_self = parts.extensions.get::<SentPath>().map_or(parts.uri.path(), |s| s.php_self.as_str());
-    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, php_self).await? } else { None };
+    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, &visitor.php_self).await? } else { None };
     Ok((landing, out))
 }
 

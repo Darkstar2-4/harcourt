@@ -197,6 +197,10 @@ async fn paths_apache_ran_a_script_for_reach_the_script() {
         assert_eq!(&body[..], b"<p>Sign-in is by emailed code on the Request Access page.</p>\n", "{uri}");
     }
 
+    let res = get("/campaign.php/more?campaign=OPEN", Some(VISIT)).await.unwrap();
+    let page = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(page.contains("method=post action='/campaign.php/more'"), "the form posts back to PHP_SELF: {page}");
+
     let landing = |res: axum::response::Response| res.headers().get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
     assert_eq!(landing(get("/scs_index.php/x", None).await.unwrap()).as_deref(), Some("/scs_index.php"));
     assert_eq!(landing(get("//scs_index.php", None).await.unwrap()), None);

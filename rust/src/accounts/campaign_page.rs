@@ -37,8 +37,6 @@ use crate::{
     visitor::{self, Visitor},
 };
 
-const PATH: &str = "/campaign.php";
-
 /// The `campaign` row as campaign.php used it. `kind` is the raw type: the page tests for "Invite" and "Remote"
 /// only, so anything else behaves as Public.
 struct Campaign {
@@ -240,7 +238,7 @@ async fn render(pool: &SqlitePool, visitor: &Visitor, campaign: &Campaign, asked
     let w = Widgets { notes };
     let input = |field: &str, value: &str, size: u32| w.text(field, value, size, size, Opts::new().class("campaign_content_input"));
     let errors = ["first_name", "last_name", "company_name", "email"].iter().filter(|f| notes.is_error(f)).count();
-    let mut out = format!("<form name='scs_form' id='scs_form' method=post action='{PATH}' accept-charset='utf-8' autocomplete=on>\n");
+    let mut out = format!("<form name='scs_form' id='scs_form' method=post action='{}' accept-charset='utf-8' autocomplete=on>\n", esc(&visitor.php_self));
     out.push_str(&hidden("campaign", asked));
     out.push_str(&content(pool, campaign, "Public").await?);
 
