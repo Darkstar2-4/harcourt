@@ -20,6 +20,9 @@ required-features = ["import"]
 name = "hx-diff"
 path = "src/bin/hx-diff.rs"
 
+[workspace]
+members = ["fuzz"]
+
 [features]
 import = ["sqlx/mysql", "dep:futures-util"]
 

@@ -11,5 +11,3 @@ hxweb = { path = ".." }
 [dev-dependencies]
 proptest = "1"
 percent-encoding = "2"
-
-[workspace]
