@@ -22,8 +22,11 @@ pub fn document(reg: &Registry, title: &str, extra_css: &[String], body: &str) -
     let mut meta: Vec<String> = reg.items("www", "meta").iter().map(|(_, v)| v.trim().to_string()).filter(|v| !v.is_empty()).collect();
     meta.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
     let prefix = reg.get("www", "title_prefix").trim();
-    let full = if prefix.is_empty() { title.to_string() } else { format!("{prefix} {title}") };
-    let full = if full.trim().is_empty() { "Untitled Page".to_string() } else { full };
+    let full = match (title.trim().is_empty(), prefix.is_empty()) {
+        (true, _) => "Untitled Page".to_string(),
+        (false, true) => title.to_string(),
+        (false, false) => format!("{prefix} {title}"),
+    };
     meta.push(format!("<title>{}</title>", esc(&full)));
     meta.push(format!("<meta name=\"description\" content=\"{}\">", esc(full.trim())));
     meta.push("<meta charset=\"utf-8\">".into());

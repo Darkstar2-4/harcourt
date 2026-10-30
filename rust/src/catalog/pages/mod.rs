@@ -258,6 +258,11 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body))
 }
 
+/// An SCS view in the site's page chrome, for the other catalog entry points.
+pub fn chrome_document(reg: &Registry, title: &str, body: &str) -> String {
+    chrome::document(reg, title, &[], body)
+}
+
 fn catalog_css(reg: &Registry) -> String {
     format!("/scs_scripts/catalog.css?v={}", reg.get("local", "filmstrip_timestamp"))
 }
