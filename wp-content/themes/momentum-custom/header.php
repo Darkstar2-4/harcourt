@@ -14,7 +14,7 @@
   <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
   <script type='text/javascript' src='/wp-content/plugins/gravityforms/js/jquery.json-1.3.js'></script>
   <script type='text/javascript' src='/wp-content/plugins/gravityforms/js/gravityforms.min.js'></script>
-  <script type="text/javascript" src="/scs_scripts/scscpq_wp.js?ver=20261021b"></script>
+  <script type="text/javascript" src="/scs_scripts/scscpq_wp.js?ver=20261029a"></script>
   <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
   <style media="screen">
   body { display: flex; min-height: 100vh; flex-direction: column; font-size: 1.125rem; font-family: 'Open Sans'}
