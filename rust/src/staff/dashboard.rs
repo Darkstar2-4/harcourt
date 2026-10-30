@@ -34,10 +34,8 @@ use Role::{Administrator as A, Executive as E};
 type Link = (Role, &'static str, &'static str);
 
 const MENU: &[(&str, &[Link])] = &[
-    ("Remote Access", &[(A, "Company", "/remote_access.php"), (A, "Tokens", "/remote_token.php"), (A, "Currency Codes", "/currency.php")]),
-    ("Document Manager", &[(A, "Languages", "/language.php"), (A, "Page Text", crate::cms::admin::PATH), (A, "Design Partner Agreement", "/design_partner_agreement.php")]),
-    ("Orders", &[(E, "PO", "/orderhd.php")]),
-    ("", &[(E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php"), (A, "Email Output Tester", "/mailer_output.php")]),
+    ("Document Manager", &[(A, "Page Text", crate::cms::admin::PATH)]),
+    ("", &[(E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
 ];
 
 fn menu(role: Role) -> String {
