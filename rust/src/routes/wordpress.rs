@@ -587,8 +587,10 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
         if !rest.is_empty() {
             return None;
         }
-        // From English WPML sends a post to its own language's URL, but a page to its English translation.
-        return match site.translation(p, lang).filter(|t| t.status == Status::Publish && (lang == Lang::Fr || key == "page_id")) {
+        // From English WPML sends a post to its own language's URL, but a page id to its English translation's,
+        // published or not (/?page_id=1997 to the draft 203).
+        let english_page = lang == Lang::En && key == "page_id";
+        return match site.translation(p, lang).filter(|t| english_page || (t.status == Status::Publish && lang == Lang::Fr)) {
             Some(t) => Some(Answer::Found(with_id(key, t.id.0))),
             None => other_language(key, id, p.lang),
         };
@@ -1095,6 +1097,12 @@ mod tests {
         assert_eq!(r("/", "p=1&lang=fr&lang=FR"), "/company/history/?lang=FR");
         assert_eq!(r("/", "p=2"), "302 /?p=2&lang=fr");
         assert_eq!(r("/", "page_id=2"), "302 /?page_id=1", "a page goes to its English translation");
+        let drafted = Site::new(vec![page(5, 20, Lang::En, "/?page_id=5", Status::Draft), page(6, 20, Lang::Fr, "/industries/lourde/", Status::Publish)]);
+        let found = |q: &str| match route(&drafted, "/", &query(q), q) {
+            Answer::Found(to) => to,
+            other => format!("{other:?}"),
+        };
+        assert_eq!(found("page_id=6"), "/?page_id=5", "even to a draft");
     }
 
     #[test]
