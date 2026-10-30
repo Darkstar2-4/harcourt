@@ -310,9 +310,9 @@ jQuery(function() {
         source: function(request, response) {
             var term=this.term.trim();
             if (term.length < 2) return;
-            var query={ limit: 20, term: term };
+            var query={ table: "search", limit: 20, term: term };
             jQuery.ajax({
-                url: "/catalog-api/search?" + jQuery.param(query),
+                url: "/scs_ajax.php?" + jQuery.param(query),
                 dataType: 'json',
                 success: function (data) {
                     // Enter opens the first suggestion when it is the part number or name typed, or starts with it
@@ -339,6 +339,31 @@ jQuery(function() {
         }
     });
 });
+/*
+jQuery(function() {
+    jQuery("#scscpq_search_text").autocomplete({
+        source: function(request, response) {
+            var term=this.term.trim();
+            if (term.length < 2) return;
+            var query={ table: "search", limit: 20, term: term };
+            jQuery.ajax({
+                url: "/scs_ajax.php?" + jQuery.param(query),
+                dataType: 'json',
+                success: function (data) {
+                    if (data.items.length > 0) {
+                        response(data.items);
+                        } else {
+                        response([{ label: 'No results found.', val: '', id: 0 }]);
+                    }
+                }
+            })
+        },
+        select: function(event, ui) {
+            if (ui.item['id']) search_content(ui.item['id'], '')
+        }
+    });
+});
+*/
 function search_content(id, code, search_source="search") {
     code=code.trim();
     if ( (!id) && (code.length < 2) ) {

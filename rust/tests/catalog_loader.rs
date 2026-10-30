@@ -44,7 +44,7 @@ async fn customers_get_the_search_box_and_cart_by_their_flags() {
     assert_eq!(v["scscpq_catalog"], 1);
     assert_eq!(v["scscpq_products"], 1);
     let search = v["scscpq_search"].as_str().unwrap();
-    assert!(search.contains("/catalog-api/search?") && search.contains("<input type=text name='scscpq_search_text' id='scscpq_search_text' size='20' placeholder='menu_search_placeholder'>"), "{search}");
+    assert!(search.contains("url: \"/scs_ajax.php?\" + jQuery.param(query)") && search.contains("<input type=text name='scscpq_search_text' id='scscpq_search_text' size='20' placeholder='menu_search_placeholder'>"), "{search}");
     assert!(v["scscpq_cart"].as_str().unwrap().contains("<span id=menu_cart_size>0</span>"));
     assert_eq!(v["scscpq_dashboard"], 0);
     assert_eq!(v["account_language"], "FR");
