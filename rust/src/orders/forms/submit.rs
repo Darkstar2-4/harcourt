@@ -140,12 +140,19 @@ fn submission(form: &Form, values: &Values, params: &HashMap<String, String>, ct
 }
 
 /// The registry reCAPTCHA gate on the contact forms, which ran with Gravity Forms' validation. True when the post
-/// may go on.
+/// may go on. A post without the browser's token fails as it did in PHP; without HXWEB_RECAPTCHA_SECRET a token is
+/// taken unscored.
 async fn recaptcha_passes(pool: &SqlitePool, services: &Services, form: &Form, values: &Values, params: &HashMap<String, String>, ip: &str, now: i64) -> sqlx::Result<bool> {
-    let Some(verifier) = services.recaptcha.as_ref().filter(|_| RECAPTCHA_FORMS.contains(&form.id)) else { return Ok(true) };
-    let threshold = Registry::load(pool, "recaptcha").await?.get("score_spam").trim().parse::<f64>().ok();
+    if !RECAPTCHA_FORMS.contains(&form.id) {
+        return Ok(true);
+    }
     let token = params.get("registry_recaptcha_response").map_or("", String::as_str);
-    let score = verifier.score(token, ip, "contact").await;
+    let score = match &services.recaptcha {
+        _ if token.is_empty() => None,
+        Some(verifier) => verifier.score(token, ip, "contact").await,
+        None => return Ok(true),
+    };
+    let threshold = Registry::load(pool, "recaptcha").await?.get("score_spam").trim().parse::<f64>().ok();
     let low = match (score, threshold) {
         (None, _) => true,
         (Some(s), Some(t)) => s <= t,
