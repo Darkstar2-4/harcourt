@@ -306,12 +306,14 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     if let Some(p) = published(lang) {
         return Answer::Render(p);
     }
-    let name = path.trim_matches('/');
-    if !name.is_empty() && !name.contains('/') {
-        return guess(site, name, lang);
-    }
     let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
-    let Some(p) = published(other) else { return Answer::NotFound };
+    let name = path.trim_matches('/');
+    let one_segment = !name.is_empty() && !name.contains('/');
+    // An English request finds a one-segment page by its path in either language; WPML limits a French one to
+    // French pages, so it goes to guess() however close a page is.
+    let Some(p) = published(other).filter(|_| lang == Lang::En || !one_segment) else {
+        return if one_segment { guess(site, name, lang) } else { Answer::NotFound };
+    };
     match (lang, site.translation(p, lang)) {
         // WPML sends a French slug asked for in English to the English page, even an unpublished one (whose
         // permalink, and so its stored path, is /?page_id=N).
@@ -732,6 +734,14 @@ mod tests {
         assert_eq!(resolve(&site, "/seulement/", Lang::En), Answer::Redirect("/seulement/?lang=fr".into()));
         assert_eq!(resolve(&site, "/legal/", Lang::Fr), Answer::NotFound);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
+        let carts = Site::new(vec![
+            page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
+            page(12, 70, Lang::Fr, "/panier-2/", Status::Publish),
+            page(13, 80, Lang::En, "/cart/", Status::Publish),
+            page(14, 80, Lang::Fr, "/panier/", Status::Publish),
+        ]);
+        assert_eq!(resolve(&carts, "/panier/", Lang::En), Answer::Redirect("/cart/".into()), "the exact slug, not the oldest page it starts");
+        assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/shopping-cart/".into()));
     }
 
     #[test]
