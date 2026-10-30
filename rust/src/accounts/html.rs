@@ -201,6 +201,21 @@ pub fn select(field: &str, items: &[(String, String)], selected: &str, blank: Bl
     lines.join("\n")
 }
 
+/// forms_rev2.php optgroup(): a select whose options sit under group labels, the groups with no options left out.
+pub fn optgroup(field: &str, groups: &[(&str, Vec<(String, String)>)], selected: &str, opts: Opts) -> String {
+    let mut lines = vec![format!("<select{}>", opts.render(field))];
+    for (label, items) in groups.iter().filter(|(_, items)| !items.is_empty()) {
+        lines.push(format!("<optgroup label='{}'>", escape(label)));
+        for (value, text) in items {
+            let sel = if value == selected { " selected" } else { "" };
+            lines.push(format!("<option value='{}'{sel}>{}</option>", escape(value), plain(text)));
+        }
+        lines.push("</optgroup>".into());
+    }
+    lines.push("</select>".into());
+    lines.join("\n")
+}
+
 /// forms_rev2.php open(): the page's one form, named scs_form, posting to `action`.
 pub fn form_open(action: &str, opts: Opts) -> String {
     format!("<form {} method=post action='{}' accept-charset='utf-8' autocomplete=on>\n", opts.render("scs_form").trim(), escape(action))

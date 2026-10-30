@@ -305,12 +305,32 @@ async fn options(pool: &SqlitePool, sql: OptionsOf) -> sqlx::Result<Vec<(String,
             .into_iter()
             .map(|r| {
                 let mut label = vec![r.name.unwrap_or_default()];
-                label.extend(r.from_date.filter(|d| !d.is_empty() && d != "0000-00-00").map(|d| format!("From: {d}")));
-                label.extend(r.thru_date.filter(|d| !d.is_empty() && d != "0000-00-00").map(|d| format!("Thru: {d}")));
+                label.extend(r.from_date.as_deref().and_then(us_date).map(|d| format!("From: {d}")));
+                label.extend(r.thru_date.as_deref().and_then(us_date).map(|d| format!("Thru: {d}")));
                 (r.code, label.join(" "))
             })
             .collect(),
     })
+}
+
+/// fn_date($date, "ymd") of a stored `YYYY-MM-DD`: `MM/DD/YYYY`, nothing for an empty or zero date.
+fn us_date(d: &str) -> Option<String> {
+    let mut parts = d.get(..10)?.split('-');
+    let (y, m, day) = (parts.next()?, parts.next()?, parts.next()?);
+    (y != "0000").then(|| format!("{m}/{day}/{y}"))
+}
+
+/// currency->select(): every currency by name, those with a rate under Priced and the rest under No Price.
+async fn currency_groups(pool: &SqlitePool) -> sqlx::Result<Vec<(&'static str, Vec<(String, String)>)>> {
+    let rows = sqlx::query!(r#"SELECT code AS "code!", name, coalesce(exchange_rate, 0) AS "rate!: f64" FROM currency WHERE code IS NOT NULL ORDER BY name"#)
+        .fetch_all(pool)
+        .await?;
+    let (mut priced, mut other) = (Vec::new(), Vec::new());
+    for r in rows {
+        let group = if r.rate > 0.0 { &mut priced } else { &mut other };
+        group.push((r.code, r.name.unwrap_or_default()));
+    }
+    Ok(vec![("Priced", priced), ("No Price", other)])
 }
 
 enum OptionsOf {
@@ -324,7 +344,7 @@ async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap
     let roles: Vec<(String, String)> = ROLES.iter().map(|r| (r.as_str().to_string(), r.as_str().to_string())).collect();
     let statuses: Vec<(String, String)> = STATUSES.iter().map(|s| (s.to_string(), s.to_string())).collect();
     let prices: Vec<(String, String)> = PRICE_TYPES.iter().map(|(p, l)| (p.as_str().to_string(), l.to_string())).collect();
-    let currencies: Vec<(String, String)> = Currencies::load(pool).await?.all().iter().map(|c| (c.code.as_str().to_string(), c.name.clone())).collect();
+    let currencies = currency_groups(pool).await?;
     let languages: Vec<(String, String)> = Languages::load(pool).await?.all().iter().map(|l| (l.code.as_str().to_string(), l.name.clone())).collect();
     let pct = if me.price_pct == 0.0 { String::new() } else { format!("{:.2}", me.price_pct * 100.0) };
     let remembered = cookies::get(headers, cookies::EMAIL).unwrap_or_default();
@@ -355,7 +375,7 @@ async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap
         format!("<tr><tr><td>Portal</td><td>{}</td></tr>", html::select("ajax_user_portal_id", &options(pool, OptionsOf::Portal).await?, &me.portal_id.to_string(), Blank::Empty, Opts::new())),
         format!("<tr><td>Legacy?</td><td>{}</td></tr>", cb("portal_legacy", false)),
         format!("<tr><td>Campaign</td><td>{}</td></tr>", html::select("campaign_code", &options(pool, OptionsOf::Campaign).await?, "", Blank::Empty, Opts::new())),
-        format!("<tr><td>Currency</td><td>{}</td></tr>", html::select("ajax_user_currency_code", &currencies, &me.currency_code, Blank::None, Opts::new())),
+        format!("<tr><td>Currency</td><td>{}</td></tr>", html::optgroup("ajax_user_currency_code", &currencies, &me.currency_code, Opts::new())),
         format!("<tr><td>Langauge</td><td>{}</td></tr>", html::select("ajax_user_language_code", &languages, &me.language_code, Blank::None, Opts::new())),
         format!("<tr><td>{} Reset cookie?</td><td>{}</td></tr>", cb("reset_cookie", false), escape(&remembered)),
         "</table>".into(),
@@ -411,6 +431,14 @@ mod tests {
 
     fn form(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    #[test]
+    fn campaign_dates_read_as_fn_date_printed_them() {
+        assert_eq!(us_date("2017-10-09").as_deref(), Some("10/09/2017"));
+        assert_eq!(us_date("2017-10-09 00:00:00").as_deref(), Some("10/09/2017"));
+        assert_eq!(us_date("0000-00-00"), None);
+        assert_eq!(us_date(""), None);
     }
 
     #[test]
