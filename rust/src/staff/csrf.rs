@@ -179,6 +179,12 @@ impl Unchecked {
         self.posted
     }
 
+    /// The post and whether it carried the token, for a page that knows only after its checks whether it writes:
+    /// an update the checks turn back shows its errors and changes nothing.
+    pub fn with_token(self) -> (Posted, bool) {
+        (self.posted, self.token_ok)
+    }
+
     /// The maintenance pages' rule: a post whose `action` is `update` or `delete` writes.
     pub fn accept_by_action(self) -> Result<Posted, Rejected> {
         let writes = matches!(self.fields().get("action"), "update" | "delete");

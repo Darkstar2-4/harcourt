@@ -149,13 +149,17 @@ async fn a_company_address_signs_in_and_logs_once_per_visit() {
     let pool = pool().await;
     seed(&pool, 3, "Active", "Customer", Some(COMPANY_IP)).await;
     let app = app(&pool, COMPANY_IP);
+    let (_, headers, _) = ask(&app, &[]).await;
+    let visit = set_cookie(&headers, "PHPSESSID").unwrap().split(';').next().unwrap().to_string();
     for _ in 0..3 {
-        let (_, _, v) = ask(&app, &[]).await;
+        let (_, _, v) = ask(&app, &[("cookie", visit.as_str())]).await;
         assert_eq!((v["kind"].as_str(), v["id"].as_i64(), v["via"].as_str()), (Some("account"), Some(3), Some("address")));
         assert_eq!(v["catalog"], true);
         assert_eq!(v["currency"], "CAD");
     }
     assert_eq!(log_count(&pool, "User", "Login").await, 1);
+    ask(&app, &[]).await;
+    assert_eq!(log_count(&pool, "User", "Login").await, 2, "a browser without the visit's cookie begins another");
 }
 
 #[tokio::test]
@@ -191,6 +195,23 @@ async fn a_session_wins_and_a_pending_account_sees_nothing() {
     let (_, _, v) = ask(&app(&pool, COMPANY_IP), &[("cookie", pending.as_str())]).await;
     assert_eq!((v["id"].as_i64(), v["status"].as_str()), (Some(5), Some("Pending")), "the session, not the address");
     assert_eq!(v["catalog"], false, "granted catalog, but not Active");
+}
+
+#[tokio::test]
+async fn a_visit_under_a_session_stamps_the_last_sign_in_once() {
+    let pool = pool().await;
+    seed(&pool, 3, "Active", "Customer", None).await;
+    let signed_in = cookie_for(&pool, 3, None).await;
+    let app = app(&pool, "198.51.100.1");
+    let (_, headers, _) = ask(&app, &[("cookie", signed_in.as_str())]).await;
+    let stamped: i64 = sqlx::query_scalar(r#"SELECT last_login FROM "user" WHERE id = 3"#).fetch_one(&pool).await.unwrap();
+    assert!(stamped > 0, "the visit's first page records the sign-in");
+    let logged: i64 = sqlx::query_scalar("SELECT user_id FROM log WHERE type = 'User' AND subtype = 'Login'").fetch_one(&pool).await.unwrap();
+    assert_eq!(logged, 3);
+    let visit = set_cookie(&headers, "PHPSESSID").unwrap().split(';').next().unwrap().to_string();
+    let both = format!("{signed_in}; {visit}");
+    ask(&app, &[("cookie", both.as_str())]).await;
+    assert_eq!(log_count(&pool, "User", "Login").await, 1, "not again inside the visit");
 }
 
 #[tokio::test]

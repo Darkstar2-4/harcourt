@@ -157,6 +157,13 @@ async fn a_form_post_needs_its_token_and_a_download_sends_the_stored_file() {
     let admin = person(&h.pool, 1, "Administrator").await;
     let (status, _, _) = send(&h.app, form("/subcategory.php", &admin, &[("action", "delete"), ("record_id", "11")], false)).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
+    let update = [("action", "update"), ("record_id", "11"), ("category_id", "1")];
+    let (status, _, page) = send(&h.app, form("/subcategory.php", &admin, &update, false)).await;
+    assert_eq!(status, StatusCode::OK, "with no draft to save an update does nothing, as the PHP's did");
+    assert!(page.contains("fn_action('list','','');"));
+    submit(&h, &admin, &[("action", "maintain"), ("record_id", "11")]).await;
+    let (status, _, _) = send(&h.app, form("/subcategory.php", &admin, &update, false)).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "a draft to save needs the token");
     let (status, headers, body) = send(&h.app, get("/subcategory.php?action=download&subcategory_id=10&record_item=overview:0&language_code=EN", &admin)).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(headers[header::CONTENT_DISPOSITION], "attachment; filename=d.html");
