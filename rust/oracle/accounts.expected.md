@@ -17,11 +17,11 @@ cannot be compared by `hx-diff`, and has no case.
 ## Intended differences
 
 - **Sign-in codes.** The code is random and lives in `access_code`. The sign-up page allows two wrong tries, counted
-  on the server, and then needs a new code. A code is mailed only to an address at an Active company, at most once
+  on the server for the address, and then needs a new code. A try reCAPTCHA calls spam is counted for the visit as
+  the PHP counted it, and for the address. A code is mailed only to an address at an Active company, at most once
   a minute. The code mail is `access_code`'s text, not the `remote` mail form's.
 - **reCAPTCHA.** When it is on, a token Google does not confirm, with the expected action, scores 0.
-- **AJAX answers** are `application/json`. POSTs whose `Origin` is not the site are refused on the sign-up,
-  impersonation and other accounts pages.
+- **POSTs** whose `Origin` is not the site are refused on the sign-up, impersonation and other accounts pages.
 - **Remembered sign-in.** A code or provider sign-in is a session cookie (`__Host-hx_session`) that lasts the
   registry's `remote_days` and is renewed on use, instead of the `harcourt` and `remote` cookie pair.
 - **OAuth state** is kept on the server under the `__Host-hx_oauth` cookie instead of the PHP session. The ID

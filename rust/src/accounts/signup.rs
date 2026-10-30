@@ -30,7 +30,7 @@ use crate::{
     api::Auth,
     db::unix_now,
     identity::{Email, Status},
-    visitor::{Identity, Visitor},
+    visitor::{self, Identity, Visitor},
 };
 
 /// newuser.php allowed two wrong codes; the third try is refused until a new code is sent.
@@ -99,7 +99,7 @@ pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     let field = |name: &str| posted.iter().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str());
     let result = match field("action") {
         "microsoft_oauth_init" => {
-            return json_response(r#"{"redirect":"/oauth/init.php"}"#.to_string(), Vec::new());
+            return json_response(r#"{"redirect":"\/oauth\/init.php"}"#.to_string(), Vec::new());
         }
         "register" => register(&core, &req, &posted, field("g-recaptcha-response")).await,
         "remote" => verify(&core, &req, field("unlock_code"), field("g-recaptcha-response")).await,
@@ -109,7 +109,7 @@ pub async fn action(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     match result {
         Ok(reply) => {
             let set = reply.cookies.clone();
-            json_response(serde_json::to_string(&reply).unwrap_or_default(), set)
+            json_response(html::json_encode(&reply), set)
         }
         Err(e) => internal(e),
     }
@@ -128,8 +128,9 @@ fn html_response(body: String, set: Vec<HeaderValue>) -> Response {
     r
 }
 
+/// The answer to the page's own script: json_encode() printed under PHP's default content type.
 fn json_response(body: String, set: Vec<HeaderValue>) -> Response {
-    let mut r = ([(header::CONTENT_TYPE, "application/json"), (header::CACHE_CONTROL, "no-store")], body).into_response();
+    let mut r = ([(header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response();
     for c in set {
         r.headers_mut().append(header::SET_COOKIE, c);
     }
@@ -193,13 +194,17 @@ async fn score(core: &Auth, req: &Request, rc: Option<&Recaptcha>, token: &str) 
     }
 }
 
-/// Send a code to an address at an Active company. The answer to the browser never depends on whether it went.
-async fn send_code(core: &Auth, email: &Email, now: i64) -> sqlx::Result<()> {
+/// Send a code to an address at an Active company, and start the visit's count of turned-down codes again. The
+/// answer to the browser never depends on whether it went.
+async fn send_code(core: &Auth, req: &Request, email: &Email) -> sqlx::Result<()> {
+    if let Some(id) = &req.visitor.visit {
+        visit::reset_code_tries(&core.pool, id).await?;
+    }
     let Some(secret) = core.secret.as_ref() else {
         tracing::warn!("HXWEB_SECRET is not set: no sign-in code sent");
         return Ok(());
     };
-    access_code::issue(&core.pool, secret, email, now).await?;
+    access_code::issue(&core.pool, secret, email, req.now).await?;
     Ok(())
 }
 
@@ -229,7 +234,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
                 }
                 admission::remember_address(pool, email, req.now).await?;
                 reply.cookies.extend(cookies::set(cookies::EMAIL, email.as_str(), cookies::Life::Year));
-                send_code(core, email, req.now).await?;
+                send_code(core, req, email).await?;
                 reply.html.set("scscpq_content", remote_form(pool, &company, rc.as_ref()).await?);
                 return Ok(reply);
             }
@@ -288,9 +293,19 @@ async fn verify(core: &Auth, req: &Request, typed: &str, token: &str) -> sqlx::R
     let email = req.remembered_email();
     let company = company_for(core, email.as_ref()).await?;
     let typed = typed.trim();
-    let spam = spam(core, req, rc.as_ref(), &score, "access token verify", email.as_ref().map_or("", Email::as_str)).await?;
+    if spam(core, req, rc.as_ref(), &score, "access token verify", email.as_ref().map_or("", Email::as_str)).await? {
+        if let (Some(e), Some(_), Some(secret)) = (&email, &company, core.secret.as_ref()) {
+            access_code::attempt(pool, secret, e, None, req.now, CODE_TRIES).await?;
+        }
+        let n = match &req.visitor.visit {
+            Some(id) => visit::count_code_try(pool, id, req.now).await?,
+            None => 1,
+        };
+        reply.html.set("unlock_code_message", String::new());
+        reply.html.set("unlock_code_error", format!("Invalid access token ({n} of 3)"));
+        return Ok(reply);
+    }
     let outcome = match (&email, &company, core.secret.as_ref()) {
-        (Some(e), Some(_), Some(secret)) if spam => Some(access_code::attempt(pool, secret, e, None, req.now, CODE_TRIES).await?),
         _ if typed.is_empty() => None,
         (Some(e), Some(_), Some(secret)) => Some(access_code::attempt(pool, secret, e, Some(typed), req.now, CODE_TRIES).await?),
         _ => Some(Attempt::Expired),
@@ -325,7 +340,7 @@ async fn resend(core: &Auth, req: &Request, token: &str) -> sqlx::Result<Reply> 
     let email = req.remembered_email();
     if !spam(core, req, rc.as_ref(), &score, "resend access token", email.as_ref().map_or("", Email::as_str)).await? {
         if let (Some(e), Some(_)) = (&email, company_for(core, email.as_ref()).await?) {
-            send_code(core, e, req.now).await?;
+            send_code(core, req, e).await?;
         }
     }
     reply.html.set("unlock_code_error", String::new());
@@ -370,7 +385,7 @@ async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<He
             Some((company, known)) if req.visitor.impersonator.is_none() => {
                 if known {
                     if let Some(e) = req.remembered_email() {
-                        send_code(core, &e, req.now).await?;
+                        send_code(core, req, &e).await?;
                     }
                 }
                 remote_form(pool, &company, rc.as_ref()).await?

@@ -263,7 +263,7 @@ async fn posts_from_other_sites_or_without_the_ajax_header_change_nothing() {
     assert!(a.body.contains("<div id=profile_register>"));
     assert_eq!(mails(&pool).await.len(), 0);
     let a = ajax(&app, "", "action=microsoft_oauth_init").await;
-    assert_eq!(a.body, r#"{"redirect":"/oauth/init.php"}"#);
+    assert_eq!(a.body, r#"{"redirect":"\/oauth\/init.php"}"#);
 }
 
 /// A provider that answers like Microsoft or Google: the token endpoint returns an ID token with the nonce the

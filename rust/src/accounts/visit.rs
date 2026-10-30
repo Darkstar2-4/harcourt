@@ -129,6 +129,28 @@ pub async fn take_oauth_error(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx
     Ok(message)
 }
 
+/// One more access code turned down this visit; returns the count.
+pub async fn count_code_try(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<i64> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    sqlx::query_scalar!(
+        r#"INSERT INTO visit (id, code_tries, seen_at) VALUES (?1, 1, ?2)
+           ON CONFLICT (id) DO UPDATE SET code_tries = code_tries + 1, seen_at = excluded.seen_at
+           RETURNING code_tries AS "code_tries!: i64""#,
+        key,
+        now
+    )
+    .fetch_one(pool)
+    .await
+}
+
+/// A code was sent: the count starts again.
+pub async fn reset_code_tries(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<()> {
+    let key = id.0.as_slice();
+    sqlx::query!("UPDATE visit SET code_tries = 0 WHERE id = ?1", key).execute(pool).await?;
+    Ok(())
+}
+
 /// session_destroy().
 pub async fn forget(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<()> {
     let key = id.0.as_slice();
@@ -161,6 +183,10 @@ mod tests {
         assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap().as_deref(), Some("Cancelled"), "Microsoft's first");
         assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap().as_deref(), Some("Invalid OAuth state. Please try again."));
         assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap(), None, "each shows once");
+        assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 1);
+        assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 2);
+        reset_code_tries(&pool, &b).await.unwrap();
+        assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 1);
         forget(&pool, &b).await.unwrap();
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
     }

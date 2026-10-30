@@ -132,24 +132,6 @@ fn php_int(v: &Value) -> i64 {
     }
 }
 
-/// PHP json_encode()'s default escaping on top of plain JSON: `/` as `\/` and every non-ASCII character as `\uXXXX`.
-fn php_json_escape(json: &str) -> String {
-    let mut out = String::with_capacity(json.len());
-    for c in json.chars() {
-        match c {
-            '/' => out.push_str("\\/"),
-            c if c.is_ascii() => out.push(c),
-            c => {
-                let mut units = [0u16; 2];
-                for u in c.encode_utf16(&mut units) {
-                    out.push_str(&format!("\\u{u:04x}"));
-                }
-            }
-        }
-    }
-    out
-}
-
 impl Profile {
     /// The remembered profile, or an empty one. The cookie is the browser's to change; it only fills in a form.
     pub fn from_cookie(value: Option<&str>) -> Profile {
@@ -177,7 +159,7 @@ impl Profile {
 
     /// The cookie's value: json_encode() of profile_data_class.
     pub fn to_cookie(&self) -> String {
-        php_json_escape(&serde_json::to_string(self).unwrap_or_default())
+        html::json_encode(self)
     }
 
     /// The `harcourt_profile` cookie header, as profile->cookie() set it.

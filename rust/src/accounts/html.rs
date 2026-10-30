@@ -3,6 +3,26 @@
 //! be `'static` text, so nothing a visitor sent can reach one.
 
 /// PHP htmlspecialchars($s, ENT_QUOTES).
+/// PHP json_encode() with its default flags: plain JSON with `/` written `\/` and every non-ASCII character as
+/// `\uXXXX`.
+pub fn json_encode(value: &impl serde::Serialize) -> String {
+    let json = serde_json::to_string(value).unwrap_or_default();
+    let mut out = String::with_capacity(json.len());
+    for c in json.chars() {
+        match c {
+            '/' => out.push_str("\\/"),
+            c if c.is_ascii() => out.push(c),
+            c => {
+                let mut units = [0u16; 2];
+                for u in c.encode_utf16(&mut units) {
+                    out.push_str(&format!("\\u{u:04x}"));
+                }
+            }
+        }
+    }
+    out
+}
+
 /// Text between tags, escaped only where HTML would read it differently: `<`, `>`, and an `&` that could start a
 /// character reference. The PHP printed option labels raw; this draws the same bytes for ordinary text.
 pub fn plain(s: &str) -> String {
