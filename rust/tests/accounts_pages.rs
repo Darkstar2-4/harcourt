@@ -171,12 +171,12 @@ async fn the_campaign_sign_up_records_a_pending_company() {
 }
 
 #[tokio::test]
-async fn login_answers_what_the_php_printed() {
+async fn login_answers_a_plain_message_not_a_database_error() {
     let pool = pool().await;
     let app = app(&pool);
     let (status, _, body) = send(&app, Method::GET, "/login.php?return_url=/products.php", VISIT, None).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(body, "<p>Database error #1054</b><br>Unknown column 'email' in 'WHERE'</p>\n");
+    assert_eq!(body, "<p>Sign-in is by emailed code on the Request Access page.</p>\n");
 }
 
 #[tokio::test]

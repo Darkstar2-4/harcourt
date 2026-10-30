@@ -9,7 +9,8 @@ use axum::{
 
 use crate::visitor::{Visitor, PHP_CONTENT_TYPE};
 
-const ANSWER: &str = "<p>Database error #1054</b><br>Unknown column 'email' in 'WHERE'</p>\n";
+/// The PHP page failed on every request and printed the database's error to the visitor. Nothing here prints one.
+const ANSWER: &str = "<p>Sign-in is by emailed code on the Request Access page.</p>\n";
 
 pub async fn page(visitor: Visitor) -> Response {
     if visitor.bot().is_some() {

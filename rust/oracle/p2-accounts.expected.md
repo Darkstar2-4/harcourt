@@ -28,3 +28,7 @@ WordPress mode, so every case carries `?scscpq_wp=1` to put the Rust page in the
 - The oracle's administrator-active persona (990013) is gone from its database, so that persona is anonymous
   there; personas 990003 and 990012 read French and 990031 English. Reseeding the personas fixes both.
 - Last-login dates in remote_access.php follow the oracle's sign-ins after the data copy was taken.
+
+## login.php (coordinator decision)
+
+The PHP page queries a column that does not exist and prints the database's error line to every visitor. Rust answers a plain message instead of reproducing a database error, so the hidden-suite cases for `/login.php` that expect that line fail by design.
