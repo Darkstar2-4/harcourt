@@ -13,7 +13,8 @@ use percent_encoding::percent_decode_str;
 
 /// scs_remote.php: `action=access` set the session user from an unsigned code with no sign-in. Replaced by
 /// remote_grant.rs (POST /api/remote/grants, POST /api/remote/redeem).
-const RETIRED: &[&str] = &["scs_remote.php"];
+/// beta_authorize.php: a diagnostic script with no traffic and no replacement.
+const RETIRED: &[&str] = &["scs_remote.php", "beta_authorize.php"];
 
 pub fn is_retired(raw_path: &str) -> bool {
     let decoded = percent_decode_str(raw_path).decode_utf8_lossy();
@@ -68,11 +69,12 @@ mod tests {
         ] {
             assert!(is_retired(p), "{p}");
         }
+        assert!(is_retired("/beta_authorize.php"));
     }
 
     #[test]
     fn leaves_other_paths_alone() {
-        for p in ["/", "/catalog/", "/scs_remote", "/scs_remote.phps", "/scs_remote.php/../catalog.php", "/xscs_remote.php", "/api/auth/code"] {
+        for p in ["/", "/catalog/", "/scs_remote", "/scs_remote.phps", "/scs_remote.php/../catalog.php", "/xscs_remote.php", "/api/auth/code", "/beta.php"] {
             assert!(!is_retired(p), "{p}");
         }
     }
