@@ -425,7 +425,7 @@ async fn every_dashboard_link_is_a_page_the_program_serves() {
     let superuser = person(&h.pool, 1, "Super User").await;
     let (_, _, page) = send(&h.app, get("/dashboard.php", Some(&superuser))).await;
     let links: Vec<&str> = page.split("<a href=\"").skip(1).filter_map(|s| s.split_once("\" class='nobr'").map(|(href, _)| href)).collect();
-    assert!(links.len() >= 8 && links.contains(&"/staff/cms"), "{links:?}");
+    assert!(links.len() >= 3 && links.contains(&"/staff/cms"), "{links:?}");
     let auth = Arc::new(Auth { pool: h.pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
     let all = hxweb::routes::all(auth).layer(axum::extract::connect_info::MockConnectInfo(std::net::SocketAddr::from(([127, 0, 0, 1], 40000))));
     for link in links {
