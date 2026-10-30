@@ -135,6 +135,11 @@ pub fn request(method: Method, path: &str, cookie: Option<&str>, headers: &[(&st
     req.body(body).unwrap()
 }
 
+/// The first request of a visit: no cookies at all.
+pub fn first_get(path: &str) -> Request<Body> {
+    Request::builder().uri(path).body(Body::empty()).unwrap()
+}
+
 pub async fn send(app: &Router, req: Request<Body>) -> (StatusCode, HeaderMap, String) {
     let (status, headers, bytes) = send_bytes(app, req).await;
     (status, headers, String::from_utf8_lossy(&bytes).into_owned())

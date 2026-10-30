@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cart_item WHERE added_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "8d980d68b5bf7f5b3e9b6e17c03dc8e462c9585ac23ef5cdbd5f9c8e0a5a310f"
+}

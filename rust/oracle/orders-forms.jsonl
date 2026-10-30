@@ -20,3 +20,9 @@
 {"name": "form-island-14-en", "path": "/?hx_form=14&hx_lang=en&hx_page=%2Fcontact-form-hwy-madison-heights-mi%2F", "persona": "anonymous", "language": "en"}
 {"name": "form-island-15-en", "path": "/?hx_form=15&hx_lang=en&hx_page=%2Finnovations%2Fhbox%2F", "persona": "anonymous", "language": "en"}
 {"name": "form-island-unlisted", "path": "/?hx_form=3&hx_lang=en&hx_page=%2Fno-such-page%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-1-second-on-page", "path": "/?hx_form=1&hx_lang=en&hx_page=%2Fcontact-form%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-1-second-on-page-fr", "path": "/?hx_form=1&hx_lang=fr&hx_page=%2Fformulaire-de-contact%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-9-second-on-page", "path": "/?hx_form=9&hx_lang=en&hx_page=%2Finnovations%2Fhbox%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-3-innovation-page", "path": "/?hx_form=3&hx_lang=en&hx_page=%2Finnovations%2Fshadowboxing%2F", "persona": "anonymous", "language": "en"}
+{"name": "form-island-3-innovation-page-fr", "path": "/?hx_form=3&hx_lang=fr&hx_page=%2Finnovations%2Fhkit-valises%2F%3Flang%3Dfr", "persona": "anonymous", "language": "fr"}
+{"name": "form-island-8-not-embedded", "path": "/?hx_form=8&hx_lang=en&hx_page=%2Fcontact-form%2F", "persona": "anonymous", "language": "en"}

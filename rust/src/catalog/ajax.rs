@@ -1,5 +1,6 @@
-//! scs_ajax.php without its table-name parameter: each autocomplete the site has gets its own typed answer with
-//! only the fields its caller reads, for the visitors allowed to see them. Any other table is not served.
+//! scs_ajax.php without its table-name dispatch. The search box's own request (`table=search`) is answered as live
+//! hxweb answered it, before PHP. Of the rest, only the staff autocompletes the site's pages call are served, to
+//! staff; any other table or caller gets the PHP's refusal, a bare 401.
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -8,110 +9,193 @@ use axum::{
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
-    Extension, Json, Router,
+    Extension, Router,
 };
 use serde_json::{json, Value};
 
 use super::{search, viewer};
-use crate::{api::Auth, identity::Role, visitor::Visitor};
+use crate::{
+    api::Auth,
+    identity::Role,
+    visitor::{Visitor, PHP_CONTENT_TYPE},
+};
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new()
-        .route("/scs_ajax.php", get(scs_ajax))
-        .route("/catalog-api/companies", get(companies))
-        .route("/catalog-api/skus", get(skus))
+    Router::new().route("/scs_ajax.php", get(scs_ajax))
 }
 
-fn limit(q: &HashMap<String, String>) -> i64 {
-    q.get("limit").and_then(|l| l.parse::<i64>().ok()).filter(|l| *l > 0).unwrap_or(10).min(100)
+/// The autocompletes behind scs_ajax.php that Rust still answers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Source {
+    /// user ajax_source_company_name(): design_partner_agreement.php and remote_access.php.
+    Companies,
+    /// inventory ajax_sku(): suppliersku.php.
+    Skus,
 }
 
-fn answer(status: StatusCode, v: Value) -> Response {
-    (status, [(header::CACHE_CONTROL, "no-store")], Json(v)).into_response()
+/// ajax_class's request, as its constructor read $_REQUEST: values trimmed, empty ones ignored.
+struct AjaxRequest {
+    action: String,
+    source: Option<Source>,
+    terms: Vec<String>,
+    limit: i64,
 }
 
-/// Staff autocompletes: an active account at Internal or above.
-async fn staff(core: &Auth, visitor: &Visitor) -> sqlx::Result<bool> {
-    let v = viewer::load(&core.pool, visitor, viewer::Lang::En).await?;
-    Ok(v.active && v.at_least(Role::Internal))
+impl AjaxRequest {
+    fn parse(q: &HashMap<String, String>) -> AjaxRequest {
+        let get = |k: &str| q.get(k).map(|v| v.trim()).filter(|v| !v.is_empty());
+        let source = match (get("table").unwrap_or("").to_lowercase().as_str(), get("source"), get("detail")) {
+            ("user", Some("company_name"), _) => Some(Source::Companies),
+            ("inventory", _, Some("sku")) => Some(Source::Skus),
+            _ => None,
+        };
+        AjaxRequest {
+            action: get("action").unwrap_or("search").to_lowercase(),
+            terms: get("term").map(|t| t.split_whitespace().map(str::to_string).collect()).unwrap_or_default(),
+            limit: get("limit").and_then(|l| l.parse::<i64>().ok()).filter(|l| *l > 0).unwrap_or(10).min(100),
+            source,
+        }
+    }
+}
+
+/// The search box's request, which live hxweb took before PHP saw it: `table=search` exactly, searching.
+fn is_search_box(q: &HashMap<String, String>) -> bool {
+    q.get("table").is_some_and(|t| t == "search") && q.get("action").is_none_or(|a| a == "search")
+}
+
+/// ajax_class's gates: a Referer on this host and an XMLHttpRequest.
+fn from_site_script(headers: &HeaderMap) -> bool {
+    let get = |h: &str| headers.get(h).and_then(|v| v.to_str().ok()).unwrap_or("");
+    let (host, referer) = (get("host"), get("referer").to_ascii_lowercase());
+    let on_host = !host.is_empty() && ["http://", "https://"].iter().any(|s| referer.starts_with(&format!("{s}{}", host.to_ascii_lowercase())));
+    on_host && get("x-requested-with").eq_ignore_ascii_case("xmlhttprequest")
+}
+
+fn refused() -> Response {
+    (StatusCode::UNAUTHORIZED, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response()
+}
+
+/// One PHP array as a JSON object, keys in the order given.
+fn object(fields: &[(&str, Value)]) -> String {
+    let fields: Vec<String> = fields.iter().map(|(k, v)| format!("{}:{v}", Value::from(*k))).collect();
+    format!("{{{}}}", fields.join(","))
+}
+
+/// json_encode($results, JSON_UNESCAPED_UNICODE) of a list of objects, sent as PHP sent it: as HTML.
+fn php_json(rows: &[String]) -> Response {
+    let body = format!("[{}]", rows.join(",")).replace('/', "\\/");
+    (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE)], body).into_response()
 }
 
 async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<search::Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> Response {
-    let get = |k: &str| q.get(k).map(String::as_str).unwrap_or("");
-    match (get("table").to_lowercase().as_str(), get("source"), get("detail")) {
-        ("search", _, _) if matches!(get("action"), "" | "search") => search::suggestions(&core, &cache, &visitor, &headers, get("term"), q.get("limit").map(String::as_str)).await,
-        ("user", "company_name", _) => company_list(&core, &visitor, get("term"), limit(&q)).await,
-        ("inventory", _, "sku") => sku_list(&core, &visitor, get("term"), limit(&q)).await,
-        _ => answer(StatusCode::NOT_FOUND, json!({"error": "Table not found"})),
+    if is_search_box(&q) {
+        return search::suggestions(&core, &cache, &visitor, &headers, q.get("term").map_or("", String::as_str), q.get("limit").map(String::as_str)).await;
     }
-}
-
-async fn companies(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<HashMap<String, String>>) -> Response {
-    company_list(&core, &visitor, q.get("term").map_or("", String::as_str), limit(&q)).await
-}
-
-async fn skus(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<HashMap<String, String>>) -> Response {
-    sku_list(&core, &visitor, q.get("term").map_or("", String::as_str), limit(&q)).await
-}
-
-/// user ajax_source_company_name(): company names containing every word of the term.
-async fn company_list(core: &Auth, visitor: &Visitor, term: &str, limit: i64) -> Response {
     let result = async {
-        if !staff(core, visitor).await? {
-            return Ok(None);
+        let req = AjaxRequest::parse(&q);
+        let Some(source) = req.source.filter(|_| req.action == "search" && !req.terms.is_empty() && from_site_script(&headers)) else {
+            return Ok(refused());
+        };
+        let v = viewer::load(&core.pool, &visitor, viewer::Lang::En).await?;
+        if !(v.active && v.at_least(Role::Internal)) {
+            return Ok(refused());
         }
-        let words: Vec<String> = term.split_whitespace().map(str::to_lowercase).collect();
-        let first = format!("%{}%", words.first().cloned().unwrap_or_default());
-        let names = sqlx::query_scalar!(
-            r#"SELECT company_name AS "name!" FROM "user" WHERE company_name IS NOT NULL AND company_name LIKE ?1
-               GROUP BY company_name ORDER BY company_name, min(CASE WHEN domain IS NULL THEN 1 ELSE 0 END)"#,
-            first
-        )
-        .fetch_all(&core.pool)
-        .await?;
-        let list: Vec<Value> = names.into_iter().filter(|n| words.iter().all(|w| n.to_lowercase().contains(w))).take(limit as usize).map(|n| json!({"value": n})).collect();
-        Ok::<_, sqlx::Error>(Some(list))
+        let list = match source {
+            Source::Companies => companies(&core, &req).await?,
+            Source::Skus => skus(&core, &req).await?,
+        };
+        Ok::<_, sqlx::Error>(php_json(&list))
     }
     .await;
-    respond(result)
+    result.unwrap_or_else(|e| {
+        tracing::error!("scs_ajax: {e}");
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
+    })
 }
 
-/// inventory ajax_sku(): active part numbers starting with the term, with their category and family.
-async fn sku_list(core: &Auth, visitor: &Visitor, term: &str, limit: i64) -> Response {
-    let result = async {
-        if !staff(core, visitor).await? {
-            return Ok(None);
-        }
-        let prefix = format!("{}%", term.split_whitespace().next().unwrap_or(""));
-        let rows = sqlx::query!(
-            r#"SELECT i.sku AS "sku!", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id
-               FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id
-               WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku LIMIT ?2"#,
-            prefix,
-            limit
-        )
-        .fetch_all(&core.pool)
-        .await?;
-        let list = rows
-            .into_iter()
-            .map(|r| {
-                json!({"label": r.sku, "category_name": r.category_name, "subcategory_name": r.subcategory_name,
-                       "category_subcategory_id": format!("{}:{}", r.category_id.unwrap_or(0), r.subcategory_id.unwrap_or(0))})
-            })
-            .collect();
-        Ok::<_, sqlx::Error>(Some(list))
+/// Company names containing every word of the term, one per name, in MySQL's case-blind order.
+async fn companies(core: &Auth, req: &AjaxRequest) -> sqlx::Result<Vec<String>> {
+    let words: Vec<String> = req.terms.iter().map(|w| w.to_lowercase()).collect();
+    let first = format!("%{}%", words.first().cloned().unwrap_or_default());
+    let names = sqlx::query_scalar!(
+        r#"SELECT company_name AS "name!" FROM "user" WHERE company_name IS NOT NULL AND company_name LIKE ?1
+           GROUP BY company_name COLLATE NOCASE ORDER BY company_name COLLATE NOCASE, min(CASE WHEN domain IS NULL THEN 1 ELSE 0 END)"#,
+        first
+    )
+    .fetch_all(&core.pool)
+    .await?;
+    Ok(names.into_iter().filter(|n| words.iter().all(|w| n.to_lowercase().contains(w))).take(req.limit as usize).map(|n| object(&[("value", json!(n))])).collect())
+}
+
+/// Active part numbers starting with the term's first word, with their category and family names.
+async fn skus(core: &Auth, req: &AjaxRequest) -> sqlx::Result<Vec<String>> {
+    let prefix = format!("{}%", req.terms.first().map_or("", String::as_str));
+    let rows = sqlx::query!(
+        r#"SELECT i.sku AS "sku!", c.name AS category_name, s.name AS subcategory_name, i.category_id, i.subcategory_id
+           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = i.category_id
+           WHERE i.sku LIKE ?1 AND i.active = 1 ORDER BY i.sku COLLATE NOCASE LIMIT ?2"#,
+        prefix,
+        req.limit
+    )
+    .fetch_all(&core.pool)
+    .await?;
+    let id = |v: Option<i64>| v.map(|v| v.to_string()).unwrap_or_default();
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            object(&[
+                ("label", json!(r.sku)),
+                ("category_name", json!(r.category_name)),
+                ("subcategory_name", json!(r.subcategory_name)),
+                ("category_subcategory_id", json!(format!("{}:{}", id(r.category_id), id(r.subcategory_id)))),
+            ])
+        })
+        .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::http::HeaderValue;
+
+    use super::*;
+
+    fn q(pairs: &[(&str, &str)]) -> HashMap<String, String> {
+        pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect()
     }
-    .await;
-    respond(result)
-}
 
-fn respond(result: sqlx::Result<Option<Vec<Value>>>) -> Response {
-    match result {
-        Ok(Some(list)) => answer(StatusCode::OK, Value::Array(list)),
-        Ok(None) => answer(StatusCode::FORBIDDEN, json!({"error": "Access denied"})),
-        Err(e) => {
-            tracing::error!("scs_ajax: {e}");
-            answer(StatusCode::INTERNAL_SERVER_ERROR, json!({"error": "Internal"}))
-        }
+    #[test]
+    fn the_search_box_is_exactly_table_search() {
+        assert!(is_search_box(&q(&[("table", "search"), ("term", "ls")])));
+        assert!(is_search_box(&q(&[("table", "search"), ("action", "search")])));
+        assert!(!is_search_box(&q(&[("table", "Search")])));
+        assert!(!is_search_box(&q(&[("table", "search"), ("action", "save")])));
+    }
+
+    #[test]
+    fn requests_parse_as_ajax_class_read_them() {
+        let r = AjaxRequest::parse(&q(&[("table", " User "), ("source", "company_name"), ("term", " acme  tool "), ("limit", "0")]));
+        assert_eq!((r.source, r.action.as_str(), r.terms.clone(), r.limit), (Some(Source::Companies), "search", vec!["acme".to_string(), "tool".to_string()], 10));
+        assert_eq!(AjaxRequest::parse(&q(&[("table", "inventory"), ("detail", "sku")])).source, Some(Source::Skus));
+        assert_eq!(AjaxRequest::parse(&q(&[("table", "user")])).source, None, "full user rows are not served");
+    }
+
+    #[test]
+    fn the_caller_must_be_a_script_on_this_host() {
+        let mut h = HeaderMap::new();
+        h.insert("host", HeaderValue::from_static("www.harcourt.co"));
+        h.insert("referer", HeaderValue::from_static("https://www.harcourt.co/suppliersku.php"));
+        assert!(!from_site_script(&h));
+        h.insert("x-requested-with", HeaderValue::from_static("XMLHttpRequest"));
+        assert!(from_site_script(&h));
+        h.insert("referer", HeaderValue::from_static("https://elsewhere.example/"));
+        assert!(!from_site_script(&h));
+    }
+
+    #[tokio::test]
+    async fn json_is_php_shaped() {
+        let r = php_json(&[object(&[("label", json!("A/B")), ("category_name", json!("Pinces é")), ("subcategory_name", Value::Null)])]);
+        assert_eq!(r.headers()["content-type"], PHP_CONTENT_TYPE);
+        let body = axum::body::to_bytes(r.into_body(), 1 << 16).await.unwrap();
+        assert_eq!(std::str::from_utf8(&body).unwrap(), r#"[{"label":"A\/B","category_name":"Pinces é","subcategory_name":null}]"#);
     }
 }

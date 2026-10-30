@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT country AS \"country!: String\", state AS \"state!: String\", coalesce(name, '') AS \"name!: String\" FROM country\n               WHERE active = 1 AND (state = '' OR country IN ('US', 'CA')) ORDER BY name",
+  "query": "SELECT country AS \"country!: String\", state AS \"state!: String\", coalesce(name, '') AS \"name!: String\" FROM country\n               WHERE (state = '' AND active = 1) OR (state <> '' AND country IN ('US', 'CA'))\n               ORDER BY CASE country WHEN 'US' THEN 1 WHEN 'CA' THEN 2 ELSE 3 END, name",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "f0abc821f5d677e34877b1a8dcdc582caac967887abd828cc25093248f67ce88"
+  "hash": "42479b1cee8cd8ecb2ec20384f719ead574c5b0758a675fc98c89995f2b81828"
 }

@@ -51,8 +51,8 @@ impl Orders {
 pub fn router(state: Arc<Orders>) -> Router {
     Router::new()
         .merge(shop::routes())
-        .merge(forms::routes())
         .merge(pages::routes())
+        .merge(forms::routes())
         .layer(middleware::from_fn_with_state(state.clone(), same_origin))
         .with_state(state)
 }

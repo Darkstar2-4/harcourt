@@ -23,7 +23,7 @@ use crate::{
     db::unix_now,
     orders::{
         form_params,
-        html::{self, esc, esc_text, js_str},
+        html::{self, esc_text, js_str},
         mailform::Registry,
         pricing::Price,
         Executive, Orders, Staff,
@@ -118,12 +118,26 @@ pub async fn lines(state: &Orders, order_id: i64) -> sqlx::Result<Vec<Line>> {
     Ok(out)
 }
 
-/// A typed report date (m/d/Y, Y-m-d or Y/m/d) as the first second of that day in the site's time zone.
-fn report_date(typed: &str) -> Option<(String, i64)> {
-    let typed = typed.trim();
-    let date = ["%m/%d/%Y", "%Y-%m-%d", "%Y/%m/%d"].iter().find_map(|f| NaiveDate::parse_from_str(typed, f).ok())?;
-    let start = Detroit.from_local_datetime(&date.and_hms_opt(0, 0, 0)?).earliest()?.timestamp();
-    Some((date.format("%m/%d/%Y").to_string(), start))
+/// A typed report date, read as `fn_date($typed, "mdy")` did: month, day and year split on spaces, slashes, dots
+/// or dashes, each read as `intval`; a year under 50 is this century's, under 100 the last's.
+fn report_date(typed: &str) -> Option<NaiveDate> {
+    let intval = |s: &str| s.chars().take_while(char::is_ascii_digit).collect::<String>().parse::<i64>().unwrap_or(0);
+    let mut parts = typed.split([' ', '/', '.', '-']).map(intval);
+    let (month, day, year) = (parts.next()?, parts.next().unwrap_or(0), parts.next().unwrap_or(0));
+    let year = match year {
+        y if y < 50 => y + 2000,
+        y if y < 100 => y + 1900,
+        y => y,
+    };
+    if !(1800..=2200).contains(&year) {
+        return None;
+    }
+    NaiveDate::from_ymd_opt(i32::try_from(year).ok()?, u32::try_from(month).ok()?, u32::try_from(day).ok()?)
+}
+
+/// The first second of a day in the site's time zone.
+fn day_start(date: NaiveDate) -> Option<i64> {
+    Some(Detroit.from_local_datetime(&date.and_hms_opt(0, 0, 0)?).earliest()?.timestamp())
 }
 
 /// Only a path on this site: `return_url` comes from the request.
@@ -142,21 +156,23 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
     let return_url = local_path(get("return_url")).unwrap_or("");
     let report_status = Status::parse(get("report_status"));
     let report_date = report_date(get("report_order_date"));
-    let mut order = if record_id != 0 { load(pool, record_id).await? } else { None };
+    let found = if record_id != 0 { load(pool, record_id).await? } else { None };
+    let stored_status = found.as_ref().map(|o| o.status.clone()).unwrap_or_default();
+    let mut order = found.unwrap_or_else(|| Order { status: Status::Pending.as_str().into(), currency_code: "USD".into(), ..Order::default() });
     let mut messages = vec!["PO Manager".to_string()];
     let mut errors = Errors::default();
     match action {
         "cancel" if !return_url.is_empty() => return Ok(html::redirect(return_url)),
         "cancel" => messages.push("Request cancelled".into()),
-        "update" => match (order.as_mut(), Status::parse(get("status"))) {
-            (Some(o), Some(new)) if new.as_str() != o.status => {
+        "update" => match Status::parse(get("status")) {
+            Some(new) if new.as_str() != stored_status => {
                 let now = unix_now();
                 let status = new.as_str();
-                sqlx::query!("UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4", status, now, staff.user.id.0, o.id)
+                sqlx::query!("UPDATE orderhd SET status = ?1, status_date = ?2, status_user_id = ?3 WHERE id = ?4", status, now, staff.user.id.0, order.id)
                     .execute(pool)
                     .await?;
-                o.status = status.to_string();
-                o.status_date = now;
+                order.status = status.to_string();
+                order.status_date = now;
                 messages.push("Record maintained".into());
                 if !return_url.is_empty() {
                     return Ok(html::redirect(return_url));
@@ -179,10 +195,12 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
     out.push_str(&html::hidden("return_url", return_url));
     let showing = action == "maintain" || (action == "update" && !errors.is_empty());
     let status_choices: Vec<(String, String)> = Status::ALL.iter().map(|s| (s.as_str().to_string(), s.as_str().to_string())).collect();
-    match (&order, showing) {
-        (Some(o), true) => {
+    match action {
+        "email" => {}
+        _ if showing => {
+            let o = &order;
             out.push_str(&html::hidden("report_status", report_status.map_or("", Status::as_str)));
-            out.push_str(&html::hidden("report_order_date", report_date.as_ref().map_or("", |d| d.0.as_str())));
+            out.push_str(&html::hidden("report_order_date", &report_date.map_or_else(String::new, |d| d.format("%Y/%m/%d").to_string())));
             let local = Registry::load(pool, "local").await?;
             let names = Choices::names_for(pool, &[&o.ship, &o.billing]).await?;
             out.push_str(&checkout::header(o, false, true, &names, &Errors::default(), &local, false));
@@ -193,7 +211,7 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             out.push_str(&cart::table(&lines(&state, o.id).await?, false, &money, &labels, local.get("thumbnail")));
             let buttons = [
                 html::select("status", &status_choices, &o.status, None, "", errors.has("status")),
-                html::button("Update", &format!("fn_action(this,'update',{},'');", js_str(&o.id.to_string())), "nav_button"),
+                html::button("Update", &format!("fn_action(this,'update',{},'');", js_str(get("record_id"))), "nav_button"),
                 html::button("Cancel", "fn_action(this,'cancel','','');", "nav_button"),
             ];
             out.push_str(&format!("<p class=standard>Status: {}</p>\n", buttons.join(" ")));
@@ -202,13 +220,12 @@ pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executiv
             out.push_str("<table class='standard noborder'><tr><td width='30%'>Status</td>");
             out.push_str(&format!("<td width='70%'>{}</td>", html::select("report_status", &status_choices, report_status.map_or("", Status::as_str), Some(""), "", false)));
             out.push_str("</tr><tr><td width='30%'>Order Date</td>");
-            let shown = report_date.as_ref().map_or("", |d| d.0.as_str());
-            let value = if shown.is_empty() { String::new() } else { format!(" value='{}'", esc(shown)) };
+            let value = report_date.map_or_else(String::new, |d| format!(" value='{}'", d.format("%m/%d/%Y")));
             out.push_str(&format!("<td width='70%'><input type=text class='datepicker' name='report_order_date' id='report_order_date' size='10' maxlength='10'{value}>\n</td>"));
             out.push_str("</tr></table>");
             out.push_str(&format!("<p>{}</p>", html::button("List", "fn_action(this,'list','');", "nav_button")));
             if action == "list" {
-                out.push_str(&list(pool, report_status, report_date.map(|d| d.1)).await?);
+                out.push_str(&list(pool, report_status, report_date.and_then(day_start)).await?);
             }
         }
     }
@@ -258,10 +275,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn report_dates_accept_the_usual_forms() {
-        assert_eq!(report_date("10/29/2026").map(|d| d.0), Some("10/29/2026".into()));
-        assert_eq!(report_date("2026-10-29").map(|d| d.1), report_date("10/29/2026").map(|d| d.1));
-        assert!(report_date("junk").is_none());
+    fn report_dates_are_read_month_first_like_fn_date() {
+        let ymd = |y, m, d| NaiveDate::from_ymd_opt(y, m, d);
+        assert_eq!(report_date("10/29/2026"), ymd(2026, 10, 29));
+        assert_eq!(report_date("10-1-26"), ymd(2026, 10, 1));
+        assert_eq!(report_date("1.2.75"), ymd(1975, 1, 2));
+        assert_eq!(report_date("10/01"), ymd(2000, 10, 1));
+        for refused in ["2026-10-29", "13/01/2026", "junk", "", "0"] {
+            assert_eq!(report_date(refused), None, "{refused}");
+        }
     }
 
     #[test]

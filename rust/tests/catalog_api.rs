@@ -3,7 +3,7 @@
 mod catalog_support;
 
 use axum::{body::Body, http::Method};
-use catalog_support::{harness, request, send, signed_in, Account};
+use catalog_support::{first_get, harness, request, send, signed_in, Account};
 
 fn xhr(form: &str, cookie: Option<&str>) -> axum::http::Request<Body> {
     request(Method::POST, "/scscpq_api.php", cookie, &[("x-requested-with", "XMLHttpRequest"), ("content-type", "application/x-www-form-urlencoded")], Body::from(form.to_string()))
@@ -13,7 +13,7 @@ fn xhr(form: &str, cookie: Option<&str>) -> axum::http::Request<Body> {
 async fn a_configured_part_gets_its_family_price_and_buttons() {
     let h = harness().await;
     for sql in [
-        "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+        "INSERT INTO category (id, name, active) VALUES (1, 'Pins à billes', 1)",
         "INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', 'Active', 'In Stock')",
         "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)",
         r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, active, leadtime_option, pricing) VALUES (1, 'HBLT-1', 1, 7, 1, 'Subcategory', 'a:1:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:10;s:9:"qty_break";i:1;}}')"#,
@@ -27,7 +27,8 @@ async fn a_configured_part_gets_its_family_price_and_buttons() {
     let (_, _, body) = send(&h.app, xhr("action=sku&data%5Blina%5D=hblt-1", Some(&cookie))).await;
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     let html = v["html"].as_str().unwrap();
-    assert!(html.starts_with("<div>Pins: Ball Lock Pins</div><br><div>HBLT-1</div><br><div><div>Price: $10.00</div><p>Typical lead time: In Stock</p></div>"), "{html}");
+    assert!(body.contains(r#"<div>Pins à billes: Ball Lock Pins<\/div>"#), "{body}");
+    assert!(html.starts_with("<div>Pins à billes: Ball Lock Pins</div><br><div>HBLT-1</div><br><div><div>Price: $10.00</div><p>Typical lead time: In Stock</p></div>"), "{html}");
     assert!(html.contains("value='Add to Cart'"));
     assert_eq!(v["data"]["lina"], "hblt-1");
     let (_, _, body) = send(&h.app, xhr("action=sku&data%5Blina%5D=nope", Some(&cookie))).await;
@@ -55,6 +56,8 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
 #[tokio::test]
 async fn page_requests_name_the_missing_function() {
     let h = harness().await;
-    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[], Body::empty())).await;
+    let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=html", None, &[("referer", "https://www.harcourt.co/catalog/")], Body::empty())).await;
     assert_eq!(body, "function: html_html");
+    let (status, headers, _) = send(&h.app, first_get("/scscpq_api.php?action=html")).await;
+    assert_eq!((status.as_u16(), &headers["location"]), (302, &"/scs_index.php".parse().unwrap()), "a visit that begins here goes home");
 }

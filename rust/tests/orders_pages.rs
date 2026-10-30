@@ -22,8 +22,9 @@ use tower::ServiceExt;
 async fn harness() -> (Router, SqlitePool) {
     let pool = db::open_memory().await.unwrap();
     let core = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
-    let state = Orders { core, pricing: Arc::new(Unpriced), docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
-    (hxweb::orders::router(Arc::new(state)).layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 30], 40000)))), pool)
+    let state = Orders { core: core.clone(), pricing: Arc::new(Unpriced), docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
+    let pages = hxweb::orders::router(Arc::new(state)).layer(axum::middleware::from_fn_with_state(core, hxweb::visitor::layer));
+    (pages.layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 30], 40000)))), pool)
 }
 
 async fn cookie(pool: &SqlitePool, id: i64, role: &str) -> String {
@@ -33,10 +34,12 @@ async fn cookie(pool: &SqlitePool, id: i64, role: &str) -> String {
 }
 
 async fn send(app: &Router, method: Method, uri: &str, cookie: Option<&str>, form: &str, lang: Option<&str>) -> (StatusCode, HeaderMap, String) {
-    let mut r = Request::builder().method(method).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
-    if let Some(c) = cookie {
-        r = r.header(header::COOKIE, c);
-    }
+    let mut r = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::REFERER, "https://www.harcourt.co/contact-us/")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .header(header::COOKIE, cookie.map_or_else(|| "PHPSESSID=mid-visit".to_string(), |c| format!("{c}; PHPSESSID=mid-visit")));
     if let Some(l) = lang {
         r = r.header(header::ACCEPT_LANGUAGE, l);
     }
@@ -94,7 +97,7 @@ async fn ajax(app: &Router, cookie: &str, form: &str) -> serde_json::Value {
     let req = Request::builder()
         .method(Method::POST)
         .uri("/design_partner_agreement.php")
-        .header(header::COOKIE, cookie)
+        .header(header::COOKIE, format!("{cookie}; PHPSESSID=mid-visit"))
         .header("x-requested-with", "XMLHttpRequest")
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(Body::from(form.to_string()))
@@ -121,4 +124,19 @@ async fn design_partner_blocks_are_saved_per_company() {
     assert_eq!(blocked, [2], "inactive categories are never blocked");
     let a = ajax(&app, &admin, "action=save&company_name=").await;
     assert_eq!(a["status"].as_str(), Some("error"));
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
+    let (app, pool) = harness().await;
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let first = |path: &str, cookie: &str| Request::builder().uri(path).header(header::COOKIE, cookie).body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(first("/carrier.php", &admin)).await.unwrap();
+    assert_eq!(res.status(), StatusCode::FOUND);
+    assert_eq!(res.headers()[header::LOCATION], "/dashboard.php");
+    assert_eq!(res.headers()[header::CONTENT_TYPE], "text/html; charset=UTF-8");
+    let res = app.clone().oneshot(first("/carrier.php", &format!("{admin}; PHPSESSID=mid-visit"))).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let res = app.clone().oneshot(first("/contact.php", "")).await.unwrap();
+    assert_eq!(res.headers()[header::LOCATION], "/scs_index.php");
 }
