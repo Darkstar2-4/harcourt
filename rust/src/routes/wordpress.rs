@@ -383,9 +383,14 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         (Answer::Render(p), None) => Answer::Render(p),
         (Answer::Render(p), Some(_)) if raw_query.is_empty() => Answer::Redirect(p.path.clone()),
         (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
-        (Answer::Redirect(to), _) => {
-            let to = with_query(&to, raw_query);
+        (Answer::Redirect(to), slashed) => {
             let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
+            // WPML's link to the page asked for, with a query the request already carries: redirect_canonical()
+            // rebuilds the request's own query in its order, and leaves the 404 alone when that changes nothing.
+            let (to_path, to_query) = to.split_once('?').unwrap_or((to.as_str(), ""));
+            let carried = to_query.split('&').filter(|kv| !kv.is_empty()).all(|kv| raw_query.split('&').any(|r| r == kv));
+            let own = to_path == slashed.as_deref().unwrap_or(path) && carried;
+            let to = if own { with_query(to_path, raw_query) } else { with_query(&to, raw_query) };
             if to == asked {
                 Answer::NotFound
             } else {
@@ -760,6 +765,9 @@ mod tests {
         assert_eq!(route(&site, "/legal/", &query("lang=fr"), "lang=fr"), Answer::NotFound, "already there: the 404 stays");
         assert_eq!(route(&site, "/legal", &query("lang=fr"), "lang=fr"), Answer::Redirect("/legal/?lang=fr".into()));
         assert_eq!(route(&site, "/leg/", &query("lang=fr&x=1"), "lang=fr&x=1"), Answer::Redirect("/legal/?lang=fr&x=1".into()));
+        assert_eq!(route(&site, "/legal/", &query("x=1&lang=fr"), "x=1&lang=fr"), Answer::NotFound, "the request's own order");
+        assert_eq!(route(&site, "/legal/", &query("x=&lang=fr"), "x=&lang=fr"), Answer::Redirect("/legal/?x&lang=fr".into()));
+        assert_eq!(route(&site, "/legal", &query("x=1&lang=fr"), "x=1&lang=fr"), Answer::Redirect("/legal/?x=1&lang=fr".into()));
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
         let carts = Site::new(vec![
             page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
