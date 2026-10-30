@@ -1,0 +1,88 @@
+# Files, ajax and search endpoints (scs_file.php, scs_index.php, scs_ajax.php and friends). Run with --rust-session.
+# Content keys are synthetic: base64 of '<content id>\t<made-up session stamp>'. Staff autocompletes run as staff personas only.
+{"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "anonymous"}
+{"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "customer-active"}
+{"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "customer-pending"}
+{"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "internal-active"}
+{"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "administrator-active"}
+{"name": "file-overview-stale-warm", "path": "/scs_file.php?content_id=NTA2OQkx", "persona": "anonymous", "session": "warm"}
+{"name": "file-overview-stale-warm", "path": "/scs_file.php?content_id=NTA2OQkx", "persona": "customer-active", "session": "warm"}
+{"name": "file-thumb-stale", "path": "/scs_file.php?width=80&height=80&resize=1&content_id=Mzk2Nwkx", "persona": "anonymous"}
+{"name": "file-thumb-stale", "path": "/scs_file.php?width=80&height=80&resize=1&content_id=Mzk2Nwkx", "persona": "internal-active"}
+{"name": "file-unknown-id", "path": "/scs_file.php?content_id=OTk5OTk5OTkJMQ", "persona": "anonymous"}
+{"name": "file-unknown-id", "path": "/scs_file.php?content_id=OTk5OTk5OTkJMQ", "persona": "customer-active"}
+{"name": "file-empty-id", "path": "/scs_file.php?content_id=", "persona": "anonymous"}
+{"name": "file-garbage-id", "path": "/scs_file.php?content_id=abc", "persona": "anonymous"}
+{"name": "file-download-log", "path": "/scs_file.php?content_id=NjE2Mgkx&local_log=ZG93bmxvYWQJc2hlZXQucGRmCVNLVS0xCTQxNg", "persona": "customer-active"}
+{"name": "file-no-params", "path": "/scs_file.php", "persona": "anonymous"}
+{"name": "file-code", "path": "/scs_file.php?code=/images_subcategory/image126.jpg", "persona": "anonymous"}
+{"name": "file-code", "path": "/scs_file.php?code=/images_subcategory/image126.jpg", "persona": "customer-active"}
+{"name": "file-code-resize", "path": "/scs_file.php?code=images_subcategory/image126.jpg&width=80&height=80", "persona": "anonymous"}
+{"name": "index", "path": "/scs_index.php", "persona": "anonymous", "session": "cold"}
+{"name": "index", "path": "/scs_index.php", "persona": "customer-active", "session": "cold"}
+{"name": "index", "path": "/scs_index.php", "persona": "customer-pending", "session": "cold"}
+{"name": "index", "path": "/scs_index.php", "persona": "internal-active", "session": "cold"}
+{"name": "index", "path": "/scs_index.php", "persona": "administrator-active", "session": "cold"}
+{"name": "index", "path": "/scs_index.php", "persona": "customer-active-fr", "session": "cold"}
+{"name": "index-warm", "path": "/scs_index.php", "persona": "anonymous", "session": "warm"}
+{"name": "index-warm", "path": "/scs_index.php", "persona": "customer-active", "session": "warm"}
+{"name": "index-warm", "path": "/scs_index.php", "persona": "customer-active-fr", "session": "warm"}
+{"name": "index-scscpq", "path": "/scs_index.php?scscpq_wp=1", "persona": "anonymous", "session": "cold"}
+{"name": "ajax-search-direct", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "anonymous"}
+{"name": "ajax-search-direct", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "customer-active"}
+{"name": "ajax-search-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "customer-pending", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "internal-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "administrator-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-xhr-warm", "path": "/scs_ajax.php?table=search&limit=20&term=bush", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-xhr-warm", "path": "/scs_ajax.php?table=search&limit=20&term=bush", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-xhr-warm", "path": "/scs_ajax.php?table=search&limit=20&term=bush", "persona": "administrator-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-xhr-warm", "path": "/scs_ajax.php?table=search&limit=20&term=bush", "persona": "customer-active-fr", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-xhr-fr", "path": "/scs_ajax.php?table=search&limit=20&term=bride", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalogue/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-xhr-fr", "path": "/scs_ajax.php?table=search&limit=20&term=bride", "persona": "customer-active-fr", "headers": {"Referer": "https://www.harcourt.co/catalogue/", "X-Requested-With": "XMLHttpRequest"}, "session": "warm"}
+{"name": "ajax-search-part", "path": "/scs_ajax.php?table=search&limit=20&term=LS-1", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-no-referer", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "anonymous", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-no-xhr", "path": "/scs_ajax.php?table=search&limit=20&term=clamp", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/"}}
+{"name": "ajax-search-empty", "path": "/scs_ajax.php?table=search&limit=20&term=", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-action-save", "path": "/scs_ajax.php?table=search&action=save&term=clamp", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-no-table", "path": "/scs_ajax.php", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-no-table", "path": "/scs_ajax.php", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-unknown-table", "path": "/scs_ajax.php?table=nosuchtable&term=a", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-sku", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-sku-direct", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active"}
+{"name": "ajax-company", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "internal-active", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-company", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "administrator-active", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "anonymous"}
+{"name": "portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "customer-active"}
+{"name": "portal-plain", "path": "/customer_portal.php", "persona": "anonymous"}
+{"name": "portal-plain", "path": "/customer_portal.php", "persona": "customer-active"}
+{"name": "beta", "path": "/beta.php", "persona": "anonymous"}
+{"name": "beta", "path": "/beta.php", "persona": "customer-active"}
+{"name": "image-viewer", "path": "/image_viewer.php?action=x", "persona": "anonymous"}
+{"name": "image-viewer", "path": "/image_viewer.php?action=x", "persona": "customer-active"}
+{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-direct", "path": "/portal_ajax.php?action=catalog", "persona": "anonymous"}
+{"name": "api-bare", "path": "/scscpq_api.php", "persona": "anonymous", "session": "cold"}
+{"name": "api-bare", "path": "/scscpq_api.php", "persona": "customer-active", "session": "cold"}
+{"name": "api-bare-warm", "path": "/scscpq_api.php", "persona": "anonymous", "session": "warm"}
+{"name": "api-bare-warm", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm"}
+{"name": "api-unknown-warm", "path": "/scscpq_api.php?action=nothing", "persona": "customer-active", "session": "warm"}
+{"name": "api-xhr-get-warm", "path": "/scscpq_api.php", "persona": "anonymous", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "api-xhr-get-warm", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "api-xhr-get-warm", "path": "/scscpq_api.php", "persona": "superuser-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "api-xhr-sku-nodata", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=sku"}
+{"name": "api-xhr-cad", "path": "/scscpq_api.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}, "method": "POST", "body": "action=cad"}
+{"name": "ajax-no-table-warm", "path": "/scs_ajax.php", "persona": "anonymous", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-no-table-warm", "path": "/scs_ajax.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-unknown-table-warm", "path": "/scs_ajax.php?table=nosuchtable&term=a", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-search-action-save-warm", "path": "/scs_ajax.php?table=search&action=save&term=clamp", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-sku-warm", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-sku-warm", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "administrator-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-sku-warm-noxhr", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php"}}
+{"name": "ajax-sku-warm-empty", "path": "/scs_ajax.php?table=inventory&detail=sku&term=", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-company-warm", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-company-warm", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "administrator-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "ajax-company-warm-limit", "path": "/scs_ajax.php?table=user&source=company_name&term=persona%20active&limit=3", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
+{"name": "image-viewer-warm", "path": "/image_viewer.php?action=x", "persona": "anonymous", "session": "warm"}
