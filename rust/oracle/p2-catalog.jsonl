@@ -81,3 +81,5 @@
 {"name": "beta-query", "path": "/beta_catalog/?action=subcategory&subcategory_id=449"}
 {"name": "cat-post", "method": "POST", "path": "/catalog/", "body": "x=1"}
 {"name": "search-post", "method": "POST", "path": "/search/", "body": "q=pin"}
+{"name": "index-post", "method": "POST", "path": "/scs_index.php", "body": "x=1"}
+{"name": "portal-php-post", "method": "POST", "path": "/customer_portal.php", "body": "x=1"}
