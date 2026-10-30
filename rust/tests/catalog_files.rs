@@ -41,6 +41,12 @@ async fn family_files_go_to_viewers_who_may_see_the_family() {
     let (status, headers, body) = send(&h.app, get(&file(100), None)).await;
     assert_eq!((status, body), (StatusCode::OK, missing(100)), "anonymous visitors may not browse the catalog");
     assert_eq!(headers["content-type"], "text/html; charset=UTF-8");
+    let logged = format!("{}&local_log={}", file(100), base64_fields(&["download", "data sheet (v2).pdf", "BLP-1", "7"]));
+    let (status, _, _) = send_bytes(&h.app, get(&logged, Some(&cookie))).await;
+    assert_eq!(status, StatusCode::OK);
+    let row: (i64, String, String, i64, String) =
+        sqlx::query_as("SELECT user_id, type, subtype, subcategory_id, sku FROM log WHERE comment = 'data sheet (v2).pdf'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, (60, "User".into(), "Download".into(), 7, "BLP-1".into()), "the dashboard's lead score counts downloads");
     let (_, _, body) = send(&h.app, get(&file(101), Some(&cookie))).await;
     assert_eq!(body, missing(101), "a Pending family's files are for administrators");
     sqlx::query("INSERT INTO user_category (user_id, category_id) VALUES (60, 1)").execute(&h.pool).await.unwrap();

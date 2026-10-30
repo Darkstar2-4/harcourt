@@ -177,6 +177,47 @@ fn file_response(body: Vec<u8>, mime: &str, name: &str, attachment: bool) -> Res
     resp
 }
 
+/// A download a family page's link asked scs_file.php to log (`local_log`: base64 of subtype, file name, part
+/// number and family id, tab-separated). The staff dashboard's lead score counts these rows. Only the Download
+/// subtype the links carry is written.
+#[derive(Debug, PartialEq, Eq)]
+struct Download {
+    file: String,
+    sku: String,
+    family_id: i64,
+}
+
+impl Download {
+    fn parse(encoded: &str) -> Option<Download> {
+        let mut fields = html::base64_fields_decode(encoded)?.into_iter();
+        if !fields.next()?.trim().eq_ignore_ascii_case("download") {
+            return None;
+        }
+        let mut next = || fields.next().unwrap_or_default();
+        Some(Download { file: next(), sku: next(), family_id: super::php::Value::Str(next()).int() })
+    }
+
+    async fn record(&self, pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<()> {
+        let ip = visitor.client.map(|ip| ip.to_string()).unwrap_or_default();
+        let (now, user_id, bot_id) = (crate::db::unix_now(), visitor.user().map_or(0, |u| u.id.0), visitor.bot().map_or(0, |b| b.id));
+        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str());
+        sqlx::query!(
+            "INSERT INTO log (ip, date_time, user_id, bot_id, email, type, subtype, sku, subcategory_id, comment) VALUES (?1, ?2, ?3, ?4, ?5, 'User', 'Download', ?6, ?7, ?8)",
+            ip,
+            now,
+            user_id,
+            bot_id,
+            email,
+            self.sku,
+            self.family_id,
+            self.file
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+}
+
 /// scs_file.php. Only content by id is served. Without one the PHP never got past loading its file class (500),
 /// except with `watermark`, where a missing file died empty.
 async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Query<HashMap<String, String>>) -> Response {
@@ -198,6 +239,11 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
             return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
         }
     };
+    if let Some(log) = q.get("local_log").and_then(|l| Download::parse(l)).filter(|_| visitor.impersonator.is_none()) {
+        if let Err(e) = log.record(&core.pool, &visitor).await {
+            tracing::warn!("scs_file: download log: {e}");
+        }
+    }
     if found.bytes.is_empty() {
         return php_page(StatusCode::OK, String::new());
     }
@@ -270,6 +316,15 @@ async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor, uri: U
 mod tests {
     use super::*;
     use crate::{catalog::viewer::Kind, identity::UserId};
+
+    #[test]
+    fn only_download_logs_are_read() {
+        let enc = |s: &str| html::base64_fields(&[s]);
+        assert_eq!(Download::parse(&enc("download\tsheet.pdf\tLS-1\t416")), Some(Download { file: "sheet.pdf".into(), sku: "LS-1".into(), family_id: 416 }));
+        assert_eq!(Download::parse(&format!("{}==", enc("Download"))), Some(Download { file: String::new(), sku: String::new(), family_id: 0 }));
+        assert_eq!(Download::parse(&enc("login\tx\ty\t1")), None);
+        assert_eq!(Download::parse("%%%"), None);
+    }
 
     #[test]
     fn display_sizes_follow_file_class() {
