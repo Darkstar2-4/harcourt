@@ -3,9 +3,9 @@
 //! text of each field as printed, Yoast's head lines, the scripts each page's plugins added) and checks that the
 //! Rust templates reproduce every ported page. `write` stores the result; running it again converges.
 
+pub mod capture;
 pub mod dump;
 pub mod export;
-pub mod forms;
 pub mod php;
 pub mod wp;
 
@@ -24,8 +24,6 @@ pub struct Import {
     pub menus: Vec<MenuItem>,
     pub media: Vec<Media>,
     pub redirects: Vec<(String, Redirect)>,
-    /// Gravity Forms definitions, for the orders area's tables.
-    pub forms: Vec<forms::GravityForm>,
     pub terms: Vec<Term>,
     pub authors: Vec<Author>,
 }
@@ -171,7 +169,6 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             .execute(&mut *tx)
             .await?;
     }
-    forms::write(&mut tx, &import.forms).await?;
     for t in &import.terms {
         let (taxonomy, lang) = (t.taxonomy.as_str(), t.lang.map(Lang::code));
         sqlx::query!(

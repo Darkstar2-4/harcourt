@@ -38,21 +38,36 @@ pub fn read(root: &Path) -> Result<Export, String> {
             out.chrome.insert((lang, name), text);
         }
     }
-    for page in manifest["pages"].as_array().ok_or("manifest has no pages")? {
-        for lang in Lang::ALL {
-            let Some(obj) = page.get(lang.code()).and_then(Json::as_object) else { continue };
-            if obj.get("status").and_then(Json::as_i64) == Some(404) {
-                out.not_found.insert(lang, obj.clone());
-                continue;
-            }
-            let Some(id) = obj.get("post_id").and_then(Json::as_i64) else { continue };
-            if let Some(file) = obj.get("file").and_then(Json::as_str) {
-                out.bodies.insert((id, lang), read(file)?);
-            }
-            out.pages.insert((id, lang), obj.clone());
-        }
-    }
+    out.add_pages(root, &manifest)?;
     Ok(out)
+}
+
+impl Export {
+    /// Adds the posts a capture (capture.rs) wrote under `root`, in the export's manifest form.
+    pub fn add_capture(&mut self, root: &Path) -> Result<(), String> {
+        let text = std::fs::read_to_string(root.join("manifest.json")).map_err(|e| format!("capture manifest.json: {e}"))?;
+        let manifest: Json = serde_json::from_str(&text).map_err(|e| format!("capture manifest.json: {e}"))?;
+        self.add_pages(root, &manifest)
+    }
+
+    fn add_pages(&mut self, root: &Path, manifest: &Json) -> Result<(), String> {
+        let read = |rel: &str| std::fs::read_to_string(root.join(rel)).map_err(|e| format!("{rel}: {e}"));
+        for page in manifest["pages"].as_array().ok_or("manifest has no pages")? {
+            for lang in Lang::ALL {
+                let Some(obj) = page.get(lang.code()).and_then(Json::as_object) else { continue };
+                if obj.get("status").and_then(Json::as_i64) == Some(404) {
+                    self.not_found.insert(lang, obj.clone());
+                    continue;
+                }
+                let Some(id) = obj.get("post_id").and_then(Json::as_i64) else { continue };
+                if let Some(file) = obj.get("file").and_then(Json::as_str) {
+                    self.bodies.insert((id, lang), read(file)?);
+                }
+                self.pages.insert((id, lang), obj.clone());
+            }
+        }
+        Ok(())
+    }
 }
 
 fn between<'a>(s: &'a str, start: &str, end: &str) -> Option<&'a str> {

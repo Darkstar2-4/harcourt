@@ -230,6 +230,7 @@ async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Op
     let raw_query = uri.query().unwrap_or("");
     match feed::parse(&site, path, q.lang)? {
         feed::Feed::Missing(kind) => Some(typed(kind, respond(wp, &site, None, uri, q, agent, None, true).await)),
+        feed::Feed::None => Some(respond(wp, &site, None, uri, q, agent, None, true).await),
         feed::Feed::Moved(to, kind) => Some(typed(kind, redirect(&wp.core.public_origin, &with_query(&to, raw_query)))),
         feed::Feed::Show(of, kind) => {
             let canonical = with_query(path, raw_query);
@@ -324,6 +325,8 @@ struct Query {
     /// The request URI WordPress would see, for form actions: without lang=en, which WPML drops, and on a neutral
     /// request without the site's own hxlang marker, which the static pages left out.
     form_uri_query: String,
+    /// The same with the hxlang marker kept, as WordPress saw a request it printed itself.
+    wordpress_form_query: String,
 }
 
 fn query(q: &str) -> Query {
@@ -337,7 +340,9 @@ fn query(q: &str) -> Query {
     let without_lang = pairs.iter().filter(|kv| key(kv) != "lang").copied().collect::<Vec<_>>().join("&");
     let kept: Vec<&str> = pairs.iter().filter(|kv| !(neutral && key(kv) == "hxlang") && **kv != "lang=en").copied().collect();
     let form_uri_query = if kept.is_empty() { String::new() } else { format!("?{}", kept.join("&")) };
-    Query { lang, lang_en: last_lang == Some("lang=en"), rest_route, neutral, wordpress, without_lang, form_uri_query }
+    let all: Vec<&str> = pairs.iter().filter(|kv| **kv != "lang=en").copied().collect();
+    let wordpress_form_query = if all.is_empty() { String::new() } else { format!("?{}", all.join("&")) };
+    Query { lang, lang_en: last_lang == Some("lang=en"), rest_route, neutral, wordpress, without_lang, form_uri_query, wordpress_form_query }
 }
 
 /// What a claimed path answers, given the content and the requested language.
@@ -363,7 +368,16 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
         site.find(l, path).or_else(|| site.pages.iter().find(|p| p.lang == l && p.path.eq_ignore_ascii_case(path))).filter(|p| p.status == Status::Publish)
     };
     if let Some(p) = published(lang) {
-        return Answer::Render(p);
+        // A post type's rewrite rule takes the path in any case, but redirect_canonical() sends the visitor on.
+        return if p.kind == PostType::Page || p.path == path { Answer::Render(p) } else { Answer::Redirect(format!("{}{}", p.path, p.lang.query())) };
+    }
+    // A post of a type with its own base, asked for in the other language: WPML's move to the translation.
+    let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
+    if let Some(p) = published(other).filter(|p| p.kind != PostType::Page && p.kind != PostType::Post) {
+        return match site.translation(p, lang).filter(|t| t.status == Status::Publish) {
+            Some(t) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+            None => Answer::Legacy,
+        };
     }
     if unported_rewrite(path) {
         return Answer::Legacy;
@@ -379,7 +393,6 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
     let name = path.trim_matches('/');
     let segments = name.split('/').count();
-    let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
     // In French WPML finds French pages only, so a one-segment English path is a post name (by_name).
     let translated = published(other).filter(|_| lang == Lang::En || segments > 1);
     let Some(p) = translated else {
@@ -650,7 +663,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
             _ => serve(&wp, &parts.uri, agent, None, false).await,
         };
     };
-    let wp_uri = format!("{}{}", page.path, q.form_uri_query);
+    let wp_uri = format!("{}{}", page.path, q.wordpress_form_query);
     let lang = match page.lang {
         Lang::En => model::Lang::En,
         Lang::Fr => model::Lang::Fr,
@@ -718,12 +731,13 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
-    let finished = q.neutral && replay && exact;
+    // Only pages were in the static export; WordPress printed every other post as it is.
+    let finished = q.neutral && replay && exact && page.is_some_and(|p| p.kind == PostType::Page);
     let agent = if finished { "" } else { agent };
     let (status, html, islands, lang, wp_uri) = match page {
         Some(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
-            let wp_uri = format!("{asked}{}", q.form_uri_query);
+            let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
             let Some(html) = theme::render(site, page, &wp_uri) else {
                 if replay {
                     return legacy();

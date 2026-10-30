@@ -159,7 +159,6 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
     out.media.sort_by_key(|m| m.id.0);
 
     out.menus = menus(tables, &posts, &meta, &options, &lang_of, &out.pages)?;
-    out.forms = super::forms::read(tables)?;
     out.terms = terms(tables, &posts, &lang_of, &out.pages)?;
     out.authors = authors(tables, &out.pages)?;
     Ok(out)

@@ -40,7 +40,7 @@ hxweb-cms check  --dump wp.sql --export /home/harcou6/static_site          # wri
 hxweb-cms import --dump wp.sql --export /home/harcou6/static_site --db /var/lib/hxweb/hx.db
 ```
 
-`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. It also upserts the form definitions into the orders area's `wp_gf_form` tables (entries untouched), since every page embeds a form and renders it from them. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages: until then a claimed path is handed back and answers as an unclaimed one does (the static export, or WordPress).
+`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. It also replaces the form definitions in the orders area's `wp_gf_form` tables (`orders::forms::import`; entries untouched), since every page embeds a form and renders it from them. The other post types' singles are not in the export: `hxweb-cms capture --dump wp.sql --export DIR --origin URL --out CAPTURE` fetches them once from a running WordPress into the export's form, and `--capture CAPTURE` adds them to `check` and `import`. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages: until then a claimed path is handed back and answers as an unclaimed one does (the static export, or WordPress).
 
 The same holds for any copy of the database: the oracle rig's `hx.db` is built by `hx-import` from the SCS tables only, so a server started by `hx-serve.sh` has an empty cms until `hxweb-cms import` runs against its copy (`/tmp/hx_<area>_<port>.db`).
 

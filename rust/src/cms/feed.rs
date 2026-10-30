@@ -3,7 +3,7 @@
 //! feeds are their empty channels; the posts feed is not ported yet.
 
 use super::{
-    model::{Lang, Page, Site, Status},
+    model::{Lang, Page, PostType, Site, Status},
     theme::ORIGIN,
     url::esc_url,
 };
@@ -58,6 +58,8 @@ pub enum Feed<'a> {
     Moved(String, Kind),
     /// A feed rule matched a base that is no post: WordPress's 404 page, sent as the feed's type.
     Missing(Kind),
+    /// A post whose type has no feeds (FAQs, case studies, testimonials): no rule matches, the 404 page.
+    None,
 }
 
 /// The bases of WordPress's archive and post type rewrite rules.
@@ -79,7 +81,8 @@ pub fn parse<'a>(site: &'a Site, path: &str, lang: Lang) -> Option<Feed<'a>> {
         [first, ..] => {
             let p = format!("/{}/", base.join("/"));
             match site.find(lang, &p).filter(|p| p.status == Status::Publish) {
-                Some(page) => (Of::PostComments(page), p),
+                Some(page) if matches!(page.kind, PostType::Page | PostType::Post) => (Of::PostComments(page), p),
+                Some(_) => return Some(Feed::None),
                 // Archive feeds (a category's, an author's, a year's, ...) are not ported.
                 None if ARCHIVES.contains(first) || (first.len() == 4 && first.bytes().all(|b| b.is_ascii_digit())) => return None,
                 None => return Some(Feed::Missing(kind)),

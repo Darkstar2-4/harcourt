@@ -100,3 +100,11 @@
 {"name":"ix-index-php","path":"/index.php/"}
 {"name":"ix-index-php-foo","path":"/index.php/foo"}
 {"name":"ix-index-php-a-b-c","path":"/index.php?a=b+c"}
+{"name":"faq-faq-how-can-i-quickly-find-an-item-in-t","path":"/faq/how-can-i-quickly-find-an-item-in-the-harcourt-catalog/","language":"en"}
+{"name":"faq-faq-why-cant-i-always-access-your-websi","path":"/faq/why-cant-i-always-access-your-website/?lang=en&x=1","language":"en"}
+{"name":"faq-faq-comment-verifier-letat-dune-command","path":"/faq/comment-verifier-letat-dune-commande/?lang=fr","language":"fr"}
+{"name":"faq-faq-how-do-i-download-cad-from-your-web","path":"/faq/how-do-i-download-cad-from-your-website/?utm_source=x","language":"en"}
+{"name":"faq-feed","path":"/faq/how-do-i-check-on-the-status-of-an-order/feed/"}
+{"name":"faq-upper","path":"/FAQ/how-do-i-check-on-the-status-of-an-order/"}
+{"name":"faq-hxlang","path":"/faq/comment-verifier-letat-dune-commande/?lang=fr&hxlang=fr","language":"fr"}
+{"name":"faq-to-fr","path":"/faq/how-do-i-check-on-the-status-of-an-order/?lang=fr","language":"fr"}
