@@ -1,9 +1,7 @@
-//! Owner: the wordpress agent. Routes for what WordPress did: page templates, menus, forms, SEO, redirects, editable page text, and retiring wp-login, xmlrpc and wp-admin.
-//! Register every route here and nowhere else; mod.rs only merges this router.
-//!
-//! A page listed in PAGES is rendered from the cms tables (rust/src/cms); every other WordPress page is still
-//! served from the static export by pages.rs. Deleting a path from PAGES hands it back. A Gravity Forms post to a
-//! page goes to orders::forms::handle, and its answer takes the form's place in the page.
+//! The site's content pages, as WordPress answered them: the pages, FAQs and FAQ types from the cms tables
+//! (rust/src/cms), menus, WordPress's and WPML's redirects, the sitemaps, robots.txt, the 404 page and French and
+//! English routing. The front controller also serves the static files and answers the old stack's paths with 410.
+//! A Gravity Forms post to a page goes to orders::forms::handle, and its answer takes the form's place in the page.
 //!
 //! The staff screens that edit this content (cms::admin) are mounted here, under /staff/cms.
 
@@ -12,9 +10,9 @@ use std::{collections::BTreeMap, sync::Arc};
 use axum::{
     body::Body,
     extract::{Extension, FromRequestParts, Request, State},
-    http::{header, HeaderName, HeaderValue, Response, StatusCode, Uri},
+    http::{header, HeaderName, HeaderValue, Method, Response, StatusCode, Uri},
     response::IntoResponse,
-    routing::get,
+    routing::{any, get},
     Router,
 };
 use percent_encoding::percent_decode_str;
@@ -23,9 +21,8 @@ use crate::{
     api::{Auth, ClientIp},
     visitor::SentPath,
     cms::{
-        docroot::{self, Owner},
-        feed, sitemap,
-        forms::{FormSource, Islands, OrdersForms},
+        sitemap,
+        forms::{FormSource, OrdersForms},
         theme,
         url::{http_build_query, urldecode, with_query, Arg},
         Content, FormEmbed, Lang, Page, PostType, Site, Status, Taxonomy, Term,
@@ -40,7 +37,6 @@ use crate::{
 /// WordPress did.
 const PAGES: &[&str] = &[
     "/",
-    "/beta_catalog/",
     "/boxjoint-inquiry-form/",
     "/cart/",
     "/catalog/",
@@ -144,15 +140,13 @@ pub struct Wp {
     content: Content,
     forms: Option<Arc<dyn FormSource>>,
     orders: Arc<Orders>,
-    /// WordPress, for a form post whose form the orders tables lack.
-    legacy: Option<Islands>,
     /// The search pages, for `?s=` on the front page.
     search: Arc<crate::catalog::wp_search::Search>,
 }
 
-/// The page routes, and WordPress's front controller: every other GET that WordPress answered on prod (Apache
-/// sent it to index.php). The front controller sits outside the visitor layer, as WordPress ran without
-/// scs_header.php; it hands back what is not WordPress's.
+/// The page routes, and the front controller for every other path: a static file, the old stack's 410, or what
+/// WordPress made of the path. The front controller sits outside the visitor layer, as WordPress ran without
+/// scs_header.php.
 pub struct Routers {
     pub pages: Router,
     pub front: Router,
@@ -160,21 +154,23 @@ pub struct Routers {
 
 pub fn routers(core: Arc<Auth>) -> Routers {
     let orders = Arc::new(Orders::from_env(core.clone()));
-    let forms = OrdersForms { orders: orders.clone(), fallback: Islands::from_env() };
-    routers_with(core, Some(Arc::new(forms)), orders, Islands::from_env())
+    let forms = OrdersForms { orders: orders.clone() };
+    routers_with(core, Some(Arc::new(forms)), orders)
 }
 
 /// Both routers in one, with the given source of form markup (tests pass a fixed one).
 pub fn router_with_forms(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>) -> Router {
     let orders = Arc::new(Orders::from_env(core.clone()));
-    let r = routers_with(core, forms, orders, None);
+    let r = routers_with(core, forms, orders);
     r.pages.merge(r.front)
 }
 
-fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>, legacy: Option<Islands>) -> Routers {
+fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>) -> Routers {
     let search = crate::catalog::wp_search::searcher(core.clone());
-    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, legacy, search, core: core.clone() });
-    let mut r = Router::new().route("/robots.txt", get(robots));
+    let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, search, core: core.clone() });
+    // The beta catalog's loader is gone; its page sends visitors to the catalog.
+    let beta = |State(wp): State<Arc<Wp>>| async move { redirect(&wp.core.public_origin, "/catalog/") };
+    let mut r = Router::new().route("/robots.txt", get(robots)).route("/beta_catalog/", get(beta)).route("/beta_catalog", get(beta));
     for path in PAGES {
         // The search pages answer any other method as a GET, as WordPress did.
         let methods = || if crate::catalog::wp_search::page::is_search_page(path) { get(page).post(page_post).fallback(page_other_method) } else { get(page).post(page_post) };
@@ -183,19 +179,14 @@ fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc
             r = r.route(bare, methods());
         }
     }
-    let front = Router::new().route("/{*path}", get(front)).with_state(wp.clone());
+    let front = Router::new().route("/{*path}", any(front)).with_state(wp.clone());
     Routers { pages: r.with_state(wp).merge(crate::cms::admin::routes().with_state(core)), front }
 }
 
-fn docroot() -> Option<&'static std::path::Path> {
-    static ROOT: std::sync::OnceLock<Option<std::path::PathBuf>> = std::sync::OnceLock::new();
-    ROOT.get_or_init(|| std::env::var_os("HXWEB_DOCROOT").map(std::path::PathBuf::from)).as_deref()
-}
-
-/// Paths a WordPress rewrite rule gives a meaning this port does not answer yet: feeds, embeds, trackbacks,
-/// paging and comment pages, archives (category, tag, format, author, date, search), the post types' singles
-/// and the favicon. They go to the legacy stack.
-fn unported_rewrite(path: &str) -> bool {
+/// Paths a WordPress rewrite rule gave a meaning the site no longer has: feeds, embeds, trackbacks, paging and
+/// comment pages, archives (category, tag, format, author, date, search), the blog's post types' singles and the
+/// favicon. They answer the 404 page.
+fn dropped_rewrite(path: &str) -> bool {
     const SEGMENTS: [&str; 10] = ["feed", "rdf", "rss", "rss2", "atom", "embed", "trackback", "page", "attachment", "favicon.ico"];
     const BASES: [&str; 11] = ["category", "tag", "type", "author", "search", "comments", "faq", "faq_type", "case-study", "testimonials", "job"];
     let segments: Vec<String> = path.split('/').filter(|s| !s.is_empty()).map(str::to_ascii_lowercase).collect();
@@ -206,18 +197,20 @@ fn unported_rewrite(path: &str) -> bool {
         || segments.last().is_some_and(|s| numeric(s))
 }
 
-/// Any GET no route claims: a static file as nginx served it, WordPress's answer when WordPress gave one, else what
-/// an unclaimed path gets.
-async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
+/// Any request no route claims: a static file, the old stack's 410, else what WordPress made of the path (a page asked
+/// for in another shape, a sitemap, the 404 page). A method other than GET and HEAD gets the page as WordPress
+/// printed it for a post.
+async fn front(State(wp): State<Arc<Wp>>, method: Method, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
+    let get = method == Method::GET || method == Method::HEAD;
+    if let Some((file, kind)) = crate::assets::root().filter(|_| get).and_then(|root| crate::assets::find(root, &path)) {
+        return crate::assets::serve(file, kind).await;
+    }
     // WordPress's own front controller: redirect_canonical() drops it from the URL as sent (the front routes
-    // /index.php/more as /index.php), except under a search.
+    // /index.php/more as /index.php).
     let asked = sent.map_or(path.clone(), |Extension(s)| percent_decode_str(s.uri.path()).decode_utf8_lossy().into_owned());
-    if let Some(rest) = asked.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
+    if let Some(rest) = asked.strip_prefix("/index.php").filter(|r| get && (r.is_empty() || r.starts_with('/'))) {
         let raw_query = uri.query().unwrap_or("");
-        if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
-            return legacy();
-        }
         // WPML's 302 away from lang=en comes first, to the address as asked with a slash.
         let q = query(raw_query);
         if (rest.is_empty() || rest == "/") && q.lang_en {
@@ -225,61 +218,21 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, 
         }
         return redirect(&wp.core.public_origin, &with_query(if rest.is_empty() { "/" } else { rest }, raw_query));
     }
-    match docroot::owner(&path, docroot()) {
-        Owner::Legacy => legacy(),
-        Owner::NotFound => crate::accounts::static_dirs::not_found(&wp.core.public_origin),
-        Owner::File(file, kind) => static_file(file, kind).await,
-        Owner::WordPress => {
-            let q = query(uri.query().unwrap_or(""));
-            let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
-            if let Some(r) = sitemap(&wp, &path, &q).await {
-                return r;
-            }
-            if let Some(r) = feed(&wp, &uri, &path, &q, agent).await {
-                return r;
-            }
-            serve(&wp, &uri, &headers, None, true).await
-        }
+    if let Some(gone) = crate::retired::guard(uri.path()) {
+        return gone;
     }
-}
-
-/// WordPress's feed rules: a redirect to the canonical feed URL (with the query rebuilt), a comments feed, or the
-/// 404 page for a feed of no post. The posts feeds are handed back.
-async fn feed(wp: &Arc<Wp>, uri: &Uri, path: &str, q: &Query, agent: &str) -> Option<Response<Body>> {
-    let site = match wp.content.site().await {
-        Ok(s) => s,
-        Err(e) => return Some(unavailable(e)),
-    };
-    let typed = |kind: feed::Kind, mut r: Response<Body>| {
-        r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind.content_type()));
-        r
-    };
-    let raw_query = uri.query().unwrap_or("");
-    match feed::parse(&site, path, q.lang)? {
-        feed::Feed::Missing(kind) => Some(typed(kind, respond(wp, &site, Shown::NotFound, uri, q, agent, None, true).await)),
-        feed::Feed::None => Some(respond(wp, &site, Shown::NotFound, uri, q, agent, None, true).await),
-        feed::Feed::Moved(to, kind) => Some(typed(kind, redirect(&wp.core.public_origin, &with_query(&to, raw_query)))),
-        feed::Feed::Show(of, kind) => {
-            let canonical = with_query(path, raw_query);
-            let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
-            if canonical != asked {
-                return Some(typed(kind, redirect(&wp.core.public_origin, &canonical)));
-            }
-            let asked = uri.path_and_query().map_or(path, |p| p.as_str());
-            let comments = matches!(of, feed::Of::Comments | feed::Of::PostComments(_));
-            let body = if comments { feed::comments(&site, of, kind, q.lang, asked) } else { feed::posts(&site, of, kind, q.lang, asked) };
-            let Some(body) = body else { return Some(legacy()) };
-            let mut r = typed(kind, (StatusCode::OK, public(&wp.core.public_origin, &body)).into_response());
-            if comments && kind == feed::Kind::Rss2 {
-                r.headers_mut().insert(HeaderName::from_static("x-robots-tag"), HeaderValue::from_static("noindex, follow"));
-            }
-            Some(r)
-        }
+    if !get {
+        return serve(&wp, &uri, &headers, None, false).await;
     }
+    if let Some(r) = sitemap(&wp, &path, &query(uri.query().unwrap_or(""))).await {
+        return r;
+    }
+    serve(&wp, &uri, &headers, None, true).await
 }
 
 /// Yoast's sitemap rewrite rules: the index, one sitemap per type (`page-sitemap.xml`, page 1 only), its XSL, and
-/// WordPress's own /sitemap.xml, which Yoast redirects to its index. None for any other path.
+/// WordPress's own /sitemap.xml, which Yoast redirects to its index. None for any other path, and for a sitemap the
+/// site does not have, which gets the 404 page.
 async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> {
     let xml = |body: String| -> Response<Body> {
         ([(header::CONTENT_TYPE, "text/xml; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex, follow")], public(&wp.core.public_origin, &body)).into_response()
@@ -289,14 +242,12 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
         return Some(xml(sitemap::XSL.to_string()));
     }
     if name == "sitemap.xml" {
-        // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang; with any
-        // other query it is the 404 over the blog query as Yoast's router leaves it (without the footer's menu
-        // widget), which is not ported.
-        return Some(match (q.without_lang.is_empty(), q.lang_en) {
-            (true, true) => found(&wp.core.public_origin, "/sitemap.xml/"),
-            (true, false) => redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query())),
-            (false, _) => legacy(),
-        });
+        // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang.
+        return match (q.without_lang.is_empty(), q.lang_en) {
+            (true, true) => Some(found(&wp.core.public_origin, "/sitemap.xml/")),
+            (true, false) => Some(redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query()))),
+            (false, _) => None,
+        };
     }
     // Yoast's own rules match the path with its trailing slash trimmed, as WordPress does.
     let name = name.strip_suffix('/').unwrap_or(name);
@@ -313,23 +264,11 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
         return Some(xml(sitemap::index(&site, q.lang)));
     }
     let (map, page) = name.strip_suffix(".xml")?.split_once("-sitemap")?;
-    if !page.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts, as Yoast's router leaves
-    // it (without the footer's menu widget): not ported.
     let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
         ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml"))),
-        _ => Some(legacy()),
-    }
-}
-
-async fn static_file(file: std::path::PathBuf, kind: &'static str) -> Response<Body> {
-    match tokio::task::spawn_blocking(move || std::fs::read(file)).await {
-        Ok(Ok(bytes)) => ([(header::CONTENT_TYPE, kind), (header::CACHE_CONTROL, "public, max-age=3600")], bytes).into_response(),
-        _ => legacy(),
+        _ => None,
     }
 }
 
@@ -339,11 +278,9 @@ async fn static_file(file: std::path::PathBuf, kind: &'static str) -> Response<B
 const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
 
 /// Query keys WordPress acts on (WP::$public_query_vars, this site's post types and taxonomies, Yoast's and WP Job
-/// Manager's vars, the ones redirect_canonical() and the comment and preview code read, and the form-island
-/// endpoint of mu-plugins/hx-form-island.php). A page asked for with one of them is WordPress's to answer: another
-/// post, a search, a feed, a redirect.
+/// Manager's vars, the ones redirect_canonical() and the comment and preview code read). On the front page one of
+/// them asks for another post, a search, a feed or a redirect.
 const WP_KEYS: &[&str] = &[
-    "hx_form",
     "m", "p", "posts", "w", "cat", "withcomments", "withoutcomments", "s", "search", "exact", "sentence", "calendar", "page", "paged", "more", "tb",
     "pb", "author", "order", "orderby", "year", "monthnum", "day", "hour", "minute", "second", "name", "category_name", "tag", "feed", "author_name",
     "pagename", "page_id", "error", "attachment", "attachment_id", "subpost", "subpost_id", "preview", "robots", "favicon", "taxonomy", "term", "cpage",
@@ -402,15 +339,12 @@ pub enum Answer<'a> {
     Found(String),
     /// WPML's 302 to the translation of a term asked for in the other language, to this path on the site.
     TranslationFound(String),
+    /// The 404 page: nothing at the path, or something the site no longer has (the blog, feeds, attachments).
     NotFound,
-    /// The 404 page with the blog's posts listed: no rewrite rule matched, and WordPress ran the blog query.
-    BlogNotFound,
     /// A feed's 301, sent with the feed's content type as WordPress sends it.
     FeedRedirect(String, &'static str),
     /// search.php for these terms, this page of results and the `page` query var.
     Search { s: String, paged: usize, page: usize },
-    /// A query WordPress acts on: the legacy stack answers.
-    Legacy,
 }
 
 /// What WordPress's rewrite rules and main query make of a path (with its slash), in the request's language. Pages
@@ -429,22 +363,22 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     if let Some(p) = published(other).filter(|p| p.kind != PostType::Page && p.kind != PostType::Post) {
         return match site.translation(p, lang).filter(|t| t.status == Status::Publish) {
             Some(t) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
-            None => Answer::Legacy,
+            None => Answer::NotFound,
         };
     }
     if let Some(answer) = term_archive(site, path, lang) {
         return answer;
     }
-    if unported_rewrite(path) {
-        return Answer::Legacy;
+    if dropped_rewrite(path) {
+        return Answer::NotFound;
     }
     // A doubled slash still matches the page rule (its `.?` takes the extra slash), and redirect_canonical()
-    // fixes the URL; without such a page it redirects by its 404 guess, which is not ported.
+    // fixes the URL.
     if let Some(rest) = path.strip_prefix('/').filter(|r| r.starts_with('/')) {
         let p = format!("/{}", rest.trim_start_matches('/'));
         return match site.find(lang, &p).filter(|p| p.status == Status::Publish) {
             Some(page) => Answer::Redirect(format!("{}{}", page.path, page.lang.query())),
-            None => Answer::Legacy,
+            None => Answer::NotFound,
         };
     }
     let name = path.trim_matches('/');
@@ -459,13 +393,12 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
             2 => {
                 let last = name.rsplit('/').next().unwrap_or("");
                 if site.media.values().any(|m| m.name.eq_ignore_ascii_case(last)) {
-                    Answer::Legacy
+                    Answer::NotFound
                 } else {
                     guess(site, last, lang, None)
                 }
             }
-            // No rule matches: WordPress runs the blog query under a 404, which lists the posts.
-            _ => Answer::BlogNotFound,
+            _ => Answer::NotFound,
         };
     };
     match (lang, site.translation(p, lang)) {
@@ -478,28 +411,20 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
-/// The category and FAQ type rewrite rules, `/category/<slug>/` and `/faq_type/<slug>/`: the term's archive, its
-/// slug found in any case (MySQL's collation), or the 404 page for no such term. WPML sends a translated term asked
-/// for in the other language to its translation, dropping the query.
+/// The FAQ type rewrite rule, `/faq_type/<slug>/`: the term's archive, its slug found in any case (MySQL's
+/// collation), or the 404 page for no such term. WPML sends a translated term asked for in the other language to its
+/// translation, dropping the query; an untranslated one lists the FAQs of the request's language.
 fn term_archive<'a>(site: &'a Site, path: &str, lang: Lang) -> Option<Answer<'a>> {
-    let (base, slug) = path.strip_prefix('/')?.strip_suffix('/')?.split_once('/')?;
-    let taxonomy = match base {
-        "category" => Taxonomy::Category,
-        "faq_type" => Taxonomy::FaqType,
-        _ => return None,
-    };
+    let slug = path.strip_prefix("/faq_type/")?.strip_suffix('/')?;
     if slug.is_empty() || slug.contains('/') {
         return None;
     }
+    let taxonomy = Taxonomy::FaqType;
     let Some(t) = site.terms.iter().find(|t| t.taxonomy == taxonomy && t.slug.eq_ignore_ascii_case(slug)) else { return Some(Answer::NotFound) };
     if t.lang.is_some_and(|l| l != lang) {
         let translation = site.terms.iter().find(|o| o.taxonomy == taxonomy && o.group_id.is_some() && o.group_id == t.group_id && o.lang == Some(lang));
-        match translation {
-            Some(o) => return Some(Answer::TranslationFound(format!("{}{}", o.path(), lang.query()))),
-            // An FAQ type is not translated and lists the FAQs of the request's language; a category without a
-            // translation is not ported.
-            None if taxonomy == Taxonomy::Category => return Some(Answer::Legacy),
-            None => {}
+        if let Some(o) = translation {
+            return Some(Answer::TranslationFound(format!("{}{}", o.path(), lang.query())));
         }
     }
     Some(Answer::Archive(t))
@@ -527,7 +452,7 @@ fn by_name<'a>(site: &'a Site, name: &str, lang: Lang) -> Answer<'a> {
         .min_by_key(|p| (p.kind == PostType::Page, p.lang != lang, p.kind != PostType::Post, p.id));
     let attachment = site.media.values().any(|m| m.name.eq_ignore_ascii_case(name));
     match exact {
-        _ if attachment && exact.is_none_or(|p| p.kind == PostType::Page) => Answer::Legacy,
+        _ if attachment && exact.is_none_or(|p| p.kind == PostType::Page) => Answer::NotFound,
         Some(p) if p.lang == lang => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
         Some(p) => guess(site, name, lang, Some(p.kind)),
         None => guess(site, name, lang, None),
@@ -765,10 +690,14 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
                 Vars::Found(to) => Answer::Found(to),
             };
         }
-        // Under a doubled slash WordPress resolves a post id its own way (a 301 to the permalink): not ported.
-        return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
+        // Under a doubled slash WordPress resolved a post id its own way (a 301 to the permalink), which is not
+        // kept. On a content page the var asks for something the site no longer has (a post, an archive): the page
+        // shows.
+        if front {
+            return if path == "/" { front_query(site, raw_query, q.lang).unwrap_or(Answer::NotFound) } else { Answer::NotFound };
+        }
     }
-    if q.lang_en && answer != Answer::NotFound && answer != Answer::BlogNotFound {
+    if q.lang_en && answer != Answer::NotFound {
         // WPML moves to the path WordPress parsed, its slashes trimmed and one put back; a path that began with two
         // was a host to parse_url(), which wp_safe_redirect() refuses (`found`).
         let parsed = format!("/{}/", path.trim_matches('/'));
@@ -792,8 +721,7 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
         // redirect_canonical() adds the slash to the archive's address as asked.
         (Answer::Archive(_), Some(to)) => Answer::Redirect(if raw_query.is_empty() { to } else { format!("{to}?{raw_query}") }),
-        // redirect_canonical() never sends a visitor to the URL they asked for: the 404 stands, and its sidebar is
-        // the guessed page's widgets in the request's language, which the cms does not hold.
+        // redirect_canonical() never sends a visitor to the URL they asked for: the 404 stands.
         (Answer::Redirect(to), slashed) => {
             // redirect_canonical() mending only the slashes keeps the query as sent; WPML's move to a translation
             // rebuilds it.
@@ -801,7 +729,7 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
             let to = if to == mended && !raw_query.is_empty() { format!("{to}?{raw_query}") } else { with_query(&to, raw_query) };
             let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
             if slashed.is_none() && to == asked {
-                Answer::Legacy
+                Answer::NotFound
             } else {
                 Answer::Redirect(to)
             }
@@ -816,12 +744,19 @@ async fn page_other_method(State(wp): State<Arc<Wp>>, headers: header::HeaderMap
 }
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
-    // The catalog page in its own language is composed around the catalog (compose.rs); WordPress's answers to the
-    // rest (its redirects, a form post) stay here.
+    // The catalog page in its own language is composed around the catalog (main.rs hands it to compose.rs);
+    // WordPress's answers to the rest (its redirects, a form post) stay here.
     if crate::catalog::composed_page(uri.path(), uri.query().unwrap_or("")).is_some() {
-        return legacy();
+        return handback("compose");
     }
     serve(&wp, &uri, &headers, None, true).await
+}
+
+/// A GET main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export.
+fn handback(to: &'static str) -> Response<Body> {
+    let mut r = Response::new(Body::empty());
+    r.headers_mut().insert("x-hxweb", HeaderValue::from_static(to));
+    r
 }
 
 /// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
@@ -835,8 +770,8 @@ fn slashed(path: &str) -> String {
 }
 
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
-/// the page (an ajax form gets the iframe postback document instead); a form the orders tables lack goes on to
-/// WordPress. Any other post shows the page, as WordPress did.
+/// the page (an ajax form gets the iframe postback document instead). Any other post, or one for a form the orders
+/// tables lack, shows the page, as WordPress did.
 async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let (mut parts, body) = req.into_parts();
     let Ok(ClientIp(ip)) = ClientIp::from_request_parts(&mut parts, &wp.core).await;
@@ -866,10 +801,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], h).into_response()
         }
         Ok(Some((outcome, false))) => serve(&wp, &parts.uri, &parts.headers, outcome.on_page(form), false).await,
-        Ok(None) => match &wp.legacy {
-            Some(legacy) => legacy.forward(&parts, body).await,
-            None => serve(&wp, &parts.uri, &parts.headers, None, false).await,
-        },
+        Ok(None) => serve(&wp, &parts.uri, &parts.headers, None, false).await,
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
@@ -883,38 +815,22 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 }
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
-/// neutral GET gets the page as hxweb finished the static pages; anything else (a post, other query keys) went to
-/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET
-/// or HEAD (`replay`) can be handed back to the legacy stack; a post that would be handed back gets the page at its
-/// path, or a 404.
-async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
+/// neutral GET (`get`) gets the page as hxweb finished the static pages; anything else (a post, other query keys)
+/// went to WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser.
+async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Option<render::Answer>, get: bool) -> Response<Body> {
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
     let q = query(raw_query);
-    if crate::cms::refused::refused(uri.path(), raw_query) {
-        return crate::cms::refused::not_found(agent);
-    }
-    if q.rest_route && retire_all() {
-        return gone();
+    // WordPress's REST API, which it served at any path that carries rest_route.
+    if q.rest_route {
+        return crate::retired::gone();
     }
     let site = match wp.content.site().await {
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    // WordPress serves its REST API at any path that carries rest_route.
-    if q.rest_route && replay {
-        if let Some(reply) = crate::cms::rest::answer(&site, raw_query) {
-            let status = StatusCode::from_u16(reply.status).unwrap_or(StatusCode::NOT_FOUND);
-            return (status, [(header::CONTENT_TYPE, "application/json; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex")], reply.body).into_response();
-        }
-    }
-    let answer_of = match route(&site, &path, &q, raw_query) {
-        Answer::Legacy if replay => return legacy(),
-        Answer::Legacy => resolve(&site, &path, q.lang),
-        other => other,
-    };
-    let shown = match answer_of {
+    let shown = match route(&site, &path, &q, raw_query) {
         Answer::Render(p) => Shown::Page(p),
         Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
@@ -933,10 +849,9 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str());
             return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers).await;
         }
-        Answer::BlogNotFound => Shown::BlogNotFound,
-        Answer::NotFound | Answer::Legacy => Shown::NotFound,
+        Answer::NotFound => Shown::NotFound,
     };
-    respond(wp, &site, shown, uri, &q, agent, answer, replay).await
+    respond(wp, &site, shown, uri, &q, agent, answer, get).await
 }
 
 /// What a response shows.
@@ -945,13 +860,14 @@ enum Shown<'a> {
     Page(&'a Page),
     Archive(&'a Term),
     NotFound,
-    BlogNotFound,
 }
 
-/// What `shown` is as WordPress printed it at `uri`.
+/// What `shown` is as WordPress printed it at `uri`. A post the theme does not render (the blog's, a case study, a
+/// testimonial) or one the export recorded no head for gets the 404 page; such a page goes to the static export.
 #[allow(clippy::too_many_arguments)]
-async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
+async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, get: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
+    let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
     let page = match shown {
         Shown::Page(p) => Some(p),
         _ => None,
@@ -959,48 +875,28 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
     // Only pages were in the static export; WordPress printed every other post as it is.
-    let finished = q.neutral && replay && exact && page.is_some_and(|p| p.kind == PostType::Page);
+    let finished = q.neutral && get && exact && page.is_some_and(|p| p.kind == PostType::Page);
     let agent = if finished { "" } else { agent };
-    let (status, html, islands, lang, wp_uri) = match shown {
-        Shown::Archive(term) => {
-            let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-            let Some(html) = theme::archive::term(site, term, q.lang, &request_uri) else {
-                return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
-            };
-            (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri)
-        }
+    let rendered = match shown {
+        Shown::Archive(term) => theme::archive::term(site, term, q.lang, &request_uri).map(|html| (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri.clone())),
         Shown::Page(page) => {
             let asked = if exact { page.path.as_str() } else { uri.path() };
             let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
-            // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded; a post it
-            // left out (an FAQ) has none to print, so WordPress keeps it.
+            // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded.
             let recorded = site.meta(page.id).contains_key("title");
-            let rendered = if recorded { theme::render(site, page, &wp_uri) } else { None };
-            let Some(html) = rendered else {
-                if replay {
-                    return legacy();
-                }
-                tracing::error!("{path} is claimed but its template is not ported");
-                return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
-            };
-            (StatusCode::OK, html, islands(site, page), page.lang, wp_uri)
+            recorded.then(|| theme::render(site, page, &wp_uri)).flatten().map(|html| (StatusCode::OK, html, islands(site, page), page.lang, wp_uri))
         }
-        // An export without WordPress's 404 page left nothing to render it from.
-        Shown::NotFound | Shown::BlogNotFound if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => {
-            return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
-        }
-        Shown::BlogNotFound => {
-            let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-            let Some(html) = theme::archive::blog_not_found(site, q.lang, &request_uri) else {
-                return if replay { legacy() } else { (StatusCode::NOT_FOUND, "Not found").into_response() };
-            };
-            (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
-        }
-        Shown::NotFound => {
-            let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-            let html = theme::not_found(site, q.lang, &request_uri);
-            (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
-        }
+        Shown::NotFound => None,
+    };
+    // A page whose template the cms does not render yet (a builder part not ported) is served from the static export.
+    if rendered.is_none() && get && page.is_some_and(|p| p.kind == PostType::Page) {
+        return handback("export");
+    }
+    let (status, html, islands, lang, wp_uri) = match rendered {
+        Some(r) => r,
+        // An import without WordPress's 404 page left nothing to render it from.
+        None if !site.options(q.lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) => return (StatusCode::NOT_FOUND, "Not found").into_response(),
+        None => (StatusCode::NOT_FOUND, theme::not_found(site, q.lang, &request_uri), not_found_islands(site, q.lang), q.lang, request_uri),
     };
     let answered = answer.as_ref().and_then(|a| islands.iter().find(|(_, i)| i.form == a.form).map(|(index, _)| *index));
     let filled = crate::cms::forms::fill(&html, |form, index| {
@@ -1119,50 +1015,8 @@ fn found(origin: &str, to: &str) -> Response<Body> {
     }
 }
 
-/// Hands the request back: main.rs sends a response marked `x-hxweb: legacy` on to the legacy stack.
-fn legacy() -> Response<Body> {
-    let mut r = Response::new(Body::empty());
-    r.headers_mut().insert("x-hxweb", HeaderValue::from_static("legacy"));
-    r
-}
-
-fn gone() -> Response<Body> {
-    (StatusCode::GONE, [(header::CACHE_CONTROL, "no-store")], "Gone\n").into_response()
-}
-
 async fn robots() -> impl IntoResponse {
     ([(header::CONTENT_TYPE, "text/plain")], ROBOTS)
-}
-
-fn retire_all() -> bool {
-    static ALL: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ALL.get_or_init(|| std::env::var("HXWEB_RETIRE_WORDPRESS").is_ok_and(|v| v == "1"))
-}
-
-/// WordPress entry points nothing needs any more, answered 410 by retired.rs before anything reaches Apache.
-/// `segments` is the decoded, dot-resolved path. xmlrpc.php, comment and trackback posting are retired outright;
-/// sign-in, the admin screens and the REST API wait for HXWEB_RETIRE_WORDPRESS=1, because staff still use
-/// wp-admin until page editing moves to the dashboard. admin-ajax.php stays open while Gravity Forms needs it.
-pub fn retired(segments: &[&str]) -> bool {
-    retired_with(segments, retire_all())
-}
-
-fn retired_with(segments: &[&str], all: bool) -> bool {
-    let is = |s: &str, name: &str| s.eq_ignore_ascii_case(name);
-    if segments.iter().any(|s| ["xmlrpc.php", "wp-comments-post.php", "wp-trackback.php"].iter().any(|n| is(s, n))) {
-        return true;
-    }
-    if !all {
-        return false;
-    }
-    if segments.iter().any(|s| is(s, "wp-login.php")) {
-        return true;
-    }
-    match segments.first() {
-        Some(s) if is(s, "wp-json") => true,
-        Some(s) if is(s, "wp-admin") => !segments.get(1).is_some_and(|n| is(n, "admin-ajax.php")),
-        _ => false,
-    }
 }
 
 #[cfg(test)]
@@ -1227,7 +1081,7 @@ mod tests {
         assert_eq!(r("/", "lang=en&p=7&p=2"), "302 /?p=1", "the last p counts");
         assert_eq!(r("/", "s=pin&lang=en&s=alignment%20pin"), "302 /?s=alignment+pin");
         assert_eq!(r("//", "lang=en"), "302 /");
-        assert_eq!(r("//", "p=1&lang=fr"), "Legacy", "a post id under a doubled slash is not ported");
+        assert_eq!(r("//", "p=1&lang=fr"), "NotFound", "a post id under a doubled slash is not kept");
         assert_eq!(r("/", "lang=fr&p=1"), "302 /?lang=fr&p=2", "the query keeps its order");
         assert_eq!(r("/", "p=2&lang="), "302 /?p=1&lang=", "an empty lang is the default language and stays");
         assert_eq!(r("/", "p=1&lang=fr&lang=FR"), "/company/history/?lang=FR");
@@ -1250,8 +1104,6 @@ mod tests {
             Answer::Found(to) => format!("302 {to}"),
             Answer::TranslationFound(to) => format!("302 {to}"),
             Answer::NotFound => "404".into(),
-            Answer::BlogNotFound => "blog 404".into(),
-            Answer::Legacy => "legacy".into(),
             Answer::FeedRedirect(to, _) => format!("feed {to}"),
             Answer::Search { s, paged, page } => format!("search {s:?} {paged} {page}"),
             Answer::Archive(t) => format!("archive {}", t.slug),
@@ -1268,8 +1120,8 @@ mod tests {
         };
         assert_eq!(mended("/legal//", "a=1&a=2&b="), "/legal/?a=1&a=2&b=", "mending the slashes keeps the query as sent");
         assert_eq!(r("/product/alignment/", "lang=en&lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
-        assert_eq!(r("/product/alignment/", "p=212"), "legacy");
-        assert_eq!(r("/product/alignment", "s=x"), "legacy");
+        assert_eq!(r("/product/alignment/", "p=212"), "render 1", "a post asked for on a page: the page shows");
+        assert_eq!(r("/product/alignment", "s=x"), "/product/alignment/?s=x");
         assert_eq!(r("/product/alignment/", "theme=light"), "render 1");
         assert_eq!(r("/product/alignment/", "quot="), "render 1");
         let home = Site::new(vec![page(8, 70, Lang::En, "/", Status::Publish), page(9, 70, Lang::Fr, "/", Status::Publish)]);
@@ -1292,34 +1144,29 @@ mod tests {
     }
 
     #[test]
-    fn a_term_archive_is_found_by_its_slug_in_any_case_and_in_its_language() {
+    fn an_faq_type_archive_is_found_by_its_slug_in_any_case_and_in_its_language() {
         let mut site = Site::new(vec![page(1, 10, Lang::En, "/legal/", Status::Publish)]);
         let term = |id: i64, taxonomy, slug: &str, lang, group| Term { id, taxonomy, slug: slug.into(), name: slug.into(), lang: Some(lang), group_id: group, modified_at: String::new(), pages: vec![] };
         site.terms.push(term(17, Taxonomy::FaqType, "general", Lang::En, Some(1747)));
+        site.terms.push(term(18, Taxonomy::FaqType, "generale", Lang::Fr, Some(1747)));
         site.terms.push(term(1, Taxonomy::Category, "news", Lang::En, Some(1601)));
-        site.terms.push(term(31, Taxonomy::Category, "nouvelles", Lang::Fr, Some(1601)));
-        site.terms.push(term(6, Taxonomy::Category, "solo", Lang::En, Some(1606)));
         let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
             Answer::Archive(t) => format!("archive {}", t.slug),
             Answer::Redirect(to) => to,
             Answer::Found(to) | Answer::TranslationFound(to) => format!("302 {to}"),
             other => format!("{other:?}"),
         };
-        assert_eq!(r("/category/news/", ""), "archive news");
-        assert_eq!(r("/category/nouvelles/", "lang=fr"), "archive nouvelles");
-        assert_eq!(r("/category/news/", "lang=fr&x=1"), "302 /category/nouvelles/?lang=fr", "WPML moves to the translation and drops the query");
-        assert_eq!(r("/category/nouvelles/", ""), "302 /category/news/");
-        assert_eq!(r("/category/solo/", "lang=fr"), "Legacy");
-        assert_eq!(r("/category/news", "lang=x"), "/category/news/?lang=x");
         assert_eq!(r("/faq_type/general/", ""), "archive general");
-        assert_eq!(r("/faq_type/General/", "lang=fr&utm_source=x"), "archive general");
+        assert_eq!(r("/faq_type/General/", "utm_source=x"), "archive general");
+        assert_eq!(r("/faq_type/general/", "lang=fr&x=1"), "302 /faq_type/generale/?lang=fr", "WPML moves to the translation and drops the query");
         assert_eq!(r("/faq_type/general", ""), "/faq_type/general/");
-        assert_eq!(r("/faq_type/general", "lang=fr"), "/faq_type/general/?lang=fr");
+        assert_eq!(r("/faq_type/general", "lang=x"), "/faq_type/general/?lang=x");
         assert_eq!(r("/faq_type/general/", "lang=en"), "302 /faq_type/general/");
         assert_eq!(r("/faq_type/nosuch/", ""), "NotFound");
-        assert_eq!(r("/faq_type/general/", "paged=2"), "Legacy");
-        assert_eq!(r("/faq_type/general/feed/", ""), "Legacy");
-        assert_eq!(r("/FAQ_TYPE/general/", ""), "Legacy", "the rewrite rule's base is matched as written");
+        assert_eq!(r("/faq_type/general/feed/", ""), "NotFound");
+        assert_eq!(r("/FAQ_TYPE/general/", ""), "NotFound", "the rewrite rule's base is matched as written");
+        assert_eq!(r("/category/news/", ""), "NotFound", "the blog's categories are gone");
+        assert_eq!(r("/category/news", ""), "NotFound");
     }
 
     #[test]
@@ -1339,9 +1186,9 @@ mod tests {
         assert_eq!(r("s=x&paged=abc"), "\"x\" 1 0");
         assert_eq!(r("lang=fr&s=x"), "\"x\" 1 0");
         assert_eq!(r("s=x&lang=en"), "302 /?s=x");
-        assert_eq!(r("s=x&post_type=faq"), "Legacy");
-        assert_eq!(r("s=x&p=1"), "Legacy");
-        assert_eq!(r("s=x&post_type[]=post"), "Legacy");
+        assert_eq!(r("s=x&post_type=faq"), "NotFound");
+        assert_eq!(r("s=x&p=1"), "NotFound");
+        assert_eq!(r("s=x&post_type[]=post"), "NotFound");
     }
 
     #[test]
@@ -1367,14 +1214,14 @@ mod tests {
         assert_eq!(resolve(&site, "/industries/", Lang::En), Answer::Redirect("/?page_id=4".into()));
         assert_eq!(resolve(&site, "/seulement/", Lang::En), Answer::Redirect("/seulement/?lang=fr".into()));
         assert_eq!(resolve(&site, "/legal/", Lang::Fr), Answer::Redirect("/legal/?lang=fr".into()));
-        assert_eq!(route(&site, "/legal/", &query("lang=fr"), "lang=fr"), Answer::Legacy);
+        assert_eq!(route(&site, "/legal/", &query("lang=fr"), "lang=fr"), Answer::NotFound);
         assert_eq!(route(&site, "/legal", &query("lang=fr"), "lang=fr"), Answer::Redirect("/legal/?lang=fr".into()));
         assert_eq!(resolve(&site, "/LEGAL/", Lang::En), Answer::Render(&site.pages[4]));
         assert_eq!(resolve(&site, "/seulement/x/", Lang::En), Answer::NotFound);
         assert_eq!(resolve(&site, "/x/contact/", Lang::En), Answer::Redirect("/contact/".into()));
-        assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::BlogNotFound);
-        assert_eq!(resolve(&site, "//nowhere/", Lang::En), Answer::Legacy);
-        assert_eq!(resolve(&site, "/product/alignment/feed/", Lang::En), Answer::Legacy);
+        assert_eq!(resolve(&site, "/a/b/c/", Lang::En), Answer::NotFound);
+        assert_eq!(resolve(&site, "//nowhere/", Lang::En), Answer::NotFound);
+        assert_eq!(resolve(&site, "/product/alignment/feed/", Lang::En), Answer::NotFound);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
         let carts = Site::new(vec![
             page(11, 70, Lang::En, "/shopping-cart/", Status::Publish),
@@ -1384,20 +1231,6 @@ mod tests {
         ]);
         assert_eq!(resolve(&carts, "/panier/", Lang::En), Answer::Redirect("/cart/".into()), "the exact slug, not the oldest page it starts");
         assert_eq!(resolve(&carts, "/pan/", Lang::En), Answer::Redirect("/cart/".into()), "a prefix guess lands on the first slug by name, as the oracle answers /pan/");
-    }
-
-    #[test]
-    fn retires_wordpress_entry_points() {
-        for p in [["xmlrpc.php"].as_slice(), &["en", "XMLRPC.PHP"], &["wp-comments-post.php"], &["wp-trackback.php"]] {
-            assert!(retired_with(p, false), "{p:?}");
-        }
-        assert!(!retired_with(&["wp-login.php"], false));
-        for p in [["wp-login.php"].as_slice(), &["fr", "wp-login.php"], &["wp-admin"], &["wp-admin", "options.php"], &["wp-json"], &["wp-json", "wp", "v2", "users"], &["WP-JSON", "oembed"]] {
-            assert!(retired_with(p, true), "{p:?}");
-        }
-        for p in [["wp-admin", "admin-ajax.php"].as_slice(), &["wp-content", "uploads", "x.png"], &["product", "alignment"], &[]] {
-            assert!(!retired_with(p, true), "{p:?}");
-        }
     }
 
     #[test]

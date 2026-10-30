@@ -237,7 +237,6 @@ async fn the_dropped_accounts_pages_are_gone() {
         }
         assert_eq!(hxweb::retired::guard(path).map(|r| r.status()), Some(StatusCode::GONE), "{path}");
     }
-    assert!(hxweb::retired::guard("/cookie_reset.php").is_none());
 }
 
 #[tokio::test]

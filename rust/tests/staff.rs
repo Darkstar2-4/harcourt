@@ -412,10 +412,7 @@ async fn the_dropped_staff_pages_answer_gone_or_not_found() {
         let (status, _, _) = send(&h.app, post(path, &admin, &[("action", "update")])).await;
         assert_eq!(status, StatusCode::NOT_FOUND, "{path} takes no post");
         let gone = hxweb::retired::guard(path).map(|r| r.status());
-        assert!(gone == Some(StatusCode::GONE) || path.starts_with("/staff/"), "{path} answers 410 in front of the router");
-    }
-    for kept in ["/dashboard.php", "/scs_log.php", "/company.php", "/staff/access/1"] {
-        assert!(hxweb::retired::guard(kept).is_none(), "{kept}");
+        assert!(gone == Some(StatusCode::GONE) || path.starts_with("/staff/"), "{path} answers 410 when no route claims it");
     }
 }
 
@@ -429,7 +426,6 @@ async fn every_dashboard_link_is_a_page_the_program_serves() {
     let auth = Arc::new(Auth { pool: h.pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
     let all = hxweb::routes::all(auth).layer(axum::extract::connect_info::MockConnectInfo(std::net::SocketAddr::from(([127, 0, 0, 1], 40000))));
     for link in links {
-        assert!(hxweb::retired::guard(link).is_none(), "{link} is retired");
         let (status, _, _) = send(&all, get(link, Some(&superuser))).await;
         assert!(status != StatusCode::NOT_FOUND && status != StatusCode::GONE, "{link}: {status}");
     }

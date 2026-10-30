@@ -1,34 +1,21 @@
 //! What WordPress held for the public site (pages and their translations, ACF fields, menus, site-wide options,
-//! media, redirects) and the code that renders it in the momentum-custom theme's markup, so no page needs
+//! media) and the code that renders it in the momentum-custom theme's markup, so no page needs
 //! WordPress at runtime. `import` fills the tables from a WordPress dump and the static export; `theme` renders;
 //! `edit` is what the staff dashboard calls to change page text and banners, keeping every save as a revision.
 //!
 //! # Forms (agreed with the orders area)
 //!
 //! Rendered pages mark each Gravity Form with `{{gform:N}}`, in render order, and list the forms in the page's
-//! `islands` meta with the arguments WordPress embedded them with ([`FormEmbed`]). The orders area owns Gravity
-//! Forms and provides, in `crate::forms`:
-//!
-//! ```ignore
-//! /// The form's markup for this page: what GFForms::get_form() printed there (wrapper div through the closing
-//! /// script), or None when the form is not active. Never the theme, never <html>.
-//! pub async fn embed(core: &crate::api::Auth, form: &crate::cms::FormEmbed<'_>) -> Option<String>;
-//! ```
-//!
-//! Until that exists, [`forms::Islands`] asks the WordPress island endpoint (mu-plugins/hx-form-island.php), as
-//! the static pages do today.
+//! `islands` meta with the arguments WordPress embedded them with ([`FormEmbed`]). The orders area renders each
+//! form from its tables ([`forms::OrdersForms`]).
 
 pub mod admin;
-pub mod docroot;
 pub mod edit;
-pub mod feed;
 pub mod forms;
 pub mod html;
 pub mod import;
 pub mod media;
 pub mod model;
-pub mod refused;
-pub mod rest;
 pub mod sitemap;
 pub mod theme;
 pub mod url;

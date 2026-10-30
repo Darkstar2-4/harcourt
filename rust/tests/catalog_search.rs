@@ -78,24 +78,15 @@ async fn an_entered_term_the_keyword_search_misses_opens_the_best_suggestion() {
 }
 
 #[tokio::test]
-async fn the_company_autocomplete_answers_staff_only_with_the_field_their_pages_read() {
+async fn every_other_table_is_refused_even_to_staff() {
     let h = harness().await;
     seed(&h.pool).await;
-    let customer = signed_in(&h.pool, &Account::customer(43)).await;
     let mut staff = Account::customer(44);
     staff.role = "Internal";
     staff.company_name = Some("Acme/Tooling".into());
     let staff = signed_in(&h.pool, &staff).await;
-    let page = "/remote_access.php";
-    let (status, _, body) = send(&h.app, from_page("/scs_ajax.php?table=user&source=company_name&term=acme", Some(&customer), page)).await;
-    assert_eq!((status, body.as_str()), (StatusCode::UNAUTHORIZED, ""));
-    let (status, headers, body) = send(&h.app, from_page("/scs_ajax.php?table=user&source=company_name&term=acme", Some(&staff), page)).await;
-    assert_eq!((status, &headers["content-type"]), (StatusCode::OK, &"text/html; charset=UTF-8".parse().unwrap()));
-    assert_eq!(body, r#"[{"value":"Acme\/Tooling"}]"#);
-    for path in ["/scs_ajax.php?table=remote&term=x", "/scs_ajax.php?table=user&term=acme", "/scs_ajax.php?table=inventory&detail=sku&term=HBLT", "/scs_ajax.php?table=user&source=company_name&term="] {
-        let (status, _, _) = send(&h.app, from_page(path, Some(&staff), page)).await;
-        assert_eq!(status, StatusCode::UNAUTHORIZED, "{path}");
+    for path in ["/scs_ajax.php?table=user&source=company_name&term=acme", "/scs_ajax.php?table=remote&term=x", "/scs_ajax.php?table=user&term=acme", "/scs_ajax.php?table=inventory&detail=sku&term=HBLT"] {
+        let (status, _, body) = send(&h.app, from_page(path, Some(&staff), "/catalog/")).await;
+        assert_eq!((status, body.as_str()), (StatusCode::UNAUTHORIZED, ""), "{path}");
     }
-    let direct = request(Method::GET, "/scs_ajax.php?table=user&source=company_name&term=acme", Some(&staff), &[("host", "www.harcourt.co"), ("referer", "https://www.harcourt.co/remote_access.php")], Body::empty());
-    assert_eq!(send(&h.app, direct).await.0, StatusCode::UNAUTHORIZED, "not from a script");
 }

@@ -82,7 +82,7 @@ async fn wordpress_vars_on_the_search_page_answer_as_wordpress_did() {
     assert_eq!((status, location.as_str()), (StatusCode::FOUND, "/search/?s=pin"));
     let (status, location, ..) = get("/search/?s=pin&lang=fr").await;
     assert_eq!((status, location.as_str()), (StatusCode::MOVED_PERMANENTLY, "https://www.harcourt.co/recherche/?lang=fr&s=pin"));
-    assert_eq!(get("/search/?year=2020").await.3, "legacy", "a var not ported still goes to WordPress");
+    assert_ne!(get("/search/?year=2020").await.3, "legacy", "a var the site no longer answers shows the page");
     let (status, _, _, hxweb) = ask(&app, Method::PUT, "/search/").await;
     assert!(status != StatusCode::METHOD_NOT_ALLOWED && hxweb != "legacy", "any method is a GET to WordPress");
 }

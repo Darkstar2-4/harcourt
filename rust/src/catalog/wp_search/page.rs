@@ -7,7 +7,7 @@
 use super::{field, fold, parse_terms, post_content, urlencode};
 use crate::{
     catalog::php::{self, Value},
-    cms::{feed::Kind, Lang, Page, PostType, Site, Status},
+    cms::{Lang, Page, PostType, Site, Status},
 };
 
 /// The search page in each language.
@@ -138,9 +138,9 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
     };
     let feed = match get("feed").unwrap_or("") {
         "" => None,
-        "feed" | "rss" | "rss2" => Some(("feed/", Kind::Rss2)),
-        "atom" => Some(("feed/atom/", Kind::Atom)),
-        "rdf" => Some(("feed/rdf/", Kind::Rdf)),
+        "feed" | "rss" | "rss2" => Some(("feed/", "application/rss+xml; charset=UTF-8")),
+        "atom" => Some(("feed/atom/", "application/atom+xml; charset=UTF-8")),
+        "rdf" => Some(("feed/rdf/", "application/rdf+xml; charset=UTF-8")),
         _ => return None,
     };
     let page_var = get("page").filter(|v| !v.is_empty() && *v != "0");
@@ -185,7 +185,7 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
     }
     let rest: Vec<(String, String)> = pairs.into_iter().filter(|(k, _)| !drops.contains(&k.as_str())).collect();
     Some(match (moved(with_args(&format!("{base}{}", page.lang.query()), &rest)), feed) {
-        (Some(Vars::Moved(to)), Some((_, kind))) => Vars::FeedMoved(to, kind.content_type()),
+        (Some(Vars::Moved(to)), Some((_, kind))) => Vars::FeedMoved(to, kind),
         (Some(v), _) => v,
         (None, _) => Vars::Show(page),
     })

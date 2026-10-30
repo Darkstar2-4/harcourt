@@ -1,129 +1,17 @@
-//! Filling a rendered page's `{{gform:N}}` holes. Gravity Forms belongs to the orders area (see the module docs of
-//! `cms`); until it provides `forms::embed`, the markup comes from the WordPress island endpoint
-//! (`GET /?hx_form=N&hx_lang=..&hx_page=..`, mu-plugins/hx-form-island.php), cached for an hour per page as the
-//! static pages do.
-
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
-
-use axum::response::IntoResponse;
-use tokio::sync::RwLock;
+//! Filling a rendered page's `{{gform:N}}` holes with the forms the orders area renders from SQLite.
 
 use super::{FormEmbed, Lang};
 
-const TTL: Duration = Duration::from_secs(3600);
-const CACHE_MAX: usize = 5000;
-
-pub struct Islands {
-    /// e.g. https://127.0.0.1:8443, the Apache/PHP stack.
-    legacy: String,
-    /// The Host header WordPress expects, e.g. www.harcourt.co.
-    site: String,
-    http: reqwest::Client,
-    cache: RwLock<Cache>,
-}
-
-/// (form, language, page URI, Gravity Forms browser class) -> (fetched at, markup).
-type Cache = HashMap<(u32, Lang, String, String), (Instant, String)>;
-
-impl Islands {
-    pub fn new(legacy: String, site: String) -> Option<Islands> {
-        let http = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(30))
-            .build()
-            .ok()?;
-        Some(Islands { legacy, site, http, cache: RwLock::new(HashMap::new()) })
-    }
-
-    /// HXWEB_LEGACY and HXWEB_SITE, with main.rs's defaults.
-    pub fn from_env() -> Option<Islands> {
-        let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());
-        Islands::new(env("HXWEB_LEGACY", "https://127.0.0.1:8443"), env("HXWEB_SITE", "www.harcourt.co"))
-    }
-
-    pub async fn markup(&self, form: &FormEmbed<'_>) -> Result<String, String> {
-        let agent = if form.user_agent.is_empty() { "hxweb/0.1 island" } else { form.user_agent };
-        let key = (form.form, form.lang, form.page_uri.to_string(), crate::orders::forms::render::browser_class(agent));
-        if let Some((at, html)) = self.cache.read().await.get(&key) {
-            if at.elapsed() < TTL {
-                return Ok(html.clone());
-            }
-        }
-        let id = form.form.to_string();
-        let r = self
-            .http
-            .get(format!("{}/", self.legacy))
-            .query(&[("hx_form", id.as_str()), ("hx_lang", form.lang.code()), ("hx_page", form.page_uri)])
-            .header(reqwest::header::HOST, &self.site)
-            .header(reqwest::header::USER_AGENT, agent)
-            .send()
-            .await
-            .map_err(|e| format!("island {id}: {e}"))?;
-        if r.status() != reqwest::StatusCode::OK {
-            return Err(format!("island {id} for {}: HTTP {}", form.page_uri, r.status()));
-        }
-        let html = r.text().await.map_err(|e| format!("island {id} body: {e}"))?;
-        let mut cache = self.cache.write().await;
-        if cache.len() >= CACHE_MAX {
-            cache.retain(|_, (at, _)| at.elapsed() < TTL);
-            if cache.len() >= CACHE_MAX {
-                cache.clear();
-            }
-        }
-        cache.insert(key, (Instant::now(), html.clone()));
-        Ok(html)
-    }
-}
-
-impl Islands {
-    /// Sends a request on to WordPress as main.rs's proxy would (same headers, the site's Host) and returns its
-    /// answer: a form post whose form only WordPress knows.
-    pub async fn forward(&self, parts: &axum::http::request::Parts, body: axum::body::Bytes) -> axum::response::Response {
-        use axum::http::header;
-        let hop = [header::CONNECTION, header::TRANSFER_ENCODING, header::UPGRADE, header::TE, header::HOST, header::CONTENT_LENGTH];
-        let uri = parts.uri.path_and_query().map(|p| p.as_str()).unwrap_or("/");
-        let mut out = self.http.request(parts.method.clone(), format!("{}{uri}", self.legacy)).body(body);
-        for (k, v) in parts.headers.iter().filter(|(k, _)| !hop.contains(k)) {
-            out = out.header(k, v);
-        }
-        let r = match out.header(header::HOST, &self.site).send().await {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::error!("legacy {} {uri}: {e}", parts.method);
-                return (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response();
-            }
-        };
-        let mut b = axum::http::Response::builder().status(r.status());
-        for (k, v) in r.headers().iter().filter(|(k, _)| !hop.contains(k)) {
-            b = b.header(k, v);
-        }
-        let bytes = r.bytes().await.unwrap_or_default();
-        b.body(axum::body::Body::from(bytes)).unwrap_or_else(|_| (axum::http::StatusCode::BAD_GATEWAY, "Bad gateway").into_response())
-    }
-}
-
 pub type Markup<'a> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send + 'a>>;
 
-/// Where a page's form markup comes from: the island endpoint now, the orders area's `forms::embed` later.
+/// Where a page's form markup comes from (tests pass a fixed one).
 pub trait FormSource: Send + Sync {
     fn markup<'a>(&'a self, form: &'a FormEmbed<'a>) -> Markup<'a>;
 }
 
-impl FormSource for Islands {
-    fn markup<'a>(&'a self, form: &'a FormEmbed<'a>) -> Markup<'a> {
-        Box::pin(Islands::markup(self, form))
-    }
-}
-
-/// Gravity Forms as the orders area renders them from SQLite, falling back to the WordPress island endpoint for a
-/// form that is not imported there.
+/// Gravity Forms as the orders area renders them from SQLite.
 pub struct OrdersForms {
     pub orders: std::sync::Arc<crate::orders::Orders>,
-    pub fallback: Option<Islands>,
 }
 
 impl FormSource for OrdersForms {
@@ -141,13 +29,9 @@ impl FormSource for OrdersForms {
                 position: form.position,
             };
             match crate::orders::forms::embedded(&self.orders, i64::from(form.form), lang, form.page_uri, form.user_agent, &embed).await {
-                Ok(Some(html)) => return Ok(html),
-                Ok(None) => {}
-                Err(e) => tracing::warn!("form {}: {e}", form.form),
-            }
-            match &self.fallback {
-                Some(islands) => islands.markup(form).await,
-                None => Err(format!("form {} is not available", form.form)),
+                Ok(Some(html)) => Ok(html),
+                Ok(None) => Err(format!("form {} is not available", form.form)),
+                Err(e) => Err(format!("form {}: {e}", form.form)),
             }
         })
     }

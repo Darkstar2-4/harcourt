@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use sqlx::SqlitePool;
 
-use super::model::{Author, Fields, Lang, Media, MenuItem, Page, PageId, Redirect, Site, Term};
+use super::model::{Author, Fields, Lang, Media, MenuItem, Page, PageId, Site, Term};
 
 #[derive(Debug, Default)]
 pub struct Import {
@@ -24,7 +24,6 @@ pub struct Import {
     pub options: BTreeMap<Lang, Fields>,
     pub menus: Vec<MenuItem>,
     pub media: Vec<Media>,
-    pub redirects: Vec<(String, Redirect)>,
     pub terms: Vec<Term>,
     pub authors: Vec<Author>,
 }
@@ -38,7 +37,6 @@ impl Import {
         site.options = self.options.iter().map(|(k, v)| (*k, v.clone())).collect();
         site.menus = self.menus.clone();
         site.media = self.media.iter().map(|m| (m.id, m.clone())).collect();
-        site.redirects = self.redirects.iter().cloned().collect();
         site.terms = self.terms.clone();
         site.authors = self.authors.iter().map(|a| (a.id, a.clone())).collect();
         site
@@ -54,7 +52,6 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
     sqlx::query!("DELETE FROM cms_option").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_menu_item").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_media").execute(&mut *tx).await?;
-    sqlx::query!("DELETE FROM cms_redirect").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_term_page").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_term").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_author").execute(&mut *tx).await?;
@@ -152,10 +149,6 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
         )
         .execute(&mut *tx)
         .await?;
-    }
-    for (path, r) in &import.redirects {
-        let status = i64::from(r.status);
-        sqlx::query!("INSERT INTO cms_redirect (path, target, status) VALUES (?1, ?2, ?3)", path, r.target, status).execute(&mut *tx).await?;
     }
     for p in &import.pages {
         let snapshot = super::edit::snapshot(import.fields.get(&p.id), import.meta.get(&p.id));

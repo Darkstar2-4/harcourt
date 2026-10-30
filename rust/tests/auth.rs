@@ -240,8 +240,8 @@ async fn api_answers_503_when_it_is_not_configured() {
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
 }
 
-/// The old scs_remote.php entry points, as a request line, answer 410 with no cookie. The same guard main.rs calls
-/// runs before anything is proxied, so no request shaped like them reaches the PHP file or sets a session.
+/// The old scs_remote.php entry points, as a request line, answer 410 with no cookie: the guard main.rs answers
+/// every unclaimed request with.
 #[test]
 fn the_retired_scs_remote_paths_are_gone_for_every_method_shape() {
     for target in [

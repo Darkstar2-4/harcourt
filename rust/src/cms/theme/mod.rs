@@ -2,8 +2,8 @@
 //! requests and, in probe mode, recovers field values from pages WordPress rendered (see `probe`).
 //!
 //! A page is head + header + body + footer. The chrome (head, header, footer) is WordPress's output with the
-//! per-page parts as `{{name}}` holes (chrome/{en,fr}/*.html, made by tools/cms_chrome.py); `chrome` computes each
-//! hole. The body comes from the page's template in `templates`, a transcription of the theme's PHP.
+//! per-page parts as `{{name}}` holes (chrome/{en,fr}/*.html, cut once from the static export); `chrome` computes
+//! each hole. The body comes from the page's template in `templates`, a transcription of the theme's PHP.
 
 pub mod archive;
 mod builder;

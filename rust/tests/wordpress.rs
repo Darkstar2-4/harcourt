@@ -118,13 +118,32 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr")));
     let (status, location, _) = send(&app, Method::GET, "/gamme-de-produits/centrage/").await;
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/product/alignment/")));
-    let unknown = app.clone().oneshot(Request::builder().uri("/product/clamping/").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(unknown.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "WordPress answers a page the cms lacks");
+    assert_eq!(send(&app, Method::GET, "/product/clamping/").await.0, StatusCode::NOT_FOUND, "a page the cms lacks");
     assert_eq!(send(&app, Method::POST, "/product/clamping/").await.0, StatusCode::NOT_FOUND);
-    let (status, _, body) = send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/users").await;
-    assert_eq!(status, StatusCode::NOT_FOUND, "the user listing gets prod's nginx 404, never WordPress");
-    assert!(body.contains("<center>nginx</center>"));
+    assert_eq!(send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/pages").await.0, StatusCode::GONE, "WordPress's REST API is gone");
     assert_eq!(send(&app, Method::POST, "/product/alignment/").await.0, StatusCode::OK);
+}
+
+/// The old stack's addresses answer 410 by one rule; what WordPress showed for the blog, its feeds, archives and
+/// authors is the 404 page now.
+#[tokio::test]
+async fn the_old_stack_is_gone_and_the_blog_is_not_found() {
+    let (app, _) = harness().await;
+    for path in ["/wp-login.php", "/wp-admin/", "/wp-admin/admin-ajax.php", "/wp-json/wp/v2/pages/1", "/wp-json/", "/xmlrpc.php", "/scs_remote.php", "/includes/x.php", "/wp-content/plugins/x/readme.txt", "/wp-includes/wlwmanifest.xml"] {
+        for method in [Method::GET, Method::POST] {
+            let res = app.clone().oneshot(Request::builder().method(method.clone()).uri(path).body(Body::empty()).unwrap()).await.unwrap();
+            assert_eq!(res.status(), StatusCode::GONE, "{method} {path}");
+            assert!(res.headers().get(header::SET_COOKIE).is_none(), "{path}");
+        }
+    }
+    assert_eq!(send(&app, Method::GET, "/?rest_route=/wp/v2/users").await.0, StatusCode::GONE);
+    for path in ["/beta_catalog/", "/beta_catalog"] {
+        let (status, location, _) = send(&app, Method::GET, path).await;
+        assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/catalog/")), "the beta catalog has no loader any more");
+    }
+    for path in ["/feed/", "/comments/feed/", "/category/blog/", "/author/someone/", "/2024/01/", "/a/b/c/", "/product/alignment/feed/", "/post-sitemap.xml", "/author-sitemap.xml", "/category-sitemap.xml"] {
+        assert_eq!(send(&app, Method::GET, path).await.0, StatusCode::NOT_FOUND, "{path}");
+    }
 }
 
 #[tokio::test]
@@ -151,14 +170,25 @@ async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
 }
 
 #[tokio::test]
-async fn a_post_the_export_left_out_stays_with_wordpress() {
+async fn a_post_the_export_left_out_is_not_found() {
     let (app, pool) = harness().await;
     sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
         .execute(&pool)
         .await
         .unwrap();
-    let res = app.clone().oneshot(Request::builder().uri("/faq/example-question/").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "no recorded head, no page");
+    assert_eq!(send(&app, Method::GET, "/faq/example-question/").await.0, StatusCode::NOT_FOUND, "no recorded head, no page");
+}
+
+#[tokio::test]
+async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (437, 437, 'en', '/innovations/example-builder/', 'layouts/template-product-boxjoint.php', 'publish', 'Example', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let res = app.clone().oneshot(Request::builder().uri("/innovations/example-builder/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "main.rs serves it from the export");
+    assert_eq!(send(&app, Method::POST, "/innovations/example-builder/").await.0, StatusCode::NOT_FOUND, "only a GET is handed over");
 }
 
 #[tokio::test]
@@ -173,8 +203,7 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml"));
     assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
-    let none = app.clone().oneshot(Request::builder().uri("/post-sitemap.xml").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(none.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"));
+    assert_eq!(send(&app, Method::GET, "/post-sitemap.xml").await.0, StatusCode::NOT_FOUND);
 
     let (status, _, xml) = send(&app, Method::GET, "/page-sitemap.xml/").await;
     assert_eq!(status, StatusCode::OK, "Yoast's rules match without the trailing slash");
@@ -187,8 +216,7 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert_eq!(send(&app, Method::GET, "/index.php?x=1").await.1.as_deref(), Some("https://www.harcourt.co/?x=1"));
     assert_eq!(send(&app, Method::GET, "/index.php/?lang=en").await.1.as_deref(), Some("/index.php/"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=en").await.1.as_deref(), Some("/sitemap.xml/"));
-    let blog = app.clone().oneshot(Request::builder().uri("/sitemap.xml?order=asc").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(blog.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "any other query is the blog query's 404");
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml?order=asc").await.0, StatusCode::NOT_FOUND, "any other query is a 404");
 }
 
 #[tokio::test]

@@ -1,5 +1,5 @@
-//! Yoast SEO's XML sitemaps, from the cms content as WPML shows it in the request's language: one sitemap per post
-//! type with published posts, per taxonomy with filed terms, and the authors, listed in sitemap_index.xml.
+//! Yoast SEO's XML sitemaps, from the cms content as WPML shows it in the request's language, for what the site still
+//! has: the pages, the FAQs and the FAQ types, listed in sitemap_index.xml.
 
 use std::fmt::Write;
 
@@ -19,24 +19,26 @@ pub const XSL: &str = include_str!("../../assets/main-sitemap.xsl");
 /// One sitemap of the index, by the name in its URL (`page` for /page-sitemap.xml).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Map {
-    Posts(PostType),
-    Terms(Taxonomy),
-    Authors,
+    Pages,
+    Faqs,
+    FaqTypes,
 }
 
 impl Map {
     pub fn parse(name: &str) -> Option<Map> {
         match name {
-            "author" => Some(Map::Authors),
-            _ => PostType::parse(name).map(Map::Posts).or_else(|| Taxonomy::parse(name).map(Map::Terms)),
+            "page" => Some(Map::Pages),
+            "faq" => Some(Map::Faqs),
+            "faq_type" => Some(Map::FaqTypes),
+            _ => None,
         }
     }
 
     fn name(self) -> &'static str {
         match self {
-            Map::Posts(t) => t.as_str(),
-            Map::Terms(t) => t.as_str(),
-            Map::Authors => "author",
+            Map::Pages => "page",
+            Map::Faqs => "faq",
+            Map::FaqTypes => "faq_type",
         }
     }
 }
@@ -50,10 +52,6 @@ struct Url {
 /// `2019-11-19 20:06:55` (GMT) as Yoast prints it.
 fn iso(gmt: &str) -> String {
     format!("{}+00:00", gmt.replacen(' ', "T", 1))
-}
-
-fn iso_unix(secs: i64) -> String {
-    chrono::DateTime::from_timestamp(secs, 0).map(|t| t.format("%Y-%m-%dT%H:%M:%S+00:00").to_string()).unwrap_or_default()
 }
 
 fn head(lang: Lang) -> String {
@@ -72,19 +70,14 @@ fn noindex(site: &Site, p: &Page) -> bool {
 /// The sitemaps the index lists, in Yoast's order, each with its lastmod.
 fn maps(site: &Site, lang: Lang) -> Vec<(Map, String)> {
     let mut out = Vec::new();
-    for t in [PostType::Post, PostType::Page, PostType::Faq, PostType::CaseStudy] {
+    for (map, t) in [(Map::Pages, PostType::Page), (Map::Faqs, PostType::Faq)] {
         if let Some(m) = site.pages.iter().filter(|p| p.kind == t && indexed(p)).map(|p| p.modified_at.as_str()).max() {
-            out.push((Map::Posts(t), iso(m)));
+            out.push((map, iso(m)));
         }
     }
-    for t in [Taxonomy::Category, Taxonomy::FaqType] {
-        if terms(site, t, lang).next().is_some() {
-            let m = site.pages.iter().filter(|p| p.kind == t.of() && p.lang == lang && indexed(p)).map(|p| p.modified_at.as_str()).max().unwrap_or("");
-            out.push((Map::Terms(t), iso(m)));
-        }
-    }
-    if let Some(m) = authors(site).map(|a| a.profile_updated).max() {
-        out.push((Map::Authors, iso_unix(m)));
+    if terms(site, Taxonomy::FaqType, lang).next().is_some() {
+        let m = site.pages.iter().filter(|p| p.kind == PostType::Faq && p.lang == lang && indexed(p)).map(|p| p.modified_at.as_str()).max().unwrap_or("");
+        out.push((Map::FaqTypes, iso(m)));
     }
     out
 }
@@ -98,12 +91,6 @@ fn terms(site: &Site, taxonomy: Taxonomy, lang: Lang) -> impl Iterator<Item = &s
             && (!translated || t.lang == Some(lang))
             && t.pages.iter().any(|id| site.page(*id).is_some_and(|p| indexed(p) && p.kind == taxonomy.of()))
     })
-}
-
-fn authors(site: &Site) -> impl Iterator<Item = &super::model::Author> {
-    let mut list: Vec<_> = site.authors.values().filter(|a| site.pages.iter().any(|p| p.author_id == Some(a.id) && indexed(p))).collect();
-    list.sort_by_key(|a| a.id);
-    list.into_iter()
 }
 
 /// sitemap_index.xml in `lang`.
@@ -124,13 +111,11 @@ pub fn urlset(site: &Site, map: Map, lang: Lang) -> Option<String> {
         return None;
     }
     let urls = match map {
-        Map::Posts(t) => posts(site, t, lang),
-        Map::Terms(t) => terms(site, t, lang)
+        Map::Pages => posts(site, PostType::Page, lang),
+        Map::Faqs => posts(site, PostType::Faq, lang),
+        Map::FaqTypes => terms(site, Taxonomy::FaqType, lang)
             .map(|t| Url { loc: format!("{ORIGIN}{}{}", t.path(), t.lang.map_or("", Lang::query)), lastmod: iso(&t.modified_at), images: Vec::new() })
             .collect(),
-        Map::Authors => {
-            authors(site).map(|a| Url { loc: format!("{ORIGIN}/author/{}/{}", a.nicename, lang.query()), lastmod: iso_unix(a.profile_updated), images: Vec::new() }).collect()
-        }
     };
     let mut out = head(lang);
     out.push_str(URLSET);
@@ -195,11 +180,12 @@ mod tests {
     #[test]
     fn dates_print_as_yoast_prints_them() {
         assert_eq!(iso("2019-11-19 20:06:55"), "2019-11-19T20:06:55+00:00");
-        assert_eq!(iso_unix(1788378018), "2026-09-02T19:40:18+00:00");
         assert_eq!(attr(" src=\"/a.png\" alt=''", "src"), Some("/a.png"));
         assert!(head(Lang::Fr).contains("type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
-        assert_eq!(Map::parse("faq_type"), Some(Map::Terms(Taxonomy::FaqType)));
-        assert_eq!(Map::parse("page"), Some(Map::Posts(PostType::Page)));
-        assert_eq!(Map::parse("nosuch"), None);
+        assert_eq!(Map::parse("faq_type"), Some(Map::FaqTypes));
+        assert_eq!(Map::parse("page"), Some(Map::Pages));
+        for dropped in ["post", "case_study", "category", "author", "nosuch"] {
+            assert_eq!(Map::parse(dropped), None, "{dropped}");
+        }
     }
 }

@@ -83,10 +83,10 @@ proptest! {
     }
 
     #[test]
-    fn is_retired_is_total_and_never_fires_without_a_php_segment(s in prop_oneof![gen::url_text(20), gen::path()]) {
+    fn is_retired_is_total_and_fires_only_for_the_old_stacks_segments(s in prop_oneof![gen::url_text(20), gen::path()]) {
         let hit = within(PURE, "is_retired", || is_retired(&s));
         let decoded = percent_encoding::percent_decode_str(&s).decode_utf8_lossy().to_ascii_lowercase();
-        if !decoded.split('/').any(|seg| seg.ends_with(".php")) {
+        if !decoded.split('/').any(|seg| seg.ends_with(".php") || seg.starts_with("wp-") || seg.contains("xmlrpc")) {
             prop_assert!(!hit, "{}", s);
         }
     }
