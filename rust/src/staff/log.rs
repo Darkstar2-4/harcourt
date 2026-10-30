@@ -14,7 +14,7 @@ use sqlx::SqlitePool;
 
 use super::{
     csrf::{Fields, Posted},
-    html::{button, close, esc, hidden, open, page_break, Blank, Form, Notes, Opts, Tabs, PAGE_ROWS},
+    html::{button, close, hidden, open, page_break, Blank, Form, Notes, Opts, Tabs, PAGE_ROWS, text},
     shell, time, Staff,
 };
 use crate::{
@@ -31,7 +31,7 @@ const TYPES: &[(&str, &[&str])] = &[
     ("User", &["Login", "Remote Login", "Download", "Signup", "Email", "PO", "Click Through"]),
     ("Page", &["General", "Solutions", "Products", "Portal"]),
     ("Catalog", &["Unit Filter", "Unit Default"]),
-    ("Search", &["General", "Subcategory", "SKU", "Competitor SKU", "Lookup"]),
+    ("Search", &["General", "Category", "Subcategory", "SKU", "Competitor SKU", "Lookup"]),
     ("PARTSolutions", &["Reverse Lookup Error", "CAD", "Quick CAD", "Quick CAD Error", "PDF Datasheet", "Configurator", "Security"]),
     ("Initial", &["Campaign", "Referer"]),
     ("IPStack", &["Success", "Error"]),
@@ -273,9 +273,9 @@ function toolbox_page_item(action, page, item) {
 fn input_tab(form: &Form<'_>, input: &Input, company: &str) -> String {
     let mut types: Vec<(String, String)> = Vec::new();
     for (kind, subtypes) in TYPES {
-        types.push((type_code(kind, ""), format!("{} (All)", esc(kind))));
+        types.push((type_code(kind, ""), format!("{} (All)", text(kind))));
         for s in *subtypes {
-            types.push((type_code(kind, s), format!("&nbsp;{}", esc(s))));
+            types.push((type_code(kind, s), format!("&nbsp;{}", text(s))));
         }
     }
     let user = if input.user_id == 0 { String::new() } else { input.user_id.to_string() };
@@ -296,7 +296,7 @@ fn input_tab(form: &Form<'_>, input: &Input, company: &str) -> String {
         "</tr>".into(),
         "<tr>".into(),
         "<td>User ID</td>".into(),
-        format!("<td>{} <b><span id=ajax_user_label>{}</span></b></td>", form.text("ajax_user_id", &user, 20, 0, Opts::new()), esc(company)),
+        format!("<td>{} <b><span id=ajax_user_label>{}</span></b></td>", form.text("ajax_user_id", &user, 20, 0, Opts::new()), text(company)),
         "</tr>".into(),
         "<tr>".into(),
         "<td>Export?</td>".into(),
@@ -330,17 +330,17 @@ fn results_tab(rows: &[Row], found: i64, input: &Input) -> String {
     out.extend(["<th>SKU</th>", "<th>Comment</th>", "</tr>", "</thead>", "<tbody>"].map(String::from));
     for r in rows {
         out.push("<tr>".into());
-        out.push(format!("<td>{}</td>", esc(&r.email)));
-        out.push(format!("<td>{}</td>", esc(&r.company_name)));
+        out.push(format!("<td>{}</td>", text(&r.email)));
+        out.push(format!("<td>{}</td>", text(&r.company_name)));
         out.push(format!("<td class='center nobr'>{}</td>", time::date("m/d/Y h:i A", r.date_time)));
         if input.kind.is_empty() {
-            out.push(format!("<td>{}</td>", esc(&r.kind)));
+            out.push(format!("<td>{}</td>", text(&r.kind)));
         }
         if input.subtype.is_empty() {
-            out.push(format!("<td>{}</td>", esc(&r.subtype)));
+            out.push(format!("<td>{}</td>", text(&r.subtype)));
         }
-        out.push(format!("<td class=nobr>{}</td>", esc(&r.sku)));
-        out.push(format!("<td>{}</td>", esc(&r.comment).replace('\n', "<br>")));
+        out.push(format!("<td class=nobr>{}</td>", text(&r.sku)));
+        out.push(format!("<td>{}</td>", text(&r.comment).replace('\n', "<br>")));
         out.push("</tr>".into());
     }
     out.push("</tbody>".into());
@@ -371,6 +371,7 @@ async fn run(pool: &SqlitePool, staff: &Staff<Executive>, fields: &Fields, heade
         notes.error("null", None);
     }
     let mut tabs = Tabs::new();
+    tabs.in_wordpress(staff.wp);
     let form = Form { notes: &notes };
     tabs.item("Input", input_tab(&form, &input, &company));
     if !input.action.is_empty() && !notes.has_errors() {
@@ -389,7 +390,7 @@ async fn run(pool: &SqlitePool, staff: &Staff<Executive>, fields: &Fields, heade
         close().to_string(),
     ]
     .concat();
-    Ok(shell::page(pool, staff.who.user.role, TITLE, &body).await)
+    Ok(shell::page(pool, staff.view(), TITLE, &body).await)
 }
 
 async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, RawQuery(q): RawQuery, headers: HeaderMap) -> Response {

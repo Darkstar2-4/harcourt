@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO currency (code, name, plural, active) SELECT ?1, ?2, ?3, 1 WHERE NOT EXISTS (SELECT 1 FROM currency WHERE code = ?1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3208c15e0a6504cebdc305fc47f5a10896380d9e47603a33b3db22572c345d2c"
+}

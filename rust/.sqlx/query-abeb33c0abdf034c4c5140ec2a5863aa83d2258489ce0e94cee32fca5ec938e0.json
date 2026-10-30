@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO content (record_type, record_id, record_item, language_code) VALUES ('inventory', ?1, ?2, ?3) RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "abeb33c0abdf034c4c5140ec2a5863aa83d2258489ce0e94cee32fca5ec938e0"
+}

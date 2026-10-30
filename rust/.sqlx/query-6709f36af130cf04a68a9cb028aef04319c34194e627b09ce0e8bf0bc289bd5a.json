@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM content WHERE record_type = 'inventory' AND record_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "6709f36af130cf04a68a9cb028aef04319c34194e627b09ce0e8bf0bc289bd5a"
+}

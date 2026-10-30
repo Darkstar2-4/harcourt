@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE portalcategory SET portal_id = ?2, name = ?3, output_order = ?4, headline = ?5, headline_portalcontent_id = ?6, image_portalcontent_id = ?7,\n                subcategory_id = ?8, active = ?9 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "e1ac1f45ad05c7560688aa7a20657251bb7409d6cfb4f58698062c436c597a42"
+}
