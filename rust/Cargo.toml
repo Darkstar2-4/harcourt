@@ -28,9 +28,9 @@ rand = "0.8"
 base64 = "0.22"
 hex = "0.4"
 percent-encoding = "2"
+tower = { version = "0.5", features = ["util"] }
 
 [dev-dependencies]
-tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
 
 [profile.release]

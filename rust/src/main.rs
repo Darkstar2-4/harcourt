@@ -21,6 +21,9 @@ use tokio::sync::RwLock;
 
 pub struct App {
     legacy: String,
+    /// The library's routes, called in-process by the composer (the catalog fragment and the loader JSON). None
+    /// without a database, in which case the composer passes the page to PHP.
+    lib: Option<Router>,
     site: String,
     /// The host visitors use. Differs from `site` on a staging copy (stage2.harcourt.co), where links are rewritten.
     public_host: String,
@@ -112,8 +115,10 @@ async fn main() {
     tracing_subscriber::fmt().with_target(false).init();
     let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());
     let listen = env("HXWEB_LISTEN", "127.0.0.1:8090");
+    let lib = open_auth().await.map(hxweb::routes::all);
     let app = Arc::new(App {
         legacy: env("HXWEB_LEGACY", "https://127.0.0.1:8443"),
+        lib: lib.clone(),
         site: env("HXWEB_SITE", "www.harcourt.co"),
         public_host: env("HXWEB_PUBLIC_HOST", &env("HXWEB_SITE", "www.harcourt.co")),
         http: client(Duration::from_secs(30)),
@@ -142,8 +147,8 @@ async fn main() {
         }
     });
     let legacy = Router::new().fallback(dispatch).with_state(app);
-    let router = match open_auth().await {
-        Some(core) => hxweb::routes::all(core).fallback_service(legacy),
+    let router = match lib {
+        Some(lib) => lib.fallback_service(legacy),
         None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
@@ -181,9 +186,6 @@ async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {
             return compose::handle(&app, req).await;
         }
         let query = req.uri().query().unwrap_or("").to_string();
-        if let Some(resp) = compose::fragment_as_page(&path, &query, req.headers()) {
-            return resp;
-        }
         if let Some(resp) = app.pages.serve(&app, &path, &query).await {
             return resp;
         }
