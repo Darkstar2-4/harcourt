@@ -222,6 +222,43 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
 }
 
 #[tokio::test]
+async fn administrators_mint_list_and_revoke_grants_within_their_role() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 5, "Customer").await;
+    person(&h.pool, 6, "Super User").await;
+    let (status, _, _) = send(&h.app, get("/staff/remote-grants", Some(&person(&h.pool, 2, "Executive").await))).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let (_, _, page) = send(&h.app, get("/staff/remote-grants", Some(&admin))).await;
+    assert!(page.contains("<td colspan=6>No live grants</td>"));
+    let csrf = csrf_of(&page);
+    let p = |pairs: &[(&str, &str)]| post("/staff/remote-grants", &admin, &[pairs, &[("csrf", csrf.as_str())]].concat());
+
+    let (_, _, page) = send(&h.app, p(&[("action", "mint"), ("user_id", "6")])).await;
+    assert!(page.contains("No account you can grant"));
+    let (_, _, missing) = send(&h.app, p(&[("action", "mint"), ("user_id", "999")])).await;
+    assert!(missing.contains("No account you can grant"));
+    let grants: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_grant").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(grants, 0);
+
+    let (_, _, page) = send(&h.app, p(&[("action", "mint"), ("user_id", "5")])).await;
+    assert!(page.contains("<br>Grant created for user 5</span>"));
+    let code = page.split("<b><code>").nth(1).unwrap().split("</code>").next().unwrap();
+    assert!(hxweb::token::Token::parse(code).is_some());
+    let (_, _, list) = send(&h.app, get("/staff/remote-grants", Some(&admin))).await;
+    assert!(list.contains("<td>Test company 5</td>") && !list.contains(code));
+
+    let id: i64 = sqlx::query_scalar("SELECT rowid FROM remote_grant").fetch_one(&h.pool).await.unwrap();
+    let id = id.to_string();
+    let (_, _, page) = send(&h.app, p(&[("action", "revoke"), ("record_id", &id)])).await;
+    assert!(page.contains("<br>Grant revoked</span>") && page.contains("No live grants"));
+    let redeemed = hxweb::remote_grant::redeem(&h.pool, &hxweb::token::Token::parse(code).unwrap(), db::unix_now()).await.unwrap();
+    assert!(redeemed.is_none());
+    let audit: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE subtype IN ('remote_granted', 'remote_revoked')").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(audit, 2);
+}
+
+#[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
