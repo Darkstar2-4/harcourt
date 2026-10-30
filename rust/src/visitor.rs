@@ -8,11 +8,11 @@ use std::{convert::Infallible, sync::Arc};
 
 use axum::{extract::FromRequestParts, http::request::Parts};
 
-use crate::{api::Auth, db::unix_now, identity::User, session};
+use crate::{api::Auth, db::unix_now, identity::User, session, token::TokenHash};
 
 pub enum Visitor {
     Anonymous,
-    SignedIn { user: User, email: Option<String> },
+    SignedIn { user: User, email: Option<String>, session: TokenHash },
 }
 
 impl Visitor {
@@ -30,7 +30,7 @@ impl FromRequestParts<Arc<Auth>> for Visitor {
     async fn from_request_parts(parts: &mut Parts, core: &Arc<Auth>) -> Result<Self, Infallible> {
         let Some(token) = crate::api::session_cookie(&parts.headers) else { return Ok(Visitor::Anonymous) };
         match session::lookup(&core.pool, &token, unix_now()).await {
-            Ok(Some(found)) if found.user.is_active() => Ok(Visitor::SignedIn { user: found.user, email: found.email }),
+            Ok(Some(found)) if found.user.is_active() => Ok(Visitor::SignedIn { user: found.user, email: found.email, session: token.hash() }),
             _ => Ok(Visitor::Anonymous),
         }
     }
