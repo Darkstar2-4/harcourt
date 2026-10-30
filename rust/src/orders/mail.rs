@@ -208,7 +208,7 @@ impl Smtp {
         Ok(Smtp { transport, from })
     }
 
-    fn message(&self, mail: &Mail) -> Result<Message, SendError> {
+    pub fn message(&self, mail: &Mail) -> Result<Message, SendError> {
         let from = match &mail.from_name {
             Some(name) => LettreMailbox::new(Some(name.clone()), self.from.email.clone()),
             None => self.from.clone(),

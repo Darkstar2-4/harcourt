@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub mod cart;
-mod checkout;
+pub mod checkout;
 mod viewer;
 
 pub fn routes() -> Router<Arc<Orders>> {

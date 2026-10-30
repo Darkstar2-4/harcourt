@@ -3,7 +3,7 @@
 //! the_excerpt() printed. The page is the 404 page's chrome with the search's own head (Yoast's title, links and
 //! schema, WPML's alternates), which the cms theme renders from the holes given here.
 
-mod texturize;
+pub mod texturize;
 
 use std::{
     collections::BTreeMap,
