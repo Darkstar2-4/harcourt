@@ -1,9 +1,0 @@
-{
-    "require": {
-        "dompdf/dompdf": "^0.8.3",
-        "mk-j/php_xlsxwriter": "^0.38.0",
-        "google/recaptcha": "^1.2",
-        "phpmailer/phpmailer": "^6.2",
-        "authorizenet/authorizenet": "^2.0.1"
-    }
-}
