@@ -171,7 +171,7 @@ pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, fields: &F
         View::List => body.push_str(&T::list(pool, &form).await?),
     }
     body.push_str(close());
-    Ok(shell::page(pool, staff.who.user.role, T::TITLE, &body).await)
+    Ok(shell::page(pool, staff.view(), T::TITLE, &body).await)
 }
 
 async fn show<T: Table>(State(auth): State<Arc<Auth>>, staff: Staff<T::Role>) -> Response {

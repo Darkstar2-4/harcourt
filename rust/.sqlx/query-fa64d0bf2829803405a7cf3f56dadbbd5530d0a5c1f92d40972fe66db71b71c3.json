@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", ip, company_name, city, state, zip, country_code, status FROM \"user\"\n           WHERE CASE \"type\" WHEN 'Customer' THEN 0 WHEN 'External' THEN 1 WHEN 'Internal' THEN 2 WHEN 'Executive' THEN 3 WHEN 'Administrator' THEN 4 ELSE 5 END <= ?1\n             AND (?2 = '' OR \"type\" = ?2) AND (?3 = '' OR status = ?3)\n             AND (?5 = '' OR (CASE ?4 WHEN 'company_name' THEN company_name WHEN 'ip' THEN ip WHEN 'domain' THEN domain END) LIKE ?5 || '%')\n           ORDER BY company_name COLLATE NOCASE, ip LIMIT ?6 OFFSET ?7",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "city",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "fa64d0bf2829803405a7cf3f56dadbbd5530d0a5c1f92d40972fe66db71b71c3"
+}

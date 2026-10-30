@@ -1,0 +1,188 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", ip, company_name, address, city, state, zip, country_code, status, \"type\" AS kind, last_login,\n                  login_document_id, landing_document_id, comment, portal_id, customer_code, catalog, cad, ecommerce, price_type,\n                  price_pct, language_code, industry_id, leadscore, revenue, employees, currency_code, ipstack_json, recaptcha_score\n           FROM \"user\" WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "address",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "city",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_login",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "login_document_id",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "landing_document_id",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_id",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "customer_code",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "catalog",
+        "ordinal": 16,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cad",
+        "ordinal": 17,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ecommerce",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price_type",
+        "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "price_pct",
+        "ordinal": 20,
+        "type_info": "Float"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 21,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry_id",
+        "ordinal": 22,
+        "type_info": "Integer"
+      },
+      {
+        "name": "leadscore",
+        "ordinal": 23,
+        "type_info": "Integer"
+      },
+      {
+        "name": "revenue",
+        "ordinal": 24,
+        "type_info": "Text"
+      },
+      {
+        "name": "employees",
+        "ordinal": 25,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency_code",
+        "ordinal": 26,
+        "type_info": "Text"
+      },
+      {
+        "name": "ipstack_json",
+        "ordinal": 27,
+        "type_info": "Text"
+      },
+      {
+        "name": "recaptcha_score",
+        "ordinal": 28,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "30486f748ede80d46f9ea8ee284da3de06d46b20a8c1fd4b4797b9a1d8b3af72"
+}

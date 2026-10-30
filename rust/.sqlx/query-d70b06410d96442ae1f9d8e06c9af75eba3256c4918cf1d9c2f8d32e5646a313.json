@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE inventory SET sku = ?2, category_id = ?3, subcategory_id = ?4, documents = ?5, pricing = ?6, sort_order = ?7, new_date = ?8,\n                  competitor_sku = ?9, leadtime_option = ?10, leadtime_text = ?11, active = ?12,\n                  parameter0 = json_extract(?13, '$[0]'), parameter1 = json_extract(?13, '$[1]'), parameter2 = json_extract(?13, '$[2]'),\n                  parameter3 = json_extract(?13, '$[3]'), parameter4 = json_extract(?13, '$[4]'), parameter5 = json_extract(?13, '$[5]'),\n                  parameter6 = json_extract(?13, '$[6]'), parameter7 = json_extract(?13, '$[7]'), parameter8 = json_extract(?13, '$[8]'),\n                  parameter9 = json_extract(?13, '$[9]'), parameter10 = json_extract(?13, '$[10]'), parameter11 = json_extract(?13, '$[11]'),\n                  parameter12 = json_extract(?13, '$[12]'), parameter13 = json_extract(?13, '$[13]'), parameter14 = json_extract(?13, '$[14]'),\n                  parameter15 = json_extract(?13, '$[15]'), parameter16 = json_extract(?13, '$[16]'), parameter17 = json_extract(?13, '$[17]'),\n                  parameter18 = json_extract(?13, '$[18]'), parameter19 = json_extract(?13, '$[19]'),\n                  nparameter0 = json_extract(?14, '$[0]'), nparameter1 = json_extract(?14, '$[1]'), nparameter2 = json_extract(?14, '$[2]'),\n                  nparameter3 = json_extract(?14, '$[3]'), nparameter4 = json_extract(?14, '$[4]'), nparameter5 = json_extract(?14, '$[5]'),\n                  nparameter6 = json_extract(?14, '$[6]'), nparameter7 = json_extract(?14, '$[7]'), nparameter8 = json_extract(?14, '$[8]'),\n                  nparameter9 = json_extract(?14, '$[9]'), nparameter10 = json_extract(?14, '$[10]'), nparameter11 = json_extract(?14, '$[11]'),\n                  nparameter12 = json_extract(?14, '$[12]'), nparameter13 = json_extract(?14, '$[13]'), nparameter14 = json_extract(?14, '$[14]'),\n                  nparameter15 = json_extract(?14, '$[15]'), nparameter16 = json_extract(?14, '$[16]'), nparameter17 = json_extract(?14, '$[17]'),\n                  nparameter18 = json_extract(?14, '$[18]'), nparameter19 = json_extract(?14, '$[19]')\n           WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 14
+    },
+    "nullable": []
+  },
+  "hash": "d70b06410d96442ae1f9d8e06c9af75eba3256c4918cf1d9c2f8d32e5646a313"
+}

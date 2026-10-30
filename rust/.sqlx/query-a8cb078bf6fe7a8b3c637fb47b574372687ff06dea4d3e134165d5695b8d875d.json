@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT 1 AS \"x!: i64\" FROM inventory WHERE sku = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "x!: i64",
+        "ordinal": 0,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a8cb078bf6fe7a8b3c637fb47b574372687ff06dea4d3e134165d5695b8d875d"
+}
