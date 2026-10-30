@@ -146,9 +146,13 @@ async fn main() {
             watcher.search.refresh().await;
         }
     });
+    let passthrough = app.clone();
     let legacy = Router::new().fallback(dispatch).with_state(app);
     let router = match open_auth().await {
-        Some(core) => hxweb::routes::all(core).fallback_service(legacy),
+        // A path claimed for some methods (GET on a page) still sends the others (a form POST) to the legacy stack.
+        Some(core) => hxweb::routes::all(core)
+            .method_not_allowed_fallback(move |req: Request| dispatch(State(passthrough.clone()), req))
+            .fallback_service(legacy),
         None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
