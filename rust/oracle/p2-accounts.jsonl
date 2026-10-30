@@ -1,0 +1,121 @@
+# p2-accounts: the accounts pages ported in round two, warm, per persona. GET only: a POST runs for real on the oracle.
+# hx-diff primes the warm session on the oracle alone, in WordPress mode, so each path carries ?scscpq_wp=1 to put the Rust page in the same mode.
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "login", "path": "/login.php?scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "login-return", "path": "/login.php?return_url=/products.php&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "currency", "path": "/currency.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "language", "path": "/language.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "bot", "path": "/bot.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "blacklist", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "captcha_bypass", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "remote_access", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "remote_token", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
+{"name": "bot_impersonate", "path": "/bot_impersonate.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "bot-get-maintain", "path": "/bot.php?action=maintain&record_id=1&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "bot-get-maintain", "path": "/bot.php?action=maintain&record_id=0&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "bot-get-cancel", "path": "/bot.php?action=cancel&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "blacklist-xhr-list-p2", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=2&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "blacklist-xhr-search", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=com", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "blacklist-xhr-search-none", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=zzzz-nothing", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "blacklist-xhr-add-invalid", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&domain=not-valid&comment=x&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "blacklist-xhr-add-blank", "method": "POST", "path": "/blacklist.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&domain=&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-list-p2", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=2&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-search", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=com", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-search-none", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&page=1&search=zzzz-nothing", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-add-invalid", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=not-valid&comment=x&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-add-blank", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "captcha_bypass-xhr-add-bad-domain", "method": "POST", "path": "/captcha_bypass.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=add&email=%40nodot&comment=&page=1&search=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_access-xhr-load", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=Persona+Customer+Active", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_access-xhr-load-blank", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_access-xhr-load-none", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=load&company_name=Nobody+Here+Example", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_access-xhr-host-bad", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=host&id=bm90", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_access-xhr-update-missing", "method": "POST", "path": "/remote_access.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=update&company_name=&domain=&ip=", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "remote_token-post-list", "method": "POST", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&domain=customer-active.persona.example"}
+{"name": "remote_token-post-list-blank", "method": "POST", "path": "/remote_token.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm", "body": "action=list&domain="}
+{"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-test", "path": "/campaign.php?campaign=TEST", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-test", "path": "/campaign.php?campaign=TEST", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-nope", "path": "/campaign.php?campaign=NOPE", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-nope", "path": "/campaign.php?campaign=NOPE", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-post-email", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm", "body": "campaign=KIT&action=email&email=pat%40customer-active.persona.example", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-email-bad", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm", "body": "campaign=KIT&action=email&email=not+an+address", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-register-errors", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "anonymous", "session": "warm", "body": "campaign=KIT&action=register&first_name=&last_name=Example&company_name=&email=bad", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-email-denied", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm", "body": "campaign=SLIDE&action=email&email=", "headers": {"Origin": "https://www.harcourt.co"}}
