@@ -34,10 +34,10 @@
 //! `portal_id()` and `industry_id()` cover the common questions.
 //!
 //! `layer` resolves the visitor once per request for the page routers and writes what the PHP wrote when a visit
-//! began: the sign-in log for a company address, the campaign cookie, the referer and bot log rows. For a PHP
-//! page it also does what scs_header.php did before the page ran: a browser without a PHP session cookie begins a
-//! visit, gets one, and is sent to its landing page; the `harcourt_profile` cookie is written whenever PHP loaded
-//! the profile.
+//! began: an account's sign-in (its `last_login` and log row, by session or by company address), the campaign
+//! cookie, the referer and bot log rows. For a PHP page it also does what scs_header.php did before the page ran:
+//! a browser without a PHP session cookie begins a visit, gets one, and is sent to its landing page; the
+//! `harcourt_profile` cookie is written whenever PHP loaded the profile.
 
 use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
@@ -261,7 +261,9 @@ impl Php {
 /// What a visit began with that the PHP wrote down. Applied by `layer`, never by the extractor alone.
 #[derive(Debug)]
 enum Effect {
-    CompanyLogin(UserId),
+    /// An account began a visit, under its session or at its company address: login_update() stamped
+    /// `last_login` and logged a sign-in.
+    Login(UserId),
     Bot(Bot),
     Campaign(Option<Campaign>),
     Referer(String),
@@ -272,9 +274,6 @@ pub struct Resolved {
     pub visitor: Visitor,
     effects: Vec<Effect>,
 }
-
-/// A browser at the same company address counts as one visit for this long (PHP's default session lifetime).
-const VISIT_SECS: i64 = 1440;
 
 async fn resolve_or_anonymous(core: &Auth, parts: &Parts, php: &Php, now: i64) -> Resolved {
     match resolve(core, parts, php, now).await {
@@ -320,6 +319,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
                     (None, None) => Identity::Anonymous,
                 };
             } else if let Some(account) = account::load(pool, found.user.id).await? {
+                effects.push(Effect::Login(found.user.id));
                 identity = Identity::Account(Box::new(SignedIn { account, email, via: Via::Session }));
             }
         }
@@ -330,7 +330,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
         if let Some(ip) = client.filter(|ip| may_sign_in_by_address(*ip, &core.trusted_proxies)) {
             if let Some(id) = account::at_address(pool, &ip.to_string()).await? {
                 if let Some(account) = account::load(pool, id).await? {
-                    effects.push(Effect::CompanyLogin(id));
+                    effects.push(Effect::Login(id));
                     identity = Identity::Account(Box::new(SignedIn { account, email: None, via: Via::CompanyAddress }));
                 }
             }
@@ -749,7 +749,7 @@ async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64) 
         email: visitor.signed_in().and_then(|s| s.email.as_ref()).map(Email::as_str),
     };
     match effect {
-        Effect::CompanyLogin(id) => match account::touch_login(pool, *id, now, VISIT_SECS).await {
+        Effect::Login(id) => match account::touch_login(pool, *id, now).await {
             Ok(true) => log::record(pool, Kind::UserLogin, &who, "").await,
             Ok(false) => {}
             Err(e) => tracing::warn!("last_login update failed: {e}"),

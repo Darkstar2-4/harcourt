@@ -1,0 +1,11 @@
+# Round five, staff (p5-staff). Run with --rust-session --jobs 1: the cases depend on their order.
+# A customer persona begins a visit on both sides, then an Administrator opens its record: the Last Login rows match.
+{"name":"p5-customer-visit","path":"/scscpq_wp.php","persona":"customer-active"}
+{"name":"p5-user-maintain-customer","path":"/user.php?scscpq_wp=1&action=maintain&record_id=990001","persona":"administrator-active","session":"warm"}
+{"name":"p5-user-maintain-customer-su","path":"/user.php?scscpq_wp=1&action=maintain&record_id=990001","persona":"superuser-active","session":"warm"}
+# An update its checks turn back shows the errors; the post carries no token and the oracle's row is not changed.
+{"name":"p5-user-update-errors","method":"POST","path":"/user.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=990001&ip=&status=Active&type=Customer&currency_code=USD&language_code=EN"}
+{"name":"p5-user-update-new-errors","method":"POST","path":"/user.php?scscpq_wp=1","persona":"superuser-active","session":"warm","body":"action=update&record_id=0&ip=198.51.100&status=Pending&type=Customer&currency_code=&language_code=EN&price_type=discount&price_pct=150"}
+# With no record being edited, an update does nothing and shows the list.
+{"name":"p5-sub-cancel","method":"POST","path":"/subcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&record_id=0"}
+{"name":"p5-sub-update-no-draft","method":"POST","path":"/subcategory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=0&report_category_id=5&report_status=&report_images="}

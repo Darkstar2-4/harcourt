@@ -23,7 +23,7 @@ use super::{
     address::{Address, Block},
     check::posted_text,
     choices,
-    csrf::{Fields, Unchecked},
+    csrf::{Fields, Rejected, Unchecked},
     html::{button, close, hidden, href, js, list_options, open, page_items, php_float, text, Blank, Form, Notes, Opts, Tabs, PAGE_ROWS},
     shell, time, Staff,
 };
@@ -687,7 +687,8 @@ fn local_return(url: &str) -> Option<&str> {
     safe.then_some(url)
 }
 
-async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, mut action: Action, request: &Fields, posted: &Fields) -> sqlx::Result<Response> {
+/// `may_write`: the post carried the form token. Without it an update that passes its checks is refused.
+async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, mut action: Action, request: &Fields, posted: &Fields, may_write: bool) -> sqlx::Result<Response> {
     let viewer = staff.who.user.role;
     let record_id = request.int("record_id");
     let return_url = request.get("return_url").to_string();
@@ -720,6 +721,8 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, mut action: Action
             }
             if notes.has_errors() {
                 edit = true;
+            } else if !may_write {
+                return Ok(Rejected::Token.into_response());
             } else {
                 let created = account.id == 0;
                 account.id = save(pool, &account, posted).await?;
@@ -803,17 +806,18 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, RawQue
         a if a.writes() => Action::None,
         a => a,
     };
-    run(&auth.pool, &staff, action, &query, &Fields::default()).await.unwrap_or_else(shell::internal)
+    run(&auth.pool, &staff, action, &query, &Fields::default(), false).await.unwrap_or_else(shell::internal)
 }
 
+/// A delete needs the form token; an update needs it only once its checks pass and it is about to save.
 async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, RawQuery(q): RawQuery, form: Unchecked) -> Response {
     let request = form.fields().clone().with_query(&Fields::from_query(q.as_deref()));
     let action = Action::parse(request.get("action"));
-    let posted = match form.accept(action.writes()) {
-        Ok(p) => p,
-        Err(r) => return r.into_response(),
-    };
-    run(&auth.pool, &staff, action, &request, &posted.fields).await.unwrap_or_else(shell::internal)
+    let (posted, may_write) = form.with_token();
+    if action == Action::Delete && !may_write {
+        return Rejected::Token.into_response();
+    }
+    run(&auth.pool, &staff, action, &request, &posted.fields, may_write).await.unwrap_or_else(shell::internal)
 }
 
 pub fn routes() -> Router<Arc<Auth>> {
