@@ -106,39 +106,93 @@ fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<
     for path in PAGES {
         r = r.route(path, get(page).post(page_post));
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
-            r = r.route(bare, get(add_slash));
+            r = r.route(bare, get(page));
         }
     }
     r.with_state(wp).merge(crate::cms::admin::routes().with_state(core))
 }
+
+/// Query keys that do not change what WordPress renders. Prod's hxweb served a page from the static export, finished
+/// (vendored assets, static icons), only when every key was one of these, and passed any other request to
+/// WordPress, which printed the page as it is.
+const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
 
 /// Which page a request asks for, from its query: WPML's `lang`, and whether it is the REST API's `rest_route`.
 #[derive(Debug, PartialEq, Eq)]
 struct Query {
     lang: Lang,
     rest_route: bool,
-    /// The request URI WordPress would see, for form actions: without the site's own hxlang marker and without
-    /// lang=en, which WPML drops.
+    /// Every key is in NEUTRAL_KEYS.
+    neutral: bool,
+    /// The request URI WordPress would see, for form actions: without lang=en, which WPML drops, and on a neutral
+    /// request without the site's own hxlang marker, which the static pages left out.
     form_uri_query: String,
 }
 
 fn query(q: &str) -> Query {
     let mut lang = Lang::En;
     let mut rest_route = false;
+    let pairs: Vec<&str> = q.split('&').filter(|kv| !kv.is_empty()).collect();
+    let key = |kv: &str| kv.split('=').next().unwrap_or("").to_string();
+    let neutral = pairs.iter().all(|kv| NEUTRAL_KEYS.contains(&key(kv).as_str()));
     let mut kept = Vec::new();
-    for kv in q.split('&').filter(|kv| !kv.is_empty()) {
-        let key = kv.split('=').next().unwrap_or("");
-        match key {
-            "lang" if kv == "lang=fr" => lang = Lang::Fr,
+    for kv in &pairs {
+        match key(kv).as_str() {
+            "lang" if *kv == "lang=fr" => lang = Lang::Fr,
             "rest_route" => rest_route = true,
             _ => {}
         }
-        if key != "hxlang" && kv != "lang=en" {
-            kept.push(kv);
+        if !(neutral && key(kv) == "hxlang") && *kv != "lang=en" {
+            kept.push(*kv);
         }
     }
     let form_uri_query = if kept.is_empty() { String::new() } else { format!("?{}", kept.join("&")) };
-    Query { lang, rest_route, form_uri_query }
+    Query { lang, rest_route, neutral, form_uri_query }
+}
+
+/// PHP's urldecode().
+fn urldecode(s: &str) -> String {
+    percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned()
+}
+
+/// PHP's rawurlencode().
+fn rawurlencode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// What redirect_canonical() does with the request's query when it sends a visitor elsewhere: parse_str() it,
+/// rawurlencode every key and value, and add_query_arg() them to `target`. A key keeps its first position and its
+/// last value, and an empty value loses its `=`.
+fn with_query(target: &str, query: &str) -> String {
+    let (base, existing) = target.split_once('?').unwrap_or((target, ""));
+    let mut args: Vec<(String, String)> = Vec::new();
+    let mut set = |k: String, v: String| match args.iter_mut().find(|(key, _)| *key == k) {
+        Some(slot) => slot.1 = v,
+        None => args.push((k, v)),
+    };
+    for kv in existing.split('&').filter(|kv| !kv.is_empty()) {
+        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
+        set(k.to_string(), v.to_string());
+    }
+    for kv in query.split('&').filter(|kv| !kv.is_empty()) {
+        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
+        let k = urldecode(k).trim_start().replace(['.', ' '], "_");
+        if !k.is_empty() {
+            set(rawurlencode(&k), rawurlencode(&urldecode(v)));
+        }
+    }
+    if args.is_empty() {
+        return base.to_string();
+    }
+    let q: Vec<String> = args.into_iter().map(|(k, v)| if v.is_empty() { k } else { format!("{k}={v}") }).collect();
+    format!("{base}?{}", q.join("&"))
 }
 
 /// What a claimed path answers, given the content and the requested language.
@@ -166,8 +220,21 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
-async fn page(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
-    serve(&wp, &uri, None).await
+/// The answer for a request path, with or without its trailing slash. redirect_canonical() sends a path without
+/// the slash, and a page asked for in the other language, straight to the page's own URL, query kept.
+fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'a> {
+    let slashed = if path.ends_with('/') { None } else { Some(format!("{path}/")) };
+    match (resolve(site, slashed.as_deref().unwrap_or(path), q.lang), slashed) {
+        (Answer::Render(p), None) => Answer::Render(p),
+        (Answer::Render(p), Some(_)) => Answer::Redirect(with_query(&format!("{}{}", p.path, p.lang.query()), raw_query)),
+        (Answer::Redirect(to), _) => Answer::Redirect(with_query(&to, raw_query)),
+        (Answer::NotFound, _) => Answer::NotFound,
+    }
+}
+
+async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+    let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+    serve(&wp, &uri, agent, None).await
 }
 
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
@@ -180,8 +247,9 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
         return (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large").into_response();
     };
     let params = crate::orders::form_params(None, &body);
+    let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return serve(&wp, &parts.uri, None).await;
+        return serve(&wp, &parts.uri, agent, None).await;
     };
     let site = match wp.content.site().await {
         Ok(s) => s,
@@ -189,20 +257,19 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, None).await };
+    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None).await };
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let lang = match page.lang {
         Lang::En => model::Lang::En,
         Lang::Fr => model::Lang::Fr,
     };
-    let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, Some(page.title.clone())).await {
         Ok(Some((Outcome::Redirect(url), _))) => crate::orders::html::redirect(&url),
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
         }
-        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, Some((form, h))).await,
-        Ok(None) => serve(&wp, &parts.uri, None).await,
+        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h))).await,
+        Ok(None) => serve(&wp, &parts.uri, agent, None).await,
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
@@ -215,10 +282,13 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
     (StatusCode::SERVICE_UNAVAILABLE, "Service unavailable").into_response()
 }
 
-/// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form.
-async fn serve(wp: &Arc<Wp>, uri: &Uri, answer: Option<(u32, String)>) -> Response<Body> {
+/// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
+/// neutral request gets the page as hxweb finished the static pages; any other gets it as WordPress printed it,
+/// forms marked for the visitor's browser.
+async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
-    let q = query(uri.query().unwrap_or(""));
+    let raw_query = uri.query().unwrap_or("");
+    let q = query(raw_query);
     if q.rest_route {
         return gone();
     }
@@ -226,7 +296,8 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, answer: Option<(u32, String)>) -> Respon
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    let page = match resolve(&site, &path, q.lang) {
+    let agent = if q.neutral { "" } else { agent };
+    let page = match route(&site, &path, &q, raw_query) {
         Answer::Render(p) => p,
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::NotFound => return (StatusCode::NOT_FOUND, "Not found").into_response(),
@@ -249,7 +320,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, answer: Option<(u32, String)>) -> Respon
                 return Ok(h);
             }
             let e = embed.ok_or_else(|| format!("form {form} is not in the page's islands"))?;
-            let embed = FormEmbed { form, lang, page_uri: &wp_uri, ajax: e.ajax, theme: &e.theme, styles: &e.styles, in_content: e.in_content };
+            let embed = FormEmbed { form, lang, page_uri: &wp_uri, ajax: e.ajax, theme: &e.theme, styles: &e.styles, in_content: e.in_content, user_agent: agent };
             match &wp.forms {
                 Some(f) => f.markup(&embed).await,
                 None => Err("no form source".to_string()),
@@ -258,7 +329,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, answer: Option<(u32, String)>) -> Respon
     })
     .await;
     match filled {
-        Ok(html) => html_response(public(&wp.core.public_origin, &html)),
+        Ok(html) => html_response(public(&wp.core.public_origin, &html), q.neutral),
         Err(e) => {
             tracing::error!("{path}: {e}");
             (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
@@ -294,13 +365,14 @@ fn public(origin: &str, html: &str) -> String {
     html.replace("//www.harcourt.co", &format!("//{host}")).replace("\\/\\/www.harcourt.co", &format!("\\/\\/{host}"))
 }
 
-fn html_response(html: String) -> Response<Body> {
+/// `finished` marks the page for main.rs's finishing (`x-hxweb: cms`), which the static pages got.
+fn html_response(html: String, finished: bool) -> Response<Body> {
     let mut r = Response::new(Body::from(html));
     let h = r.headers_mut();
     h.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"));
     h.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
     h.insert(header::STRICT_TRANSPORT_SECURITY, HeaderValue::from_static("max-age=31536000; includeSubDomains"));
-    h.insert("x-hxweb", HeaderValue::from_static("cms"));
+    h.insert("x-hxweb", HeaderValue::from_static(if finished { "cms" } else { "cms-raw" }));
     r
 }
 
@@ -314,15 +386,6 @@ fn redirect(origin: &str, to: &str) -> Response<Body> {
 
 fn gone() -> Response<Body> {
     (StatusCode::GONE, [(header::CACHE_CONTROL, "no-store")], "Gone\n").into_response()
-}
-
-/// redirect_canonical(): a page path without its trailing slash moves to the slashed one, query kept.
-async fn add_slash(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
-    let to = match uri.query() {
-        Some(q) => format!("{}/?{q}", uri.path()),
-        None => format!("{}/", uri.path()),
-    };
-    redirect(&wp.core.public_origin, &to)
 }
 
 async fn robots() -> impl IntoResponse {
@@ -387,6 +450,33 @@ mod tests {
         assert_eq!(query("lang=de").lang, Lang::En);
         assert!(query("rest_route=/wp/v2/users").rest_route);
         assert_eq!(query("").form_uri_query, "");
+        assert!(query("lang=fr&hxlang=fr&utm_source=x&fbclid=y").neutral);
+        assert!(!query("lang=fr&quot=").neutral);
+        assert_eq!(query("hxlang=fr&theme=x").form_uri_query, "?hxlang=fr&theme=x");
+    }
+
+    #[test]
+    fn redirects_keep_the_query_as_redirect_canonical_rebuilds_it() {
+        assert_eq!(with_query("/product/", "lang=%27+OR+%271%27%3D%271"), "/product/?lang=%27%20OR%20%271%27%3D%271");
+        assert_eq!(with_query("/product/", ""), "/product/");
+        assert_eq!(with_query("/a/?lang=fr", "lang=fr&utm_source=x"), "/a/?lang=fr&utm_source=x");
+        assert_eq!(with_query("/?page_id=4", "quot=&a.b=1&a.b=2"), "/?page_id=4&quot&a_b=2");
+    }
+
+    #[test]
+    fn a_path_without_its_slash_goes_straight_to_the_page_url() {
+        let site = Site::new(vec![page(1, 10, Lang::En, "/product/alignment/", Status::Publish), page(2, 10, Lang::Fr, "/gamme-de-produits/centrage/", Status::Publish)]);
+        let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
+            Answer::Render(p) => format!("render {}", p.id.0),
+            Answer::Redirect(to) => to,
+            Answer::NotFound => "404".into(),
+        };
+        assert_eq!(r("/product/alignment/", ""), "render 1");
+        assert_eq!(r("/product/alignment", "utm_source=a+b"), "/product/alignment/?utm_source=a%20b");
+        assert_eq!(r("/gamme-de-produits/centrage", ""), "/product/alignment/");
+        assert_eq!(r("/gamme-de-produits/centrage", "lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
+        assert_eq!(r("/gamme-de-produits/centrage/", "lang=x"), "/product/alignment/?lang=x");
+        assert_eq!(r("/nowhere", ""), "404");
     }
 
     #[test]

@@ -112,7 +112,8 @@ async fn a_ported_page_renders_from_the_cms_tables_with_its_forms() {
 async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
     let (app, _) = harness().await;
     assert_eq!(send(&app, Method::GET, "/product/alignment").await.1.as_deref(), Some("https://www.harcourt.co/product/alignment/"));
-    assert_eq!(send(&app, Method::GET, "/product/alignment?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/product/alignment/?lang=fr"));
+    assert_eq!(send(&app, Method::GET, "/product/alignment?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr"));
+    assert_eq!(send(&app, Method::GET, "/gamme-de-produits/centrage").await.1.as_deref(), Some("https://www.harcourt.co/product/alignment/"));
     let (status, location, _) = send(&app, Method::GET, "/product/alignment/?lang=fr").await;
     assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr")));
     let (status, location, _) = send(&app, Method::GET, "/gamme-de-produits/centrage/").await;

@@ -24,8 +24,8 @@ pub struct Islands {
     cache: RwLock<Cache>,
 }
 
-/// (form, language, page URI) -> (fetched at, markup).
-type Cache = HashMap<(u32, Lang, String), (Instant, String)>;
+/// (form, language, page URI, Gravity Forms browser class) -> (fetched at, markup).
+type Cache = HashMap<(u32, Lang, String, String), (Instant, String)>;
 
 impl Islands {
     pub fn new(legacy: String, site: String) -> Option<Islands> {
@@ -45,7 +45,8 @@ impl Islands {
     }
 
     pub async fn markup(&self, form: &FormEmbed<'_>) -> Result<String, String> {
-        let key = (form.form, form.lang, form.page_uri.to_string());
+        let agent = if form.user_agent.is_empty() { "hxweb/0.1 island" } else { form.user_agent };
+        let key = (form.form, form.lang, form.page_uri.to_string(), crate::orders::forms::render::browser_class(agent));
         if let Some((at, html)) = self.cache.read().await.get(&key) {
             if at.elapsed() < TTL {
                 return Ok(html.clone());
@@ -57,7 +58,7 @@ impl Islands {
             .get(format!("{}/", self.legacy))
             .query(&[("hx_form", id.as_str()), ("hx_lang", form.lang.code()), ("hx_page", form.page_uri)])
             .header(reqwest::header::HOST, &self.site)
-            .header(reqwest::header::USER_AGENT, "hxweb/0.1 island")
+            .header(reqwest::header::USER_AGENT, agent)
             .send()
             .await
             .map_err(|e| format!("island {id}: {e}"))?;
@@ -104,7 +105,7 @@ impl FormSource for OrdersForms {
                 Lang::En => crate::orders::forms::model::Lang::En,
                 Lang::Fr => crate::orders::forms::model::Lang::Fr,
             };
-            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri, "").await {
+            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri, form.user_agent).await {
                 Ok(Some(html)) => return Ok(html),
                 Ok(None) => {}
                 Err(e) => tracing::warn!("form {}: {e}", form.form),
