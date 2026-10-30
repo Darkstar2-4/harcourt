@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Query, State},
+    Extension,
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
@@ -122,6 +123,8 @@ pub struct Ctx<'a> {
     /// The part the page is about (inventory_class's current row in the PHP).
     pub part: Option<Part>,
     pub related_sku: String,
+    /// The search box's index, for a results page whose keyword search finds nothing.
+    pub search: Option<Arc<super::search::Cache>>,
 }
 
 impl Ctx<'_> {
@@ -159,7 +162,7 @@ pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request
     let profile = super::profile::load(pool, viewer, cookies, email).await?;
     let php_self = if viewer.lang == Lang::Fr { "/catalogue/" } else { "/catalog/" };
     let (category_id, subcategory_id) = (req.category_id, req.subcategory_id);
-    Ok(Ctx { pool, viewer, req, catalog, registry, strings, book, profile, php_self, category_id, subcategory_id, part: None, related_sku: String::new() })
+    Ok(Ctx { pool, viewer, req, catalog, registry, strings, book, profile, php_self, category_id, subcategory_id, part: None, related_sku: String::new(), search: None })
 }
 
 /// What the gate and route() decided to show.
@@ -330,6 +333,7 @@ fn failed(e: sqlx::Error) -> Response {
 
 async fn catalog_php(
     State(core): State<Arc<Auth>>,
+    Extension(cache): Extension<Arc<super::search::Cache>>,
     visitor: Visitor,
     headers: HeaderMap,
     uri: axum::http::Uri,
@@ -346,6 +350,7 @@ async fn catalog_php(
             Visitor::Anonymous => None,
         };
         let mut ctx = load_ctx(&core.pool, &viewer, Request::parse(&q), &headers, email.as_deref()).await?;
+        ctx.search = Some(cache);
         render(&mut ctx).await
     }
     .await;

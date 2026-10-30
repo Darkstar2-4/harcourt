@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{Extension, Router};
 
 use crate::api::Auth;
 
@@ -27,5 +27,10 @@ pub mod tabs;
 pub mod viewer;
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().merge(pages::router()).merge(search::router()).merge(loader::router()).merge(files::router())
+    Router::new()
+        .merge(pages::router())
+        .merge(search::router())
+        .merge(loader::router())
+        .merge(files::router())
+        .layer(Extension(search::Cache::new()))
 }

@@ -66,6 +66,10 @@ pub async fn search(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         exact(ctx, &code).await?
     };
     let Some(hit) = found else { return search_code(ctx).await };
+    open(ctx, hit).await
+}
+
+async fn open(ctx: &mut Ctx<'_>, hit: Hit) -> sqlx::Result<String> {
     ctx.category_id = hit.category_id;
     ctx.subcategory_id = hit.subcategory_id;
     match hit.table.as_str() {
@@ -75,11 +79,30 @@ pub async fn search(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
             ctx.part = hit.part;
         }
         "subcategory" | "search_words" => {}
-        _ => return search_code(ctx).await,
+        _ => return Ok(no_results(ctx)),
     }
     let mut out = String::new();
     family::page(ctx).await?.write_to(&mut out);
     Ok(out)
+}
+
+fn no_results(ctx: &Ctx) -> String {
+    format!("<p class=center>No results for search term: <b>{}</b></p>", esc(&ctx.req.search_code))
+}
+
+/// When the keyword search finds nothing for a term typed and entered (no suggestion picked), the row the search box
+/// would have put first: PHP's search came up empty for about four searches in ten.
+async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
+    let Some(cache) = ctx.search.clone().filter(|_| ctx.req.search_id == 0) else { return Ok(None) };
+    let Some(id) = crate::catalog::search::best(&cache, ctx.pool, ctx.viewer, ctx.req.raw_search_code.trim()).await? else { return Ok(None) };
+    let id = i64::try_from(id).unwrap_or(0);
+    let row = sqlx::query!(
+        r#"SELECT table_name, category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64" FROM search WHERE id = ?1"#,
+        id
+    )
+    .fetch_optional(ctx.pool)
+    .await?;
+    hit(ctx, row.map(|r| (r.table_name.unwrap_or_default(), r.category_id, r.subcategory_id, r.inventory_id))).await
 }
 
 /// search_code(): every word of the search term in a `search` code, grouped by family.
@@ -116,7 +139,10 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         }
     }
     if groups.is_empty() {
-        return Ok(format!("<p class=center>No results for search term: <b>{}</b></p>", esc(&ctx.req.search_code)));
+        if let Some(hit) = best_match(ctx).await? {
+            return open(ctx, hit).await;
+        }
+        return Ok(no_results(ctx));
     }
     if groups.len() > 1 || groups.iter().any(|g| g.table == "subcategory") {
         let mut summary: home::Summary = Vec::new();

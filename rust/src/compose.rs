@@ -176,7 +176,6 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         return Err(format!("loader status {}", loader.status()));
     }
     collect_cookies(loader.headers(), &mut jar, &mut set_cookies);
-    app.search.forget(headers, loader.headers().get_all(header::SET_COOKIE));
     let loader_json: serde_json::Value = loader.json().await.map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
     // account's language; only a flag click changes it.
@@ -214,12 +213,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         return Err(format!("fragment status {}", frag.status()));
     }
     collect_cookies(frag.headers(), &mut jar, &mut set_cookies);
-    app.search.forget(headers, frag.headers().get_all(header::SET_COOKIE));
     let frag_html = frag.text().await.map_err(|e| format!("fragment body: {e}"))?;
-    let frag_html = match search_fallback(app, headers, &jar, &page_url, link_path, query, &frag_html).await {
-        Some(best) => best,
-        None => frag_html,
-    };
 
     // Keep the catalog's scripts where they are: its CAD iframe's onload calls scscpq_initial() from scscpq.js,
     // so scscpq.js must run before the iframe is parsed, exactly as when jQuery inserted the fragment.
@@ -283,40 +277,6 @@ pub fn without_fa_kit(app: &App, html: &str) -> String {
         if c[0].contains("aria-hidden") { c[0].to_string() } else { format!("<i{} aria-hidden=\"true\">", &c["a"]) }
     });
     html.replacen("</head>", &format!("{FA_CSS}</head>"), 1)
-}
-
-/// Enter in the search box opens the results page, which PHP fills from live's keyword search: for about four
-/// searches in ten it prints "No results for search term". When hxweb's search has an answer for the same visitor,
-/// the page shows that best match instead (the row the search box would have opened).
-async fn search_fallback(app: &App, headers: &HeaderMap, jar: &CookieJar, page_url: &str, link_path: &str, query: &str, html: &str) -> Option<String> {
-    if !crate::on("search") || !html.contains("No results for search term") {
-        return None;
-    }
-    let uri: axum::http::Uri = format!("/?{query}").parse().ok()?;
-    let axum::extract::Query(p) = axum::extract::Query::<std::collections::HashMap<String, String>>::try_from_uri(&uri).ok()?;
-    if p.get("search_source").map(String::as_str) != Some("search") || p.get("search_id").is_some_and(|id| id != "0") {
-        return None;
-    }
-    if !search_id_zero().is_match(link_path) {
-        return None;
-    }
-    let id = crate::search::best(app, headers, p.get("search_code")?.trim()).await?;
-    let resp = app.http.get(format!("{}{}", app.legacy, with_search_id(link_path, id))).headers(forward_headers(app, headers, jar, page_url)).send().await.ok()?;
-    if resp.status() != StatusCode::OK {
-        return None;
-    }
-    resp.text().await.ok()
-}
-
-/// A `search_id=0` parameter: the results page PHP filled from its own keyword search. Without one (`search_id=05`,
-/// `search_id=0.5`, none) `with_search_id` changes nothing, so a second fetch would only repeat the first.
-fn search_id_zero() -> &'static regex::Regex {
-    static SEARCH_ID: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-    SEARCH_ID.get_or_init(|| regex::Regex::new(r"([?&])search_id=0(&|#|$)").unwrap())
-}
-
-fn with_search_id(link: &str, id: u64) -> String {
-    search_id_zero().replace(link, format!("${{1}}search_id={id}${{2}}").as_str()).into_owned()
 }
 
 /// The page around the catalog: from the static export when it has the page (WordPress's render, kept in step by
@@ -421,20 +381,6 @@ fn collect_cookies(h: &HeaderMap, jar: &mut CookieJar, out: &mut Vec<HeaderValue
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn search_id_swapped() {
-        assert_eq!(
-            with_search_id("/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=threaded%20insert", 1042),
-            "/catalog.php?scscpq_wp=1&search_source=search&search_id=1042&search_code=threaded%20insert"
-        );
-        assert_eq!(with_search_id("/catalog.php?search_id=0", 7), "/catalog.php?search_id=7");
-        assert_eq!(with_search_id("/catalog.php?search_id=0#top", 7), "/catalog.php?search_id=7#top");
-        for link in ["/catalog.php?search_id=05", "/catalog.php?search_id=0.5", "/catalog.php?search_code=x", "/catalog.php?xsearch_id=0"] {
-            assert!(!search_id_zero().is_match(link), "{link}: the fallback stops before any fetch");
-            assert_eq!(with_search_id(link, 7), link, "{link}: a second fetch would change nothing");
-        }
-    }
 
     #[test]
     fn fragment_opened_as_a_page() {

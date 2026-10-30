@@ -5,7 +5,6 @@
 mod compose;
 mod pages;
 mod proxy;
-mod search;
 mod tabs;
 mod vendor;
 
@@ -31,7 +30,6 @@ pub struct App {
     legacy_http: reqwest::Client,
     shells: RwLock<BTreeMap<&'static str, (Instant, String)>>,
     pages: pages::Pages,
-    search: search::Search,
     vendor: vendor::Vendor,
     re: Res,
 }
@@ -101,7 +99,7 @@ mod tests {
     }
 }
 
-/// Page rewrites that can be switched off without a new build: HXWEB_OFF=tabs,repeats,dead-assets,preload,aos,fa-static,bg-preload,fonts-css,search.
+/// Page rewrites that can be switched off without a new build: HXWEB_OFF=tabs,repeats,dead-assets,preload,aos,fa-static,bg-preload,fonts-css.
 pub fn on(feature: &str) -> bool {
     static OFF: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
     !OFF.get_or_init(|| std::env::var("HXWEB_OFF").unwrap_or_default().split(',').map(|s| s.trim().to_string()).collect())
@@ -122,7 +120,6 @@ async fn main() {
         legacy_http: client(Duration::from_secs(600)),
         shells: RwLock::new(BTreeMap::new()),
         pages: pages::Pages::new(PathBuf::from(env("HXWEB_EXPORT", "/home/harcou6/static_site"))),
-        search: search::Search::new(PathBuf::from(env("HXWEB_SEARCH", "/home/harcou6/search_index"))),
         vendor: vendor::Vendor::load(&PathBuf::from(env("HXWEB_DOCROOT", "/home/harcou6/public_html")), &env("HXWEB_SITE", "www.harcourt.co")),
         re: Res {
             wrapper: Regex::new(r"(?is)<!DOCTYPE[^>]*>|</?(html|head|body)\b[^>]*>").unwrap(),
@@ -137,13 +134,11 @@ async fn main() {
     });
     tracing::info!("rewrites off: {}", std::env::var("HXWEB_OFF").unwrap_or_default());
     app.pages.refresh().await;
-    app.search.refresh().await;
     let watcher = app.clone();
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             watcher.pages.refresh().await;
-            watcher.search.refresh().await;
         }
     });
     let legacy = Router::new().fallback(dispatch).with_state(app);
@@ -179,9 +174,6 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
 async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {
     if let Some(gone) = hxweb::retired::guard(req.uri().path()) {
         return gone;
-    }
-    if search::wants(&req) {
-        return search::handle(&app, req).await;
     }
     if req.method() == Method::GET || req.method() == Method::HEAD {
         let path = req.uri().path().to_string();

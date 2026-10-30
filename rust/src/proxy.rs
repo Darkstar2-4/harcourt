@@ -33,7 +33,6 @@ pub async fn pass(app: &App, req: Request) -> Response<Body> {
             return Response::builder().status(StatusCode::BAD_GATEWAY).body(Body::from("Bad gateway")).unwrap();
         }
     };
-    app.search.forget(&parts.headers, r.headers().get_all(header::SET_COOKIE));
     let text = staging
         && r.headers().get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).is_some_and(|ct| {
             ["text/", "application/json", "application/javascript", "application/xml"].iter().any(|t| ct.starts_with(t))
