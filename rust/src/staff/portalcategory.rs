@@ -44,7 +44,7 @@ struct Text {
     description: String,
 }
 
-fn field(part: &str, language: &str) -> String {
+pub(super) fn field(part: &str, language: &str) -> String {
     STANDARD.encode(format!("{part}\t{language}"))
 }
 
@@ -78,7 +78,7 @@ async fn texts(pool: &SqlitePool, id: i64) -> sqlx::Result<Vec<Text>> {
 }
 
 /// portalcontent->select() for one form: the portal's own content and the generic content (portal 0).
-async fn portal_content(pool: &SqlitePool, form: &Form<'_>, field: &str, portal_id: i64, kind: &str, selected: i64) -> sqlx::Result<String> {
+pub(super) async fn portal_content(pool: &SqlitePool, form: &Form<'_>, field: &str, portal_id: i64, kind: &str, selected: i64) -> sqlx::Result<String> {
     let rows = sqlx::query!(r#"SELECT id AS "id!: i64", portal_id, name FROM portalcontent WHERE form = ?1 AND portal_id IN (0, ?2) ORDER BY form, name COLLATE NOCASE"#, kind, portal_id)
         .fetch_all(pool)
         .await?;

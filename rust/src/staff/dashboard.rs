@@ -309,7 +309,7 @@ impl Lead {
 }
 
 /// `content_class::encode()`: the scs_file.php key for a content row, tied to the viewer's last sign-in.
-fn content_key(content_id: i64, last_login: i64) -> String {
+pub(super) fn content_key(content_id: i64, last_login: i64) -> String {
     STANDARD_NO_PAD.encode(format!("{content_id}\t{last_login:x}"))
 }
 

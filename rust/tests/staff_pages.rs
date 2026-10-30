@@ -452,3 +452,29 @@ async fn portal_categories_are_listed_and_edited_per_language() {
     let items: Vec<i64> = sqlx::query_scalar("SELECT id FROM portalitem ORDER BY id").fetch_all(&h.pool).await.unwrap();
     assert_eq!(items, [40, 41]);
 }
+
+#[tokio::test]
+async fn portal_items_are_listed_by_category_and_a_new_one_keeps_its_portal() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    portal_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO portalcategory (id, portal_id, name, active, subcategory_id) VALUES (32, 3, 'Links', 1, 0)").await;
+    exec(&h.pool, "INSERT INTO portalcontent (id, portal_id, name, form) VALUES (62, 3, 'Datasheet', 'Link')").await;
+    exec(&h.pool, "INSERT INTO content (record_type, record_id, language_code, name) VALUES ('portalcontent', 62, 'EN', 'sheet.pdf')").await;
+    exec(&h.pool, "UPDATE portalitem SET pdf_portalcontent_id = 62, active = 1 WHERE id = 40").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/portalitem.php", Some(&admin))).await;
+    assert!(page.contains("<tr><td colspan=6><b>Fixtures</b></td></tr>\n<tr >\n<td><a href=\"javascript:fn_action(this,'maintain','40','3');\" >Item A</a></td>\n<td><a href=\"/scs_file.php?content_id="));
+    assert!(page.contains("target='portal_preview'>sheet.pdf</a></td>"));
+    let (_, _, page) = submit(&h, "/portalitem.php", &admin, &[("action", "maintain"), ("record_id", "0"), ("report_portal_id", "3")]).await;
+    assert!(page.contains("<input type=hidden name='report_portal_id' id='report_portal_id' value='3'>"));
+    assert!(page.contains("<td width='80%'><b>Example Aero</b></td>"));
+    assert!(page.contains("<select name='portalcategory_id' id='portalcategory_id'>\n<option></option>\n<option value='32'>Links</option>\n</select>"));
+    let en = b64("name\tEN");
+    let (_, _, page) = submit(&h, "/portalitem.php", &admin, &[("action", "update"), ("record_id", "0"), ("report_portal_id", "3"), (en.as_str(), "Item B"), ("portalcategory_id", "32"), ("other_portalcontent_id", "62"), ("other_name", "")]).await;
+    assert!(page.contains("Correct 1 error(s)"));
+    let (_, _, page) = submit(&h, "/portalitem.php", &admin, &[("action", "update"), ("record_id", "0"), ("report_portal_id", "3"), (en.as_str(), "Item B"), ("portalcategory_id", "32"), ("pdf_portalcontent_id", "62"), ("active", "1")]).await;
+    assert!(page.contains("<br>Record maintained"));
+    let saved: (i64, i64, i64) = sqlx::query_as("SELECT portal_id, portalcategory_id, pdf_portalcontent_id FROM portalitem WHERE name = 'Item B'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(saved, (3, 32, 62));
+}
