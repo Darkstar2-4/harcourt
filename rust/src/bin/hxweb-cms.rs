@@ -60,7 +60,14 @@ async fn run() -> Result<bool, String> {
     for p in &report.problems {
         println!("problem: {p}");
     }
-    println!("pages {}, menu items {}, media {}, extracted {}", content.pages.len(), content.menus.len(), content.media.len(), report.extracted.len());
+    println!(
+        "pages {}, menu items {}, media {}, forms {}, extracted {}",
+        content.pages.len(),
+        content.menus.len(),
+        content.media.len(),
+        content.forms.len(),
+        report.extracted.len()
+    );
     let site = match a.command.as_str() {
         "check" => content.site(),
         "import" => {

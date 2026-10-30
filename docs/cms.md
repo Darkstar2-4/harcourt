@@ -25,14 +25,14 @@ The transcriptions follow the theme in prod's document root (`/home/ubuntu/oracl
 
 ## Import
 
-Dump the WordPress content tables from the oracle or prod with `mysqldump --single-transaction --complete-insert`: `wp_posts` and `wp_postmeta` limited to the content post types (page, nav_menu_item, attachment, acf-field, acf-field-group), `wp_options` limited to the ACF options (`options_%`, `_options_%`), `widget_%`, `sidebars_widgets`, `theme_mods_momentum-custom`, `page_on_front` and `wp_page_for_privacy_policy`, and `wp_terms`, `wp_term_taxonomy`, `wp_term_relationships`, `wp_icl_translations`. No users and no form entries. Then:
+Dump the WordPress content tables from the oracle or prod with `mysqldump --single-transaction --complete-insert`: `wp_posts` and `wp_postmeta` limited to the content post types (page, nav_menu_item, attachment, acf-field, acf-field-group), `wp_options` limited to the ACF options (`options_%`, `_options_%`), `widget_%`, `sidebars_widgets`, `theme_mods_momentum-custom`, `page_on_front` and `wp_page_for_privacy_policy`, and `wp_terms`, `wp_term_taxonomy`, `wp_term_relationships`, `wp_icl_translations`, and the Gravity Forms definitions `wp_gf_form` and `wp_gf_form_meta`. No users and no form entries. Then:
 
 ```
 hxweb-cms check  --dump wp.sql --export /home/harcou6/static_site          # writes nothing; one PASS/FAIL line per page
 hxweb-cms import --dump wp.sql --export /home/harcou6/static_site --db /var/lib/hxweb/hx.db
 ```
 
-`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages: until then a claimed path is handed back and answers as an unclaimed one does (the static export, or WordPress).
+`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. It also upserts the form definitions into the orders area's `wp_gf_form` tables (entries untouched), since every page embeds a form and renders it from them. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages: until then a claimed path is handed back and answers as an unclaimed one does (the static export, or WordPress).
 
 The same holds for any copy of the database: the oracle rig's `hx.db` is built by `hx-import` from the SCS tables only, so a server started by `hx-serve.sh` has an empty cms until `hxweb-cms import` runs against its copy (`/tmp/hx_<area>_<port>.db`).
 

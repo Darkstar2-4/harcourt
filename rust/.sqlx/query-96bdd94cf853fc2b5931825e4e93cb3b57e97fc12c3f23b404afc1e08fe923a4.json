@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO wp_gf_form_meta (form_id, display_meta, entries_grid_meta, confirmations, notifications) VALUES (?1, ?2, ?3, ?4, ?5)\n             ON CONFLICT (form_id) DO UPDATE SET display_meta = excluded.display_meta, entries_grid_meta = excluded.entries_grid_meta,\n                 confirmations = excluded.confirmations, notifications = excluded.notifications",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "96bdd94cf853fc2b5931825e4e93cb3b57e97fc12c3f23b404afc1e08fe923a4"
+}

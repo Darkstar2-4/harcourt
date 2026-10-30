@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO wp_gf_form (id, title, date_created, date_updated, is_active, is_trash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)\n             ON CONFLICT (id) DO UPDATE SET title = excluded.title, date_created = excluded.date_created,\n                 date_updated = excluded.date_updated, is_active = excluded.is_active, is_trash = excluded.is_trash",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "3613b4b2afef63a9a030d5de4320d23c9acb0d12a9c8291af4064c73c7281e70"
+}

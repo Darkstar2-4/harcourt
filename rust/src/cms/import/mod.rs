@@ -5,6 +5,7 @@
 
 pub mod dump;
 pub mod export;
+pub mod forms;
 pub mod php;
 pub mod wp;
 
@@ -23,6 +24,8 @@ pub struct Import {
     pub menus: Vec<MenuItem>,
     pub media: Vec<Media>,
     pub redirects: Vec<(String, Redirect)>,
+    /// Gravity Forms definitions, for the orders area's tables.
+    pub forms: Vec<forms::GravityForm>,
 }
 
 impl Import {
@@ -151,5 +154,6 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             .execute(&mut *tx)
             .await?;
     }
+    forms::write(&mut tx, &import.forms).await?;
     tx.commit().await
 }
