@@ -296,6 +296,9 @@ async fn fetch(client: &reqwest::Client, base: &str, job: &Job, session: bool, c
     if session && job.persona.account.is_some() {
         req = req.header(COOKIE, format!("{}={}", hxweb::session::COOKIE, job.persona.session_token()));
     }
+    for (h, v) in &c.headers {
+        req = req.header(h.name(), v);
+    }
     if let Some(body) = &c.body {
         let ct = c.content_type.as_deref().unwrap_or("application/x-www-form-urlencoded");
         req = req.header(CONTENT_TYPE, ct).body(body.clone());
@@ -530,6 +533,50 @@ mod tests {
         let doc = render(200, &h, b"\x89PNG", &ctx());
         assert!(doc.contains("binary 4 bytes, sha256 "), "{doc}");
         assert_ne!(doc, render(200, &h, b"\x89PNH", &ctx()));
+    }
+
+    /// One request against a throwaway local listener, returning the request head it received.
+    fn received(case: &str) -> String {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            let (mut sock, _) = listener.accept().unwrap();
+            let mut head = Vec::new();
+            let mut buf = [0u8; 1024];
+            while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = sock.read(&mut buf).unwrap();
+                head.extend_from_slice(&buf[..n]);
+            }
+            sock.write_all(b"HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\ncontent-length: 2\r\n\r\nok").unwrap();
+            String::from_utf8(head).unwrap().to_ascii_lowercase()
+        });
+        let personas = Personas::embedded().unwrap();
+        let case = corpus::parse(case, "t", &personas).unwrap().remove(0);
+        let job = Job { persona: personas.get(&case.persona).unwrap().clone(), case };
+        let client = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let answer = rt.block_on(fetch(&client, &format!("http://127.0.0.1:{port}"), &job, false, &ctx())).unwrap();
+        assert_eq!(answer.status, 200);
+        server.join().unwrap()
+    }
+
+    #[test]
+    fn case_headers_are_sent_with_the_persona() {
+        let head = received(
+            r#"{"name":"n","path":"/newuser.php","persona":"customer-active","headers":{"Referer":"https://www.harcourt.co/request-access/","X-Requested-With":"XMLHttpRequest"}}"#,
+        );
+        assert!(head.starts_with("get /newuser.php http/1.1\r\n"), "{head}");
+        for line in [
+            "referer: https://www.harcourt.co/request-access/",
+            "x-requested-with: xmlhttprequest",
+            "x-real-ip: 198.51.100.11",
+            "host: www.harcourt.co",
+        ] {
+            assert!(head.contains(&format!("\r\n{line}\r\n")), "missing {line:?} in {head}");
+        }
+        let plain = received(r#"{"name":"n","path":"/newuser.php"}"#);
+        assert!(!plain.contains("\r\nreferer:") && !plain.contains("\r\nx-requested-with:"), "{plain}");
     }
 
     #[test]

@@ -21,7 +21,7 @@ pub struct Rule {
 
 pub const NEAR_NOW_SECS: i64 = 2 * 86_400;
 
-pub static RULES: [Rule; 6] = [
+pub static RULES: [Rule; 7] = [
     Rule {
         name: "host",
         removes: "Absolute origins of the two stacks under test and of www.harcourt.co / harcourt.co, with or without \
@@ -40,6 +40,12 @@ pub static RULES: [Rule; 6] = [
                   data-*nonce and nonce attributes, hidden inputs named *nonce*) and Gravity Forms state \
                   (hidden inputs gform_unique_id, gform_currency and state_N), and Akismet's ak_js hidden input.",
         apply: nonce,
+    },
+    Rule {
+        name: "csrf",
+        removes: "Every <input> element whose name attribute is exactly csrf, hidden or not, in any attribute order. \
+                  It is the Rust pages' per-session form token, which the PHP lacks on purpose. Other inputs stay.",
+        apply: csrf,
     },
     Rule {
         name: "time-near-now",
@@ -110,6 +116,22 @@ fn nonce(text: &str, _: &Ctx) -> String {
         out = r.replace_all(&out, to).into_owned();
     }
     out
+}
+
+fn csrf(text: &str, _: &Ctx) -> String {
+    static INPUT: LazyLock<Regex> = LazyLock::new(|| re(r#"(?i)<input\b(?:[^>"']|"[^"]*"|'[^']*')*>"#));
+    static ATTR: LazyLock<Regex> =
+        LazyLock::new(|| re(r#"\s([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?"#));
+    INPUT
+        .replace_all(text, |c: &Captures| {
+            let tag = &c[0]["<input".len()..];
+            let named_csrf = ATTR.captures_iter(tag).any(|a| {
+                let value = a.get(2).or(a.get(3)).or(a.get(4)).map(|m| m.as_str());
+                a[1].eq_ignore_ascii_case("name") && value == Some("csrf")
+            });
+            if named_csrf { String::new() } else { c[0].to_string() }
+        })
+        .into_owned()
 }
 
 /// Days from 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's days_from_civil).
@@ -226,6 +248,41 @@ mod tests {
     }
 
     #[test]
+    fn csrf_inputs_go_in_every_spelling() {
+        let c = ctx();
+        for tag in [
+            r#"<input type="hidden" name="csrf" value="Zm9v_-x">"#,
+            r#"<input value="Zm9v" name="csrf" type="hidden" />"#,
+            "<input name='csrf' value='x'>",
+            "<input type=hidden name=csrf value=abc>",
+            "<input name=csrf>",
+            r#"<INPUT Name = "csrf" value="x"/>"#,
+            r#"<input type="text" data-x="a>b" name="csrf">"#,
+        ] {
+            assert_eq!(csrf(&format!("<form>{tag}<button>"), &c), "<form><button>", "{tag}");
+        }
+    }
+
+    #[test]
+    fn csrf_leaves_every_other_input_alone() {
+        let c = ctx();
+        for tag in [
+            r#"<input type="hidden" name="csrf_token" value="x">"#,
+            r#"<input name="mycsrf" value="x">"#,
+            r#"<input name="CSRF" value="x">"#,
+            r#"<input name="email" value="csrf">"#,
+            r#"<input data-name="csrf" name="email">"#,
+            r#"<input title="x name=csrf" name="email">"#,
+            r#"<input id="csrf" name="email">"#,
+            r#"<input type="hidden" name="_wpnonce" value="abc">"#,
+            r#"<meta name="csrf" content="x">"#,
+            r#"<inputs name="csrf">"#,
+        ] {
+            assert_eq!(csrf(tag, &c), tag, "{tag}");
+        }
+    }
+
+    #[test]
     fn times_near_now_go_and_data_stays() {
         let c = ctx();
         assert_eq!(time_near_now("t=1793318400&x=1", &c), "t={NOW}&x=1");
@@ -262,7 +319,10 @@ mod tests {
     fn rules_run_in_order_on_whole_pages() {
         let page = "<a href='https://www.harcourt.co/x.js?ver=1'>\r\n<input name='_wpnonce' value='abcdef1234'> 1793318400";
         assert_eq!(apply_all(page, &ctx()), "<a href='https://HOST/x.js?ver={V}'>\n<input name='_wpnonce' value='{NONCE}'> {NOW}");
-        assert_eq!(RULES.iter().map(|r| r.name).collect::<Vec<_>>().len(), 6);
+        assert_eq!(
+            RULES.iter().map(|r| r.name).collect::<Vec<_>>(),
+            ["host", "session-id", "nonce", "csrf", "time-near-now", "asset-version", "whitespace"]
+        );
     }
 
     #[test]
