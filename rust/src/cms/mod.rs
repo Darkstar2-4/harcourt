@@ -31,6 +31,7 @@ pub mod refused;
 pub mod sitemap;
 pub mod theme;
 pub mod url;
+pub mod yoast;
 
 pub use model::*;
 

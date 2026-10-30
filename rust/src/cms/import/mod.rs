@@ -6,6 +6,7 @@
 pub mod capture;
 pub mod dump;
 pub mod export;
+pub mod heads;
 pub mod php;
 pub mod wp;
 

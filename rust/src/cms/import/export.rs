@@ -166,6 +166,7 @@ pub fn apply(import: &mut Import, export: &Export) -> Report {
             Err(e) => report.problems.push(format!("page {} ({}): {e}", page.id.0, page.lang.code())),
         }
     }
+    super::heads::apply(import);
     report
 }
 
