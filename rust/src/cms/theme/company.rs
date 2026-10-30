@@ -23,7 +23,7 @@ fn history_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("hero_bg_image"));
+    let bg = c.image_url("hero_bg_image");
     c.push(&bg);
     c.push("')\">\n  <div class=\"background-overlay site-padding \">\n    <div class=\"container\">\n      <div class=\"row\">\n\n        <div data-aos-duration=\"1500\" data-aos=\"fade-right\" class=\"col-lg-6 content-half\">\n          <div class=\"pr-md-5\">\n            ");
     breadcrumbs(c);
@@ -65,7 +65,7 @@ fn why_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("bg_image"));
+    let bg = c.image_url("bg_image");
     c.push(&bg);
     c.push("')\">\n  <div class=\"background-overlay\">\n    <div class=\"container\">\n      <div class=\"row\">\n\n        <div data-aos-duration=\"1500\" data-aos=\"fade-right\" class=\"col-lg-6 content-half\">\n          <div class=\"site-padding pr-md-5\">\n            ");
     breadcrumbs(c);
@@ -153,10 +153,10 @@ fn about_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url(");
-    let bg = Ctx::media_url(c.media("hero_bg_img"));
+    let bg = c.image_url("hero_bg_img");
     c.push(&bg);
     c.push(");\">\n  <div class=\"container-fluid background-container pr-0\">\n    <div class=\"row pr-0\">\n      <div class=\"col-lg-5\"></div>\n      <div class=\"col-lg-7 right-bg-image pr-0\" style=\"background-image:url(");
-    let right = Ctx::media_url(c.media("hero_bg_img_right"));
+    let right = c.image_url("hero_bg_img_right");
     c.push(&right);
     c.push(")\"></div>\n    </div>\n  </div>\n  <div class=\"container hero-content-container\">\n    <div class=\"row align-items-center\">\n      <div class=\"col-lg-6\">\n        ");
     breadcrumbs(c);
@@ -188,7 +188,7 @@ fn about_advantage(c: &mut Ctx) {
 /// layouts/sections/about/mid-section.php
 fn about_mid(c: &mut Ctx) {
     c.push("\n<section class=\"about-mid-section site-padding has-overlay\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("mid_bg_img"));
+    let bg = c.image_url("mid_bg_img");
     c.push(&bg);
     c.push("');\">\n  <div class=\"absolute-overlay red-radial-gradient\"> </div>\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-lg-8 mx-auto text-center bold\" data-aos-duration='1500' data-aos='fade-down'>\n          ");
     c.html("mid_description");
@@ -250,7 +250,7 @@ fn career_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("bg_image"));
+    let bg = c.image_url("bg_image");
     c.push(&bg);
     c.push("')\">\n\n  <div class=\"background-overlay\">\n    <div class=\"container\">\n      <div class=\"row\">\n\n        <div data-aos-duration=\"1500\" data-aos=\"fade-right\" class=\"col-lg-8 mx-auto text-center\">\n          <div class=\"site-padding\">\n            ");
     breadcrumbs(c);

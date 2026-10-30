@@ -16,6 +16,12 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Why => super::company::why,
         Template::About => super::company::about,
         Template::Career => super::company::career,
+        Template::ThankYou => super::simple::thank_you,
+        Template::Faq => super::simple::faq,
+        Template::Contact => super::contact::contact,
+        Template::ContactUk => super::contact::contact_uk,
+        Template::ContactFrance | Template::ContactIndia => super::contact::contact_region,
+        Template::Locations => super::contact::locations,
         _ => return None,
     })
 }
@@ -52,7 +58,7 @@ fn page_content(c: &mut Ctx) {
 
 /// sidebar.php, for pages (FAQ posts use another widget area). The widgets of the page's widget area are stored
 /// with the page as WordPress printed them: their menus mark the current page.
-fn sidebar(c: &mut Ctx) {
+pub(super) fn sidebar(c: &mut Ctx) {
     let fr = c.lang() == Lang::Fr;
     c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n            ");
     let id = c.page.id;
@@ -119,7 +125,7 @@ fn product_hero(c: &mut Ctx) {
         c.push("add-margin");
     }
     c.push("\" style=\"background-image:url('");
-    let bg = Ctx::media_url(c.media("bg_image"));
+    let bg = c.image_url("bg_image");
     c.push(&bg);
     c.push("')\">\n  <div class=\"background-overlay\">\n    <div class=\"container\">\n      <div class=\"row\">\n\n        <div data-aos-duration=\"1500\" data-aos=\"fade-right\" class=\"col-lg-6 content-half\">\n          <div class=\"site-padding pr-md-5\">\n            ");
     breadcrumbs(c);

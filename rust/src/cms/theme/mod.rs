@@ -7,7 +7,9 @@
 
 mod chrome;
 mod company;
+mod contact;
 pub mod probe;
+mod simple;
 mod templates;
 
 use super::{
@@ -158,6 +160,16 @@ impl<'a> Ctx<'a> {
     /// An ACF image array's `url`: wp_get_attachment_url().
     pub fn media_url(media: Option<&Media>) -> String {
         media.map(|m| format!("{UPLOADS}{}", m.file)).unwrap_or_default()
+    }
+
+    /// `echo get_field($name)` for an image field returning its URL (or an array printed by its `url`). On a page
+    /// whose meta lacks the field's key ACF does not format the value and prints the stored attachment id.
+    pub fn image_url(&self, name: &str) -> String {
+        match self.field(name) {
+            Some(f) if f.kind == Kind::Media => Ctx::media_url(self.media(name)),
+            Some(f) => f.value.clone(),
+            None => String::new(),
+        }
     }
 
     /// The header notice banner is set (`get_field('website_notification', 'options')`).
