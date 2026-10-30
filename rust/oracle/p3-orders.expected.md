@@ -30,9 +30,13 @@ and the PO Manager for the staff who may open it. Values are made up; no case le
 
 - **`/shop` and `/shop/`.** WordPress's 404 guess sends any unknown one-segment path to the oldest page whose
   slug starts with it (`/shopping-cart/`). Rust claims only the pages it renders, so these go to the legacy stack.
-- **An English-only form page asked for in French** (`/boxjoint-inquiry-form/?lang=fr`, the three Michigan
-  contact forms). WordPress prints its themed 404 page, which is not ported; without the slash it first adds the
-  slash with a 301, which `resolve()` does not model for an untranslated page.
+- **An English-only form page asked for in French at its own URL** (`/boxjoint-inquiry-form/?lang=fr`, the three
+  Michigan contact forms). WordPress prints its themed 404 page, which is not ported, so Rust hands it to the
+  legacy stack. Without the slash, the 301 to that URL is answered here.
+- **A form or cart page asked for with a query WordPress acts on** (`?p=`, `?s=`, `?page_id=`, `?preview=`,
+  `?embed=`, `?feed=`, `?paged=`): the wordpress routes hand these to the legacy stack.
+- **`?gf_page=` on any page.** Gravity Forms sent a visitor who was not signed in to WordPress to `wp-login.php`
+  (its preview and print pages); Rust shows the page.
 
 ## Caused by the measurement
 

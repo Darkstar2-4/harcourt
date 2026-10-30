@@ -74,3 +74,6 @@
 {"name":"p3-orderhd-cancel","method":"POST","path":"/orderhd.php","persona":"executive-active","body":"action=cancel"}
 {"name":"p3-orderhd-anonymous","path":"/orderhd.php","persona":"anonymous"}
 {"name":"p3-orderhd-customer","path":"/orderhd.php","persona":"customer-active"}
+{"name":"p3-french-link-contact-form-troy-mi","path":"/contact-form-troy-mi?lang=fr","language":"fr"}
+{"name":"p3-french-link-boxjoint-inquiry-form","path":"/boxjoint-inquiry-form?lang=fr","language":"fr"}
+{"name":"p3-french-link-contact-form-madison-heights-mi","path":"/contact-form-madison-heights-mi?lang=fr&utm_source=x","language":"fr"}
