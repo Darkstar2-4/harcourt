@@ -97,7 +97,7 @@ async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc
             return Ok(refused());
         };
         let v = viewer::load(&core.pool, &visitor, viewer::Lang::En).await?;
-        if !(v.active && v.at_least(Role::Internal)) {
+        if !(v.active() && v.at_least(Role::Internal)) {
             return Ok(refused());
         }
         let list = match source {

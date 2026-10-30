@@ -30,7 +30,7 @@ use super::{
     tabs::Tabs,
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
+use crate::{accounts::profile::Profile as AddressProfile, api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
@@ -163,16 +163,15 @@ impl Ctx<'_> {
     }
 
     pub fn buyer(&self) -> crate::pricing::Buyer<'_> {
-        crate::pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active, currency_code: &self.viewer.currency_code }
+        crate::pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active(), currency_code: &self.viewer.currency_code }
     }
 }
 
-pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap) -> sqlx::Result<Ctx<'a>> {
+pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, profile: Profile) -> sqlx::Result<Ctx<'a>> {
     let registry = registry::load(pool).await?;
     let catalog = model::load(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
-    let profile = super::profile::load(pool, viewer, cookies).await?;
     let php_self = match (req.framed, viewer.lang) {
         (false, _) => "/catalog.php",
         (true, Lang::Fr) => "/catalogue/",
@@ -374,18 +373,27 @@ async fn catalog_php(
 
 type Params = std::collections::HashMap<String, String>;
 
+/// catalog.php. Its constructor loaded the profile, which writes the `harcourt_profile` cookie on every request.
 async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &axum::http::Uri, q: &Params) -> Response {
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
         let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
         let req = Request { uri, framed: visitor.framed, ..Request::parse(q) };
-        let mut ctx = load_ctx(&core.pool, &viewer, req, headers).await?;
+        let loaded = AddressProfile::load(&core.pool, headers, visitor).await?;
+        let cookie = loaded.remember(&core.pool, visitor, unix_now()).await?;
+        let mut ctx = load_ctx(&core.pool, &viewer, req, Profile::from(&loaded)).await?;
         ctx.search = Some(cache);
-        render(&mut ctx).await
+        Ok::<_, sqlx::Error>((render(&mut ctx).await?, cookie))
     }
     .await;
     match result {
-        Ok(body) => html_response(body),
+        Ok((body, cookie)) => {
+            let mut resp = html_response(body);
+            if let Some(c) = cookie {
+                resp.headers_mut().append(header::SET_COOKIE, c);
+            }
+            resp
+        }
         Err(e) => failed(e),
     }
 }

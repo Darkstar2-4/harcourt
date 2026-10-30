@@ -20,7 +20,11 @@ use super::{
     strings::{self, Strings},
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, identity::Role, visitor::Visitor};
+use crate::{
+    api::Auth,
+    identity::{Role, Status},
+    visitor::Visitor,
+};
 
 const VERSION: &str = "10/01/2025";
 
@@ -125,7 +129,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
     trace.push("language");
     let mut out = Loader::default();
     trace.push("newuser");
-    let newuser = !(viewer.account_id().is_some() && viewer.active) && !viewer.is_bot();
+    let newuser = !(viewer.account_id().is_some() && viewer.status != Status::Pending) && !viewer.is_bot();
     out.set("scscpq_newuser", json!(i32::from(newuser)));
     trace.push("impersonate");
     out.set("scscpq_impersonate", json!(0));
@@ -138,7 +142,7 @@ pub async fn initial(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>) -> s
     trace.push("portal");
     out.set("scscpq_portal", json!(portal_link(&strings, viewer.lang)));
     trace.push("dashboard");
-    out.set("scscpq_dashboard", json!(i32::from(viewer.at_least(Role::Executive) && viewer.active)));
+    out.set("scscpq_dashboard", json!(i32::from(viewer.at_least(Role::Executive) && viewer.active())));
     out.set("scscpq_products", json!(i32::from(catalog(viewer))));
     let account_language = viewer.account_lang.filter(|_| viewer.account_id().is_some()).map_or("", Lang::code);
     out.set("account_language", json!(account_language));

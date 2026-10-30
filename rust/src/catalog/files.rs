@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn content_follows_the_visibility_of_what_owns_it() {
         let anon = Viewer::anonymous(Lang::En);
-        let customer = Viewer { kind: Kind::Account(UserId(1)), active: true, catalog: true, ..Viewer::anonymous(Lang::En) };
+        let customer = Viewer { kind: Kind::Account(UserId(1)), status: crate::identity::Status::Active, catalog: true, ..Viewer::anonymous(Lang::En) };
         let family = |status| Owner::Family { status, category_active: true, category_id: 3 };
         assert!(may_fetch(&anon, Owner::Public));
         assert!(!may_fetch(&anon, family(Status::Active)));
