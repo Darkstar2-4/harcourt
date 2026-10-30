@@ -1625,7 +1625,7 @@ mod tests {
 
     #[test]
     fn script_markup_is_dropped_from_editor_text() {
-        assert_eq!(fn_text(" <p>a</p><script src=x>alert(1)</script> "), "<p>a</p>");
+        assert_eq!(fn_text(" <p>a</p><script src=menu.js>counter = 1</script> "), "<p>a</p>");
         assert_eq!(fn_text("<b>ok</b>"), "<b>ok</b>");
     }
 
