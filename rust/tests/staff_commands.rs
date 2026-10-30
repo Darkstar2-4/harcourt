@@ -231,3 +231,15 @@ async fn commands_name_their_tables_and_directions() {
     }
     assert!(matches!(run_on(&pool, &["import", "inventory", any.path()]).await, Err(Fail::Run(_))), "a header with no column of the table");
 }
+
+#[tokio::test]
+async fn cad_formats_replace_the_table_and_the_job_needs_its_registry_settings() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO cad (code, name) VALUES ('OLD', 'Old format')").await;
+    let xml = r#"<formats><format type="neutral" cad="step"><qualifier>STEP-AP214</qualifier><name>STEP AP214</name><version/></format></formats>"#;
+    let formats = hxweb::staff::jobs::cad_formats(xml).unwrap();
+    hxweb::staff::jobs::replace_cad(&pool, &formats).await.unwrap();
+    let rows: Vec<(String, String, String, i64)> = sqlx::query_as(r#"SELECT code, name, "type", active FROM cad"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [("STEP-AP214".to_string(), "STEP AP214".to_string(), "STEP".to_string(), 1)]);
+    assert_eq!(run_on(&pool, &["job", "cad_formats"]).await, Err(Fail::Run("registry cad.portal or cad.catalog is not set".into())));
+}

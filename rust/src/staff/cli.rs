@@ -20,7 +20,7 @@ use crate::{
 };
 
 const USAGE: &str = "usage:
-  hxweb job search_utility | search_export <dir> | search_export --log <file> | image_filmstrip <docroot>
+  hxweb job search_utility | search_export <dir> | search_export --log <file> | image_filmstrip <docroot> | cad_formats
   hxweb job price_increase (--percent <p> | --fixed <amount>) (--all | <subcategory id>...)
   hxweb export <table> [--out <file.xlsx|.txt|.csv>] [--subcategory <id>] [--no-price] [--category <id>]
                [--status <s,..>] [--role <r,..>] [--industry <id>] [--from <date>] [--thru <date>]
@@ -201,6 +201,7 @@ async fn job(pool: &SqlitePool, a: &Args) -> Result<Done, Fail> {
         ["search_export", file] if a.has("--log") => jobs::search_log(pool, Path::new(file), now).await?,
         ["search_export", dir] => jobs::search_export(pool, Path::new(dir)).await?,
         ["image_filmstrip", docroot] => super::filmstrip::run(pool, Path::new(docroot), now).await?,
+        ["cad_formats"] => jobs::cad_refresh(pool, now).await?,
         ["price_increase", ref ids @ ..] => {
             let increase = match (a.get("--percent"), a.get("--fixed")) {
                 (p, "") if !p.is_empty() => jobs::Increase::parse("percent", p).map_err(bad)?,

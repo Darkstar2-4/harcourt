@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cad",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "050d2f999f19aee4aa1a64443bc706df9bdf8ea90ab17710691560654d3ac36b"
+}
