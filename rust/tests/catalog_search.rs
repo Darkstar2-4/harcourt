@@ -21,9 +21,13 @@ async fn seed(pool: &SqlitePool) {
     }
 }
 
-fn suggest(term: &str, cookie: Option<&str>, page: &str) -> axum::http::Request<Body> {
+fn from_page(path: &str, cookie: Option<&str>, page: &str) -> axum::http::Request<Body> {
     let referer = format!("https://www.harcourt.co{page}");
-    request(Method::GET, &format!("/catalog-api/search?limit=20&term={term}"), cookie, &[("referer", referer.as_str())], Body::empty())
+    request(Method::GET, path, cookie, &[("host", "www.harcourt.co"), ("referer", referer.as_str()), ("x-requested-with", "XMLHttpRequest")], Body::empty())
+}
+
+fn suggest(term: &str, cookie: Option<&str>, page: &str) -> axum::http::Request<Body> {
+    from_page(&format!("/scs_ajax.php?table=search&limit=20&term={term}"), cookie, page)
 }
 
 #[tokio::test]
@@ -47,17 +51,21 @@ async fn customers_get_suggestions_scoped_to_what_they_may_see() {
 }
 
 #[tokio::test]
-async fn visitors_who_may_not_browse_get_nothing() {
+async fn the_box_answers_any_visitor_but_only_its_own_scripts() {
     let h = harness().await;
     seed(&h.pool).await;
-    let (status, _, body) = send(&h.app, suggest("hblt", None, "/catalog/")).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
-    assert!(!body.contains("HBLT"));
-    let mut pending = Account::customer(41);
-    pending.status = "Pending";
-    let cookie = signed_in(&h.pool, &pending).await;
-    let (status, _, _) = send(&h.app, suggest("hblt", Some(&cookie), "/catalog/")).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, headers, body) = send(&h.app, suggest("hblt", None, "/catalog/")).await;
+    assert_eq!((status, &headers["content-type"]), (StatusCode::OK, &"application/json; charset=utf-8".parse().unwrap()));
+    assert!(body.contains("HBLT-1"), "{body}");
+    let (_, _, typed) = send(&h.app, from_page("/catalog-api/search?limit=20&term=hblt", None, "/catalog/")).await;
+    assert_eq!(typed, body);
+    for headers in [vec![("host", "www.harcourt.co")], vec![("host", "www.harcourt.co"), ("x-requested-with", "XMLHttpRequest"), ("referer", "https://elsewhere.example/")]] {
+        let (status, _, body) = send(&h.app, request(Method::GET, "/scs_ajax.php?table=search&limit=20&term=hblt", None, &headers, Body::empty())).await;
+        assert_eq!((status, body.as_str()), (StatusCode::FORBIDDEN, r#"{"error":"External access","items":[]}"#));
+    }
+    let (status, _, body) = send(&h.app, from_page("/hx_search_ctx.php", None, "/catalog/")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "the PHP scope endpoint is not served");
+    assert!(body.contains("<center>nginx</center>"));
 }
 
 #[tokio::test]
@@ -77,19 +85,20 @@ async fn staff_autocompletes_answer_staff_only_with_the_fields_their_pages_read(
     let customer = signed_in(&h.pool, &Account::customer(43)).await;
     let mut staff = Account::customer(44);
     staff.role = "Internal";
-    staff.company_name = Some("Acme Tooling".into());
+    staff.company_name = Some("Acme/Tooling".into());
     let staff = signed_in(&h.pool, &staff).await;
-    let get = |path: &str, cookie: &str| request(Method::GET, path, Some(cookie), &[], Body::empty());
-    let (status, _, _) = send(&h.app, get("/catalog-api/companies?term=acme", &customer)).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
-    let (status, _, body) = send(&h.app, get("/scs_ajax.php?table=user&source=company_name&term=acme", &staff)).await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(body, r#"[{"value":"Acme Tooling"}]"#);
-    let (_, _, body) = send(&h.app, get("/scs_ajax.php?table=inventory&detail=sku&term=HBLT", &staff)).await;
-    assert!(body.starts_with(r#"[{"category_name":"Pins","category_subcategory_id":"1:7","label":"HBLT-1","subcategory_name":"Ball Lock Pins"}"#), "{body}");
-    let (status, _, _) = send(&h.app, get("/scs_ajax.php?table=remote&term=x", &staff)).await;
-    assert_eq!(status, StatusCode::NOT_FOUND);
-    let (status, _, body) = send(&h.app, request(Method::GET, "/scs_ajax.php?table=search&limit=20&term=hblt", Some(&customer), &[("referer", "https://www.harcourt.co/catalog/")], Body::empty())).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(body.contains("HBLT-1"));
+    let page = "/suppliersku.php";
+    let (status, _, body) = send(&h.app, from_page("/scs_ajax.php?table=user&source=company_name&term=acme", Some(&customer), page)).await;
+    assert_eq!((status, body.as_str()), (StatusCode::UNAUTHORIZED, ""));
+    let (status, headers, body) = send(&h.app, from_page("/scs_ajax.php?table=user&source=company_name&term=acme", Some(&staff), page)).await;
+    assert_eq!((status, &headers["content-type"]), (StatusCode::OK, &"text/html; charset=UTF-8".parse().unwrap()));
+    assert_eq!(body, r#"[{"value":"Acme\/Tooling"}]"#);
+    let (_, _, body) = send(&h.app, from_page("/scs_ajax.php?table=inventory&detail=sku&term=HBLT", Some(&staff), page)).await;
+    assert!(body.starts_with(r#"[{"label":"HBLT-1","category_name":"Pins","subcategory_name":"Ball Lock Pins","category_subcategory_id":"1:7"}"#), "{body}");
+    for path in ["/scs_ajax.php?table=remote&term=x", "/scs_ajax.php?table=user&term=acme", "/scs_ajax.php?table=inventory&detail=sku&term="] {
+        let (status, _, _) = send(&h.app, from_page(path, Some(&staff), page)).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{path}");
+    }
+    let direct = request(Method::GET, "/scs_ajax.php?table=inventory&detail=sku&term=HBLT", Some(&staff), &[("host", "www.harcourt.co"), ("referer", "https://www.harcourt.co/suppliersku.php")], Body::empty());
+    assert_eq!(send(&h.app, direct).await.0, StatusCode::UNAUTHORIZED, "not from a script");
 }
