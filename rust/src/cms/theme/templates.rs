@@ -22,6 +22,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::ContactUk => super::contact::contact_uk,
         Template::ContactFrance | Template::ContactIndia => super::contact::contact_region,
         Template::Locations => super::contact::locations,
+        Template::Home => super::home::home,
         _ => return None,
     })
 }
@@ -268,7 +269,7 @@ pub(super) fn id_list(v: &str) -> Vec<i64> {
 }
 
 /// layouts/sections/global/grid-items.php
-fn grid_items(c: &mut Ctx) {
+pub(super) fn grid_items(c: &mut Ctx) {
     c.push("\n<div class=\"grid-items\" id=\"");
     c.html("grid_id");
     c.push("\">\n  <div class=\"row ");

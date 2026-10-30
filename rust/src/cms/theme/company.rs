@@ -113,7 +113,7 @@ fn why_content(c: &mut Ctx) {
 /// post; its text is kept with the page that shows it, as `testimonials_N_quote` and `testimonials_N_customer`.
 pub(super) fn testimonials(c: &mut Ctx) {
     c.push("<section class=\"customers-section has-bg-img d-flex align-items-center justify-content-center\" style=\"background-image: url(");
-    let bg = Ctx::media_url(c.option_media("industries_bg_img"));
+    let bg = Ctx::media_url(c.default_option_media("industries_bg_img"));
     c.push(&bg);
     c.push(")\">\n  <div class=\"container-fluid\">\n    <div class=\"headline\">\n      <h2 data-aos-duration=\"1500\" data-aos=\"fade-up\" class=\"white text-center\">");
     c.push(if c.lang() == Lang::Fr { "Ce que disent nos clients" } else { "What Our Customers Say" });

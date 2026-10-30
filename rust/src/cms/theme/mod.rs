@@ -8,6 +8,7 @@
 mod chrome;
 mod company;
 mod contact;
+mod home;
 pub mod probe;
 mod simple;
 mod templates;
@@ -19,6 +20,8 @@ use super::{
 
 pub const ORIGIN: &str = "https://www.harcourt.co";
 pub const UPLOADS: &str = "https://www.harcourt.co/wp-content/uploads/";
+/// get_stylesheet_directory_uri()
+pub const THEME: &str = "https://www.harcourt.co/wp-content/themes/momentum-custom";
 
 /// A value a template prints, by where it is stored.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -151,6 +154,17 @@ impl<'a> Ctx<'a> {
         self.site.media.get(&MediaId(id))
     }
 
+    /// `get_field($name, 'Options')`: with the capital O ACF misses WPML's language and reads the English options
+    /// on every page.
+    pub fn default_option(&self, name: &str) -> Option<&'a Field> {
+        self.site.options(Lang::En).get(name)
+    }
+
+    pub fn default_option_media(&self, name: &str) -> Option<&'a Media> {
+        let id = self.default_option(name)?.value.trim().parse::<i64>().ok()?;
+        self.site.media.get(&MediaId(id))
+    }
+
     /// `echo wp_get_attachment_image($id, 'full')`.
     pub fn image(&mut self, media: Option<&Media>) {
         let tag = self.images.full(media, UPLOADS);
@@ -160,6 +174,16 @@ impl<'a> Ctx<'a> {
     /// An ACF image array's `url`: wp_get_attachment_url().
     pub fn media_url(media: Option<&Media>) -> String {
         media.map(|m| format!("{UPLOADS}{}", m.file)).unwrap_or_default()
+    }
+
+    /// `echo $link[$part]` for an ACF link field (`url`, `title` or `target`), printed as stored.
+    pub fn link(&mut self, name: &str, part: &str) {
+        let value = self
+            .field(name)
+            .and_then(|f| serde_json::from_str::<serde_json::Value>(&f.value).ok())
+            .and_then(|v| v.get(part).and_then(|p| p.as_str().map(str::to_string)))
+            .unwrap_or_default();
+        self.out.push_str(&value);
     }
 
     /// `echo get_field($name)` for an image field returning its URL (or an array printed by its `url`). On a page
