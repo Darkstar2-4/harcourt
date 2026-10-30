@@ -431,10 +431,9 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
 /// neutral GET gets the page as hxweb finished the static pages; anything else (a post, other query keys) went to
-/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. While
-/// WordPress runs, such a request for a page with forms is still its to answer: its forms carry a fresh Zero Spam
-/// token that WordPress checks on submit. Only a GET or HEAD (`replay`) can be handed back to the legacy stack;
-/// a post that would be handed back gets the page at its path, or a 404.
+/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET
+/// or HEAD (`replay`) can be handed back to the legacy stack; a post that would be handed back gets the page at its
+/// path, or a 404.
 async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
@@ -459,9 +458,6 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
             _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
         },
     };
-    if !finished && replay && answer.is_none() && wp.legacy.is_some() && !islands(&site, page).is_empty() {
-        return legacy();
-    }
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
         tracing::error!("{path} is claimed but its template is not ported");
