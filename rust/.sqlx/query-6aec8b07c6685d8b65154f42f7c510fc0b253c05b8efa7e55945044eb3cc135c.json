@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT company_name AS \"name!\" FROM \"user\" WHERE company_name IS NOT NULL AND company_name LIKE ?1\n               GROUP BY company_name ORDER BY company_name, min(CASE WHEN domain IS NULL THEN 1 ELSE 0 END)",
+  "describe": {
+    "columns": [
+      {
+        "name": "name!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6aec8b07c6685d8b65154f42f7c510fc0b253c05b8efa7e55945044eb3cc135c"
+}

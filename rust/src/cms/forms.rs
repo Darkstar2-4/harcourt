@@ -104,7 +104,7 @@ impl FormSource for OrdersForms {
                 Lang::En => crate::orders::forms::model::Lang::En,
                 Lang::Fr => crate::orders::forms::model::Lang::Fr,
             };
-            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri).await {
+            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri, "").await {
                 Ok(Some(html)) => return Ok(html),
                 Ok(None) => {}
                 Err(e) => tracing::warn!("form {}: {e}", form.form),

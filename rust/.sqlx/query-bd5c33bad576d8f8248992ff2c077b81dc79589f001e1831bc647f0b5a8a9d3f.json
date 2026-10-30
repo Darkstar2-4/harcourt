@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT table_name AS \"table_name!\", category_id AS \"category_id: i64\", subcategory_id AS \"subcategory_id: i64\", inventory_id AS \"inventory_id: i64\"\n           FROM search WHERE table_name IN ('inventory', 'competitor_sku') AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)\n           ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "table_name!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inventory_id: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "bd5c33bad576d8f8248992ff2c077b81dc79589f001e1831bc647f0b5a8a9d3f"
+}

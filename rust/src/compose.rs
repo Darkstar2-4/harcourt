@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use axum::{
     body::Body,
     extract::Request,
-    http::{header, HeaderMap, HeaderValue, Response, StatusCode},
+    http::{header, HeaderMap, HeaderValue, Method, Response, StatusCode},
 };
 
 use crate::{proxy, tabs, App};
@@ -84,28 +84,6 @@ pub async fn handle(app: &App, req: Request) -> Response<Body> {
     }
 }
 
-/// The catalog markup's own address (/catalog.php?scscpq_wp=1&...) is what hxweb and the catalog's scripts fetch.
-/// Opened as a page (a control that navigates there, a copied link) it showed the bare listing without the site
-/// header. A browser navigating to it is sent to the catalog page with the same query; fetches are left alone.
-pub fn fragment_as_page(path: &str, query: &str, headers: &HeaderMap) -> Option<Response<Body>> {
-    let navigation = match headers.get("sec-fetch-dest").and_then(|v| v.to_str().ok()) {
-        Some(dest) => dest == "document",
-        None => headers.contains_key("upgrade-insecure-requests") && !headers.contains_key("x-requested-with"),
-    };
-    if path != "/catalog.php" || !navigation || !query.split('&').any(|kv| kv.starts_with("scscpq_wp=")) {
-        return None;
-    }
-    let rest = query.split('&').filter(|kv| !kv.starts_with("scscpq_wp=") && !kv.is_empty()).collect::<Vec<_>>().join("&");
-    let page = if lang_of(&rest).is_some_and(|l| l.eq_ignore_ascii_case("fr")) { FR } else { EN };
-    Response::builder()
-        .status(StatusCode::FOUND)
-        .header(header::LOCATION, page_uri(page, &rest))
-        .header(header::CACHE_CONTROL, "no-store")
-        .header("x-hxweb", "fragment-as-page")
-        .body(Body::empty())
-        .ok()
-}
-
 fn lang_of(query: &str) -> Option<&str> {
     query.split('&').find_map(|kv| kv.strip_prefix("lang="))
 }
@@ -156,28 +134,26 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let mut jar = CookieJar::from_request(headers);
     let mut set_cookies: Vec<HeaderValue> = Vec::new();
 
-    let loader = app
-        .http
-        .post(format!("{}/scscpq_wp.php", app.legacy))
-        .headers(forward_headers(app, headers, &jar, &page_url))
-        .form(&[
-            ("action", "initial"),
-            ("page", "catalog"),
-            ("document", ""),
-            ("token", ""),
-            ("url", page_url.as_str()),
-            ("language", page.lang),
-            ("remember", if flag_click { "1" } else { "0" }),
-        ])
-        .send()
-        .await
-        .map_err(|e| format!("loader: {e}"))?;
-    if !loader.status().is_success() {
-        return Err(format!("loader status {}", loader.status()));
+    let form = [
+        ("action", "initial"),
+        ("page", "catalog"),
+        ("document", ""),
+        ("token", ""),
+        ("url", page_url.as_str()),
+        ("language", page.lang),
+        ("remember", if flag_click { "1" } else { "0" }),
+    ]
+    .iter()
+    .map(|(k, v)| format!("{k}={}", percent_encoding::utf8_percent_encode(v, percent_encoding::NON_ALPHANUMERIC)))
+    .collect::<Vec<_>>()
+    .join("&");
+    let (status, loader_headers, loader_body) = internal(app, Method::POST, "/scscpq_wp.php", headers, &jar, &page_url, form).await?;
+    if !status.is_success() {
+        return Err(format!("loader status {status}"));
     }
-    collect_cookies(loader.headers(), &mut jar, &mut set_cookies);
-    app.search.forget(headers, loader.headers().get_all(header::SET_COOKIE));
-    let loader_json: serde_json::Value = loader.json().await.map_err(|e| format!("loader json: {e}"))?;
+    collect_cookies(&loader_headers, &mut jar, &mut set_cookies);
+    let loader_raw = String::from_utf8_lossy(&loader_body).into_owned();
+    let loader_json: serde_json::Value = serde_json::from_str(&loader_raw).map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
     // account's language; only a flag click changes it.
     let account = loader_json.get("account_language").and_then(|v| v.as_str()).and_then(page_for);
@@ -199,27 +175,14 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         .get("scscpq_link")
         .and_then(|v| v.as_str())
         .ok_or("loader returned no scscpq_link")?;
-    let link_path = link
-        .strip_prefix(&format!("https://{}", app.site))
-        .ok_or_else(|| format!("unexpected link {link}"))?;
+    let link_path = link.split_once("://").and_then(|(_, rest)| rest.find('/').map(|i| &rest[i..])).ok_or_else(|| format!("unexpected link {link}"))?;
 
-    let frag = app
-        .http
-        .get(format!("{}{}", app.legacy, link_path))
-        .headers(forward_headers(app, headers, &jar, &page_url))
-        .send()
-        .await
-        .map_err(|e| format!("fragment: {e}"))?;
-    if frag.status() != StatusCode::OK {
-        return Err(format!("fragment status {}", frag.status()));
+    let (status, frag_headers, frag_body) = internal(app, Method::GET, link_path, headers, &jar, &page_url, String::new()).await?;
+    if status != StatusCode::OK {
+        return Err(format!("fragment status {status}"));
     }
-    collect_cookies(frag.headers(), &mut jar, &mut set_cookies);
-    app.search.forget(headers, frag.headers().get_all(header::SET_COOKIE));
-    let frag_html = frag.text().await.map_err(|e| format!("fragment body: {e}"))?;
-    let frag_html = match search_fallback(app, headers, &jar, &page_url, link_path, query, &frag_html).await {
-        Some(best) => best,
-        None => frag_html,
-    };
+    collect_cookies(&frag_headers, &mut jar, &mut set_cookies);
+    let frag_html = String::from_utf8_lossy(&frag_body).into_owned();
 
     // Keep the catalog's scripts where they are: its CAD iframe's onload calls scscpq_initial() from scscpq.js,
     // so scscpq.js must run before the iframe is parsed, exactly as when jQuery inserted the fragment.
@@ -238,10 +201,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let shell = shell_for(app, page, &uri).await?;
     let open_tag = app.re.placeholder.captures(&shell).ok_or("placeholder missing from shell")?[1].to_string();
 
-    let mut inline = format!(
-        "<script>window.hxweb_loader = {};</script>\n",
-        serde_json::to_string(&loader_json).map_err(|e| e.to_string())?.replace("</", "<\\/")
-    );
+    let mut inline = format!("<script>window.hxweb_loader = {};</script>\n", loader_raw.replace("</", "<\\/"));
     if flag_click {
         inline.push_str(&format!("<script>history.replaceState(null, '', {});</script>\n", serde_json::Value::from(uri.as_str())));
     }
@@ -285,40 +245,6 @@ pub fn without_fa_kit(app: &App, html: &str) -> String {
     html.replacen("</head>", &format!("{FA_CSS}</head>"), 1)
 }
 
-/// Enter in the search box opens the results page, which PHP fills from live's keyword search: for about four
-/// searches in ten it prints "No results for search term". When hxweb's search has an answer for the same visitor,
-/// the page shows that best match instead (the row the search box would have opened).
-async fn search_fallback(app: &App, headers: &HeaderMap, jar: &CookieJar, page_url: &str, link_path: &str, query: &str, html: &str) -> Option<String> {
-    if !crate::on("search") || !html.contains("No results for search term") {
-        return None;
-    }
-    let uri: axum::http::Uri = format!("/?{query}").parse().ok()?;
-    let axum::extract::Query(p) = axum::extract::Query::<std::collections::HashMap<String, String>>::try_from_uri(&uri).ok()?;
-    if p.get("search_source").map(String::as_str) != Some("search") || p.get("search_id").is_some_and(|id| id != "0") {
-        return None;
-    }
-    if !search_id_zero().is_match(link_path) {
-        return None;
-    }
-    let id = crate::search::best(app, headers, p.get("search_code")?.trim()).await?;
-    let resp = app.http.get(format!("{}{}", app.legacy, with_search_id(link_path, id))).headers(forward_headers(app, headers, jar, page_url)).send().await.ok()?;
-    if resp.status() != StatusCode::OK {
-        return None;
-    }
-    resp.text().await.ok()
-}
-
-/// A `search_id=0` parameter: the results page PHP filled from its own keyword search. Without one (`search_id=05`,
-/// `search_id=0.5`, none) `with_search_id` changes nothing, so a second fetch would only repeat the first.
-fn search_id_zero() -> &'static regex::Regex {
-    static SEARCH_ID: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-    SEARCH_ID.get_or_init(|| regex::Regex::new(r"([?&])search_id=0(&|#|$)").unwrap())
-}
-
-fn with_search_id(link: &str, id: u64) -> String {
-    search_id_zero().replace(link, format!("${{1}}search_id={id}${{2}}").as_str()).into_owned()
-}
-
 /// The page around the catalog: from the static export when it has the page (WordPress's render, kept in step by
 /// the export), else WordPress itself. Only the menu's current-item marker and the form actions follow the request
 /// URI; the export's form islands take the URI directly, the WordPress fallback is patched.
@@ -354,6 +280,25 @@ async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
     let from = format!("action='{}#gf_", base_uri.replace('&', "&#038;"));
     let to = format!("action='{}#gf_", uri.replace('&', "&#038;"));
     Ok(app.re.current.replace_all(&base, "").replace(&from, &to))
+}
+
+/// A request to the library's own routes, in-process: the browser's language and agent headers, the cookies as
+/// updated so far, the page as referer.
+async fn internal(app: &App, method: Method, path: &str, incoming: &HeaderMap, jar: &CookieJar, page_url: &str, body: String) -> Result<(StatusCode, HeaderMap, axum::body::Bytes), String> {
+    use tower::ServiceExt;
+    let lib = app.lib.clone().ok_or("no database: the catalog is served by PHP")?;
+    let mut req = axum::http::Request::builder().method(method.clone()).uri(path);
+    for (k, v) in forward_headers(app, incoming, jar, page_url).iter() {
+        req = req.header(k, v);
+    }
+    if method == Method::POST {
+        req = req.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    }
+    let req = req.body(Body::from(body)).map_err(|e| e.to_string())?;
+    let resp = lib.oneshot(req).await.map_err(|e| format!("internal {path}: {e}"))?;
+    let (parts, body) = resp.into_parts();
+    let bytes = axum::body::to_bytes(body, 64 << 20).await.map_err(|e| format!("internal {path} body: {e}"))?;
+    Ok((parts.status, parts.headers, bytes))
 }
 
 fn forward_headers(app: &App, incoming: &HeaderMap, jar: &CookieJar, page_url: &str) -> HeaderMap {
@@ -421,39 +366,6 @@ fn collect_cookies(h: &HeaderMap, jar: &mut CookieJar, out: &mut Vec<HeaderValue
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn search_id_swapped() {
-        assert_eq!(
-            with_search_id("/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=threaded%20insert", 1042),
-            "/catalog.php?scscpq_wp=1&search_source=search&search_id=1042&search_code=threaded%20insert"
-        );
-        assert_eq!(with_search_id("/catalog.php?search_id=0", 7), "/catalog.php?search_id=7");
-        assert_eq!(with_search_id("/catalog.php?search_id=0#top", 7), "/catalog.php?search_id=7#top");
-        for link in ["/catalog.php?search_id=05", "/catalog.php?search_id=0.5", "/catalog.php?search_code=x", "/catalog.php?xsearch_id=0"] {
-            assert!(!search_id_zero().is_match(link), "{link}: the fallback stops before any fetch");
-            assert_eq!(with_search_id(link, 7), link, "{link}: a second fetch would change nothing");
-        }
-    }
-
-    #[test]
-    fn fragment_opened_as_a_page() {
-        let mut nav = HeaderMap::new();
-        nav.insert("sec-fetch-dest", HeaderValue::from_static("document"));
-        let loc = |q: &str, h: &HeaderMap| fragment_as_page("/catalog.php", q, h).map(|r| r.headers()[header::LOCATION].to_str().unwrap().to_string());
-        assert_eq!(loc("scscpq_wp=1", &nav).as_deref(), Some("/catalog/"));
-        assert_eq!(loc("scscpq_wp=1&action=subcategory&subcategory_id=731", &nav).as_deref(), Some("/catalog/?action=subcategory&subcategory_id=731"));
-        assert_eq!(loc("lang=fr&action=sku&scscpq_wp=1", &nav).as_deref(), Some("/catalogue/?lang=fr&action=sku"));
-        let mut fetch = HeaderMap::new();
-        fetch.insert("sec-fetch-dest", HeaderValue::from_static("empty"));
-        assert_eq!(loc("scscpq_wp=1&unit_type=metric", &fetch), None);
-        let mut xhr = HeaderMap::new();
-        xhr.insert("upgrade-insecure-requests", HeaderValue::from_static("1"));
-        xhr.insert("x-requested-with", HeaderValue::from_static("XMLHttpRequest"));
-        assert_eq!(loc("scscpq_wp=1", &xhr), None);
-        assert_eq!(loc("action=subcategory", &nav), None);
-        assert!(fragment_as_page("/cart.php", "scscpq_wp=1", &nav).is_none());
-    }
 
     #[test]
     fn uris() {

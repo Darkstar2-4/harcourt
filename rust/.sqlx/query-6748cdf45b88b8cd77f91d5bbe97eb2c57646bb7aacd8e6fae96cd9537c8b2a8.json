@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT table_name AS \"table!\", code AS \"code!\", coalesce(code_normalized, '') AS \"normalized!: String\", category_id AS \"category_id!: i64\",\n                  subcategory_id AS \"subcategory_id!: i64\", inventory_id AS \"inventory_id: i64\", coalesce(ranking, 0) AS \"ranking!: i64\"\n           FROM search\n           WHERE coalesce(language_code, '') IN ('', ?1) AND (?2 = 0 OR subcategory_id = ?2)\n             AND table_name IS NOT NULL AND code IS NOT NULL AND category_id IS NOT NULL AND subcategory_id IS NOT NULL\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "table!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "code!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "normalized!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inventory_id: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ranking!: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "6748cdf45b88b8cd77f91d5bbe97eb2c57646bb7aacd8e6fae96cd9537c8b2a8"
+}

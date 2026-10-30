@@ -1,41 +1,38 @@
-//! The catalog search box (jQuery UI autocomplete, `GET /scs_ajax.php?table=search&limit=20&term=...`) answered from
-//! memory. PHP booted the whole SCS app and scanned the `search` table on every keystroke. Here one immutable `Index`
-//! is built from the four TSV files search_export.php writes to `<HXWEB_EXPORT>/search/` and replaced whole when one of
-//! them changes. `search()` is a pure function of the index, the term and the visitor's `Ctx` (language, admin, blocked
-//! categories), which PHP reports once per session. Whatever hxweb cannot answer (no index, the ctx call failed, other
-//! tables or actions) goes to PHP unchanged. Contract: search/SPEC.md in the bench.
+//! The catalog search box (jQuery UI autocomplete) answered from memory. PHP booted the whole SCS app and scanned the
+//! `search` table on every keystroke (scs_ajax.php?table=search). Here one immutable `Index` is built from the same
+//! tables search_export.php exported (search, subcategory, category, content names, inventory) and rebuilt when they
+//! change. `search()` is a pure function of the index, the term and the visitor's `Ctx` (language, admin, blocked
+//! categories), which comes from the catalog's `Viewer`. Contract: search/SPEC.md in the bench.
 
 use std::{
     cmp::Ordering,
-    collections::{hash_map::RandomState, BinaryHeap, HashMap, HashSet},
-    hash::BuildHasher,
+    collections::{BinaryHeap, HashMap, HashSet},
     ops::{Range, RangeInclusive},
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-    time::{Duration, Instant, SystemTime},
+    path::Path,
+    sync::Arc,
+    time::{Duration, Instant},
 };
 
 use axum::{
-    body::Body,
-    extract::{Query, Request},
-    http::{header, HeaderMap, HeaderName, HeaderValue, Method, Response, StatusCode, Uri},
+    extract::{Query, State},
+    http::{header, HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    routing::get,
+    Extension, Json, Router,
 };
 use serde_json::{json, Value};
-use tokio::sync::RwLock;
+use sqlx::SqlitePool;
 
-use crate::{proxy, App};
+use super::viewer::{self, Viewer};
+use crate::{api::Auth, identity::Role, visitor::Visitor};
 
-const FILES: [&str; 4] = ["rows.tsv", "families.tsv", "categories.tsv", "parts.tsv"];
-/// What searchers opened (build_learned.py). Without them the ranking is the catalog's own.
+/// What searchers opened (build_learned.py, from the search log). Read from HXWEB_SEARCH when present; without them
+/// the ranking is the catalog's own.
 const LEARNED_FILES: [&str; 2] = ["learned.tsv", "popular.tsv"];
-const CTX_TTL: Duration = Duration::from_secs(120);
-/// After a failed ctx call, the session's searches go straight to PHP for this long instead of each waiting on it.
-const CTX_FAILED_FOR: Duration = Duration::from_secs(30);
-/// The cookies a visitor's ctx depends on: a response that sets either may have changed it.
-const CTX_COOKIES: [&str; 2] = ["PHPSESSID", "harcourt_profile"];
-/// The visitor's keystroke waits on this call; past it PHP answers the search as before.
-const CTX_TIMEOUT: Duration = Duration::from_millis(1500);
-const CTX_SESSIONS_MAX: usize = 20_000;
+/// How long a built index is used before the tables are checked for changes.
+const RECHECK: Duration = Duration::from_secs(30);
+/// Typed term -> (picks, entry) of what searchers opened after it.
+type Learned = HashMap<String, Vec<(u32, u32)>>;
 const DEFAULT_LIMIT: usize = 10;
 const MAX_LIMIT: usize = 100;
 const MAX_TERM_CHARS: usize = 100;
@@ -217,6 +214,7 @@ enum Hit {
 }
 
 impl Index {
+    #[cfg(test)]
     fn load(dir: &Path) -> Result<Index, String> {
         let read = |f: &str| std::fs::read(dir.join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).map_err(|e| format!("{f}: {e}"));
         let optional = |f: &str| if dir.join(f).exists() { read(f) } else { Ok(String::new()) };
@@ -301,7 +299,7 @@ impl Index {
                 Some((f.next()?.parse().ok()?, f.next()?.into()))
             })
             .collect();
-        let (mut by_term, mut by_stem): (HashMap<String, Vec<(u32, u32)>>, HashMap<String, Vec<(u32, u32)>>) = Default::default();
+        let (mut by_term, mut by_stem): (Learned, Learned) = Default::default();
         for line in learned.lines() {
             let [term, sub, sku, picks] = line.split('\t').collect::<Vec<_>>()[..] else { continue };
             let (Some(sub), Ok(picks)) = (number::<u32>(sub), picks.parse::<u32>()) else { continue };
@@ -885,174 +883,16 @@ fn answer_json(ix: &Index, hits: &[Hit], term: &str, ctx: &Ctx) -> Value {
     json!({"items": items, "rows": rows, "found_rows": rows.to_string()})
 }
 
-/// One visitor's ctx. `ctx` stays locked across the PHP call, so concurrent keystrokes share one call; `failed` is
-/// read under the sessions map's lock only, so a session whose call just failed never waits on that lock.
-#[derive(Default)]
-struct Session {
-    ctx: Arc<tokio::sync::Mutex<Option<(Instant, Ctx)>>>,
-    failed: Option<Instant>,
-}
-
-impl Session {
-    fn failed_recently(&self) -> bool {
-        self.failed.is_some_and(|at| at.elapsed() < CTX_FAILED_FOR)
+/// The search scope for this viewer on a page in `lang`: what hx_search_ctx.php reported.
+fn scope(viewer: &Viewer, lang: Lang) -> Ctx {
+    Ctx {
+        lang,
+        admin: viewer.at_least(Role::Administrator),
+        blocked: viewer.blocked.ids().into_iter().filter_map(|id| u32::try_from(id).ok()).collect(),
     }
 }
 
-pub struct Search {
-    dir: PathBuf,
-    index: RwLock<Option<Arc<Index>>>,
-    /// File times of the last load attempt, so an export that does not load is not rebuilt every tick. Per file, so
-    /// a learned file appearing or going away counts as a change.
-    tried: Mutex<Option<Vec<Option<SystemTime>>>>,
-    /// `key()` -> the visitor's ctx.
-    sessions: Mutex<HashMap<u64, Session>>,
-    /// Keyed per process, so the map holds neither cookie values nor anything to match them against.
-    hasher: RandomState,
-}
-
-impl Search {
-    pub fn new(dir: PathBuf) -> Self {
-        Search { dir, index: RwLock::new(None), tried: Mutex::new(None), sessions: Mutex::new(HashMap::new()), hasher: RandomState::new() }
-    }
-
-    /// Rebuild the index when one of its files changed. Keeps the previous index if the new one does not load.
-    pub async fn refresh(&self) {
-        let stamp: Vec<Option<SystemTime>> =
-            FILES.iter().chain(&LEARNED_FILES).map(|f| std::fs::metadata(self.dir.join(f)).and_then(|m| m.modified()).ok()).collect();
-        if stamp[..FILES.len()].contains(&None) || self.tried.lock().unwrap().replace(stamp.clone()) == Some(stamp) {
-            return;
-        }
-        let dir = self.dir.clone();
-        let start = Instant::now();
-        match tokio::task::spawn_blocking(move || Index::load(&dir)).await {
-            Ok(Ok(ix)) => {
-                tracing::info!("search index loaded: {} entries in {:?}", ix.entries.len(), start.elapsed());
-                *self.index.write().await = Some(Arc::new(ix));
-            }
-            Ok(Err(e)) => tracing::error!("search index not loaded, keeping the previous one: {e}"),
-            Err(e) => tracing::error!("search index build failed, keeping the previous one: {e}"),
-        }
-    }
-
-    /// The visitor's ctx; anonymous without a PHP session. None: PHP did not answer, now or in the last CTX_FAILED_FOR.
-    async fn ctx(&self, app: &App, headers: &HeaderMap) -> Option<Ctx> {
-        match self.key(headers, page_lang(headers)) {
-            Some(key) => self.ctx_for(key, || fetch_ctx(app, headers)).await,
-            None => Some(Ctx::default()),
-        }
-    }
-
-    /// `fetch` runs only when the cached ctx is stale and no call for this key failed in the last CTX_FAILED_FOR.
-    async fn ctx_for<F: std::future::Future<Output = Result<Ctx, String>>>(&self, key: u64, fetch: impl FnOnce() -> F) -> Option<Ctx> {
-        let cell = {
-            let mut sessions = self.sessions.lock().unwrap();
-            if sessions.len() >= CTX_SESSIONS_MAX && !sessions.contains_key(&key) {
-                sessions.retain(|_, s| s.ctx.try_lock().map_or(true, |c| c.as_ref().is_some_and(|(at, _)| at.elapsed() < CTX_TTL)));
-                if sessions.len() >= CTX_SESSIONS_MAX {
-                    sessions.clear();
-                }
-            }
-            let session = sessions.entry(key).or_default();
-            if session.failed_recently() {
-                return None;
-            }
-            session.ctx.clone()
-        };
-        let mut cached = cell.lock().await;
-        if let Some((_, ctx)) = cached.as_ref().filter(|(at, _)| at.elapsed() < CTX_TTL) {
-            return Some(ctx.clone());
-        }
-        // Keystrokes that queued behind a call that failed take its answer rather than call again.
-        if self.sessions.lock().unwrap().get(&key).is_some_and(Session::failed_recently) {
-            return None;
-        }
-        match fetch().await {
-            Ok(ctx) => {
-                *cached = Some((Instant::now(), ctx.clone()));
-                Some(ctx)
-            }
-            Err(e) => {
-                tracing::warn!("search: {e}; this session's searches go to PHP for {CTX_FAILED_FOR:?}");
-                self.sessions.lock().unwrap().entry(key).or_default().failed = Some(Instant::now());
-                None
-            }
-        }
-    }
-
-    /// The visitor's ctx key: PHP session, the signed-in customer's profile cookie (signing in or out changes the
-    /// key), and the catalog language. A hash, so the map keeps no cookie values. None without a PHP session.
-    fn key(&self, headers: &HeaderMap, lang: Lang) -> Option<u64> {
-        let sid = cookie(headers, "PHPSESSID").filter(|s| !s.is_empty())?;
-        Some(self.hasher.hash_one((sid, cookie(headers, "harcourt_profile").unwrap_or_default(), lang)))
-    }
-
-    /// Drops the visitor's ctx, in both languages, when a response hxweb passes on sets a cookie it depends on
-    /// (sign-in, sign-out, a flag click saving the language): the next search asks PHP again.
-    pub fn forget<'a>(&self, request: &HeaderMap, set_cookies: impl IntoIterator<Item = &'a HeaderValue>) {
-        let sets = set_cookies.into_iter().filter_map(|v| v.to_str().ok()).any(|c| CTX_COOKIES.contains(&c.split('=').next().unwrap_or("").trim()));
-        if !sets {
-            return;
-        }
-        let keys = [Lang::En, Lang::Fr].map(|lang| self.key(request, lang));
-        let mut sessions = self.sessions.lock().unwrap();
-        for key in keys.into_iter().flatten() {
-            sessions.remove(&key);
-        }
-    }
-}
-
-async fn fetch_ctx(app: &App, headers: &HeaderMap) -> Result<Ctx, String> {
-    let cookie = headers.get_all(header::COOKIE).iter().filter_map(|v| v.to_str().ok()).collect::<Vec<_>>().join("; ");
-    let mut r = app
-        .http
-        .get(format!("{}/hx_search_ctx.php", app.legacy))
-        .timeout(CTX_TIMEOUT)
-        .header(header::HOST, &app.site)
-        .header(header::REFERER, format!("https://{}/catalog/", app.site))
-        .header(header::COOKIE, cookie);
-    for name in ["user-agent", "x-real-ip", "x-forwarded-for"] {
-        if let Some(v) = headers.get(name) {
-            r = r.header(name, v.clone());
-        }
-    }
-    let resp = r.send().await.map_err(|e| format!("ctx: {e}"))?;
-    if resp.status() != StatusCode::OK {
-        return Err(format!("ctx: HTTP {}", resp.status()));
-    }
-    parse_ctx(&resp.json().await.map_err(|e| format!("ctx json: {e}"))?)
-}
-
-/// `{"lang":"EN"|"FR","admin":bool,"blocked":[category ids]}`; PHP may send ids as strings and the flag as 0/1.
-fn parse_ctx(v: &Value) -> Result<Ctx, String> {
-    let lang = v.get("lang").and_then(Value::as_str).and_then(Lang::parse).ok_or("ctx: no lang")?;
-    let admin = match v.get("admin") {
-        Some(Value::Bool(b)) => *b,
-        Some(n) if n.as_u64().is_some() => n.as_u64() != Some(0),
-        _ => return Err("ctx: no admin".into()),
-    };
-    let blocked = v
-        .get("blocked")
-        .and_then(Value::as_array)
-        .ok_or("ctx: no blocked")?
-        .iter()
-        .map(|b| b.as_u64().and_then(|n| u32::try_from(n).ok()).or_else(|| b.as_str()?.parse().ok()))
-        .collect::<Option<Vec<u32>>>()
-        .ok_or("ctx: blocked is not a list of ids")?;
-    Ok(Ctx { lang, admin, blocked })
-}
-
-fn cookie<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
-    headers
-        .get_all(header::COOKIE)
-        .iter()
-        .filter_map(|v| v.to_str().ok())
-        .flat_map(|v| v.split(';'))
-        .find_map(|kv| kv.trim().strip_prefix(name).and_then(|v| v.strip_prefix('=')))
-}
-
-/// The catalog language the search box is on, from its page's address: /catalogue/ or lang=fr is French. PHP reports
-/// the language of the last page, so a flag click needs a fresh ctx.
+/// The catalog language the search box is on, from its page's address: /catalogue/ or lang=fr is French.
 fn page_lang(headers: &HeaderMap) -> Lang {
     let referer = headers.get(header::REFERER).and_then(|v| v.to_str().ok()).unwrap_or("");
     let path = referer.split_once("://").map_or(referer, |(_, rest)| rest.find('/').map_or("", |i| &rest[i..]));
@@ -1060,38 +900,153 @@ fn page_lang(headers: &HeaderMap) -> Lang {
     if path.starts_with("/catalogue/") || query.split('&').any(|kv| kv.eq_ignore_ascii_case("lang=fr")) { Lang::Fr } else { Lang::En }
 }
 
-/// Live's rules: an XMLHttpRequest whose Referer is on http(s)://<Host>. Live accepts any Referer that merely starts
-/// with the host name (www.harcourt.co.example.com); here the host must end there.
-fn same_site(headers: &HeaderMap) -> bool {
-    let get = |h| headers.get(h).and_then(|v| v.to_str().ok());
-    let (Some(host), Some(referer)) = (get(header::HOST), get(header::REFERER)) else { return false };
-    let xhr = get(HeaderName::from_static("x-requested-with")).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest"));
-    xhr && ["http://", "https://"].iter().any(|s| {
-        referer.strip_prefix(s).and_then(|r| r.strip_prefix(host)).is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', ':', '?']))
-    })
+/// Row counts and highest ids of the tables the index reads: any edit, import or rebuild changes one of them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Stamp([i64; 9]);
+
+async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
+    let r = sqlx::query!(
+        r#"SELECT (SELECT count(*) FROM search) AS "a!: i64", (SELECT coalesce(max(id), 0) FROM search) AS "b!: i64",
+                  (SELECT count(*) FROM subcategory) AS "c!: i64", (SELECT coalesce(max(id), 0) FROM subcategory) AS "d!: i64",
+                  (SELECT count(*) FROM category) AS "e!: i64", (SELECT count(*) FROM inventory) AS "f!: i64",
+                  (SELECT coalesce(max(id), 0) FROM inventory) AS "g!: i64",
+                  (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "h!: i64",
+                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "i!: i64""#
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i]))
 }
 
-fn params(uri: &Uri) -> HashMap<String, String> {
-    Query::try_from_uri(uri).map(|Query(p)| p).unwrap_or_default()
+fn cell(s: &str) -> String {
+    s.replace(['\t', '\r', '\n'], " ")
 }
 
-/// The search box's own request: `table=search` with the default action. Anything else on scs_ajax.php is PHP's.
-pub fn wants(req: &Request) -> bool {
-    if req.method() != Method::GET || req.uri().path() != "/scs_ajax.php" || !crate::on("search") {
-        return false;
+fn opt<T: ToString>(v: Option<T>) -> String {
+    v.map(|v| v.to_string()).unwrap_or_default()
+}
+
+/// The four inputs search_export.php wrote, as tab-separated text.
+async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
+    let mut rows = String::new();
+    for r in sqlx::query!(
+        r#"SELECT id AS "id!: i64", table_name, coalesce(language_code, '') AS "lang!: String", active, code, category_id, subcategory_id, inventory_id, ranking FROM search"#
+    )
+    .fetch_all(pool)
+    .await?
+    {
+        rows.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            r.id,
+            cell(&opt(r.table_name)),
+            cell(&r.lang),
+            opt(r.active),
+            cell(&opt(r.code)),
+            opt(r.category_id),
+            opt(r.subcategory_id),
+            opt(r.inventory_id),
+            opt(r.ranking)
+        ));
     }
-    let p = params(req.uri());
-    p.get("table").is_some_and(|t| t == "search") && p.get("action").is_none_or(|a| a == "search")
+    let name = |list: &[(String, i64, String, String)], id: i64, lang: &str| {
+        list.iter().find(|(_, rid, l, _)| *rid == id && l == lang).map(|(_, _, _, n)| n.clone()).unwrap_or_default()
+    };
+    let names: Vec<(String, i64, String, String)> = sqlx::query!(
+        r#"SELECT record_type AS "t!", record_id AS "id!: i64", language_code AS "l!", name AS "n!" FROM content
+           WHERE record_type IN ('category', 'subcategory') AND record_item = '' AND language_code IN ('EN', 'FR') ORDER BY id"#
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|r| (r.t, r.id, r.l, r.n))
+    .collect();
+    let of = |t: &str| names.iter().filter(|(rt, _, _, _)| rt == t).cloned().collect::<Vec<_>>();
+    let (family_names, category_names) = (of("subcategory"), of("category"));
+    let mut families = String::new();
+    for r in sqlx::query!(r#"SELECT id AS "id!: i64", category_id, status AS "status!" FROM subcategory"#).fetch_all(pool).await? {
+        families.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{}\n",
+            r.id,
+            opt(r.category_id),
+            cell(&r.status),
+            cell(&name(&family_names, r.id, "EN")),
+            cell(&name(&family_names, r.id, "FR"))
+        ));
+    }
+    let mut categories = String::new();
+    for r in sqlx::query!(r#"SELECT id AS "id!: i64" FROM category"#).fetch_all(pool).await? {
+        categories.push_str(&format!("{}\t{}\t{}\n", r.id, cell(&name(&category_names, r.id, "EN")), cell(&name(&category_names, r.id, "FR"))));
+    }
+    let mut parts = String::new();
+    for r in sqlx::query!(r#"SELECT id AS "id!: i64", sku, subcategory_id FROM inventory"#).fetch_all(pool).await? {
+        parts.push_str(&format!("{}\t{}\t{}\n", r.id, cell(&r.sku), opt(r.subcategory_id)));
+    }
+    Ok([rows, families, categories, parts])
 }
 
-/// The search row the search box would put first for `term`, with the visitor's ctx. For pages hxweb composes (the
-/// Enter key's results page), so no Referer check. None: switched off, no index, the ctx call failed, or no hit.
-pub async fn best(app: &App, headers: &HeaderMap, term: &str) -> Option<u64> {
-    if !crate::on("search") {
-        return None;
+struct Built {
+    stamp: Stamp,
+    checked: Instant,
+    index: Option<Arc<Index>>,
+}
+
+/// The index for one database, built on first use and rebuilt when its tables change. A build that fails keeps
+/// the previous index.
+#[derive(Default)]
+pub struct Cache {
+    built: tokio::sync::Mutex<Option<Built>>,
+}
+
+impl Cache {
+    pub fn new() -> Arc<Cache> {
+        Arc::new(Cache::default())
     }
-    let ix = app.search.index.read().await.clone()?;
-    first_row(&ix, term, &app.search.ctx(app, headers).await?)
+
+    async fn index(&self, pool: &SqlitePool) -> sqlx::Result<Option<Arc<Index>>> {
+        let mut built = self.built.lock().await;
+        if let Some(b) = built.as_ref().filter(|b| b.checked.elapsed() < RECHECK) {
+            return Ok(b.index.clone());
+        }
+        let now = stamp(pool).await?;
+        if let Some(b) = built.as_mut().filter(|b| b.stamp == now) {
+            b.checked = Instant::now();
+            return Ok(b.index.clone());
+        }
+        let [rows, families, categories, parts] = export(pool).await?;
+        let learned = std::env::var_os("HXWEB_SEARCH").map(|d| {
+            LEARNED_FILES.map(|f| std::fs::read(Path::new(&d).join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default())
+        });
+        let [learned, popular] = learned.unwrap_or_default();
+        let start = Instant::now();
+        let result = tokio::task::spawn_blocking(move || Index::build(&rows, &families, &categories, &parts, &learned, &popular)).await;
+        let previous = built.as_ref().and_then(|b| b.index.clone());
+        let index = match result {
+            Ok(Ok(ix)) => {
+                tracing::info!("search index built: {} entries in {:?}", ix.entries.len(), start.elapsed());
+                Some(Arc::new(ix))
+            }
+            Ok(Err(e)) => {
+                tracing::warn!("search index not built: {e}");
+                previous
+            }
+            Err(e) => {
+                tracing::error!("search index build failed: {e}");
+                previous
+            }
+        };
+        *built = Some(Built { stamp: now, checked: Instant::now(), index: index.clone() });
+        Ok(index)
+    }
+}
+
+/// The search row the search box would put first for `term`: what the results page opens when its own keyword
+/// search finds nothing.
+pub async fn best(cache: &Cache, pool: &SqlitePool, viewer: &Viewer, term: &str) -> sqlx::Result<Option<u64>> {
+    let lang = match viewer.lang {
+        viewer::Lang::En => Lang::En,
+        viewer::Lang::Fr => Lang::Fr,
+    };
+    Ok(cache.index(pool).await?.and_then(|ix| first_row(&ix, term, &scope(viewer, lang))))
 }
 
 /// Limit 2, not 1: a Lookup item takes one place, and the first row does not depend on the limit.
@@ -1102,31 +1057,54 @@ fn first_row(ix: &Index, term: &str, ctx: &Ctx) -> Option<u64> {
     })
 }
 
-pub async fn handle(app: &App, req: Request) -> Response<Body> {
-    let Some(ix) = app.search.index.read().await.clone() else { return proxy::pass(app, req).await };
-    if !same_site(req.headers()) {
-        return respond(StatusCode::FORBIDDEN, &json!({"items": [], "error": "External access"}));
-    }
-    let Some(ctx) = app.search.ctx(app, req.headers()).await else { return proxy::pass(app, req).await };
-    let p = params(req.uri());
-    let term = p.get("term").map_or("", |t| t.trim());
-    let limit = p.get("limit").and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
-    respond(StatusCode::OK, &answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx))
+pub fn router() -> Router<Arc<Auth>> {
+    Router::new().route("/catalog-api/search", get(suggest))
 }
 
-fn respond(status: StatusCode, v: &Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
-        .header(header::CACHE_CONTROL, "no-store")
-        .header("x-hxweb", "search")
-        .body(Body::from(v.to_string()))
-        .unwrap()
+#[derive(serde::Deserialize)]
+struct SuggestQuery {
+    #[serde(default)]
+    term: String,
+    limit: Option<String>,
+}
+
+/// The search box's suggestions, for visitors who may browse the catalog (the box is not shown to anyone else).
+async fn suggest(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<SuggestQuery>) -> Response {
+    suggestions(&core, &cache, &visitor, &headers, &q.term, q.limit.as_deref()).await
+}
+
+/// The suggestions for `term`, for /catalog-api/search and scs_ajax.php?table=search.
+pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers: &HeaderMap, term: &str, limit: Option<&str>) -> Response {
+    let lang = page_lang(headers);
+    let viewer_lang = if lang == Lang::Fr { viewer::Lang::Fr } else { viewer::Lang::En };
+    let result = async {
+        let viewer = viewer::load(&core.pool, visitor, viewer_lang).await?;
+        if !viewer.may_browse() || viewer.is_bot() {
+            return Ok(None);
+        }
+        Ok::<_, sqlx::Error>(cache.index(&core.pool).await?.map(|ix| (ix, scope(&viewer, lang))))
+    }
+    .await;
+    let term = term.trim();
+    let limit = limit.and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
+    let headers = [(header::CACHE_CONTROL, "no-store")];
+    match result {
+        Ok(Some((ix, ctx))) => (StatusCode::OK, headers, Json(answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx))).into_response(),
+        Ok(None) => (StatusCode::FORBIDDEN, headers, Json(json!({"items": [], "error": "Access denied"}))).into_response(),
+        Err(e) => {
+            tracing::error!("search: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, headers, Json(json!({"items": [], "error": "Internal"}))).into_response()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
+
+    const FILES: [&str; 4] = ["rows.tsv", "families.tsv", "categories.tsv", "parts.tsv"];
 
     const ROWS: &str = "\
 1\tsubcategory\tEN\t1\tDrill Bushings\t1\t10\t0\t110
@@ -1412,111 +1390,18 @@ ghost\t10\tNOPE-1\t4
         );
     }
 
-    fn headers(pairs: &[(&'static str, &str)]) -> HeaderMap {
+    fn referer(page: &str) -> HeaderMap {
         let mut h = HeaderMap::new();
-        for (k, v) in pairs {
-            h.append(*k, v.parse().unwrap());
-        }
+        h.insert("referer", format!("https://www.harcourt.co{page}").parse().unwrap());
         h
     }
 
-    fn visitor(cookie: &str, page: &str) -> HeaderMap {
-        headers(&[("cookie", cookie), ("referer", format!("https://www.harcourt.co{page}").as_str())])
-    }
-
     #[test]
-    fn session_key() {
-        assert_eq!(page_lang(&visitor("PHPSESSID=a", "/catalog/?search_source=search")), Lang::En);
-        assert_eq!(page_lang(&visitor("PHPSESSID=a", "/catalogue/")), Lang::Fr);
-        assert_eq!(page_lang(&visitor("PHPSESSID=a", "/catalog/?s=1&lang=fr")), Lang::Fr);
-        assert_eq!(page_lang(&headers(&[])), Lang::En);
-
-        let s = Search::new(PathBuf::new());
-        let key = |cookie: &str, page: &str| { let h = visitor(cookie, page); s.key(&h, page_lang(&h)) };
-        let base = key("PHPSESSID=abc; harcourt_profile=p1", "/catalog/");
-        assert!(base.is_some());
-        assert_eq!(base, key("harcourt_profile=p1; x=y; PHPSESSID=abc", "/catalog/?s=1"));
-        for other in [key("PHPSESSID=abd; harcourt_profile=p1", "/catalog/"), key("PHPSESSID=abc", "/catalog/"), key("PHPSESSID=abc; harcourt_profile=p1", "/catalogue/")] {
-            assert_ne!(base, other, "another session, profile or language is another key");
-        }
-        assert_eq!(key("harcourt_profile=p1", "/catalog/"), None);
-        assert_ne!(base, Search::new(PathBuf::new()).key(&visitor("PHPSESSID=abc; harcourt_profile=p1", "/catalog/"), Lang::En), "keyed per process");
-    }
-
-    #[tokio::test]
-    async fn ctx_failure_memo() {
-        let s = Search::new(PathBuf::new());
-        let calls = std::sync::atomic::AtomicUsize::new(0);
-        let count = || calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let down = || async {
-            count();
-            tokio::time::sleep(Duration::from_millis(20)).await;
-            Err::<Ctx, String>("down".into())
-        };
-        let up = || async {
-            count();
-            Ok::<Ctx, String>(fr())
-        };
-        let (a, b) = tokio::join!(s.ctx_for(1, down), s.ctx_for(1, down));
-        assert_eq!((a, b, calls.load(std::sync::atomic::Ordering::SeqCst)), (None, None, 1), "a keystroke queued behind a failed call does not call again");
-        assert_eq!(s.ctx_for(1, up).await, None, "within CTX_FAILED_FOR: no call");
-        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-        assert_eq!(s.ctx_for(2, up).await, Some(fr()), "other sessions are not held back");
-        s.sessions.lock().unwrap().get_mut(&1).unwrap().failed = Instant::now().checked_sub(CTX_FAILED_FOR + Duration::from_secs(1));
-        assert_eq!(s.ctx_for(1, up).await, Some(fr()), "after CTX_FAILED_FOR PHP is asked again");
-        assert_eq!(s.ctx_for(1, down).await, Some(fr()), "and the answer is cached");
-        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 3);
-    }
-
-    #[tokio::test]
-    async fn forget_on_session_cookies() {
-        let s = Search::new(PathBuf::new());
-        let on_catalogue = visitor("PHPSESSID=abc; harcourt_profile=p1", "/catalogue/");
-        let fill = || async { s.ctx_for(s.key(&on_catalogue, Lang::Fr).unwrap(), || async { Ok::<Ctx, String>(fr()) }).await };
-        // Sign-in posts from another page: its Referer says nothing about the language the ctx was cached under.
-        let sign_in = visitor("PHPSESSID=abc; harcourt_profile=p1", "/my-account/");
-        let cached = || s.sessions.lock().unwrap().len();
-        fill().await;
-        s.forget(&sign_in, [&HeaderValue::from_static("wp_lang=fr; path=/")]);
-        assert_eq!(cached(), 1, "other cookies leave it");
-        for set in ["PHPSESSID=def; path=/; HttpOnly", "harcourt_profile=p2; path=/"] {
-            fill().await;
-            s.forget(&sign_in, [&HeaderValue::from_static("a=b"), &HeaderValue::from_str(set).unwrap()]);
-            assert_eq!(cached(), 0, "{set}");
-        }
-    }
-
-    #[test]
-    fn ctx_and_request() {
-        assert_eq!(
-            parse_ctx(&json!({"lang": "FR", "admin": true, "blocked": [3, "5"]})),
-            Ok(Ctx { lang: Lang::Fr, admin: true, blocked: vec![3, 5] })
-        );
-        assert_eq!(parse_ctx(&json!({"lang": "EN", "admin": 0, "blocked": []})), Ok(Ctx::default()));
-        assert!(parse_ctx(&json!({"lang": "DE", "admin": false, "blocked": []})).is_err());
-        assert!(parse_ctx(&json!({"admin": false, "blocked": []})).is_err());
-
-        assert_eq!(cookie(&headers(&[("cookie", "a=b; PHPSESSID=abc; c=d")]), "PHPSESSID"), Some("abc"));
-        assert_eq!(cookie(&headers(&[("cookie", "a=b"), ("cookie", "PHPSESSID=xyz")]), "PHPSESSID"), Some("xyz"));
-        assert_eq!(cookie(&headers(&[("cookie", "PHPSESSID=xyz; harcourt_profile=%7B1%7D")]), "harcourt_profile"), Some("%7B1%7D"));
-        assert_eq!(cookie(&headers(&[("cookie", "a=b; XPHPSESSID=q")]), "PHPSESSID"), None);
-
-        let site = |referer| same_site(&headers(&[("host", "www.harcourt.co"), ("referer", referer), ("x-requested-with", "XMLHttpRequest")]));
-        assert!(site("https://www.harcourt.co/catalog/?lang=fr"));
-        assert!(site("http://www.harcourt.co/"));
-        assert!(site("https://www.harcourt.co"));
-        assert!(!site("https://evil.example/www.harcourt.co"));
-        assert!(!site("https://www.harcourt.co.evil.example/catalog/"));
-        assert!(!same_site(&headers(&[("host", "www.harcourt.co"), ("x-requested-with", "XMLHttpRequest")])));
-        assert!(!same_site(&headers(&[("host", "www.harcourt.co"), ("referer", "https://www.harcourt.co/catalog/")])));
-
-        let get = |m: &str, uri: &str| wants(&Request::builder().method(m).uri(uri).body(Body::empty()).unwrap());
-        assert!(get("GET", "/scs_ajax.php?table=search&limit=20&term=ls1"));
-        assert!(get("GET", "/scs_ajax.php?table=search&action=search&term=ls1"));
-        assert!(!get("GET", "/scs_ajax.php?table=search&action=save&term=ls1"));
-        assert!(!get("GET", "/scs_ajax.php?table=inventory&term=ls1"));
-        assert!(!get("POST", "/scs_ajax.php?table=search&term=ls1"));
-        assert!(!get("GET", "/catalog/?table=search"));
+    fn the_page_decides_the_language() {
+        assert_eq!(page_lang(&referer("/catalog/?search_source=search")), Lang::En);
+        assert_eq!(page_lang(&referer("/catalogue/")), Lang::Fr);
+        assert_eq!(page_lang(&referer("/catalog/?s=1&lang=fr")), Lang::Fr);
+        assert_eq!(page_lang(&HeaderMap::new()), Lang::En);
     }
 
     /// The export on the dev box (~/searchdata) or next to the bench (search/data). Absent: the test is skipped.

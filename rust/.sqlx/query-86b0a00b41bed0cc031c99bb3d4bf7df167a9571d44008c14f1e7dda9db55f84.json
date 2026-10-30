@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT portal_id, industry_id, language_code, access AS \"access!\", effective_date, html, css, js FROM hero\n           WHERE status = 'Active' AND coalesce(portal_id, 0) IN (0, ?1) AND coalesce(industry_id, 0) IN (0, ?2)\n             AND language_code IN ('EN', ?3) AND effective_date <= ?4",
+  "describe": {
+    "columns": [
+      {
+        "name": "portal_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "industry_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "access!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "effective_date",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "html",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "css",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "js",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "86b0a00b41bed0cc031c99bb3d4bf7df167a9571d44008c14f1e7dda9db55f84"
+}

@@ -176,7 +176,7 @@ impl Pages {
 /// What every former WordPress page gets before it leaves, whether it came from the export or from the cms
 /// tables: the static Font Awesome icons, the hero background preload, vendored assets, the public host.
 pub fn finish(app: &App, html: String) -> String {
-    let html = if crate::on("fa-static") { crate::catalog::without_fa_kit(app, &html) } else { html };
+    let html = if crate::on("fa-static") { crate::compose::without_fa_kit(app, &html) } else { html };
     let html = if crate::on("bg-preload") { with_hero_bg_preload(&html) } else { html };
     app.public(&app.vendor.localize(&html))
 }

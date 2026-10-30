@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!\", name AS \"name!\", \"type\" AS \"ty!\", direct AS \"direct!: i64\" FROM cad\n           WHERE code IS NOT NULL AND name IS NOT NULL AND \"type\" IS NOT NULL AND direct IS NOT NULL\n           ORDER BY CASE WHEN direct = 1 THEN 1 WHEN \"type\" = '3D' THEN 2 ELSE 3 END, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ty!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "direct!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1dfc4a88c9a5968e6d8382648303e4fe1a4dc5c62b9a35fc35026031404bf754"
+}
