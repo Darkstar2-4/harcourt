@@ -93,10 +93,10 @@ async fn the_contact_page_shows_its_document_in_the_visitors_language() {
     assert_eq!(views, 3);
 }
 
-async fn ajax(app: &Router, cookie: &str, form: &str) -> serde_json::Value {
+async fn ajax(app: &Router, path: &str, cookie: &str, form: &str) -> serde_json::Value {
     let req = Request::builder()
         .method(Method::POST)
-        .uri("/design_partner_agreement.php")
+        .uri(path)
         .header(header::COOKIE, format!("{cookie}; PHPSESSID=mid-visit"))
         .header("x-requested-with", "XMLHttpRequest")
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
@@ -115,14 +115,14 @@ async fn design_partner_blocks_are_saved_per_company() {
     let (status, _, _) = send(&app, Method::GET, "/design_partner_agreement.php", Some(&customer), "", None).await;
     assert_eq!(status, StatusCode::FOUND);
     let admin = cookie(&pool, 2, "Administrator").await;
-    let a = ajax(&app, &admin, "action=load&company_name=Nobody").await;
+    let a = ajax(&app, "/design_partner_agreement.php", &admin, "action=load&company_name=Nobody").await;
     assert!(a["message"].as_str().unwrap().contains("No users found for company &ldquo;Nobody&rdquo;"));
-    let a = ajax(&app, &admin, "action=save&company_name=Test+Co&company_category_2=1&company_category_1=0&company_category_3=1").await;
+    let a = ajax(&app, "/design_partner_agreement.php", &admin, "action=save&company_name=Test+Co&company_category_2=1&company_category_1=0&company_category_3=1").await;
     assert_eq!(a["status"].as_str(), Some("success"));
     assert!(a["content"].as_str().unwrap().contains("name='company_category_2' id='company_category_2' value='1' checked>Beta"));
     let blocked: Vec<i64> = sqlx::query_scalar("SELECT category_id FROM company_category_block WHERE company_name = 'Test Co'").fetch_all(&pool).await.unwrap();
     assert_eq!(blocked, [2], "inactive categories are never blocked");
-    let a = ajax(&app, &admin, "action=save&company_name=").await;
+    let a = ajax(&app, "/design_partner_agreement.php", &admin, "action=save&company_name=").await;
     assert_eq!(a["status"].as_str(), Some("error"));
 }
 
@@ -139,4 +139,81 @@ async fn a_visit_that_begins_on_an_scs_page_goes_home_first() {
     assert_eq!(res.status(), StatusCode::OK);
     let res = app.clone().oneshot(first("/contact.php", "")).await.unwrap();
     assert_eq!(res.headers()[header::LOCATION], "/scs_index.php");
+}
+
+fn csrf(cookie: &str) -> String {
+    let mut h = HeaderMap::new();
+    h.insert(header::COOKIE, cookie.parse().unwrap());
+    hxweb::staff::csrf::CsrfToken::for_request(&h).unwrap().as_str().to_string()
+}
+
+async fn mail_documents(pool: &SqlitePool) {
+    sqlx::query(
+        "INSERT INTO mailform (code, name, recipient, bcc, subject, header_html) VALUES
+         ('remote', 'Remote Access', '', NULL, 'Remote access', '<p>Hello %scs_user_name%</p>'),
+         ('checkout', 'Check Out', 'orders@example.com', '[\"copy@example.com\"]', 'PO #%po%', '')",
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO registry (module, field, data) VALUES ('email', 'webmaster', 'web@example.com'), ('email', 'password', 'not-for-pages'), ('email', 'host', 'smtp.example.com')")
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn the_output_tester_reviews_a_mail_then_queues_it() {
+    let (app, pool) = harness().await;
+    mail_documents(&pool).await;
+    let customer = cookie(&pool, 1, "Customer").await;
+    let (status, headers, _) = send(&app, Method::GET, "/mailer_output.php", Some(&customer), "", None).await;
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"));
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let (status, _, page) = send(&app, Method::GET, "/mailer_output.php", Some(&admin), "", None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Email Output Tester (08/07/2025)</p>"));
+    assert!(page.contains("<td width='20%'>Document</td><input type=hidden name='mailform' id='mailform' value='remote'>\n<td width='80%'><b>Remote Access</b></td>"), "an Administrator tests the first mail to a visitor");
+    assert!(!page.contains("not-for-pages") && !page.contains("smtp.example.com") && !page.contains("name='password'"), "no mail server settings in the page");
+
+    let form = "action=review&mailform=remote&recipient=pat%40example.com&message=Hi+there";
+    let (status, _, _) = send(&app, Method::POST, "/mailer_output.php", Some(&admin), form, None).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "a post without the form token is refused");
+    let token = csrf(&admin);
+    let (_, _, page) = send(&app, Method::POST, "/mailer_output.php", Some(&admin), &format!("csrf={token}&{form}&cc=a%40example.com%0AA%40example.com"), None).await;
+    assert!(page.contains("A@example.com: Duplicate entry") && page.contains("Correct 1 error(s)"));
+    let (_, _, page) = send(&app, Method::POST, "/mailer_output.php", Some(&admin), &format!("csrf={token}&{form}"), None).await;
+    assert!(page.contains("<p>Results: <b>Deliver email to pat@example.com</b></p>"), "{page}");
+    assert!(page.contains("<tr><td>Sender</td><td>web@example.com</td></tr>"));
+    let queued: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox").fetch_one(&pool).await.unwrap();
+    assert_eq!(queued, 0, "a review queues nothing");
+
+    let send_form = format!("csrf={token}&action=send&mailform=remote&recipient=pat%40example.com&bcc=b%40example.com&message=Hi+there");
+    let (_, _, page) = send(&app, Method::POST, "/mailer_output.php", Some(&admin), &send_form, None).await;
+    assert!(page.contains("Results: Email queued for delivery to pat@example.com"));
+    let (to, subject, body): (String, String, String) = sqlx::query_as("SELECT to_email, subject, body FROM outbox").fetch_one(&pool).await.unwrap();
+    assert_eq!((to.as_str(), subject.as_str()), ("pat@example.com", "Remote access"));
+    assert!(body.contains("<div id='content'>\n<p>Hello </p>\nHi there\n</div>"), "{body}");
+    let bcc: String = sqlx::query_scalar("SELECT email FROM outbox_recipient WHERE kind = 'bcc'").fetch_one(&pool).await.unwrap();
+    assert_eq!(bcc, "b@example.com");
+}
+
+#[tokio::test]
+async fn a_super_user_picks_any_document_and_the_old_pages_lead_to_their_successors() {
+    let (app, pool) = harness().await;
+    mail_documents(&pool).await;
+    let su = cookie(&pool, 3, "Super User").await;
+    let (_, _, page) = send(&app, Method::GET, "/mailer_output.php", Some(&su), "", None).await;
+    assert!(page.contains("<select class='input' name='mailform' id='mailform' onchange=\"javascript:fn_ajax('mailform');\">"));
+    assert!(page.contains("<option value='checkout'>Check Out (To Us) (w/BCC)</option>\n<option value='remote'>Remote Access (To Visitor)</option>"));
+    let token = csrf(&su);
+    let doc = ajax(&app, "/mailer_output.php", &su, &format!("csrf={token}&action=mailform&mailform=checkout")).await;
+    assert_eq!(doc, serde_json::json!({"recipient": "orders@example.com", "subject": "PO #%po%", "bcc": "copy@example.com"}));
+    for (old, new) in [("/scs_mail.php", "/mailer_output.php"), ("/scs_mailform.php", "/mailer_maintain.php")] {
+        let (status, headers, _) = send(&app, Method::GET, old, Some(&su), "", None).await;
+        assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, new));
+    }
+    let admin = cookie(&pool, 2, "Administrator").await;
+    let (_, headers, _) = send(&app, Method::GET, "/scs_mail.php", Some(&admin), "", None).await;
+    assert_eq!(headers.get(header::LOCATION).unwrap().to_str().unwrap(), "/scs_index.php", "the old pages admitted Super Users only");
 }
