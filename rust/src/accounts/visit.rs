@@ -86,6 +86,49 @@ pub async fn set_campaign(pool: &SqlitePool, id: &VisitId, code: Option<&str>, n
     Ok(())
 }
 
+/// The message an OAuth callback leaves for the sign-up page, as `{provider}_oauth_error` in the PHP session.
+pub async fn leave_oauth_error(pool: &SqlitePool, id: &VisitId, google: bool, message: &str, now: i64) -> sqlx::Result<()> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    let (microsoft, google) = if google { (None, Some(message)) } else { (Some(message), None) };
+    sqlx::query!(
+        "INSERT INTO visit (id, microsoft_error, google_error, seen_at) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT (id) DO UPDATE SET microsoft_error = coalesce(excluded.microsoft_error, microsoft_error),
+             google_error = coalesce(excluded.google_error, google_error), seen_at = excluded.seen_at",
+        key,
+        microsoft,
+        google,
+        now
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// The OAuth message waiting for the sign-up page, Microsoft's first, taken so it shows once.
+pub async fn take_oauth_error(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
+    let key = id.0.as_slice();
+    let row = sqlx::query!(
+        r#"SELECT microsoft_error, google_error FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3"#,
+        key,
+        now,
+        IDLE_SECS
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(row) = row else { return Ok(None) };
+    let taken = if row.microsoft_error.is_some() { "microsoft" } else { "google" };
+    let message = row.microsoft_error.or(row.google_error);
+    if message.is_some() {
+        if taken == "microsoft" {
+            sqlx::query!("UPDATE visit SET microsoft_error = NULL WHERE id = ?1", key).execute(pool).await?;
+        } else {
+            sqlx::query!("UPDATE visit SET google_error = NULL WHERE id = ?1", key).execute(pool).await?;
+        }
+    }
+    Ok(message)
+}
+
 /// session_destroy().
 pub async fn forget(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<()> {
     let key = id.0.as_slice();
@@ -113,6 +156,11 @@ mod tests {
         assert_eq!(load(&pool, &a, 1000 + IDLE_SECS).await.unwrap(), Visit { framed: true, language_code: Some("FR".into()), campaign_code: None });
         assert_eq!(load(&pool, &b, 1002).await.unwrap().campaign_code.as_deref(), Some("SPRING"));
         assert!(load(&pool, &a, 1001 + 3 * IDLE_SECS).await.unwrap() == Visit::default(), "idle too long");
+        leave_oauth_error(&pool, &b, true, "Invalid OAuth state. Please try again.", 1002).await.unwrap();
+        leave_oauth_error(&pool, &b, false, "Cancelled", 1002).await.unwrap();
+        assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap().as_deref(), Some("Cancelled"), "Microsoft's first");
+        assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap().as_deref(), Some("Invalid OAuth state. Please try again."));
+        assert_eq!(take_oauth_error(&pool, &b, 1003).await.unwrap(), None, "each shows once");
         forget(&pool, &b).await.unwrap();
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
     }

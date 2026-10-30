@@ -254,8 +254,11 @@ async fn language_choice_beats_the_account_which_beats_the_browser() {
     let both = format!("{signed_in}; PHPSESSID=chose-en");
     let (_, _, v) = ask(&app, &[("cookie", both.as_str())]).await;
     assert_eq!(v["language"], "EN");
-    let (_, _, v) = ask(&app, &[("cookie", "PHPSESSID=chose-de"), ("accept-language", "fr")]).await;
+    let unoffered = format!("{signed_in}; PHPSESSID=chose-de");
+    let (_, _, v) = ask(&app, &[("cookie", unoffered.as_str())]).await;
     assert_eq!(v["language"], "FR", "a code the site does not offer is ignored");
+    let (_, _, v) = ask(&app, &[("cookie", "PHPSESSID=chose-de"), ("accept-language", "fr")]).await;
+    assert_eq!(v["language"], "EN", "inside a visit PHP spoke English to anyone not signed in");
 }
 
 #[tokio::test]

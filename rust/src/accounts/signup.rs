@@ -25,7 +25,7 @@ use crate::{
         oauth::{self, Outcome},
         profile::{self, Layout, Profile},
         recaptcha::{self, Recaptcha, Score},
-        registry,
+        registry, visit,
     },
     api::Auth,
     db::unix_now,
@@ -337,7 +337,12 @@ async fn resend(core: &Auth, req: &Request, token: &str) -> sqlx::Result<Reply> 
 async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<HeaderValue>)> {
     let pool = &core.pool;
     let rc = Recaptcha::load(pool).await?;
-    if let Some(outcome) = oauth::take_outcome(pool, &req.headers).await? {
+    let left = match (&req.visitor.visit, oauth::take_outcome(pool, &req.headers).await?) {
+        (_, Some(outcome)) => Some(outcome),
+        (Some(id), None) => visit::take_oauth_error(pool, id, req.now).await?.map(Outcome::Error),
+        (None, None) => None,
+    };
+    if let Some(outcome) = left {
         let body = match outcome {
             Outcome::Error(message) => format!("<p style='color:red;'>{}</p>{}", escape(&message), register_form(core, req, rc.as_ref()).await?),
             Outcome::NoEmail(kind) => format!(

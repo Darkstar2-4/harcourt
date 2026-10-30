@@ -314,9 +314,13 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
         }
     }
 
+    // Inside a visit PHP reloaded a session user who was not signed in from an empty user_data_class, so every PHP
+    // page after the first spoke English to them, whatever they had asked for.
+    let reset_to_english = matches!(identity, Identity::Anonymous) && impersonator.is_none() && !php.first && php.page.reloads_user();
     let languages = Languages::load(pool).await?;
     let language = overlay_language
         .and_then(|code| languages.get(&code))
+        .or_else(|| reset_to_english.then(LanguageCode::english))
         .or_else(|| stored.language_code.as_deref().and_then(|c| languages.get(c)))
         .or_else(|| match &identity {
             Identity::Account(s) => languages.get(&s.account.language_code),
@@ -357,7 +361,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     if !php.initial() || impersonator.is_some() {
         effects.clear();
     }
-    let asks_frame = php.page != Header::None && (php.page != Header::Initial || php.first) && framed_in_query(parts.uri.query());
+    let asks_frame = (php.page.reloads_pending() || php.initial()) && framed_in_query(parts.uri.query());
     if asks_frame && !stored.framed {
         effects.push(Effect::Framed);
     }
@@ -429,9 +433,11 @@ fn new_php_session_id() -> String {
 /// What scs_header.php did for a request to a PHP page.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Header {
-    /// It did not run with a session: not a PHP page (WordPress, the JSON API), OAuth, cookie_reset.php, and
+    /// It did not run with a session: not a PHP page (WordPress, the JSON API), cookie_reset.php, and
     /// scs_file.php for a plain file.
     None,
+    /// The OAuth pages: a PHP session (oauth/session.php) and nothing of scs_header.php.
+    Session,
     /// scscpq_wp.php: menu_class::initial() for a browser with no session, and never page().
     Initial,
     /// initial() stopped at once unless the session's user was Pending: scs_file.php and stock.php.
@@ -449,7 +455,8 @@ impl Header {
             "/stock.php" => Header::Quiet,
             "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
             "/scs_file.php" => Header::None,
-            p if p.starts_with("/oauth/") || !p.ends_with(".php") => Header::None,
+            p if !p.ends_with(".php") => Header::None,
+            p if p.starts_with("/oauth/") => Header::Session,
             _ => Header::Page,
         }
     }
@@ -462,6 +469,11 @@ impl Header {
     /// initial() reloaded a Pending session user, and so the profile, on every request.
     fn reloads_pending(self) -> bool {
         matches!(self, Header::Page | Header::Quiet)
+    }
+
+    /// The page reloaded a Pending session user (scscpq_wp.php without the profile).
+    fn reloads_user(self) -> bool {
+        matches!(self, Header::Page | Header::Quiet | Header::Initial)
     }
 }
 
@@ -707,7 +719,7 @@ mod tests {
         assert_eq!(Header::of("/scs_file.php", Some("watermark=1&id=2")), Header::Quiet);
         assert_eq!(Header::of("/scs_file.php", Some("id=2")), Header::None);
         assert_eq!(Header::of("/stock.php", None), Header::Quiet);
-        assert_eq!(Header::of("/oauth/callback.php", None), Header::None);
+        assert_eq!(Header::of("/oauth/callback.php", None), Header::Session);
         assert_eq!(Header::of("/cookie_reset.php", None), Header::None);
         assert_eq!(Header::of("/catalog/", None), Header::None);
     }

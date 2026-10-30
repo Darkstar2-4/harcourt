@@ -393,3 +393,15 @@ async fn an_unconfigured_provider_says_so() {
     let shown = page(&app, &start.jar()).await;
     assert!(shown.body.contains("OAuth configuration is missing. Contact the administrator."));
 }
+
+#[tokio::test]
+async fn a_callback_without_a_sign_in_under_way_leaves_its_message_for_the_visit() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let back = send(&app, Method::GET, "/oauth/google_callback.php?state=made-up&code=x", "", None, false).await;
+    assert_eq!(back.headers.get(header::LOCATION).unwrap(), "/request-access");
+    let shown = page(&app, "").await;
+    assert!(shown.body.contains("<div id=scscpq_content><p style='color:red;'>Invalid OAuth state. Please try again.</p>"), "{}", shown.body);
+    let again = page(&app, "").await;
+    assert!(!again.body.contains("Invalid OAuth state"), "shown once");
+}
