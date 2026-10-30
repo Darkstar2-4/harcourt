@@ -551,10 +551,40 @@ pub fn download(name: &str, mime: &'static str, body: Vec<u8>) -> Response {
     r
 }
 
+/// export() with `xls_multiple`: one Excel worksheet per named part, each with its own columns.
+pub fn export_sheets(name: &str, sheets: &[(String, Map, Vec<Record>)]) -> Export {
+    if sheets.is_empty() {
+        return Export::Empty;
+    }
+    let mut book = rust_xlsxwriter::Workbook::new();
+    for (title, map, rows) in sheets {
+        let fields: Vec<&Field> = map.fields().iter().collect();
+        let cells = rows.iter().map(|r| fields.iter().zip(r).map(|(f, v)| export_cell(f, v, FileType::Xlsx)).collect());
+        if let Err(e) = sheet(&mut book, title, &fields, cells) {
+            tracing::error!("xlsx export {name}: {e}");
+            return Export::Empty;
+        }
+    }
+    match book.save_to_buffer() {
+        Ok(body) => Export::File(download(name, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", body)),
+        Err(e) => {
+            tracing::error!("xlsx export {name}: {e}");
+            Export::Empty
+        }
+    }
+}
+
 fn xlsx(fields: &[&Field], rows: impl Iterator<Item = Vec<Cell>>) -> Result<Vec<u8>, rust_xlsxwriter::XlsxError> {
     let mut book = rust_xlsxwriter::Workbook::new();
+    sheet(&mut book, "Data", fields, rows)?;
+    book.save_to_buffer()
+}
+
+/// One worksheet: the column names in bold, then the rows. The name loses the characters Excel refuses.
+fn sheet(book: &mut rust_xlsxwriter::Workbook, title: &str, fields: &[&Field], rows: impl Iterator<Item = Vec<Cell>>) -> Result<(), rust_xlsxwriter::XlsxError> {
     let sheet = book.add_worksheet();
-    sheet.set_name("Data")?;
+    let clean: String = title.chars().map(|c| if "\\/?*:[]".contains(c) { ' ' } else { c }).take(31).collect();
+    sheet.set_name(clean)?;
     let bold = rust_xlsxwriter::Format::new().set_bold();
     for (c, f) in fields.iter().enumerate() {
         let c = c as u16;
@@ -571,7 +601,7 @@ fn xlsx(fields: &[&Field], rows: impl Iterator<Item = Vec<Cell>>) -> Result<Vec<
             };
         }
     }
-    book.save_to_buffer()
+    Ok(())
 }
 
 /// The export file name: the table, then the group and code made safe, then the suffix.

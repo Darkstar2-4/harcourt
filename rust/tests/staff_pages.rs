@@ -527,3 +527,27 @@ async fn portals_keep_their_headlines_and_subcategories() {
     let headline: String = sqlx::query_scalar("SELECT description FROM content WHERE record_type = 'portal' AND record_id = 4").fetch_one(&h.pool).await.unwrap();
     assert_eq!(headline, "Welcome");
 }
+
+#[tokio::test]
+async fn the_pricing_utility_explains_a_smart_subcategorys_price_tables() {
+    let h = harness().await;
+    exec(&h.pool, "INSERT INTO category (id, name, active) VALUES (5, 'Slides', 1)").await;
+    exec(&h.pool, "INSERT INTO subcategory (id, category_id, name, status, output) VALUES (549, 5, 'Test Slides', 'Active', 'smart'), (50, 5, 'Plain Pins', 'Active', '')").await;
+    exec(&h.pool, "INSERT INTO pricing (subcategory_id, record_type, options, price_type, price0, update_timestamp) VALUES ('549', 'carriage_length', 'carriage_length=0', '', 1234.5, 1566835732), ('549', 'carriage_length', 'carriage_length=', '', 0, 1566835732)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php", Some(&admin))).await;
+    assert!(page.contains("<optgroup label='Slides'>\n<option value='549'>Test Slides</option>\n</optgroup>\n</select></td>"), "only smart subcategories: {page}");
+    assert!(page.contains("<td id='record_type_td'></td>"));
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php?subcategory_id=549&function=explain&action=prelist", Some(&admin))).await;
+    assert!(page.contains("<br>Test Slides (549)</span></p>"));
+    assert!(page.contains("<td class=center>2</td>\n<td>code0: carriage_length</td>\n<td>price0: Per Carriage</td>"));
+    assert!(page.contains("<tr style='background-color: #ffff00;'>\n<td><a href=\"javascript:fn_record_type('rail_length');\">rail_length</a></td>"));
+    let (_, _, page) = send(&h.app, post("/pricing_utility.php", &admin, &[("action", "prelist"), ("function", "explain"), ("subcategory_id", "549"), ("record_type", "carriage_length")])).await;
+    assert!(page.contains("<td>0</td>\n<td class=right>$1,234.50</td>"));
+    assert!(page.contains("<td style='background-color: #ffff00;'>Missing</td>"));
+    assert!(page.contains("active: 2 }"));
+    let (_, _, page) = send(&h.app, get("/pricing_utility.php?function=explain&action=prelist", Some(&admin))).await;
+    assert!(page.contains("Correct 1 error(s)"));
+    let (status, _, _) = send(&h.app, post("/pricing_utility.php", &admin, &[("action", "update"), ("function", "upload"), ("subcategory_id", "549")])).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}

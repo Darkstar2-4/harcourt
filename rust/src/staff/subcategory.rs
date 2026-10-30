@@ -651,7 +651,7 @@ async fn update(pool: &SqlitePool, staff: &Staff<Administrator>, posted: &Posted
     sub.lookup = f.int("lookup") != 0;
     if !sub.output.is_empty() && sub.prj.is_empty() {
         notes.error("prj", Some("PRJ required for Static/Smart SKU"));
-    } else if sub.output == "smart" && !configure_module(sub.id) {
+    } else if sub.output == "smart" && super::smart::module(sub.id).is_none() {
         notes.error("output", Some(&format!("classes/configure_{}.php not found", sub.id)));
     }
     if notes.has_errors() {
@@ -682,11 +682,6 @@ async fn update(pool: &SqlitePool, staff: &Staff<Administrator>, posted: &Posted
     }
     Draft::clear(pool, staff).await?;
     Ok(())
-}
-
-/// A smart module was a PHP class file per subcategory; the port has none, so one is never found.
-fn configure_module(id: i64) -> bool {
-    docroot().is_some_and(|root| root.join(format!("classes/configure_{id}.php")).is_file())
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -104,20 +104,37 @@ pub async fn groups(pool: &SqlitePool) -> sqlx::Result<Vec<OptGroup>> {
     )
     .fetch_all(pool)
     .await?;
+    Ok(grouped(rows.into_iter().map(|r| (r.id, r.name, r.status, r.category))))
+}
+
+/// subcategory->select() with `output`: the subcategories of one output kind ("smart" for the configurator's).
+pub async fn groups_with_output(pool: &SqlitePool, output: &str) -> sqlx::Result<Vec<OptGroup>> {
+    let rows = sqlx::query!(
+        r#"SELECT s.id AS "id!: i64", s.name AS "name?", s.status AS "status?", COALESCE(c.name, '') AS "category!: String"
+           FROM subcategory s LEFT JOIN category c ON c.id = s.category_id WHERE s.output = ?1
+           ORDER BY c.name COLLATE NOCASE, s.name COLLATE NOCASE, s.id"#,
+        output
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(grouped(rows.into_iter().map(|r| (r.id, r.name, r.status, r.category))))
+}
+
+fn grouped(rows: impl Iterator<Item = (i64, Option<String>, Option<String>, String)>) -> Vec<OptGroup> {
     let mut groups: Vec<OptGroup> = Vec::new();
-    for r in rows {
-        let status = r.status.unwrap_or_default();
-        let mut label = r.name.unwrap_or_default();
+    for (id, name, status, category) in rows {
+        let status = status.unwrap_or_default();
+        let mut label = name.unwrap_or_default();
         if status != "Active" {
             label.push_str(&format!(" ({status})"));
         }
-        let option = (r.id.to_string(), text(&label));
+        let option = (id.to_string(), text(&label));
         match groups.last_mut() {
-            Some((g, options)) if *g == r.category => options.push(option),
-            _ => groups.push((r.category, vec![option])),
+            Some((g, options)) if *g == category => options.push(option),
+            _ => groups.push((category, vec![option])),
         }
     }
-    Ok(groups)
+    groups
 }
 
 #[cfg(test)]

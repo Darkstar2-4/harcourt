@@ -30,6 +30,7 @@ pub mod maintain;
 pub mod map;
 pub mod phpser;
 pub mod shell;
+pub mod smart;
 pub mod time;
 
 pub mod campaign;
@@ -46,6 +47,7 @@ pub mod portal;
 pub mod portalcategory;
 pub mod portalcontent;
 pub mod portalitem;
+pub mod pricing_utility;
 pub mod prj;
 pub mod subcategory;
 pub mod subcategory_order;
@@ -118,6 +120,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(portalcategory::routes())
         .merge(portalcontent::routes())
         .merge(portalitem::routes())
+        .merge(pricing_utility::routes())
         .merge(prj::routes())
         .merge(subcategory::routes())
         .merge(subcategory_order::routes())

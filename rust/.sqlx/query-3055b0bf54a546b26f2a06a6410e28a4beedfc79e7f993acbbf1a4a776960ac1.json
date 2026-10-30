@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", s.name AS \"name?\", s.status AS \"status?\", COALESCE(c.name, '') AS \"category!: String\"\n           FROM subcategory s LEFT JOIN category c ON c.id = s.category_id WHERE s.output = ?1\n           ORDER BY c.name COLLATE NOCASE, s.name COLLATE NOCASE, s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name?",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "status?",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "category!: String",
+        "ordinal": 3,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "3055b0bf54a546b26f2a06a6410e28a4beedfc79e7f993acbbf1a4a776960ac1"
+}
