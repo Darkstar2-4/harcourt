@@ -1,0 +1,61 @@
+name: rust-web
+
+on:
+  pull_request:
+    paths:
+      - "rust/**"
+      - "web/**"
+      - "tools/**"
+      - "hx/hx-nav.js"
+      - "scs_scripts/scscpq_wp.js"
+      - ".github/workflows/rust-web.yml"
+  push:
+    branches: [aws-production]
+    paths:
+      - "rust/**"
+      - "web/**"
+      - "tools/**"
+      - "hx/hx-nav.js"
+      - "scs_scripts/scscpq_wp.js"
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: "true"
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo test --locked
+      - run: cargo clippy --locked --lib --test auth -- -D warnings
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Committed scripts match their TypeScript
+        run: npm run verify
+      - run: npm test
+
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I -m unittest discover -s tools
