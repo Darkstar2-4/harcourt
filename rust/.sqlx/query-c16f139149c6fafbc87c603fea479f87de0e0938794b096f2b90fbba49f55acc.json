@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO captcha_bypass (email, comment, created) VALUES (?1, ?2, ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c16f139149c6fafbc87c603fea479f87de0e0938794b096f2b90fbba49f55acc"
+}

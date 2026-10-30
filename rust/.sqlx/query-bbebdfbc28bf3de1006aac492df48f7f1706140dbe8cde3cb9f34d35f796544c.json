@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT count(*) AS \"n!: i64\" FROM captcha_bypass WHERE ?1 = '' OR email LIKE '%' || ?1 || '%' OR comment LIKE '%' || ?1 || '%'",
+  "describe": {
+    "columns": [
+      {
+        "name": "n!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bbebdfbc28bf3de1006aac492df48f7f1706140dbe8cde3cb9f34d35f796544c"
+}

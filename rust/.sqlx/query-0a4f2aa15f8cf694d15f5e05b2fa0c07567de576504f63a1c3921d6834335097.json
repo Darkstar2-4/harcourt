@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT user_id, \"type\" AS \"ty!\", status AS \"status!\", catalog AS \"catalog!: i64\", cad AS \"cad!: i64\",\n                  ecommerce AS \"ecommerce!: i64\", price_type AS \"price_type!\", price_pct AS \"price_pct!: f64\",\n                  industry_id AS \"industry_id!: i64\", portal_id AS \"portal_id!: i64\", portal_legacy AS \"portal_legacy!: i64\",\n                  currency_code AS \"currency_code!\", language_code AS \"language_code!\", campaign_code\n           FROM impersonation WHERE session_hash = ?1",
+  "query": "SELECT user_id, \"type\" AS \"ty!\", status AS \"status!\", catalog AS \"catalog!: i64\", cad AS \"cad!: i64\",\n                  ecommerce AS \"ecommerce!: i64\", price_type AS \"price_type!\", price_pct AS \"price_pct!: f64\",\n                  industry_id AS \"industry_id!: i64\", portal_id AS \"portal_id!: i64\", portal_legacy AS \"portal_legacy!: i64\",\n                  currency_code AS \"currency_code!\", language_code AS \"language_code!\", campaign_code, bot_id\n           FROM impersonation WHERE session_hash = ?1",
   "describe": {
     "columns": [
       {
@@ -72,6 +72,11 @@
         "name": "campaign_code",
         "ordinal": 13,
         "type_info": "Text"
+      },
+      {
+        "name": "bot_id",
+        "ordinal": 14,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -91,8 +96,9 @@
       false,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "3153b96cee8d2b532815e2770a03162fda24900bef5522d8dea080f39bd7f1b8"
+  "hash": "0a4f2aa15f8cf694d15f5e05b2fa0c07567de576504f63a1c3921d6834335097"
 }

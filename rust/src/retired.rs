@@ -18,7 +18,9 @@ use percent_encoding::percent_decode_str;
 ///
 /// The web SQL consoles, PHP diagnostics and developer toolboxes have no replacement: staff use the SQLite CLI and
 /// the server shell. So has the document-root file manager (scs_filemanager.php), which uploaded, renamed and
-/// deleted any file under the docroot.
+/// deleted any file under the docroot. cookie.php and bot_apache.php were diagnostics. remote_code.php reset and
+/// showed the unlock code of an address; sign-in no longer uses those codes (accounts::admission, the emailed
+/// code), and staff give access from /staff/remote-grants.
 const RETIRED: &[&str] = &[
     "scs_filemanager.php",
     "filemanager_rev0.php",
@@ -40,6 +42,9 @@ const RETIRED: &[&str] = &[
     "jquery_toolbox.php",
     "beta_authorize.php",
     "image_viewer.php",
+    "cookie.php",
+    "bot_apache.php",
+    "remote_code.php",
 ];
 
 pub fn is_retired(raw_path: &str) -> bool {

@@ -7,7 +7,7 @@
 
 use std::{future::Future, sync::Arc};
 
-use axum::{extract::State, response::Response, routing::MethodRouter};
+use axum::{extract::State, http::Uri, response::Response, routing::MethodRouter};
 use sqlx::SqlitePool;
 
 use super::{
@@ -66,6 +66,9 @@ pub trait Table: Default + Send + Sync + Sized + 'static {
     const TITLE: &'static str;
     const VERSION: &'static str = "";
     const MULTIPART: bool = false;
+    /// The PHP read `$_REQUEST`: a link may open a record (`?action=maintain&record_id=…`) or cancel. A change
+    /// still needs the posted form.
+    const QUERY: bool = false;
     const FORM_CLASS: &'static str = "large noborder";
     const LABEL_WIDTHS: (&'static str, &'static str) = ("30%", "70%");
     const COLUMNS: &'static [Column<Self>];
@@ -79,14 +82,18 @@ pub trait Table: Default + Send + Sync + Sized + 'static {
     /// The message after a delete, from the row as it was read.
     fn deleted(&self, notes: &mut Notes);
 
-    /// Checks across fields, after every column's `set`.
+    /// Posted fields beyond the columns and uploaded files, after every column's `set`.
+    fn take(&mut self, _posted: &Posted, _notes: &mut Notes) {}
+
+    /// Checks across fields, after every column's `set` and `take`.
     fn validate(&mut self, _notes: &mut Notes) {}
 
-    /// The edit form. The default is one labelled row per column.
-    fn edit(&self, form: &Form<'_>) -> String {
+    /// The edit form. The default is one labelled row per column. `wp`: the page is inside WordPress.
+    fn edit(&self, form: &Form<'_>, _wp: bool) -> String {
         edit_table(self, form)
     }
 
+    /// The row with this id; asked for id 0 too, so a new row can come with what its form needs.
     fn read(pool: &SqlitePool, id: i64) -> impl Future<Output = sqlx::Result<Option<Self>>> + Send;
 
     /// Insert when `id` is 0, else update that row.
@@ -119,11 +126,12 @@ enum View {
 }
 
 /// The whole cancel / maintain / update / delete step, then the page.
-pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, fields: &Fields) -> Result<Response, sqlx::Error> {
+pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, posted: &Posted) -> Result<Response, sqlx::Error> {
+    let fields = &posted.fields;
     let action = Action::parse(fields.get("action"));
     let id = fields.int("record_id");
     let mut notes = Notes::new(T::TITLE, T::VERSION);
-    let mut row = if id != 0 { T::read(pool, id).await?.unwrap_or_default() } else { T::default() };
+    let mut row = T::read(pool, id).await?.unwrap_or_default();
     let view = match action {
         Action::List => View::List,
         Action::Cancel => {
@@ -140,6 +148,7 @@ pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, fields: &F
             for c in T::COLUMNS {
                 (c.set)(&mut row, fields.get(c.name), &mut notes);
             }
+            row.take(posted, &mut notes);
             row.validate(&mut notes);
             if notes.has_errors() {
                 View::Edit
@@ -165,7 +174,7 @@ pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, fields: &F
     body.push_str(&hidden("record_id", ""));
     match view {
         View::Edit => {
-            body.push_str(&row.edit(&form));
+            body.push_str(&row.edit(&form, staff.wp));
             body.push_str(&T::buttons(id));
         }
         View::List => body.push_str(&T::list(pool, &form).await?),
@@ -174,12 +183,18 @@ pub async fn run<T: Table>(pool: &SqlitePool, staff: &Staff<T::Role>, fields: &F
     Ok(shell::page(pool, staff.view(), T::TITLE, &body).await)
 }
 
-async fn show<T: Table>(State(auth): State<Arc<Auth>>, staff: Staff<T::Role>) -> Response {
-    run::<T>(&auth.pool, &staff, &Fields::default()).await.unwrap_or_else(shell::internal)
+async fn show<T: Table>(State(auth): State<Arc<Auth>>, staff: Staff<T::Role>, uri: Uri) -> Response {
+    let query = Fields::from_query(uri.query());
+    let read_only = matches!(Action::parse(query.get("action")), Action::Maintain | Action::Cancel);
+    let fields = if T::QUERY && read_only { query } else { Fields::default() };
+    run::<T>(&auth.pool, &staff, &Posted { fields, uploads: Vec::new() }).await.unwrap_or_else(shell::internal)
 }
 
-async fn post<T: Table>(State(auth): State<Arc<Auth>>, staff: Staff<T::Role>, posted: Posted) -> Response {
-    run::<T>(&auth.pool, &staff, &posted.fields).await.unwrap_or_else(shell::internal)
+async fn post<T: Table>(State(auth): State<Arc<Auth>>, staff: Staff<T::Role>, uri: Uri, mut posted: Posted) -> Response {
+    if T::QUERY {
+        posted.fields = posted.fields.with_query(&Fields::from_query(uri.query()));
+    }
+    run::<T>(&auth.pool, &staff, &posted).await.unwrap_or_else(shell::internal)
 }
 
 pub fn route<T: Table>() -> MethodRouter<Arc<Auth>> {

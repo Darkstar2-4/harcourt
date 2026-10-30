@@ -71,18 +71,32 @@ impl Chrome {
         c
     }
 
-    fn head(&self, title: &str, description: Option<&str>, wp: bool) -> String {
+    fn head(&self, head: &Head<'_>, wp: bool) -> String {
+        let title = head.title;
         let full = if self.title_prefix.is_empty() { title.to_string() } else { format!("{} {title}", self.title_prefix) };
+        let emptied = head.description.is_some_and(|d| d.trim().is_empty());
+        let description = format!("<meta name=\"description\" content=\"{}\">", esc(head.description.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(&full)));
         let mut out = vec!["<!DOCTYPE html>".to_string(), "<html>".into(), "<head>".into()];
         out.push(format!("<title>{}</title>", esc(&full)));
-        out.push(format!("<meta name=\"description\" content=\"{}\">", esc(description.unwrap_or(&full))));
+        if !emptied {
+            out.push(description.clone());
+        }
         out.extend(self.meta.iter().cloned());
         out.push("<meta name=\"robots\" content=\"noarchive, noimageindex\">".into());
+        if emptied {
+            out.push(description);
+        }
         out.push("<meta charset=\"utf-8\">".into());
         if !self.icon.is_empty() {
             out.push(format!("<link rel='icon' href='{}' type='image/x-icon'>", esc(&self.icon)));
         }
-        for css in &self.css {
+        let mut css: Vec<&str> = self.css.iter().map(String::as_str).collect();
+        for c in head.css {
+            if !css.contains(&c.as_str()) {
+                css.push(c);
+            }
+        }
+        for css in css {
             out.push(format!("<link rel='stylesheet' type='text/css' href='{}'>", esc(css)));
         }
         let mut scripts = self.js.clone();
@@ -99,7 +113,7 @@ impl Chrome {
 }
 
 /// menu_class::ribbon(): the site's top bar outside WordPress.
-fn ribbon(role: Role) -> String {
+fn ribbon(role: Role, dashboard: &str) -> String {
     let mut out = String::from(concat!(
         "\n<script>\nfunction menu_search() {\n",
         "\tsearch_code=jQuery('#scscpq_search_text').val();\n",
@@ -115,7 +129,7 @@ fn ribbon(role: Role) -> String {
     let logo = "<img style='transform: translate(0%, 10px);' src='/scs_images/logo.png' height='70' title='Harcourt Industrial' border='0'>";
     out.push_str(&format!("<div class='scs_menu_left' style='padding-top: 10px;')>{}</div>", href(logo, "/", Default::default())));
     if role >= Role::Executive {
-        out.push_str(&format!("<div class=scs_menu_left>{}</div>", href("Dashboard", "/dashboard.php", Default::default())));
+        out.push_str(&format!("<div class=scs_menu_left>{}</div>", href(dashboard, "/dashboard.php", Default::default())));
     }
     out.push_str(&format!("<div class='scs_menu_left scscpq_impersonate'>{}</div>", href("Stop Impersonate", "/user_impersonate.php", Default::default())));
     out.push_str(&format!("<div class='scs_menu_left scscpq_newuser'>{}</div>", href("New user", "/newuser.php", Default::default())));
@@ -144,11 +158,27 @@ pub async fn page(pool: &SqlitePool, view: View, title: &str, body: &str) -> Res
 
 /// `page` with the meta description a page sets itself (`$forms->html->meta("description", …)`).
 pub async fn described(pool: &SqlitePool, view: View, title: &str, description: Option<&str>, body: &str) -> Response {
+    document(pool, view, &Head { title, description, css: &[], dashboard: None }, body).await
+}
+
+/// What a page sets in its head besides the registry's lines.
+pub struct Head<'a> {
+    pub title: &'a str,
+    /// The page's own description. `Some("")` is a page that set it to nothing: meta() dropped the line and
+    /// html_open() put the title back after the registry's meta lines.
+    pub description: Option<&'a str>,
+    /// Stylesheets the page adds after the registry's (`html_load_script("css", …)`).
+    pub css: &'a [String],
+    /// The ribbon's dashboard link in the reader's language (`menu_dashboard`); English when None.
+    pub dashboard: Option<&'a str>,
+}
+
+pub async fn document(pool: &SqlitePool, view: View, head: &Head<'_>, body: &str) -> Response {
     let chrome = Chrome::load(pool).await;
-    let mut html = chrome.head(title, description, view.wp);
+    let mut html = chrome.head(head, view.wp);
     let mut top = vec!["<div id='scs_body' >".to_string()];
     if !view.wp {
-        top.push(ribbon(view.role));
+        top.push(ribbon(view.role, head.dashboard.unwrap_or("Dashboard")));
     }
     top.push("<div id='scs_content' >".to_string());
     html.push_str(&top.join("\n"));

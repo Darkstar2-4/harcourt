@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO language (code, country_code, name, local_name, ps_name, image_url, priority, menu, active)\n                   VALUES (?1, ?2, ?3, ?4, ?5, '', ?6, ?7, ?8) RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7fcc94c3c5f428225cfcb2096da2ccb81d9b48d4bcfe718712115e08b232dd66"
+}

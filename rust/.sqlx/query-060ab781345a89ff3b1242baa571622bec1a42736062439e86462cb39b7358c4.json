@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT bot.id AS \"id!: i64\", bot.code, bot.name, bot.status, portal.name AS portal_name\n               FROM bot LEFT JOIN portal ON portal.id = bot.portal_id ORDER BY bot.name, bot.code",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "code",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_name",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "060ab781345a89ff3b1242baa571622bec1a42736062439e86462cb39b7358c4"
+}

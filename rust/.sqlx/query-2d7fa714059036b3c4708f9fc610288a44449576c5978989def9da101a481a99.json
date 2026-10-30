@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET domain = ?1 WHERE id = (SELECT id FROM \"user\" WHERE ip = ?2 AND company_name = ?3 COLLATE NOCASE LIMIT 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "2d7fa714059036b3c4708f9fc610288a44449576c5978989def9da101a481a99"
+}
