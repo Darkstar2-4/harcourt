@@ -12,6 +12,8 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Scscpq => scscpq,
         Template::Digest => digest,
         Template::Page => default_page,
+        Template::History => super::company::history,
+        Template::Why => super::company::why,
         _ => return None,
     })
 }
@@ -65,14 +67,14 @@ fn sidebar(c: &mut Ctx) {
 const WHY_PAGE: PageId = PageId(214);
 
 /// layouts/sections/global/breadcrumbs.php
-fn breadcrumbs(c: &mut Ctx) {
+pub(super) fn breadcrumbs(c: &mut Ctx) {
     c.push("<div class=\"breadcrumb-section\">\n  ");
     c.breadcrumbs();
     c.push("</div>\n");
 }
 
 /// layouts/sections/global/cta.php
-fn cta(c: &mut Ctx) {
+pub(super) fn cta(c: &mut Ctx) {
     c.push("\n<section class=\"cta-section scscpq_newuser\">\n\n  <div class=\"container\">\n\n    <div class=\"row\">\n\n      <div class=\"background-image has-overlay\">\n\n        <div class=\"cta-content-container\">\n\n          <div data-aos-offset=\"400\" data-aos-duration=\"1000\" data-aos=\"fade-up\" class=\"cta-content\">\n\n            <div class=\"heading d-flex align-items-center justify-content-center\">\n              <h2>");
     c.option_html("cta_title");
     c.push("</h2>\n              ");
@@ -250,7 +252,7 @@ fn digest(c: &mut Ctx) {
 }
 
 /// An ACF relationship value: a JSON list of ids, or one bare id (acf_get_array()).
-fn id_list(v: &str) -> Vec<i64> {
+pub(super) fn id_list(v: &str) -> Vec<i64> {
     match serde_json::from_str::<Vec<String>>(v) {
         Ok(list) => list.iter().filter_map(|s| s.parse().ok()).collect(),
         Err(_) => v.trim().parse().ok().into_iter().collect(),

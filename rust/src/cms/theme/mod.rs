@@ -6,6 +6,7 @@
 //! hole. The body comes from the page's template in `templates`, a transcription of the theme's PHP.
 
 mod chrome;
+mod company;
 pub mod probe;
 mod templates;
 
