@@ -664,7 +664,10 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         return if front { front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy) } else { Answer::Legacy };
     }
     if q.lang_en && answer != Answer::NotFound {
-        let to = slashed.as_deref().unwrap_or(path);
+        // WPML moves to the path WordPress parsed, its slashes trimmed and one put back; a path that began with two
+        // was a host to parse_url(), which wp_safe_redirect() refuses (`found`).
+        let parsed = format!("/{}/", path.trim_matches('/'));
+        let to = if path.starts_with("//") { path } else { parsed.as_str() };
         return Answer::Found(if q.without_lang.is_empty() { to.to_string() } else { format!("{to}?{}", q.without_lang) });
     }
     match (answer, slashed) {
@@ -1107,6 +1110,7 @@ mod tests {
         assert_eq!(r("/product/alignment/", "lang=en&x=1"), "302 /product/alignment/?x=1");
         assert_eq!(r("/gamme-de-produits/centrage/", "lang=en"), "302 /gamme-de-produits/centrage/");
         assert_eq!(r("/gamme-de-produits/centrage", "lang=en"), "302 /gamme-de-produits/centrage/");
+        assert_eq!(r("/product/alignment//", "lang=en&x=1"), "302 /product/alignment/?x=1", "the path as WordPress parsed it");
         assert_eq!(r("/product/alignment/", "lang=en&lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
         assert_eq!(r("/product/alignment/", "p=212"), "legacy");
         assert_eq!(r("/product/alignment", "s=x"), "legacy");
