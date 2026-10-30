@@ -454,7 +454,7 @@ enum Header {
     Session,
     /// scscpq_wp.php: menu_class::initial() for a browser with no session, and never page().
     Initial,
-    /// initial() stopped at once unless the session's user was Pending: scs_file.php and stock.php.
+    /// initial() stopped at once unless the session's user was Pending: scs_file.php for a document.
     Quiet,
     /// initial() and page() ran.
     Page,
@@ -467,9 +467,7 @@ impl Header {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
             p if crate::accounts::static_dirs::contains(p) => Header::None,
-            "/stock.php" => Header::Quiet,
             "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
-            "/scs_api.php" => Header::None,
             "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
             "/scs_file.php" => Header::None,
             p if !p.ends_with(".php") => Header::None,
@@ -661,7 +659,6 @@ mod tests {
         assert_eq!(Header::of("/scscpq_wp.php", Some("action=initial")), Header::Initial);
         assert_eq!(Header::of("/scs_file.php", Some("watermark=1&id=2")), Header::Quiet);
         assert_eq!(Header::of("/scs_file.php", Some("id=2")), Header::None);
-        assert_eq!(Header::of("/stock.php", None), Header::Quiet);
         assert_eq!(Header::of("/oauth/callback.php", None), Header::Session);
         assert_eq!(Header::of("/cookie_reset.php", None), Header::None);
         assert_eq!(Header::of("/catalog/", None), Header::None);
