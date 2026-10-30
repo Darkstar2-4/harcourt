@@ -151,6 +151,27 @@ pub async fn reset_code_tries(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<(
     Ok(())
 }
 
+/// The profile the visit last loaded or typed, as the JSON of its cookie.
+pub async fn profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
+    let key = id.0.as_slice();
+    Ok(sqlx::query_scalar!("SELECT profile FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?.flatten())
+}
+
+pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) -> sqlx::Result<()> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    sqlx::query!(
+        "INSERT INTO visit (id, profile, seen_at) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, seen_at = excluded.seen_at",
+        key,
+        json,
+        now
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// session_destroy().
 pub async fn forget(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<()> {
     let key = id.0.as_slice();

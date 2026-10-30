@@ -14,8 +14,9 @@ use crate::{
         cookies,
         html::{self, escape, Blank, Opts},
         locale::Labels,
-        registry,
+        registry, visit,
     },
+    db::unix_now,
     visitor::{Identity, Visitor},
 };
 
@@ -167,11 +168,34 @@ impl Profile {
         cookies::php_year(COOKIE, &self.to_cookie(), now)
     }
 
-    /// classes/profile.php load(): what the browser remembered, with the remembered address when it has none, the
-    /// CAD format only when it still exists, the visitor's language when it has none, and the company and address
-    /// of whoever the visitor is signed in as (a bot's name for a bot).
+    /// profile->cookie(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return the cookie.
+    pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        self.keep(pool, visitor, now).await?;
+        Ok(self.cookie(now))
+    }
+
+    /// Keep the profile for the visit without a cookie: the PHP changed the session's copy in place.
+    pub async fn keep(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<()> {
+        if let Some(id) = &visitor.visit {
+            visit::set_profile(pool, id, &self.to_cookie(), now).await?;
+        }
+        Ok(())
+    }
+
+    /// What load() started from: the visit's copy, else the cookie.
+    pub async fn remembered(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        let kept = match &visitor.visit {
+            Some(id) => visit::profile(pool, id, unix_now()).await?,
+            None => None,
+        };
+        Ok(Profile::from_cookie(kept.or_else(|| cookies::get(headers, COOKIE)).as_deref()))
+    }
+
+    /// classes/profile.php load(): what the visit or the browser remembered, with the remembered address when it has
+    /// none, the CAD format only when it still exists, the visitor's language when it has none, and the company and
+    /// address of whoever the visitor is signed in as (a bot's name for a bot).
     pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
-        let obj = Profile::from_cookie(cookies::get(headers, COOKIE).as_deref());
+        let obj = Profile::remembered(pool, headers, visitor).await?;
         let cad_name = match obj.cad_code.as_deref() {
             Some(code) => sqlx::query_scalar!("SELECT name FROM cad WHERE code = ?1", code).fetch_optional(pool).await?,
             None => None,

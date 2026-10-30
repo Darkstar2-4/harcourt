@@ -190,6 +190,17 @@ impl Visitor {
     pub fn industry_id(&self) -> i64 {
         self.account().map_or(0, |a| a.industry_id)
     }
+
+    /// The session user PHP kept for this visitor had the status Pending: a Pending account, or anyone not signed
+    /// in (user_data_class started every visitor as Pending). scs_header.php reloaded such a user, and the
+    /// profile, on every page.
+    pub fn pending_in_php(&self) -> bool {
+        match &self.identity {
+            Identity::Anonymous => true,
+            Identity::Account(s) => s.account.user.status == Status::Pending,
+            Identity::Bot(_) => false,
+        }
+    }
 }
 
 impl FromRequestParts<Arc<Auth>> for Visitor {
@@ -477,15 +488,7 @@ impl Header {
     }
 }
 
-/// The session user PHP kept for a visitor had the status Pending: a Pending account, or anyone not signed in
-/// (user_data_class started every visitor as Pending).
-fn php_pending(visitor: &Visitor) -> bool {
-    match &visitor.identity {
-        Identity::Anonymous => true,
-        Identity::Account(s) => s.account.user.status == Status::Pending,
-        Identity::Bot(_) => false,
-    }
-}
+
 
 /// What scs_header.php answered and wrote before the page ran, for a request to `parts`: a landing redirect that
 /// replaces the page, and the cookies it set. A browser without a PHP session began a visit: PHP started a
@@ -504,9 +507,9 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
             out.extend(cookies::php_year(cookies::EMAIL, &email, now));
         }
     }
-    let loads_profile = if php.first { php.initial() && visitor.bot().is_none() } else { php.page.reloads_pending() && php_pending(visitor) };
+    let loads_profile = if php.first { php.initial() && visitor.bot().is_none() } else { php.page.reloads_pending() && visitor.pending_in_php() };
     if loads_profile {
-        out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.cookie(now));
+        out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.remember(&core.pool, visitor, now).await?);
     }
     let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, parts.uri.path()).await? } else { None };
     Ok((landing, out))

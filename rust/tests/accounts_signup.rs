@@ -405,3 +405,14 @@ async fn a_callback_without_a_sign_in_under_way_leaves_its_message_for_the_visit
     let again = page(&app, "").await;
     assert!(!again.body.contains("Invalid OAuth state"), "shown once");
 }
+
+#[tokio::test]
+async fn what_was_typed_stays_in_the_form_for_the_visit() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let a = ajax(&app, "", "action=register&profile_email=Typed%40&profile_company_name=Typed+Co").await;
+    assert_eq!(a.json()["error"]["profile_email"], 1);
+    let shown = page(&app, "").await;
+    assert!(shown.body.contains("<p class=profile_welcome>Welcome Typed Co!</p>"), "{}", shown.body);
+    assert!(shown.body.contains("value='typed@'"));
+}

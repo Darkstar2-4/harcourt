@@ -62,12 +62,14 @@ impl Request {
         cookies::get(&self.headers, cookies::EMAIL).as_deref().and_then(Email::parse)
     }
 
-    fn profile(&self) -> Profile {
-        let mut p = Profile::from_cookie(cookies::get(&self.headers, profile::COOKIE).as_deref());
-        if p.get("email").is_empty() {
-            p.email = cookies::get(&self.headers, cookies::EMAIL);
+    /// The profile the page loaded: the visit's, for a visitor PHP reloaded on every page; an empty one otherwise,
+    /// which the PHP's form changes were never kept in.
+    async fn profile(&self, pool: &sqlx::SqlitePool) -> sqlx::Result<Profile> {
+        if self.visitor.pending_in_php() {
+            Profile::load(pool, &self.headers, &self.visitor).await
+        } else {
+            Ok(Profile::default())
         }
-        p
     }
 }
 
@@ -215,7 +217,10 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     let rc = Recaptcha::load(pool).await?;
     let score = score(core, req, rc.as_ref(), token).await;
     let layout = Layout::load(pool).await?;
-    let (p, errors) = profile::verify(&layout, posted, req.profile());
+    let (p, errors) = profile::verify(&layout, posted, req.profile(pool).await?);
+    if req.visitor.pending_in_php() {
+        p.keep(pool, &req.visitor, req.now).await?;
+    }
     if spam(core, req, rc.as_ref(), &score, "registration form", p.get("email")).await? {
         reply.html.set("profile_register", UNABLE.into());
         return Ok(reply);
@@ -261,7 +266,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     let ctx = req.context();
     let (id, signin) = admission::register(pool, &registration, &email, false, &ctx).await?;
     reply.cookies.extend(signin.cookies());
-    reply.cookies.extend(p.cookie(req.now));
+    reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
     lines.push(format!("reCAPTCHA Score: {}", score.text));
     admission::log_signup(pool, id, &ctx, &lines.join("<br>")).await;
@@ -437,7 +442,7 @@ async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sq
         OAUTH_BUTTONS.into(),
         "<hr style='margin: 20px 0; border: 0; border-top: 1px solid #ccc;'>".into(),
         "<p style='font-weight:bold;'>Or complete the form below:</p>".into(),
-        profile::form(pool, &layout, &req.profile(), &Labels::load(pool, &req.visitor.language).await?).await?,
+        profile::form(pool, &layout, &Profile::load(pool, &req.headers, &req.visitor).await?, &Labels::load(pool, &req.visitor.language).await?).await?,
         recaptcha::button(rc, "Submit", "red-button", None, None),
         "<div id=recaptcha_status></div>".into(),
         "</div>".into(),

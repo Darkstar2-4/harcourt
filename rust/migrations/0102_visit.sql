@@ -1,7 +1,8 @@
 -- What PHP kept in its session for a visit and pages here read or change: whether the visit is inside the WordPress
 -- frame ($_SESSION['scscpq_wp']), a language chosen this visit, the campaign it arrived from, and the message an
 -- OAuth callback left for the sign-up page to show once (microsoft_oauth_error, google_oauth_error), and how many
--- access codes the sign-up page has turned down since it last sent one ($_SESSION['remote']). The browser's
+-- access codes the sign-up page has turned down since it last sent one ($_SESSION['remote']), and the profile the
+-- visit last loaded or typed ($_SESSION['harcourt_profile'], the JSON of the harcourt_profile cookie). The browser's
 -- PHPSESSID names the visit and only its SHA-256 keys the row. It holds preferences, never a sign-in.
 CREATE TABLE visit (
     id            BLOB PRIMARY KEY CHECK (length(id) = 32),
@@ -11,6 +12,7 @@ CREATE TABLE visit (
     microsoft_error TEXT,
     google_error  TEXT,
     code_tries    INTEGER NOT NULL DEFAULT 0,
+    profile       TEXT,
     seen_at       INTEGER NOT NULL
 ) STRICT;
 CREATE INDEX visit_seen ON visit (seen_at);
