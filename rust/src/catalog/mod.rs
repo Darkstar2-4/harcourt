@@ -12,6 +12,7 @@ use axum::{Extension, Router};
 
 use crate::api::Auth;
 
+pub mod api;
 pub mod files;
 pub mod forms;
 pub mod html;
@@ -32,5 +33,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(search::router())
         .merge(loader::router())
         .merge(files::router())
+        .merge(api::router())
         .layer(Extension(search::Cache::new()))
 }

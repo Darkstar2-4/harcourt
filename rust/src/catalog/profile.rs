@@ -25,7 +25,7 @@ pub struct Profile {
 
 impl Profile {
     /// profile_class::field values by registry field name; a field the profile has no value for is empty.
-    fn value(&self, field: &str) -> String {
+    pub fn field(&self, field: &str) -> String {
         match field {
             "email" => self.email.clone(),
             "name" => format!("{} {}", self.name_first, self.name_last),
@@ -45,7 +45,7 @@ impl Profile {
 
     /// profile_class::forced(): every field the registry marks required for profiles has a value.
     pub fn forced(&self, registry: &Registry) -> bool {
-        registry.items("address", "profile").iter().all(|(field, value)| value != "required" || !self.value(field).is_empty())
+        registry.items("address", "profile").iter().all(|(field, value)| value != "required" || !self.field(field).is_empty())
     }
 
     /// profile_class::quick_cad_message().
