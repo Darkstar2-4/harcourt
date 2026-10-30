@@ -154,7 +154,7 @@ fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<
     for path in PAGES {
         r = r.route(path, get(page).post(page_post));
         if let Some(bare) = path.strip_suffix('/').filter(|p| !p.is_empty()) {
-            r = r.route(bare, get(page));
+            r = r.route(bare, get(page).post(page_post));
         }
     }
     r.with_state(wp).merge(crate::cms::admin::routes().with_state(core))
@@ -398,6 +398,16 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     serve(&wp, &uri, agent, None, true).await
 }
 
+/// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
+/// a post to the bare path at the page itself, and Gravity Forms points the form back at the bare path.
+fn slashed(path: &str) -> String {
+    if path.ends_with('/') {
+        path.to_string()
+    } else {
+        format!("{path}/")
+    }
+}
+
 /// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
 /// the page (an ajax form gets the iframe postback document instead); a form the orders tables lack goes on to
 /// WordPress. Any other post shows the page, as WordPress did.
@@ -415,14 +425,12 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
+    let Answer::Render(page) = resolve(&site, &slashed(&path), q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
-            _ => serve(&wp, &parts.uri, agent, None, false).await,
-        };
+        return serve(&wp, &parts.uri, agent, None, false).await;
     };
-    let wp_uri = format!("{}{}", page.path, q.form_uri_query);
+    let seen = if path.ends_with('/') { &page.path } else { &path };
+    let wp_uri = format!("{seen}{}", q.form_uri_query);
     let lang = match page.lang {
         Lang::En => model::Lang::En,
         Lang::Fr => model::Lang::Fr,
@@ -467,18 +475,20 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<render::Answ
     };
     let finished = q.neutral && replay;
     let agent = if finished { "" } else { agent };
-    let page = match route(&site, &path, &q, raw_query) {
+    let target = if replay { path.clone() } else { slashed(&path) };
+    let page = match route(&site, &target, &q, raw_query) {
         Answer::Render(p) => p,
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::Found(to) => return found(&to),
         // WordPress prints its themed 404 page until that page is ported.
         Answer::NotFound | Answer::Legacy if replay => return legacy(),
-        Answer::NotFound | Answer::Legacy => match resolve(&site, &path, q.lang) {
+        Answer::NotFound | Answer::Legacy => match resolve(&site, &target, q.lang) {
             Answer::Render(p) => p,
             _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
         },
     };
-    let wp_uri = format!("{}{}", page.path, q.form_uri_query);
+    let seen = if path.ends_with('/') { &page.path } else { &path };
+    let wp_uri = format!("{seen}{}", q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
         tracing::error!("{path} is claimed but its template is not ported");
         return (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response();
