@@ -1,0 +1,206 @@
+{"name": "p5s-s", "path": "/search/?s=pin"}
+{"name": "p5s-s-empty", "path": "/search/?s="}
+{"name": "p5s-s-two", "path": "/search/?s=alignment+pin"}
+{"name": "p5s-s-none", "path": "/search/?s=zzqqxx"}
+{"name": "p5s-s-fr", "path": "/search/?s=pin&lang=fr", "language": "fr"}
+{"name": "p5s-q-s", "path": "/search/?q=pin&s=pin"}
+{"name": "p5s-page2", "path": "/search/?page=2"}
+{"name": "p5s-paged2", "path": "/search/?paged=2"}
+{"name": "p5s-p", "path": "/search/?p=1"}
+{"name": "p5s-page-id", "path": "/search/?page_id=2"}
+{"name": "p5s-post-type", "path": "/search/?post_type=page"}
+{"name": "p5s-feed", "path": "/search/?feed=rss2"}
+{"name": "p5s-cat", "path": "/search/?cat=1"}
+{"name": "p5s-s-paged", "path": "/search/?s=pin&paged=2"}
+{"name": "p5s-fr-page2", "path": "/search/?lang=fr&page=2", "language": "fr"}
+{"name": "p5s-search-key", "path": "/search/?search=pin"}
+{"name": "p5s-name", "path": "/search/?name=search"}
+{"name": "p5s-pagename", "path": "/search/?pagename=search"}
+{"name": "p5s-bare-s", "path": "/search?s=pin"}
+{"name": "p5s-recherche-s", "path": "/recherche/?s=pin&lang=fr", "language": "fr"}
+{"name": "p5s-feed-path", "path": "/search/feed/"}
+{"name": "p5s-embed-path", "path": "/search/embed/"}
+{"name": "p5s-page-path", "path": "/search/page/2/"}
+{"name": "p5sp-feed", "path": "/search/products/feed/"}
+{"name": "p5sp-feed-rss", "path": "/search/products/feed/rss2/"}
+{"name": "p5sp-rss", "path": "/search/products/rss2/"}
+{"name": "p5sp-embed", "path": "/search/products/embed/"}
+{"name": "p5sp-s", "path": "/search/products?s=pin"}
+{"name": "p5sp-paged", "path": "/search/products?paged=2"}
+{"name": "p5sp-page", "path": "/search/products/page/2/"}
+{"name": "p5sp-feedq", "path": "/search/products?feed=rss2"}
+{"name": "p5sp-p", "path": "/search/products?p=1"}
+{"name": "p5sp-cat", "path": "/search/products?cat=1"}
+{"name": "p5sp-post-type", "path": "/search/products?post_type=page"}
+{"name": "p5sd-docs", "path": "/search/documents"}
+{"name": "p5sd-docs-q", "path": "/search/documents?q=pin"}
+{"name": "p5sd-docs-slash", "path": "/search/documents/"}
+{"name": "p5sd-docs-fr", "path": "/search/documents?lang=fr", "language": "fr"}
+{"name": "p5sd-docs-feed", "path": "/search/documents/feed/"}
+{"name": "p5sd-docs-s", "path": "/search/documents?s=pin"}
+{"name": "p5cad-plain", "path": "/cad_lookup.php"}
+{"name": "p5cad-ipc", "path": "/cad_lookup.php?action=ipc&source=prj&prj=x.prj&sku=SYN-100"}
+{"name": "p5cad-ipc-nosku", "path": "/cad_lookup.php?action=ipc&source=sku"}
+{"name": "p5cad-other", "path": "/cad_lookup.php?action=other&sku=SYN-100"}
+{"name": "p5cad-fr", "path": "/cad_lookup.php", "language": "fr"}
+{"name": "p5c-key-space", "path": "/catalog/?a%20b=1"}
+{"name": "p5c-key-quote", "path": "/catalog/?a%22b=1"}
+{"name": "p5c-key-latin", "path": "/catalog/?%C3%A9t%C3%A9=1"}
+{"name": "p5c-key-brackets", "path": "/catalog/?a%5B%5D=1"}
+{"name": "p5c-key-braces", "path": "/catalog/?a%7Bb%7D=1"}
+{"name": "p5c-key-pipe", "path": "/catalog/?a%7Cb=1"}
+{"name": "p5c-key-hash", "path": "/catalog/?a%23b=1"}
+{"name": "p5c-value-latin", "path": "/catalog/?search_source=search&search_id=0&search_code=%C3%A9crou"}
+{"name": "p5c-fr-key-space", "path": "/catalogue/?lang=fr&a%20b=1", "language": "fr"}
+{"name": "p5c-page2", "path": "/catalog/?page=2"}
+{"name": "p5c-paged2", "path": "/catalog/?paged=2"}
+{"name": "p5c-s", "path": "/catalog/?s=pin"}
+{"name": "p5c-p", "path": "/catalog/?p=1"}
+{"name": "p5c-fbclid", "path": "/catalog/?fbclid=AbC123"}
+{"name": "p5c-gclid", "path": "/catalog/?gclid=AbC123&utm_source=x"}
+{"name": "p5c-head", "method": "HEAD", "path": "/catalog/"}
+{"name": "p5c-post", "method": "POST", "path": "/catalog/", "body": "a=1"}
+{"name": "p5p-put", "method": "PUT", "path": "/catalog.php?scscpq_wp=1", "body": "a=1"}
+{"name": "p5p-options", "method": "OPTIONS", "path": "/catalog.php?scscpq_wp=1"}
+{"name": "p5p-delete", "method": "DELETE", "path": "/catalog.php?scscpq_wp=1"}
+{"name": "p5p-patch", "method": "PATCH", "path": "/catalog.php?scscpq_wp=1", "body": "a=1"}
+{"name": "p5p-head", "method": "HEAD", "path": "/catalog.php?scscpq_wp=1"}
+{"name": "p5p-post-form", "method": "POST", "path": "/catalog.php?scscpq_wp=1", "body": "action=subcategory&subcategory_id=4"}
+{"name": "p5p-pathinfo", "path": "/catalog.php/x?scscpq_wp=1"}
+{"name": "p5p-key-space", "path": "/catalog.php?scscpq_wp=1&a%20b=1"}
+{"name": "p5w-put", "method": "PUT", "path": "/scscpq_wp.php", "body": "action=initial&page=catalog"}
+{"name": "p5w-options", "method": "OPTIONS", "path": "/scscpq_wp.php"}
+{"name": "p5s-post", "method": "POST", "path": "/search/", "body": "a=1"}
+{"name": "p5s-put", "method": "PUT", "path": "/search/", "body": "a=1"}
+{"name": "p5s-options", "method": "OPTIONS", "path": "/search/"}
+{"name": "p5s-head", "method": "HEAD", "path": "/search/"}
+{"name": "p5s-xhr", "path": "/search/?q=pin", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "p5s-q-fr", "path": "/search/?q=pin&lang=fr", "language": "fr"}
+{"name": "p5s-recherche", "path": "/recherche/?lang=fr", "language": "fr"}
+{"name": "p5s-recherche-q", "path": "/recherche/?lang=fr&q=pin", "language": "fr"}
+{"name": "p5s-recherche-nolang", "path": "/recherche/"}
+{"name": "p5s-index", "path": "/search/index.php"}
+{"name": "p5s-amp", "path": "/search/?amp"}
+{"name": "p5s-q-empty", "path": "/search/?q="}
+{"name": "p5s-key-space", "path": "/search/?a%20b=1"}
+{"name": "p5sp-post", "method": "POST", "path": "/search/products", "body": "a=1"}
+{"name": "p5sp-put", "method": "PUT", "path": "/search/products", "body": "a=1"}
+{"name": "p5sp-head", "method": "HEAD", "path": "/search/products"}
+{"name": "p5sp-options", "method": "OPTIONS", "path": "/search/products"}
+{"name": "p5sp-xhr", "path": "/search/products?q=pin", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "p5sp-fr", "path": "/search/products/?lang=fr", "language": "fr"}
+{"name": "p5sp-page-q", "path": "/search/products?page=2"}
+{"name": "p5sv-search-s-pin", "path": "/search/?s=pin"}
+{"name": "p5sv-search-s-search", "path": "/search/?s=search"}
+{"name": "p5sv-search-s-Search", "path": "/search/?s=Search"}
+{"name": "p5sv-search-s-", "path": "/search/?s="}
+{"name": "p5sv-search-s-2020", "path": "/search/?s=%20%20"}
+{"name": "p5sv-search-s-alignment+pin", "path": "/search/?s=alignment+pin"}
+{"name": "p5sv-search-s-alignment20pin", "path": "/search/?s=alignment%20pin"}
+{"name": "p5sv-search-s-a2Bb", "path": "/search/?s=a%2Bb"}
+{"name": "p5sv-search-s-pin27s", "path": "/search/?s=pin%27s"}
+{"name": "p5sv-search-s-catalog", "path": "/search/?s=catalog"}
+{"name": "p5sv-search-s-scscpq", "path": "/search/?s=scscpq"}
+{"name": "p5sv-search-page-1", "path": "/search/?page=1"}
+{"name": "p5sv-search-page-2", "path": "/search/?page=2"}
+{"name": "p5sv-search-page-0", "path": "/search/?page=0"}
+{"name": "p5sv-search-page-abc", "path": "/search/?page=abc"}
+{"name": "p5sv-search-paged-1", "path": "/search/?paged=1"}
+{"name": "p5sv-search-paged-2", "path": "/search/?paged=2"}
+{"name": "p5sv-search-paged-0", "path": "/search/?paged=0"}
+{"name": "p5sv-search-paged-abc", "path": "/search/?paged=abc"}
+{"name": "p5sv-search-p-1", "path": "/search/?p=1"}
+{"name": "p5sv-search-p-999999", "path": "/search/?p=999999"}
+{"name": "p5sv-search-page_id-897", "path": "/search/?page_id=897"}
+{"name": "p5sv-search-page_id-2", "path": "/search/?page_id=2"}
+{"name": "p5sv-search-page_id-999999", "path": "/search/?page_id=999999"}
+{"name": "p5sv-search-name-search", "path": "/search/?name=search"}
+{"name": "p5sv-search-name-other", "path": "/search/?name=other"}
+{"name": "p5sv-search-pagename-search", "path": "/search/?pagename=search"}
+{"name": "p5sv-search-pagename-other", "path": "/search/?pagename=other"}
+{"name": "p5sv-search-pagename-", "path": "/search/?pagename="}
+{"name": "p5sv-search-post_type-page", "path": "/search/?post_type=page"}
+{"name": "p5sv-search-post_type-post", "path": "/search/?post_type=post"}
+{"name": "p5sv-search-post_type-faq", "path": "/search/?post_type=faq"}
+{"name": "p5sv-search-post_type-any", "path": "/search/?post_type=any"}
+{"name": "p5sv-search-cat-1", "path": "/search/?cat=1"}
+{"name": "p5sv-search-cat-0", "path": "/search/?cat=0"}
+{"name": "p5sv-search-feed-rss2", "path": "/search/?feed=rss2"}
+{"name": "p5sv-search-feed-atom", "path": "/search/?feed=atom"}
+{"name": "p5sv-search-feed-rss", "path": "/search/?feed=rss"}
+{"name": "p5sv-search-feed-", "path": "/search/?feed="}
+{"name": "p5sv-search-feed-junk", "path": "/search/?feed=junk"}
+{"name": "p5sv-search-search-pin", "path": "/search/?search=pin"}
+{"name": "p5sv-search-m-2020", "path": "/search/?m=2020"}
+{"name": "p5sv-search-author-1", "path": "/search/?author=1"}
+{"name": "p5sv-search-tag-x", "path": "/search/?tag=x"}
+{"name": "p5sv-search-year-2020", "path": "/search/?year=2020"}
+{"name": "p5sv-search-preview-true", "path": "/search/?preview=true"}
+{"name": "p5sv-search-attachment_id-1", "path": "/search/?attachment_id=1"}
+{"name": "p5sv-search-cpage-2", "path": "/search/?cpage=2"}
+{"name": "p5sv-search-orderby-title", "path": "/search/?orderby=title"}
+{"name": "p5sv-search-order-asc", "path": "/search/?order=asc"}
+{"name": "p5sv-search-exact-1", "path": "/search/?exact=1"}
+{"name": "p5sv-search-sentence-1", "path": "/search/?sentence=1"}
+{"name": "p5sv-search-withcomments-1", "path": "/search/?withcomments=1"}
+{"name": "p5sv-search-embed-1", "path": "/search/?embed=1"}
+{"name": "p5sv-search-tb-1", "path": "/search/?tb=1"}
+{"name": "p5sv-search-error-404", "path": "/search/?error=404"}
+{"name": "p5sv-search-robots-1", "path": "/search/?robots=1"}
+{"name": "p5sv-search-favicon-1", "path": "/search/?favicon=1"}
+{"name": "p5sv-search-sitemap-x", "path": "/search/?sitemap=x"}
+{"name": "p5sv-search-lang-fr-s-pin", "path": "/search/?lang=fr&s=pin"}
+{"name": "p5sv-search-lang-en-s-pin", "path": "/search/?lang=en&s=pin"}
+{"name": "p5sv-search-s-pin-lang-en", "path": "/search/?s=pin&lang=en"}
+{"name": "p5sv-search-lang-fr-page-2", "path": "/search/?lang=fr&page=2"}
+{"name": "p5sv-search-lang-fr-paged-2", "path": "/search/?lang=fr&paged=2"}
+{"name": "p5sv-search-lang-fr-p-1", "path": "/search/?lang=fr&p=1"}
+{"name": "p5sv-search-q-pin-page-2", "path": "/search/?q=pin&page=2"}
+{"name": "p5sv-search-q-pin-paged-2", "path": "/search/?q=pin&paged=2"}
+{"name": "p5sv-search-s-pin-page-2", "path": "/search/?s=pin&page=2"}
+{"name": "p5sv-search-page-2-paged-3", "path": "/search/?page=2&paged=3"}
+{"name": "p5sv-search-s-search-paged-2", "path": "/search/?s=search&paged=2"}
+{"name": "p5sv-search-s-pin-post_type-page", "path": "/search/?s=pin&post_type=page"}
+{"name": "p5sv-search-s-search-page-2", "path": "/search/?s=search&page=2"}
+{"name": "p5sv-search-category_name-x", "path": "/search/?category_name=x"}
+{"name": "p5sv-search-taxonomy-x-term-y", "path": "/search/?taxonomy=x&term=y"}
+{"name": "p5sv-search-faq_type-x", "path": "/search/?faq_type=x"}
+{"name": "p5sv-search-post_format-x", "path": "/search/?post_format=x"}
+{"name": "p5sv-search-attachment-x", "path": "/search/?attachment=x"}
+{"name": "p5sv-search-subpost-x", "path": "/search/?subpost=x"}
+{"name": "p5sv-search-posts-5", "path": "/search/?posts=5"}
+{"name": "p5sv-search-w-1", "path": "/search/?w=1"}
+{"name": "p5sv-search-monthnum-1", "path": "/search/?monthnum=1"}
+{"name": "p5sv-search-day-1", "path": "/search/?day=1"}
+{"name": "p5sv-search-hour-1", "path": "/search/?hour=1"}
+{"name": "p5sv-search-minute-1", "path": "/search/?minute=1"}
+{"name": "p5sv-search-second-1", "path": "/search/?second=1"}
+{"name": "p5sv-search-calendar-1", "path": "/search/?calendar=1"}
+{"name": "p5sv-search-more-1", "path": "/search/?more=1"}
+{"name": "p5sv-search-pb-1", "path": "/search/?pb=1"}
+{"name": "p5sv-search-author_name-x", "path": "/search/?author_name=x"}
+{"name": "p5sv-search-withoutcomments-1", "path": "/search/?withoutcomments=1"}
+{"name": "p5sv-search-replytocom-1", "path": "/search/?replytocom=1"}
+{"name": "p5sv-search-case_study-x", "path": "/search/?case_study=x"}
+{"name": "p5sv-search-faq-x", "path": "/search/?faq=x"}
+{"name": "p5sv-search-testimonials-x", "path": "/search/?testimonials=x"}
+{"name": "p5sv-search-job_listing-x", "path": "/search/?job_listing=x"}
+{"name": "p5sv-search-subpost_id-1", "path": "/search/?subpost_id=1"}
+{"name": "p5sv-search-rest_route-2F", "path": "/search/?rest_route=%2F"}
+{"name": "p5sv-recherche-lang-fr-s-pin", "path": "/recherche/?lang=fr&s=pin", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-page-2", "path": "/recherche/?lang=fr&page=2", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-paged-2", "path": "/recherche/?lang=fr&paged=2", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-p-1", "path": "/recherche/?lang=fr&p=1", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-s-", "path": "/recherche/?lang=fr&s=", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-feed-rss2", "path": "/recherche/?lang=fr&feed=rss2", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-cat-1", "path": "/recherche/?lang=fr&cat=1", "language": "fr"}
+{"name": "p5sv-recherche-lang-fr-s-recherche", "path": "/recherche/?lang=fr&s=recherche", "language": "fr"}
+{"name": "p5sv-recherche-s-pin", "path": "/recherche/?s=pin", "language": "fr"}
+{"name": "p5sv-recherche-page-2", "path": "/recherche/?page=2", "language": "fr"}
+{"name": "p5svb-search-s-pin", "path": "/search?s=pin"}
+{"name": "p5svb-search-page-2", "path": "/search?page=2"}
+{"name": "p5svb-search-paged-2", "path": "/search?paged=2"}
+{"name": "p5svb-search-p-1", "path": "/search?p=1"}
+{"name": "p5svb-search-feed-rss2", "path": "/search?feed=rss2"}
+{"name": "p5svb-search-s-", "path": "/search?s="}
+{"name": "p5svb-search-s-alignment+pin", "path": "/search?s=alignment+pin"}
