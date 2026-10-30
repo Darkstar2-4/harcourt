@@ -23,7 +23,9 @@ use tower::ServiceExt;
 
 const ORIGIN: &str = "https://www.harcourt.co";
 const OFFICE_IP: &str = "203.0.113.40";
-const HOME: &str = "<script language=\"javascript\">\nwindow.open('/','_top')\n</script>";
+fn went_home(status: StatusCode, headers: &HeaderMap) -> bool {
+    status == StatusCode::FOUND && headers.get(header::LOCATION).is_some_and(|l| l == "/scs_index.php")
+}
 
 async fn pool() -> SqlitePool {
     let pool = db::open_memory().await.unwrap();
@@ -99,10 +101,10 @@ async fn only_an_administrator_gets_the_form() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
     let customer = cookie_for(&pool, 2).await;
-    let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &customer)], None).await;
-    assert_eq!(body, HOME);
-    let (_, _, body) = send(&app, Method::POST, "/user_impersonate.php", &[("cookie", &customer)], Some(AS_CUSTOMER)).await;
-    assert_eq!(body, HOME);
+    let (status, headers, _) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &customer)], None).await;
+    assert!(went_home(status, &headers));
+    let (status, headers, _) = send(&app, Method::POST, "/user_impersonate.php", &[("cookie", &customer)], Some(AS_CUSTOMER)).await;
+    assert!(went_home(status, &headers));
     assert_eq!(count(&pool, "SELECT count(*) FROM impersonation").await, 0);
     let admin = cookie_for(&pool, 1).await;
     let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
@@ -139,8 +141,8 @@ async fn impersonating_stores_the_view_and_any_visit_stops_it() {
 
     let (_, _, body) = send(&app, Method::GET, "/newuser.php", &[("cookie", &admin)], None).await;
     assert!(!body.contains("profile_register"), "seen as the signed-in customer");
-    let (_, _, body) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
-    assert_eq!(body, HOME);
+    let (status, headers, _) = send(&app, Method::GET, "/user_impersonate.php", &[("cookie", &admin)], None).await;
+    assert!(went_home(status, &headers));
     assert_eq!(count(&pool, "SELECT count(*) FROM impersonation").await, 0);
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 1, "the Administrator stays signed in");
 }
@@ -171,9 +173,13 @@ async fn a_post_from_another_site_is_refused() {
 async fn a_language_choice_is_kept_and_saved_to_the_account() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
+    let chosen = || async { sqlx::query_scalar::<_, Option<String>>("SELECT language_code FROM visit").fetch_optional(&pool).await.unwrap().flatten() };
     let (status, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=fr", &[("referer", "https://www.harcourt.co/catalog/")], None).await;
-    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/catalog/"));
-    assert!(set_cookie(&headers, "hx_lang").unwrap().starts_with("hx_lang=FR; Path=/;"));
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "https://www.harcourt.co/catalog/"));
+    assert_eq!(chosen().await, None, "codes are upper case");
+    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=FR", &[("referer", "https://www.harcourt.co/catalog/")], None).await;
+    assert_eq!(chosen().await.as_deref(), Some("FR"), "kept for the visit");
+    assert!(set_cookie(&headers, "hx_lang").is_none());
 
     let customer = cookie_for(&pool, 2).await;
     let saved = || async { sqlx::query_scalar::<_, String>(r#"SELECT language_code FROM "user" WHERE id = 2"#).fetch_one(&pool).await.unwrap() };
@@ -183,8 +189,9 @@ async fn a_language_choice_is_kept_and_saved_to_the_account() {
     assert_eq!(saved().await, "FR");
 
     let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=xx", &[("referer", "https://www.harcourt.co/societe/")], None).await;
-    assert_eq!(headers.get(header::LOCATION).unwrap(), "/societe/");
-    assert!(set_cookie(&headers, "hx_lang").is_none(), "a code the site does not offer changes nothing");
+    assert_eq!(headers.get(header::LOCATION).unwrap(), "https://www.harcourt.co/societe/");
+    let (_, headers, _) = send(&app, Method::GET, "/language_change.php?language_code=EN", &[("referer", "https://evil.example/x")], None).await;
+    assert_eq!(headers.get(header::LOCATION).unwrap(), "/", "only back to a page on this site");
 }
 
 #[tokio::test]
@@ -231,10 +238,13 @@ async fn cookie_reset_signs_out_and_forgets_the_choices() {
     let pool = pool().await;
     let app = app(&pool, "198.51.100.1");
     let customer = cookie_for(&pool, 2).await;
-    let (status, headers, body) = send(&app, Method::GET, "/cookie_reset.php", &[("cookie", &format!("{customer}; hx_lang=FR"))], None).await;
+    send(&app, Method::GET, "/language_change.php?language_code=FR", &[("cookie", &customer), ("referer", "https://www.harcourt.co/catalog/")], None).await;
+    assert_eq!(count(&pool, "SELECT count(*) FROM visit").await, 1);
+    let (status, headers, body) = send(&app, Method::GET, "/cookie_reset.php", &[("cookie", &customer)], None).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("<p>Your cookies and cache have been reset</p>"));
     let cleared: Vec<String> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().split('=').next().unwrap().to_string()).collect();
-    assert_eq!(cleared, ["harcourt", "__Host-hx_session", "hx_lang"], "what the browser holds, and always harcourt");
+    assert_eq!(cleared, ["harcourt", "__Host-hx_session"], "the sign-in, and always harcourt");
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
+    assert_eq!(count(&pool, "SELECT count(*) FROM visit").await, 0, "the visit is forgotten");
 }

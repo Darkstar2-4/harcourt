@@ -9,10 +9,6 @@ use crate::{session, token::Token};
 /// The address the browser last signed in or registered with (PHP's `harcourt`). It fills in forms and says
 /// which address an emailed code is for. It grants nothing.
 pub const EMAIL: &str = "harcourt";
-/// The language this browser chose, for this browser session.
-pub const LANGUAGE: &str = "hx_lang";
-/// The campaign this browser arrived from, for this browser session.
-pub const CAMPAIGN: &str = "hx_campaign";
 
 const YEAR_SECS: i64 = 365 * 24 * 3600;
 
@@ -21,9 +17,6 @@ const PHP_URLENCODE: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').rem
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Life {
-    /// Until the browser closes.
-    Browser,
-    Secs(i64),
     Year,
     /// Delete it.
     Gone,
@@ -44,8 +37,6 @@ pub fn get(headers: &HeaderMap, name: &str) -> Option<String> {
 pub fn set(name: &str, value: &str, life: Life) -> Option<HeaderValue> {
     let value = if life == Life::Gone { String::new() } else { utf8_percent_encode(value, PHP_URLENCODE).to_string() };
     let age = match life {
-        Life::Browser => String::new(),
-        Life::Secs(s) => format!("; Max-Age={s}"),
         Life::Year => format!("; Max-Age={YEAR_SECS}"),
         Life::Gone => "; Max-Age=0".into(),
     };
@@ -102,9 +93,7 @@ mod tests {
 
     #[test]
     fn gone_clears_the_value() {
-        let v = set(CAMPAIGN, "SPRING", Life::Gone).unwrap();
-        assert!(v.to_str().unwrap().starts_with("hx_campaign=; Path=/; Max-Age=0"));
-        let v = set(LANGUAGE, "FR", Life::Browser).unwrap();
-        assert_eq!(v.to_str().unwrap(), "hx_lang=FR; Path=/; Secure; HttpOnly; SameSite=Lax");
+        let v = set(EMAIL, "pat@example.com", Life::Gone).unwrap();
+        assert_eq!(v.to_str().unwrap(), "harcourt=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax");
     }
 }

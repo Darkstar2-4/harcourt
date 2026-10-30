@@ -19,10 +19,11 @@
 //!    price_type and price_pct (a fraction), currency_code, language_code, domain. `account.catalog()`, `.cad()`
 //!    and `.ecommerce()` say what the visitor may use now (false unless the account is Active); `account.grants`
 //!    is what is stored. The status may be Pending or Denied.
-//!  * `language`: the language to show when the URL does not say. An explicit choice this browser session, else
-//!    the account's saved language, else Accept-Language, else English.
+//!  * `language`: the language to show when the URL does not say. An explicit choice this visit, else the
+//!    account's saved language, else Accept-Language, else English.
 //!  * `currency`: the currency to price in: the account's, if the site offers it, else US dollars.
-//!  * `campaign`: the active campaign this browser arrived from (`?campaign=CODE`, kept for the browser session).
+//!  * `campaign`: the active campaign this visit began with (`?campaign=CODE` on its first page).
+//!  * `framed`: the visit is inside the WordPress frame (`?scscpq_wp=1` on this or an earlier page of the visit).
 //!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
 //!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
@@ -57,6 +58,7 @@ use crate::{
         locale::{Currencies, CurrencyCode, LanguageCode, Languages},
         log::{self, Kind, Subject},
         profile::Profile,
+        visit::{self, Visit, VisitId},
     },
     api::{self, Auth},
     db::unix_now,
@@ -76,6 +78,11 @@ pub struct Visitor {
     /// The session this browser is signed in with, as stored: what per-browser state (the cart) hangs off. None
     /// for anonymous visitors, bots and sign-in by company address.
     pub session: Option<TokenHash>,
+    /// Inside the WordPress frame: this request or an earlier one of the visit asked for `scscpq_wp`. Home is then
+    /// `/` and the catalog the WordPress catalog page.
+    pub framed: bool,
+    /// The visit (PHP session) this request is part of, for what PHP kept in its session.
+    pub visit: Option<VisitId>,
 }
 
 #[derive(Debug, Clone)]
@@ -117,6 +124,8 @@ impl Visitor {
             impersonator: None,
             client: None,
             session: None,
+            framed: false,
+            visit: None,
         }
     }
 
@@ -190,7 +199,32 @@ impl FromRequestParts<Arc<Auth>> for Visitor {
         if let Some(v) = parts.extensions.get::<Visitor>() {
             return Ok(v.clone());
         }
-        Ok(resolve_or_anonymous(core, parts, unix_now()).await.visitor)
+        let php = Php::of(parts, false);
+        Ok(resolve_or_anonymous(core, parts, &php, unix_now()).await.visitor)
+    }
+}
+
+/// Where a request stands with PHP's session: what scs_header.php did for the page, the PHP session id the browser
+/// sent or the one started for it, and whether this request began the visit.
+struct Php {
+    page: Header,
+    sid: Option<String>,
+    first: bool,
+}
+
+impl Php {
+    /// `start`: give a browser that has no PHP session one, as session_start() did for the PHP pages.
+    fn of(parts: &Parts, start: bool) -> Php {
+        let page = Header::of(parts.uri.path(), parts.uri.query());
+        let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| !s.is_empty());
+        let first = sent.is_none();
+        let sid = sent.or_else(|| (start && page != Header::None).then(new_php_session_id));
+        Php { page, sid, first }
+    }
+
+    /// menu_class::initial() ran in full: the first request of a visit, on a page that started visits.
+    fn initial(&self) -> bool {
+        self.first && self.page.begins_visits()
     }
 }
 
@@ -201,6 +235,7 @@ enum Effect {
     Bot(Bot),
     Campaign(Option<Campaign>),
     Referer(String),
+    Framed,
 }
 
 pub struct Resolved {
@@ -211,8 +246,8 @@ pub struct Resolved {
 /// A browser at the same company address counts as one visit for this long (PHP's default session lifetime).
 const VISIT_SECS: i64 = 1440;
 
-async fn resolve_or_anonymous(core: &Auth, parts: &Parts, now: i64) -> Resolved {
-    match resolve(core, parts, now).await {
+async fn resolve_or_anonymous(core: &Auth, parts: &Parts, php: &Php, now: i64) -> Resolved {
+    match resolve(core, parts, php, now).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("visitor: database error, treating the request as anonymous: {e}");
@@ -221,8 +256,13 @@ async fn resolve_or_anonymous(core: &Auth, parts: &Parts, now: i64) -> Resolved 
     }
 }
 
-pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resolved> {
+async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Result<Resolved> {
     let pool = &core.pool;
+    let visit_id = php.sid.as_deref().map(VisitId::of);
+    let stored = match (&visit_id, php.first) {
+        (Some(id), false) => visit::load(pool, id, now).await?,
+        _ => Visit::default(),
+    };
     let client = api::client_addr(parts, &core.trusted_proxies);
     let mut effects = Vec::new();
     let mut impersonator = None;
@@ -277,7 +317,7 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
     let languages = Languages::load(pool).await?;
     let language = overlay_language
         .and_then(|code| languages.get(&code))
-        .or_else(|| cookies::get(&parts.headers, cookies::LANGUAGE).and_then(|c| languages.get(&c)))
+        .or_else(|| stored.language_code.as_deref().and_then(|c| languages.get(c)))
         .or_else(|| match &identity {
             Identity::Account(s) => languages.get(&s.account.language_code),
             _ => None,
@@ -294,7 +334,8 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
         .unwrap_or_else(CurrencyCode::usd);
 
     let today = clock::detroit(now).date;
-    let campaign = match (overlay_campaign, campaign_in_query(parts.uri.query())) {
+    let asked = campaign_in_query(parts.uri.query()).filter(|_| php.initial());
+    let campaign = match (overlay_campaign, asked) {
         (Some(code), _) => match code {
             Some(code) => campaign::active(pool, &code, today).await?,
             None => None,
@@ -304,7 +345,7 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
             effects.push(Effect::Campaign(found.clone()));
             found
         }
-        (None, None) => match cookies::get(&parts.headers, cookies::CAMPAIGN) {
+        (None, None) => match stored.campaign_code {
             Some(code) => campaign::active(pool, &code, today).await?,
             None => None,
         },
@@ -313,11 +354,21 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
     if let Some(host) = external_referer(header_str(&parts.headers, header::REFERER)) {
         effects.push(Effect::Referer(host));
     }
-    if impersonator.is_some() {
+    if !php.initial() || impersonator.is_some() {
         effects.clear();
     }
+    let asks_frame = php.page != Header::None && (php.page != Header::Initial || php.first) && framed_in_query(parts.uri.query());
+    if asks_frame && !stored.framed {
+        effects.push(Effect::Framed);
+    }
+    let framed = asks_frame || stored.framed;
 
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session }, effects })
+    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id }, effects })
+}
+
+/// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.
+fn framed_in_query(query: Option<&str>) -> bool {
+    query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"))
 }
 
 /// What PHP labelled every answer it gave, redirects included.
@@ -357,23 +408,22 @@ async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> s
 
 /// scs_header.php's landing redirect (menu_class::page(TRUE)) for a visit that begins on the SCS page at `path`:
 /// where to send the visitor, unless that is the page asked for. Campaign visitors and bots were never redirected.
-async fn landing(pool: &SqlitePool, visitor: &Visitor, path: &str, query: Option<&str>) -> sqlx::Result<Option<&'static str>> {
+async fn landing(pool: &SqlitePool, visitor: &Visitor, path: &str) -> sqlx::Result<Option<&'static str>> {
     if visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
         return Ok(None);
     }
-    let framed = query.unwrap_or("").split('&').any(|kv| kv.split_once('=').is_some_and(|(k, v)| k == "scscpq_wp" && !v.is_empty() && v != "0"));
-    let target = landing_target(pool, visitor, framed).await?;
+    let target = landing_target(pool, visitor, visitor.framed).await?;
     Ok((!target.to_ascii_lowercase().starts_with(&path.to_ascii_lowercase())).then_some(target))
 }
 
 /// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
 const PHP_SESSION: &str = "PHPSESSID";
 
-/// A new PHP session cookie, as session_start() set it for a browser that had none.
-fn php_session_cookie() -> Option<HeaderValue> {
+/// A new PHP session id: 32 hex digits, as PHP made them.
+fn new_php_session_id() -> String {
     let mut id = [0u8; 16];
     OsRng.fill_bytes(&mut id);
-    HeaderValue::from_str(&format!("{PHP_SESSION}={}; path=/; secure; HttpOnly; SameSite=Lax", hex::encode(id))).ok()
+    hex::encode(id)
 }
 
 /// What scs_header.php did for a request to a PHP page.
@@ -429,27 +479,24 @@ fn php_pending(visitor: &Visitor) -> bool {
 /// replaces the page, and the cookies it set. A browser without a PHP session began a visit: PHP started a
 /// session, wrote the remembered address again and loaded the profile (not for a bot), then sent the visitor to
 /// their landing page. Inside a visit only a Pending session user was reloaded, profile included.
-async fn scs_header(core: &Auth, parts: &Parts, visitor: &Visitor, now: i64) -> sqlx::Result<(Option<&'static str>, Vec<HeaderValue>)> {
-    let (path, query) = (parts.uri.path(), parts.uri.query());
-    let page = Header::of(path, query);
-    if page == Header::None {
+async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, now: i64) -> sqlx::Result<(Option<&'static str>, Vec<HeaderValue>)> {
+    if php.page == Header::None {
         return Ok((None, Vec::new()));
     }
-    let first = cookies::get(&parts.headers, PHP_SESSION).is_none();
     let mut out = Vec::new();
-    if first {
-        out.extend(php_session_cookie());
+    if let (true, Some(sid)) = (php.first, &php.sid) {
+        out.extend(HeaderValue::from_str(&format!("{PHP_SESSION}={sid}; path=/; secure; HttpOnly; SameSite=Lax")).ok());
     }
-    let loads_profile = if first { page.begins_visits() && visitor.bot().is_none() } else { page.reloads_pending() && php_pending(visitor) };
-    if first && page.begins_visits() {
+    if php.initial() {
         if let Some(email) = cookies::get(&parts.headers, cookies::EMAIL).filter(|e| !e.is_empty() && e != "0") {
             out.extend(cookies::php_year(cookies::EMAIL, &email, now));
         }
     }
+    let loads_profile = if php.first { php.initial() && visitor.bot().is_none() } else { php.page.reloads_pending() && php_pending(visitor) };
     if loads_profile {
         out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.cookie(now));
     }
-    let landing = if first && page == Header::Page { landing(&core.pool, visitor, path, query).await? } else { None };
+    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, parts.uri.path()).await? } else { None };
     Ok((landing, out))
 }
 
@@ -560,13 +607,13 @@ async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &U
 pub async fn layer(State(core): State<Arc<Auth>>, req: Request, next: Next) -> Response {
     let now = unix_now();
     let (mut parts, body) = req.into_parts();
-    let Resolved { visitor, effects } = resolve_or_anonymous(&core, &parts, now).await;
-    let mut set_cookies = Vec::new();
+    let php = Php::of(&parts, true);
+    let Resolved { visitor, effects } = resolve_or_anonymous(&core, &parts, &php, now).await;
     for effect in &effects {
-        apply(&core.pool, &visitor, effect, now, &mut set_cookies).await;
+        apply(&core.pool, &visitor, effect, now).await;
     }
-    let denied_bot = visitor.bot().is_some_and(|b| b.status == BotStatus::Denied);
-    let (landing, early) = scs_header(&core, &parts, &visitor, now).await.unwrap_or_else(|e| {
+    let denied_bot = php.initial() && visitor.bot().is_some_and(|b| b.status == BotStatus::Denied);
+    let (landing, early) = scs_header(&core, &parts, &php, &visitor, now).await.unwrap_or_else(|e| {
         tracing::error!("visitor: scs_header: {e}");
         (None, Vec::new())
     });
@@ -580,7 +627,7 @@ pub async fn layer(State(core): State<Arc<Auth>>, req: Request, next: Next) -> R
     let headers = response.headers_mut();
     let page_cookies: Vec<_> = headers.get_all(header::SET_COOKIE).iter().cloned().collect();
     headers.remove(header::SET_COOKIE);
-    for c in early.into_iter().chain(page_cookies).chain(set_cookies) {
+    for c in early.into_iter().chain(page_cookies) {
         headers.append(header::SET_COOKIE, c);
     }
     response
@@ -591,7 +638,7 @@ fn found(to: &str) -> Response {
     (StatusCode::FOUND, [(header::LOCATION, to), (header::CONTENT_TYPE, PHP_CONTENT_TYPE)]).into_response()
 }
 
-async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64, set_cookies: &mut Vec<HeaderValue>) {
+async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64) {
     let ip = visitor.client.map(|ip| ip.to_string()).unwrap_or_default();
     let who = Subject {
         ip: &ip,
@@ -610,16 +657,23 @@ async fn apply(pool: &SqlitePool, visitor: &Visitor, effect: &Effect, now: i64, 
             log::record(pool, kind, &who, "").await;
         }
         Effect::Campaign(found) => {
-            let cookie = match found {
-                Some(c) => cookies::set(cookies::CAMPAIGN, &c.code, cookies::Life::Browser),
-                None => cookies::set(cookies::CAMPAIGN, "", cookies::Life::Gone),
-            };
-            set_cookies.extend(cookie);
+            if let Some(id) = &visitor.visit {
+                if let Err(e) = visit::set_campaign(pool, id, found.as_ref().map(|c| c.code.as_str()), now).await {
+                    tracing::warn!("visit campaign: {e}");
+                }
+            }
             if let Some(c) = found {
                 log::record(pool, Kind::InitialCampaign, &who, &c.code).await;
             }
         }
         Effect::Referer(host) => log::record(pool, Kind::InitialReferer, &who, host).await,
+        Effect::Framed => {
+            if let Some(id) = &visitor.visit {
+                if let Err(e) = visit::frame(pool, id, now).await {
+                    tracing::warn!("visit frame: {e}");
+                }
+            }
+        }
     }
 }
 

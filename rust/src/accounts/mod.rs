@@ -17,6 +17,7 @@ pub mod profile;
 pub mod recaptcha;
 pub mod registry;
 pub mod signup;
+pub mod visit;
 
 use std::time::Duration;
 

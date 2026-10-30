@@ -24,15 +24,14 @@ use crate::{
     identity::{Role, Status, UserId},
     session,
     token::Token,
-    visitor::{Via, Visitor},
+    orders::html::{self as page, Chrome, Head},
+    visitor::{self, Via, Visitor},
 };
 
 const ROLES: [Role; 6] = [Role::Customer, Role::External, Role::Internal, Role::Executive, Role::Administrator, Role::SuperUser];
 const STATUSES: [&str; 3] = ["Pending", "Active", "Denied"];
 const PRICE_TYPES: [(PriceType, &str); 4] = [(PriceType::None, "No pricing"), (PriceType::Base, "Base price"), (PriceType::Discount, "Discount"), (PriceType::Plus, "Base plus")];
 
-/// The home page, opened over the frame the page sits in (fn_url_redirect with the menu's `_top` home).
-const HOME: &str = "<script language=\"javascript\">\nwindow.open('/','_top')\n</script>";
 const STARTED: &str = "<script>window.open('/','_top');\n</script>";
 
 /// What the form asked to see, once checked.
@@ -142,6 +141,12 @@ pub fn check(actor: &Account, target: Option<&Account>, posted: &[(String, Strin
     })
 }
 
+/// fn_url_redirect($menu->page->home): a plain redirect, since the PHP read a `target` the menu page never had.
+fn home(visitor: &Visitor) -> Response {
+    let to = if visitor.framed { "/" } else { "/scs_index.php" };
+    (StatusCode::FOUND, [(header::LOCATION, to), (header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE)]).into_response()
+}
+
 fn page_response(body: String, set: Vec<HeaderValue>) -> Response {
     let mut r = ([(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], body).into_response();
     for c in set {
@@ -183,21 +188,21 @@ async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, posted: Opt
     let pool = &core.pool;
     if visitor.impersonator.is_some() {
         return match stop(pool, headers).await {
-            Ok(_) => page_response(HOME.into(), Vec::new()),
+            Ok(_) => home(&visitor),
             Err(e) => internal(e),
         };
     }
-    let Some(actor) = administrator(&visitor) else { return page_response(HOME.into(), Vec::new()) };
+    let Some(actor) = administrator(&visitor) else { return home(&visitor) };
     let posted = posted.filter(|p| !field(p, "action").is_empty());
     let Some(posted) = posted else {
-        return match form(pool, actor, headers, &[]).await {
+        return match form(pool, actor, visitor.framed, headers, &[]).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         };
     };
     match start(core, &visitor, actor, headers, &posted).await {
         Ok(Ok(set)) => page_response(STARTED.into(), set),
-        Ok(Err(errors)) => match form(pool, actor, headers, &errors).await {
+        Ok(Err(errors)) => match form(pool, actor, visitor.framed, headers, &errors).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         },
@@ -300,8 +305,8 @@ async fn options(pool: &SqlitePool, sql: OptionsOf) -> sqlx::Result<Vec<(String,
             .into_iter()
             .map(|r| {
                 let mut label = vec![r.name.unwrap_or_default()];
-                label.extend(r.from_date.filter(|d| !d.is_empty()).map(|d| format!("From: {d}")));
-                label.extend(r.thru_date.filter(|d| !d.is_empty()).map(|d| format!("Thru: {d}")));
+                label.extend(r.from_date.filter(|d| !d.is_empty() && d != "0000-00-00").map(|d| format!("From: {d}")));
+                label.extend(r.thru_date.filter(|d| !d.is_empty() && d != "0000-00-00").map(|d| format!("Thru: {d}")));
                 (r.code, label.join(" "))
             })
             .collect(),
@@ -315,7 +320,7 @@ enum OptionsOf {
 }
 
 /// The form of user_impersonate.php, filled in with the Administrator's own settings as the PHP did.
-async fn form(pool: &SqlitePool, me: &Account, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
+async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
     let roles: Vec<(String, String)> = ROLES.iter().map(|r| (r.as_str().to_string(), r.as_str().to_string())).collect();
     let statuses: Vec<(String, String)> = STATUSES.iter().map(|s| (s.to_string(), s.to_string())).collect();
     let prices: Vec<(String, String)> = PRICE_TYPES.iter().map(|(p, l)| (p.as_str().to_string(), l.to_string())).collect();
@@ -357,12 +362,16 @@ async fn form(pool: &SqlitePool, me: &Account, headers: &HeaderMap, errors: &[(&
         format!("<p>{}</p>", html::submit("Go!", Opts::new())),
     ];
     let message = if errors.is_empty() { String::new() } else { format!("<p class=message>Correct {} Error(s)</p>\n", errors.len()) };
+    let chrome = Chrome::load(pool).await?;
+    let head = Head { title: "User Impersonate", description: None, js: &[], framed, dashboard: true, catalog_url: "/catalog.php" };
     Ok(format!(
-        "<!DOCTYPE html>\n<html><head><meta charset=utf-8><title>User Impersonate</title><link rel=stylesheet href='/scs_scripts/scs.css'></head><body>\n{message}{}{}{}{}</body></html>",
+        "{}<p class='message left'>User Impersonate</p>{message}{}{}{}{}{}",
+        page::open(&chrome, &head),
         html::form_open("/user_impersonate.php", Opts::new()),
         html::hidden("action", "update", ""),
         rows.concat(),
-        html::FORM_CLOSE
+        html::FORM_CLOSE,
+        page::close()
     ))
 }
 
