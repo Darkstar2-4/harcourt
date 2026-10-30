@@ -23,3 +23,9 @@
 {"name":"inventory-switch-subcategory","method":"POST","path":"/inventory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=subcategory&record_id=8100&subcategory_id=37&sku=HBLT-3-0.50&sort_order=1&leadtime_option=Weeks&leadtime_text=&active=1&competitor_sku=AB&cHJpY2UJMA%3D%3D=30.57&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"inventory-update-errors","method":"POST","path":"/inventory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=update&record_id=8100&subcategory_id=388&sku=HBLT-3-0.50&sort_order=1&new_date=01%2F01%2F2099&leadtime_option=Subcategory&active=1&cHJpY2UJMA%3D%3D=30.57&cHJpY2UJMQ%3D%3D=31.00&cXR5X2JyZWFrCTE%3D=0&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
 {"name":"inventory-cancel","method":"POST","path":"/inventory.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&report_subcategory_id=37&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"missing-prj-anonymous","path":"/inventory_missing_prj.php","persona":"anonymous"}
+{"name":"missing-prj","path":"/inventory_missing_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"prj-import-anonymous","path":"/inventory_prj.php","persona":"anonymous"}
+{"name":"prj-import","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm"}
+{"name":"prj-import-no-file","method":"POST","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=upload&filename=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}
+{"name":"prj-import-cancel","method":"POST","path":"/inventory_prj.php?scscpq_wp=1","persona":"administrator-active","session":"warm","body":"action=cancel&filename=&csrf=qqF5aD3dPIF13aIX1nGSu_5sYk5jmbqXudz77XanUvg"}

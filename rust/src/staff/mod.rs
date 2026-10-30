@@ -33,6 +33,7 @@ pub mod inventory;
 pub mod jobs;
 pub mod log;
 pub mod mailer;
+pub mod prj;
 pub mod user;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
@@ -87,5 +88,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(grants::routes())
         .merge(inventory::routes())
         .merge(log::routes())
+        .merge(prj::routes())
         .merge(user::routes())
 }

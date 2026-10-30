@@ -315,3 +315,52 @@ async fn deleting_a_part_takes_its_content_with_it() {
     let left: i64 = sqlx::query_scalar("SELECT count(*) FROM content WHERE record_id = 700").fetch_one(&h.pool).await.unwrap();
     assert_eq!(left, 0);
 }
+
+fn multipart(path: &str, cookie: &str, fields: &[(&str, &str)], file: (&str, &str, &str)) -> Request<Body> {
+    let mut body = String::new();
+    for (k, v) in fields {
+        body.push_str(&format!("--XB\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n"));
+    }
+    body.push_str(&format!("--XB\r\nContent-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\nContent-Type: text/plain\r\n\r\n{}\r\n--XB--\r\n", file.0, file.1, file.2));
+    Request::builder()
+        .method(Method::POST)
+        .uri(path)
+        .header(header::COOKIE, cookie)
+        .header(header::CONTENT_TYPE, "multipart/form-data; boundary=XB")
+        .body(Body::from(body))
+        .unwrap()
+}
+
+#[tokio::test]
+async fn parts_without_a_prj_link_are_listed_by_subcategory() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO inventory (id, sku, subcategory_id, prj) VALUES (702, 'ZZ-1', 99, ''), (703, 'TP-300', 50, 'prjCatalog=x')").await;
+    exec(&h.pool, "UPDATE inventory SET prj = '' WHERE id IN (700, 701)").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (status, _, page) = send(&h.app, get("/inventory_missing_prj.php", Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<div class='accordion'>\n"));
+    assert!(page.contains("<h3>Alignment: Test Pins (2)</h3>\n<div>\nTP-100<br>\nTP-200</div>\n"));
+    assert!(page.contains("<h3>:  (1)</h3>\n<div>\nZZ-1</div>\n"), "{page}");
+    assert!(!page.contains("TP-300"));
+}
+
+#[tokio::test]
+async fn a_prj_import_is_reviewed_then_applied() {
+    let h = harness().await;
+    inventory_seed(&h.pool).await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/inventory_prj.php", Some(&admin))).await;
+    let token = csrf_of(&page);
+    let export = "Name;a;b;Part;URL\n;;;TP-100_1;https://example.com/p?prjCatalog=h&prjNode=n&prjName=TP&values=v\n;;;NO-SUCH;https://example.com/p?prjCatalog=h&prjNode=n&prjName=NS&values=v\n";
+    let (_, _, page) = send(&h.app, multipart("/inventory_prj.php", &admin, &[("csrf", &token), ("action", "upload")], ("prj", "export.csv", export))).await;
+    assert!(page.contains("<br>Review Selection"));
+    assert!(page.contains("<td>Unique records:</td>\n<td>2</td>"));
+    let start = page.find("name='prj_rows' id='prj_rows' value='").unwrap() + "name='prj_rows' id='prj_rows' value='".len();
+    let rows = page[start..].split('\'').next().unwrap().replace("&quot;", "\"").replace("&amp;", "&");
+    let (_, _, page) = send(&h.app, post("/inventory_prj.php", &admin, &[("csrf", &token), ("action", "update"), ("filename", "export.csv"), ("prj_rows", &rows)])).await;
+    assert!(page.contains("<h3>Changed (1)</h3>\n<div>TP-100</div>\n<h3>Missing/Invalid SKU (1)</h3>\n<div>NO-SUCH</div>\n"), "{page}");
+    let prj: String = sqlx::query_scalar("SELECT prj FROM inventory WHERE id = 700").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(prj, "prjCatalog=h&prjNode=n&prjName=TP&values=v");
+}

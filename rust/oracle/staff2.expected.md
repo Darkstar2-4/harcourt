@@ -49,3 +49,11 @@ Run `staff2.jsonl` with `--rust-session`. Staff pages read the persona's session
 - **New date.** A date that is not a calendar date is marked in error instead of stored as typed.
 - **Upload type.** The MIME type and file type of a download come from its suffix with the PHP's tables; image sizes
   are not recorded.
+
+### inventory_prj.php and inventory_missing_prj.php
+
+- **No shared temp file.** The PHP import parked the parsed upload in `scs.tmp` in the document root, one file for
+  all users and readable from the web, between the review and the update. The review form now carries the parsed
+  links in a hidden `prj_rows` field (JSON), and the update reads them from there.
+- **"Not Changed" lists each SKU.** The PHP printed the last SKU of the file once per unchanged part.
+- The PHP's `Import: Inventory PRJ` log call wrote nothing (no such log type), so there is none.
