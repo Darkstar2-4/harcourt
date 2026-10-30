@@ -2,7 +2,7 @@
 //! (`pages`), and outgoing mail (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the session
 //! extractors reach the shared `Auth` through it.
 
-use std::{collections::HashMap, convert::Infallible, marker::PhantomData, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
 
 use percent_encoding::percent_decode_str;
 
@@ -15,8 +15,8 @@ use axum::{
 };
 
 use crate::{
-    api::{ApiError, Auth, ClientIp, MinRole},
-    identity::{Role, User},
+    api::{ApiError, Auth, Authed, ClientIp, MinRole},
+    identity::Role,
     visitor::Visitor,
 };
 
@@ -88,6 +88,14 @@ impl FromRequestParts<Arc<Orders>> for Visitor {
     }
 }
 
+impl<R: MinRole> FromRequestParts<Arc<Orders>> for Authed<R> {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, ApiError> {
+        Authed::<R>::from_request_parts(parts, &state.core).await
+    }
+}
+
 /// PHP's `$_REQUEST` for a urlencoded request: query fields, then body fields over them; the last repeat wins.
 pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> {
     let decode = |s: &str| percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
@@ -109,22 +117,20 @@ impl MinRole for SuperUser {
     const ROLE: Role = Role::SuperUser;
 }
 
-/// The gate of a staff page, PHP's `$database->user->access()`: the visitor's account, signed in by session or by
-/// company address, at role R or above. Refused, it redirects home (`/` inside the WordPress frame, `/scs_index.php`
-/// outside it). Unlike the PHP, which read the role alone, the account must also be Active.
-pub struct Staff<R: MinRole> {
-    pub user: User,
-    role: PhantomData<R>,
-}
+/// The gate of a staff page: `Authed<R>`, answered on refusal the way PHP's `$database->user->access()` does, with
+/// a redirect to the home page (`/` inside the WordPress frame, `/scs_index.php` outside it).
+pub struct Staff<R: MinRole>(pub Authed<R>);
 
 impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
-        let visitor = Visitor::from_request_parts(parts, state).await.unwrap_or_else(|e| match e {});
-        match visitor.user().filter(|u| u.is_active() && u.role >= R::ROLE) {
-            Some(user) => Ok(Staff { user: user.clone(), role: PhantomData }),
-            None => Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" })),
+        match Authed::<R>::from_request_parts(parts, &state.core).await {
+            Ok(a) => Ok(Staff(a)),
+            Err(ApiError::Unauthenticated | ApiError::Forbidden) => {
+                Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" }))
+            }
+            Err(e) => Err(e.into_response()),
         }
     }
 }

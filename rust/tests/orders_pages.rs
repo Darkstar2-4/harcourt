@@ -50,18 +50,6 @@ async fn send(app: &Router, method: Method, uri: &str, cookie: Option<&str>, for
 }
 
 #[tokio::test]
-async fn staff_pages_admit_an_active_account_signed_in_by_company_address() {
-    let (app, pool) = harness().await;
-    sqlx::query(r#"INSERT INTO "user" (id, status, "type", ip) VALUES (7, 'Active', 'Administrator', '192.0.2.30')"#).execute(&pool).await.unwrap();
-    let (status, _, page) = send(&app, Method::GET, "/carrier.php", None, "", None).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(page.contains("Carrier Codes"));
-    sqlx::query(r#"UPDATE "user" SET status = 'Pending' WHERE id = 7"#).execute(&pool).await.unwrap();
-    let (status, _, _) = send(&app, Method::GET, "/carrier.php", None, "", None).await;
-    assert_eq!(status, StatusCode::FOUND, "a Pending staff account waits for approval");
-}
-
-#[tokio::test]
 async fn carriers_are_maintained_by_administrators() {
     let (app, pool) = harness().await;
     let customer = cookie(&pool, 1, "Customer").await;

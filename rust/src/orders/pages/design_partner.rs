@@ -185,7 +185,7 @@ async fn ajax(pool: &SqlitePool, ip: &str, staff_id: i64, posted: &HashMap<Strin
     })
 }
 
-pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Administrator>, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     if headers.contains_key("x-requested-with") && !body.is_empty() {
         let answer = ajax(pool, &ip, staff.user.id.0, &form_params(None, &body)).await?;
