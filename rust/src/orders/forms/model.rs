@@ -44,8 +44,9 @@ pub enum Kind {
     Email,
     Phone(PhoneFormat),
     Textarea,
-    Date,
-    Address(Vec<SubInput>),
+    /// `dmy` in French (the theme hook), `mdy` otherwise.
+    Date { dmy: bool },
+    Address { inputs: Vec<SubInput>, default_country: String },
     Html(String),
     Unsupported(String),
 }
@@ -59,6 +60,10 @@ pub struct Field {
     pub css_class: String,
     pub size: String,
     pub placeholder: String,
+    /// `layoutGridColumnSpan`: the field's share of a 12-column row, when the form editor set one.
+    pub grid_span: Option<i64>,
+    /// `inputType`, which newer forms record and Gravity Forms writes into a class.
+    pub input_type: String,
 }
 
 impl Field {
@@ -68,8 +73,8 @@ impl Field {
             Kind::Email => "email",
             Kind::Phone(_) => "phone",
             Kind::Textarea => "textarea",
-            Kind::Date => "date",
-            Kind::Address(_) => "address",
+            Kind::Date { .. } => "date",
+            Kind::Address { .. } => "address",
             Kind::Html(_) => "html",
             Kind::Unsupported(t) => t,
         }
@@ -112,8 +117,10 @@ pub struct Form {
     pub title: String,
     pub button: String,
     pub css_class: String,
-    /// `requiredIndicator` is `asterisk`; otherwise Gravity Forms writes "(Required)".
-    pub asterisk: bool,
+    /// `markupVersion` 2: the div-based "gravity-theme" markup. Older forms keep the legacy list markup.
+    pub gravity_theme: bool,
+    /// Shown in French: Gravity Forms' own strings come from its French translation.
+    pub french: bool,
     pub honeypot: Honeypot,
     pub fields: Vec<Field>,
     pub notifications: Vec<Notification>,
@@ -151,14 +158,16 @@ fn field(v: &Value) -> Option<Field> {
         "email" => Kind::Email,
         "phone" => Kind::Phone(if text(v, "phoneFormat") == "standard" { PhoneFormat::Standard } else { PhoneFormat::International }),
         "textarea" => Kind::Textarea,
-        "date" => Kind::Date,
+        "date" => Kind::Date { dmy: text(v, "dateFormat") == "dmy" },
         "html" => Kind::Html(text(v, "content")),
-        "address" => Kind::Address(
-            v.get("inputs")
+        "address" => Kind::Address {
+            inputs: v
+                .get("inputs")
                 .and_then(Value::as_array)
                 .map(|inputs| inputs.iter().map(|i| SubInput { id: text(i, "id"), label: text(i, "label"), hidden: flag(i, "isHidden") }).collect())
                 .unwrap_or_default(),
-        ),
+            default_country: text(v, "defaultCountry"),
+        },
         other => Kind::Unsupported(other.to_string()),
     };
     Some(Field {
@@ -169,6 +178,8 @@ fn field(v: &Value) -> Option<Field> {
         css_class: text(v, "cssClass"),
         size: text(v, "size"),
         placeholder: text(v, "placeholder"),
+        grid_span: v.get("layoutGridColumnSpan").and_then(Value::as_i64),
+        input_type: text(v, "inputType"),
     })
 }
 
@@ -216,8 +227,8 @@ pub fn parse(display_meta: &str, notifications: &str, confirmations: &str) -> Op
         None => Confirmation::Message("Thanks for contacting us! We will get in touch with you shortly.".into()),
     };
     let button = d.get("button").map(|b| text(b, "text")).filter(|t| !t.is_empty()).unwrap_or_else(|| "Submit".into());
-    let asterisk = text(&d, "requiredIndicator") == "asterisk";
-    Some(Form { id: id(&d)?, title: text(&d, "title"), button, css_class: text(&d, "cssClass"), asterisk, honeypot, fields, notifications, confirmation })
+    let gravity_theme = text(&d, "markupVersion") == "2";
+    Some(Form { id: id(&d)?, title: text(&d, "title"), button, css_class: text(&d, "cssClass"), gravity_theme, french: false, honeypot, fields, notifications, confirmation })
 }
 
 /// An active, untrashed form by id.
@@ -255,6 +266,7 @@ pub fn localize(mut form: Form, lang: Lang) -> Form {
         ("Suggested Topic", "Sujet proposé"),
         ("Suggested Date", "Date proposée"),
     ];
+    form.french = true;
     if form.button == "Submit" {
         form.button = "Envoyer".into();
     }
@@ -265,6 +277,7 @@ pub fn localize(mut form: Form, lang: Lang) -> Form {
         match &mut f.kind {
             Kind::Html(content) if content.contains("protected by reCAPTCHA") => *content = RECAPTCHA_FR.into(),
             Kind::Phone(format) => *format = PhoneFormat::International,
+            Kind::Date { dmy } => *dmy = true,
             _ => {}
         }
     }

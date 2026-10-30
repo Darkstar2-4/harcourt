@@ -5,6 +5,8 @@
 //!
 //! - `GET /hx/forms/island?hx_form=N&hx_lang=en|fr&hx_page=/path/` answers the markup, as
 //!   mu-plugins/hx-form-island.php did for the static pages.
+//! - The anti-spam token (gf-zero-spam's job) is the form's signed `state_N`: only a form this server rendered
+//!   in the last two days carries one.
 //! - A form posts to its page, as Gravity Forms does. The page's POST handler passes the request to `handle`
 //!   when it carries `gform_submit`, and puts the answer where the form was. `POST /hx/forms/submit` with the same
 //!   query does that for a client that posts here directly; an ajax form gets the iframe postback document.
@@ -23,6 +25,8 @@ use axum::{
 use super::{form_params, html, Orders};
 use crate::{api::ClientIp, config::Secret, db::unix_now, identity::Email};
 
+mod ajax_script;
+mod countries;
 pub mod model;
 pub mod render;
 pub mod spam;
@@ -39,6 +43,8 @@ pub struct Services {
     pub token_key: Option<spam::TokenKey>,
     pub akismet: Option<Arc<dyn spam::Akismet>>,
     pub recaptcha: Option<Arc<dyn spam::Recaptcha>>,
+    /// The static export's manifest.json, which lists each page's forms and how they are embedded.
+    pub manifest: Option<std::path::PathBuf>,
 }
 
 impl Services {
@@ -55,16 +61,47 @@ impl Services {
                 tracing::warn!("forms: {name} is not set; that spam check is off");
             }
         }
-        Services { admin_email: get("HXWEB_ADMIN_EMAIL").and_then(|e| Email::parse(&e)), token_key, akismet, recaptcha }
+        let manifest = get("HXWEB_EXPORT").map(|d| std::path::Path::new(&d).join("manifest.json"));
+        Services { admin_email: get("HXWEB_ADMIN_EMAIL").and_then(|e| Email::parse(&e)), token_key, akismet, recaptcha, manifest }
     }
 }
 
 pub fn routes() -> Router<Arc<Orders>> {
-    Router::new().route("/hx/forms/island", get(island_route)).route("/hx/forms/submit", post(submit_route))
+    Router::new()
+        .route("/hx/forms/island", get(island_route))
+        .route("/hx/forms/island/", get(island_route))
+        .route("/hx/forms/submit", post(submit_route))
 }
 
-/// The form's markup for this page and language, or None for a form that is not active.
-pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &str) -> sqlx::Result<Option<String>> {
+/// How the export says `page_uri` embeds `form_id` in this language. With no manifest configured every form is
+/// embedded with the defaults; with one, a form the page does not list is not served, as hx-form-island.php did.
+pub fn embed(services: &Services, form_id: i64, lang: model::Lang, page_uri: &str) -> Option<render::Embed> {
+    let Some(path) = &services.manifest else { return Some(render::Embed::default_for(form_id)) };
+    let manifest: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    let lang = if lang == model::Lang::Fr { "fr" } else { "en" };
+    let page_path = page_uri.split('?').next().unwrap_or(page_uri);
+    let entry = manifest.get("pages")?.as_array()?.iter().find_map(|p| {
+        let e = p.get(lang)?;
+        let url = e.get("url")?.as_str()?;
+        let path = url.split_once("://").map_or(url, |(_, rest)| rest.find('/').map_or("/", |i| &rest[i..]));
+        (path.split('?').next() == Some(page_path)).then_some(e)
+    })?;
+    let islands = entry.get("islands")?.as_array()?;
+    let at = islands.iter().position(|i| i.get("form").and_then(serde_json::Value::as_i64) == Some(form_id))?;
+    let i = &islands[at];
+    let flag = |k: &str| i.get(k).and_then(serde_json::Value::as_bool).unwrap_or(false);
+    Some(render::Embed {
+        ajax: flag("ajax"),
+        styles: i.get("styles").and_then(serde_json::Value::as_str).unwrap_or("").to_string(),
+        texturize: flag("texturize"),
+        in_content: flag("in_content"),
+        position: at + 1,
+    })
+}
+
+/// The form's markup for this page and language, or None for a form that is not active or not on that page.
+pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &str, user_agent: &str) -> sqlx::Result<Option<String>> {
+    let Some(embed) = embed(&state.forms, form_id, lang, page_uri) else { return Ok(None) };
     let Some(form) = model::load(&state.core.pool, form_id).await? else { return Ok(None) };
     let form = model::localize(form, lang);
     let token = state.forms.token_key.as_ref().map(|k| k.issue(form.id, unix_now()));
@@ -73,12 +110,13 @@ pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &
     Ok(Some(render::form(&render::Render {
         form: &form,
         page_uri,
-        ajax: form.id == 1,
+        embed: &embed,
         values: &values,
         errors: &errors,
         summary: None,
         token: token.as_deref(),
-        recaptcha: state.forms.recaptcha.is_some() && RECAPTCHA_FORMS.contains(&form.id),
+        recaptcha: RECAPTCHA_FORMS.contains(&form.id),
+        browser: &render::browser_class(user_agent),
     })))
 }
 
@@ -88,13 +126,15 @@ pub async fn handle(state: &Orders, params: &HashMap<String, String>, lang: mode
     let Some(form) = model::load(&state.core.pool, form_id).await? else { return Ok(None) };
     let form = model::localize(form, lang);
     let ajax = params.contains_key("gform_ajax");
+    let mut embed = embed(&state.forms, form_id, lang, page_uri).unwrap_or_else(|| render::Embed::default_for(form_id));
+    embed.ajax = ajax;
     let ctx = submit::Context {
         page_uri,
         page_url: format!("{}{page_uri}", state.core.public_origin),
         page_title,
         ip,
         user_agent,
-        ajax,
+        embed,
         now: unix_now(),
     };
     Ok(Some((submit::submit(&state.core.pool, &state.forms, &form, params, &ctx).await?, ajax)))
@@ -117,10 +157,11 @@ fn markup(body: String) -> Response {
     r
 }
 
-async fn island_route(State(state): State<Arc<Orders>>, uri: Uri) -> Response {
+async fn island_route(State(state): State<Arc<Orders>>, headers: HeaderMap, uri: Uri) -> Response {
     let params = form_params(uri.query(), &[]);
+    let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let found = match (params.get("hx_form").and_then(|f| f.parse::<i64>().ok()), page_of(&params)) {
-        (Some(id), Some((lang, page))) => island(&state, id, lang, &page).await,
+        (Some(id), Some((lang, page))) => island(&state, id, lang, &page, agent).await,
         _ => Ok(None),
     };
     match found {
