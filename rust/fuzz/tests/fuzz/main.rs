@@ -6,6 +6,7 @@ mod html;
 mod identity;
 mod imports;
 mod mail;
+mod misc;
 mod php;
 mod router;
 mod urls;

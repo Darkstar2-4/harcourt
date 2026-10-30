@@ -171,10 +171,9 @@ fn world() -> &'static World {
     WORLD.with(|w| *w)
 }
 
+/// Nothing seeded configures an outside service (reCAPTCHA, Akismet, PARTsolutions, ipstack, OAuth), and bot
+/// checks use fixed DNS answers, so no request leaves the process.
 fn new_world() -> World {
-    for proxy in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"] {
-        std::env::set_var(proxy, "http://127.0.0.1:9");
-    }
     let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
     let (app, personas) = rt.block_on(async {
         let pool = db::open_memory().await.unwrap();

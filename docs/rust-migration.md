@@ -83,6 +83,8 @@ These are not bugs. Each is listed with its reason in the `rust/oracle/*.expecte
 
 The PHP site runs unchanged on a private box (the oracle), with a copy of the production database and files and no way to send mail or reach outside services. `rust/src/bin/hx-diff.rs` sends the same request to the oracle and to a Rust server, as synthetic accounts of every role and status, in both languages, and compares status, the headers that matter and the normalized body. Each normalization rule removes one kind of value (nonces, session ids, times near now, asset versions) and has a test. `rust/oracle/` holds the cases and the list of deliberate differences. A separate suite of about 9,400 cases was written from the PHP alone and run against the Rust server; only its counts were read. `rust/src/bin/hx-import.rs` copies the MySQL tables into SQLite and checks row counts and checksums per table.
 
+`rust/fuzz` holds property tests over everything that reads untrusted input: the query, form, cookie and upload readers, the path clean-up, WordPress routing, PHP's serialize format, the csv and Excel import, the escapers and markup builders, the mail the outbox sends, the PHP number and date formats, and the whole router answering generated requests over synthetic rows. Each states a documented invariant and a time or memory bound. Runs are deterministic; `HX_FUZZ_CASES=3000000 cargo test --release` in that directory is a long run, and `HX_FUZZ_SEED` picks another seed.
+
 `.github/workflows/rust-web.yml` runs the Rust tests and clippy, the tool builds, the property tests in `rust/fuzz`, the TypeScript checks and the Python tool tests.
 
 ## How the rest moves
