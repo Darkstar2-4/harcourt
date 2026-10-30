@@ -478,6 +478,7 @@ impl Header {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
             "/stock.php" => Header::Quiet,
+            "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
             "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
             "/scs_file.php" => Header::None,
             p if !p.ends_with(".php") => Header::None,

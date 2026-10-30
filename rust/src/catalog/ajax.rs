@@ -58,9 +58,20 @@ impl AjaxRequest {
     }
 }
 
-/// The search box's request, which live hxweb took before PHP saw it: `table=search` exactly, searching.
+/// The search box's request, which live hxweb took before PHP saw it: `table=search` exactly, searching. PHP never
+/// ran for it, so neither did scs_header.php's visit handling.
 fn is_search_box(q: &HashMap<String, String>) -> bool {
     q.get("table").is_some_and(|t| t == "search") && q.get("action").is_none_or(|a| a == "search")
+}
+
+/// `is_search_box` for a raw query string, as the visitor layer sees it.
+pub fn search_box_query(query: &str) -> bool {
+    let q: HashMap<String, String> = query
+        .split('&')
+        .filter_map(|kv| kv.split_once('=').or(Some((kv, ""))))
+        .map(|(k, v)| (k.to_string(), percent_encoding::percent_decode_str(&v.replace('+', " ")).decode_utf8_lossy().into_owned()))
+        .collect();
+    is_search_box(&q)
 }
 
 /// ajax_class's gates: a Referer on this host and an XMLHttpRequest.
@@ -169,6 +180,8 @@ mod tests {
         assert!(is_search_box(&q(&[("table", "search"), ("action", "search")])));
         assert!(!is_search_box(&q(&[("table", "Search")])));
         assert!(!is_search_box(&q(&[("table", "search"), ("action", "save")])));
+        assert!(search_box_query("table=search&limit=20&term=HS"));
+        assert!(!search_box_query("table=user&source=company_name"));
     }
 
     #[test]
