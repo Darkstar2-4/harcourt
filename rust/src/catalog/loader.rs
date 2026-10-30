@@ -228,14 +228,14 @@ fn search_box(strings: &Strings) -> String {
 fn cart_link(strings: &Strings, items: usize) -> String {
     let text = format!(
         "<img src='/scs_images/cart.png' id=menu_cart_img title='View Cart'> <span id=menu_cart_size>{items}</span> {}",
-        html::esc(strings.get("menu_cart"))
+        html::esc_text(strings.get("menu_cart"))
     );
     html::href_with(&text, "/cart/", &[("class", "nav-link"), ("title", strings.get("menu_cart_title"))])
 }
 
 fn portal_link(strings: &Strings, lang: Lang) -> String {
     let label = strings.get("menu_portal");
-    let text = format!("<img src='/scs_images/portal.png' id=menu_portal_img> {}", html::esc(label));
+    let text = format!("<img src='/scs_images/portal.png' id=menu_portal_img> {}", html::esc_text(label));
     let url = if lang == Lang::Fr { "/portail-clients/?lang=fr" } else { "/customer_portal/" };
     html::href_with(&text, url, &[("class", "nav-link"), ("title", label)])
 }

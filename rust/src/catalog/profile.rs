@@ -5,7 +5,7 @@
 use axum::http::{header, HeaderMap};
 use sqlx::SqlitePool;
 
-use super::{forms, html::esc, pages::Ctx, registry::Registry, viewer::Viewer};
+use super::{forms, html::{esc, esc_attr, esc_text}, pages::Ctx, registry::Registry, viewer::Viewer};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Profile {
@@ -56,8 +56,8 @@ impl Profile {
         if self.cad_name.is_empty() || self.email.is_empty() {
             return "Please complete profile to download CAD".into();
         }
-        let delivery = if self.generate { format!("CAD emailed to {} when complete.", esc(&self.email)) } else { "CAD downloaded when complete.".into() };
-        format!("CAD Format: {}. {delivery} Click PROFILE to change.", esc(&self.cad_name))
+        let delivery = if self.generate { format!("CAD emailed to {} when complete.", esc_text(&self.email)) } else { "CAD downloaded when complete.".into() };
+        format!("CAD Format: {}. {delivery} Click PROFILE to change.", esc_text(&self.cad_name))
     }
 }
 
@@ -121,7 +121,7 @@ pub async fn enter(ctx: &Ctx<'_>, notice: bool) -> sqlx::Result<String> {
     out.push_str(&forms::hidden_class("success_url", if notice { "/catalog/" } else { "" }, "scscpq_input"));
     out.push_str(&forms::hidden_class("profile_tab", "", "scscpq_input"));
     if !p.company_name.is_empty() {
-        out.push_str(&format!("<p class=profile_welcome>Welcome {}!</p>", esc(&p.company_name)));
+        out.push_str(&format!("<p class=profile_welcome>Welcome {}!</p>", esc_text(&p.company_name)));
     }
     out.push_str("<div class=profile_box><div id=profile_message></div><table class=noborder>");
     if notice {
@@ -167,9 +167,9 @@ async fn cad_picklist(ctx: &Ctx<'_>, selected: &str) -> sqlx::Result<String> {
         let radio = format!(
             "<input type=radio value='{}' name='cad_code' class='scscpq_input' id='{}'{}>\n {}",
             esc(&r.code),
-            esc(&id),
+            esc_attr(&id),
             if r.code == selected { " checked" } else { "" },
-            esc(&r.name)
+            esc_text(&r.name)
         );
         match groups.iter_mut().find(|(t, _)| *t == r.ty) {
             Some((_, list)) => list.push(radio),
@@ -177,7 +177,7 @@ async fn cad_picklist(ctx: &Ctx<'_>, selected: &str) -> sqlx::Result<String> {
         }
     }
     let style = "-webkit-column-count: 2; -moz-column-count: 2; column-count: 2; -webkit-column-gap: 10px; -moz-column-gap: 10px; column-gap: 10px;";
-    Ok(groups.into_iter().map(|(ty, items)| format!("<div><b>{}</b></div><div style='{style}'>{}</div>", esc(&ty), items.join("<br>\n"))).collect())
+    Ok(groups.into_iter().map(|(ty, items)| format!("<div><b>{}</b></div><div style='{style}'>{}</div>", esc_text(&ty), items.join("<br>\n"))).collect())
 }
 
 const ENTER_JS: &str = r###"<script>

@@ -144,7 +144,7 @@ impl Ctx<'_> {
     pub fn overlay(&self, category_id: i64) -> String {
         format!(
             "<div class='catalog_category_overlay'>\n<div class='catalog_category_overlay_message'>{} {} for more information.</div>\n</div>",
-            html::esc(&self.viewer.blocked.agreement_message(category_id).unwrap_or_default()),
+            html::esc_text(&self.viewer.blocked.agreement_message(category_id).unwrap_or_default()),
             html::href("Contact Us", "/contact")
         )
     }

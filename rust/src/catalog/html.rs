@@ -26,6 +26,12 @@ pub fn esc(s: &str) -> String {
     out
 }
 
+/// Element text from the catalog's tables, which hold names with entities (`&trade;`) and quotes as the PHP printed
+/// them: only `<` and `>` are escaped, so no stored value can open a tag.
+pub fn esc_text(s: &str) -> String {
+    escape_only(s, &['<', '>'])
+}
+
 /// A single-quoted attribute value as the PHP wrote it, with only what could end the attribute or open a tag
 /// escaped. A `&` stays as written, so links read `?a=1&b=2` as they did.
 pub fn esc_attr(s: &str) -> String {

@@ -2,7 +2,7 @@
 //! number, or the keyword search over the `search` table.
 
 use super::{family, home, Ctx};
-use crate::catalog::{html::esc, model, model::Part};
+use crate::catalog::{html::esc_text, model, model::Part};
 
 /// A `search` row: what it points at.
 pub struct Hit {
@@ -87,7 +87,7 @@ async fn open(ctx: &mut Ctx<'_>, hit: Hit) -> sqlx::Result<String> {
 }
 
 fn no_results(ctx: &Ctx) -> String {
-    format!("<p class=center>No results for search term: <b>{}</b></p>", esc(&ctx.req.search_code))
+    format!("<p class=center>No results for search term: <b>{}</b></p>", esc_text(&ctx.req.search_code))
 }
 
 /// When the keyword search finds nothing for a term typed and entered (no suggestion picked), the row the search box

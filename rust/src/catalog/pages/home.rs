@@ -4,7 +4,7 @@
 use super::{assets, Ctx};
 use crate::{
     catalog::{
-        html::{self, esc, href, href_with, Query},
+        html::{self, esc_text, href, href_with, Query},
         model::{Family, Status},
     },
     db::unix_now,
@@ -142,7 +142,7 @@ fn unit_filter(ctx: &Ctx) -> String {
     let fetch_query = ctx.req.scscpq_wp.as_ref().map(|v| format!("scscpq_wp={}", html::urlencode(v))).unwrap_or_default();
     let mut out = vec![
         assets::UNIT_FILTER_SCRIPT.to_string(),
-        format!("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='{}'>", esc(&fetch_query)),
+        format!("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='{}'>", html::esc_attr(&fetch_query)),
         "<span class='catalog_unit_filter_label nobr'>Show:</span>".to_string(),
     ];
     for (value, label) in [("", "All"), ("metric", "Metric"), ("imperial", "Imperial")] {
@@ -187,7 +187,7 @@ pub fn output_summary(ctx: &Ctx, summary: &Summary) -> String {
             continue;
         }
         let blocked = ctx.blocked(*category_id);
-        out.push(format!("<a class=anchor id=category{category_id}></a><h2>{}</h2>", esc(ctx.catalog.category_name(*category_id))));
+        out.push(format!("<a class=anchor id=category{category_id}></a><h2>{}</h2>", esc_text(ctx.catalog.category_name(*category_id))));
         out.push("<div class='catalog_category_wrapper'>".into());
         out.push("<div class=catalog_subcategory_list>".into());
         out.push("<ul>".into());
@@ -207,7 +207,7 @@ pub fn output_summary(ctx: &Ctx, summary: &Summary) -> String {
             } else {
                 ""
             };
-            let text = format!("<span class='subcat{}'></span>{}", f.id, esc(&f.name));
+            let text = format!("<span class='subcat{}'></span>{}", f.id, esc_text(&f.name));
             let link = if blocked {
                 format!("<span class='catalog_blocked_link'>{text}</span>")
             } else if title.is_empty() {

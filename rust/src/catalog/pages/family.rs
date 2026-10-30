@@ -5,7 +5,7 @@ use super::{Ctx, Page};
 use crate::{
     catalog::{
         forms,
-        html::{self, esc, href, href_with, Query},
+        html::{self, esc_text, href, href_with, Query},
         model::{self, Family, Parameter, Part},
         php::Value,
         tabs::Tabs,
@@ -77,7 +77,7 @@ fn wordwrap(s: &str, width: usize, brk: &str) -> String {
             out.push(' ');
             line += 1 + word.len();
         }
-        out.push_str(&esc(word));
+        out.push_str(&esc_text(word));
     }
     out
 }
@@ -92,7 +92,7 @@ fn is_new(ctx: &Ctx, family: &Family) -> bool {
 
 /// subcategory_title().
 fn title(ctx: &Ctx, family: &Family) -> String {
-    let mut name = esc(&family.name);
+    let mut name = esc_text(&family.name);
     if is_new(ctx, family) {
         name.push_str(" (New Item!)");
     } else if family.new_inventory {
@@ -122,7 +122,7 @@ pub async fn page(ctx: &mut Ctx<'_>) -> sqlx::Result<Page> {
 pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx::Result<Page> {
     let Some(family) = ctx.family().cloned() else { return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() }) };
     if ctx.blocked(family.category_id) {
-        let head = format!("<div id=products_header>\n<h1>{}</h1>\n</div>\n{}", esc(&family.name), ctx.overlay(family.category_id));
+        let head = format!("<div id=products_header>\n<h1>{}</h1>\n</div>\n{}", esc_text(&family.name), ctx.overlay(family.category_id));
         return Ok(Page { head, tabs: Tabs::new(), tail: String::new() });
     }
     let all = model::family_parts(ctx.pool, family.id).await?;
@@ -202,7 +202,7 @@ fn related_link(ctx: &Ctx, value: &str, sku: &str) -> String {
     if ctx.req.debug {
         q.set("debug", "1");
     }
-    href_with(&esc(value), &html::url(ctx.php_self, &q), &[("title", "Related Part#")])
+    href_with(&esc_text(value), &html::url(ctx.php_self, &q), &[("title", "Related Part#")])
 }
 
 /// search(): the parametric search selects and the script that reloads the page with them.
@@ -238,7 +238,7 @@ fn search(ctx: &Ctx, family: &Family, parts: &[Part], tabs: &mut Tabs) -> Option
         if options.len() < 2 {
             continue;
         }
-        out.push_str(&format!("<span class=nobr>{} : ", esc(&param.name)));
+        out.push_str(&format!("<span class=nobr>{} : ", esc_text(&param.name)));
         out.push_str(&forms::select_list(&format!("parameter{id}"), &options, &ctx.req.parameter[*id], &[("onchange", "fn_search_select(this,'0');")]));
         out.push_str("</span>");
     }
@@ -271,12 +271,12 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
     out.push("<table class='products_table'>".into());
     out.push("<thead>".into());
     out.push("<tr>".into());
-    out.push(format!("<th>{}</th>", esc(family.sku_label.as_deref().unwrap_or("Part#"))));
+    out.push(format!("<th>{}</th>", esc_text(family.sku_label.as_deref().unwrap_or("Part#"))));
     for p in &family.parameters {
         out.push(format!("<th>{}</th>", wordwrap(&p.name, 12, "<br>")));
     }
     if shows_price {
-        out.push(format!("<th>{}</th>", esc(family.price_label.as_deref().unwrap_or("Price"))));
+        out.push(format!("<th>{}</th>", esc_text(family.price_label.as_deref().unwrap_or("Price"))));
     }
     if ctx.viewer.ecommerce {
         out.push(format!("<th class=nobr>{}</th>", forms::font("red", "*", " Typical<br>Lead Time")));
@@ -306,7 +306,7 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
         if is_new(ctx, family) || ctx.catalog.is_new_date(&part.new_date) {
             cell.push_str(&forms::font("red", "*", ""));
         }
-        cell.push_str(&if blocked { format!("<span class='catalog_blocked_link'>{}</span>", esc(&part.sku)) } else { href(&esc(&part.sku), &html::url(ctx.php_self, &q)) });
+        cell.push_str(&if blocked { format!("<span class='catalog_blocked_link'>{}</span>", esc_text(&part.sku)) } else { href(&esc_text(&part.sku), &html::url(ctx.php_self, &q)) });
         out.push(format!("<td class='nobr'>{cell}</td>"));
         for p in &family.parameters {
             let value = &part.parameter[p.id];
@@ -315,7 +315,7 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
             } else if p.hyperlink {
                 related_link(ctx, value, &part.sku)
             } else {
-                esc(value)
+                esc_text(value)
             };
             out.push(format!("<td>{text}</td>"));
         }
@@ -326,7 +326,7 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
         if ctx.viewer.ecommerce {
             let field_sku = html::base64_fields(&["sku", &part.sku]);
             let field_list = html::base64_fields(&["list", &part.sku]);
-            out.push(format!("<td class=center>{}</td>", esc(&part.leadtime(family))));
+            out.push(format!("<td class=center>{}</td>", esc_text(&part.leadtime(family))));
             out.push(format!("<td class=center>{}</td>", forms::text(&field_list, "", "6", "6", &[("class", "products_quantity")])));
             let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", "Add to Cart")]).map(|i| i.replacen("<img", "<img id=''", 1)).unwrap_or_default();
             out.push(format!("<td class=center>{}</td>", href(&icon, &format!("javascript:cart_update(this,{},{})", forms::js_quote(&field_list), forms::js_quote(&field_sku)))));
@@ -392,7 +392,7 @@ fn related_message(ctx: &Ctx) -> String {
     if message.is_empty() {
         return String::new();
     }
-    format!("<div>{}</div>", message.replace("%sku%", &esc(&ctx.related_sku)))
+    format!("<div>{}</div>", message.replace("%sku%", &esc_text(&ctx.related_sku)))
 }
 
 /// output_overview(): overview:* content in the viewer's language first, then English.
@@ -417,7 +417,7 @@ async fn overview(ctx: &Ctx<'_>, family: &Family, tabs: &mut Tabs) -> sqlx::Resu
             continue;
         }
         seen.push(r.item.clone());
-        let name = esc(&r.name);
+        let name = esc_text(&r.name);
         match r.filetype.as_str() {
             "image" => {
                 out.push(format!("<p class=products_overview>{name}</p>"));
@@ -499,7 +499,7 @@ async fn download(ctx: &Ctx<'_>, family: &Family, tabs: &mut Tabs) -> sqlx::Resu
         };
         let q = Query::new().with("content_id", html::base64_fields(&[&r.id.to_string(), "0"])).with("local_log", local_log);
         out.push("<tr>".into());
-        out.push(format!("<td>{}</td>", href_with(&esc(&name), &html::url("/scs_file.php", &q), &[("target", "_blank")])));
+        out.push(format!("<td>{}</td>", href_with(&esc_text(&name), &html::url("/scs_file.php", &q), &[("target", "_blank")])));
         out.push("</tr>".into());
     }
     out.push("</table>".into());
@@ -520,7 +520,7 @@ fn sku_tab(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
     };
     tabs.item(label, Some(sku_details(ctx, family, Some(part))), Some("catalog_sku"), None);
     if ctx.viewer.at_least(crate::identity::Role::Internal) && !part.competitor_sku.is_empty() {
-        let list = part.competitor_sku.iter().map(|s| esc(s)).collect::<Vec<_>>().join("<br>\n&bull; ");
+        let list = part.competitor_sku.iter().map(|s| esc_text(s)).collect::<Vec<_>>().join("<br>\n&bull; ");
         tabs.item(ctx.strings.get("catalog_competitors"), Some(format!("<p class='standard catalog'>\n&bull; {list}\n</p>")), Some("catalog_competitors"), None);
     }
 }
@@ -536,9 +536,9 @@ fn sku_details(ctx: &Ctx, family: &Family, part: Option<&Part>) -> String {
     out.push("<tr>".into());
     out.push("<td width='50%'>".into());
     let mut data = vec![
-        format!("Part number: {}", esc(sku)),
-        format!("Category: {}", esc(ctx.catalog.category_name(ctx.category_id))),
-        format!("Subcategory: {}", esc(&family.name)),
+        format!("Part number: {}", esc_text(sku)),
+        format!("Category: {}", esc_text(ctx.catalog.category_name(ctx.category_id))),
+        format!("Subcategory: {}", esc_text(&family.name)),
     ];
     if part.is_some_and(|p| ctx.catalog.is_new_date(&p.new_date)) {
         data.push("New Item!".into());
@@ -571,8 +571,8 @@ fn sku_details(ctx: &Ctx, family: &Family, part: Option<&Part>) -> String {
             if value.is_empty() {
                 continue;
             }
-            let text = if p.hyperlink { related_link(ctx, value, &part.sku) } else { esc(value) };
-            items.push(format!("{}: <b>{text}</b>", esc(&p.name)));
+            let text = if p.hyperlink { related_link(ctx, value, &part.sku) } else { esc_text(value) };
+            items.push(format!("{}: <b>{text}</b>", esc_text(&p.name)));
         }
     }
     if !items.is_empty() {
@@ -650,7 +650,7 @@ pub async fn lookup(ctx: &mut Ctx<'_>, code: &str) -> sqlx::Result<String> {
         return Ok("<p class=center>Blank SKU</p>".into());
     }
     let Some(hit) = super::results::exact(ctx, &wanted).await? else {
-        return Ok(format!("<p class=center>Part# <b>{}</b> not found</p>", esc(&wanted)));
+        return Ok(format!("<p class=center>Part# <b>{}</b> not found</p>", esc_text(&wanted)));
     };
     ctx.category_id = hit.category_id;
     ctx.subcategory_id = hit.subcategory_id;

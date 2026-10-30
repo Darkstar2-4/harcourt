@@ -6,7 +6,7 @@
 //! while it stores them by position. A dropped tab therefore shifts the tabs after it; this keeps that order, since
 //! it is what visitors see.
 
-use super::{forms::hidden, html::esc, strings::PRODUCT_SORTABLE};
+use super::{forms::hidden, html::{esc_attr, esc_text}, strings::PRODUCT_SORTABLE};
 
 const NAME: &str = "products_jquery";
 
@@ -57,8 +57,8 @@ impl Tabs {
         self.contents.push(format!(
             "{}<div id='{}' class='{}'>\n{}\n</div>\n",
             hidden(&tab_field(label), label),
-            esc(&content_id),
-            esc(&class),
+            esc_attr(&content_id),
+            esc_attr(&class),
             content
         ));
         self.tabs.push(Tab { name: label.to_string(), content_id });
@@ -98,8 +98,8 @@ impl Tabs {
             match tab {
                 Some(t) => out.push(format!(
                     "<li id='tab_{id}' class='{NAME}_tabs'><a href='#{id}' id='href_{id}' class='{NAME}_tabs'>{}</a></li>",
-                    esc(&t.name),
-                    id = esc(&t.content_id)
+                    esc_text(&t.name),
+                    id = esc_attr(&t.content_id)
                 )),
                 None => out.push(format!("<li class='{NAME}_tabs'></li>")),
             }
