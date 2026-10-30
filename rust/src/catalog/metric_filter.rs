@@ -52,7 +52,7 @@ async fn show(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, visito
     ]
     .concat();
     let view = shell::View { role: staff.who.user.role, wp: staff.wp || visitor.framed };
-    shell::page(&core.pool, view, "Metric Filter (10/16/2026)", &body).await
+    shell::page(&core.pool, view, "Metric Filter", &body).await
 }
 
 pub fn router() -> Router<Arc<Auth>> {
