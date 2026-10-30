@@ -250,6 +250,7 @@ pub struct Page {
     pub menu_order: i64,
     pub published_at: String,
     pub modified_at: String,
+    pub author_id: Option<i64>,
 }
 
 impl Page {
@@ -329,6 +330,62 @@ pub struct Redirect {
     pub status: u16,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Taxonomy {
+    Category,
+    FaqType,
+}
+
+impl Taxonomy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Taxonomy::Category => "category",
+            Taxonomy::FaqType => "faq_type",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Taxonomy> {
+        [Taxonomy::Category, Taxonomy::FaqType].into_iter().find(|t| t.as_str() == s)
+    }
+
+    /// The post type the taxonomy files.
+    pub fn of(self) -> PostType {
+        match self {
+            Taxonomy::Category => PostType::Post,
+            Taxonomy::FaqType => PostType::Faq,
+        }
+    }
+}
+
+/// A blog category or FAQ type and the posts filed under it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Term {
+    pub id: i64,
+    pub taxonomy: Taxonomy,
+    pub slug: String,
+    pub name: String,
+    pub lang: Option<Lang>,
+    pub group_id: Option<i64>,
+    /// Yoast's lastmod for the term: the newest change to anything filed under it.
+    pub modified_at: String,
+    pub pages: Vec<PageId>,
+}
+
+impl Term {
+    pub fn path(&self) -> String {
+        format!("/{}/{}/", self.taxonomy.as_str(), self.slug)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Author {
+    pub id: i64,
+    pub nicename: String,
+    pub display_name: String,
+    /// Unix seconds.
+    pub profile_updated: i64,
+}
+
 /// Everything the public pages render from, loaded at one content version.
 #[derive(Debug, Default)]
 pub struct Site {
@@ -343,6 +400,9 @@ pub struct Site {
     pub menus: Vec<MenuItem>,
     pub media: HashMap<MediaId, Media>,
     pub redirects: HashMap<String, Redirect>,
+    /// Ordered by taxonomy and name.
+    pub terms: Vec<Term>,
+    pub authors: HashMap<i64, Author>,
 }
 
 static EMPTY_FIELDS: Fields = BTreeMap::new();
@@ -413,7 +473,7 @@ impl Site {
         let version = version(pool).await?;
         let mut pages = Vec::new();
         for r in sqlx::query!(
-            r#"SELECT id AS "id!", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at
+            r#"SELECT id AS "id!", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, author_id
                FROM cms_page ORDER BY id"#
         )
         .fetch_all(pool)
@@ -439,6 +499,7 @@ impl Site {
                 menu_order: r.menu_order,
                 published_at: r.published_at,
                 modified_at: r.modified_at,
+                author_id: r.author_id,
             });
         }
         let mut site = Site::new(pages);
@@ -506,6 +567,19 @@ impl Site {
             if let Ok(status) = u16::try_from(r.status) {
                 site.redirects.insert(r.path, Redirect { target: r.target, status });
             }
+        }
+        for r in sqlx::query!(r#"SELECT id AS "id!", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id"#).fetch_all(pool).await? {
+            let Some(taxonomy) = Taxonomy::parse(&r.taxonomy) else { continue };
+            let lang = r.lang.as_deref().and_then(Lang::parse);
+            site.terms.push(Term { id: r.id, taxonomy, slug: r.slug, name: r.name, lang, group_id: r.group_id, modified_at: r.modified_at, pages: Vec::new() });
+        }
+        for r in sqlx::query!("SELECT term_id, page_id FROM cms_term_page ORDER BY term_id, page_id").fetch_all(pool).await? {
+            if let Some(t) = site.terms.iter_mut().find(|t| t.id == r.term_id) {
+                t.pages.push(PageId(r.page_id));
+            }
+        }
+        for r in sqlx::query!(r#"SELECT id AS "id!", nicename, display_name, profile_updated FROM cms_author"#).fetch_all(pool).await? {
+            site.authors.insert(r.id, Author { id: r.id, nicename: r.nicename, display_name: r.display_name, profile_updated: r.profile_updated });
         }
         Ok(site)
     }
@@ -577,6 +651,7 @@ mod tests {
             menu_order: 0,
             published_at: String::new(),
             modified_at: String::new(),
+            author_id: None,
         };
         let site = Site::new(vec![page(1, Some(3)), page(2, Some(1)), page(3, Some(2))]);
         let ids: Vec<i64> = site.ancestors(site.page(PageId(3)).unwrap()).iter().map(|p| p.id.0).collect();

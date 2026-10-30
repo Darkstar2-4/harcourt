@@ -319,6 +319,7 @@ pub fn not_found(site: &Site, lang: Lang, uri: &str) -> String {
         menu_order: 0,
         published_at: String::new(),
         modified_at: String::new(),
+        author_id: None,
     };
     let mut c = Ctx { view: View::NotFound, ..Ctx::new(site, &page, uri) };
     c.set_phase(Phase::Header);

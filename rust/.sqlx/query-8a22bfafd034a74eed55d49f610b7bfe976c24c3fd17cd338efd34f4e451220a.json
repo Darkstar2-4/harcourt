@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT term_id, page_id FROM cms_term_page ORDER BY term_id, page_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "term_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "page_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "8a22bfafd034a74eed55d49f610b7bfe976c24c3fd17cd338efd34f4e451220a"
+}

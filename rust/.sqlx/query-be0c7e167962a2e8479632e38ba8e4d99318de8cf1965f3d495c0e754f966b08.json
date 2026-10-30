@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at\n               FROM cms_page ORDER BY id",
+  "query": "SELECT id AS \"id!\", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, author_id\n               FROM cms_page ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,11 @@
         "name": "modified_at",
         "ordinal": 12,
         "type_info": "Text"
+      },
+      {
+        "name": "author_id",
+        "ordinal": 13,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -85,8 +90,9 @@
       true,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "0e24ac8050d8f69bf7d81efa41b499d653e35d4ab6563abf5956a618edf21887"
+  "hash": "be0c7e167962a2e8479632e38ba8e4d99318de8cf1965f3d495c0e754f966b08"
 }

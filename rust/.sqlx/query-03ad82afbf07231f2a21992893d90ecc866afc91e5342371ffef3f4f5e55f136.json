@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cms_author",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "03ad82afbf07231f2a21992893d90ecc866afc91e5342371ffef3f4f5e55f136"
+}

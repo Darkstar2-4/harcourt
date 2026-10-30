@@ -12,7 +12,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use axum::{
     body::Body,
     extract::{FromRequestParts, Request, State},
-    http::{header, HeaderValue, Response, StatusCode, Uri},
+    http::{header, HeaderName, HeaderValue, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::get,
     Router,
@@ -23,6 +23,7 @@ use crate::{
     api::{Auth, ClientIp},
     cms::{
         docroot::{self, Owner},
+        sitemap,
         forms::{FormSource, Islands, OrdersForms},
         theme,
         url::{urldecode, with_query},
@@ -166,14 +167,14 @@ fn docroot() -> Option<&'static std::path::Path> {
 }
 
 /// Paths a WordPress rewrite rule gives a meaning this port does not answer yet: feeds, embeds, trackbacks,
-/// paging and comment pages, archives (category, tag, format, author, date, search), the post types' singles,
-/// Yoast's sitemaps and the favicon. They go to the legacy stack.
+/// paging and comment pages, archives (category, tag, format, author, date, search), the post types' singles
+/// and the favicon. They go to the legacy stack.
 fn unported_rewrite(path: &str) -> bool {
     const SEGMENTS: [&str; 10] = ["feed", "rdf", "rss", "rss2", "atom", "embed", "trackback", "page", "attachment", "favicon.ico"];
     const BASES: [&str; 11] = ["category", "tag", "type", "author", "search", "comments", "faq", "faq_type", "case-study", "testimonials", "job"];
     let segments: Vec<String> = path.split('/').filter(|s| !s.is_empty()).map(str::to_ascii_lowercase).collect();
     let numeric = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
-    segments.iter().any(|s| SEGMENTS.contains(&s.as_str()) || s.starts_with("comment-page-") || (s.contains("sitemap") && (s.ends_with(".xml") || s.ends_with(".xsl"))))
+    segments.iter().any(|s| SEGMENTS.contains(&s.as_str()) || s.starts_with("comment-page-"))
         || (segments.len() > 1 && BASES.contains(&segments[0].as_str()))
         || segments.first().is_some_and(|s| s.len() == 4 && numeric(s))
         || segments.last().is_some_and(|s| numeric(s))
@@ -187,9 +188,45 @@ async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) 
         Owner::Legacy => legacy(),
         Owner::File(file, kind) => static_file(file, kind).await,
         Owner::WordPress => {
+            if let Some(r) = sitemap(&wp, &path, query(uri.query().unwrap_or("")).lang).await {
+                return r;
+            }
             let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
             serve(&wp, &uri, agent, None, true).await
         }
+    }
+}
+
+/// Yoast's sitemap rewrite rules: the index, one sitemap per type (`page-sitemap.xml`, page 1 only), its XSL, and
+/// WordPress's own /sitemap.xml, which Yoast redirects to its index. None for any other path.
+async fn sitemap(wp: &Arc<Wp>, path: &str, lang: Lang) -> Option<Response<Body>> {
+    let xml = |body: String| -> Response<Body> {
+        ([(header::CONTENT_TYPE, "text/xml; charset=UTF-8"), (HeaderName::from_static("x-robots-tag"), "noindex, follow")], public(&wp.core.public_origin, &body)).into_response()
+    };
+    let name = path.strip_prefix('/')?;
+    if name == "main-sitemap.xsl" {
+        return Some(xml(sitemap::XSL.to_string()));
+    }
+    if name == "sitemap.xml" {
+        return Some(redirect(&wp.core.public_origin, "/sitemap_index.xml"));
+    }
+    let site = match wp.content.site().await {
+        Ok(s) => s,
+        Err(e) => return Some(unavailable(e)),
+    };
+    if name == "sitemap_index.xml" || name == "sitemap_index.xml/" {
+        return Some(xml(sitemap::index(&site, lang)));
+    }
+    let (map, page) = name.strip_suffix(".xml")?.split_once("-sitemap")?;
+    if !page.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    // A sitemap Yoast does not have is a 404 over the blog query, which lists the posts: not ported.
+    let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, lang));
+    match (page, listed) {
+        ("", Some(body)) => Some(xml(body)),
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("{}{}", &path[..path.len() - 5], ".xml"))),
+        _ => Some(legacy()),
     }
 }
 
@@ -277,6 +314,15 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
     if unported_rewrite(path) {
         return Answer::Legacy;
+    }
+    // A doubled slash still matches the page rule (its `.?` takes the extra slash), and redirect_canonical()
+    // fixes the URL; no other rule matches, which is the blog query under a 404, not ported.
+    if let Some(rest) = path.strip_prefix('/').filter(|r| r.starts_with('/')) {
+        let p = format!("/{}", rest.trim_start_matches('/'));
+        return match site.find(lang, &p).filter(|p| p.status == Status::Publish) {
+            Some(page) => Answer::Redirect(format!("{}{}", page.path, page.lang.query())),
+            None => Answer::Legacy,
+        };
     }
     let name = path.trim_matches('/');
     let segments = name.split('/').count();
@@ -706,6 +752,7 @@ mod tests {
             menu_order: 0,
             published_at: String::new(),
             modified_at: String::new(),
+            author_id: None,
         }
     }
 

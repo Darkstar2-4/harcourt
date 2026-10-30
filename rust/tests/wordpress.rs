@@ -148,6 +148,22 @@ async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
 }
 
 #[tokio::test]
+async fn sitemaps_list_the_pages_as_wpml_links_them() {
+    let (app, _) = harness().await;
+    let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(xml.contains("\t<sitemap>\n\t\t<loc>https://www.harcourt.co/page-sitemap.xml</loc>\n\t\t<lastmod>2020-01-02T00:00:00+00:00</lastmod>\n\t</sitemap>\n"));
+    assert!(!xml.contains("post-sitemap"), "no blog posts, no post sitemap");
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml?lang=fr").await;
+    assert_eq!(xml.matches("<loc>https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr</loc>").count(), 2, "both pages under the French URL");
+    assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml"));
+    assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
+    let none = app.clone().oneshot(Request::builder().uri("/post-sitemap.xml").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(none.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"));
+}
+
+#[tokio::test]
 async fn robots_txt_is_the_docroot_file() {
     let (app, _) = harness().await;
     let (status, _, body) = send(&app, Method::GET, "/robots.txt").await;

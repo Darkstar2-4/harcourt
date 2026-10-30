@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "taxonomy",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "slug",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "lang",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "modified_at",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "0005adb5f9c9378ad06c9c3a913a56ed69ccdd3cb74193eb3aff950cc5d27c54"
+}

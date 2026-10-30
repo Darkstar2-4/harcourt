@@ -27,9 +27,13 @@ How a claimed path answers follows what prod did, where hxweb served the export 
 
 The transcriptions follow the theme in prod's document root (`/home/ubuntu/oracle-data/prod-code/`), which has French strings and link changes that are not in git.
 
+## Sitemaps
+
+`cms::sitemap` prints Yoast's sitemaps from the cms tables in the request's language: `sitemap_index.xml`, one `<type>-sitemap.xml` per post type with published posts (by last change, the front page first, each post at the URL WPML gives it in that language, which lists a French page under its English URL in English; images are the featured image and the content's), per taxonomy with filed terms (`cms_term`, whose date counts everything filed under the term, ACF field groups included, as Yoast's query does), and the authors. `/sitemap.xml` redirects to the index and `/main-sitemap.xsl` is Yoast's stylesheet. A sitemap Yoast lacks is WordPress's 404 over the blog query, not ported yet.
+
 ## Import
 
-Dump the WordPress content tables from the oracle or prod with `mysqldump --single-transaction --complete-insert`: `wp_posts` and `wp_postmeta` limited to the content post types (page, nav_menu_item, attachment, acf-field, acf-field-group), `wp_options` limited to the ACF options (`options_%`, `_options_%`), `widget_%`, `sidebars_widgets`, `theme_mods_momentum-custom`, `page_on_front` and `wp_page_for_privacy_policy`, and `wp_terms`, `wp_term_taxonomy`, `wp_term_relationships`, `wp_icl_translations`, and the Gravity Forms definitions `wp_gf_form` and `wp_gf_form_meta`. No users and no form entries. Then:
+Dump the WordPress content tables from the oracle or prod with `mysqldump --single-transaction --complete-insert`: `wp_posts` and `wp_postmeta` limited to the content post types (page, nav_menu_item, attachment, acf-field, acf-field-group), `wp_options` limited to the ACF options (`options_%`, `_options_%`), `widget_%`, `sidebars_widgets`, `theme_mods_momentum-custom`, `page_on_front` and `wp_page_for_privacy_policy`, and `wp_terms`, `wp_term_taxonomy`, `wp_term_relationships`, `wp_icl_translations`, and the Gravity Forms definitions `wp_gf_form` and `wp_gf_form_meta`. The post types are `page`, `nav_menu_item`, `attachment`, `acf-field`, `acf-field-group`, `post`, `faq`, `case_study` and `testimonials`. Of the users, only `ID`, `user_nicename` and `display_name` of the posts' authors, and their `_yoast_wpseo_profile_updated` meta (the author sitemap's date), written as INSERTs with those columns. No form entries. Then:
 
 ```
 hxweb-cms check  --dump wp.sql --export /home/harcou6/static_site          # writes nothing; one PASS/FAIL line per page

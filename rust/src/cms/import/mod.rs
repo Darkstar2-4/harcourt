@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 
 use sqlx::SqlitePool;
 
-use super::model::{Fields, Lang, Media, MenuItem, Page, PageId, Redirect, Site};
+use super::model::{Author, Fields, Lang, Media, MenuItem, Page, PageId, Redirect, Site, Term};
 
 #[derive(Debug, Default)]
 pub struct Import {
@@ -26,6 +26,8 @@ pub struct Import {
     pub redirects: Vec<(String, Redirect)>,
     /// Gravity Forms definitions, for the orders area's tables.
     pub forms: Vec<forms::GravityForm>,
+    pub terms: Vec<Term>,
+    pub authors: Vec<Author>,
 }
 
 impl Import {
@@ -38,6 +40,8 @@ impl Import {
         site.menus = self.menus.clone();
         site.media = self.media.iter().map(|m| (m.id, m.clone())).collect();
         site.redirects = self.redirects.iter().cloned().collect();
+        site.terms = self.terms.clone();
+        site.authors = self.authors.iter().map(|a| (a.id, a.clone())).collect();
         site
     }
 }
@@ -52,6 +56,9 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
     sqlx::query!("DELETE FROM cms_menu_item").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_media").execute(&mut *tx).await?;
     sqlx::query!("DELETE FROM cms_redirect").execute(&mut *tx).await?;
+    sqlx::query!("DELETE FROM cms_term_page").execute(&mut *tx).await?;
+    sqlx::query!("DELETE FROM cms_term").execute(&mut *tx).await?;
+    sqlx::query!("DELETE FROM cms_author").execute(&mut *tx).await?;
     let keep: Vec<i64> = import.pages.iter().map(|p| p.id.0).collect();
     let keep = serde_json::to_string(&keep).unwrap_or_else(|_| "[]".into());
     sqlx::query!("DELETE FROM cms_page WHERE id NOT IN (SELECT value FROM json_each(?1))", keep).execute(&mut *tx).await?;
@@ -60,12 +67,12 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
         let parent = p.parent_id.map(|id| id.0);
         let kind = p.kind.as_str();
         sqlx::query!(
-            "INSERT INTO cms_page (id, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, post_type, name)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            "INSERT INTO cms_page (id, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, post_type, name, author_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
              ON CONFLICT (id) DO UPDATE SET group_id = excluded.group_id, lang = excluded.lang, path = excluded.path,
                  template = excluded.template, status = excluded.status, title = excluded.title, parent_id = excluded.parent_id,
                  menu_order = excluded.menu_order, published_at = excluded.published_at, modified_at = excluded.modified_at,
-                 post_type = excluded.post_type, name = excluded.name",
+                 post_type = excluded.post_type, name = excluded.name, author_id = excluded.author_id",
             p.id.0,
             p.group_id,
             lang,
@@ -78,7 +85,8 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             p.published_at,
             p.modified_at,
             kind,
-            p.name
+            p.name,
+            p.author_id
         )
         .execute(&mut *tx)
         .await?;
@@ -164,5 +172,28 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             .await?;
     }
     forms::write(&mut tx, &import.forms).await?;
+    for t in &import.terms {
+        let (taxonomy, lang) = (t.taxonomy.as_str(), t.lang.map(Lang::code));
+        sqlx::query!(
+            "INSERT INTO cms_term (id, taxonomy, slug, name, lang, group_id, modified_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            t.id,
+            taxonomy,
+            t.slug,
+            t.name,
+            lang,
+            t.group_id,
+            t.modified_at
+        )
+        .execute(&mut *tx)
+        .await?;
+        for page in &t.pages {
+            sqlx::query!("INSERT INTO cms_term_page (term_id, page_id) VALUES (?1, ?2)", t.id, page.0).execute(&mut *tx).await?;
+        }
+    }
+    for a in &import.authors {
+        sqlx::query!("INSERT INTO cms_author (id, nicename, display_name, profile_updated) VALUES (?1, ?2, ?3, ?4)", a.id, a.nicename, a.display_name, a.profile_updated)
+            .execute(&mut *tx)
+            .await?;
+    }
     tx.commit().await
 }
