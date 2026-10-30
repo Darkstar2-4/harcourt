@@ -133,7 +133,7 @@ fn local_path(url: &str) -> Option<&str> {
 
 const SCRIPT: &str = "<script>\nfunction fn_action(obj,action,id) {\n\tdocument.scs_form.action.value=action;\n\tdocument.scs_form.record_id.value=id;\n\tdocument.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Executive>, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let p = form_params(uri.query(), &body);
     let get = |k: &str| p.get(k).map_or("", String::as_str);
