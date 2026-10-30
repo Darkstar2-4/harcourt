@@ -180,6 +180,29 @@ async fn login_answers_a_plain_message_not_a_database_error() {
 }
 
 #[tokio::test]
+async fn paths_apache_ran_a_script_for_reach_the_script() {
+    let pool = pool().await;
+    let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(app(&pool));
+    let get = |uri: &str, cookie: Option<&str>| {
+        let mut req = Request::builder().uri(uri);
+        if let Some(c) = cookie {
+            req = req.header(header::COOKIE, c);
+        }
+        app.clone().oneshot(req.body(Body::empty()).unwrap())
+    };
+    for uri in ["//login.php", "/login.php/x", "/login.php/", "/login%2Ephp?return_url=/products.php"] {
+        let res = get(uri, Some(VISIT)).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "{uri}");
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(&body[..], b"<p>Sign-in is by emailed code on the Request Access page.</p>\n", "{uri}");
+    }
+
+    let landing = |res: axum::response::Response| res.headers().get(header::LOCATION).map(|v| v.to_str().unwrap().to_string());
+    assert_eq!(landing(get("/scs_index.php/x", None).await.unwrap()).as_deref(), Some("/scs_index.php"));
+    assert_eq!(landing(get("//scs_index.php", None).await.unwrap()), None);
+}
+
+#[tokio::test]
 async fn currency_codes_are_kept_by_administrators() {
     let pool = pool().await;
     let app = app(&pool);
