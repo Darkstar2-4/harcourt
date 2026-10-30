@@ -17,9 +17,15 @@ none of them is an allowed normalization.
   page checked no role. No case exercises it.
 - **Retired paths.** The web SQL consoles, PHP diagnostics and developer toolboxes (`retired.rs`) answer 410 in
   Rust. There are no cases for them.
-- **Dashboard menu.** The links to `/scs_mysql.php`, `/scs_toolbox.php`, `/jquery_toolbox.php`,
-  `/php_toolbox.php` and `/scs_filemanager.php` are gone, because those paths answer 410. "Remote Grants" (`/staff/remote-grants`, a page
-  with no PHP original) is added for Administrators.
+- **Dashboard menu.** It links only to pages the program still serves: the remote access, token, currency and
+  language pages, page text (`/staff/cms`, for Administrators), the design partner agreement, POs, the event log,
+  cookie reset and the email output tester. A group with nothing for the visitor's role is left out. Every signed-in
+  dashboard case differs from the oracle in its menu.
+- **The cut.** The maintenance pages answer 410 (`retired.rs`); their data work is `hxweb export`, `hxweb import`,
+  `hxweb job` and `hxweb remote-grants` (`staff/cli.rs`). The Pending Access tab links each request to
+  `/staff/access/<id>`, where an Administrator approves or denies it, in place of `/user.php`. The Reverse Part#
+  Missing tab shows each SKU as text; `cad_lookup.php`, which it linked to, is gone. The never-submitted form that
+  posted to `/user.php` is gone.
 - **Stopwatch tab.** The Super User tab that timed the dashboard's queries and printed their SQL is not ported. The
   superuser case shows its absence.
 - **Active accounts only.** Staff pages take `Authed<R>`, which refuses Pending and Denied sessions. The oracle signs
@@ -35,7 +41,7 @@ none of them is an allowed normalization.
 - **First-request landing redirect.** hx-diff sends no cookies, so every oracle request starts a PHP session. On
   that first request the PHP sends a signed-in visitor to their landing page: `/dashboard.php` for staff,
   `/catalog.php` for customers. Signed-in personas can therefore be compared only on `/dashboard.php`.
-  `/scs_log.php`, `/mailer_maintain.php` and `/company.php` have anonymous cases only. A Rust session has no first
+  `/scs_log.php` and `/company.php` have anonymous cases only. A Rust session has no first
   request, so a below-role session goes to `/scs_index.php`, where the PHP's `user->access()` sends it on later
   requests. The landing redirect itself belongs to the accounts sign-in flow.
 - **`harcourt_profile` cookie.** The PHP sets it on every new session, so every oracle response names it. The Rust

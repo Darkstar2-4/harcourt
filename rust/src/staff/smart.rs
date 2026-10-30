@@ -1,6 +1,6 @@
 //! The smart-SKU modules (classes/configure_<subcategory>.php): a smart subcategory builds its parts from the SKU
 //! and prices them from `pricing`, one row per record type and option set. Here is what each module prices, which
-//! is what pricing_utility.php and the subcategory editor read; parsing a SKU stays with the configurator.
+//! is what `hxweb export pricing` and `hxweb import pricing` read; parsing a SKU stays with the configurator.
 
 /// One kind of pricing row: its code, its name, the options that key it and the prices it holds. No module's
 /// option has a list or a number format, so an option is the text stored.

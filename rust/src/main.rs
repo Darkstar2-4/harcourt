@@ -65,8 +65,8 @@ pub fn on(feature: &str) -> bool {
 async fn main() {
     tracing_subscriber::fmt().with_target(false).init();
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.first().map(String::as_str) == Some("job") {
-        std::process::exit(hxweb::staff::jobs::cli(&args[1..]).await);
+    if let Some(code) = hxweb::staff::cli::run(&args).await {
+        std::process::exit(code);
     }
     let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());
     let listen = env("HXWEB_LISTEN", "127.0.0.1:8090");

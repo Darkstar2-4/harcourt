@@ -1,5 +1,6 @@
-//! dashboard.php: the staff landing page. A menu of the staff tools for the visitor's role, then report tabs over
-//! the log, user and orderhd tables. `?tab=<title>` opens on a tab.
+//! dashboard.php: the staff landing page. A menu of the staff pages for the visitor's role, then report tabs over
+//! the log, user and orderhd tables. `?tab=<title>` opens on a tab. The menu names only pages the program still
+//! serves; the maintenance pages it listed are `hxweb` commands now (cli.rs).
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -14,7 +15,7 @@ use sqlx::SqlitePool;
 
 use super::{
     csrf::Fields,
-    html::{close, esc, hidden, href, number, open, text, url_query, MenuGroup, Notes, Opts, Tabs},
+    html::{esc, href, number, text, url_query, MenuGroup, Notes, Opts, Tabs},
     shell, time, Staff,
 };
 use crate::{
@@ -27,113 +28,28 @@ use crate::{
 const PATH: &str = "/dashboard.php";
 const WEEK: i64 = 7 * 86400;
 
-use Role::{Administrator as A, Executive as E, Internal as I};
+use Role::{Administrator as A, Executive as E};
 
 /// The menu: groups of (minimum role, label, path). The last group is titled with the visitor's role.
 type Link = (Role, &'static str, &'static str);
 
 const MENU: &[(&str, &[Link])] = &[
-    (
-        "User & BOT Manager",
-        &[
-            (E, "Maintain Users", "/user.php"),
-            (A, "User Utility", "/user_utility.php"),
-            (E, "Email Export", "/user_email.php"),
-            (A, "User Impersonate", "/user_impersonate.php"),
-            (A, "Currency Codes", "/currency.php"),
-            (A, "Maintain Industry", "/industry.php"),
-            (A, "Maintain BOTS", "/bot.php"),
-            (A, "BOT Impersonate", "/bot_impersonate.php"),
-            (A, "Apache Log BOTS", "/bot_apache.php"),
-        ],
-    ),
-    (
-        "Remote Access",
-        &[
-            (A, "Company", "/remote_access.php"),
-            (A, "Access Code", "/remote_code.php"),
-            (A, "Tokens", "/remote_token.php"),
-            (A, "Domain Blacklist", "/blacklist.php"),
-            (A, "reCAPTCHA Bypass", "/captcha_bypass.php"),
-            (A, "Remote Grants", "/staff/remote-grants"),
-        ],
-    ),
-    (
-        "Document Manager",
-        &[(A, "Languages", "/language.php"), (E, "Documents", "/document.php"), (E, "Pages", "/pages.php"), (A, "Campaigns", "/campaign_manager.php")],
-    ),
-    (
-        "Portal / Hero Pages",
-        &[
-            (E, "Maintain Customer Portal", "/portal.php"),
-            (E, "Portal Content", "/portalcontent.php"),
-            (E, "Portal Category", "/portalcategory.php"),
-            (E, "Portal Items", "/portalitem.php"),
-            (A, "Hero Headline", "/hero.php"),
-            (A, "Hero Preview", "/hero_preview.php"),
-        ],
-    ),
-    (
-        "Inventory",
-        &[
-            (I, "Pricing & CAD", "/configure.php"),
-            (I, "Price Book", "/inventory_pricebook.php"),
-            (E, "Category Codes", "/category.php"),
-            (E, "Subcategory Codes", "/subcategory.php"),
-            (E, "Subcategory Utility", "/subcategory_utility.php"),
-            (E, "Subcategory Order", "/subcategory_order.php"),
-            (E, "Inventory Manager", "/inventory.php"),
-            (A, "Price Increase", "/inventory_increase.php"),
-            (A, "Inventory Import/Export", "/inventory_utility.php"),
-            (A, "Inventory w/o Prices", "/inventory_no_price.php"),
-            (A, "ERP Pricing Import", "/inventory_price.php"),
-            (A, "Smart SKU Pricing Utility", "/pricing_utility.php"),
-        ],
-    ),
-    (
-        "Catalog",
-        &[
-            (A, "Search Utility", "/search_utility.php"),
-            (A, "Image Filmstrip", "/image_filmstrip.php"),
-            (A, "Design Partner Agreement", "/design_partner_agreement.php"),
-            (A, "Metric Filter", "/catalog_metric_filter.php"),
-        ],
-    ),
-    (
-        "PARTsolutions Integration",
-        &[
-            (A, "Inventory Import PRJ", "/inventory_prj.php"),
-            (A, "Inventory Missing PRJ", "/inventory_missing_prj.php"),
-            (A, "Subcategory PRJ Review", "/subcategory_prj.php"),
-            (A, "CAD Toolbox", "/cad_toolbox.php"),
-            (A, "Configurator Toolbox", "/configurator_toolbox.php"),
-        ],
-    ),
-    ("Orders", &[(E, "PO", "/orderhd.php"), (E, "Carrier Codes", "/carrier.php")]),
-    (
-        "",
-        &[
-            (A, "Registry", "/scs_registry.php"),
-            (E, "Event Log", "/scs_log.php"),
-            (A, "Tracking Log", "/scs_track_log.php"),
-            (E, "Reset Cookie", "/cookie_reset.php"),
-            (A, "Email Documents", "/mailer_maintain.php"),
-            (A, "Email Output Tester", "/mailer_output.php"),
-        ],
-    ),
+    ("Document Manager", &[(A, "Page Text", crate::cms::admin::PATH)]),
+    ("", &[(E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
 ];
 
 fn menu(role: Role) -> String {
     let mut m = MenuGroup::new("standard");
     for (title, items) in MENU {
+        let shown: Vec<&Link> = items.iter().filter(|(min, ..)| role >= *min).collect();
+        if shown.is_empty() {
+            continue;
+        }
         m.group(if title.is_empty() { role.as_str() } else { title });
-        for (min, label, path) in *items {
-            if role >= *min {
-                m.item(label, path, Opts::new());
-            }
+        for (_, label, path) in shown {
+            m.item(label, path, Opts::new());
         }
     }
-    m.item("Cookie Test", "/cookie.php", Opts::new().set("target", "_blank"));
     m.render()
 }
 
@@ -154,6 +70,12 @@ fn table(class: &str, headers: &[&str], rows: Vec<String>) -> String {
 fn maintain_url(page: &str, id: i64, tab: &str, here: &str) -> String {
     let back = format!("{here}{}", url_query(&[("tab", tab)]));
     format!("{page}{}", url_query(&[("action", "maintain"), ("record_id", &id.to_string()), ("return_url", &back)]))
+}
+
+/// An access request's page (access.rs), which comes back to the tab.
+fn access_url(id: i64, tab: &str, here: &str) -> String {
+    let back = format!("{here}{}", url_query(&[("tab", tab)]));
+    format!("/staff/access/{id}{}", url_query(&[("return_url", &back)]))
 }
 
 struct Settings {
@@ -228,7 +150,7 @@ async fn pending(pool: &SqlitePool, s: &Settings, here: &str, tabs: &mut Tabs) -
         .map(|u| {
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &maintain_url("/user.php", u.id, &tab, here), Opts::new())),
+                format!("<td>{}</td>", href(&text(u.ip.as_deref().unwrap_or("")), &access_url(u.id, &tab, here), Opts::new())),
                 format!("<td>{}</td>", text(u.company_name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(names.get(&u.id).map_or("", String::as_str)).replace("&lt;br>", "<br>")),
                 format!("<td>{}</td>", recaptcha(u.recaptcha_score, s)),
@@ -491,7 +413,7 @@ async fn campaign(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
 async fn sku_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     let since = unix_now() - WEEK;
     let rows = sqlx::query!(
-        r#"SELECT l.sku AS "sku!", c.name AS "category_name?", s.name AS "subcategory_name?", s.prj AS "prj?",
+        r#"SELECT l.sku AS "sku!", c.name AS "category_name?", s.name AS "subcategory_name?",
                   min(l.date_time) AS "first!: i64", max(l.date_time) AS "last!: i64", count(*) AS "count!: i64"
            FROM log l
            LEFT JOIN inventory i ON i.sku = l.sku
@@ -509,10 +431,9 @@ async fn sku_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     let body = rows
         .iter()
         .map(|r| {
-            let link = format!("/cad_lookup.php{}", url_query(&[("action", "ipc"), ("source", "prj"), ("prj", r.prj.as_deref().unwrap_or("")), ("sku", &r.sku)]));
             [
                 "<tr>".to_string(),
-                format!("<td>{}</td>", href(&text(&r.sku), &link, Opts::new())),
+                format!("<td>{}</td>", text(&r.sku)),
                 format!("<td>{}</td>", text(r.category_name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(r.subcategory_name.as_deref().unwrap_or(""))),
                 format!("<td class=center>{}</td>", date(r.first)),
@@ -584,16 +505,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields, her
         sku_error(pool, &mut tabs).await?;
     }
     related_error(pool, &mut tabs).await?;
-    let body = [
-        notes.render(),
-        open("/user.php", staff.csrf.as_str(), false),
-        hidden("action", "maintain"),
-        hidden("return_url", here),
-        hidden("record_id", ""),
-        close().to_string(),
-        tabs.render(),
-    ]
-    .concat();
+    let body = [notes.render(), tabs.render()].concat();
     Ok(shell::page(pool, staff.view(), &title, &body).await)
 }
 
@@ -612,16 +524,12 @@ mod tests {
     #[test]
     fn menu_shows_each_link_from_its_role_up() {
         let exec = menu(Role::Executive);
-        assert!(exec.contains("<a href=\"/user.php\" class='nobr'>Maintain Users</a>"));
-        assert!(!exec.contains("/user_utility.php"));
-        assert!(!exec.contains("Remote Access"));
+        assert!(exec.contains("<a href=\"/scs_log.php\" class='nobr'>Event Log</a>"));
         assert!(exec.contains("<span style='font-size: 140%;'>Executive</span><br>"));
+        assert!(!exec.contains("Remote Access") && !exec.contains("/staff/cms"), "a group with nothing for the role is left out");
         let admin = menu(Role::Administrator);
-        assert!(admin.contains("/staff/remote-grants"));
-        assert!(!menu(Role::SuperUser).contains("/scs_filemanager.php"));
-        assert!(exec.contains("<a href=\"/cookie.php\" class='nobr' target='_blank'>Cookie Test</a>"));
-        assert!(menu(Role::Executive).contains("<span style='font-size: 140%;'>User & BOT Manager</span>"));
-        for gone in ["/scs_mysql.php", "/scs_toolbox.php", "/jquery_toolbox.php", "/php_toolbox.php"] {
+        assert!(admin.contains("<a href=\"/staff/cms\" class='nobr'>Page Text</a>"));
+        for gone in ["/user.php", "/inventory.php", "/subcategory.php", "/staff/remote-grants", "/category.php", "/cad_lookup.php", "/cookie.php"] {
             assert!(!menu(Role::SuperUser).contains(gone), "{gone}");
         }
     }
@@ -642,7 +550,8 @@ mod tests {
 
     #[test]
     fn return_urls_come_back_to_the_tab() {
-        assert_eq!(maintain_url("/user.php", 5, "Pending Access (2)", PATH), "/user.php?action=maintain&record_id=5&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25282%2529");
+        assert_eq!(maintain_url("/orderhd.php", 5, "Pending PO (2)", PATH), "/orderhd.php?action=maintain&record_id=5&return_url=%2Fdashboard.php%3Ftab%3DPending%2BPO%2B%25282%2529");
+        assert_eq!(access_url(5, "Pending Access (2)", PATH), "/staff/access/5?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25282%2529");
         assert_eq!(content_key(17, 255), STANDARD_NO_PAD.encode("17\tff"));
     }
 }

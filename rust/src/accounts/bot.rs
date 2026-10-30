@@ -157,20 +157,6 @@ pub async fn identify(pool: &SqlitePool, dns: &Dns, ip: IpAddr) -> sqlx::Result<
     Ok(None)
 }
 
-pub async fn load(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Bot>> {
-    let r = sqlx::query!(
-        r#"SELECT id AS "id!: i64", code AS "code!", name AS "name!", portal_id AS "portal_id!: i64", catalog AS "catalog!: i64",
-                  status AS "status!" FROM bot WHERE id = ?1"#,
-        id
-    )
-    .fetch_optional(pool)
-    .await?;
-    Ok(r.and_then(|r| {
-        let status = parse_status(&r.status)?;
-        Some(Bot { id: r.id, code: r.code, name: r.name, portal_id: r.portal_id, catalog: r.catalog != 0, status })
-    }))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,7 +208,5 @@ mod tests {
         let bot = identify(&pool, &dns, ip("192.0.2.1")).await.unwrap().unwrap();
         assert_eq!((bot.id, bot.portal_id, bot.catalog, bot.status), (3, 4, true, BotStatus::Active));
         assert!(identify(&pool, &dns, ip("192.0.2.9")).await.unwrap().is_none());
-        assert_eq!(load(&pool, 4).await.unwrap().unwrap().status, BotStatus::Denied);
-        assert!(load(&pool, 2).await.unwrap().is_none());
     }
 }

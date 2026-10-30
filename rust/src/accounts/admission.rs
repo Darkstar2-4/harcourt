@@ -182,7 +182,7 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     if services.ipstack {
         let (pool, ip) = (pool.clone(), ctx.ip.to_string());
         tokio::spawn(async move {
-            if let Err(e) = crate::staff::user::ipstack(&pool, id.0, &ip).await {
+            if let Err(e) = crate::staff::access::ipstack(&pool, id.0, &ip).await {
                 tracing::warn!("IPStack for account {}: {e}", id.0);
             }
         });

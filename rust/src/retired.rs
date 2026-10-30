@@ -70,6 +70,28 @@ mod tests {
     }
 
     #[test]
+    fn the_dropped_pages_are_gone() {
+        for p in [
+            "/beta_authorize.php",
+            "/punchout.php",
+            "/scs_mysql.php",
+            "/phpinfo.php",
+            "/scs_toolbox.php/x",
+            "/X.PHP",
+            "/login.php",
+            "/user_impersonate.php",
+            "/mailer_maintain.php",
+            "/user.php",
+            "/subcategory.php",
+            "/new_catalog.php",
+            "/beta.php",
+            "/document_viewer.php",
+        ] {
+            assert!(is_retired(p), "{p}");
+        }
+    }
+
+    #[test]
     fn leaves_other_paths_alone() {
         for p in ["/", "/catalog/", "/scs_remote", "/scs_remote.phps", "/scs_remote.php/../catalog/", "/api/auth/code", "/company/wp/", "/feed/"] {
             assert!(!is_retired(p), "{p}");

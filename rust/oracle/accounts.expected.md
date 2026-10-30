@@ -37,3 +37,13 @@ cannot be compared by `hx-diff`, and has no case.
   proxy or loopback address. Bots are matched only on a reverse DNS name that resolves forward to the same address.
 - **cookie_reset.php** always clears `harcourt` and forgets the visit, as the PHP did, and also ends a sign-in by
   emailed code or provider (`__Host-hx_session`).
+
+## Dropped in the cut (410)
+
+`login.php`, `user_impersonate.php` and `bot_impersonate.php` (staff reach an account with a remote grant
+instead), `language_change.php` (no traffic; the catalog's flags and `?lang=` choose the language), and the staff
+code-table and list pages `currency.php`, `language.php`, `bot.php`, `blacklist.php`, `captcha_bypass.php`,
+`remote_access.php`, `remote_token.php` (their tables are edited in the database). The JSON routes nothing called
+are gone too (`/api/auth/*`, `/api/me`, `/api/remote/grants`); the emailed code is the sign-up page's, and grants
+are minted by the staff command and redeemed at `/api/remote/redeem`. Notes above about these pages describe them
+as they were.

@@ -2,7 +2,7 @@
 //! when the mail went out knew the code, and its three-try counter lived in the browser session.
 //!
 //! Here the code is 8 characters drawn from the system CSPRNG (about 40 bits), valid for 15 minutes, stored only
-//! as an HMAC, allowed 5 wrong tries counted in the database, and consumed by a correct one.
+//! as an HMAC, allowed a few wrong tries counted in the database, and consumed by a correct one.
 
 use hmac::{Hmac, Mac};
 use rand::{rngs::OsRng, Rng};
@@ -13,7 +13,6 @@ use subtle::ConstantTimeEq;
 use crate::{config::Secret, identity::Email};
 
 pub const TTL_SECS: i64 = 900;
-pub const MAX_ATTEMPTS: i64 = 5;
 pub const RESEND_AFTER_SECS: i64 = 60;
 const LEN: usize = 8;
 /// No 0/O, 1/I/L: a code is read off a screen and typed.
@@ -76,32 +75,6 @@ pub async fn issue(pool: &SqlitePool, secret: &Secret, email: &Email, now: i64) 
     Ok(true)
 }
 
-/// True once, for the right code, within time and attempts. Every other outcome is the same false.
-pub async fn verify(pool: &SqlitePool, secret: &Secret, email: &Email, typed: &str, now: i64) -> sqlx::Result<bool> {
-    let Some(code) = normalise(typed) else { return Ok(false) };
-    let email_str = email.as_str();
-    let stored = sqlx::query_scalar!(
-        r#"UPDATE access_code SET attempts = attempts + 1
-           WHERE email = ?1 AND expires_at > ?2 AND attempts < ?3
-           RETURNING code_mac AS "code_mac!""#,
-        email_str,
-        now,
-        MAX_ATTEMPTS
-    )
-    .fetch_optional(pool)
-    .await?;
-    let Some(stored) = stored else { return Ok(false) };
-    let expected = mac(secret, email, &code);
-    let expected = expected.as_slice();
-    if !bool::from(stored.as_slice().ct_eq(expected)) {
-        return Ok(false);
-    }
-    let consumed = sqlx::query!("DELETE FROM access_code WHERE email = ?1 AND code_mac = ?2", email_str, expected)
-        .execute(pool)
-        .await?;
-    Ok(consumed.rows_affected() == 1)
-}
-
 /// What one try at the sign-up page's code box came to (newuser.php json_verify).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Attempt {
@@ -115,7 +88,7 @@ pub enum Attempt {
 }
 
 /// One try against the live code for `email`, counted in the database. `typed` None spends a try without looking
-/// at the code (the PHP counted a failed reCAPTCHA that way). Unlike `verify`, junk costs a try, as it did there.
+/// at the code (the PHP counted a failed reCAPTCHA that way); junk costs a try, as it did there.
 pub async fn attempt(pool: &SqlitePool, secret: &Secret, email: &Email, typed: Option<&str>, now: i64, limit: i64) -> sqlx::Result<Attempt> {
     let email_str = email.as_str();
     let spent = sqlx::query!(
@@ -159,8 +132,66 @@ mod tests {
     #[test]
     fn typed_codes_normalise() {
         assert_eq!(normalise(" ab3d-efgh ").as_deref(), Some("AB3DEFGH"));
-        for bad in ["", "ABC", "AB3DEFG0", "AB3DEFGHJ", "AB3DEFG'"] {
+        for bad in ["", "ABC", "AB3DEFG0", "AB3DEFGHJ", "AB3DEFG."] {
             assert!(normalise(bad).is_none(), "{bad:?}");
         }
+    }
+
+    const T: i64 = 1_700_000_000;
+
+    async fn setup() -> (SqlitePool, Secret, Email) {
+        (crate::db::open_memory().await.unwrap(), Secret::from_bytes(vec![7; 32]), Email::parse("pat@example.com").unwrap())
+    }
+
+    async fn mailed_code(pool: &SqlitePool) -> String {
+        let body: String = sqlx::query_scalar("SELECT body FROM outbox ORDER BY id DESC LIMIT 1").fetch_one(pool).await.unwrap();
+        body.split("code is ").nth(1).unwrap().chars().take(LEN).collect()
+    }
+
+    fn wrong(code: &str) -> &'static str {
+        if code.starts_with('2') { "3AAAAAAA" } else { "2AAAAAAA" }
+    }
+
+    #[tokio::test]
+    async fn a_code_works_once() {
+        let (pool, secret, email) = setup().await;
+        assert!(issue(&pool, &secret, &email, T).await.unwrap());
+        let code = mailed_code(&pool).await;
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code.to_lowercase()), T + 5, 2).await.unwrap(), Attempt::Verified);
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code), T + 6, 2).await.unwrap(), Attempt::Expired, "used");
+        let other = Email::parse("lee@example.com").unwrap();
+        assert_eq!(attempt(&pool, &secret, &other, Some(&code), T + 6, 2).await.unwrap(), Attempt::Expired, "another address's code");
+    }
+
+    #[tokio::test]
+    async fn a_code_ends_after_fifteen_minutes() {
+        let (pool, secret, email) = setup().await;
+        issue(&pool, &secret, &email, T).await.unwrap();
+        let code = mailed_code(&pool).await;
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code), T + TTL_SECS, 2).await.unwrap(), Attempt::Expired);
+    }
+
+    #[tokio::test]
+    async fn wrong_codes_use_up_the_tries_and_then_the_right_one_is_refused() {
+        let (pool, secret, email) = setup().await;
+        issue(&pool, &secret, &email, T).await.unwrap();
+        let code = mailed_code(&pool).await;
+        assert_eq!(attempt(&pool, &secret, &email, Some(wrong(&code)), T + 1, 2).await.unwrap(), Attempt::Wrong(1));
+        assert_eq!(attempt(&pool, &secret, &email, None, T + 2, 2).await.unwrap(), Attempt::Wrong(2));
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code), T + 3, 2).await.unwrap(), Attempt::Locked);
+        assert!(issue(&pool, &secret, &email, T + RESEND_AFTER_SECS).await.unwrap(), "a new code starts over");
+        let code = mailed_code(&pool).await;
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code), T + RESEND_AFTER_SECS + 1, 2).await.unwrap(), Attempt::Verified);
+    }
+
+    #[tokio::test]
+    async fn a_second_code_within_a_minute_is_not_sent() {
+        let (pool, secret, email) = setup().await;
+        assert!(issue(&pool, &secret, &email, T).await.unwrap());
+        assert!(!issue(&pool, &secret, &email, T + RESEND_AFTER_SECS - 1).await.unwrap());
+        let mails: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox").fetch_one(&pool).await.unwrap();
+        assert_eq!(mails, 1);
+        let code = mailed_code(&pool).await;
+        assert_eq!(attempt(&pool, &secret, &email, Some(&code), T + 2, 2).await.unwrap(), Attempt::Verified, "the first code still stands");
     }
 }

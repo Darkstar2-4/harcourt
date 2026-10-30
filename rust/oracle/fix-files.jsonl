@@ -1,5 +1,5 @@
 # Files, ajax and search endpoints (scs_file.php, scs_index.php, scs_ajax.php and friends). Run with --rust-session.
-# Content keys are synthetic: base64 of '<content id>\t<made-up session stamp>'. Staff autocompletes run as staff personas only.
+# Content keys are synthetic: base64 of '<content id>\t<made-up session stamp>'. The company autocomplete runs as staff personas only.
 {"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "anonymous"}
 {"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "customer-active"}
 {"name": "file-overview-stale", "path": "/scs_file.php?content_id=Njc2Mwkx", "persona": "customer-pending"}
@@ -49,21 +49,14 @@
 {"name": "ajax-no-table", "path": "/scs_ajax.php", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-no-table", "path": "/scs_ajax.php", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-unknown-table", "path": "/scs_ajax.php?table=nosuchtable&term=a", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "ajax-sku", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "ajax-sku-direct", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active"}
 {"name": "ajax-company", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "internal-active", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-company", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "administrator-active", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "anonymous"}
 {"name": "portal", "path": "/customer_portal.php?scscpq_wp=1", "persona": "customer-active"}
 {"name": "portal-plain", "path": "/customer_portal.php", "persona": "anonymous"}
 {"name": "portal-plain", "path": "/customer_portal.php", "persona": "customer-active"}
-{"name": "beta", "path": "/beta.php", "persona": "anonymous"}
-{"name": "beta", "path": "/beta.php", "persona": "customer-active"}
 {"name": "image-viewer", "path": "/image_viewer.php?action=x", "persona": "anonymous"}
 {"name": "image-viewer", "path": "/image_viewer.php?action=x", "persona": "customer-active"}
-{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "persona": "anonymous", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "persona": "customer-active", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "portal-ajax-direct", "path": "/portal_ajax.php?action=catalog", "persona": "anonymous"}
 {"name": "api-bare", "path": "/scscpq_api.php", "persona": "anonymous", "session": "cold"}
 {"name": "api-bare", "path": "/scscpq_api.php", "persona": "customer-active", "session": "cold"}
 {"name": "api-bare-warm", "path": "/scscpq_api.php", "persona": "anonymous", "session": "warm"}
@@ -78,10 +71,6 @@
 {"name": "ajax-no-table-warm", "path": "/scs_ajax.php", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-unknown-table-warm", "path": "/scs_ajax.php?table=nosuchtable&term=a", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-search-action-save-warm", "path": "/scs_ajax.php?table=search&action=save&term=clamp", "persona": "customer-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/catalog/", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "ajax-sku-warm", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "ajax-sku-warm", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "administrator-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
-{"name": "ajax-sku-warm-noxhr", "path": "/scs_ajax.php?table=inventory&detail=sku&term=LS-1", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php"}}
-{"name": "ajax-sku-warm-empty", "path": "/scs_ajax.php?table=inventory&detail=sku&term=", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/suppliersku.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-company-warm", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-company-warm", "path": "/scs_ajax.php?table=user&source=company_name&term=persona", "persona": "administrator-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
 {"name": "ajax-company-warm-limit", "path": "/scs_ajax.php?table=user&source=company_name&term=persona%20active&limit=3", "persona": "internal-active", "session": "warm", "headers": {"Referer": "https://www.harcourt.co/design_partner_agreement.php", "X-Requested-With": "XMLHttpRequest"}}
@@ -101,7 +90,5 @@
 {"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
 {"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
 {"name": "portal-framed-warm", "path": "/customer_portal.php?scscpq_wp=1", "persona": "executive-active", "session": "warm"}
-{"name": "beta-warm", "path": "/beta.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
-{"name": "beta-warm", "path": "/beta.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
 {"name": "index-pending-cold", "path": "/scs_index.php", "persona": "internal-pending", "session": "cold"}
 {"name": "index-pending-cold", "path": "/scs_index.php", "persona": "customer-denied", "session": "cold"}

@@ -3,9 +3,7 @@
 //!
 //! The first of these that applies decides (scs_header.php menu_class::initial):
 //!
-//!  1. A live session cookie: an account signed in by emailed code, OAuth or a grant. An Administrator's session
-//!     may carry an impersonation, which replaces what the visitor looks like and never shows a role above the
-//!     Administrator's own.
+//!  1. A live session cookie: an account signed in by emailed code, OAuth or a grant.
 //!  2. Sign-in by company address: the account whose `ip` is the client address. The client address is the socket
 //!     peer, or X-Real-IP when the peer is one of our proxies (`api::client_addr`); no other header is believed,
 //!     and a proxy or loopback address never signs anyone in.
@@ -21,17 +19,14 @@
 //!    is what is stored. The status may be Pending or Denied.
 //!  * `language`: the language to show when the URL does not say. An explicit choice this visit, else the
 //!    account's saved language, else Accept-Language, else English.
-//!  * `currency`: the currency to price in: the account's, if the site offers it, else US dollars.
 //!  * `campaign`: the active campaign this visit began with (`?campaign=CODE` on its first page).
 //!  * `framed`: the visit is inside the WordPress frame (`?scscpq_wp=1` on this or an earlier page of the visit).
-//!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
 //!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
 //!  * `php_self`: PHP_SELF, the page's own path with any PATH_INFO (`/campaign.php/more`); the PHP pages' forms
 //!    posted back to it. Escape it when printing: the client chose the PATH_INFO.
 //!
-//! The shortcuts `user()`, `account()`, `bot()`, `role()`, `at_least()`, `catalog()`, `cad()`, `ecommerce()`,
-//! `portal_id()` and `industry_id()` cover the common questions.
+//! The shortcuts `user()`, `account()`, `bot()`, `role()` and `ecommerce()` cover the common questions.
 //!
 //! `layer` resolves the visitor once per request for the page routers and writes what the PHP wrote when a visit
 //! began: an account's sign-in (its `last_login` and log row, by session or by company address), the campaign
@@ -53,11 +48,11 @@ use sqlx::SqlitePool;
 
 use crate::{
     accounts::{
-        account::{self, Account, Grants, PriceType},
+        account::{self, Account},
         bot::{self, Bot, BotStatus},
         campaign::{self, Campaign},
         clock, cookies,
-        locale::{Currencies, CurrencyCode, LanguageCode, Languages},
+        locale::{LanguageCode, Languages},
         log::{self, Kind, Subject},
         profile::Profile,
         visit::{self, Visit, VisitId},
@@ -73,9 +68,7 @@ use crate::{
 pub struct Visitor {
     pub identity: Identity,
     pub language: LanguageCode,
-    pub currency: CurrencyCode,
     pub campaign: Option<Campaign>,
-    pub impersonator: Option<Impersonator>,
     pub client: Option<IpAddr>,
     /// The session this browser is signed in with, as stored: what per-browser state (the cart) hangs off. None
     /// for anonymous visitors, bots and sign-in by company address.
@@ -99,7 +92,7 @@ pub enum Identity {
 #[derive(Debug, Clone)]
 pub struct SignedIn {
     pub account: Account,
-    /// The person, when they proved an address at the company. None for a company address or an impersonation.
+    /// The person, when they proved an address at the company. None for a company address.
     pub email: Option<Email>,
     pub via: Via,
 }
@@ -110,22 +103,12 @@ pub enum Via {
     CompanyAddress,
 }
 
-#[derive(Debug, Clone)]
-pub struct Impersonator {
-    pub id: UserId,
-    pub email: Option<Email>,
-    /// The impersonation form's "Legacy?" box, read by the legacy portal view.
-    pub portal_legacy: bool,
-}
-
 impl Visitor {
     pub fn anonymous() -> Visitor {
         Visitor {
             identity: Identity::Anonymous,
             language: LanguageCode::english(),
-            currency: CurrencyCode::usd(),
             campaign: None,
-            impersonator: None,
             client: None,
             session: None,
             framed: false,
@@ -162,38 +145,8 @@ impl Visitor {
         self.user().map_or(Role::Customer, |u| u.role)
     }
 
-    /// classes/user.php access($role, FALSE).
-    pub fn at_least(&self, role: Role) -> bool {
-        self.role() >= role
-    }
-
-    /// A bot sees the catalog when its row says so, whatever its status, as classes/bot.php session() set it.
-    pub fn catalog(&self) -> bool {
-        match &self.identity {
-            Identity::Account(s) => s.account.catalog(),
-            Identity::Bot(b) => b.catalog,
-            Identity::Anonymous => false,
-        }
-    }
-
-    pub fn cad(&self) -> bool {
-        self.account().is_some_and(Account::cad)
-    }
-
     pub fn ecommerce(&self) -> bool {
         self.account().is_some_and(Account::ecommerce)
-    }
-
-    pub fn portal_id(&self) -> i64 {
-        match &self.identity {
-            Identity::Account(s) => s.account.portal_id,
-            Identity::Bot(b) => b.portal_id,
-            Identity::Anonymous => 0,
-        }
-    }
-
-    pub fn industry_id(&self) -> i64 {
-        self.account().map_or(0, |a| a.industry_id)
     }
 
     /// The session user PHP kept for this visitor had the status Pending: a Pending account, or anyone not signed
@@ -294,37 +247,20 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     };
     let client = api::client_addr(parts, &core.trusted_proxies);
     let mut effects = Vec::new();
-    let mut impersonator = None;
-    let mut overlay_campaign = None;
-    let mut overlay_language = None;
-    let mut overlay_currency = None;
 
     let mut identity = Identity::Anonymous;
     let mut session = None;
     if let Some(token) = api::session_cookie(&parts.headers) {
         if let Some(found) = session::lookup(pool, &token, now).await? {
             session = Some(token.hash());
-            let email = found.email.as_deref().and_then(Email::parse);
-            if let Some(view) = impersonation(pool, &token, &found.user).await? {
-                impersonator = Some(Impersonator { id: found.user.id, email: email.clone(), portal_legacy: view.portal_legacy });
-                overlay_campaign = Some(view.campaign_code.clone());
-                overlay_language = Some(view.language_code.clone());
-                overlay_currency = Some(view.currency_code.clone());
-                identity = match (view.bot_id, view.user_id) {
-                    (Some(bot_id), _) => bot::load(pool, bot_id).await?.map_or(Identity::Anonymous, Identity::Bot),
-                    (None, Some(id)) => match account::load(pool, id).await? {
-                        Some(account) => Identity::Account(Box::new(SignedIn { account: view.apply(account), email: None, via: Via::Session })),
-                        None => Identity::Anonymous,
-                    },
-                    (None, None) => Identity::Anonymous,
-                };
-            } else if let Some(account) = account::load(pool, found.user.id).await? {
+            if let Some(account) = account::load(pool, found.user.id).await? {
                 effects.push(Effect::Login(found.user.id));
+                let email = found.email.as_deref().and_then(Email::parse);
                 identity = Identity::Account(Box::new(SignedIn { account, email, via: Via::Session }));
             }
         }
     }
-    let has_session = impersonator.is_some() || matches!(identity, Identity::Account(_));
+    let has_session = matches!(identity, Identity::Account(_));
 
     if !has_session {
         if let Some(ip) = client.filter(|ip| may_sign_in_by_address(*ip, &core.trusted_proxies)) {
@@ -347,11 +283,10 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
 
     // Inside a visit PHP reloaded a session user who was not signed in from an empty user_data_class, so every PHP
     // page after the first spoke English to them, whatever they had asked for.
-    let reset_to_english = matches!(identity, Identity::Anonymous) && impersonator.is_none() && !php.first && php.page.reloads_user();
+    let reset_to_english = matches!(identity, Identity::Anonymous) && !php.first && php.page.reloads_user();
     let languages = Languages::load(pool).await?;
-    let language = overlay_language
-        .and_then(|code| languages.get(&code))
-        .or_else(|| reset_to_english.then(LanguageCode::english))
+    let language = reset_to_english
+        .then(LanguageCode::english)
         .or_else(|| stored.language_code.as_deref().and_then(|c| languages.get(c)))
         .or_else(|| match &identity {
             Identity::Account(s) => languages.get(&s.account.language_code),
@@ -359,28 +294,15 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
         })
         .unwrap_or_else(|| languages.from_accept_language(header_str(&parts.headers, header::ACCEPT_LANGUAGE)));
 
-    let currencies = Currencies::load(pool).await?;
-    let currency = overlay_currency
-        .or_else(|| match &identity {
-            Identity::Account(s) => Some(s.account.currency_code.clone()),
-            _ => None,
-        })
-        .and_then(|code| currencies.get(&code))
-        .unwrap_or_else(CurrencyCode::usd);
-
     let today = clock::detroit(now).date;
     let asked = campaign_in_query(parts.uri.query()).filter(|_| php.initial());
-    let campaign = match (overlay_campaign, asked) {
-        (Some(code), _) => match code {
-            Some(code) => campaign::active(pool, &code, today).await?,
-            None => None,
-        },
-        (None, Some(code)) => {
+    let campaign = match asked {
+        Some(code) => {
             let found = campaign::active(pool, &code, today).await?;
             effects.push(Effect::Campaign(found.clone()));
             found
         }
-        (None, None) => match stored.campaign_code {
+        None => match stored.campaign_code {
             Some(code) => campaign::active(pool, &code, today).await?,
             None => None,
         },
@@ -389,7 +311,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     if let Some(host) = external_referer(header_str(&parts.headers, header::REFERER)) {
         effects.push(Effect::Referer(host));
     }
-    if !php.initial() || impersonator.is_some() {
+    if !php.initial() {
         effects.clear();
     }
     let asks_frame = (php.page.reloads_pending() || php.initial()) && framed_in_query(parts.uri.query());
@@ -399,7 +321,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     let framed = asks_frame || stored.framed;
 
     let php_self = php_self(parts).to_string();
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id, php_self }, effects })
+    Ok(Resolved { visitor: Visitor { identity, language, campaign, client, session, framed, visit: visit_id, php_self }, effects })
 }
 
 /// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.
@@ -446,7 +368,7 @@ async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> s
 /// PHP_SELF is `php_self`: where to send the visitor, unless that is the page asked for. Campaign visitors and bots
 /// were never redirected.
 async fn landing(pool: &SqlitePool, visitor: &Visitor, php_self: &str) -> sqlx::Result<Option<&'static str>> {
-    if visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
+    if visitor.campaign.is_some() || visitor.bot().is_some() {
         return Ok(None);
     }
     let target = landing_target(pool, visitor, visitor.framed).await?;
@@ -532,7 +454,7 @@ enum Header {
     Session,
     /// scscpq_wp.php: menu_class::initial() for a browser with no session, and never page().
     Initial,
-    /// initial() stopped at once unless the session's user was Pending: scs_file.php and stock.php.
+    /// initial() stopped at once unless the session's user was Pending: scs_file.php for a document.
     Quiet,
     /// initial() and page() ran.
     Page,
@@ -545,9 +467,7 @@ impl Header {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
             p if crate::accounts::static_dirs::contains(p) => Header::None,
-            "/stock.php" => Header::Quiet,
             "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
-            "/scs_api.php" => Header::None,
             "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
             "/scs_file.php" => Header::None,
             p if !p.ends_with(".php") => Header::None,
@@ -633,75 +553,6 @@ fn external_referer(referer: &str) -> Option<String> {
     }
     let stripped = if lower.starts_with("www.") { &host[4..] } else { host };
     Some(stripped.to_string())
-}
-
-struct View {
-    user_id: Option<UserId>,
-    /// bot_impersonate.php: the Administrator sees the site as this bot.
-    bot_id: Option<i64>,
-    role: Role,
-    status: Status,
-    grants: Grants,
-    price_type: PriceType,
-    price_pct: f64,
-    industry_id: i64,
-    portal_id: i64,
-    portal_legacy: bool,
-    currency_code: String,
-    language_code: String,
-    campaign_code: Option<String>,
-}
-
-impl View {
-    fn apply(&self, mut a: Account) -> Account {
-        a.user.role = self.role;
-        a.user.status = self.status;
-        a.grants = self.grants;
-        a.price_type = self.price_type;
-        a.price_pct = self.price_pct;
-        a.industry_id = self.industry_id;
-        a.portal_id = self.portal_id;
-        a.currency_code = self.currency_code.clone();
-        a.language_code = self.language_code.clone();
-        a
-    }
-}
-
-/// The impersonation on this session, if the session's own account may still impersonate. The stored role is
-/// capped at the Administrator's current role, so a demotion takes effect at once.
-async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &User) -> sqlx::Result<Option<View>> {
-    if !actor.is_active() || actor.role < Role::Administrator {
-        return Ok(None);
-    }
-    let hash = token.hash();
-    let hash = hash.as_slice();
-    let row = sqlx::query!(
-        r#"SELECT user_id, "type" AS "ty!", status AS "status!", catalog AS "catalog!: i64", cad AS "cad!: i64",
-                  ecommerce AS "ecommerce!: i64", price_type AS "price_type!", price_pct AS "price_pct!: f64",
-                  industry_id AS "industry_id!: i64", portal_id AS "portal_id!: i64", portal_legacy AS "portal_legacy!: i64",
-                  currency_code AS "currency_code!", language_code AS "language_code!", campaign_code, bot_id
-           FROM impersonation WHERE session_hash = ?1"#,
-        hash
-    )
-    .fetch_optional(pool)
-    .await?;
-    let Some(r) = row else { return Ok(None) };
-    let (Some(role), Some(status)) = (Role::parse(&r.ty), Status::parse(&r.status)) else { return Ok(None) };
-    Ok(Some(View {
-        user_id: r.user_id.map(UserId),
-        bot_id: r.bot_id,
-        role: role.min(actor.role),
-        status,
-        grants: Grants { catalog: r.catalog != 0, cad: r.cad != 0, ecommerce: r.ecommerce != 0 },
-        price_type: PriceType::parse(&r.price_type),
-        price_pct: r.price_pct,
-        industry_id: r.industry_id,
-        portal_id: r.portal_id,
-        portal_legacy: r.portal_legacy != 0,
-        currency_code: r.currency_code,
-        language_code: r.language_code,
-        campaign_code: r.campaign_code,
-    }))
 }
 
 /// Middleware for the page routers: resolve the visitor once, hand it to the handler, and write what a visit
@@ -808,7 +659,6 @@ mod tests {
         assert_eq!(Header::of("/scscpq_wp.php", Some("action=initial")), Header::Initial);
         assert_eq!(Header::of("/scs_file.php", Some("watermark=1&id=2")), Header::Quiet);
         assert_eq!(Header::of("/scs_file.php", Some("id=2")), Header::None);
-        assert_eq!(Header::of("/stock.php", None), Header::Quiet);
         assert_eq!(Header::of("/oauth/callback.php", None), Header::Session);
         assert_eq!(Header::of("/cookie_reset.php", None), Header::None);
         assert_eq!(Header::of("/catalog/", None), Header::None);

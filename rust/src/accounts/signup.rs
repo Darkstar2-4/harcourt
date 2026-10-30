@@ -387,7 +387,7 @@ async fn render_page(core: &Auth, req: &Request) -> sqlx::Result<(String, Vec<He
         Identity::Account(s) if s.account.status() == Status::Pending => PENDING.into(),
         Identity::Account(_) => String::new(),
         Identity::Anonymous => match company_for(core, req.remembered_email().as_ref()).await? {
-            Some((company, known)) if req.visitor.impersonator.is_none() => {
+            Some((company, known)) => {
                 if known {
                     if let Some(e) = req.remembered_email() {
                         send_code(core, req, &e).await?;
@@ -427,7 +427,6 @@ const OAUTH_BUTTONS: &str = concat!(
 async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sqlx::Result<String> {
     let pool = &core.pool;
     let layout = Layout::load(pool).await?;
-    let heading = if req.visitor.impersonator.is_some() { "User impersonating / no update allowed." } else { "" };
     let intro = [
         "If your company email is already registered with Harcourt &reg;, click \"Sign in with Microsoft\" or \"Sign in with Google\" below for instant access.",
         "Otherwise, please complete the form below and click \"Submit\" to become an approved Harcourt &reg; user. Once you have completed the form, our team will be in touch to confirm your access.",
@@ -437,7 +436,7 @@ async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sq
     .join("<br>");
     Ok([
         recaptcha::js(rc).to_string(),
-        format!("<h2 class='page-subtitle editable h2-login'>{heading}</h2>"),
+        "<h2 class='page-subtitle editable h2-login'></h2>".to_string(),
         "<div id=profile_register>".into(),
         format!("<p class='company_registered'>{intro}</p>"),
         OAUTH_BUTTONS.into(),

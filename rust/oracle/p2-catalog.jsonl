@@ -32,9 +32,7 @@
 {"name": "cat-wrong-lang", "path": "/catalog/?lang=fr"}
 {"name": "cat-fr-no-lang", "path": "/catalogue/"}
 {"name": "cat-bare", "path": "/catalog"}
-# configure.php, the staff pricing lookup.
-{"name": "cfg-get", "path": "/configure.php"}
-{"name": "cfg-get-wp", "path": "/configure.php?scscpq_wp=1"}
+# The loader's other actions.
 {"name": "wp-action-token", "method": "POST", "path": "/scscpq_wp.php", "body": "action=token&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-action-catalog", "method": "POST", "path": "/scscpq_wp.php", "body": "action=catalog&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-action-newuser", "method": "POST", "path": "/scscpq_wp.php", "body": "action=newuser&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
@@ -52,13 +50,6 @@
 {"name": "wp-action-case-bogus_name", "method": "POST", "path": "/scscpq_wp.php", "body": "action=bogus_name&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-action-case-url", "method": "POST", "path": "/scscpq_wp.php", "body": "action=url&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
 {"name": "wp-get-document", "path": "/scscpq_wp.php?document=document_email"}
-{"name": "api-none", "path": "/scs_api.php"}
-{"name": "api-email", "path": "/scs_api.php?email=someone%40example.com&campaign=remote"}
-{"name": "api-bad-email", "path": "/scs_api.php?email=not-an-email&campaign=remote"}
-{"name": "api-post", "method": "POST", "path": "/scs_api.php", "body": "email=someone%40example.com&campaign=nothing"}
-{"name": "stock-none", "path": "/stock.php"}
-{"name": "stock-partial", "path": "/stock.php?name=990001%7CPat+Example&sku=1&cad=STEP&email=someone%40example.com"}
-{"name": "stock-no-name", "path": "/stock.php?name=990001&sku=1&cad=STEP&email=someone%40example.com"}
 # The search pages around the catalog's search (WordPress scscpq pages).
 {"name": "search-page", "path": "/search/"}
 {"name": "search-page-q", "path": "/search/?q=alignment+pin"}
@@ -68,8 +59,6 @@
 {"name": "search-page-lang", "path": "/search/?lang=fr", "language": "fr"}
 {"name": "search-bare", "path": "/search"}
 {"name": "search-bare-q", "path": "/search?q=pin"}
-{"name": "metric-filter", "path": "/catalog_metric_filter.php"}
-{"name": "metric-filter-wp", "path": "/catalog_metric_filter.php?scscpq_wp=1"}
 # The other shells the catalog fills: the customer portal and the beta catalog.
 {"name": "portal-page", "path": "/customer_portal/"}
 {"name": "portal-page-fr", "path": "/portail-clients/?lang=fr", "language": "fr"}
@@ -83,9 +72,3 @@
 {"name": "search-post", "method": "POST", "path": "/search/", "body": "q=pin"}
 {"name": "index-post", "method": "POST", "path": "/scs_index.php", "body": "x=1"}
 {"name": "portal-php-post", "method": "POST", "path": "/customer_portal.php", "body": "x=1"}
-{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "portal-ajax-products", "path": "/portal_ajax.php?action=products", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "portal-ajax-other", "path": "/portal_ajax.php?action=other", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "portal-ajax-direct", "path": "/portal_ajax.php?action=catalog"}
-{"name": "search-php", "path": "/search.php"}
-{"name": "search-php-wp", "path": "/search.php?scscpq_wp=1"}

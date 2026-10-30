@@ -26,15 +26,6 @@
 {"name": "wp-search-none", "path": "/search/zzqqxx/"}
 {"name": "wp-search-home-s", "path": "/?s=clamp"}
 {"name": "wp-search-page2", "path": "/search/pin/page/2/"}
-{"name": "inventory-info", "path": "/inventory_info.php"}
-{"name": "inventory-info-price", "path": "/inventory_info.php?action=price&sku=HBLT-3-0.50-S"}
-{"name": "inventory-info-price-missing", "path": "/inventory_info.php?action=price&sku=NOPE-1"}
-{"name": "inventory-info-specials", "path": "/inventory_info.php?action=specials&sku=HBLT-3-0.50-S"}
-{"name": "inventory-info-features", "path": "/inventory_info.php?action=features&sku=HBLT-3-0.50-S"}
-{"name": "inventory-info-applications", "path": "/inventory_info.php?action=Applications&sku=hblt-3-0.50-s"}
-{"name": "inventory-info-overview", "path": "/inventory_info.php?action=overview&sku=HBLT-3-0.50-S"}
-{"name": "inventory-info-prj", "path": "/inventory_info.php?action=specials&prj=alignment_pins/ball_lock_pins/parts/hbl_asmtab.prj"}
-{"name": "inventory-info-post", "method": "POST", "path": "/inventory_info.php", "body": "action=specials&sku=HBLT-3-0.50-S"}
 {"name": "wp-search-the", "path": "/search/the/"}
 {"name": "wp-search-the-p2", "path": "/search/the/page/2/"}
 {"name": "wp-search-harcourt", "path": "/search/harcourt/"}
@@ -56,17 +47,3 @@
 {"name": "wp-search-shape-page", "path": "/search/products?page=2"}
 {"name": "wp-search-shape-q-empty", "path": "/search/products?q="}
 {"name": "wp-search-shape-accept-json", "path": "/search/products?q=pin", "headers": {"Accept": "application/json"}}
-{"name": "category", "path": "/category.php"}
-{"name": "category-wp", "path": "/category.php?scscpq_wp=1"}
-{"name": "industry", "path": "/industry.php"}
-{"name": "industry-wp", "path": "/industry.php?scscpq_wp=1"}
-{"name": "hero", "path": "/hero.php"}
-{"name": "hero-wp", "path": "/hero.php?scscpq_wp=1"}
-{"name": "hero-xhr", "path": "/hero.php", "headers": {"X-Requested-With": "XMLHttpRequest"}}
-{"name": "solutions", "path": "/solutions.php"}
-{"name": "solutions-active", "path": "/solutions.php?campaign=active"}
-{"name": "solutions-slide", "path": "/solutions.php?campaign=SLIDE"}
-{"name": "solutions-kit", "path": "/solutions.php?campaign=kit"}
-{"name": "solutions-remote", "path": "/solutions.php?campaign=CAPTIVE"}
-{"name": "document", "path": "/document.php"}
-{"name": "document-wp", "path": "/document.php?scscpq_wp=1"}

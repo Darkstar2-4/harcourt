@@ -11,10 +11,3 @@
 {"name":"p2-post-request-access-partial-fr","method":"POST","path":"/nous-contacter/?lang=fr","language":"fr","body":"gform_submit=1&is_submit_1=1&input_1=Test+Persona&input_2=nope&input_5=&gform_source_page_number_1=1&gform_target_page_number_1=0"}
 {"name":"p2-post-lunch-learn-bad","method":"POST","path":"/resources/lunch-learns/","body":"gform_submit=2&is_submit_2=1&input_1=Test+Persona&input_5=nope&input_4=123&input_7=&input_8=x&input_9=13/45/2020&gform_source_page_number_2=1&gform_target_page_number_2=0"}
 {"name":"p2-post-request-access-tampered-ajax","method":"POST","path":"/contact/","body":"gform_submit=1&is_submit_1=1&input_1=&input_2=&input_5=&gform_ajax=form_id%3D1%26title%3D%26description%3D%26tabindex%3D0%26theme%3Dlegacy%26hash%3Dabc&gform_source_page_number_1=1&gform_target_page_number_1=0"}
-{"name":"p2-mailer-output-anonymous","path":"/mailer_output.php"}
-{"name":"p2-mailer-output-customer","path":"/mailer_output.php","persona":"customer-active"}
-{"name":"p2-mailer-output-executive","path":"/mailer_output.php","persona":"executive-active"}
-{"name":"p2-scs-mail-anonymous","path":"/scs_mail.php"}
-{"name":"p2-scs-mail-administrator","path":"/scs_mail.php","persona":"administrator-pending"}
-{"name":"p2-scs-mailform-customer","path":"/scs_mailform.php","persona":"customer-active"}
-{"name":"p2-scs-mailform-internal","path":"/scs_mailform.php","persona":"internal-active"}

@@ -184,12 +184,6 @@ impl Unchecked {
     pub fn with_token(self) -> (Posted, bool) {
         (self.posted, self.token_ok)
     }
-
-    /// The maintenance pages' rule: a post whose `action` is `update` or `delete` writes.
-    pub fn accept_by_action(self) -> Result<Posted, Rejected> {
-        let writes = matches!(self.fields().get("action"), "update" | "delete");
-        self.accept(writes)
-    }
 }
 
 impl FromRequest<Arc<Auth>> for Unchecked {

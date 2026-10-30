@@ -43,14 +43,11 @@ pub struct Address {
     pub country_code: String,
 }
 
-/// An order header as the form and the viewer know it (`orderhd_data_class`).
+/// An order header as the form knows it (`orderhd_data_class`).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Order {
     pub id: i64,
-    pub punchout_id: i64,
     pub order_date: i64,
-    pub status: String,
-    pub status_date: i64,
     pub email: String,
     pub name_first: String,
     pub name_last: String,
@@ -72,10 +69,6 @@ pub struct Order {
 pub struct Errors(Vec<(String, String)>);
 
 impl Errors {
-    pub fn add_field(&mut self, field: &str) {
-        self.add(field, "");
-    }
-
     fn add(&mut self, field: &str, text: &str) {
         if !self.has(field) {
             self.0.push((field.to_string(), text.to_string()));
@@ -411,9 +404,6 @@ const ADDRESS_ORDER: [&str; 11] = ["company_name", "name", "title", "address", "
 
 const STAR: &str = "<font color=red><b>*</b></font>";
 
-/// address_class::js(), which shows the state input and labels for the chosen country.
-const COUNTRY_JS: &str = "function fn_country_address(table) {\njQuery('#' + table + '_state_us').hide();\njQuery('#' + table + '_state_ca').hide();\njQuery('#' + table + '_state_other').hide();\njQuery('#' + table + '_state_us_div').hide();\njQuery('#' + table + '_state_ca_div').hide();\njQuery('#' + table + '_state_other_div').hide();\nvar state;\nvar zip='Postal Code';\ncountry_code=jQuery('#' + table + '_country_code').val();\nswitch (true) {\ncase (country_code == 'US'):\njQuery('#' + table + '_state_us').show();\njQuery('#' + table + '_state_us_div').show();\nstate='State';\nzip='ZIP Code';\nbreak;\ncase (country_code == 'CA'):\njQuery('#' + table + '_state_ca').show();\njQuery('#' + table + '_state_ca_div').show();\nstate='Province';\nbreak;\ndefault:\njQuery('#' + table + '_state_other').show();\njQuery('#' + table + '_state_other_div').show();\nstate='Province/State';\n}\njQuery('#' + table + '_state_text').html(state);\njQuery('#' + table + '_zip_text').html(zip);\n}";
-
 /// address_class::input(): a row for each field the registry lists for `table` and the block does not omit,
 /// starred when required, then the legend and the script that fits the state input to the country.
 fn address_input<'a>(table: &str, fields: &[(String, bool)], omit: &[&str], value: impl Fn(&str) -> &'a str, choices: &Choices, errors: &Errors) -> String {
@@ -453,7 +443,7 @@ fn address_input<'a>(table: &str, fields: &[(String, bool)], omit: &[&str], valu
         }
     }
     out.push_str(&format!("<tr ><td colspan=2>{STAR}Indicates mandatory fields</td></tr>"));
-    out.push_str(&format!("\n<script>\n\nfn_country_address({});\n{COUNTRY_JS}\n\n</script>\n", html::js_str(table)));
+    out.push_str(&format!("\n<script>\n\nfn_country_address({});\n{}\n\n</script>\n", html::js_str(table), crate::accounts::profile::COUNTRY_JS));
     out
 }
 
@@ -479,19 +469,13 @@ fn date(ts: i64) -> String {
     chrono::DateTime::from_timestamp(ts, 0).unwrap_or_default().with_timezone(&chrono_tz::America::Detroit).format("%m/%d/%Y %I:%M%p").to_string()
 }
 
-/// `$database->orderhd->output_header()`.
-pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &Errors, local: &Registry, billing_same: bool) -> String {
+/// `$database->orderhd->output_header()`: the entry form, or the placed order.
+fn header(o: &Order, entry: bool, choices: &Choices, errors: &Errors, local: &Registry, billing_same: bool) -> String {
     let mut r: Vec<String> = vec!["<table class=noborder>".into(), "<tr>".into(), "<td width='60%'>".into(), "<table class='checkout_entry noborder'>".into()];
     if o.id != 0 {
         r.push("<tr><td class='checkout_caption' colspan=2>Order Information</td></tr>".into());
-        r.push(format!("<tr><td>{}Order #</td><td>{}</tr>", if o.punchout_id != 0 { "Punchout " } else { "" }, o.id));
+        r.push(format!("<tr><td>Order #</td><td>{}</tr>", o.id));
         r.push(format!("<tr><td>Order Date/ Time</td><td>{}</tr>", date(o.order_date)));
-        if status {
-            r.push(format!("<tr><td>Status</td><td>{}</td></tr>", esc_text(&o.status)));
-            if o.status_date != 0 {
-                r.push(format!("<tr><td>Status Date/ Time</td><td>{}</td></tr>", date(o.status_date)));
-            }
-        }
     }
     r.push("<tr><td class='checkout_caption' colspan=2>Customer Information</td></tr>".into());
     let t = |field: &str, value: &str, max: u32, ph: &str| html::text_input("text", field, value, 40, max, ph, errors.has(field));
@@ -520,9 +504,7 @@ pub fn header(o: &Order, entry: bool, status: bool, choices: &Choices, errors: &
             _ => "",
         }
     };
-    if o.punchout_id != 0 {
-        r.push(format!("<tr><td width='20%'>Company Name</td><td width='80%'>{}</td></tr>", esc_text(&o.company_name)));
-    } else if entry {
+    if entry {
         r.push(address_input("orderhd", &choices.ship_fields, &["company_name", "address", "city", "state", "zip", "country_code"], ship, choices, errors));
     } else {
         r.push(address_output(&[("Name", o.name.clone()), ("Phone", o.phone.clone()), ("Email", o.email.clone())]));
@@ -638,13 +620,12 @@ async fn complete(state: &Orders, shopper: &Shopper, ip: &str, order: &mut Order
     let pool = &state.core.pool;
     let now = unix_now();
     order.order_date = now;
-    order.status = "Pending".into();
     order.id = place(pool, shopper.user.id.0, order, lines, now).await?;
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
     let labels = Labels::load(pool, &shopper.language).await?;
     let thumb = local.get("thumbnail").to_string();
-    let mut html = header(order, false, false, &choices, &Errors::default(), local, false);
+    let mut html = header(order, false, &choices, &Errors::default(), local, false);
     html.push_str(&cart::table(lines, false, &money, &labels, &thumb));
     if !local.get("cc_email").is_empty() {
         html.push_str(&format!("<p>{}</p>", local.get("cc_email")));
@@ -734,7 +715,7 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(i
         None => {
             let choices = Choices::load(pool).await?;
             let billing_same = completing && params.contains_key("billing_same_as_shipping");
-            out.push_str(&header(&order, true, false, &choices, &errors, &local, billing_same));
+            out.push_str(&header(&order, true, &choices, &errors, &local, billing_same));
             let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
             let labels = Labels::load(pool, &shopper.language).await?;
             out.push_str(&cart::table(&lines, false, &money, &labels, local.get("thumbnail")));

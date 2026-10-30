@@ -14,11 +14,10 @@ use std::{
 };
 
 use axum::{
-    extract::{Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{any, get},
-    Extension, Router,
+    routing::any,
+    Router,
 };
 use serde_json::{json, Value};
 use sqlx::SqlitePool;
@@ -1066,7 +1065,7 @@ fn first_row(ix: &Index, term: &str, ctx: &Ctx) -> Option<u64> {
 }
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/catalog-api/search", get(suggest)).route("/hx_search_ctx.php", any(not_served))
+    Router::new().route("/hx_search_ctx.php", any(not_served))
 }
 
 /// hx_search_ctx.php answered live hxweb's own calls behind the front; prod's nginx refused it from outside with its
@@ -1076,17 +1075,6 @@ async fn not_served() -> Response {
     let mut page = String::from("<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n");
     page.push_str(&"<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n".repeat(6));
     (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/html")], page).into_response()
-}
-
-#[derive(serde::Deserialize)]
-struct SuggestQuery {
-    #[serde(default)]
-    term: String,
-    limit: Option<String>,
-}
-
-async fn suggest(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc<Cache>>, visitor: Visitor, headers: HeaderMap, Query(q): Query<SuggestQuery>) -> Response {
-    suggestions(&core, &cache, &visitor, &headers, &q.term, q.limit.as_deref()).await
 }
 
 /// Live's rule: an XMLHttpRequest whose Referer is on http(s)://<Host>. Live accepted any Referer that merely
@@ -1104,8 +1092,7 @@ fn respond(status: StatusCode, v: &Value) -> Response {
     (status, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], v.to_string()).into_response()
 }
 
-/// The search box's suggestions for `term`, for /catalog-api/search and scs_ajax.php?table=search: what live
-/// hxweb answered, for the search box on the site's own pages, in the scope of whoever is searching.
+/// The search box's suggestions for `term`, for scs_ajax.php?table=search: what live hxweb answered, for the search box on the site's own pages, in the scope of whoever is searching.
 pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers: &HeaderMap, term: &str, limit: Option<&str>) -> Response {
     if !same_site(headers) {
         return respond(StatusCode::FORBIDDEN, &json!({"items": [], "error": "External access"}));

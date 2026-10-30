@@ -186,11 +186,6 @@ impl Notes {
         self.messages.push(esc(text));
     }
 
-    /// A message the page builds from markup and escaped values (`Document deleted: <b>…</b>`).
-    pub fn say_html(&mut self, html: String) {
-        self.messages.push(html);
-    }
-
     pub fn error(&mut self, field: &str, text: Option<&str>) {
         self.mark(field, text.map(esc));
     }
@@ -315,12 +310,6 @@ impl Form<'_> {
         } else {
             html
         }
-    }
-
-    /// `checkbox_delete()`: the Del? box of a list row.
-    pub fn checkbox_delete(&self, id: i64, name: &str, script: &str) -> String {
-        let opts = Opts::new().onclick(format!("{script}('delete',{},{});", js(&id.to_string()), js(name)));
-        self.checkbox(&format!("delete{id}"), "1", false, opts)
     }
 
     pub fn radio(&self, field: &str, value: &str, checked: bool, opts: Opts) -> String {
