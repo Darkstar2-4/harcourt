@@ -7,7 +7,12 @@
 
 use std::{str::FromStr, sync::Arc};
 
-use axum::{extract::State, response::Response, routing::get, Router};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
 use base64::{engine::general_purpose::STANDARD, Engine};
 use rust_decimal::Decimal;
 use serde_json::Value;
@@ -17,7 +22,7 @@ use super::{
     catalog::{self, Subcategory},
     check::{posted_number, posted_text},
     choices,
-    csrf::{Fields, Posted, Upload},
+    csrf::{Fields, Posted, Unchecked, Upload},
     html::{amount, button, close, hidden, href, js, list_options, open, php_float, text, Blank, Form, Notes, Opts, Tabs},
     phpser::{self, Php},
     shell, time, Staff,
@@ -760,8 +765,11 @@ async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>) -> Res
     run(&auth.pool, &staff, &nothing).await.unwrap_or_else(shell::internal)
 }
 
-async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, posted: Posted) -> Response {
-    run(&auth.pool, &staff, &posted).await.unwrap_or_else(shell::internal)
+async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, form: Unchecked) -> Response {
+    match form.accept_by_action() {
+        Ok(posted) => run(&auth.pool, &staff, &posted).await.unwrap_or_else(shell::internal),
+        Err(r) => r.into_response(),
+    }
 }
 
 pub fn routes() -> Router<Arc<Auth>> {

@@ -12,6 +12,7 @@ mod contact;
 mod home;
 pub mod probe;
 mod posts;
+mod request;
 mod simple;
 mod templates;
 

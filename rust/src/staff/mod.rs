@@ -30,11 +30,13 @@ pub mod maintain;
 pub mod map;
 pub mod phpser;
 pub mod shell;
+pub mod smart;
 pub mod time;
 
 pub mod campaign;
 pub mod company;
 pub mod dashboard;
+pub mod filmstrip;
 pub mod grants;
 pub mod hero_preview;
 pub mod increase;
@@ -43,9 +45,12 @@ pub mod jobs;
 pub mod log;
 pub mod mailer;
 pub mod portal;
+pub mod portal_preview;
 pub mod portalcategory;
 pub mod portalcontent;
 pub mod portalitem;
+pub mod pricebook;
+pub mod pricing_utility;
 pub mod prj;
 pub mod subcategory;
 pub mod subcategory_order;
@@ -115,9 +120,12 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(inventory::routes())
         .merge(log::routes())
         .merge(portal::routes())
+        .merge(portal_preview::routes())
         .merge(portalcategory::routes())
         .merge(portalcontent::routes())
         .merge(portalitem::routes())
+        .merge(pricebook::routes())
+        .merge(pricing_utility::routes())
         .merge(prj::routes())
         .merge(subcategory::routes())
         .merge(subcategory_order::routes())

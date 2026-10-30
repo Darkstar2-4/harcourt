@@ -158,9 +158,10 @@ async fn main() {
             .fallback_service(legacy),
         None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
+    let router = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(router);
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
     tracing::info!("hxweb listening on {listen}");
-    axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()).await.expect("serve");
+    axum::serve(listener, axum::ServiceExt::<Request>::into_make_service_with_connect_info::<SocketAddr>(router)).await.expect("serve");
 }
 
 /// The /api routes need their database and settings. If either is missing the pages still serve and /api answers 503.

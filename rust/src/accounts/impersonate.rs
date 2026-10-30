@@ -195,14 +195,14 @@ async fn respond(core: &Auth, visitor: Visitor, headers: &HeaderMap, posted: Opt
     let Some(actor) = administrator(&visitor) else { return home(&visitor) };
     let posted = posted.filter(|p| !field(p, "action").is_empty());
     let Some(posted) = posted else {
-        return match form(pool, actor, visitor.framed, headers, &[]).await {
+        return match form(pool, actor, &visitor, headers, &[]).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         };
     };
     match start(core, &visitor, actor, headers, &posted).await {
         Ok(Ok(set)) => page_response(STARTED.into(), set),
-        Ok(Err(errors)) => match form(pool, actor, visitor.framed, headers, &errors).await {
+        Ok(Err(errors)) => match form(pool, actor, &visitor, headers, &errors).await {
             Ok(body) => page_response(body, Vec::new()),
             Err(e) => internal(e),
         },
@@ -340,12 +340,12 @@ enum OptionsOf {
 }
 
 /// The form of user_impersonate.php, filled in with the Administrator's own settings as the PHP did.
-async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
+async fn form(pool: &SqlitePool, me: &Account, visitor: &Visitor, headers: &HeaderMap, errors: &[(&str, &str)]) -> sqlx::Result<String> {
     let roles: Vec<(String, String)> = ROLES.iter().map(|r| (r.as_str().to_string(), r.as_str().to_string())).collect();
     let statuses: Vec<(String, String)> = STATUSES.iter().map(|s| (s.to_string(), s.to_string())).collect();
     let prices: Vec<(String, String)> = PRICE_TYPES.iter().map(|(p, l)| (p.as_str().to_string(), l.to_string())).collect();
     let currencies = currency_groups(pool).await?;
-    let languages: Vec<(String, String)> = Languages::load(pool).await?.all().iter().map(|l| (l.code.as_str().to_string(), l.name.clone())).collect();
+    let languages: Vec<(String, String)> = Languages::load(pool).await?.all().iter().map(|l| (l.code.as_str().to_string(), l.local_name.clone())).collect();
     let pct = if me.price_pct == 0.0 { String::new() } else { format!("{:.2}", me.price_pct * 100.0) };
     let remembered = cookies::get(headers, cookies::EMAIL).unwrap_or_default();
     let error_of = |f: &str| errors.iter().find(|(k, _)| *k == f).map(|(_, m)| format!(" <b>{m}</b>")).unwrap_or_default();
@@ -383,11 +383,11 @@ async fn form(pool: &SqlitePool, me: &Account, framed: bool, headers: &HeaderMap
     ];
     let message = if errors.is_empty() { String::new() } else { format!("<p class=message>Correct {} Error(s)</p>\n", errors.len()) };
     let chrome = Chrome::load(pool).await?;
-    let head = Head { title: "User Impersonate", description: None, js: &[], framed, dashboard: true, catalog_url: "/catalog.php" };
+    let head = Head { title: "User Impersonate", description: None, js: &[], framed: visitor.framed, dashboard: true, catalog_url: "/catalog.php" };
     Ok(format!(
         "{}<p class='message left'>User Impersonate</p>{message}{}{}{}{}{}",
         page::open(&chrome, &head),
-        html::form_open("/user_impersonate.php", Opts::new()),
+        html::form_open(&visitor.php_self, Opts::new()),
         html::hidden("action", "update", ""),
         rows.concat(),
         html::FORM_CLOSE,

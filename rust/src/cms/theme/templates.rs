@@ -12,6 +12,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Scscpq => scscpq,
         Template::ScscpqBeta => scscpq_beta,
         Template::ScscpqCustomerPortal => scscpq_customer_portal,
+        Template::ScscpqDashboard => scscpq_dashboard,
         Template::Digest => digest,
         Template::Page => default_page,
         Template::History => super::company::history,
@@ -27,6 +28,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Home => super::home::home,
         Template::Builder => super::builder::builder,
         Template::SingleFaq => super::posts::single_faq,
+        Template::Request => super::request::request,
         _ => return None,
     })
 }
@@ -103,7 +105,11 @@ pub(super) fn cta(c: &mut Ctx) {
     }
     c.push("\n            </ul>\n\n            <div class=\"text-center\">\n                            ");
     if c.page.template == Template::Request {
-        c.push("<a class=\"standard-btn red\" href=\"#signup\"> New User Sign Up </a>");
+        c.push(if c.lang() == Lang::Fr {
+            "<a class=\"standard-btn red\" href=\"#signup\"> Inscription nouvel utilisateur </a>"
+        } else {
+            "<a class=\"standard-btn red\" href=\"#signup\"> New User Sign Up </a>"
+        });
     } else {
         c.push("<a class=\"standard-btn red\" href=\"/request-access\"> ");
         c.option_html("cta_btn");
@@ -249,6 +255,11 @@ fn scscpq_beta(c: &mut Ctx) {
 /// layouts/template-scscpq-customer_portal.php
 fn scscpq_customer_portal(c: &mut Ctx) {
     scscpq_shell(c, "     ", "customer_portal");
+}
+
+/// layouts/template-scscpq-dashboard.php: the staff dashboard, which the loader fills from /dashboard.php.
+fn scscpq_dashboard(c: &mut Ctx) {
+    scscpq_shell(c, "    ", "dashboard");
 }
 
 /// The scscpq templates differ only in their indent and the view they name.

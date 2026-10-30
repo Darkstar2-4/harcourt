@@ -1,5 +1,5 @@
-//! Every staff form carries a token bound to the browser's session, and every POST must return it. The PHP pages
-//! had none, so any site a signed-in staff member visited could post to them.
+//! Every staff form carries a token bound to the browser's session, and every POST that changes something must
+//! return it. The PHP pages had none, so any site a signed-in staff member visited could post to them.
 //!
 //! The token is a SHA-256 of the session cookie under a fixed label. Only the browser holding the cookie can
 //! compute it, it changes with every session, and nothing needs storing. It differs from the hash the `session`
@@ -50,8 +50,9 @@ impl Fields {
         Fields(query.map(|q| form_urlencoded::parse(q.as_bytes()).into_owned().collect()).unwrap_or_default())
     }
 
+    /// The last value sent under the name, as parse_str() kept it.
     pub fn get(&self, name: &str) -> &str {
-        self.0.iter().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str())
+        self.0.iter().rev().find(|(k, _)| k == name).map_or("", |(_, v)| v.as_str())
     }
 
     pub fn has(&self, name: &str) -> bool {
@@ -140,7 +141,47 @@ impl FromRequest<Arc<Auth>> for Posted {
     type Rejection = Rejected;
 
     async fn from_request(req: Request, state: &Arc<Auth>) -> Result<Self, Rejected> {
-        let expected = CsrfToken::for_request(req.headers()).ok_or(Rejected::Token)?;
+        Unchecked::from_request(req, state).await?.accept(true)
+    }
+}
+
+/// A staff form POST before its token is checked, for a page that also posts to only show something (a list, a
+/// record's form, a cancel), as the PHP pages did. A post that changes nothing needs no token; `accept` hands the
+/// post on, and refuses it without the token when the action it carries writes.
+pub struct Unchecked {
+    posted: Posted,
+    token_ok: bool,
+}
+
+impl Unchecked {
+    pub fn fields(&self) -> &Fields {
+        &self.posted.fields
+    }
+
+    pub fn accept(self, writes: bool) -> Result<Posted, Rejected> {
+        if writes && !self.token_ok {
+            return Err(Rejected::Token);
+        }
+        Ok(self.posted)
+    }
+
+    /// A page whose posts never write takes them as they come.
+    pub fn read_only(self) -> Posted {
+        self.posted
+    }
+
+    /// The maintenance pages' rule: a post whose `action` is `update` or `delete` writes.
+    pub fn accept_by_action(self) -> Result<Posted, Rejected> {
+        let writes = matches!(self.fields().get("action"), "update" | "delete");
+        self.accept(writes)
+    }
+}
+
+impl FromRequest<Arc<Auth>> for Unchecked {
+    type Rejection = Rejected;
+
+    async fn from_request(req: Request, state: &Arc<Auth>) -> Result<Self, Rejected> {
+        let expected = CsrfToken::for_request(req.headers());
         let is_multipart = req
             .headers()
             .get(header::CONTENT_TYPE)
@@ -165,10 +206,8 @@ impl FromRequest<Arc<Auth>> for Posted {
             let bytes = Bytes::from_request(req, state).await.map_err(|_| Rejected::Body)?;
             (Fields(form_urlencoded::parse(&bytes).into_owned().collect()), Vec::new())
         };
-        if !expected.matches(fields.get(FIELD)) {
-            return Err(Rejected::Token);
-        }
-        Ok(Posted { fields, uploads })
+        let token_ok = expected.is_some_and(|t| t.matches(fields.get(FIELD)));
+        Ok(Unchecked { posted: Posted { fields, uploads }, token_ok })
     }
 }
 
@@ -181,6 +220,14 @@ mod tests {
         let mut h = HeaderMap::new();
         h.insert(header::COOKIE, HeaderValue::from_str(cookie).unwrap());
         h
+    }
+
+    #[test]
+    fn a_repeated_field_reads_as_its_last_value() {
+        let f = Fields::from_query(Some("campaign=SLIDE&campaign=KIT&x=1"));
+        assert_eq!((f.get("campaign"), f.get("x"), f.get("y")), ("KIT", "1", ""));
+        let posted = Fields::of(&[("visible", "0"), ("visible", "1")]).with_query(&Fields::from_query(Some("visible=2&page=3")));
+        assert_eq!((posted.get("visible"), posted.get("page")), ("1", "3"));
     }
 
     #[test]

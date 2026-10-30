@@ -11,7 +11,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     body::Body,
-    extract::{FromRequestParts, Request, State},
+    extract::{Extension, FromRequestParts, Request, State},
     http::{header, HeaderName, HeaderValue, Response, StatusCode, Uri},
     response::IntoResponse,
     routing::get,
@@ -21,6 +21,7 @@ use percent_encoding::percent_decode_str;
 
 use crate::{
     api::{Auth, ClientIp},
+    visitor::SentPath,
     cms::{
         docroot::{self, Owner},
         feed, sitemap,
@@ -58,6 +59,8 @@ const PAGES: &[&str] = &[
     "/contact-india/",
     "/contact-uk/",
     "/customer_portal/",
+    "/dashboard/",
+    "/demande-dacces/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -70,6 +73,7 @@ const PAGES: &[&str] = &[
     "/gamme-de-produits/percage/",
     "/gamme-de-produits/positionnements/",
     "/gamme-de-produits/stockage-et-transport-doutils/",
+    "/impersonate/",
     "/industries/",
     "/industries/automobile/",
     "/industries/industrie-lourde/",
@@ -87,6 +91,8 @@ const PAGES: &[&str] = &[
     "/innovations/tooling-configurators/",
     "/legal/",
     "/news/",
+    "/newuser/",
+    "/nouvel-utilisateur/",
     "/portail-clients/",
     "/privacy/",
     "/product/",
@@ -106,6 +112,7 @@ const PAGES: &[&str] = &[
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
     "/recherche/",
+    "/request-access/",
     "/resources/",
     "/resources/faq/",
     "/resources/lunch-learns/",
@@ -118,6 +125,7 @@ const PAGES: &[&str] = &[
     "/societe/histoire/",
     "/societe/opportunites-de-carriere/",
     "/societe/pourquoi-harcourt/",
+    "/tableau-de-bord/",
     "/thank-you/",
 ];
 
@@ -189,10 +197,12 @@ fn unported_rewrite(path: &str) -> bool {
 
 /// Any GET no route claims: a static file as nginx served it, WordPress's answer when WordPress gave one, else what
 /// an unclaimed path gets.
-async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+async fn front(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
-    // WordPress's own front controller: redirect_canonical() drops it from the URL, except under a search.
-    if let Some(rest) = path.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
+    // WordPress's own front controller: redirect_canonical() drops it from the URL as sent (the front routes
+    // /index.php/more as /index.php), except under a search.
+    let asked = sent.map_or(path.clone(), |Extension(s)| percent_decode_str(s.uri.path()).decode_utf8_lossy().into_owned());
+    if let Some(rest) = asked.strip_prefix("/index.php").filter(|r| r.is_empty() || r.starts_with('/')) {
         let raw_query = uri.query().unwrap_or("");
         if crate::cms::url::parse_str(raw_query).iter().any(|(k, _)| k == "s") {
             return legacy();
@@ -422,8 +432,13 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
+/// A post's slug. Rows imported before the cms kept slugs (migration 0501) have none; for those the path ends
+/// with it, except the front page's and a draft's.
 fn slug(p: &Page) -> &str {
-    &p.name
+    if !p.name.is_empty() || p.path == "/" || p.path.starts_with("/?") {
+        return &p.name;
+    }
+    p.path.trim_end_matches('/').rsplit('/').next().unwrap_or("")
 }
 
 /// A one-segment path that is no top-level page in the request's language: WordPress's post rule (`name=`). WPML

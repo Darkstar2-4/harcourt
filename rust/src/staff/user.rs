@@ -23,7 +23,7 @@ use super::{
     address::{Address, Block},
     check::posted_text,
     choices,
-    csrf::{Fields, Posted},
+    csrf::{Fields, Unchecked},
     html::{button, close, hidden, href, js, list_options, open, page_items, php_float, text, Blank, Form, Notes, Opts, Tabs, PAGE_ROWS},
     shell, time, Staff,
 };
@@ -73,6 +73,10 @@ impl Action {
             "delete" => Action::Delete,
             _ => Action::None,
         }
+    }
+
+    fn writes(self) -> bool {
+        matches!(self, Action::Update | Action::Delete)
     }
 }
 
@@ -237,7 +241,7 @@ fn valid_ip(ip: &str) -> bool {
 }
 
 /// fn_number(): the digits, sign and point of the text as a number, a hundredth of it if it holds `%`.
-fn php_number(s: &str) -> Decimal {
+pub(super) fn php_number(s: &str) -> Decimal {
     let kept: String = s.chars().filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-')).collect();
     let bytes = kept.as_bytes();
     let mut end = usize::from(bytes.first() == Some(&b'-'));
@@ -417,7 +421,7 @@ async fn bypass_on_approval(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
 
 /// user->ipstack(): look the address up at the configured IPStack URL and keep the answer and its currency.
 /// Without a configured URL nothing happens; a failed lookup goes to the server log.
-async fn ipstack(pool: &SqlitePool, id: i64, ip: &str) -> sqlx::Result<()> {
+pub async fn ipstack(pool: &SqlitePool, id: i64, ip: &str) -> sqlx::Result<()> {
     let url = registry::get(pool, "ipstack", "api_url").await?.unwrap_or_default();
     if url.trim().is_empty() || ip.is_empty() {
         return Ok(());
@@ -683,12 +687,8 @@ fn local_return(url: &str) -> Option<&str> {
     safe.then_some(url)
 }
 
-async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, request: &Fields, posted: &Fields, is_post: bool) -> sqlx::Result<Response> {
+async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, mut action: Action, request: &Fields, posted: &Fields) -> sqlx::Result<Response> {
     let viewer = staff.who.user.role;
-    let mut action = Action::parse(request.get("action"));
-    if !is_post && matches!(action, Action::Update | Action::Delete) {
-        action = Action::None;
-    }
     let record_id = request.int("record_id");
     let return_url = request.get("return_url").to_string();
     let report = Report::from(posted);
@@ -796,14 +796,24 @@ async fn run(pool: &SqlitePool, staff: &Staff<Administrator>, request: &Fields, 
     Ok(shell::page(pool, staff.view(), TITLE, &body).await)
 }
 
+/// A link never changes anything: `?action=delete` or `?action=update` only lists.
 async fn show(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, RawQuery(q): RawQuery) -> Response {
     let query = Fields::from_query(q.as_deref());
-    run(&auth.pool, &staff, &query, &Fields::default(), false).await.unwrap_or_else(shell::internal)
+    let action = match Action::parse(query.get("action")) {
+        a if a.writes() => Action::None,
+        a => a,
+    };
+    run(&auth.pool, &staff, action, &query, &Fields::default()).await.unwrap_or_else(shell::internal)
 }
 
-async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, RawQuery(q): RawQuery, posted: Posted) -> Response {
-    let request = posted.fields.clone().with_query(&Fields::from_query(q.as_deref()));
-    run(&auth.pool, &staff, &request, &posted.fields, true).await.unwrap_or_else(shell::internal)
+async fn post(State(auth): State<Arc<Auth>>, staff: Staff<Administrator>, RawQuery(q): RawQuery, form: Unchecked) -> Response {
+    let request = form.fields().clone().with_query(&Fields::from_query(q.as_deref()));
+    let action = Action::parse(request.get("action"));
+    let posted = match form.accept(action.writes()) {
+        Ok(p) => p,
+        Err(r) => return r.into_response(),
+    };
+    run(&auth.pool, &staff, action, &request, &posted.fields).await.unwrap_or_else(shell::internal)
 }
 
 pub fn routes() -> Router<Arc<Auth>> {

@@ -27,6 +27,8 @@
 //!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
 //!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
+//!  * `php_self`: PHP_SELF, the page's own path with any PATH_INFO (`/campaign.php/more`); the PHP pages' forms
+//!    posted back to it. Escape it when printing: the client chose the PATH_INFO.
 //!
 //! The shortcuts `user()`, `account()`, `bot()`, `role()`, `at_least()`, `catalog()`, `cad()`, `ecommerce()`,
 //! `portal_id()` and `industry_id()` cover the common questions.
@@ -41,7 +43,7 @@ use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
 use axum::{
     extract::{FromRequestParts, Request, State},
-    http::{header, request::Parts, HeaderMap, HeaderValue, StatusCode},
+    http::{header, request::Parts, HeaderMap, HeaderValue, StatusCode, Uri},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -83,6 +85,8 @@ pub struct Visitor {
     pub framed: bool,
     /// The visit (PHP session) this request is part of, for what PHP kept in its session.
     pub visit: Option<VisitId>,
+    /// PHP_SELF: the script asked for and any PATH_INFO after it, which the PHP printed as its forms' action.
+    pub php_self: String,
 }
 
 #[derive(Debug, Clone)]
@@ -126,6 +130,7 @@ impl Visitor {
             session: None,
             framed: false,
             visit: None,
+            php_self: String::new(),
         }
     }
 
@@ -276,7 +281,7 @@ async fn resolve_or_anonymous(core: &Auth, parts: &Parts, php: &Php, now: i64) -
         Ok(r) => r,
         Err(e) => {
             tracing::error!("visitor: database error, treating the request as anonymous: {e}");
-            Resolved { visitor: Visitor::anonymous(), effects: Vec::new() }
+            Resolved { visitor: Visitor { php_self: php_self(parts).to_string(), ..Visitor::anonymous() }, effects: Vec::new() }
         }
     }
 }
@@ -393,7 +398,8 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     }
     let framed = asks_frame || stored.framed;
 
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id }, effects })
+    let php_self = php_self(parts).to_string();
+    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session, framed, visit: visit_id, php_self }, effects })
 }
 
 /// `$_REQUEST['scscpq_wp']` was set and not empty or "0" in the query.
@@ -436,14 +442,69 @@ async fn landing_target(pool: &SqlitePool, visitor: &Visitor, framed: bool) -> s
     })
 }
 
-/// scs_header.php's landing redirect (menu_class::page(TRUE)) for a visit that begins on the SCS page at `path`:
-/// where to send the visitor, unless that is the page asked for. Campaign visitors and bots were never redirected.
-async fn landing(pool: &SqlitePool, visitor: &Visitor, path: &str) -> sqlx::Result<Option<&'static str>> {
+/// scs_header.php's landing redirect (menu_class::page(TRUE)) for a visit that begins on the SCS page whose
+/// PHP_SELF is `php_self`: where to send the visitor, unless that is the page asked for. Campaign visitors and bots
+/// were never redirected.
+async fn landing(pool: &SqlitePool, visitor: &Visitor, php_self: &str) -> sqlx::Result<Option<&'static str>> {
     if visitor.campaign.is_some() || visitor.bot().is_some() || visitor.impersonator.is_some() {
         return Ok(None);
     }
     let target = landing_target(pool, visitor, visitor.framed).await?;
-    Ok((!target.to_ascii_lowercase().starts_with(&path.to_ascii_lowercase())).then_some(target))
+    Ok((!target.to_ascii_lowercase().starts_with(&php_self.to_ascii_lowercase())).then_some(target))
+}
+
+/// A request whose path named a PHP script the way Apache read it but not the way it is routed (`//login.php`,
+/// `/login.php/more`, `/login%2Ephp`). `apache_paths` routes it as the script and keeps this beside it.
+#[derive(Debug, Clone)]
+pub struct SentPath {
+    /// The request target as the client sent it, which PHP saw as REQUEST_URI: what the legacy stack is given.
+    pub uri: Uri,
+    /// PHP_SELF: the script and the PATH_INFO after it.
+    php_self: String,
+}
+
+/// The front's path clean-up, once for every route before routing: a path Apache ran a PHP script for is routed as
+/// that script. Apache decoded the path, merged slashes, resolved `.` and `..`, and ran the first `*.php` segment
+/// with the rest as PATH_INFO; it refused an encoded `/`.
+pub fn apache_paths(mut req: Request) -> Request {
+    let Some((script, php_self)) = php_script(req.uri().path()) else { return req };
+    let target = match req.uri().query() {
+        Some(q) => format!("{script}?{q}"),
+        None => script,
+    };
+    let Ok(uri) = Uri::try_from(target) else { return req };
+    let sent = std::mem::replace(req.uri_mut(), uri);
+    req.extensions_mut().insert(SentPath { uri: sent, php_self });
+    req
+}
+
+fn php_self(parts: &Parts) -> &str {
+    parts.extensions.get::<SentPath>().map_or(parts.uri.path(), |s| s.php_self.as_str())
+}
+
+/// The script Apache ran for the raw path, and PHP_SELF, unless the path already is that script.
+fn php_script(raw: &str) -> Option<(String, String)> {
+    if raw.to_ascii_lowercase().contains("%2f") {
+        return None;
+    }
+    let decoded = percent_decode_str(raw).decode_utf8().ok()?;
+    let mut segments: Vec<&str> = Vec::new();
+    for segment in decoded.split('/') {
+        match segment {
+            "" | "." => {}
+            ".." => {
+                segments.pop();
+            }
+            s => segments.push(s),
+        }
+    }
+    let at = segments.iter().position(|s| s.ends_with(".php"))?;
+    let script = format!("/{}", segments[..=at].join("/"));
+    let mut php_self: String = std::iter::once(script.as_str()).chain(segments[at + 1..].iter().flat_map(|s| ["/", *s])).collect();
+    if decoded.ends_with('/') {
+        php_self.push('/');
+    }
+    (script != raw).then_some((script, php_self))
 }
 
 /// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
@@ -478,6 +539,7 @@ impl Header {
         match path {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
+            p if crate::accounts::static_dirs::contains(p) => Header::None,
             "/stock.php" => Header::Quiet,
             "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
             "/scs_api.php" => Header::None,
@@ -528,7 +590,7 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
     if loads_profile {
         out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.remember(&core.pool, visitor, now).await?);
     }
-    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, parts.uri.path()).await? } else { None };
+    let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, &visitor.php_self).await? } else { None };
     Ok((landing, out))
 }
 
@@ -745,6 +807,24 @@ mod tests {
         assert_eq!(Header::of("/oauth/callback.php", None), Header::Session);
         assert_eq!(Header::of("/cookie_reset.php", None), Header::None);
         assert_eq!(Header::of("/catalog/", None), Header::None);
+    }
+
+    #[test]
+    fn paths_apache_ran_a_script_for_are_routed_as_the_script() {
+        let s = |raw: &str| php_script(raw);
+        let both = |script: &str, php_self: &str| Some((script.to_string(), php_self.to_string()));
+        assert_eq!(s("//login.php"), both("/login.php", "/login.php"));
+        assert_eq!(s("///login.php"), both("/login.php", "/login.php"));
+        assert_eq!(s("/login.php/x"), both("/login.php", "/login.php/x"));
+        assert_eq!(s("/login.php//x/"), both("/login.php", "/login.php/x/"));
+        assert_eq!(s("/login.php/"), both("/login.php", "/login.php/"));
+        assert_eq!(s("/newuser%2Ephp"), both("/newuser.php", "/newuser.php"));
+        assert_eq!(s("/oauth//callback.php"), both("/oauth/callback.php", "/oauth/callback.php"));
+        assert_eq!(s("/x/../login.php"), both("/login.php", "/login.php"));
+        assert_eq!(s("/login.php/../catalog.php/y"), both("/catalog.php", "/catalog.php/y"));
+        for unchanged in ["/login.php", "/oauth/callback.php", "/catalog/", "/", "//catalog/", "/login.php%2Fx", "/%2Flogin.php", "/login.PHP/x", "/%ff.php/x"] {
+            assert_eq!(s(unchanged), None, "{unchanged}");
+        }
     }
 
     #[test]
