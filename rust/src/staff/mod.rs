@@ -32,6 +32,7 @@ pub mod phpser;
 pub mod shell;
 pub mod time;
 
+pub mod campaign;
 pub mod company;
 pub mod dashboard;
 pub mod grants;
@@ -104,6 +105,7 @@ fn go_home(wp: bool) -> Response {
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .route("/mailer_maintain.php", maintain::route::<mailer::Mailform>())
+        .merge(campaign::routes())
         .merge(company::routes())
         .merge(dashboard::routes())
         .merge(grants::routes())

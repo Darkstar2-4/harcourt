@@ -81,3 +81,15 @@
 {"name": "tl-badrange", "method": "POST", "path": "/scs_track_log.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=list&from_timestamp=01%2F01%2F2030+12%3A00+AM&thru_timestamp=01%2F01%2F2020+12%3A00+AM&subtype=&ip=", "session": "warm", "persona": "superuser-active"}
 {"name": "tl-anon", "path": "/scs_track_log.php", "persona": "anonymous"}
 {"name": "hp-roles", "path": "/hero_preview.php?scscpq_wp=1", "session": "warm", "persona": "executive-active"}
+{"name": "cm-get", "path": "/campaign_manager.php?scscpq_wp=1", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-get", "path": "/campaign_manager.php?scscpq_wp=1", "session": "warm", "persona": "administrator-active"}
+{"name": "cm-get", "path": "/campaign_manager.php?scscpq_wp=1", "session": "warm", "persona": "executive-active"}
+{"name": "cm-maintain", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=1", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-ajax-add", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "headers": {"X-Requested-With": "XMLHttpRequest"}, "body": "ajax_action=add&ajax_row=4", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-ajax-other", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "headers": {"X-Requested-With": "XMLHttpRequest"}, "body": "ajax_action=nothing", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-update-errors", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=update&record_id=1&code=&name=&from_date=13%2F45%2F2026&thru_date=&type=Public&css=nothere.css%0Ahttps%3A%2F%2Fx.example%2Fa.css&js=&content_name0=&content_content_id0=999", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-maintain-remote", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=4", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-maintain-new", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-cancel", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=cancel&record_id=", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-update-nosession", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=update&record_id=1&code=KIT", "session": "warm", "persona": "superuser-active"}
+{"name": "cm-anon", "path": "/campaign_manager.php", "persona": "anonymous"}
