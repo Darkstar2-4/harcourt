@@ -117,37 +117,49 @@ fn router_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<
 /// WordPress, which printed the page as it is.
 const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
 
-/// Which page a request asks for, from its query: WPML's `lang`, and whether it is the REST API's `rest_route`.
+/// Query keys WordPress acts on (WP::$public_query_vars, this site's post types and taxonomies, Yoast's and WP Job
+/// Manager's vars, and the ones redirect_canonical() and the comment and preview code read). A page asked for with
+/// one of them is WordPress's to answer: another post, a search, a feed, a redirect.
+const WP_KEYS: &[&str] = &[
+    "m", "p", "posts", "w", "cat", "withcomments", "withoutcomments", "s", "search", "exact", "sentence", "calendar", "page", "paged", "more", "tb",
+    "pb", "author", "order", "orderby", "year", "monthnum", "day", "hour", "minute", "second", "name", "category_name", "tag", "feed", "author_name",
+    "pagename", "page_id", "error", "attachment", "attachment_id", "subpost", "subpost_id", "preview", "robots", "favicon", "taxonomy", "term", "cpage",
+    "post_type", "embed", "rest_route", "sitemap", "sitemap-subtype", "sitemap-stylesheet", "sitemap_n", "yoast-sitemap-xsl", "wpseo_category_redirect",
+    "job-manager-api", "case_study", "faq", "faq_type", "testimonials", "job_listing", "job_listing_category", "job_listing_type", "post_format",
+    "replytocom", "unapproved", "moderation-hash", "preview_id", "preview_nonce", "customize_changeset_uuid", "customize_theme", "wp_customize",
+];
+
+/// Which page a request asks for, from its query.
 #[derive(Debug, PartialEq, Eq)]
 struct Query {
+    /// WPML's `lang`: the last one counts, and anything but `fr` is English.
     lang: Lang,
+    /// That last `lang` says `en`, which WPML redirects away.
+    lang_en: bool,
     rest_route: bool,
     /// Every key is in NEUTRAL_KEYS.
     neutral: bool,
+    /// Some key is in WP_KEYS.
+    wordpress: bool,
+    /// The query without its `lang` pairs, as WPML's redirect keeps it.
+    without_lang: String,
     /// The request URI WordPress would see, for form actions: without lang=en, which WPML drops, and on a neutral
     /// request without the site's own hxlang marker, which the static pages left out.
     form_uri_query: String,
 }
 
 fn query(q: &str) -> Query {
-    let mut lang = Lang::En;
-    let mut rest_route = false;
     let pairs: Vec<&str> = q.split('&').filter(|kv| !kv.is_empty()).collect();
     let key = |kv: &str| kv.split('=').next().unwrap_or("").to_string();
     let neutral = pairs.iter().all(|kv| NEUTRAL_KEYS.contains(&key(kv).as_str()));
-    let mut kept = Vec::new();
-    for kv in &pairs {
-        match key(kv).as_str() {
-            "lang" if *kv == "lang=fr" => lang = Lang::Fr,
-            "rest_route" => rest_route = true,
-            _ => {}
-        }
-        if !(neutral && key(kv) == "hxlang") && *kv != "lang=en" {
-            kept.push(*kv);
-        }
-    }
+    let wordpress = pairs.iter().any(|kv| WP_KEYS.contains(&urldecode(&key(kv)).as_str()));
+    let last_lang = pairs.iter().rev().find(|kv| key(kv) == "lang").copied();
+    let lang = if last_lang == Some("lang=fr") { Lang::Fr } else { Lang::En };
+    let rest_route = pairs.iter().any(|kv| key(kv) == "rest_route");
+    let without_lang = pairs.iter().filter(|kv| key(kv) != "lang").copied().collect::<Vec<_>>().join("&");
+    let kept: Vec<&str> = pairs.iter().filter(|kv| !(neutral && key(kv) == "hxlang") && **kv != "lang=en").copied().collect();
     let form_uri_query = if kept.is_empty() { String::new() } else { format!("?{}", kept.join("&")) };
-    Query { lang, rest_route, neutral, form_uri_query }
+    Query { lang, lang_en: last_lang == Some("lang=en"), rest_route, neutral, wordpress, without_lang, form_uri_query }
 }
 
 /// PHP's urldecode().
@@ -199,8 +211,13 @@ fn with_query(target: &str, query: &str) -> String {
 #[derive(Debug, PartialEq, Eq)]
 enum Answer<'a> {
     Render(&'a Page),
+    /// 301 to a path on this site.
     Redirect(String),
+    /// WPML's 302 away from `lang=en`, with the relative Location it sends.
+    Found(String),
     NotFound,
+    /// A query WordPress acts on: the legacy stack answers.
+    Legacy,
 }
 
 fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
@@ -220,15 +237,28 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     }
 }
 
-/// The answer for a request path, with or without its trailing slash. redirect_canonical() sends a path without
-/// the slash, and a page asked for in the other language, straight to the page's own URL, query kept.
+/// The answer for a request path, with or without its trailing slash, as prod answered it. A neutral request for a
+/// page in its own language got the exported page. Everything else was WordPress's: WPML drops `lang=en` with a
+/// 302, and redirect_canonical() sends a path without the slash, or a page asked for in the other language, in
+/// one 301 to the page's own URL, query kept.
 fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'a> {
     let slashed = if path.ends_with('/') { None } else { Some(format!("{path}/")) };
-    match (resolve(site, slashed.as_deref().unwrap_or(path), q.lang), slashed) {
+    let answer = resolve(site, slashed.as_deref().unwrap_or(path), q.lang);
+    if q.neutral && slashed.is_none() && matches!(answer, Answer::Render(_)) {
+        return answer;
+    }
+    if q.wordpress {
+        return Answer::Legacy;
+    }
+    if q.lang_en && answer != Answer::NotFound {
+        let to = slashed.as_deref().unwrap_or(path);
+        return Answer::Found(if q.without_lang.is_empty() { to.to_string() } else { format!("{to}?{}", q.without_lang) });
+    }
+    match (answer, slashed) {
         (Answer::Render(p), None) => Answer::Render(p),
-        (Answer::Render(p), Some(_)) => Answer::Redirect(with_query(&format!("{}{}", p.path, p.lang.query()), raw_query)),
+        (Answer::Render(p), Some(_)) => Answer::Redirect(with_query(&p.path, raw_query)),
         (Answer::Redirect(to), _) => Answer::Redirect(with_query(&to, raw_query)),
-        (Answer::NotFound, _) => Answer::NotFound,
+        (other, _) => other,
     }
 }
 
@@ -289,7 +319,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
     let q = query(raw_query);
-    if q.rest_route {
+    if q.rest_route && (retire_all() || lists_users(raw_query)) {
         return gone();
     }
     let site = match wp.content.site().await {
@@ -300,7 +330,9 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
     let page = match route(&site, &path, &q, raw_query) {
         Answer::Render(p) => p,
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
+        Answer::Found(to) => return found(&to),
         Answer::NotFound => return (StatusCode::NOT_FOUND, "Not found").into_response(),
+        Answer::Legacy => return legacy(),
     };
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
@@ -384,12 +416,42 @@ fn redirect(origin: &str, to: &str) -> Response<Body> {
     }
 }
 
+/// WPML's redirect: a 302 with the Location relative, as WordPress's wp_redirect() leaves it.
+fn found(to: &str) -> Response<Body> {
+    match HeaderValue::from_str(to) {
+        Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
+    }
+}
+
+/// Hands the request back: main.rs sends a response marked `x-hxweb: legacy` on to the legacy stack.
+fn legacy() -> Response<Body> {
+    let mut r = Response::new(Body::empty());
+    r.headers_mut().insert("x-hxweb", HeaderValue::from_static("legacy"));
+    r
+}
+
 fn gone() -> Response<Body> {
     (StatusCode::GONE, [(header::CACHE_CONTROL, "no-store")], "Gone\n").into_response()
 }
 
+/// `rest_route=/wp/v2/users...`, the user listing prod's nginx answers 404 in both its forms. It never reaches
+/// WordPress from here.
+fn lists_users(raw_query: &str) -> bool {
+    raw_query.split('&').filter_map(|kv| kv.strip_prefix("rest_route=")).any(|v| {
+        let v = urldecode(v).to_ascii_lowercase();
+        let parts: Vec<&str> = v.split('/').filter(|s| !s.is_empty()).collect();
+        parts.len() >= 3 && parts[0] == "wp" && parts[1] == "v2" && parts[2].starts_with("users")
+    })
+}
+
 async fn robots() -> impl IntoResponse {
     ([(header::CONTENT_TYPE, "text/plain")], ROBOTS)
+}
+
+fn retire_all() -> bool {
+    static ALL: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ALL.get_or_init(|| std::env::var("HXWEB_RETIRE_WORDPRESS").is_ok_and(|v| v == "1"))
 }
 
 /// WordPress entry points nothing needs any more, answered 410 by retired.rs before anything reaches Apache.
@@ -397,9 +459,7 @@ async fn robots() -> impl IntoResponse {
 /// sign-in, the admin screens and the REST API wait for HXWEB_RETIRE_WORDPRESS=1, because staff still use
 /// wp-admin until page editing moves to the dashboard. admin-ajax.php stays open while Gravity Forms needs it.
 pub fn retired(segments: &[&str]) -> bool {
-    static ALL: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    let all = *ALL.get_or_init(|| std::env::var("HXWEB_RETIRE_WORDPRESS").is_ok_and(|v| v == "1"));
-    retired_with(segments, all)
+    retired_with(segments, retire_all())
 }
 
 fn retired_with(segments: &[&str], all: bool) -> bool {
@@ -453,6 +513,12 @@ mod tests {
         assert!(query("lang=fr&hxlang=fr&utm_source=x&fbclid=y").neutral);
         assert!(!query("lang=fr&quot=").neutral);
         assert_eq!(query("hxlang=fr&theme=x").form_uri_query, "?hxlang=fr&theme=x");
+        assert_eq!(query("lang=fr&lang=en").lang, Lang::En);
+        assert!(query("lang=fr&lang=en").lang_en);
+        assert!(query("%70=1").wordpress);
+        assert!(lists_users("rest_route=%2Fwp%2Fv2%2Fusers&per_page=100"));
+        assert!(lists_users("rest_route=//WP/v2/users/1"));
+        assert!(!lists_users("rest_route=/wp/v2/pages"));
     }
 
     #[test]
@@ -469,8 +535,18 @@ mod tests {
         let r = |path: &str, q: &str| match route(&site, path, &query(q), q) {
             Answer::Render(p) => format!("render {}", p.id.0),
             Answer::Redirect(to) => to,
+            Answer::Found(to) => format!("302 {to}"),
             Answer::NotFound => "404".into(),
+            Answer::Legacy => "legacy".into(),
         };
+        assert_eq!(r("/product/alignment/", "lang=en"), "render 1");
+        assert_eq!(r("/product/alignment/", "lang=en&x=1"), "302 /product/alignment/?x=1");
+        assert_eq!(r("/gamme-de-produits/centrage/", "lang=en"), "302 /gamme-de-produits/centrage/");
+        assert_eq!(r("/gamme-de-produits/centrage", "lang=en"), "302 /gamme-de-produits/centrage/");
+        assert_eq!(r("/product/alignment/", "lang=en&lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
+        assert_eq!(r("/product/alignment/", "p=212"), "legacy");
+        assert_eq!(r("/product/alignment", "s=x"), "legacy");
+        assert_eq!(r("/product/alignment/", "theme=light"), "render 1");
         assert_eq!(r("/product/alignment/", ""), "render 1");
         assert_eq!(r("/product/alignment", "utm_source=a+b"), "/product/alignment/?utm_source=a%20b");
         assert_eq!(r("/gamme-de-produits/centrage", ""), "/product/alignment/");

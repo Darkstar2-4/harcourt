@@ -184,9 +184,18 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
     }))
 }
 
-/// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs.
+/// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs. A
+/// GET they hand back (`x-hxweb: legacy`, a query WordPress acts on) goes where an unclaimed path would.
 async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum::middleware::Next) -> Response<Body> {
+    let again = (req.method() == Method::GET || req.method() == Method::HEAD).then(|| (req.method().clone(), req.uri().clone(), req.headers().clone()));
     let resp = next.run(req).await;
+    if let Some((method, uri, headers)) = again.filter(|_| resp.headers().get("x-hxweb").is_some_and(|v| v == "legacy")) {
+        let mut req = Request::new(Body::empty());
+        *req.method_mut() = method;
+        *req.uri_mut() = uri;
+        *req.headers_mut() = headers;
+        return dispatch(State(app), req).await;
+    }
     if resp.headers().get("x-hxweb").is_none_or(|v| v != "cms") {
         return resp;
     }
