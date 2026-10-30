@@ -133,12 +133,15 @@ fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
     }
     let trimmed = raw_path.trim_matches('/');
     let rules = rewrite();
-    if rules[..3].iter().any(|r| r.is_match(trimmed)) {
+    if rules[..2].iter().any(|r| r.is_match(trimmed)) {
         return Asked::Legacy;
     }
-    let (matched, paged) = match rules[3].captures(trimmed) {
-        Some(c) => (c.get(1).map_or("", |m| m.as_str()), c[2].parse::<usize>().unwrap_or(0)),
-        None => match trimmed.strip_prefix("search/").filter(|m| !m.is_empty()) {
+    // The embed rule sets `embed`, which WP_Query keeps only for a single post or a 404: a search's embed address
+    // shows the search.
+    let (matched, paged) = match (rules[2].captures(trimmed), rules[3].captures(trimmed)) {
+        (Some(c), _) => (c.get(1).map_or("", |m| m.as_str()), 1),
+        (None, Some(c)) => (c.get(1).map_or("", |m| m.as_str()), c[2].parse::<usize>().unwrap_or(0)),
+        (None, None) => match trimmed.strip_prefix("search/").filter(|m| !m.is_empty()) {
             Some(m) => (m, 1),
             None => return Asked::Legacy,
         },
@@ -942,6 +945,8 @@ mod tests {
         assert_eq!(asked("/search/products", "lang=en&q=1", &[]), Asked::Found("/search/products/?q=1".into()));
         assert_eq!(asked("/search/products/feed/", "", &[]), Asked::Legacy);
         assert_eq!(asked("/search/products/feed/rss2/", "", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products/embed/", "", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/embed/", "", &[]), Asked::Results { s: "embed".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "paged=2", &[]), Asked::Results { s: "products".into(), paged: 2, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products/page/2/", "paged=0", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "s=ball+lock%27s", &[]), Asked::Results { s: "ball lock's".into(), paged: 1, lang: Lang::En, page: 0 });

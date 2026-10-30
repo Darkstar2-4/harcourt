@@ -204,3 +204,17 @@
 {"name": "p5svb-search-feed-rss2", "path": "/search?feed=rss2"}
 {"name": "p5svb-search-s-", "path": "/search?s="}
 {"name": "p5svb-search-s-alignment+pin", "path": "/search?s=alignment+pin"}
+{"name": "p5emb-products", "path": "/search/products/embed/"}
+{"name": "p5emb-pin", "path": "/search/pin/embed/"}
+{"name": "p5emb-none", "path": "/search/zzqqxx/embed/"}
+{"name": "p5emb-two", "path": "/search/alignment+pin/embed/"}
+{"name": "p5emb-fr", "path": "/search/le/embed/?lang=fr", "language": "fr"}
+{"name": "p5emb-bare", "path": "/search/products/embed"}
+{"name": "p5emb-q", "path": "/search/products/embed/?q=1"}
+{"name": "p5emb-paged", "path": "/search/pin/page/2/embed/"}
+{"name": "p5sq-s", "path": "/search/products?s=pin"}
+{"name": "p5sq-s-two", "path": "/search/pin/?s=alignment+pin"}
+{"name": "p5sq-paged", "path": "/search/pin/?paged=2"}
+{"name": "p5sq-paged1", "path": "/search/pin/?paged=1"}
+{"name": "p5sq-paged-big", "path": "/search/pin/?paged=99"}
+{"name": "p5sq-s-fr", "path": "/search/products/?s=le&lang=fr", "language": "fr"}
