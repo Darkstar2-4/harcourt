@@ -11,6 +11,7 @@ mod company;
 mod contact;
 mod home;
 pub mod probe;
+mod request;
 mod simple;
 mod templates;
 

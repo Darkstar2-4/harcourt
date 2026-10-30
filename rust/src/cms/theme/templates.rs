@@ -26,6 +26,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Locations => super::contact::locations,
         Template::Home => super::home::home,
         Template::Builder => super::builder::builder,
+        Template::Request => super::request::request,
         _ => return None,
     })
 }
@@ -101,7 +102,11 @@ pub(super) fn cta(c: &mut Ctx) {
     }
     c.push("\n            </ul>\n\n            <div class=\"text-center\">\n                            ");
     if c.page.template == Template::Request {
-        c.push("<a class=\"standard-btn red\" href=\"#signup\"> New User Sign Up </a>");
+        c.push(if c.lang() == Lang::Fr {
+            "<a class=\"standard-btn red\" href=\"#signup\"> Inscription nouvel utilisateur </a>"
+        } else {
+            "<a class=\"standard-btn red\" href=\"#signup\"> New User Sign Up </a>"
+        });
     } else {
         c.push("<a class=\"standard-btn red\" href=\"/request-access\"> ");
         c.option_html("cta_btn");
