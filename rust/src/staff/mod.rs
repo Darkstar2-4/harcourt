@@ -27,6 +27,7 @@ pub mod csrf;
 pub mod filesort;
 pub mod html;
 pub mod maintain;
+pub mod map;
 pub mod phpser;
 pub mod shell;
 pub mod time;
@@ -45,6 +46,7 @@ pub mod portalitem;
 pub mod prj;
 pub mod subcategory_order;
 pub mod user;
+pub mod utility;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
 pub const HOME: &str = "/scs_index.php";
@@ -111,4 +113,5 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(prj::routes())
         .merge(subcategory_order::routes())
         .merge(user::routes())
+        .merge(utility::routes())
 }

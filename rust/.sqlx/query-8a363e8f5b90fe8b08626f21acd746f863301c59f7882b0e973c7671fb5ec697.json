@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.name AS category, s.name FROM subcategory s LEFT JOIN category c ON c.id = s.category_id WHERE s.id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "category",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "8a363e8f5b90fe8b08626f21acd746f863301c59f7882b0e973c7671fb5ec697"
+}
