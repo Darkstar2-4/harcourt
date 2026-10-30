@@ -698,7 +698,7 @@ async fn log_order(pool: &SqlitePool, ip: &str, shopper: &Shopper, comment: &str
 
 pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
-    let framed = html::framed(uri.query(), &headers);
+    let framed = visitor.framed;
     let home = if framed { "/" } else { "/scs_index.php" };
     let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(html::redirect(home)) };
     let lines = cart::lines(&state, &shopper).await?;

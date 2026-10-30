@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::Response,
 };
 use sqlx::SqlitePool;
@@ -185,14 +185,14 @@ async fn ajax(pool: &SqlitePool, ip: &str, staff_id: i64, posted: &HashMap<Strin
     })
 }
 
-pub async fn page(State(state): State<Arc<Orders>>, Staff(staff): Staff<Administrator>, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Administrator>, ClientIp(ip): ClientIp, headers: HeaderMap, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     if headers.contains_key("x-requested-with") && !body.is_empty() {
-        let answer = ajax(pool, &ip, staff.user.id.0, &form_params(None, &body)).await?;
+        let answer = ajax(pool, &ip, staff.who.user.id.0, &form_params(None, &body)).await?;
         return Ok(html::page_response(answer.json()));
     }
     let chrome = html::Chrome::load(pool).await?;
-    let head = html::Head { title: "Design Partner Agreement", description: None, js: &[], framed: html::framed(uri.query(), &headers), dashboard: true, catalog_url: "/catalog.php" };
+    let head = html::Head { title: "Design Partner Agreement", description: None, js: &[], framed: staff.wp, dashboard: true, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
     out.push_str(&html::message(&["Design Partner Agreement".to_string()], 0));
     out.push_str(SCRIPT);
