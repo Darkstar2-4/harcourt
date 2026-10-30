@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO outbox (to_email, subject, body, created_at) VALUES (?1, 'Your Harcourt sign-in code', ?2, ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b25216c56935a8d58925789cdbac9a4b59b948b991c7b950135913803c80cfe4"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO remote_grant (token_hash, user_id, granted_by, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "08324a8e5e1c6859d5be8665ea69e7699b84a54b856d0f01ce5c09f1f22c7088"
+}

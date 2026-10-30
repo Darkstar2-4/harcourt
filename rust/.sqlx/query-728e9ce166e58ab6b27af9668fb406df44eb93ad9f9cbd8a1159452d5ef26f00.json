@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.id AS \"id!: i64\", u.status AS \"status!\", u.\"type\" AS \"ty!\", u.company_name AS company_name, s.email AS email\n           FROM session s JOIN \"user\" u ON u.id = s.user_id\n           WHERE s.token_hash = ?1 AND s.expires_at > ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ty!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "728e9ce166e58ab6b27af9668fb406df44eb93ad9f9cbd8a1159452d5ef26f00"
+}
