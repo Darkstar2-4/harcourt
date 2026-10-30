@@ -137,6 +137,10 @@ async fn the_old_stack_is_gone_and_the_blog_is_not_found() {
         }
     }
     assert_eq!(send(&app, Method::GET, "/?rest_route=/wp/v2/users").await.0, StatusCode::GONE);
+    for path in ["/beta_catalog/", "/beta_catalog"] {
+        let (status, location, _) = send(&app, Method::GET, path).await;
+        assert_eq!((status, location.as_deref()), (StatusCode::MOVED_PERMANENTLY, Some("https://www.harcourt.co/catalog/")), "the beta catalog has no loader any more");
+    }
     for path in ["/feed/", "/comments/feed/", "/category/blog/", "/author/someone/", "/2024/01/", "/a/b/c/", "/product/alignment/feed/", "/post-sitemap.xml", "/author-sitemap.xml", "/category-sitemap.xml"] {
         assert_eq!(send(&app, Method::GET, path).await.0, StatusCode::NOT_FOUND, "{path}");
     }

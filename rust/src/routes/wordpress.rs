@@ -37,7 +37,6 @@ use crate::{
 /// WordPress did.
 const PAGES: &[&str] = &[
     "/",
-    "/beta_catalog/",
     "/boxjoint-inquiry-form/",
     "/cart/",
     "/catalog/",
@@ -169,7 +168,9 @@ pub fn router_with_forms(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>) ->
 fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc<Orders>) -> Routers {
     let search = crate::catalog::wp_search::searcher(core.clone());
     let wp = Arc::new(Wp { content: Content::new(core.pool.clone()), forms, orders, search, core: core.clone() });
-    let mut r = Router::new().route("/robots.txt", get(robots));
+    // The beta catalog's loader is gone; its page sends visitors to the catalog.
+    let beta = |State(wp): State<Arc<Wp>>| async move { redirect(&wp.core.public_origin, "/catalog/") };
+    let mut r = Router::new().route("/robots.txt", get(robots)).route("/beta_catalog/", get(beta)).route("/beta_catalog", get(beta));
     for path in PAGES {
         // The search pages answer any other method as a GET, as WordPress did.
         let methods = || if crate::catalog::wp_search::page::is_search_page(path) { get(page).post(page_post).fallback(page_other_method) } else { get(page).post(page_post) };
