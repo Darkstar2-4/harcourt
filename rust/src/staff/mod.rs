@@ -44,6 +44,7 @@ pub mod log;
 pub mod mailer;
 pub mod portal;
 pub mod portalcategory;
+pub mod portalcontent;
 pub mod portalitem;
 pub mod prj;
 pub mod subcategory;
@@ -115,6 +116,7 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(log::routes())
         .merge(portal::routes())
         .merge(portalcategory::routes())
+        .merge(portalcontent::routes())
         .merge(portalitem::routes())
         .merge(prj::routes())
         .merge(subcategory::routes())

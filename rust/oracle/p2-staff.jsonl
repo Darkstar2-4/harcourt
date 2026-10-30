@@ -93,3 +93,8 @@
 {"name": "cm-cancel", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=cancel&record_id=", "session": "warm", "persona": "superuser-active"}
 {"name": "cm-update-nosession", "method": "POST", "path": "/campaign_manager.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=update&record_id=1&code=KIT", "session": "warm", "persona": "superuser-active"}
 {"name": "cm-anon", "path": "/campaign_manager.php", "persona": "anonymous"}
+{"name": "pc-maintain", "method": "POST", "path": "/portalcontent.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=425&report_portal_id=", "session": "warm", "persona": "superuser-active"}
+{"name": "pc-maintain-new", "method": "POST", "path": "/portalcontent.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=0&report_portal_id=31", "session": "warm", "persona": "superuser-active"}
+{"name": "pc-update-errors", "method": "POST", "path": "/portalcontent.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=update&record_id=0&report_portal_id=31&portal_id=31&form=Hyperlink&bmFtZQlFTg=&aHlwZXJsaW5rCUVO=http%3A%2F%2Fexample.com", "session": "warm", "persona": "superuser-active"}
+{"name": "pc-maintain-link", "method": "POST", "path": "/portalcontent.php?scscpq_wp=1", "body": "csrf=MzaF1sMbQHaGv4zNQKr08pvD4DMFZ6Yfd9RzuJbh7Gw&action=maintain&record_id=61&report_portal_id=", "session": "warm", "persona": "superuser-active"}
+{"name": "pc-roles", "path": "/portalcontent.php?scscpq_wp=1", "session": "warm", "persona": "executive-active"}

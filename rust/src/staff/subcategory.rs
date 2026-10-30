@@ -498,6 +498,7 @@ async fn download(pool: &SqlitePool, f: &Fields) -> sqlx::Result<Response> {
     let body = if matches!(r.filetype.as_str(), "html" | "hyperlink") { r.html_content.unwrap_or_default().into_bytes() } else { r.content.unwrap_or_default() };
     let mut res = (StatusCode::OK, body).into_response();
     let h = res.headers_mut();
+    let mime = if mime.starts_with("text/") && !mime.contains("charset") { format!("{mime};charset=UTF-8") } else { mime };
     h.insert(header::CONTENT_TYPE, HeaderValue::from_str(&mime).unwrap_or(HeaderValue::from_static("application/octet-stream")));
     h.insert(header::CONTENT_DISPOSITION, HeaderValue::from_str(&format!("attachment; filename={name}")).unwrap_or(HeaderValue::from_static("attachment")));
     h.insert(header::PRAGMA, HeaderValue::from_static("no-cache"));
