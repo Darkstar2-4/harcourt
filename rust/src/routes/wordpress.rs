@@ -334,6 +334,8 @@ enum Answer<'a> {
     /// WPML's 302 away from `lang=en`, with the relative Location it sends.
     Found(String),
     NotFound,
+    /// A feed's 301, sent with the feed's content type as WordPress sends it.
+    FeedRedirect(String, &'static str),
     /// A query WordPress acts on: the legacy stack answers.
     Legacy,
 }
@@ -446,6 +448,107 @@ fn guess<'a>(site: &'a Site, name: &str, lang: Lang, of: Option<PostType>) -> An
     }
 }
 
+/// The query vars of the front page this port answers, and the rest of its query, which redirects keep.
+const FRONT_VARS: [&str; 8] = ["p", "page_id", "cat", "m", "feed", "name", "page", "lang"];
+
+/// WordPress's query vars on the front page: a post by id or name, a category by id, a month or year, a feed. Each
+/// redirects to the canonical URL (redirect_canonical() keeps the rest of the query); WPML first sends a post or
+/// category of the other language to the URL of its own (from English) or of its translation (from French).
+/// None for anything else (a search, an author, the blog listing), which is not ported.
+fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer<'a>> {
+    let args = crate::cms::url::parse_str(raw_query);
+    let one = |k: &str| {
+        args.iter().find(|(name, _)| name == k).and_then(|(_, a)| match a {
+            crate::cms::url::Arg::One(v) => Some(v.as_str()),
+            crate::cms::url::Arg::List(_) => None,
+        })
+    };
+    if args.iter().any(|(k, _)| WP_KEYS.contains(&k.as_str()) && !FRONT_VARS.contains(&k.as_str())) {
+        return None;
+    }
+    let without = |drop: &[&str]| {
+        raw_query.split('&').filter(|kv| !kv.is_empty() && !drop.contains(&urldecode(kv.split('=').next().unwrap_or("")).as_str())).collect::<Vec<_>>().join("&")
+    };
+    let rest = without(&FRONT_VARS);
+    let moved = |to: String| Answer::Redirect(with_query(&to, &rest));
+    let other_language = |key: &str, id: i64, own: Lang| match lang {
+        Lang::En => Some(Answer::Found(format!("/?{key}={id}&lang={}", own.code()))),
+        Lang::Fr => None,
+    };
+    let numeric = |v: &str| v.parse::<i64>().ok().filter(|n| *n > 0);
+    for key in ["p", "page_id"] {
+        let Some(v) = one(key) else { continue };
+        let id = numeric(v)?;
+        if site.media.contains_key(&crate::cms::MediaId(id)) {
+            return None;
+        }
+        let Some(p) = site.page(crate::cms::PageId(id)) else { return Some(Answer::NotFound) };
+        // Testimonials are not publicly queryable: WordPress finds nothing by their id.
+        if p.kind == PostType::Testimonials {
+            return Some(Answer::NotFound);
+        }
+        let rest = without(&["p", "page_id", "lang"]);
+        let moved = |to: String| Answer::Redirect(with_query(&to, &rest));
+        if p.status != Status::Publish {
+            // WPML sends an unpublished page's id asked for in French to its French translation's.
+            return site
+                .translation(p, lang)
+                .filter(|t| t.status == Status::Publish && lang == Lang::Fr && t.lang == Lang::Fr && rest.is_empty())
+                .map(|t| Answer::Found(format!("/?{key}={}&lang=fr", t.id.0)));
+        }
+        if p.lang == lang {
+            return Some(moved(format!("{}{}", p.path, p.lang.query())));
+        }
+        if !rest.is_empty() {
+            return None;
+        }
+        return match site.translation(p, lang).filter(|t| t.status == Status::Publish && lang == Lang::Fr) {
+            Some(t) => Some(Answer::Found(format!("/?{key}={}&lang=fr", t.id.0))),
+            None => other_language(key, id, p.lang),
+        };
+    }
+    if let Some(name) = one("name") {
+        return match by_name(site, name, lang) {
+            Answer::Redirect(to) if rest.is_empty() => Some(Answer::Redirect(to)),
+            Answer::NotFound => Some(Answer::NotFound),
+            _ => None,
+        };
+    }
+    if let Some(v) = one("cat") {
+        let id = numeric(v)?;
+        let t = site.terms.iter().find(|t| t.id == id && t.taxonomy == crate::cms::Taxonomy::Category)?;
+        return match t.lang {
+            Some(l) if l != lang => if rest.is_empty() { other_language("cat", id, l) } else { None },
+            _ => Some(moved(format!("{}{}", t.path(), lang.query()))),
+        };
+    }
+    if let Some(m) = one("m") {
+        // A date archive with no post 404s; the canonical URL exists only for one that lists something.
+        let (prefix, to) = match m.len() {
+            4 if numeric(m).is_some() => (m.to_string(), format!("/{m}/")),
+            6 if numeric(m).is_some() => (format!("{}-{}", &m[..4], &m[4..]), format!("/{}/{}/", &m[..4], &m[4..])),
+            _ => return None,
+        };
+        let any = site.pages.iter().any(|p| p.kind == PostType::Post && p.status == Status::Publish && p.published_at.starts_with(&prefix));
+        return Some(if any { moved(to) } else { Answer::NotFound });
+    }
+    if let Some(f) = one("feed") {
+        let (to, kind) = match f {
+            "feed" | "rss" | "rss2" => ("/feed/", "application/rss+xml; charset=UTF-8"),
+            "atom" => ("/feed/atom/", "application/atom+xml; charset=UTF-8"),
+            "rdf" => ("/feed/rdf/", "application/rdf+xml; charset=UTF-8"),
+            "comments-rss2" => ("/comments/feed/", "application/octet-stream; charset=UTF-8"),
+            "comments-atom" => ("/comments/feed/atom/", "application/octet-stream; charset=UTF-8"),
+            _ => return None,
+        };
+        return Some(Answer::FeedRedirect(with_query(to, &raw_query.split('&').filter(|kv| !kv.starts_with("feed=")).collect::<Vec<_>>().join("&")), kind));
+    }
+    match one("page") {
+        Some(v) if numeric(v).is_some() => Some(moved(format!("/{}", lang.query()))),
+        _ => None,
+    }
+}
+
 /// The answer for a request path, with or without its trailing slash, as prod answered it. A neutral request for a
 /// page in its own language got the exported page. Everything else was WordPress's: WPML drops `lang=en` with a
 /// 302, redirect_canonical() adds a missing slash keeping the query as sent, and a page asked for in the other
@@ -457,7 +560,12 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
         return answer;
     }
     if q.wordpress {
-        return Answer::Legacy;
+        return match path {
+            // WPML's 302 away from lang=en comes before any query var.
+            "/" if q.lang_en => Answer::Found(if q.without_lang.is_empty() { "/".into() } else { format!("/?{}", q.without_lang) }),
+            "/" => front_query(site, raw_query, q.lang).unwrap_or(Answer::Legacy),
+            _ => Answer::Legacy,
+        };
     }
     if q.lang_en && answer != Answer::NotFound {
         let to = slashed.as_deref().unwrap_or(path);
@@ -574,6 +682,11 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         Answer::Render(p) => Some(p),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::Found(to) => return found(&to),
+        Answer::FeedRedirect(to, kind) => {
+            let mut r = redirect(&wp.core.public_origin, &to);
+            r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(kind));
+            return r;
+        }
         _ => None,
     };
     respond(wp, &site, page, uri, &q, agent, answer, replay).await
@@ -828,6 +941,7 @@ mod tests {
             Answer::Found(to) => format!("302 {to}"),
             Answer::NotFound => "404".into(),
             Answer::Legacy => "legacy".into(),
+            Answer::FeedRedirect(to, _) => format!("feed {to}"),
         };
         assert_eq!(r("/product/alignment/", "lang=en"), "render 1");
         assert_eq!(r("/product/alignment/", "lang=en&x=1"), "302 /product/alignment/?x=1");
