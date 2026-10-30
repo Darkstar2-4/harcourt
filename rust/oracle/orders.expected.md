@@ -8,7 +8,7 @@ Cases that would only show these are left out of `orders.jsonl` and `orders-form
 - **PO Manager `return_url`.** It is followed only when it is a path on this site.
 - **Carrier delete.** Only an inactive carrier can be deleted, which is all the list offers.
 - **Form islands, honeypot label.** The label is always `Comments`. Gravity Forms picks one at random per render, so two oracle renders also differ there.
-- **Form islands, `gform_ajax` hash.** The `hash=` part of form 1's hidden `gform_ajax` value is left out. WordPress derives it from its secret salts, and nothing in Rust reads it.
+- **Form islands, `gform_ajax` hash.** The `hash=` part of form 1's hidden `gform_ajax` value is a digest of the fixed attributes, not WordPress's salted signature. Nothing in Rust reads it back; hx-diff's gform-ajax rule forgives the value.
 - **Form posts.** The anti-spam token is the signed `state_N` value. A post without a fresh one is stored as spam. Posts are not in the corpus: a real Gravity Forms post needs the per-render state and hash from the same render.
 - **reCAPTCHA.** When `HXWEB_RECAPTCHA_SECRET` is unset the check is skipped. The PHP blocked every contact form without its key.
 
