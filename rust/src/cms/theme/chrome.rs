@@ -46,6 +46,13 @@ fn template(lang: Lang, part: Part) -> &'static str {
     }
 }
 
+/// The site icon's 32-pixel image, as wp_site_icon() prints it in the head (the feeds' channel image).
+pub fn site_icon() -> Option<&'static str> {
+    let head = template(Lang::En, Part::Head);
+    let tag = head.split("<link rel=\"icon\" href=\"").skip(1).find(|t| t.split_once("/>").is_some_and(|(attrs, _)| attrs.contains("sizes=\"32x32\"")))?;
+    tag.split_once('"').map(|(url, _)| url)
+}
+
 /// header.php's cache-buster for scscpq_wp.js, which an older static export may not have yet.
 fn script_version() -> &'static str {
     let head = template(Lang::En, Part::Head);
@@ -311,17 +318,26 @@ fn flag_img(l: Lang, alt: &str, size: u32) -> String {
     )
 }
 
-/// WPML's menu language switcher (the items it appends to the navbar menu).
+/// The page's translations as WPML links them.
+fn alternates(c: &Ctx) -> Vec<(Lang, String)> {
+    translations(c).iter().map(|p| (p.lang, p.url(ORIGIN))).collect()
+}
+
 fn lang_switcher(c: &Ctx) -> String {
-    let t = lang_text(c.lang());
-    let pages = translations(c);
-    let n = pages.len();
-    let items: Vec<String> = pages
+    menu_switcher(c.lang(), &alternates(c))
+}
+
+/// WPML's menu language switcher (the items it appends to the navbar menu) on a page in `me` whose versions are at
+/// `items`.
+pub fn menu_switcher(me: Lang, items: &[(Lang, String)]) -> String {
+    let t = lang_text(me);
+    let n = items.len();
+    let items: Vec<String> = items
         .iter()
         .enumerate()
-        .map(|(i, p)| {
-            let code = p.lang.code();
-            let current = p.lang == c.lang();
+        .map(|(i, (lang, url))| {
+            let code = lang.code();
+            let current = *lang == me;
             let mut class = format!("menu-item wpml-ls-slot-2 wpml-ls-item wpml-ls-item-{code}");
             if current {
                 class.push_str(" wpml-ls-current-language");
@@ -334,25 +350,28 @@ fn lang_switcher(c: &Ctx) -> String {
                 class.push_str(" wpml-ls-last-item");
             }
             class.push_str(&format!(" menu-item-type-wpml_ls_menu_item menu-item-object-wpml_ls_menu_item nav-item nav-item-wpml-ls-2-{code}"));
-            let name = lang_name(&t, p.lang);
+            let name = lang_name(&t, *lang);
             let title = if current { String::new() } else { format!(" title=\"{} {name}\"", t.switch_to) };
             format!(
                 "<li  id=\"menu-item-wpml-ls-2-{code}\" class=\"{class}\"><a{title} href=\"{}\" class=\"nav-link\">{}</a><span></span></li>",
-                esc(&p.url(ORIGIN)),
-                flag_img(p.lang, name, 50)
+                esc(url),
+                flag_img(*lang, name, 50)
             )
         })
         .collect();
     items.join("\n")
 }
 
-/// The legacy dropdown switcher header.php prints inside an HTML comment.
 fn hidden_switcher(c: &Ctx) -> String {
-    let t = lang_text(c.lang());
-    let pages = translations(c);
-    let n = pages.len();
-    let me = c.lang();
-    let my_index = pages.iter().position(|p| p.lang == me).unwrap_or(0);
+    dropdown_switcher(c.lang(), &alternates(c))
+}
+
+/// The legacy dropdown switcher header.php prints inside an HTML comment, on a page in `me` whose versions are at
+/// `items`.
+pub fn dropdown_switcher(me: Lang, items: &[(Lang, String)]) -> String {
+    let t = lang_text(me);
+    let n = items.len();
+    let my_index = items.iter().position(|(l, _)| *l == me).unwrap_or(0);
     let edge = |i: usize| {
         let mut s = String::new();
         if i == 0 {
@@ -373,16 +392,16 @@ fn hidden_switcher(c: &Ctx) -> String {
         t.switch_to,
         flag_img(me, name, 30)
     );
-    for (i, p) in pages.iter().enumerate().filter(|(_, p)| p.lang != me) {
-        let pcode = p.lang.code();
-        let pname = lang_name(&t, p.lang);
+    for (i, (lang, url)) in items.iter().enumerate().filter(|(_, (l, _))| *l != me) {
+        let pcode = lang.code();
+        let pname = lang_name(&t, *lang);
         out.push_str(&format!(
             "\t\t\t\t\n\t\t\t\t\t<li class=\"wpml-ls-slot-shortcode_actions wpml-ls-item wpml-ls-item-{pcode}{}\">\n\t\t\t\t\t\t<a href=\"{}\" hreflang=\"{pcode}\" lang=\"{pcode}\" class=\"wpml-ls-link\" aria-label=\"{} {pname}\" title=\"{} {pname}\">\n\t\t\t\t\t\t\t                                    {}</a>\n\t\t\t\t\t</li>\n\n",
             edge(i),
-            esc(&p.url(ORIGIN)),
+            esc(url),
             t.switch_to,
             t.switch_to,
-            flag_img(p.lang, pname, 30)
+            flag_img(*lang, pname, 30)
         ));
     }
     out.push_str("\t\t\t\t\t\t\t</ul>\n\n\t\t</li>\n\n\t</ul>\n</div>\n");

@@ -44,9 +44,85 @@ impl Images {
 
     /// `wp_get_attachment_image($id, 'full')`. Empty when there is no such attachment.
     pub fn full(&mut self, media: Option<&Media>, uploads: &str) -> String {
+        self.attachment(media, uploads, "attachment-full size-full")
+    }
+
+    /// the_post_thumbnail(): the featured image at its full size (the theme sets no post-thumbnail size).
+    pub fn post_thumbnail(&mut self, media: Option<&Media>, uploads: &str) -> String {
+        self.attachment(media, uploads, "attachment-post-thumbnail size-post-thumbnail wp-post-image")
+    }
+
+    /// wp_filter_content_tags() on `<img>` tags of rendered content: an image of an attachment that exists gets its
+    /// width and height (from the file its src names) and its srcset and sizes; every image gets the loading
+    /// attributes for its place in the page, which need the dimensions beyond `decoding`.
+    pub fn filter_content_tags(&mut self, html: &str, media: &std::collections::HashMap<super::model::MediaId, Media>, uploads: &str) -> String {
+        let mut out = String::with_capacity(html.len() + 512);
+        let mut rest = html;
+        while let Some(at) = rest.find("<img") {
+            let tail = &rest[at..];
+            let Some(end) = tail.find('>').filter(|_| tail[4..].starts_with(|c: char| c.is_ascii_whitespace())) else {
+                out.push_str(&rest[..at + 4]);
+                rest = &rest[at + 4..];
+                continue;
+            };
+            out.push_str(&rest[..at]);
+            out.push_str(&self.content_image(&tail[..=end], media, uploads));
+            rest = &tail[end + 1..];
+        }
+        out.push_str(rest);
+        out
+    }
+
+    fn content_image(&mut self, tag: &str, media: &std::collections::HashMap<super::model::MediaId, Media>, uploads: &str) -> String {
+        let attr = |tag: &str, name: &str| {
+            let key = format!(" {name}=\"");
+            tag.find(&key).map(|i| &tag[i + key.len()..]).and_then(|v| v.find('"').map(|e| v[..e].to_string()))
+        };
+        let mut tag = tag.to_string();
+        let id = tag.to_ascii_lowercase().find("wp-image-").map(|i| tag[i + 9..].bytes().take_while(u8::is_ascii_digit).fold(0i64, |n, d| n.saturating_mul(10).saturating_add(i64::from(d - b'0'))));
+        let attachment = id.filter(|id| *id > 0).and_then(|id| media.get(&super::model::MediaId(id)));
+        let src = attr(&tag, "src").map(|s| s.split('?').next().unwrap_or("").to_string()).unwrap_or_default();
+        if let Some(m) = attachment.filter(|_| !src.is_empty()) {
+            if !tag.contains(" width=") && !tag.contains(" height=") {
+                if let Some((w, h)) = src_dimensions(m, &src) {
+                    tag = tag.replacen("<img", &format!("<img width=\"{w}\" height=\"{h}\""), 1);
+                }
+            }
+            if !tag.contains(" srcset=") {
+                let dims = match (attr(&tag, "width").and_then(|w| w.parse::<i64>().ok()), attr(&tag, "height").and_then(|h| h.parse::<i64>().ok())) {
+                    (Some(w), Some(h)) if w > 0 && h > 0 => Some((w, h)),
+                    _ => src_dimensions(m, &src),
+                };
+                if let Some((w, _)) = dims {
+                    if let Some(srcset) = srcset(m, &src, uploads) {
+                        let head = tag.trim_end_matches('>').trim_end_matches(['/', ' ']);
+                        tag = format!("{head} srcset=\"{}\" sizes=\"(max-width: {w}px) 100vw, {w}px\" />", esc(&srcset));
+                    }
+                }
+            }
+        }
+        if !tag.contains(" src=\"") {
+            return tag;
+        }
+        let width = attr(&tag, "width").and_then(|w| w.parse::<i64>().ok()).unwrap_or(0);
+        let height = attr(&tag, "height").and_then(|h| h.parse::<i64>().ok()).unwrap_or(0);
+        let loading = self.loading(width, height);
+        for (name, value) in loading {
+            if attr(&tag, name).is_none() {
+                tag = tag.replacen("<img", &format!("<img {name}=\"{value}\""), 1);
+            }
+        }
+        // wp_img_tag_add_auto_sizes(): a lazy image's sizes start with auto.
+        if tag.contains(" loading=\"lazy\"") && !tag.contains(" sizes=\"auto") {
+            tag = tag.replacen(" sizes=\"", " sizes=\"auto, ", 1);
+        }
+        tag
+    }
+
+    fn attachment(&mut self, media: Option<&Media>, uploads: &str, class: &str) -> String {
         let Some(m) = media else { return String::new() };
         let src = format!("{uploads}{}", m.file);
-        let mut attrs: Vec<(&str, String)> = vec![("src", src.clone()), ("class", "attachment-full size-full".into()), ("alt", m.alt.trim().to_string())];
+        let mut attrs: Vec<(&str, String)> = vec![("src", src.clone()), ("class", class.into()), ("alt", m.alt.trim().to_string())];
         let loading = self.loading(m.width, m.height);
         attrs.extend(loading.iter().map(|(k, v)| (*k, v.to_string())));
         if let Some(srcset) = srcset(m, &src, uploads) {
@@ -167,6 +243,16 @@ fn srcset(m: &Media, src: &str, uploads: &str) -> Option<String> {
     Some(sources.iter().map(|(w, url)| format!("{} {w}w", url.replace(' ', "%20"))).collect::<Vec<_>>().join(", "))
 }
 
+/// wp_image_src_get_dimensions(): the size of the attachment's file a src names, the full image first.
+fn src_dimensions(m: &Media, src: &str) -> Option<(i64, i64)> {
+    let full = m.file.rsplit('/').next().unwrap_or(&m.file);
+    if !full.is_empty() && src.contains(full) {
+        return Some((m.width, m.height)).filter(|(w, h)| *w > 0 && *h > 0);
+    }
+    let name = src.rsplit('/').next().unwrap_or(src);
+    m.sizes.iter().find(|s| s.file == name).map(|s| (s.width, s.height)).filter(|(w, h)| *w > 0 && *h > 0)
+}
+
 /// The `-e1234567890123` suffix WordPress gives an edited image's files.
 fn edit_hash(name: &str) -> Option<&str> {
     let b = name.as_bytes();
@@ -276,6 +362,19 @@ mod tests {
         assert!(!images.full(Some(&small), UP).contains("loading"));
         assert!(images.full(Some(&big), UP).contains("loading=\"lazy\""));
         assert_eq!(images.full(None, UP), "");
+    }
+
+    #[test]
+    fn content_images_get_their_attachment_sizes_and_loading_attributes() {
+        let m = media("2022/03/example.png", 1094, 770, &[("example-426x300.png", 426, 300), ("example-285x150.png", 285, 150), ("example-768x541.png", 768, 541)]);
+        let library: std::collections::HashMap<_, _> = [(m.id, m)].into_iter().collect();
+        let mut images = Images::default();
+        images.set_phase(Phase::Loop);
+        let html = "<figure><img src=\"https://www.harcourt.co/wp-content/uploads/2022/03/example.png\" alt=\"\" class=\"wp-image-1\"/></figure><p>x</p><figure><img src=\"https://www.harcourt.co/wp-content/uploads/2022/03/gone.png\" alt=\"\" class=\"wp-image-2\"/></figure>";
+        assert_eq!(
+            images.filter_content_tags(html, &library, UP),
+            "<figure><img fetchpriority=\"high\" decoding=\"async\" width=\"1094\" height=\"770\" src=\"https://www.harcourt.co/wp-content/uploads/2022/03/example.png\" alt=\"\" class=\"wp-image-1\" srcset=\"https://www.harcourt.co/wp-content/uploads/2022/03/example.png 1094w, https://www.harcourt.co/wp-content/uploads/2022/03/example-426x300.png 426w, https://www.harcourt.co/wp-content/uploads/2022/03/example-768x541.png 768w\" sizes=\"(max-width: 1094px) 100vw, 1094px\" /></figure><p>x</p><figure><img decoding=\"async\" src=\"https://www.harcourt.co/wp-content/uploads/2022/03/gone.png\" alt=\"\" class=\"wp-image-2\"/></figure>"
+        );
     }
 
     #[test]

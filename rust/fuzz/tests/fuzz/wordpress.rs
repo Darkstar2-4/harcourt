@@ -94,8 +94,10 @@ proptest! {
         let answer = within(PURE, "route", || route(&site, &path, &parsed, &q));
         match &answer {
             Answer::Render(p) => prop_assert_eq!(p.status, Status::Publish),
-            Answer::Redirect(to) | Answer::Found(to) | Answer::FeedRedirect(to, _) => prop_assert!(to.starts_with('/'), "{:?} for {} ? {}", answer, path, q),
-            Answer::NotFound | Answer::Legacy => {}
+            Answer::Redirect(to) | Answer::Found(to) | Answer::TranslationFound(to) | Answer::FeedRedirect(to, _) => {
+                prop_assert!(to.starts_with('/'), "{:?} for {} ? {}", answer, path, q)
+            }
+            Answer::Archive(_) | Answer::Search { .. } | Answer::NotFound | Answer::BlogNotFound | Answer::Legacy => {}
         }
         for lang in [Lang::En, Lang::Fr] {
             within(PURE, "resolve", || resolve(&site, &path, lang));

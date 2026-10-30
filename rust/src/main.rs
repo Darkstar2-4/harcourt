@@ -158,6 +158,7 @@ async fn main() {
             .fallback_service(legacy),
         None => Router::new().nest_service("/api", hxweb::api::unavailable()).fallback_service(legacy),
     };
+    let router = router.layer(axum::middleware::from_fn(hxweb::cms::refused::layer));
     let router = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(router);
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
     tracing::info!("hxweb listening on {listen}");

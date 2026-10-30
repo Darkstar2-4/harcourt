@@ -1,0 +1,31 @@
+# Round five, wordpress lane: the front page's search and refused queries, FAQ singles and types, categories, the
+# blog listed under a 404, and the posts feeds. Anonymous, cold; paths and made-up search words only.
+{"name":"p5w-front-search","path":"/?s=clamp"}
+{"name":"p5w-front-search-fr","path":"/?lang=fr&s=clamp","language":"fr"}
+{"name":"p5w-front-search-words","path":"/?s=alignment+pin&post_type=product"}
+{"name":"p5w-front-search-page","path":"/?s=clamp&page=2"}
+{"name":"p5w-front-search-last","path":"/?s=clamp&s=pin"}
+{"name":"p5w-front-island","path":"/?hx_form=1&hx_lang=en&hx_page=/"}
+{"name":"p5w-front-island-case","path":"/?HX_FORM=1"}
+{"name":"p5w-front-users","path":"/?rest_route=/wp/v2/users"}
+{"name":"p5w-faq","path":"/faq/why-cant-i-always-access-your-website/"}
+{"name":"p5w-faq-bare","path":"/faq/why-cant-i-always-access-your-website"}
+{"name":"p5w-faq-fr","path":"/faq/pourquoi-ne-puis-je-pas-toujours-acceder-a-votre-site-web/?lang=fr","language":"fr"}
+{"name":"p5w-faq-fr-in-en","path":"/faq/comment-verifier-letat-dune-commande/"}
+{"name":"p5w-faq-type","path":"/faq_type/general/"}
+{"name":"p5w-faq-type-fr","path":"/faq_type/general/?lang=fr","language":"fr"}
+{"name":"p5w-faq-type-bare","path":"/faq_type/catalog"}
+{"name":"p5w-faq-type-case","path":"/faq_type/Account/"}
+{"name":"p5w-faq-type-missing","path":"/faq_type/nosuch/"}
+{"name":"p5w-category","path":"/category/blog/"}
+{"name":"p5w-category-fr","path":"/category/non-classifiee/?lang=fr","language":"fr"}
+{"name":"p5w-category-other-language","path":"/category/blog/?lang=fr","language":"fr"}
+{"name":"p5w-category-bare","path":"/category/blog"}
+{"name":"p5w-blog-404","path":"/one/two/three/"}
+{"name":"p5w-blog-404-fr","path":"/one/two/three/?lang=fr","language":"fr"}
+{"name":"p5w-feed","path":"/feed/"}
+{"name":"p5w-feed-fr","path":"/feed/?lang=fr","language":"fr"}
+{"name":"p5w-feed-atom","path":"/feed/atom/"}
+{"name":"p5w-feed-category","path":"/category/blog/feed/"}
+{"name":"p5w-feed-faq-type","path":"/faq_type/general/feed/"}
+{"name":"p5w-feed-faq-type-fr","path":"/faq_type/general/feed/?lang=fr","language":"fr"}
