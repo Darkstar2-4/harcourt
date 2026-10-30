@@ -120,10 +120,15 @@ fn first_of(form: &Form, values: &Values, pick: impl Fn(&Field) -> bool) -> Stri
     form.fields.iter().find(|f| pick(f)).map(|f| value(values, f)).unwrap_or_default()
 }
 
-/// The Akismet fields the add-on sent: the name, email and the free text.
-fn submission(form: &Form, values: &Values, ctx: &Context<'_>) -> Submission {
+/// The Akismet fields the add-on sent: the name, email and the free text, and Akismet's own hidden fields.
+fn submission(form: &Form, values: &Values, params: &HashMap<String, String>, ctx: &Context<'_>) -> Submission {
     let content: Vec<String> = form.fields.iter().filter(|f| matches!(f.kind, Kind::Textarea)).map(|f| value(values, f)).filter(|v| !v.is_empty()).collect();
+    let posted = |k: &str| params.get(k).cloned().unwrap_or_default();
     Submission {
+        subject: form.title.clone(),
+        lang: if form.french { "fr_FR" } else { "en_US" }.to_string(),
+        ak_hp_textarea: posted("ak_hp_textarea"),
+        ak_js: posted("ak_js"),
         ip: ctx.ip.to_string(),
         user_agent: ctx.user_agent.to_string(),
         referrer: ctx.page_url.clone(),
@@ -332,7 +337,7 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
     }
     if !spam {
         if let Some(akismet) = &services.akismet {
-            spam = akismet.is_spam(&submission(form, &values, ctx)).await;
+            spam = akismet.is_spam(&submission(form, &values, params, ctx)).await;
         }
     }
     let entry = store(pool, form, &values, ctx, spam).await?;

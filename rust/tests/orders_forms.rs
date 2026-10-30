@@ -143,7 +143,8 @@ async fn a_valid_post_is_stored_and_notifies() {
     assert_eq!((to.as_str(), subject.as_str(), from_name.as_str(), reply_to.as_str()), ("web@example.com", "New submission from Contact", "Pat Buyer", "pat@example.com"));
     assert!(body.contains("<strong>Message</strong>") && body.contains("Please quote 10 units."));
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox_recipient WHERE kind = 'to' AND email = 'desk@example.com'").await, 1);
-    assert_eq!(akismet.1.lock().unwrap()[0].email, "pat@example.com");
+    let sent = akismet.1.lock().unwrap()[0].clone();
+    assert_eq!((sent.email.as_str(), sent.subject.as_str(), sent.lang.as_str(), sent.content.as_str()), ("pat@example.com", "Contact", "en_US", "Please quote 10 units."));
 }
 
 #[tokio::test]
