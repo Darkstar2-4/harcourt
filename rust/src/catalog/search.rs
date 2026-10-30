@@ -1062,9 +1062,11 @@ pub fn router() -> Router<Arc<Auth>> {
 }
 
 /// hx_search_ctx.php answered live hxweb's own calls behind the front; prod's nginx refused it from outside with its
-/// own page. The scope now comes from the Rust visitor, so nothing calls it.
+/// own page (with the padding it adds for browsers over HTTP/1). The scope now comes from the Rust visitor, so nothing
+/// calls it.
 async fn not_served() -> Response {
-    let page = "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n";
+    let mut page = String::from("<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n");
+    page.push_str(&"<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n".repeat(6));
     (StatusCode::NOT_FOUND, [(header::CONTENT_TYPE, "text/html")], page).into_response()
 }
 
