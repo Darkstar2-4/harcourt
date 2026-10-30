@@ -173,23 +173,12 @@ impl<'a> Ctx<'a> {
         self.images.set_phase(phase);
     }
 
-    /// `yoast_breadcrumb('<p id="breadcrumbs">', '</p>')`.
+    /// `yoast_breadcrumb('<p id="breadcrumbs">', '</p>')`. The trail is stored per page as Yoast printed it: Yoast
+    /// builds it from its own indexable hierarchy, which for several French pages still names English parents.
     pub fn breadcrumbs(&mut self) {
-        self.push("<p id=\"breadcrumbs\"><span><span><a href=\"");
-        self.push(ORIGIN);
-        self.push("/\">");
-        self.slot(Slot::Option(self.lang(), "@breadcrumbs_home".into()));
-        self.push("</a></span>");
-        for p in self.site.ancestors(self.page) {
-            self.push(" » <span><a href=\"");
-            self.text(&p.url(ORIGIN));
-            self.push("\">");
-            self.slot(Slot::Meta(p.id, "breadcrumb_title".into()));
-            self.push("</a></span>");
-        }
-        self.push(" » <span class=\"breadcrumb_last\" aria-current=\"page\">");
-        self.slot(Slot::Meta(self.page.id, "breadcrumb_title".into()));
-        self.push("</span></span></p>");
+        self.push("<p id=\"breadcrumbs\">");
+        self.slot(Slot::Meta(self.page.id, "breadcrumbs".into()));
+        self.push("</p>");
     }
 }
 

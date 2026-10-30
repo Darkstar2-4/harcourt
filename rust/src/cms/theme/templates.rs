@@ -11,8 +11,54 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::ProductSingle => product_single,
         Template::Scscpq => scscpq,
         Template::Digest => digest,
+        Template::Page => default_page,
         _ => return None,
     })
+}
+
+/// page.php
+fn default_page(c: &mut Ctx) {
+    c.push("\n<div class=\"site-padding ");
+    if c.notice() {
+        c.push("add-margin");
+    }
+    c.push("\">\n  <main class=\"container\">\n    <div class=\"row\">\n\n      <div class=\"col-lg-8 pr-lg-5\">\n        <div id=\"content\" role=\"main\">\n          ");
+    page_content(c);
+    c.push("        </div><!-- /#content -->\n      </div>\n\n      ");
+    sidebar(c);
+    c.push("\n    </div><!-- /.row -->\n  </main><!-- /.container -->\n</div><!-- /.row -->\n\n");
+}
+
+/// loops/page-content.php
+fn page_content(c: &mut Ctx) {
+    let id = c.page.id;
+    let mut classes = format!("post-{} page type-page status-publish", id.0);
+    if c.field("@thumbnail").is_some_and(|f| super::truthy(&f.value)) {
+        classes.push_str(" has-post-thumbnail");
+    }
+    classes.push_str(" hentry");
+    c.push(&format!("\n  <article role=\"article\" id=\"post_{}\" class=\"{classes}\">\n      <div class=\"breadcrumb-section mb-4 border-bottom\">\n        ", id.0));
+    c.breadcrumbs();
+    c.push("      </div>\n      <h1 class=\"hc-title\"> ");
+    c.the_title(id);
+    c.push(" </h1>\n    <div>\n      ");
+    c.html("content");
+    c.push("      </div>\n  </article>\n");
+}
+
+/// sidebar.php, for pages (FAQ posts use another widget area). The widgets of the page's widget area are stored
+/// with the page as WordPress printed them: their menus mark the current page.
+fn sidebar(c: &mut Ctx) {
+    let fr = c.lang() == Lang::Fr;
+    c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n            ");
+    let id = c.page.id;
+    c.slot(Slot::Meta(id, "sidebar".into()));
+    c.push("    \n  </div>\n\n    <div class=\"scscpq_newuser mt-4 red-radial-gradient text-center p-5\">\n      <h3 class=\"mt-0 mb-4\">");
+    c.push(if fr { "Accédez à l'ensemble de notre catalogue" } else { "Get Access to Our Full Catalog" });
+    c.push("</h3>\n      <a class=\"standard-btn ignore-hover white mt-0 w-100\" href=\"");
+    c.push(super::ORIGIN);
+    c.push(if fr { "/?lang=frrequest-access\">Demander l'accès" } else { "/request-access\">Request Access" });
+    c.push("</a>\n    </div>\n  </div>\n\n\n\n");
 }
 
 /// The page the product configurator block reads its features from, in the page's language (content.php).

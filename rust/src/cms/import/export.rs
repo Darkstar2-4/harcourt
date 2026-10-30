@@ -97,6 +97,7 @@ pub fn apply(import: &mut Import, export: &Export) -> Report {
         }
     }
     chrome_values(import, export, &mut report);
+    let mut seen: std::collections::HashMap<Slot, (i64, String)> = std::collections::HashMap::new();
     for page in import.pages.clone() {
         let key = (page.id.0, page.lang);
         let Some(body) = export.bodies.get(&key) else { continue };
@@ -116,6 +117,14 @@ pub fn apply(import: &mut Import, export: &Export) -> Report {
         match probe::values(&slots, captured) {
             Ok(values) => {
                 for (slot, text) in values {
+                    match seen.get(&slot) {
+                        Some((from, earlier)) if *earlier != text => {
+                            report.problems.push(format!("{slot:?} shows {earlier:?} on page {from} and {text:?} on page {}", page.id.0));
+                        }
+                        _ => {
+                            seen.insert(slot.clone(), (page.id.0, text.clone()));
+                        }
+                    }
                     if let Err(e) = store(import, &slot, text, &export.exported_year) {
                         report.problems.push(format!("page {}: {e}", page.id.0));
                     }

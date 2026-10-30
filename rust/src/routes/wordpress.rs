@@ -25,9 +25,11 @@ use crate::{
     },
 };
 
-/// Every path of a page whose template Rust renders (product-single, digest), in both languages. `hxweb-cms
+/// Every path of a page whose template Rust renders (product-single, digest, page.php), in both languages. `hxweb-cms
 /// check` proves each renders as WordPress did.
-const PAGES: [&str; 32] = [
+const PAGES: [&str; 41] = [
+    "/company/",
+    "/confidentialite/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
     "/gamme-de-produits/centrage/",
@@ -40,6 +42,8 @@ const PAGES: [&str; 32] = [
     "/gamme-de-produits/positionnements/",
     "/gamme-de-produits/stockage-et-transport-doutils/",
     "/industries/",
+    "/industries/automobile/",
+    "/industries/industrie-lourde/",
     "/innovations/",
     "/innovations/captive/",
     "/innovations/configurateur-de-produits/",
@@ -47,6 +51,8 @@ const PAGES: [&str; 32] = [
     "/innovations/metrology-solutions/",
     "/innovations/product-configurators/",
     "/innovations/solutions-de-metrologie/",
+    "/legal/",
+    "/privacy/",
     "/product/",
     "/product/alignment/",
     "/product/clamping/",
@@ -59,7 +65,10 @@ const PAGES: [&str; 32] = [
     "/product/tool-storage/",
     "/product/tooling-essentials/",
     "/resources/",
+    "/resources/lunch-learns/",
     "/ressources/",
+    "/ressources/dejeuners-et-causeries/",
+    "/societe/",
 ];
 
 /// The docroot's robots.txt, which Apache served ahead of Yoast's virtual one.

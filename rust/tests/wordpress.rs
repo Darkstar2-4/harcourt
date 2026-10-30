@@ -60,14 +60,14 @@ async fn seed(pool: &SqlitePool) {
             ("description", "A synthetic page".to_string()),
             ("canonical", format!("https://www.harcourt.co{path}")),
             ("islands", ISLANDS.to_string()),
-            ("breadcrumb_title", title.to_string()),
+            ("breadcrumbs", format!("<span><span><a href=\"https://www.harcourt.co/\">Home</a></span> » <span class=\"breadcrumb_last\" aria-current=\"page\">{title}</span></span>")),
             ("robots", "index, follow".to_string()),
         ] {
             sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (?1, ?2, ?3)").bind(id).bind(name).bind(value).execute(pool).await.unwrap();
         }
     }
     for lang in ["en", "fr"] {
-        for (name, kind, value) in [("cta_title", "html", "Join us"), ("cta_btn", "html", "Ask"), ("cta_list", "count", "0"), ("@breadcrumbs_home", "html", "Home"), ("website_notification", "html", "")] {
+        for (name, kind, value) in [("cta_title", "html", "Join us"), ("cta_btn", "html", "Ask"), ("cta_list", "count", "0"), ("website_notification", "html", "")] {
             sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES (?1, ?2, ?3, ?4)").bind(lang).bind(name).bind(kind).bind(value).execute(pool).await.unwrap();
         }
     }
