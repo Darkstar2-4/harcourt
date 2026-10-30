@@ -2,7 +2,9 @@
 //! (`pages`), and outgoing mail (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the session
 //! extractors reach the shared `Auth` through it.
 
-use std::{convert::Infallible, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
+
+use percent_encoding::percent_decode_str;
 
 use axum::{
     extract::{FromRequestParts, Request, State},
@@ -80,6 +82,18 @@ impl<R: MinRole> FromRequestParts<Arc<Orders>> for Authed<R> {
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, ApiError> {
         Authed::<R>::from_request_parts(parts, &state.core).await
     }
+}
+
+/// PHP's `$_REQUEST` for a urlencoded request: query fields, then body fields over them; the last repeat wins.
+pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> {
+    let decode = |s: &str| percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
+    let mut out = HashMap::new();
+    let body = String::from_utf8_lossy(body);
+    for part in query.unwrap_or("").split('&').chain(body.split('&')).filter(|p| !p.is_empty()) {
+        let (k, v) = part.split_once('=').unwrap_or((part, ""));
+        out.insert(decode(k), decode(v));
+    }
+    out
 }
 
 pub struct Executive;

@@ -157,9 +157,69 @@ pub fn hidden(field: &str, value: &str) -> String {
     }
 }
 
-/// `$forms->button($text, ["onclick" => ..., "class" => ...])`.
+/// `$forms->button($text, ["onclick" => ..., "class" => ...])`. `onclick` is script the page wrote; values inside
+/// it go through `js_str`.
 pub fn button(text: &str, onclick: &str, class: &str) -> String {
-    format!("<input type=button class='{}' value='{}' onclick=\"javascript:{}\">\n", esc(class), esc(text), esc(onclick))
+    format!("<input type=button class='{}' value='{}' onclick=\"javascript:{}\">\n", esc(class), esc(text), esc_dq(onclick))
+}
+
+/// Escapes for a double-quoted attribute, leaving single quotes, so script in `onclick` reads as PHP printed it.
+pub fn esc_dq(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+}
+
+/// A single-quoted JavaScript string literal, as `fn_escape` quoted values for the inline handlers.
+pub fn js_str(s: &str) -> String {
+    let mut out = String::from("'");
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\'' => out.push_str("\\'"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '<' => out.push_str("\\x3c"),
+            _ => out.push(c),
+        }
+    }
+    out.push('\'');
+    out
+}
+
+/// `$forms->text($field, $value, $size, $maxlength, $type, ["placeholder" => ...])`.
+pub fn text_input(kind: &str, field: &str, value: &str, size: u32, maxlength: u32, placeholder: &str, error: bool) -> String {
+    let mut out = format!("<input type={kind} name='{0}' id='{0}' size='{size}' maxlength='{maxlength}'", esc(field));
+    if !value.is_empty() {
+        out.push_str(&format!(" value='{}'", esc(value)));
+    }
+    if !placeholder.is_empty() {
+        out.push_str(&format!(" placeholder='{}'", esc(placeholder)));
+    }
+    if error {
+        out.push_str(ERROR_STYLE);
+    }
+    out.push_str(">\n");
+    out
+}
+
+/// `$forms->select($field, $choices, $selected, $blank)`: `(value, label)` pairs, an optional blank first option.
+pub fn select(field: &str, choices: &[(String, String)], selected: &str, blank: Option<&str>, onchange: &str, error: bool) -> String {
+    let mut out = format!("<select name='{0}' id='{0}'", esc(field));
+    if !onchange.is_empty() {
+        out.push_str(&format!(" onchange=\"javascript:{}\"", esc_dq(onchange)));
+    }
+    if error {
+        out.push_str(ERROR_STYLE);
+    }
+    out.push_str(">\n");
+    if let Some(b) = blank {
+        out.push_str(&format!("<option value=''>{}</option>\n", esc(b)));
+    }
+    for (value, label) in choices {
+        let sel = if value == selected { " selected" } else { "" };
+        out.push_str(&format!("<option value='{}'{sel}>{}</option>\n", esc(value), esc(label)));
+    }
+    out.push_str("</select>\n");
+    out
 }
 
 /// The red border forms_rev2.php adds to a field with an error.
@@ -188,6 +248,13 @@ mod tests {
     #[test]
     fn escapes_markup_and_both_quotes() {
         assert_eq!(esc(r#"<a href="x" title='y'>&</a>"#), "&lt;a href=&quot;x&quot; title=&#039;y&#039;&gt;&amp;&lt;/a&gt;");
+    }
+
+    #[test]
+    fn handler_strings_cannot_close_their_quote_or_attribute() {
+        assert_eq!(js_str(r#"a'b\c"#), r"'a\'b\\c'");
+        assert_eq!(button("X", &format!("cart_delete({});", js_str("A\"B")), "cart_delete"), "<input type=button class='cart_delete' value='X' onclick=\"javascript:cart_delete('A&quot;B');\">\n");
+        assert_eq!(text_input("text", "po", "1'2", 40, 45, "PO# (Optional)", false), "<input type=text name='po' id='po' size='40' maxlength='45' value='1&#039;2' placeholder='PO# (Optional)'>\n");
     }
 
     #[test]
