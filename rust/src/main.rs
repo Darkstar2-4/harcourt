@@ -94,13 +94,6 @@ fn client(timeout: Duration) -> reqwest::Client {
         .expect("http client")
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn bytes() {
-        assert_eq!(super::replace_bytes(b"a //www.x/ b \xe9 //www.x", b"//www.x", b"//s2.x"), b"a //s2.x/ b \xe9 //s2.x".to_vec());
-    }
-}
 
 /// Page rewrites that can be switched off without a new build: HXWEB_OFF=tabs,repeats,dead-assets,preload,aos,fa-static,bg-preload,fonts-css.
 pub fn on(feature: &str) -> bool {
@@ -191,4 +184,12 @@ async fn dispatch(State(app): State<Arc<App>>, req: Request) -> Response<Body> {
         }
     }
     proxy::pass(&app, req).await
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn bytes() {
+        assert_eq!(super::replace_bytes(b"a //www.x/ b \xe9 //www.x", b"//www.x", b"//s2.x"), b"a //s2.x/ b \xe9 //s2.x".to_vec());
+    }
 }
