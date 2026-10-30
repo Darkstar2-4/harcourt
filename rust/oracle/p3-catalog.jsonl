@@ -60,3 +60,6 @@
 {"name": "category-wp", "path": "/category.php?scscpq_wp=1"}
 {"name": "industry", "path": "/industry.php"}
 {"name": "industry-wp", "path": "/industry.php?scscpq_wp=1"}
+{"name": "hero", "path": "/hero.php"}
+{"name": "hero-wp", "path": "/hero.php?scscpq_wp=1"}
+{"name": "hero-xhr", "path": "/hero.php", "headers": {"X-Requested-With": "XMLHttpRequest"}}
