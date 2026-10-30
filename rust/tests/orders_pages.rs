@@ -85,7 +85,7 @@ async fn the_contact_page_shows_its_document_in_the_visitors_language() {
     assert!(page.contains("<title>Harcourt | Engineering Productivity Solutions | Contact Us</title>"));
     assert!(page.contains("\n<!-- Body Content -->\n<p>Call us</p>\n<!-- End Body Content -->\n"));
     let (_, _, page) = send(&app, Method::GET, "/contact.php", None, "", Some("fr-CA,fr;q=0.9")).await;
-    assert!(page.contains("<p>Appelez-nous</p>"));
+    assert!(page.contains("<p>Call us</p>"), "mid-visit, PHP spoke English to a visitor who was not signed in");
     let signed_in = cookie(&pool, 3, "Customer").await;
     let (_, _, page) = send(&app, Method::GET, "/contact.php", Some(&signed_in), "", Some("en-US")).await;
     assert!(page.contains("<p>Appelez-nous</p>"), "the account's language wins");
