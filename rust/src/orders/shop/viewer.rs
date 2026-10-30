@@ -180,6 +180,7 @@ pub async fn page(State(state): State<Arc<Orders>>, staff: Staff<Executive>, hea
     let showing = action == "maintain" || (action == "update" && !errors.is_empty());
     let status_choices: Vec<(String, String)> = Status::ALL.iter().map(|s| (s.as_str().to_string(), s.as_str().to_string())).collect();
     match (&order, showing) {
+        _ if action == "email" => {}
         (Some(o), true) => {
             out.push_str(&html::hidden("report_status", report_status.map_or("", Status::as_str)));
             out.push_str(&html::hidden("report_order_date", report_date.as_ref().map_or("", |d| d.0.as_str())));
