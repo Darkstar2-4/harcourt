@@ -170,7 +170,7 @@ proptest! {
     #[test]
     fn widgets_escape_values_and_labels(field in "[a-z_]{1,10}", choices in proptest::collection::vec((gen::text(20), gen::text(20)), 0..5), value in gen::text(40), error in any::<bool>()) {
         let mark = |s: &str| format!("Zq{s}qZ");
-        let choices: Vec<(String, String)> = choices.iter().map(|(v, l)| (mark(v), mark(l))).collect();
+        let choices: Vec<(String, String)> = choices.iter().map(|(v, l)| (mark(v), format!("Zl{l}lZ"))).collect();
         let value = mark(&value);
         let selected = choices.first().map_or(String::new(), |c| c.0.clone());
         let plain: Vec<String> = choices.iter().map(|c| c.1.clone()).collect();
