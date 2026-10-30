@@ -63,3 +63,8 @@
 {"name": "hero", "path": "/hero.php"}
 {"name": "hero-wp", "path": "/hero.php?scscpq_wp=1"}
 {"name": "hero-xhr", "path": "/hero.php", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "solutions", "path": "/solutions.php"}
+{"name": "solutions-active", "path": "/solutions.php?campaign=active"}
+{"name": "solutions-slide", "path": "/solutions.php?campaign=SLIDE"}
+{"name": "solutions-kit", "path": "/solutions.php?campaign=kit"}
+{"name": "solutions-remote", "path": "/solutions.php?campaign=CAPTIVE"}
