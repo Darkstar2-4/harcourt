@@ -84,13 +84,15 @@ pub struct Mail {
     pub to: Mailbox,
     pub also: Vec<(Kind, Mailbox)>,
     pub reply_to: Option<Email>,
+    /// Shown on From in place of the sender's configured name.
+    pub from_name: Option<String>,
     pub subject: String,
     pub body: Body,
 }
 
 impl Mail {
     pub fn new(to: Mailbox, subject: &str, body: Body) -> Self {
-        Mail { to, also: Vec::new(), reply_to: None, subject: one_line(subject), body }
+        Mail { to, also: Vec::new(), reply_to: None, from_name: None, subject: one_line(subject), body }
     }
 
     /// Adds a recipient unless that address already receives this mail.
@@ -113,14 +115,16 @@ pub async fn enqueue(pool: &SqlitePool, mail: &Mail, now: i64) -> sqlx::Result<i
         Body::Html(h) => (h.as_str(), "html"),
     };
     let reply_to = mail.reply_to.as_ref().map(Email::as_str);
+    let from_name = mail.from_name.as_deref().map(one_line).filter(|n| !n.is_empty());
     let to = mail.to.email.as_str();
     let mut tx = pool.begin().await?;
     let id = sqlx::query_scalar!(
-        r#"INSERT INTO outbox (to_email, to_name, reply_to, subject, body, content_type, created_at, next_attempt_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) RETURNING id AS "id!: i64""#,
+        r#"INSERT INTO outbox (to_email, to_name, reply_to, from_name, subject, body, content_type, created_at, next_attempt_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8) RETURNING id AS "id!: i64""#,
         to,
         mail.to.name,
         reply_to,
+        from_name,
         mail.subject,
         body,
         content_type,
@@ -205,7 +209,11 @@ impl Smtp {
     }
 
     fn message(&self, mail: &Mail) -> Result<Message, SendError> {
-        let mut b = Message::builder().from(self.from.clone()).subject(mail.subject.clone()).to(lettre_mailbox(&mail.to)?);
+        let from = match &mail.from_name {
+            Some(name) => LettreMailbox::new(Some(name.clone()), self.from.email.clone()),
+            None => self.from.clone(),
+        };
+        let mut b = Message::builder().from(from).subject(mail.subject.clone()).to(lettre_mailbox(&mail.to)?);
         for (kind, m) in &mail.also {
             let m = lettre_mailbox(m)?;
             b = match kind {
@@ -295,7 +303,7 @@ async fn claim(pool: &SqlitePool, now: i64) -> sqlx::Result<Option<Claimed>> {
         r#"UPDATE outbox SET next_attempt_at = ?1
            WHERE id = (SELECT id FROM outbox WHERE sent_at IS NULL AND failed_at IS NULL AND next_attempt_at <= ?2
                        ORDER BY next_attempt_at, id LIMIT 1)
-           RETURNING id AS "id!: i64", to_email AS "to_email!", to_name AS "to_name!", reply_to, subject AS "subject!",
+           RETURNING id AS "id!: i64", to_email AS "to_email!", to_name AS "to_name!", reply_to, from_name, subject AS "subject!",
                      body AS "body!", content_type AS "content_type!", attempts AS "attempts!: i64""#,
         lease,
         now
@@ -316,6 +324,7 @@ async fn claim(pool: &SqlitePool, now: i64) -> sqlx::Result<Option<Claimed>> {
         };
         let mut mail = Mail::new(Mailbox::new(to, &row.to_name), &row.subject, body);
         mail.reply_to = row.reply_to.as_deref().and_then(Email::parse);
+        mail.from_name = row.from_name;
         for o in others {
             let kind = Kind::parse(&o.kind).ok_or_else(|| format!("bad kind {:?}", o.kind))?;
             let email = Email::parse(&o.email).ok_or_else(|| format!("bad address {:?}", o.email))?;
