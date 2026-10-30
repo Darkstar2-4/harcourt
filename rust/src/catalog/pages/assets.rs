@@ -134,3 +134,48 @@ pub const CSS: &str = r###"<style>
     cursor: not-allowed;
 }
 </style>"###;
+pub const UNIT_FILTER_SCRIPT: &str = r###"<script type='text/javascript'>
+if (!window.fn_catalog_unit_filter_bound) {
+  window.fn_catalog_unit_filter_bound=true;
+  document.addEventListener('click', function(e) {
+    var pill=e.target.closest && e.target.closest('.catalog_unit_filter_pill');
+    if (!pill) return;
+    e.preventDefault();
+    fn_catalog_unit_filter_load(pill.href, true);
+  });
+  window.addEventListener('popstate', function() {
+    fn_catalog_unit_filter_load(location.href, false);
+  });
+}
+function fn_catalog_unit_filter_fetch_url(url) {
+  var filter=document.querySelector('.catalog_unit_filter');
+  var target=new URL(url, location.href);
+  if (!filter || !filter.dataset.fetchPath) return target.toString();
+  target.pathname=filter.dataset.fetchPath;
+  new URLSearchParams(filter.dataset.fetchQuery || '').forEach(function(value, key) { target.searchParams.set(key, value); });
+  return target.toString();
+}
+function fn_catalog_unit_filter_load(url, push_state) {
+  var old_summary=document.querySelector('.products_summary');
+  if (old_summary) old_summary.classList.add('catalog_loading');
+  var spinner=document.createElement('div');
+  spinner.className='catalog_unit_filter_spinner';
+  document.body.appendChild(spinner);
+  var headers={'X-Catalog-Unit-Filter': push_state ? 'click' : 'history'};
+  fetch(fn_catalog_unit_filter_fetch_url(url), {credentials: 'same-origin', headers: headers}).then(function(response) {
+    if (!response.ok) throw new Error('http_error');
+    return response.text();
+  }).then(function(html) {
+    var new_summary=new DOMParser().parseFromString(html, 'text/html').querySelector('.products_summary');
+    var current_summary=document.querySelector('.products_summary');
+    if (!new_summary || !current_summary) { window.location.href=url; return; }
+    current_summary.replaceWith(new_summary);
+    if (push_state) window.history.pushState({}, '', url);
+    window.scrollTo(0, 0);
+  }).catch(function() {
+    window.location.href=url;
+  }).finally(function() {
+    spinner.remove();
+  });
+}
+</script>"###;

@@ -5,6 +5,8 @@
 mod assets;
 mod chrome;
 mod family;
+mod home;
+mod results;
 
 use std::sync::Arc;
 
@@ -166,6 +168,7 @@ enum View {
     Profile,
     Family,
     Lookup(String),
+    Search,
     Home,
 }
 
@@ -210,8 +213,10 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
             return Ok(View::Document(landing));
         }
     }
-    if req.search_source == "lookup" {
-        return Ok(View::Lookup(req.raw_search_code.clone()));
+    match req.search_source.as_str() {
+        "lookup" => return Ok(View::Lookup(req.raw_search_code.clone())),
+        "search" => return Ok(View::Search),
+        _ => {}
     }
     let family_view = req.search_source == "name" || (matches!(ctx.req.action.as_str(), "subcategory" | "sku") && ctx.family().is_some());
     Ok(if family_view && ctx.family().is_some() { View::Family } else { View::Home })
@@ -220,10 +225,7 @@ async fn decide(ctx: &mut Ctx<'_>) -> sqlx::Result<View> {
 /// The catalog fragment: catalog.php's whole output for this request.
 pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let view = decide(ctx).await?;
-    let title = match &view {
-        View::Document(_) => String::new(),
-        _ => "Products".to_string(),
-    };
+    let title = "Products";
     let mut body = String::new();
     body.push_str(assets::JS);
     body.push_str(assets::CSS);
@@ -246,10 +248,11 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         View::Profile => body.push_str(&super::profile::enter(ctx, true).await?),
         View::Family => family::page(ctx).await?.write_to(&mut body),
         View::Lookup(code) => body.push_str(&family::lookup(ctx, &code).await?),
-        View::Home => {}
+        View::Search => body.push_str(&results::search(ctx).await?),
+        View::Home => body.push_str(&home::page(ctx).await?),
     }
     body.push_str("</form>");
-    Ok(chrome::document(&ctx.registry, &title, &[catalog_css(&ctx.registry)], &body))
+    Ok(chrome::document(&ctx.registry, title, &[catalog_css(&ctx.registry)], &body))
 }
 
 fn catalog_css(reg: &Registry) -> String {
@@ -282,7 +285,7 @@ pub struct Page {
 }
 
 impl Page {
-    fn write_to(self, out: &mut String) {
+    pub(super) fn write_to(self, out: &mut String) {
         out.push_str(&self.head);
         out.push_str(&self.tail);
         out.push_str(&self.tabs.render());

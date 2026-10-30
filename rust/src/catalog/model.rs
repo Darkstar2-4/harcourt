@@ -108,6 +108,7 @@ pub fn php_float(n: f64) -> String {
 pub struct Family {
     pub id: i64,
     pub category_id: i64,
+    pub sort_order: i64,
     pub name: String,
     /// The English name in the table; Metric is read from it whatever the page language.
     pub table_name: String,
@@ -266,7 +267,7 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
         r#"SELECT id AS "id!: i64", category_id AS "category_id: i64", name, prj, image_url, thumbnail_url, sketch_url, parameters,
                   parameter_search, download, options, new_date AS "new_date!", status AS "status!", page_break AS "page_break: i64",
                   prj_landing_page AS "prj_landing_page: i64", output AS "output!", industry, portal, leadtime_option AS "leadtime_option!",
-                  leadtime_text, currency, lookup AS "lookup: i64"
+                  leadtime_text, currency, lookup AS "lookup: i64", sort_order AS "sort_order: i64"
            FROM subcategory"#
     )
     .fetch_all(pool)
@@ -293,6 +294,7 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
             Family {
                 id: r.id,
                 category_id: r.category_id.unwrap_or(0),
+                sort_order: r.sort_order.unwrap_or(0),
                 name: name.clone(),
                 table_name: name,
                 description: String::new(),

@@ -115,15 +115,21 @@ fn title(ctx: &Ctx, family: &Family) -> String {
 
 /// output_subcategory(): the family page, and the part's tab when a part is named.
 pub async fn page(ctx: &mut Ctx<'_>) -> sqlx::Result<Page> {
+    page_listing(ctx, None).await
+}
+
+/// output_subcategory() with the parts to list given, as a search that matched several parts of one family does.
+pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx::Result<Page> {
     let Some(family) = ctx.family().cloned() else { return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() }) };
     if ctx.blocked(family.category_id) {
         let head = format!("<div id=products_header>\n<h1>{}</h1>\n</div>\n{}", esc(&family.name), ctx.overlay(family.category_id));
         return Ok(Page { head, tabs: Tabs::new(), tail: String::new() });
     }
     let all = model::family_parts(ctx.pool, family.id).await?;
-    let matching = listed(ctx, &family, &all);
+    let given = listing.unwrap_or_default();
+    let matching = if given.is_empty() { listed(ctx, &family, &all) } else { given.iter().collect() };
     let found = matching.len();
-    let shown: Vec<&Part> = if family.page_break && !ctx.viewer.is_bot() {
+    let shown: Vec<&Part> = if family.page_break && !ctx.viewer.is_bot() && given.is_empty() {
         let page = ctx.req.page.max(1) as usize;
         matching.iter().skip((page - 1) * PAGE_SIZE).take(PAGE_SIZE).copied().collect()
     } else {
@@ -145,6 +151,22 @@ pub async fn page(ctx: &mut Ctx<'_>) -> sqlx::Result<Page> {
         ctx.part = model::part_by_sku(ctx.pool, &ctx.req.sku).await?;
         sku_tab(ctx, &family, &mut tabs);
     }
+    cad(ctx, &family, &mut tabs);
+    download(ctx, &family, &mut tabs).await?;
+    let tail = finish(ctx, &mut tabs).await?;
+    Ok(Page { head, tabs, tail })
+}
+
+/// output_sku(): a part found by search on its own page, without the family's parts list.
+pub async fn part_page(ctx: &mut Ctx<'_>, part: Part) -> sqlx::Result<Page> {
+    ctx.subcategory_id = part.subcategory_id;
+    ctx.part = Some(part);
+    let Some(family) = ctx.family().cloned() else { return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() }) };
+    ctx.category_id = family.category_id;
+    let mut tabs = Tabs::new();
+    let head = title(ctx, &family);
+    sku_tab(ctx, &family, &mut tabs);
+    overview(ctx, &family, &mut tabs).await?;
     cad(ctx, &family, &mut tabs);
     download(ctx, &family, &mut tabs).await?;
     let tail = finish(ctx, &mut tabs).await?;
@@ -627,33 +649,12 @@ pub async fn lookup(ctx: &mut Ctx<'_>, code: &str) -> sqlx::Result<String> {
     if wanted.is_empty() {
         return Ok("<p class=center>Blank SKU</p>".into());
     }
-    let mut codes = vec![wanted.clone()];
-    for joiner in ["", "_"] {
-        let c = wanted.replace(' ', joiner);
-        if !codes.contains(&c) {
-            codes.push(c);
-        }
-    }
-    let (a, b, c) = (codes[0].clone(), codes.get(1).cloned().unwrap_or_default(), codes.get(2).cloned().unwrap_or_default());
-    let found = sqlx::query!(
-        r#"SELECT subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64" FROM search
-           WHERE table_name IN ('inventory', 'competitor_sku') AND code IN (?1, ?2, ?3) COLLATE NOCASE
-           ORDER BY CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
-        a,
-        b,
-        c
-    )
-    .fetch_optional(ctx.pool)
-    .await?;
-    let Some(row) = found else { return Ok(format!("<p class=center>Part# <b>{}</b> not found</p>", esc(&wanted))) };
-    ctx.subcategory_id = row.subcategory_id.unwrap_or(0);
-    ctx.part = match row.inventory_id {
-        Some(id) => model::part_by_id(ctx.pool, id).await?,
-        None => None,
+    let Some(hit) = super::results::exact(ctx, &wanted).await? else {
+        return Ok(format!("<p class=center>Part# <b>{}</b> not found</p>", esc(&wanted)));
     };
-    if let Some(f) = ctx.family() {
-        ctx.category_id = f.category_id;
-    }
+    ctx.category_id = hit.category_id;
+    ctx.subcategory_id = hit.subcategory_id;
+    ctx.part = hit.part;
     if ctx.family().is_none() {
         return Ok(String::new());
     }

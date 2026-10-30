@@ -22,7 +22,7 @@ async fn seed(pool: &SqlitePool) {
     exec(pool, "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)").await;
     exec(pool, "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'configure_contact', '', 'Contact us for pricing'), ('', 'cad', 'configurator', '', 'https://cad.example.com/frame')").await;
     exec(pool, "INSERT INTO category (id, name, sort_order, active) VALUES (1, 'Pins', 1, 1), (2, 'Clamps', 2, 1)").await;
-    sqlx::query("INSERT INTO subcategory (id, category_id, name, parameters, parameter_search, status, page_break, output, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', ?1, '0^1', 'Active', 1, '', 'In Stock'), (8, 1, 'Secret Pins', ?1, '', 'Pending', 1, '', '')")
+    sqlx::query("INSERT INTO subcategory (id, category_id, name, parameters, parameter_search, status, page_break, output, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', ?1, '0^1', 'Active', 1, '', 'In Stock'), (8, 1, 'Secret Pins', ?1, '', 'Pending', 1, '', ''), (9, 2, 'Toggle Clamps (Metric)', NULL, '', 'Active', 1, '', '')")
         .bind(PARAMS)
         .execute(pool)
         .await
@@ -171,4 +171,58 @@ async fn a_lookup_opens_the_family_or_says_not_found() {
     assert!(body.contains("<h1>Ball Lock Pins</h1>"));
     let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope%3Cb%3E"), Some(&cookie))).await;
     assert!(body.contains("<p class=center>Part# <b>NOPE&lt;B&gt;</b> not found</p>"), "{body}");
+}
+
+#[tokio::test]
+async fn the_home_lists_visible_families_by_category_with_the_unit_filter() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO hero (effective_date, portal_id, industry_id, language_code, html, access, status) VALUES ('2020-01-01', 0, 0, 'EN', '<h2>Spring sale</h2>', '', 'Active'), ('2099-01-01', 0, 0, 'EN', '<h2>Not yet</h2>', '', 'Active')").await;
+    let cookie = signed_in(&h.pool, &Account::customer(30)).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&cookie))).await;
+    assert!(body.contains("<div class=products_summary><div id=scscpq_hero class=scscpq_hero_preview><h2>Spring sale</h2></div>"), "{body}");
+    assert!(body.contains("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='scscpq_wp=1'>"));
+    assert!(body.contains("<a href=\"/catalog/?lang=en&amp;unit_type=all\" class='catalog_unit_filter_pill active'>All</a>"));
+    assert!(body.contains("<a class=anchor id=category1></a><h2>Pins</h2>\n<div class='catalog_category_wrapper'>\n<div class=catalog_subcategory_list>\n<ul>"));
+    assert!(body.contains("<li ><a href=\"/catalog/?lang=en&amp;action=subcategory&amp;subcategory_id=7\"><span class='subcat7'></span>Ball Lock Pins</a></li>"));
+    assert!(!body.contains("subcat8"), "Pending families are for administrators");
+    assert!(body.contains("subcat9"));
+
+    let mut admin = Account::customer(31);
+    admin.role = "Administrator";
+    let admin = signed_in(&h.pool, &admin).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&admin))).await;
+    assert!(body.contains("<li style='border: 1px solid #00b0f0;'><a href=\"/catalog/?lang=en&amp;action=subcategory&amp;subcategory_id=8\">"));
+}
+
+#[tokio::test]
+async fn visitors_outside_the_us_land_on_metric() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let mut a = Account::customer(32);
+    a.country_code = "CA";
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&cookie))).await;
+    assert!(body.contains("class='catalog_unit_filter_pill active'>Metric</a>"));
+    assert!(body.contains("subcat9") && !body.contains("subcat7"));
+    let (_, _, body) = send(&h.app, get(&page("lang=en&unit_type=all"), Some(&cookie))).await;
+    assert!(body.contains("subcat9") && body.contains("subcat7"));
+}
+
+#[tokio::test]
+async fn search_results_open_the_pick_or_list_the_matches() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', 1, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1), (502, '', 1, 'subcategory', 'Clamp', 2, 9, 0)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(33)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=500&search_code="), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-2"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains(">HBLT-3</a>"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt-1"), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-1"), "an exact part number opens the part");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=l"), Some(&cookie))).await;
+    assert!(body.contains("<h2>Pins</h2>") && body.contains("<h2>Clamps</h2>"), "matches in several families list them");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=zzz"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>No results for search term: <b>zzz</b></p>"));
 }
