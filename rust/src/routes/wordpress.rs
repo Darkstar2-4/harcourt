@@ -35,6 +35,7 @@ use crate::{
 /// WordPress did.
 const PAGES: &[&str] = &[
     "/",
+    "/beta_catalog/",
     "/boxjoint-inquiry-form/",
     "/catalog/",
     "/catalogue/",
@@ -52,6 +53,7 @@ const PAGES: &[&str] = &[
     "/contact-france/",
     "/contact-india/",
     "/contact-uk/",
+    "/customer_portal/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -81,6 +83,7 @@ const PAGES: &[&str] = &[
     "/innovations/tooling-configurators/",
     "/legal/",
     "/news/",
+    "/portail-clients/",
     "/privacy/",
     "/product/",
     "/product/alignment/",
@@ -469,8 +472,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
         },
     };
     // A shell other areas fill (scscpq) has nothing WordPress reads the query for; its footer form posts here.
-    let shell = page.template == crate::cms::model::Template::Scscpq;
-    if !finished && replay && answer.is_none() && !shell && wp.legacy.is_some() && !islands(&site, page).is_empty() {
+    if !finished && replay && answer.is_none() && !page.template.is_scscpq_shell() && wp.legacy.is_some() && !islands(&site, page).is_empty() {
         return legacy();
     }
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);

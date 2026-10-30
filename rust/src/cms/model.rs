@@ -185,6 +185,11 @@ impl Template {
         TEMPLATE_FILES.iter().find(|(_, f)| *f == file).map(|(t, _)| *t)
     }
 
+    /// A WordPress shell another area fills in the browser (scscpq_wp.js): WordPress read nothing from its query.
+    pub fn is_scscpq_shell(self) -> bool {
+        matches!(self, Template::Scscpq | Template::ScscpqBeta | Template::ScscpqCustomerPortal)
+    }
+
     /// The file name, "" for page.php.
     pub fn file(self) -> &'static str {
         TEMPLATE_FILES.iter().find(|(t, _)| *t == self).map(|(_, f)| *f).unwrap_or("")

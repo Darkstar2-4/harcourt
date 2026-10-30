@@ -21,6 +21,7 @@ pub mod forms;
 pub mod html;
 pub mod keywords;
 pub mod loader;
+pub mod metric_filter;
 pub mod model;
 pub mod pages;
 pub mod php;
@@ -51,5 +52,6 @@ pub fn router() -> Router<Arc<Auth>> {
         .merge(ajax::router())
         .merge(configure::router())
         .merge(callbacks::router())
+        .merge(metric_filter::router())
         .layer(Extension(search::Cache::new()))
 }

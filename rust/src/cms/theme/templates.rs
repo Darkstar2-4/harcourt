@@ -10,6 +10,8 @@ pub fn body_fn(t: Template) -> Option<Body> {
     Some(match t {
         Template::ProductSingle => product_single,
         Template::Scscpq => scscpq,
+        Template::ScscpqBeta => scscpq_beta,
+        Template::ScscpqCustomerPortal => scscpq_customer_portal,
         Template::Digest => digest,
         Template::Page => default_page,
         Template::History => super::company::history,
@@ -234,11 +236,30 @@ fn product_content(c: &mut Ctx) {
 
 /// layouts/template-scscpq.php: the shell other areas fill (catalog, cart, ...).
 fn scscpq(c: &mut Ctx) {
-    c.push("\n   <div ");
+    scscpq_shell(c, "   ", "catalog");
+}
+
+/// layouts/template-scscpq_beta.php
+fn scscpq_beta(c: &mut Ctx) {
+    scscpq_shell(c, "    ", "catalog");
+}
+
+/// layouts/template-scscpq-customer_portal.php
+fn scscpq_customer_portal(c: &mut Ctx) {
+    scscpq_shell(c, "     ", "customer_portal");
+}
+
+/// The scscpq templates differ only in their indent and the view they name.
+fn scscpq_shell(c: &mut Ctx, indent: &str, view: &str) {
+    c.push("\n");
+    c.push(indent);
+    c.push("<div ");
     if c.notice() {
         c.push("class=add-margin");
     }
-    c.push(" id=scscpq_page>catalog</div>\n\n\n");
+    c.push(" id=scscpq_page>");
+    c.push(view);
+    c.push("</div>\n\n\n");
 }
 
 /// layouts/template-digest.php

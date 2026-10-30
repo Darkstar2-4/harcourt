@@ -68,3 +68,14 @@
 {"name": "search-page-lang", "path": "/search/?lang=fr", "language": "fr"}
 {"name": "search-bare", "path": "/search"}
 {"name": "search-bare-q", "path": "/search?q=pin"}
+{"name": "metric-filter", "path": "/catalog_metric_filter.php"}
+{"name": "metric-filter-wp", "path": "/catalog_metric_filter.php?scscpq_wp=1"}
+# The other shells the catalog fills: the customer portal and the beta catalog.
+{"name": "portal-page", "path": "/customer_portal/"}
+{"name": "portal-page-fr", "path": "/portail-clients/?lang=fr", "language": "fr"}
+{"name": "portal-bare", "path": "/customer_portal"}
+{"name": "portal-fr-bare", "path": "/portail-clients"}
+{"name": "portal-fr-nolang", "path": "/portail-clients/"}
+{"name": "beta-page", "path": "/beta_catalog/"}
+{"name": "beta-bare", "path": "/beta_catalog"}
+{"name": "beta-query", "path": "/beta_catalog/?action=subcategory&subcategory_id=449"}
