@@ -18,9 +18,9 @@ pub struct Chrome {
     js: Vec<String>,
 }
 
-/// registry_class::load() for one module: rows of the site domain ('') win over 'global', and list items keep the
-/// order of their numeric item keys.
-async fn registry(pool: &SqlitePool, module: &str) -> Vec<(String, String, String)> {
+/// registry_class::load() for one module as (field, item, data): rows of the site domain ('') win over 'global',
+/// and list items keep the order of their numeric item keys. A plain setting has an empty item.
+pub async fn registry(pool: &SqlitePool, module: &str) -> Vec<(String, String, String)> {
     let rows = sqlx::query!(
         r#"SELECT domain AS "domain!", field AS "field!", item AS "item!", data FROM registry WHERE module = ?1 AND domain IN ('', 'global')"#,
         module

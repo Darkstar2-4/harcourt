@@ -184,6 +184,44 @@ async fn the_event_log_exports_csv_with_the_php_columns() {
 }
 
 #[tokio::test]
+async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
+    let h = harness().await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ip, last_login) VALUES (9, 'Pending', 'Customer', 'Pending <Co>', '192.0.2.9', 0)"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    event(&h.pool, 9, 10, "User", "Signup", "Pat Example").await;
+    sqlx::query("INSERT INTO orderhd (id, status, company_name, name, email, order_date) VALUES (41, 'Pending', 'Buyer Co', 'Sam', 'sam@example.com', 0)")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    event(&h.pool, 0, 10, "Initial", "Campaign", "spring").await;
+
+    let (status, _, _) = send(&h.app, get("/dashboard.php", Some(&person(&h.pool, 3, "Internal").await))).await;
+    assert_eq!(status, StatusCode::FOUND);
+
+    let (status, _, page) = send(&h.app, get("/dashboard.php", Some(&exec))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Executive Dashboard</p>"));
+    assert!(page.contains(">Pending PO (1)</a>"));
+    assert!(!page.contains("Pending Access"));
+    assert!(page.contains("<form name='scs_form' id='scs_form' method=post action='/user.php'"));
+
+    let (_, _, page) = send(&h.app, get("/dashboard.php?tab=Campaign", Some(&admin))).await;
+    assert!(page.contains(">Pending Access (1)</a>"));
+    assert!(page.contains("<td>Pending &lt;Co&gt;</td>\n<td>Pat Example</td>"));
+    assert!(page.contains("href=\"/user.php?action=maintain&record_id=9&return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529\""));
+    let tab_index = |title: &str| {
+        let at = page.find(&format!(">{title}</a></li>")).unwrap();
+        page[..at].matches("<li id='tab_").count() - 1
+    };
+    assert!(page.contains(&format!("active: {} }}", tab_index("Campaign"))));
+    assert!(page.contains("<td>spring</td>"));
+}
+
+#[tokio::test]
 async fn maintain_update_and_delete_a_document() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
