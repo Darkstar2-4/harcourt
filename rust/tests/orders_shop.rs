@@ -299,4 +299,10 @@ async fn the_po_manager_is_for_executives() {
     assert_eq!((st.as_str(), by), ("Accept", 9));
     let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", &id_text), ("status", "Accept")], false)).await;
     assert!(page.contains("Correct 1 error(s)"), "same status is an error");
+    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "maintain"), ("record_id", "999999")], false)).await;
+    assert!(page.contains("<option value='Pending' selected>") && page.contains("fn_action(this,'update','999999','');"), "a missing order shows as a blank one");
+    let (_, _, page) = send(&h.app, request(Method::POST, "/orderhd.php", &exec, &[("action", "update"), ("record_id", "999999"), ("status", "Reject")], false)).await;
+    assert!(page.contains("Record maintained"));
+    let (st, _): (String, i64) = sqlx::query_as("SELECT status, status_user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(st, "Accept");
 }
