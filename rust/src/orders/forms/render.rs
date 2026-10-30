@@ -84,6 +84,100 @@ pub fn browser_class(ua: &str) -> String {
     class
 }
 
+/// The form's action as Gravity Forms printed it: esc_url(remove_query_arg('gf_token')) over the page's request URI.
+fn form_action(page_uri: &str) -> String {
+    let (base, query) = page_uri.split_once('?').unwrap_or((page_uri, ""));
+    let query = add_query_arg(query, "gf_token");
+    esc_url(&if query.is_empty() { base.to_string() } else { format!("{base}?{query}") })
+}
+
+/// A query value as PHP's parse_str() reads it: `a=1`, or `a[]=1&a[x]=2` as a list of (subkey, value).
+enum Arg {
+    One(String),
+    List(Vec<(String, String)>),
+}
+
+/// WordPress's add_query_arg() rebuilding a query without `drop`: parse_str() it (a key keeps its first position and
+/// its last value; `.` and spaces in a name become `_`), urlencode() each value, write each key as parsed, and drop
+/// the `=` of an empty value.
+fn add_query_arg(query: &str, drop: &str) -> String {
+    let decode = |s: &str| percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
+    let mut args: Vec<(String, Arg)> = Vec::new();
+    for kv in query.split('&').filter(|kv| !kv.is_empty()) {
+        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
+        let k = decode(k);
+        let k = k.trim_start();
+        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
+            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
+            None => (k.replace(['.', ' '], "_"), None),
+        };
+        if name.is_empty() {
+            continue;
+        }
+        let v = decode(v);
+        let slot = args.iter().position(|(key, _)| *key == name);
+        match (sub, slot) {
+            (None, Some(i)) => args[i].1 = Arg::One(v),
+            (None, None) => args.push((name, Arg::One(v))),
+            (Some(sub), slot) => {
+                let i = slot.unwrap_or_else(|| {
+                    args.push((name, Arg::List(Vec::new())));
+                    args.len() - 1
+                });
+                if let Arg::One(_) = args[i].1 {
+                    args[i].1 = Arg::List(Vec::new());
+                }
+                if let Arg::List(list) = &mut args[i].1 {
+                    let sub = if sub.is_empty() { list.len().to_string() } else { sub };
+                    match list.iter_mut().find(|(s, _)| *s == sub) {
+                        Some(e) => e.1 = v,
+                        None => list.push((sub, v)),
+                    }
+                }
+            }
+        }
+    }
+    let pair = |k: &str, v: &str| if v.is_empty() { k.to_string() } else { format!("{k}={}", urlencode(v)) };
+    args.iter()
+        .filter(|(k, _)| k != drop)
+        .flat_map(|(k, a)| match a {
+            Arg::One(v) => vec![pair(k, v)],
+            Arg::List(list) => list.iter().map(|(s, v)| pair(&format!("{k}%5B{s}%5D"), v)).collect(),
+        })
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+/// PHP's urlencode().
+fn urlencode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 8);
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' => out.push(b as char),
+            b' ' => out.push('+'),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// WordPress's esc_url() for display: spaces encoded, characters a URL cannot hold dropped, `&` (or an `&amp;`
+/// already there) and `'` written as `&#038;` and `&#039;`.
+fn esc_url(url: &str) -> String {
+    let url = url.trim_start().replace("&amp;", "&");
+    let mut out = String::with_capacity(url.len() + 16);
+    for c in url.chars() {
+        match c {
+            ' ' => out.push_str("%20"),
+            '&' => out.push_str("&#038;"),
+            '\'' => out.push_str("&#039;"),
+            c if c.is_ascii_alphanumeric() || "-~+_.?#=!;,/:%@$|*()[]".contains(c) || !c.is_ascii() => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
 /// The message above a form that did not validate.
 pub fn summary(form_id: i64) -> String {
     format!("<div class='gform_validation_errors' id='gform_{form_id}_validation_container' data-js='gform-focus-validation-error'><h2 class='gform_submission_error hide_summary'><span class='gform-icon gform-icon--close'></span>There was a problem with your submission. Please review the fields below.</h2></div>")
@@ -299,7 +393,7 @@ pub fn form(r: &Render) -> String {
     }
     let (target, anchor) = if r.embed.ajax { (format!(" target='gform_ajax_frame_{fid}'"), format!("#gf_{fid}")) } else { (String::new(), String::new()) };
     let css = if f.css_class.is_empty() { String::new() } else { format!(" class='{}'", esc(&f.css_class)) };
-    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}{anchor}' data-formid='{fid}' novalidate>", esc(r.page_uri)));
+    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}{anchor}' data-formid='{fid}' novalidate>", form_action(r.page_uri)));
     if r.recaptcha {
         out.push_str("<input type='hidden' class='registry_recaptcha_response' name='registry_recaptcha_response' value=''/>");
     }
@@ -391,6 +485,19 @@ mod tests {
     use crate::orders::forms::model::{parse, tests::*};
 
     #[test]
+    fn the_action_is_the_page_query_as_wordpress_rebuilt_it() {
+        assert_eq!(form_action("/catalog/"), "/catalog/");
+        assert_eq!(form_action("/catalogue/?lang=fr"), "/catalogue/?lang=fr");
+        assert_eq!(
+            form_action("/catalog/?action=subcategory&subcategory_id=440&page=1&parameter0=7/16-14"),
+            "/catalog/?action=subcategory&#038;subcategory_id=440&#038;page=1&#038;parameter0=7%2F16-14"
+        );
+        assert_eq!(form_action("/catalog/?search_source=search&search_id=21304&search_code="), "/catalog/?search_source=search&#038;search_id=21304&#038;search_code");
+        assert_eq!(form_action("/catalog/?search_source=search&amp%3Bsearch_id=698&amp%3Bsearch_code="), "/catalog/?search_source=search&#038;search_id=698&#038;search_code");
+        assert_eq!(form_action("/a/?x=1&x=2&y.z=a b&gf_token=t&l[]=p&l[]=q"), "/a/?x=2&#038;y_z=a+b&#038;l%5B0%5D=p&#038;l%5B1%5D=q");
+    }
+
+    #[test]
     fn the_form_carries_the_gravity_forms_names() {
         let f = parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap();
         let values = Values::from([("input_1".to_string(), "Pat <b>".to_string())]);
@@ -399,7 +506,7 @@ mod tests {
         let html = form(&Render { form: &f, page_uri: "/contact-us/?a=1&b=2", embed: &embed, values: &values, errors: &errors, summary: Some("<div class='validation_error'>x</div>"), token: Some("1.ab"), recaptcha: true, browser: "gf_browser_unknown" });
         for part in [
             "id='gform_wrapper_3'",
-            "action='/contact-us/?a=1&amp;b=2'",
+            "action='/contact-us/?a=1&#038;b=2'",
             "<ul id='gform_fields_3'",
             "name='input_1' id='input_3_1' type='text' value='Pat &lt;b&gt;'",
             "<li id=\"field_3_10\" class=\"gfield gfield--type-email gfield_contains_required field_sublabel_below gfield--no-description field_description_below field_validation_below gfield_visibility_visible gfield_error\" >",
