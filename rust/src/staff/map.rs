@@ -6,8 +6,9 @@ use std::collections::HashMap;
 
 use super::time;
 
-/// The largest file an import reads.
-pub const MAX_UPLOAD: usize = 20 * 1024 * 1024;
+/// The largest file an import reads: room for every part of the catalog in one file (about 32 MB as text). The
+/// page took 20 MB, so the parts went up a subcategory at a time.
+pub const MAX_UPLOAD: usize = 256 * 1024 * 1024;
 /// Rows an Excel export may hold.
 const XLS_ROWS: usize = 1_000_000;
 
