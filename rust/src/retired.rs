@@ -20,7 +20,8 @@ use percent_encoding::percent_decode_str;
 /// the server shell. So has the document-root file manager (scs_filemanager.php), which uploaded, renamed and
 /// deleted any file under the docroot. cookie.php and bot_apache.php were diagnostics. remote_code.php reset and
 /// showed the unlock code of an address; sign-in no longer uses those codes (accounts::admission, the emailed
-/// code), and staff give access from /staff/remote-grants.
+/// code), and staff give access from /staff/remote-grants. punchout.php needs a class file prod no longer has, so
+/// every request to it ended in a PHP fatal error; its table is empty and nothing links to it.
 const RETIRED: &[&str] = &[
     "scs_filemanager.php",
     "filemanager_rev0.php",
@@ -45,6 +46,7 @@ const RETIRED: &[&str] = &[
     "cookie.php",
     "bot_apache.php",
     "remote_code.php",
+    "punchout.php",
 ];
 
 pub fn is_retired(raw_path: &str) -> bool {
@@ -101,6 +103,7 @@ mod tests {
             assert!(is_retired(p), "{p}");
         }
         assert!(is_retired("/beta_authorize.php"));
+        assert!(is_retired("/punchout.php"));
     }
 
     #[test]
