@@ -3,8 +3,8 @@
 //! markup, classes and ids here are the ones the site's CSS and `web/` scripts expect.
 //!
 //! `viewer` decides what a request may see, `html` writes markup and links, `php` reads the values the PHP stored
-//! with serialize(), `registry` the site settings. Each other module owns one group of PHP entry points and
-//! contributes its routes to `router`.
+//! with serialize(), `registry` the site settings, `strings` the interface text per language. Each other module
+//! owns one group of PHP entry points and contributes its routes to `router`.
 
 use std::sync::Arc;
 
@@ -19,6 +19,7 @@ pub mod pages;
 pub mod php;
 pub mod registry;
 pub mod search;
+pub mod strings;
 pub mod viewer;
 
 pub fn router() -> Router<Arc<Auth>> {

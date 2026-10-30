@@ -27,6 +27,14 @@ impl Lang {
         }
     }
 
+    pub fn from_code(code: &str) -> Option<Lang> {
+        match code.trim().to_ascii_uppercase().as_str() {
+            "EN" => Some(Lang::En),
+            "FR" => Some(Lang::Fr),
+            _ => None,
+        }
+    }
+
     /// `language.code`, `content.language_code`, `user.language_code`.
     pub fn code(self) -> &'static str {
         match self {
@@ -98,6 +106,8 @@ impl Blocked {
 pub struct Viewer {
     pub kind: Kind,
     pub lang: Lang,
+    /// The language saved on the account (user.language_code); a page in the other language sends the visitor there.
+    pub account_lang: Option<Lang>,
     pub role: Role,
     pub active: bool,
     pub catalog: bool,
@@ -120,6 +130,7 @@ impl Viewer {
         Viewer {
             kind: Kind::Anonymous,
             lang,
+            account_lang: None,
             role: Role::Customer,
             active: false,
             catalog: false,
@@ -177,7 +188,8 @@ pub async fn load(pool: &SqlitePool, visitor: &Visitor, lang: Lang) -> sqlx::Res
         r#"SELECT catalog AS "catalog!: i64", cad AS "cad!: i64", ecommerce AS "ecommerce!: i64", price_type AS "price_type!",
                   price_pct AS "price_pct!: f64", currency_code AS "currency_code!", country_code, company_name,
                   industry_id AS "industry_id!: i64", portal_id AS "portal_id!: i64",
-                  landing_document_id AS "landing_document_id!: i64", login_document_id AS "login_document_id!: i64"
+                  landing_document_id AS "landing_document_id!: i64", login_document_id AS "login_document_id!: i64",
+                  language_code AS "language_code!"
            FROM "user" WHERE id = ?1"#,
         user.id.0
     )
@@ -191,6 +203,7 @@ pub async fn load(pool: &SqlitePool, visitor: &Visitor, lang: Lang) -> sqlx::Res
     Ok(Viewer {
         kind: Kind::Account(user.id),
         lang,
+        account_lang: Lang::from_code(&row.language_code),
         role: user.role,
         active,
         catalog: active && row.catalog != 0,
