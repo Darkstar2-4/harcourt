@@ -10,7 +10,7 @@ The public pages were a static export of WordPress. `rust/src/cms` holds their c
 | `src/cms/model.rs` | Typed model and the in-memory `Site` snapshot. The newest revision id is the content version; `Content` reloads when it moves. |
 | `src/cms/theme/` | The renderer. `chrome/{en,fr}/*.html` are WordPress's head, header and footer with the per-page parts cut out (made by `tools/cms_chrome.py`); `chrome.rs` fills them (menus, WPML switchers, body classes, Yoast lines); `templates.rs` transcribes the page templates. |
 | `src/cms/import/` | Reads a mysqldump of the WordPress tables and the static export. Field text is recovered by matching each template, run in probe mode, against the page WordPress rendered. |
-| `src/cms/edit.rs`, `src/cms/admin.rs` | Editing for the staff dashboard, with revisions. `admin::router` is nested by the staff area. |
+| `src/cms/edit.rs`, `src/cms/admin.rs` | Editing at `/staff/cms`, with revisions, behind `Staff<Administrator>` and the staff CSRF token. |
 | `src/routes/wordpress.rs` | The page routes (`PAGES`), robots.txt, and which WordPress entry points answer 410. |
 
 Ported templates: product-single, digest, page.php, and scscpq (rendered as a shell through `theme::shell` for the area that owns the page, not routed here). The others (builder, home, about, history, why, career, faq, locations, contact variants, request, thank-you) stay on the static export.
@@ -35,7 +35,7 @@ hxweb-cms import --dump wp.sql --export /home/harcou6/static_site --db /var/lib/
 
 ## Forms
 
-Pages mark each Gravity Form `{{gform:N}}`; `cms::forms::OrdersForms` fills it from `orders::forms::island` and falls back to the WordPress island endpoint for a form the orders tables lack. Posts to page URLs reach the legacy stack through `method_not_allowed_fallback` until the page POST handler calls `orders::forms::handle`.
+Pages mark each Gravity Form `{{gform:N}}`; `cms::forms::OrdersForms` fills it from `orders::forms::island` and falls back to the WordPress island endpoint for a form the orders tables lack. A post carrying `gform_submit` goes to `orders::forms::handle`; its answer takes the form's place on the page, or the iframe postback document for an ajax form.
 
 ## WordPress cron
 
