@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!\", name, symbol, exchange_rate AS \"exchange_rate!: f64\", adder_pct\n               FROM currency WHERE code IS NOT NULL AND exchange_rate > 0 AND active = 1\n               ORDER BY code = 'USD' DESC, name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "symbol",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "exchange_rate!: f64",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "adder_pct",
+        "ordinal": 4,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "fa2ab86819fd6985351300c7d96edf2128f7a2e7feff7654e13f008e3b7275a8"
+}

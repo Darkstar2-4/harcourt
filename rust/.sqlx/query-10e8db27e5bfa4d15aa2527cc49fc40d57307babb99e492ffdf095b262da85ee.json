@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO wp_gf_entry_meta (form_id, entry_id, meta_key, meta_value, item_index) VALUES (?1, ?2, ?3, ?4, '')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "10e8db27e5bfa4d15aa2527cc49fc40d57307babb99e492ffdf095b262da85ee"
+}

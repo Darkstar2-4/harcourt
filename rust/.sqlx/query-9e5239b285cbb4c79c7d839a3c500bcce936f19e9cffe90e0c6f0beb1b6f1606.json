@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT item AS \"item!: String\" FROM registry WHERE module = 'address' AND field = ?1 AND data = 'required' AND domain IN ('', 'global')",
+  "describe": {
+    "columns": [
+      {
+        "name": "item!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9e5239b285cbb4c79c7d839a3c500bcce936f19e9cffe90e0c6f0beb1b6f1606"
+}

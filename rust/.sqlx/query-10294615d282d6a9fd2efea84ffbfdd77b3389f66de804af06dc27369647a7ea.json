@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"c!: String\" FROM language WHERE active = 1 ORDER BY code <> 'EN', code",
+  "describe": {
+    "columns": [
+      {
+        "name": "c!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "10294615d282d6a9fd2efea84ffbfdd77b3389f66de804af06dc27369647a7ea"
+}

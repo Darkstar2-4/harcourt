@@ -7,9 +7,10 @@
 use sqlx::SqlitePool;
 
 use crate::{
+    accounts::{account::PriceType, bot::BotStatus},
     identity::{Role, Status, UserId},
     pricing::PriceTerms,
-    visitor::Visitor,
+    visitor::{Identity, Visitor},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -181,42 +182,52 @@ impl Viewer {
     }
 }
 
-/// The viewer for this request. A session whose account row has gone is anonymous.
+/// The page's language: the link's `lang=`, else the visitor's (an explicit choice, the account's, the browser's).
+pub fn lang_for(visitor: &Visitor, param: Option<&str>) -> Lang {
+    match param.map(str::trim).filter(|p| !p.is_empty()) {
+        Some(p) => Lang::from_param(Some(p)),
+        None => Lang::from_code(visitor.language.as_str()).unwrap_or(Lang::En),
+    }
+}
+
+/// The viewer for this request.
 pub async fn load(pool: &SqlitePool, visitor: &Visitor, lang: Lang) -> sqlx::Result<Viewer> {
-    let Some(user) = visitor.user() else { return Ok(Viewer::anonymous(lang)) };
-    let row = sqlx::query!(
-        r#"SELECT catalog AS "catalog!: i64", cad AS "cad!: i64", ecommerce AS "ecommerce!: i64", price_type AS "price_type!",
-                  price_pct AS "price_pct!: f64", currency_code AS "currency_code!", country_code, company_name,
-                  industry_id AS "industry_id!: i64", portal_id AS "portal_id!: i64",
-                  landing_document_id AS "landing_document_id!: i64", login_document_id AS "login_document_id!: i64",
-                  language_code AS "language_code!"
-           FROM "user" WHERE id = ?1"#,
-        user.id.0
-    )
-    .fetch_optional(pool)
-    .await?;
-    let Some(row) = row else { return Ok(Viewer::anonymous(lang)) };
-    let active = user.is_active();
-    let company_name = row.company_name.filter(|c| !c.is_empty());
+    let signed_in = match &visitor.identity {
+        Identity::Anonymous => return Ok(Viewer::anonymous(lang)),
+        Identity::Bot(b) => {
+            let status = if b.status == BotStatus::Active { Status::Active } else { Status::Denied };
+            return Ok(Viewer::bot(b.id, status, b.catalog, (b.portal_id > 0).then_some(b.portal_id), lang));
+        }
+        Identity::Account(s) => s,
+    };
+    let account = &signed_in.account;
+    let user = &account.user;
+    let company_name = user.company_name.clone().filter(|c| !c.is_empty());
     let blocked = blocked(pool, user.id, company_name.as_deref()).await?;
     let id_of = |v: i64| (v > 0).then_some(v);
+    let price_type = match account.price_type {
+        PriceType::None => "",
+        PriceType::Base => "base",
+        PriceType::Discount => "discount",
+        PriceType::Plus => "plus",
+    };
     Ok(Viewer {
         kind: Kind::Account(user.id),
         lang,
-        account_lang: Lang::from_code(&row.language_code),
+        account_lang: Lang::from_code(&account.language_code),
         role: user.role,
-        active,
-        catalog: active && row.catalog != 0,
-        cad: active && row.cad != 0,
-        ecommerce: active && row.ecommerce != 0,
-        price: PriceTerms::parse(&row.price_type, row.price_pct),
-        currency_code: row.currency_code,
-        country_code: row.country_code.unwrap_or_default().trim().to_ascii_uppercase(),
+        active: user.is_active(),
+        catalog: account.catalog(),
+        cad: account.cad(),
+        ecommerce: account.ecommerce(),
+        price: PriceTerms::parse(price_type, account.price_pct),
+        currency_code: account.currency_code.clone(),
+        country_code: account.country_code.clone().unwrap_or_default().trim().to_ascii_uppercase(),
         company_name,
-        industry_id: id_of(row.industry_id),
-        portal_id: id_of(row.portal_id),
-        landing_document_id: id_of(row.landing_document_id),
-        login_document_id: id_of(row.login_document_id),
+        industry_id: id_of(account.industry_id),
+        portal_id: id_of(account.portal_id),
+        landing_document_id: id_of(account.landing_document_id),
+        login_document_id: id_of(account.login_document_id),
         blocked,
     })
 }

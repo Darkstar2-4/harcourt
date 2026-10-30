@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!: String\", coalesce(plural, '') AS \"plural!: String\" FROM currency WHERE code = ?1 AND active = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "plural!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "88ac8c4f0aa2b22e30438c8fe1bcb35902faa0be60d9eb80ea7da1e404e26cf6"
+}

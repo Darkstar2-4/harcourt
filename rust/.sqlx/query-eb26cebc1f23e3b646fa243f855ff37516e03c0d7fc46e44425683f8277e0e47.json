@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT coalesce(code, '') AS \"code!: String\", coalesce(name, '') AS \"name!: String\", recipient, bcc,\n                  coalesce(css, '') AS \"css!: String\", coalesce(subject, '') AS \"subject!: String\",\n                  coalesce(header_html, '') AS \"header_html!: String\", coalesce(footer_html, '') AS \"footer_html!: String\"\n           FROM mailform WHERE code = ?1 ORDER BY id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "recipient",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "bcc",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "css!: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "header_html!: String",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "footer_html!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "eb26cebc1f23e3b646fa243f855ff37516e03c0d7fc46e44425683f8277e0e47"
+}

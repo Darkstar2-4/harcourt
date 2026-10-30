@@ -35,7 +35,7 @@ jobs:
         with:
           workspaces: rust
       - run: cargo test --locked
-      - run: cargo clippy --locked --lib --test auth -- -D warnings
+      - run: cargo clippy --locked --lib --test '*' -- -D warnings
 
   web:
     runs-on: ubuntu-latest

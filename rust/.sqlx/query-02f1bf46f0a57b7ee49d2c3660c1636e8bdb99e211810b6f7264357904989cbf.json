@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country AS \"code!\", name FROM country WHERE state = '' AND active = 1\n           ORDER BY CASE country WHEN 'US' THEN 1 WHEN 'CA' THEN 2 ELSE 3 END, name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "02f1bf46f0a57b7ee49d2c3660c1636e8bdb99e211810b6f7264357904989cbf"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT menu AS \"menu!: String\" FROM language WHERE code = ?1 AND menu IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "menu!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b958c89ea6d3dc38edfb9a8d610af4d5d6d591562126f7bc2423124252002de6"
+}

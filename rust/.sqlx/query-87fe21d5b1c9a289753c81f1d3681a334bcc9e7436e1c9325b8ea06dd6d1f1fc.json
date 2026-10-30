@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT coalesce(name_first, '') AS \"name_first!: String\", coalesce(name_last, '') AS \"name_last!: String\",\n                  coalesce(name, '') AS \"name!: String\", coalesce(company_name, '') AS \"company_name!: String\",\n                  coalesce(phone, '') AS \"phone!: String\", coalesce(address, '') AS \"address!: String\",\n                  coalesce(city, '') AS \"city!: String\", coalesce(state, '') AS \"state!: String\", coalesce(zip, '') AS \"zip!: String\",\n                  coalesce(country_code, '') AS \"country_code!: String\", coalesce(carrier_name, '') AS \"carrier_name!: String\",\n                  coalesce(carrier_account, '') AS \"carrier_account!: String\"\n           FROM orderhd WHERE user_id = ?1 AND email = ?2 AND ?2 <> '' ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "name_first!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name_last!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "phone!: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "address!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "city!: String",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "state!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip!: String",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code!: String",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "carrier_name!: String",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "carrier_account!: String",
+        "ordinal": 11,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "87fe21d5b1c9a289753c81f1d3681a334bcc9e7436e1c9325b8ea06dd6d1f1fc"
+}

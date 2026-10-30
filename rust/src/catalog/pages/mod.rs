@@ -347,13 +347,10 @@ async fn catalog_php(
     if let Some(redirect) = fragment_as_page(uri.query().unwrap_or(""), &headers) {
         return redirect;
     }
-    let lang = Lang::from_param(q.get("lang").map(String::as_str));
+    let lang = viewer::lang_for(&visitor, q.get("lang").map(String::as_str));
     let result = async {
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
-        let email = match &visitor {
-            Visitor::SignedIn { email, .. } => email.clone(),
-            Visitor::Anonymous => None,
-        };
+        let email = visitor.signed_in().and_then(|s| s.email.as_ref()).map(|e| e.as_str().to_string());
         let mut ctx = load_ctx(&core.pool, &viewer, Request::parse(&q), &headers, email.as_deref()).await?;
         ctx.search = Some(cache);
         render(&mut ctx).await
