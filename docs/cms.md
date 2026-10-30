@@ -13,7 +13,13 @@ The public pages were a static export of WordPress. `rust/src/cms` holds their c
 | `src/cms/edit.rs`, `src/cms/admin.rs` | Editing at `/staff/cms`, with revisions, behind `Staff<Administrator>` and the staff CSRF token. |
 | `src/routes/wordpress.rs` | The page routes (`PAGES`), robots.txt, and which WordPress entry points answer 410. |
 
-Ported templates: product-single, digest, page.php, and scscpq (rendered as a shell through `theme::shell` for the area that owns the page, not routed here). The others (builder, home, about, history, why, career, faq, locations, contact variants, request, thank-you) stay on the static export.
+Ported templates: product-single, digest, page.php, home, about, history, why, career, FAQ, thank-you, contact (and its UK, France and India variants), locations, and the page builder's two-column, grid, list-column, custom HTML and call-to-action parts. scscpq is rendered as a shell through `theme::shell` for the area that owns the page, not routed here. Still on the static export: request (the accounts area serves those paths), the builder pages that use a part not ported yet (hbox, boxjoint), and the themed 404 page, which WordPress prints for a claimed path the cms lacks.
+
+How a claimed path answers follows what prod did, where hxweb served the export only for a GET whose query keys were all neutral (`lang`, `hxlang`, `utm_*`, `gclid`, `fbclid`) and WordPress answered the rest:
+
+- A neutral GET for a page in its own language gets the page finished as the exported pages were (vendored assets, static icons).
+- Any other request gets the page as WordPress printed it, or WordPress's own redirect: WPML's 302 away from `lang=en`, redirect_canonical()'s slash fix and front-page query rebuild, WPML's translation redirect, and redirect_guess_404_permalink() for a one-segment path.
+- A query key WordPress acts on (`p`, `page_id`, `s`, `replytocom`, `preview`, `rest_route`, `hx_form`, ...), a path the cms lacks, and, while WordPress runs, a non-neutral request for a page with forms are handed back (`x-hxweb: legacy`) and main.rs sends them where an unclaimed path goes. The user listing (`rest_route=/wp/v2/users`) never leaves hxweb.
 
 The transcriptions follow the theme in prod's document root (`/home/ubuntu/oracle-data/prod-code/`), which has French strings and link changes that are not in git.
 
@@ -26,7 +32,9 @@ hxweb-cms check  --dump wp.sql --export /home/harcou6/static_site          # wri
 hxweb-cms import --dump wp.sql --export /home/harcou6/static_site --db /var/lib/hxweb/hx.db
 ```
 
-`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages, or the claimed paths answer 404.
+`import` replaces the cms content and records an `import` revision per page, then checks the pages it loads back. A re-import overwrites edits made in the dashboard; their revisions stay. Import before deploying a build that claims pages: until then a claimed path is handed back and answers as an unclaimed one does (the static export, or WordPress).
+
+The same holds for any copy of the database: the oracle rig's `hx.db` is built by `hx-import` from the SCS tables only, so a server started by `hx-serve.sh` has an empty cms until `hxweb-cms import` runs against its copy (`/tmp/hx_<area>_<port>.db`).
 
 ## Deploy switches
 
