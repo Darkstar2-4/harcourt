@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_page_meta (page_id, name, value) VALUES (?1, ?2, ?3) ON CONFLICT (page_id, name) DO UPDATE SET value = excluded.value",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f6d981cebe99f8c94477abe2bccb3cb2e052978f0e6dac6cd44d893a45db74ec"
+}

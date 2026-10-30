@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT page_id, lang, fields FROM cms_revision WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "page_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lang",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "fields",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "8ebce42e6bdd2cd4cf73b72d485407afd84d05d2bcdaf5cdfeece310bdf8272e"
+}

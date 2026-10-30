@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", saved_at, saved_by, note FROM cms_revision WHERE page_id = ?1 ORDER BY id DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "saved_at",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "saved_by",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "note",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "04fdb5151a14d1c578bfc6ba26c8906add6bee92ee114976240983e6278e29c6"
+}

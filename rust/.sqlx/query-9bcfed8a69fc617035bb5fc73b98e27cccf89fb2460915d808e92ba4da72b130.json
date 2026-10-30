@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cms_page_meta",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "9bcfed8a69fc617035bb5fc73b98e27cccf89fb2460915d808e92ba4da72b130"
+}
