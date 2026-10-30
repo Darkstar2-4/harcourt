@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use axum::Router;
 
-use crate::api::Auth;
+use crate::{
+    api::Auth,
+    orders::{self, Orders},
+};
 
 pub fn router(core: Arc<Auth>) -> Router {
-    let _ = core;
-    Router::new()
+    orders::router(Arc::new(Orders::from_env(core)))
 }

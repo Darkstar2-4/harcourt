@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET last_login = ?2 WHERE id = ?1 AND last_login <= ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e6aecd23ed96fb566f2f40aaa0f46896731085ecc09a64002b8f5226e5da16cb"
+}

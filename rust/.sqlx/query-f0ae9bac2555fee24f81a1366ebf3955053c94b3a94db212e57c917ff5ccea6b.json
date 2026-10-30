@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO outbox_recipient (outbox_id, kind, email, name) VALUES (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f0ae9bac2555fee24f81a1366ebf3955053c94b3a94db212e57c917ff5ccea6b"
+}

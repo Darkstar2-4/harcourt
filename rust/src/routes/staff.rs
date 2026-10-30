@@ -8,6 +8,5 @@ use axum::Router;
 use crate::api::Auth;
 
 pub fn router(core: Arc<Auth>) -> Router {
-    let _ = core;
-    Router::new()
+    crate::staff::router().with_state(core)
 }

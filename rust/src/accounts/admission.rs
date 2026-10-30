@@ -205,7 +205,7 @@ pub async fn notify_staff(pool: &SqlitePool, subject: Option<&str>, lines: &[Str
     let subject = subject.map(str::to_string).or(form.subject).unwrap_or_default();
     let body = format!("<p class='standard'>{}</p>", lines.join("<br>"));
     let to = form.recipient.trim();
-    sqlx::query!("INSERT INTO outbox (to_email, subject, body, created_at) VALUES (?1, ?2, ?3, ?4)", to, subject, body, now)
+    sqlx::query!("INSERT INTO outbox (to_email, subject, body, created_at, content_type) VALUES (?1, ?2, ?3, ?4, 'html')", to, subject, body, now)
         .execute(pool)
         .await?;
     Ok(())

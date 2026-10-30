@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", code AS \"code!\", pattern AS \"pattern!\", name AS \"name!\", portal_id AS \"portal_id!: i64\",\n                  catalog AS \"catalog!: i64\", status AS \"status!\" FROM bot ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "code!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "pattern!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_id!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "catalog!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status!",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a2da55a7df4902d354535f261543ba50dd87215245312988aa3a2dd5f40156a5"
+}

@@ -25,6 +25,7 @@
 //!  * `campaign`: the active campaign this browser arrived from (`?campaign=CODE`, kept for the browser session).
 //!  * `impersonator`: who is viewing the site as this visitor, while an Administrator impersonates.
 //!  * `client`: the client address.
+//!  * `session`: the stored session this browser signed in with, for per-browser state such as the cart.
 //!
 //! The shortcuts `user()`, `account()`, `bot()`, `role()`, `at_least()`, `catalog()`, `cad()`, `ecommerce()`,
 //! `portal_id()` and `industry_id()` cover the common questions.
@@ -56,6 +57,7 @@ use crate::{
     db::unix_now,
     identity::{Email, Role, Status, User, UserId},
     session,
+    token::TokenHash,
 };
 
 #[derive(Debug, Clone)]
@@ -66,6 +68,9 @@ pub struct Visitor {
     pub campaign: Option<Campaign>,
     pub impersonator: Option<Impersonator>,
     pub client: Option<IpAddr>,
+    /// The session this browser is signed in with, as stored: what per-browser state (the cart) hangs off. None
+    /// for anonymous visitors, bots and sign-in by company address.
+    pub session: Option<TokenHash>,
 }
 
 #[derive(Debug, Clone)]
@@ -106,6 +111,7 @@ impl Visitor {
             campaign: None,
             impersonator: None,
             client: None,
+            session: None,
         }
     }
 
@@ -220,8 +226,10 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
     let mut overlay_currency = None;
 
     let mut identity = Identity::Anonymous;
+    let mut session = None;
     if let Some(token) = api::session_cookie(&parts.headers) {
         if let Some(found) = session::lookup(pool, &token, now).await? {
+            session = Some(token.hash());
             let email = found.email.as_deref().and_then(Email::parse);
             if let Some(view) = impersonation(pool, &token, &found.user).await? {
                 impersonator = Some(Impersonator { id: found.user.id, email: email.clone(), portal_legacy: view.portal_legacy });
@@ -304,7 +312,7 @@ pub async fn resolve(core: &Auth, parts: &Parts, now: i64) -> sqlx::Result<Resol
         effects.clear();
     }
 
-    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client }, effects })
+    Ok(Resolved { visitor: Visitor { identity, language, currency, campaign, impersonator, client, session }, effects })
 }
 
 fn may_sign_in_by_address(ip: IpAddr, trusted_proxies: &[IpAddr]) -> bool {

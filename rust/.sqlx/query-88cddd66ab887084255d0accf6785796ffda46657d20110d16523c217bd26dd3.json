@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO remote (email, expiry, token, unlock_code) VALUES (?1, ?2, '', '')\n         ON CONFLICT (email) DO UPDATE SET expiry = excluded.expiry, token = '', unlock_code = ''",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "88cddd66ab887084255d0accf6785796ffda46657d20110d16523c217bd26dd3"
+}

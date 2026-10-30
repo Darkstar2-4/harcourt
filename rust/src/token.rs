@@ -9,7 +9,14 @@ const ENCODED_LEN: usize = 43;
 
 pub struct Token(String);
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct TokenHash([u8; 32]);
+
+impl std::fmt::Debug for TokenHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("TokenHash(..)")
+    }
+}
 
 impl Token {
     pub fn generate() -> Self {

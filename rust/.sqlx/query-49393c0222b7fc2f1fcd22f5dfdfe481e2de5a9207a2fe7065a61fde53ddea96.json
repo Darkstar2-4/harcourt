@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT 1 AS \"x!: i64\" FROM blacklist WHERE lower(domain) = ?1 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "x!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "49393c0222b7fc2f1fcd22f5dfdfe481e2de5a9207a2fe7065a61fde53ddea96"
+}

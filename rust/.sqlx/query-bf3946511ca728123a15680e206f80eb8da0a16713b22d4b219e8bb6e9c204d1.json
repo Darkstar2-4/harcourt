@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE access_code SET attempts = attempts + 1\n           WHERE email = ?1 AND expires_at > ?2 AND attempts < ?3\n           RETURNING code_mac AS \"code_mac!\", attempts AS \"attempts!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "code_mac!",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "attempts!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "bf3946511ca728123a15680e206f80eb8da0a16713b22d4b219e8bb6e9c204d1"
+}

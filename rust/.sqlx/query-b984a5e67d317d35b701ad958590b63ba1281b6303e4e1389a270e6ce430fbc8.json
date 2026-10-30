@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE carrier SET name = ?1, active = ?2 WHERE id = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b984a5e67d317d35b701ad958590b63ba1281b6303e4e1389a270e6ce430fbc8"
+}

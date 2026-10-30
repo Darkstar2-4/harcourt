@@ -137,6 +137,18 @@ impl MinRole for AnyUser {
 impl MinRole for Administrator {
     const ROLE: Role = Role::Administrator;
 }
+pub struct Internal;
+impl MinRole for Internal {
+    const ROLE: Role = Role::Internal;
+}
+pub struct Executive;
+impl MinRole for Executive {
+    const ROLE: Role = Role::Executive;
+}
+pub struct SuperUser;
+impl MinRole for SuperUser {
+    const ROLE: Role = Role::SuperUser;
+}
 
 /// A request that carries a live session of an Active account whose role is at least `R`.
 pub struct Authed<R: MinRole> {

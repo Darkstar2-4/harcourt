@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", ip, company_name, recaptcha_score, last_login FROM \"user\"\n           WHERE status = 'Pending' ORDER BY recaptcha_score DESC, company_name",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "recaptcha_score",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "last_login",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a2de1381d50a7d9de073df2bddd1b21b0dc48e74d7a2bb5d522441f398656a75"
+}

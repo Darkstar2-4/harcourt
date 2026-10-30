@@ -1,0 +1,176 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", coalesce(punchout_id, 0) AS \"punchout_id!: i64\", coalesce(order_date, 0) AS \"order_date!: i64\",\n                  status AS \"status!: String\", coalesce(status_date, 0) AS \"status_date!: i64\", coalesce(email, '') AS \"email!: String\",\n                  coalesce(name_first, '') AS \"name_first!: String\", coalesce(name_last, '') AS \"name_last!: String\",\n                  coalesce(name, '') AS \"name!: String\", coalesce(company_name, '') AS \"company_name!: String\",\n                  coalesce(phone, '') AS \"phone!: String\", coalesce(address, '') AS \"address!: String\", coalesce(city, '') AS \"city!: String\",\n                  coalesce(state, '') AS \"state!: String\", coalesce(zip, '') AS \"zip!: String\", coalesce(country_code, '') AS \"country_code!: String\",\n                  coalesce(billing_address, '') AS \"billing_address!: String\", coalesce(billing_city, '') AS \"billing_city!: String\",\n                  coalesce(billing_state, '') AS \"billing_state!: String\", coalesce(billing_zip, '') AS \"billing_zip!: String\",\n                  coalesce(billing_country_code, '') AS \"billing_country_code!: String\", coalesce(po, '') AS \"po!: String\",\n                  coalesce(comment, '') AS \"comment!: String\", coalesce(cc, '') AS \"cc!: String\",\n                  coalesce(carrier_name, '') AS \"carrier_name!: String\", coalesce(carrier_account, '') AS \"carrier_account!: String\",\n                  coalesce(currency_code, 'USD') AS \"currency_code!: String\"\n           FROM orderhd WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "punchout_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "order_date!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "status_date!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "email!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "name_first!: String",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "name_last!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name!: String",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "phone!: String",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "address!: String",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "city!: String",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "state!: String",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip!: String",
+        "ordinal": 14,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code!: String",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "billing_address!: String",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "billing_city!: String",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "billing_state!: String",
+        "ordinal": 18,
+        "type_info": "Text"
+      },
+      {
+        "name": "billing_zip!: String",
+        "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "billing_country_code!: String",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "po!: String",
+        "ordinal": 21,
+        "type_info": "Text"
+      },
+      {
+        "name": "comment!: String",
+        "ordinal": 22,
+        "type_info": "Text"
+      },
+      {
+        "name": "cc!: String",
+        "ordinal": 23,
+        "type_info": "Text"
+      },
+      {
+        "name": "carrier_name!: String",
+        "ordinal": 24,
+        "type_info": "Text"
+      },
+      {
+        "name": "carrier_account!: String",
+        "ordinal": 25,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency_code!: String",
+        "ordinal": 26,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9aeabe30fb93b9615aa57e72f4103321e3ad4e91525c39f11260b8aae9bc4eff"
+}

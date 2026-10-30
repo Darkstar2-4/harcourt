@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT recipient AS \"recipient!\", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY domain = '' DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "recipient!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "a64dbbcbacc13a003c582b157973903b08d85c5ca875fbaa67d7014f691a6e8d"
+}

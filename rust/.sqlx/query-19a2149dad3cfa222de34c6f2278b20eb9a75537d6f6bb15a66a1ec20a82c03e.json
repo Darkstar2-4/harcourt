@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT state AS \"state!\", verifier AS \"verifier!\", nonce AS \"nonce!\", created_at AS \"created_at!: i64\"\n                   FROM oauth_login WHERE token_hash = ?1 AND provider = ?2 AND outcome IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "state!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "verifier!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "nonce!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "19a2149dad3cfa222de34c6f2278b20eb9a75537d6f6bb15a66a1ec20a82c03e"
+}

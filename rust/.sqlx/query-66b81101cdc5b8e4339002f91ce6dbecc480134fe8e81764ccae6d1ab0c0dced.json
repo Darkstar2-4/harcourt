@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT comment, count(*) AS \"count!: i64\", max(date_time) AS \"date!: i64\" FROM log\n           WHERE date_time >= ?1 AND lower(type) = 'initial' AND lower(subtype) = 'campaign'\n           GROUP BY comment ORDER BY comment",
+  "describe": {
+    "columns": [
+      {
+        "name": "comment",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "count!: i64",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "date!: i64",
+        "ordinal": 2,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "66b81101cdc5b8e4339002f91ce6dbecc480134fe8e81764ccae6d1ab0c0dced"
+}

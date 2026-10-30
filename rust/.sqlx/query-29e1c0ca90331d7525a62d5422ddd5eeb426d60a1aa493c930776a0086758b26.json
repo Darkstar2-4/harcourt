@@ -1,0 +1,188 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", ip, company_name, address, city, state, zip, country_code, status AS \"status!\",\n                  \"type\" AS \"ty!\", last_login AS \"last_login!: i64\", login_document_id AS \"login_document_id!: i64\",\n                  landing_document_id AS \"landing_document_id!: i64\", comment, portal_id AS \"portal_id!: i64\",\n                  customer_code, catalog AS \"catalog!: i64\", cad AS \"cad!: i64\", ecommerce AS \"ecommerce!: i64\",\n                  price_pct AS \"price_pct!: f64\", language_code AS \"language_code!\", industry_id AS \"industry_id!: i64\",\n                  leadscore AS \"leadscore!: i64\", price_type AS \"price_type!\", revenue AS \"revenue!\",\n                  employees AS \"employees!\", domain, currency_code AS \"currency_code!\",\n                  recaptcha_score AS \"recaptcha_score!: f64\"\n           FROM \"user\" WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "address",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "city",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "ty!",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_login!: i64",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "login_document_id!: i64",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "landing_document_id!: i64",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_id!: i64",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "customer_code",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "catalog!: i64",
+        "ordinal": 16,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cad!: i64",
+        "ordinal": 17,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ecommerce!: i64",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price_pct!: f64",
+        "ordinal": 19,
+        "type_info": "Float"
+      },
+      {
+        "name": "language_code!",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry_id!: i64",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "leadscore!: i64",
+        "ordinal": 22,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price_type!",
+        "ordinal": 23,
+        "type_info": "Text"
+      },
+      {
+        "name": "revenue!",
+        "ordinal": 24,
+        "type_info": "Text"
+      },
+      {
+        "name": "employees!",
+        "ordinal": 25,
+        "type_info": "Text"
+      },
+      {
+        "name": "domain",
+        "ordinal": 26,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency_code!",
+        "ordinal": 27,
+        "type_info": "Text"
+      },
+      {
+        "name": "recaptcha_score!: f64",
+        "ordinal": 28,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "29e1c0ca90331d7525a62d5422ddd5eeb426d60a1aa493c930776a0086758b26"
+}
