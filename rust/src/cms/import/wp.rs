@@ -9,7 +9,7 @@ use super::{
     php::{self, Php},
     Import,
 };
-use crate::cms::model::{Field, Fields, Kind, Lang, Media, MediaId, MediaSize, Menu, MenuItem, Page, PageId, Status, Template};
+use crate::cms::model::{Author, Field, Fields, Kind, Lang, Media, MediaId, MediaSize, Menu, MenuItem, Page, PageId, PostType, Status, Taxonomy, Template, Term};
 
 /// (WPML element type, element id) -> (language, translation group).
 type LangOf = HashMap<(String, i64), (Lang, i64)>;
@@ -26,6 +26,7 @@ struct Post {
     modified_gmt: String,
     menu_order: i64,
     mime: String,
+    author: i64,
 }
 
 fn rows<'a>(tables: &'a Tables, name: &str, cols: &[&str]) -> Result<Vec<Vec<&'a Value>>, String> {
@@ -46,7 +47,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
     let posts: HashMap<i64, Post> = rows(
         tables,
         "wp_posts",
-        &["ID", "post_type", "post_status", "post_name", "post_parent", "post_title", "post_content", "post_date_gmt", "post_modified_gmt", "menu_order", "post_mime_type"],
+        &["ID", "post_type", "post_status", "post_name", "post_parent", "post_title", "post_content", "post_date_gmt", "post_modified_gmt", "menu_order", "post_mime_type", "post_author"],
     )?
     .into_iter()
     .map(|r| {
@@ -62,6 +63,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
             modified_gmt: r[8].str().into(),
             menu_order: r[9].int(),
             mime: r[10].str().into(),
+            author: r[11].int(),
         };
         (p.id, p)
     })
@@ -94,17 +96,32 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
 
     let mut out = Import::default();
     let path_of = |id: i64| page_path(id, &posts, front_group.map(|g| (g, &lang_of)));
-    for p in posts.values().filter(|p| p.kind == "page" && (p.status == "publish" || p.status == "draft")) {
-        let Some(&(lang, group)) = lang_of.get(&("post_page".into(), p.id)) else { continue };
-        let template_file = meta_value(&meta, p.id, "_wp_page_template").unwrap_or("");
-        let template = Template::parse(template_file).ok_or_else(|| format!("page {} uses unknown template {template_file:?}", p.id))?;
+    for p in posts.values().filter(|p| p.status == "publish" || p.status == "draft") {
+        let Some(kind) = PostType::parse(&p.kind) else { continue };
+        let Some(&(lang, group)) = lang_of.get(&(format!("post_{}", p.kind), p.id)) else { continue };
+        let template = match kind {
+            PostType::Page => {
+                let file = meta_value(&meta, p.id, "_wp_page_template").unwrap_or("");
+                Template::parse(file).ok_or_else(|| format!("page {} uses unknown template {file:?}", p.id))?
+            }
+            PostType::Faq => Template::SingleFaq,
+            _ => Template::Single,
+        };
         let draft = p.status == "draft";
+        // A draft's permalink is its ?page_id= (or ?p=) link; WPML redirects to it, so it is kept for that.
+        let path = match (draft, kind) {
+            (true, PostType::Page) => format!("/?page_id={}", p.id),
+            (true, _) => format!("/?p={}", p.id),
+            (false, PostType::Page) => path_of(p.id),
+            (false, _) => format!("{}/{}/", kind.base(), p.name),
+        };
         out.pages.push(Page {
             id: PageId(p.id),
+            kind,
+            name: p.name.clone(),
             group_id: group,
             lang,
-            // A draft's permalink is its ?page_id= link; WPML redirects to it, so it is kept for that.
-            path: if draft { format!("/?page_id={}", p.id) } else { path_of(p.id) },
+            path,
             template,
             status: if draft { Status::Draft } else { Status::Publish },
             title: p.title.clone(),
@@ -112,6 +129,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
             menu_order: p.menu_order,
             published_at: p.date_gmt.clone(),
             modified_at: p.modified_gmt.clone(),
+            author_id: (p.author != 0).then_some(p.author),
         });
         let mut fields = acf_fields(meta.get(&p.id).map(Vec::as_slice).unwrap_or(&[]), &acf_types, "");
         fields.insert("content".into(), Field { kind: Kind::Html, value: p.content.clone() });
@@ -119,6 +137,9 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
             fields.insert("@thumbnail".into(), Field { kind: Kind::Media, value: thumb.to_string() });
         }
         out.fields.insert(PageId(p.id), fields);
+        if meta_value(&meta, p.id, "_yoast_wpseo_meta-robots-noindex") == Some("1") {
+            out.meta.entry(PageId(p.id)).or_default().insert("noindex".into(), "1".into());
+        }
     }
     out.pages.sort_by_key(|p| p.id);
 
@@ -134,10 +155,68 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         out.options.entry(Lang::En).or_default().insert("@privacy_page".into(), Field { kind: Kind::Choice, value: privacy.clone() });
     }
 
-    out.media = posts.values().filter(|p| p.kind == "attachment").filter_map(|p| media(p, &meta)).collect();
+    out.media = posts.values().filter(|p| p.kind == "attachment").filter_map(|p| media(p, &meta, &lang_of)).collect();
     out.media.sort_by_key(|m| m.id.0);
 
     out.menus = menus(tables, &posts, &meta, &options, &lang_of, &out.pages)?;
+    out.terms = terms(tables, &posts, &lang_of, &out.pages)?;
+    out.authors = authors(tables, &out.pages)?;
+    Ok(out)
+}
+
+/// Categories and FAQ types with their WPML language, the imported posts in each, and Yoast's lastmod for each: the
+/// newest post_modified_gmt of anything published or inherited filed under it.
+fn terms(tables: &Tables, posts: &HashMap<i64, Post>, lang_of: &LangOf, pages: &[Page]) -> Result<Vec<Term>, String> {
+    let names: HashMap<i64, (String, String)> =
+        rows(tables, "wp_terms", &["term_id", "name", "slug"])?.into_iter().map(|r| (r[0].int(), (r[1].str().to_string(), r[2].str().to_string()))).collect();
+    let mut members: HashMap<i64, Vec<i64>> = HashMap::new();
+    for r in rows(tables, "wp_term_relationships", &["object_id", "term_taxonomy_id"])? {
+        members.entry(r[1].int()).or_default().push(r[0].int());
+    }
+    let mut out = Vec::new();
+    for r in rows(tables, "wp_term_taxonomy", &["term_taxonomy_id", "term_id", "taxonomy"])? {
+        let Some(taxonomy) = Taxonomy::parse(r[2].str()) else { continue };
+        let (tt, id) = (r[0].int(), r[1].int());
+        let Some((name, slug)) = names.get(&id) else { continue };
+        let objects = members.get(&tt).map(Vec::as_slice).unwrap_or(&[]);
+        let modified_at = objects
+            .iter()
+            .filter_map(|o| posts.get(o))
+            .filter(|p| p.status == "publish" || p.status == "inherit")
+            .map(|p| p.modified_gmt.clone())
+            .max()
+            .unwrap_or_default();
+        let translation = lang_of.get(&(format!("tax_{}", taxonomy.as_str()), tt)).copied();
+        let mut ids: Vec<PageId> = objects.iter().map(|&o| PageId(o)).filter(|o| pages.iter().any(|p| p.id == *o)).collect();
+        ids.sort();
+        out.push(Term {
+            id,
+            taxonomy,
+            slug: slug.clone(),
+            name: name.clone(),
+            lang: translation.map(|t| t.0),
+            group_id: translation.map(|t| t.1),
+            modified_at,
+            pages: ids,
+        });
+    }
+    out.sort_by(|a, b| (a.taxonomy, &a.name, a.id).cmp(&(b.taxonomy, &b.name, b.id)));
+    Ok(out)
+}
+
+/// The authors of the imported posts, with the time Yoast last recorded a change to their profile.
+fn authors(tables: &Tables, pages: &[Page]) -> Result<Vec<Author>, String> {
+    let updated: HashMap<i64, i64> = rows(tables, "wp_usermeta", &["user_id", "meta_key", "meta_value"])?
+        .into_iter()
+        .filter(|r| r[1].str() == "_yoast_wpseo_profile_updated")
+        .map(|r| (r[0].int(), r[2].int()))
+        .collect();
+    let mut out: Vec<Author> = rows(tables, "wp_users", &["ID", "user_nicename", "display_name"])?
+        .into_iter()
+        .filter(|r| pages.iter().any(|p| p.author_id == Some(r[0].int())))
+        .map(|r| Author { id: r[0].int(), nicename: r[1].str().into(), display_name: r[2].str().into(), profile_updated: updated.get(&r[0].int()).copied().unwrap_or(0) })
+        .collect();
+    out.sort_by_key(|a| a.id);
     Ok(out)
 }
 
@@ -220,7 +299,8 @@ fn page_path(id: i64, posts: &HashMap<i64, Post>, front: Option<(i64, &LangOf)>)
     format!("/{}/", parts.join("/"))
 }
 
-fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>) -> Option<Media> {
+fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>, lang_of: &LangOf) -> Option<Media> {
+    let translation = lang_of.get(&("post_attachment".to_string(), p.id)).copied();
     let file = meta_value(meta, p.id, "_wp_attached_file")?.to_string();
     let info = meta_value(meta, p.id, "_wp_attachment_metadata").and_then(|m| php::unserialize(m).ok());
     let int = |k: &str| info.as_ref().and_then(|i| i.get(k)).and_then(Php::as_int).unwrap_or(0);
@@ -249,6 +329,10 @@ fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>) -> Option<Media> 
         height: int("height"),
         alt: meta_value(meta, p.id, "_wp_attachment_image_alt").unwrap_or("").to_string(),
         sizes,
+        name: p.name.clone(),
+        parent_id: (p.parent != 0).then_some(PageId(p.parent)),
+        lang: translation.map(|t| t.0),
+        group_id: translation.map(|t| t.1),
     })
 }
 

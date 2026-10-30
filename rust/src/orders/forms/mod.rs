@@ -103,6 +103,12 @@ pub fn embed(services: &Services, form_id: i64, lang: model::Lang, page_uri: &st
 /// The form's markup for this page and language, or None for a form that is not active or not on that page.
 pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &str, user_agent: &str) -> sqlx::Result<Option<String>> {
     let Some(embed) = embed(&state.forms, form_id, lang, page_uri) else { return Ok(None) };
+    embedded(state, form_id, lang, page_uri, user_agent, &embed).await
+}
+
+/// The form's markup embedded as `embed` says (the cms knows how each of its pages embeds its forms), or None for a
+/// form that is not active.
+pub async fn embedded(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &str, user_agent: &str, embed: &render::Embed) -> sqlx::Result<Option<String>> {
     let Some(form) = model::load(&state.core.pool, form_id).await? else { return Ok(None) };
     let form = model::localize(form, lang);
     let token = state.forms.token_key.as_ref().map(|k| k.issue(form.id, unix_now()));
@@ -111,7 +117,7 @@ pub async fn island(state: &Orders, form_id: i64, lang: model::Lang, page_uri: &
     Ok(Some(render::form(&render::Render {
         form: &form,
         page_uri,
-        embed: &embed,
+        embed,
         values: &values,
         errors: &errors,
         summary: None,

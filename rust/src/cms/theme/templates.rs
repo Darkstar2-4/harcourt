@@ -26,6 +26,7 @@ pub fn body_fn(t: Template) -> Option<Body> {
         Template::Locations => super::contact::locations,
         Template::Home => super::home::home,
         Template::Builder => super::builder::builder,
+        Template::SingleFaq => super::posts::single_faq,
         _ => return None,
     })
 }
@@ -60,11 +61,12 @@ fn page_content(c: &mut Ctx) {
     c.push("      </div>\n  </article>\n");
 }
 
-/// sidebar.php, for pages (FAQ posts use another widget area). The widgets of the page's widget area are stored
+/// sidebar.php. The widgets of the page's widget area (FAQs have their own, printed from another branch) are stored
 /// with the page as WordPress printed them: their menus mark the current page.
 pub(super) fn sidebar(c: &mut Ctx) {
     let fr = c.lang() == Lang::Fr;
-    c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n            ");
+    c.push("<div class=\"sidebar col-lg-4\" id=\"sidebar\" role=\"navigation\">\n\n  <div class=\"sidebar-widget-container black-radial-gradient\">\n\n\n\n    ");
+    c.push(if c.page.kind == crate::cms::model::PostType::Faq { "      " } else { "        " });
     let id = c.page.id;
     c.slot(Slot::Meta(id, "sidebar".into()));
     c.push("    \n  </div>\n\n    <div class=\"scscpq_newuser mt-4 red-radial-gradient text-center p-5\">\n      <h3 class=\"mt-0 mb-4\">");

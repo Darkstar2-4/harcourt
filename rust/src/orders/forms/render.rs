@@ -8,7 +8,7 @@ use super::{
     countries::COUNTRIES,
     model::{Field, Form, Honeypot, Kind, PhoneFormat},
 };
-use crate::orders::html::esc;
+use crate::{cms::url::form_action, orders::html::esc};
 
 /// What the visitor typed, by input name (`input_1`, `input_14.3`).
 pub type Values = HashMap<String, String>;
@@ -352,7 +352,10 @@ pub fn form(r: &Render) -> String {
     }
     let (target, anchor) = if r.embed.ajax { (format!(" target='gform_ajax_frame_{fid}'"), format!("#gf_{fid}")) } else { (String::new(), String::new()) };
     let css = if f.css_class.is_empty() { String::new() } else { format!(" class='{}'", esc(&f.css_class)) };
-    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}' data-formid='{fid}' novalidate>", form_action(&format!("{}{anchor}", r.page_uri))));
+    out.push_str(&format!(
+        "<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}' data-formid='{fid}' novalidate>",
+        form_action(&format!("{}{anchor}", r.page_uri))
+    ));
     if r.recaptcha {
         out.push_str("<input type='hidden' class='registry_recaptcha_response' name='registry_recaptcha_response' value=''/>");
     }
@@ -388,110 +391,6 @@ pub fn form(r: &Render) -> String {
         out.push_str(&super::ajax_script::script(fid));
     }
     finish(out, r.embed)
-}
-
-/// The form's action as Gravity Forms wrote it: `remove_query_arg('gf_token')` over the request URI, which parses the
-/// query and writes it again (values urlencoded, keys as parsed, `=` dropped from empty values), then `esc_url()`.
-fn form_action(uri: &str) -> String {
-    let (before_fragment, fragment) = uri.split_once('#').map_or((uri, ""), |(u, f)| (u, f));
-    let rebuilt = match before_fragment.split_once('?') {
-        None => before_fragment.to_string(),
-        Some((path, query)) => {
-            let query = rebuild_query(query, "gf_token");
-            if query.is_empty() { path.to_string() } else { format!("{path}?{query}") }
-        }
-    };
-    let url = if fragment.is_empty() { rebuilt } else { format!("{rebuilt}#{fragment}") };
-    esc_url(&url)
-}
-
-/// A query value as PHP's parse_str() reads it: `a=1`, or `a[]=1&a[x]=2` as a list of (subkey, value).
-enum Arg {
-    One(String),
-    List(Vec<(String, String)>),
-}
-
-/// WordPress's add_query_arg() rebuilding a query without `drop`: parse_str() it (a key keeps its first position and
-/// its last value; `.` and spaces in a name become `_`; `a[]` and `a[x]` make an array), urlencode() each value, write
-/// each key as parsed, and drop the `=` of an empty value.
-fn rebuild_query(query: &str, drop: &str) -> String {
-    let mut args: Vec<(String, Arg)> = Vec::new();
-    for (k, v) in form_urlencoded::parse(query.as_bytes()) {
-        let k = k.trim_start();
-        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
-            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
-            None => (k.replace(['.', ' '], "_"), None),
-        };
-        if name.is_empty() {
-            continue;
-        }
-        let v = v.into_owned();
-        let slot = args.iter().position(|(key, _)| *key == name);
-        match (sub, slot) {
-            (None, Some(i)) => args[i].1 = Arg::One(v),
-            (None, None) => args.push((name, Arg::One(v))),
-            (Some(sub), slot) => {
-                let i = slot.unwrap_or_else(|| {
-                    args.push((name, Arg::List(Vec::new())));
-                    args.len() - 1
-                });
-                if let Arg::One(_) = args[i].1 {
-                    args[i].1 = Arg::List(Vec::new());
-                }
-                if let Arg::List(list) = &mut args[i].1 {
-                    let sub = if sub.is_empty() { list.len().to_string() } else { sub };
-                    match list.iter_mut().find(|(s, _)| *s == sub) {
-                        Some(e) => e.1 = v,
-                        None => list.push((sub, v)),
-                    }
-                }
-            }
-        }
-    }
-    let pair = |k: &str, v: &str| if v.is_empty() { k.to_string() } else { format!("{k}={}", php_urlencode(v)) };
-    args.iter()
-        .filter(|(k, _)| k != drop)
-        .flat_map(|(k, a)| match a {
-            Arg::One(v) => vec![pair(k, v)],
-            Arg::List(list) => list.iter().map(|(s, v)| pair(&format!("{k}%5B{s}%5D"), v)).collect(),
-        })
-        .collect::<Vec<_>>()
-        .join("&")
-}
-
-/// PHP's urlencode(): everything but letters, digits and `-_.` as %XX, spaces as `+`.
-fn php_urlencode(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for b in s.bytes() {
-        match b {
-            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' => out.push(b as char),
-            b' ' => out.push('+'),
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
-    }
-    out
-}
-
-/// WordPress's esc_url() for an attribute: spaces as %20, characters a URL may not hold dropped, `&` and `'` as
-/// entities. An `&amp;` already in the URL is one ampersand, as wp_kses_normalize_entities() read it.
-fn esc_url(url: &str) -> String {
-    let allowed = |c: char| c.is_ascii_alphanumeric() || "-~+_.?#=!&;,/:%@$|*'()[]".contains(c) || !c.is_ascii();
-    let mut out = String::with_capacity(url.len() + 16);
-    let mut rest = url.trim_start();
-    while let Some(c) = rest.chars().next() {
-        rest = &rest[c.len_utf8()..];
-        match c {
-            ' ' => out.push_str("%20"),
-            '&' => {
-                out.push_str("&#038;");
-                rest = rest.strip_prefix("amp;").unwrap_or(rest);
-            }
-            '\'' => out.push_str("&#039;"),
-            c if allowed(c) => out.push(c),
-            _ => {}
-        }
-    }
-    out
 }
 
 /// What WordPress did to a form printed inside post content: curly apostrophes where the export recorded
@@ -665,19 +564,6 @@ mod tests {
     use crate::orders::forms::model::{parse, tests::*};
 
     #[test]
-    fn the_action_is_the_page_query_as_wordpress_rebuilt_it() {
-        assert_eq!(form_action("/catalog/"), "/catalog/");
-        assert_eq!(form_action("/catalogue/?lang=fr"), "/catalogue/?lang=fr");
-        assert_eq!(
-            form_action("/catalog/?action=subcategory&subcategory_id=440&page=1&parameter0=7/16-14"),
-            "/catalog/?action=subcategory&#038;subcategory_id=440&#038;page=1&#038;parameter0=7%2F16-14"
-        );
-        assert_eq!(form_action("/catalog/?search_source=search&search_id=21304&search_code="), "/catalog/?search_source=search&#038;search_id=21304&#038;search_code");
-        assert_eq!(form_action("/catalog/?search_source=search&amp%3Bsearch_id=698&amp%3Bsearch_code="), "/catalog/?search_source=search&#038;search_id=698&#038;search_code");
-        assert_eq!(form_action("/a/?x=1&x=2&y.z=a b&gf_token=t&l[]=p&l[]=q"), "/a/?x=2&#038;y_z=a+b&#038;l%5B0%5D=p&#038;l%5B1%5D=q");
-    }
-
-    #[test]
     fn the_form_carries_the_gravity_forms_names() {
         let f = parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap();
         let values = Values::from([("input_1".to_string(), "Pat <b>".to_string())]);
@@ -742,15 +628,6 @@ mod tests {
         assert_eq!(answer.page(only, 1), "<script src=\"a.js\"></script>");
         let again = Answer { confirmed: false, ..answer };
         assert_eq!(again.page(page, 1), page, "a form drawn again keeps its scripts");
-    }
-
-    #[test]
-    fn the_action_is_the_request_uri_as_gravity_forms_rebuilt_it() {
-        assert_eq!(form_action("/contact/#gf_1"), "/contact/#gf_1");
-        assert_eq!(form_action("/contact/?utm_source=Master+Screw,+return...+%28Mass%29&utm_medium=Email#gf_1"), "/contact/?utm_source=Master+Screw%2C+return...+%28Mass%29&#038;utm_medium=Email#gf_1");
-        assert_eq!(form_action("/contact/?a=&gf_token=x&b=1&b=2"), "/contact/?a&#038;b=2");
-        assert_eq!(form_action("/p/?q=<x>'"), "/p/?q=%3Cx%3E%27");
-        assert_eq!(form_action("/catalog/?amp;action=subcategory&amp;subcategory_id=7#gf_1"), "/catalog/?amp;action=subcategory&#038;subcategory_id=7#gf_1");
     }
 
     #[test]

@@ -126,6 +126,44 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
 }
 
 #[tokio::test]
+async fn paths_wordpress_finds_nothing_for_get_its_404_page() {
+    let (app, pool) = harness().await;
+    for lang in ["en", "fr"] {
+        for (name, value) in [("title", "Page not found - Example"), ("robots", "noindex, follow"), ("body_class", "error404"), ("islands", ISLANDS)] {
+            sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES (?1, ?2, 'html', ?3)").bind(lang).bind(format!("@404:{name}")).bind(value).execute(&pool).await.unwrap();
+        }
+    }
+    sqlx::query("INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES ('en', 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, html) = send(&app, Method::GET, "/product/clamping/").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("<title>Page not found - Example</title>"));
+    assert!(html.contains("<body data-cmplz=1 class=\"error404\">"));
+    assert!(html.contains("</i> Error 404\n"));
+    assert!(html.contains("<form id=stub-1 data-page=\"/product/clamping/\"></form>"), "the footer form posts to the path asked for");
+    let (status, _, html) = send(&app, Method::GET, "/no/such-page/?lang=fr").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("lang=\"fr-FR\""));
+    let deep = app.clone().oneshot(Request::builder().uri("/a/b/c/").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(deep.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "three segments list the blog under a 404, not ported");
+}
+
+#[tokio::test]
+async fn sitemaps_list_the_pages_as_wpml_links_them() {
+    let (app, _) = harness().await;
+    let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(xml.contains("\t<sitemap>\n\t\t<loc>https://www.harcourt.co/page-sitemap.xml</loc>\n\t\t<lastmod>2020-01-02T00:00:00+00:00</lastmod>\n\t</sitemap>\n"));
+    assert!(!xml.contains("post-sitemap"), "no blog posts, no post sitemap");
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml?lang=fr").await;
+    assert_eq!(xml.matches("<loc>https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr</loc>").count(), 2, "both pages under the French URL");
+    assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
+    assert_eq!(send(&app, Method::GET, "/sitemap.xml").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml"));
+    assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
+    let none = app.clone().oneshot(Request::builder().uri("/post-sitemap.xml").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(none.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"));
+}
+
+#[tokio::test]
 async fn robots_txt_is_the_docroot_file() {
     let (app, _) = harness().await;
     let (status, _, body) = send(&app, Method::GET, "/robots.txt").await;

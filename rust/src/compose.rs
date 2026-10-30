@@ -276,6 +276,8 @@ struct Island {
     styles: String,
     #[serde(default)]
     in_content: bool,
+    #[serde(default)]
+    texturize: bool,
 }
 
 impl Cms {
@@ -292,9 +294,21 @@ impl Cms {
         let islands: Vec<Island> = serde_json::from_str(site.meta(found.id).get("islands").map_or("[]", String::as_str)).unwrap_or_default();
         let filled = cms::forms::fill(&html, |form, index| {
             let island = islands.get(index).filter(|i| i.form == form);
+            let position = islands.iter().position(|i| i.form == form).unwrap_or(index) + 1;
             async move {
                 let i = island.ok_or_else(|| format!("form {form} is not in the page's islands"))?;
-                let embed = FormEmbed { form, lang, page_uri: uri, ajax: i.ajax, theme: &i.theme, styles: &i.styles, in_content: i.in_content, user_agent: "" };
+                let embed = FormEmbed {
+                    form,
+                    lang,
+                    page_uri: uri,
+                    ajax: i.ajax,
+                    theme: &i.theme,
+                    styles: &i.styles,
+                    in_content: i.in_content,
+                    texturize: i.texturize,
+                    position,
+                    user_agent: "",
+                };
                 self.forms.markup(&embed).await
             }
         })

@@ -72,6 +72,43 @@ impl Status {
     }
 }
 
+/// WordPress's public post types on this site, in the order of their names, which is the order MySQL's
+/// type_status_date index reads them in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum PostType {
+    CaseStudy,
+    Faq,
+    Page,
+    Post,
+    Testimonials,
+}
+
+impl PostType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            PostType::CaseStudy => "case_study",
+            PostType::Faq => "faq",
+            PostType::Page => "page",
+            PostType::Post => "post",
+            PostType::Testimonials => "testimonials",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<PostType> {
+        [PostType::CaseStudy, PostType::Faq, PostType::Page, PostType::Post, PostType::Testimonials].into_iter().find(|t| t.as_str() == s)
+    }
+
+    /// The path prefix of the type's permalinks (its rewrite slug); "" for pages and blog posts.
+    pub fn base(self) -> &'static str {
+        match self {
+            PostType::CaseStudy => "/case-study",
+            PostType::Faq => "/faq",
+            PostType::Testimonials => "/testimonials",
+            PostType::Page | PostType::Post => "",
+        }
+    }
+}
+
 /// How the theme uses a field value. Only `Html` values are page text that staff edit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -143,6 +180,10 @@ pub enum Template {
     ProductBoxjoint,
     ProductSingle,
     Request,
+    /// single.php: blog posts, case studies, testimonials.
+    Single,
+    /// single-faq.php.
+    SingleFaq,
     Scscpq,
     ScscpqBeta,
     ScscpqCart,
@@ -152,7 +193,9 @@ pub enum Template {
     Why,
 }
 
-const TEMPLATE_FILES: [(Template, &str); 22] = [
+const TEMPLATE_FILES: [(Template, &str); 24] = [
+    (Template::Single, "single.php"),
+    (Template::SingleFaq, "single-faq.php"),
     (Template::Builder, "builder-template.php"),
     (Template::About, "layouts/template-about.php"),
     (Template::Career, "layouts/template-career.php"),
@@ -199,6 +242,9 @@ impl Template {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Page {
     pub id: PageId,
+    pub kind: PostType,
+    /// The slug (post_name).
+    pub name: String,
     pub group_id: i64,
     pub lang: Lang,
     pub path: String,
@@ -209,6 +255,7 @@ pub struct Page {
     pub menu_order: i64,
     pub published_at: String,
     pub modified_at: String,
+    pub author_id: Option<i64>,
 }
 
 impl Page {
@@ -236,6 +283,13 @@ pub struct Media {
     pub height: i64,
     pub alt: String,
     pub sizes: Vec<MediaSize>,
+    /// The attachment's slug (post_name).
+    pub name: String,
+    /// The post it is attached to.
+    pub parent_id: Option<PageId>,
+    /// WPML's language and translation group, when WPML records them.
+    pub lang: Option<Lang>,
+    pub group_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -281,6 +335,62 @@ pub struct Redirect {
     pub status: u16,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Taxonomy {
+    Category,
+    FaqType,
+}
+
+impl Taxonomy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Taxonomy::Category => "category",
+            Taxonomy::FaqType => "faq_type",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Taxonomy> {
+        [Taxonomy::Category, Taxonomy::FaqType].into_iter().find(|t| t.as_str() == s)
+    }
+
+    /// The post type the taxonomy files.
+    pub fn of(self) -> PostType {
+        match self {
+            Taxonomy::Category => PostType::Post,
+            Taxonomy::FaqType => PostType::Faq,
+        }
+    }
+}
+
+/// A blog category or FAQ type and the posts filed under it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Term {
+    pub id: i64,
+    pub taxonomy: Taxonomy,
+    pub slug: String,
+    pub name: String,
+    pub lang: Option<Lang>,
+    pub group_id: Option<i64>,
+    /// Yoast's lastmod for the term: the newest change to anything filed under it.
+    pub modified_at: String,
+    pub pages: Vec<PageId>,
+}
+
+impl Term {
+    pub fn path(&self) -> String {
+        format!("/{}/{}/", self.taxonomy.as_str(), self.slug)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Author {
+    pub id: i64,
+    pub nicename: String,
+    pub display_name: String,
+    /// Unix seconds.
+    pub profile_updated: i64,
+}
+
 /// Everything the public pages render from, loaded at one content version.
 #[derive(Debug, Default)]
 pub struct Site {
@@ -295,6 +405,9 @@ pub struct Site {
     pub menus: Vec<MenuItem>,
     pub media: HashMap<MediaId, Media>,
     pub redirects: HashMap<String, Redirect>,
+    /// Ordered by taxonomy and name.
+    pub terms: Vec<Term>,
+    pub authors: HashMap<i64, Author>,
 }
 
 static EMPTY_FIELDS: Fields = BTreeMap::new();
@@ -365,18 +478,22 @@ impl Site {
         let version = version(pool).await?;
         let mut pages = Vec::new();
         for r in sqlx::query!(
-            r#"SELECT id AS "id!", group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at
+            r#"SELECT id AS "id!", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, author_id
                FROM cms_page ORDER BY id"#
         )
         .fetch_all(pool)
         .await?
         {
-            let (Some(lang), Some(template), Some(status)) = (Lang::parse(&r.lang), Template::parse(&r.template), Status::parse(&r.status)) else {
-                tracing::warn!("cms_page {} has an unknown language, template or status; not served", r.id);
+            let (Some(kind), Some(lang), Some(template), Some(status)) =
+                (PostType::parse(&r.post_type), Lang::parse(&r.lang), Template::parse(&r.template), Status::parse(&r.status))
+            else {
+                tracing::warn!("cms_page {} has an unknown type, language, template or status; not served", r.id);
                 continue;
             };
             pages.push(Page {
                 id: PageId(r.id),
+                kind,
+                name: r.name,
                 group_id: r.group_id,
                 lang,
                 path: r.path,
@@ -387,6 +504,7 @@ impl Site {
                 menu_order: r.menu_order,
                 published_at: r.published_at,
                 modified_at: r.modified_at,
+                author_id: r.author_id,
             });
         }
         let mut site = Site::new(pages);
@@ -425,20 +543,48 @@ impl Site {
                 target: r.target,
             });
         }
-        for r in sqlx::query!(r#"SELECT id AS "id!", file, mime, width, height, alt, sizes FROM cms_media"#).fetch_all(pool).await? {
+        for r in sqlx::query!(r#"SELECT id AS "id!", file, mime, width, height, alt, sizes, name, parent_id, lang, group_id FROM cms_media"#)
+            .fetch_all(pool)
+            .await?
+        {
             let sizes = serde_json::from_str(&r.sizes).unwrap_or_else(|e| {
                 tracing::warn!("cms_media {} sizes: {e}", r.id);
                 Vec::new()
             });
             site.media.insert(
                 MediaId(r.id),
-                Media { id: MediaId(r.id), file: r.file, mime: r.mime, width: r.width, height: r.height, alt: r.alt, sizes },
+                Media {
+                    id: MediaId(r.id),
+                    file: r.file,
+                    mime: r.mime,
+                    width: r.width,
+                    height: r.height,
+                    alt: r.alt,
+                    sizes,
+                    name: r.name,
+                    parent_id: r.parent_id.map(PageId),
+                    lang: r.lang.as_deref().and_then(Lang::parse),
+                    group_id: r.group_id,
+                },
             );
         }
         for r in sqlx::query!("SELECT path, target, status FROM cms_redirect").fetch_all(pool).await? {
             if let Ok(status) = u16::try_from(r.status) {
                 site.redirects.insert(r.path, Redirect { target: r.target, status });
             }
+        }
+        for r in sqlx::query!(r#"SELECT id AS "id!", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id"#).fetch_all(pool).await? {
+            let Some(taxonomy) = Taxonomy::parse(&r.taxonomy) else { continue };
+            let lang = r.lang.as_deref().and_then(Lang::parse);
+            site.terms.push(Term { id: r.id, taxonomy, slug: r.slug, name: r.name, lang, group_id: r.group_id, modified_at: r.modified_at, pages: Vec::new() });
+        }
+        for r in sqlx::query!("SELECT term_id, page_id FROM cms_term_page ORDER BY term_id, page_id").fetch_all(pool).await? {
+            if let Some(t) = site.terms.iter_mut().find(|t| t.id == r.term_id) {
+                t.pages.push(PageId(r.page_id));
+            }
+        }
+        for r in sqlx::query!(r#"SELECT id AS "id!", nicename, display_name, profile_updated FROM cms_author"#).fetch_all(pool).await? {
+            site.authors.insert(r.id, Author { id: r.id, nicename: r.nicename, display_name: r.display_name, profile_updated: r.profile_updated });
         }
         Ok(site)
     }
@@ -498,6 +644,8 @@ mod tests {
     fn ancestors_stop_at_a_cycle() {
         let page = |id: i64, parent: Option<i64>| Page {
             id: PageId(id),
+            kind: PostType::Page,
+            name: String::new(),
             group_id: id,
             lang: Lang::En,
             path: format!("/{id}/"),
@@ -508,6 +656,7 @@ mod tests {
             menu_order: 0,
             published_at: String::new(),
             modified_at: String::new(),
+            author_id: None,
         };
         let site = Site::new(vec![page(1, Some(3)), page(2, Some(1)), page(3, Some(2))]);
         let ids: Vec<i64> = site.ancestors(site.page(PageId(3)).unwrap()).iter().map(|p| p.id.0).collect();

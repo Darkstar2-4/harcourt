@@ -1,10 +1,11 @@
 //! The holes of the chrome templates: what wp_head(), the header, the nav walker, WPML's switchers, Yoast and the
 //! footer printed differently per page.
 
-use super::{Ctx, Slot, ORIGIN};
+use super::{Ctx, Slot, View, ORIGIN};
 use crate::cms::{
     html::esc,
-    model::{Lang, Menu, MenuItem, Page, Template},
+    model::{Lang, Menu, MenuItem, Page, PostType, Template},
+    url::urlencode,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +95,11 @@ fn hole(c: &mut Ctx, name: &str) {
         return;
     }
     let page = c.page;
+    if c.view == View::NotFound && !ours {
+        let v = not_found_value(c, name);
+        c.push(&v);
+        return;
+    }
     let meta = |n: &str| c.site.meta(page.id).get(n).cloned().unwrap_or_default();
     match name {
         "hreflang" => {
@@ -118,7 +124,14 @@ fn hole(c: &mut Ctx, name: &str) {
                 c.push(&format!("\t<meta property=\"og:url\" content=\"{canonical}\" />\n"));
             }
         }
-        "rest_link" => c.push(&format!("<link rel=\"alternate\" title=\"JSON\" type=\"application/json\" href=\"{ORIGIN}/wp-json/wp/v2/pages/{}\" />", page.id.0)),
+        "rest_link" => {
+            let base = match page.kind {
+                PostType::Page => "pages",
+                PostType::Post => "posts",
+                other => other.as_str(),
+            };
+            c.push(&format!("<link rel=\"alternate\" title=\"JSON\" type=\"application/json\" href=\"{ORIGIN}/wp-json/wp/v2/{base}/{}\" />", page.id.0));
+        }
         "shortlink_oembed" => {
             let s = shortlink_oembed(page);
             c.push(&s);
@@ -155,6 +168,11 @@ fn hole(c: &mut Ctx, name: &str) {
     }
 }
 
+/// A hole of WordPress's 404 page, as the import recorded it for the language.
+pub fn not_found_value(c: &Ctx, name: &str) -> String {
+    c.site.options(c.lang()).get(&format!("{}{name}", super::NOT_FOUND_OPTION)).map(|f| f.value.clone()).unwrap_or_default()
+}
+
 fn is_front(page: &Page) -> bool {
     page.path == "/"
 }
@@ -175,19 +193,6 @@ fn hreflang(c: &Ctx) -> String {
     }
     if let Some(en) = pages.iter().find(|p| p.lang == Lang::En) {
         out.push_str(&format!("<link rel=\"alternate\" hreflang=\"x-default\" href=\"{}\" />\n", esc(&en.url(ORIGIN))));
-    }
-    out
-}
-
-/// PHP urlencode().
-fn urlencode(s: &str) -> String {
-    let mut out = String::new();
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' => out.push(b as char),
-            b' ' => out.push('+'),
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
     }
     out
 }
@@ -214,6 +219,11 @@ fn class_name(s: &str) -> String {
 fn body_class(c: &Ctx) -> String {
     let page = c.page;
     let site = c.site;
+    if page.kind != PostType::Page {
+        let kind = page.kind.as_str();
+        let format = if page.kind == PostType::Post { " single-format-standard" } else { "" };
+        return format!("wp-singular {kind}-template-default single single-{kind} postid-{}{format} wp-custom-logo wp-theme-momentum-custom", page.id.0);
+    }
     let mut classes: Vec<String> = Vec::new();
     if is_front(page) {
         classes.push("home".into());
@@ -470,6 +480,9 @@ fn main_menu(c: &mut Ctx) {
     walk(c, &items, &classes, None, 0);
     if probing(c) {
         c.push("{{lang_switcher}}");
+    } else if c.view == View::NotFound {
+        let s = not_found_value(c, "lang_switcher");
+        c.push(&s);
     } else {
         let s = lang_switcher(c);
         c.push(&s);
