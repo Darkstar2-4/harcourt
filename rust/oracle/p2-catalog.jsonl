@@ -79,3 +79,5 @@
 {"name": "beta-page", "path": "/beta_catalog/"}
 {"name": "beta-bare", "path": "/beta_catalog"}
 {"name": "beta-query", "path": "/beta_catalog/?action=subcategory&subcategory_id=449"}
+{"name": "cat-post", "method": "POST", "path": "/catalog/", "body": "x=1"}
+{"name": "search-post", "method": "POST", "path": "/search/", "body": "q=pin"}

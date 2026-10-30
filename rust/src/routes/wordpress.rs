@@ -410,7 +410,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
         return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() => legacy.forward(&parts, body).await,
+            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
             _ => serve(&wp, &parts.uri, agent, None, false).await,
         };
     };
