@@ -141,13 +141,14 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
         return Answer::Render(p);
     }
     let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
-    match published(other) {
-        Some(p) if lang == Lang::En => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
-        Some(p) => match site.translation(p, Lang::Fr).filter(|t| t.status == Status::Publish) {
-            Some(t) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
-            None => Answer::NotFound,
-        },
-        None => Answer::NotFound,
+    let Some(p) = published(other) else { return Answer::NotFound };
+    match (lang, site.translation(p, lang)) {
+        // WPML sends a French slug asked for in English to the English page, even an unpublished one (whose
+        // permalink, and so its stored path, is /?page_id=N).
+        (Lang::En, Some(t)) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        (Lang::En, None) => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
+        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        (Lang::Fr, _) => Answer::NotFound,
     }
 }
 
@@ -166,7 +167,7 @@ async fn page(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
     };
     let page = match resolve(&site, &path, q.lang) {
         Answer::Render(p) => p,
-        Answer::Redirect(to) => return redirect(&to),
+        Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
         Answer::NotFound => return (StatusCode::NOT_FOUND, "Not found").into_response(),
     };
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
@@ -237,9 +238,10 @@ fn html_response(html: String) -> Response<Body> {
     r
 }
 
-fn redirect(to: &str) -> Response<Body> {
-    match HeaderValue::from_str(to) {
-        Ok(v) => (StatusCode::MOVED_PERMANENTLY, [(header::LOCATION, v)]).into_response(),
+/// A 301 as WordPress sends it: an absolute Location on this site, an empty text/html body.
+fn redirect(origin: &str, to: &str) -> Response<Body> {
+    match HeaderValue::from_str(&format!("{origin}{to}")) {
+        Ok(v) => (StatusCode::MOVED_PERMANENTLY, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
     }
 }
@@ -249,12 +251,12 @@ fn gone() -> Response<Body> {
 }
 
 /// redirect_canonical(): a page path without its trailing slash moves to the slashed one, query kept.
-async fn add_slash(uri: Uri) -> Response<Body> {
+async fn add_slash(State(wp): State<Arc<Wp>>, uri: Uri) -> Response<Body> {
     let to = match uri.query() {
         Some(q) => format!("{}/?{q}", uri.path()),
         None => format!("{}/", uri.path()),
     };
-    redirect(&to)
+    redirect(&wp.core.public_origin, &to)
 }
 
 async fn robots() -> impl IntoResponse {
@@ -327,14 +329,16 @@ mod tests {
             page(1, 10, Lang::En, "/product/alignment/", Status::Publish),
             page(2, 10, Lang::Fr, "/gamme-de-produits/centrage/", Status::Publish),
             page(3, 20, Lang::Fr, "/industries/", Status::Publish),
-            page(4, 20, Lang::En, "/industries/", Status::Draft),
+            page(4, 20, Lang::En, "/?page_id=4", Status::Draft),
             page(5, 30, Lang::En, "/legal/", Status::Publish),
+            page(6, 40, Lang::Fr, "/seulement/", Status::Publish),
         ]);
         assert_eq!(resolve(&site, "/product/alignment/", Lang::En), Answer::Render(&site.pages[0]));
         assert_eq!(resolve(&site, "/gamme-de-produits/centrage/", Lang::Fr), Answer::Render(&site.pages[1]));
-        assert_eq!(resolve(&site, "/gamme-de-produits/centrage/", Lang::En), Answer::Redirect("/gamme-de-produits/centrage/?lang=fr".into()));
+        assert_eq!(resolve(&site, "/gamme-de-produits/centrage/", Lang::En), Answer::Redirect("/product/alignment/".into()));
         assert_eq!(resolve(&site, "/product/alignment/", Lang::Fr), Answer::Redirect("/gamme-de-produits/centrage/?lang=fr".into()));
-        assert_eq!(resolve(&site, "/industries/", Lang::En), Answer::Redirect("/industries/?lang=fr".into()));
+        assert_eq!(resolve(&site, "/industries/", Lang::En), Answer::Redirect("/?page_id=4".into()));
+        assert_eq!(resolve(&site, "/seulement/", Lang::En), Answer::Redirect("/seulement/?lang=fr".into()));
         assert_eq!(resolve(&site, "/legal/", Lang::Fr), Answer::NotFound);
         assert_eq!(resolve(&site, "/nowhere/", Lang::En), Answer::NotFound);
     }

@@ -94,17 +94,19 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
 
     let mut out = Import::default();
     let path_of = |id: i64| page_path(id, &posts, front_group.map(|g| (g, &lang_of)));
-    for p in posts.values().filter(|p| p.kind == "page" && p.status == "publish") {
+    for p in posts.values().filter(|p| p.kind == "page" && (p.status == "publish" || p.status == "draft")) {
         let Some(&(lang, group)) = lang_of.get(&("post_page".into(), p.id)) else { continue };
         let template_file = meta_value(&meta, p.id, "_wp_page_template").unwrap_or("");
         let template = Template::parse(template_file).ok_or_else(|| format!("page {} uses unknown template {template_file:?}", p.id))?;
+        let draft = p.status == "draft";
         out.pages.push(Page {
             id: PageId(p.id),
             group_id: group,
             lang,
-            path: path_of(p.id),
+            // A draft's permalink is its ?page_id= link; WPML redirects to it, so it is kept for that.
+            path: if draft { format!("/?page_id={}", p.id) } else { path_of(p.id) },
             template,
-            status: Status::Publish,
+            status: if draft { Status::Draft } else { Status::Publish },
             title: p.title.clone(),
             parent_id: (p.parent != 0).then_some(PageId(p.parent)),
             menu_order: p.menu_order,
