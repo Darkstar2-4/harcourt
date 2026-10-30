@@ -913,15 +913,28 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+ "zip",
 ]
 
 [[package]]
 name = "hxweb-fuzz"
 version = "0.0.0"
 dependencies = [
+ "axum",
+ "chrono",
+ "http-body-util",
  "hxweb",
+ "lettre",
  "percent-encoding",
  "proptest",
+ "regex",
+ "rust_decimal",
+ "rust_xlsxwriter",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tower",
+ "zip",
 ]
 
 [[package]]

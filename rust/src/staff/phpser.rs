@@ -60,7 +60,7 @@ impl Php {
 
 /// unserialize(); `None` for anything it cannot read, where PHP returned false.
 pub fn parse(s: &str) -> Option<Php> {
-    let mut p = Parser { s: s.as_bytes(), at: 0 };
+    let mut p = Parser { s: s.as_bytes(), at: 0, depth: 0 };
     let v = p.value()?;
     (p.at == p.s.len()).then_some(v)
 }
@@ -68,6 +68,7 @@ pub fn parse(s: &str) -> Option<Php> {
 struct Parser<'a> {
     s: &'a [u8],
     at: usize,
+    depth: usize,
 }
 
 impl Parser<'_> {
@@ -85,7 +86,7 @@ impl Parser<'_> {
     fn string(&mut self) -> Option<String> {
         let len: usize = self.until(b':')?.parse().ok()?;
         self.eat(b'"')?;
-        let bytes = self.s.get(self.at..self.at + len)?;
+        let bytes = self.s.get(self.at..self.at.checked_add(len)?)?;
         self.at += len;
         self.eat(b'"')?;
         Some(String::from_utf8_lossy(bytes).into_owned())
@@ -94,6 +95,10 @@ impl Parser<'_> {
     fn entries(&mut self) -> Option<Vec<(Php, Php)>> {
         let n: usize = self.until(b':')?.parse().ok()?;
         self.eat(b'{')?;
+        self.depth += 1;
+        if self.depth > crate::catalog::php::MAX_DEPTH {
+            return None;
+        }
         let mut out = Vec::with_capacity(n.min(1024));
         for _ in 0..n {
             let k = self.value()?;
@@ -101,6 +106,7 @@ impl Parser<'_> {
             out.push((k, v));
         }
         self.eat(b'}')?;
+        self.depth -= 1;
         Some(out)
     }
 

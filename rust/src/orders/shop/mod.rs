@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub mod cart;
-mod checkout;
+pub mod checkout;
 mod viewer;
 
 pub fn routes() -> Router<Arc<Orders>> {
@@ -127,8 +127,10 @@ impl MoneyFormat<'_> {
 /// PHP's `number_format($n, $dp)`: rounded half away from zero, thousands separated by commas.
 pub fn number_format(amount: Decimal, dp: u32) -> String {
     let rounded = amount.round_dp_with_strategy(dp, RoundingStrategy::MidpointAwayFromZero);
-    let text = format!("{:.*}", dp as usize, rounded.abs());
+    // Decimal's own {:.N} runs out of room for a 28-digit amount; its plain form has at most `dp` places.
+    let text = rounded.abs().to_string();
     let (int, frac) = text.split_once('.').map_or((text.as_str(), ""), |(i, f)| (i, f));
+    let frac = format!("{frac:0<width$}", width = dp as usize);
     let mut grouped = String::new();
     for (i, c) in int.chars().enumerate() {
         if i > 0 && (int.len() - i) % 3 == 0 {
@@ -182,6 +184,8 @@ mod tests {
         assert_eq!(number_format(d("999.994"), 2), "999.99");
         assert_eq!(number_format(d("-1500"), 2), "-1,500.00");
         assert_eq!(number_format(d("12"), 0), "12");
+        assert_eq!(number_format(d("1.5"), 4), "1.5000");
+        assert_eq!(number_format(d("1234567890123456789012345678"), 4), "1,234,567,890,123,456,789,012,345,678.0000");
     }
 
     #[test]

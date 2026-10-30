@@ -68,8 +68,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: rust/fuzz
+          workspaces: rust
       - run: cargo test --locked --release
+      - run: cargo clippy --locked --tests -- -D warnings
 
   web:
     runs-on: ubuntu-latest

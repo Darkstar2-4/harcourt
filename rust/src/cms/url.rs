@@ -1,6 +1,8 @@
 //! WordPress's URL functions, for the URLs it printed or redirected to: PHP's encoders, parse_str(), the query
 //! rebuild of add_query_arg() and WPML's redirect, and esc_url().
 
+use crate::catalog::php::{variable, Variable, MAX_INPUT_VARS};
+
 /// PHP urldecode().
 pub fn urldecode(s: &str) -> String {
     percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned()
@@ -40,22 +42,46 @@ pub enum Arg {
 /// collect into a list numbered from 0, dots and spaces in a name become underscores.
 pub fn parse_str(query: &str) -> Vec<(String, Arg)> {
     let mut args: Vec<(String, Arg)> = Vec::new();
-    for kv in query.split('&').filter(|kv| !kv.is_empty()) {
+    // The index `[]` takes next in each array: past the largest integer index, none after the largest integer.
+    let mut next: std::collections::HashMap<String, Option<i64>> = std::collections::HashMap::new();
+    for kv in query.split('&').filter(|kv| !kv.is_empty()).take(MAX_INPUT_VARS) {
         let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        let k = urldecode(k);
-        let k = k.trim_start();
-        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
-            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
-            None => (k.replace(['.', ' '], "_"), None),
-        };
-        if name.is_empty() {
-            continue;
+        match variable(&urldecode(k)) {
+            Variable::Set(name, indexes) => {
+                let sub = match indexes.into_iter().next() {
+                    None => None,
+                    Some(index) => {
+                        if !args.iter().any(|(k, a)| *k == name && matches!(a, Arg::List(_))) {
+                            next.insert(name.clone(), Some(0));
+                        }
+                        let slot = next.entry(name.clone()).or_insert(Some(0));
+                        match index {
+                            None => {
+                                let Some(i) = *slot else { continue };
+                                *slot = i.checked_add(1);
+                                Some(i.to_string())
+                            }
+                            Some(s) => {
+                                if let (Some(i), Some(n)) = (int_index(&s), *slot) {
+                                    if i >= n {
+                                        *slot = i.checked_add(1);
+                                    }
+                                }
+                                Some(s)
+                            }
+                        }
+                    }
+                };
+                set(&mut args, name, sub, urldecode(v));
+            }
+            Variable::TooDeep(name) => args.retain(|(k, _)| *k != name),
+            Variable::Skip => {}
         }
-        set(&mut args, name, sub, urldecode(v));
     }
     args
 }
 
+/// Sets `name`, or `name[sub]` (an array then, whatever it was).
 fn set(args: &mut Vec<(String, Arg)>, name: String, sub: Option<String>, v: String) {
     let slot = args.iter().position(|(key, _)| *key == name);
     match (sub, slot) {
@@ -70,7 +96,6 @@ fn set(args: &mut Vec<(String, Arg)>, name: String, sub: Option<String>, v: Stri
                 args[i].1 = Arg::List(Vec::new());
             }
             if let Arg::List(list) = &mut args[i].1 {
-                let sub = if sub.is_empty() { list.len().to_string() } else { sub };
                 match list.iter_mut().find(|(s, _)| *s == sub) {
                     Some(e) => e.1 = v,
                     None => list.push((sub, v)),
@@ -78,6 +103,13 @@ fn set(args: &mut Vec<(String, Arg)>, name: String, sub: Option<String>, v: Stri
             }
         }
     }
+}
+
+/// An array index PHP stores as an integer: decimal digits as PHP itself prints the number.
+fn int_index(s: &str) -> Option<i64> {
+    let digits = s.strip_prefix('-').unwrap_or(s);
+    let canonical = !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()) && (digits == "0" || !digits.starts_with('0')) && s != "-0";
+    canonical.then(|| s.parse().ok()).flatten()
 }
 
 /// build_query() of already-encoded args, then add_query_arg()'s cleanup: an empty value loses its `=`.
@@ -114,7 +146,7 @@ pub fn with_query(target: &str, query: &str) -> String {
             Arg::One(v) => set(&mut args, rawurlencode(&name), None, rawurlencode(&v)),
             Arg::List(list) => {
                 for (sub, v) in list {
-                    set(&mut args, rawurlencode(&name), Some(sub), rawurlencode(&v));
+                    set(&mut args, rawurlencode(&name), Some(rawurlencode(&sub)), rawurlencode(&v));
                 }
             }
         }
@@ -177,6 +209,12 @@ mod tests {
         assert_eq!(with_query("/a/?lang=fr", "lang=fr&utm_source=x"), "/a/?lang=fr&utm_source=x");
         assert_eq!(with_query("/?page_id=4", "quot=&a.b=1&a.b=2"), "/?page_id=4&quot&a_b=2");
         assert_eq!(with_query("/r/", "x[]=1&x[]=2&y[k]=a+b"), "/r/?x%5B0%5D=1&x%5B1%5D=2&y%5Bk%5D=a%20b");
+    }
+
+    #[test]
+    fn names_and_indexes_are_read_as_php_reads_them() {
+        assert_eq!(with_query("/r/", "[k]=1&x[5]=a&x[]=b&y[é]=c&z[a.b=d"), "/r/?x%5B5%5D=a&x%5B6%5D=b&y%5B%C3%A9%5D=c&z_a_b=d");
+        assert_eq!(parse_str("\ta=1").first().map(|(k, _)| k.as_str()), Some("\ta"));
     }
 
     #[test]

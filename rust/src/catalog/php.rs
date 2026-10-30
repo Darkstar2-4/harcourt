@@ -88,16 +88,47 @@ fn format_float(f: f64) -> String {
 
 /// PHP's numeric-prefix reading of a string ("12abc" is 12, "abc" is 0).
 fn leading_number(s: &str) -> f64 {
-    let s = s.trim_start();
-    let mut end = 0;
-    for (i, c) in s.char_indices() {
-        let ok = c.is_ascii_digit() || (i == 0 && (c == '-' || c == '+')) || c == '.' || c == 'e' || c == 'E';
-        if !ok {
-            break;
-        }
-        end = i + c.len_utf8();
+    crate::staff::catalog::php_floatval(s)
+}
+
+/// PHP's `max_input_vars` on prod (the docroot's .htaccess): the variables after the first 3000 are not read.
+pub const MAX_INPUT_VARS: usize = 3000;
+
+/// PHP's `max_input_nesting_level`: a variable with more `[]` levels than this is dropped, with any value already
+/// set under its name.
+pub const MAX_INPUT_NESTING: usize = 64;
+
+/// A query variable as php_register_variable_ex() reads its decoded name.
+pub enum Variable {
+    /// The name (leading spaces dropped, ` ` and `.` made `_`; a `[` never closed is part of it, as `_`) and the
+    /// `[...]` indexes after it, `None` for `[]`.
+    Set(String, Vec<Option<String>>),
+    /// More indexes than `max_input_nesting_level`: PHP drops the variable and what was set under its name.
+    TooDeep(String),
+    /// An empty name: not read.
+    Skip,
+}
+
+pub fn variable(key: &str) -> Variable {
+    let key = key.trim_start_matches(' ');
+    let (name, mut rest) = match key.find('[') {
+        Some(i) if key[i..].contains(']') => (key[..i].replace(['.', ' '], "_"), &key[i..]),
+        Some(i) if i > 0 => (format!("{}_{}", key[..i].replace(['.', ' '], "_"), key[i + 1..].replace(['.', ' ', '['], "_")), ""),
+        Some(_) => return Variable::Skip,
+        None => (key.replace(['.', ' '], "_"), ""),
+    };
+    if name.is_empty() {
+        return Variable::Skip;
     }
-    (0..=end).rev().find_map(|n| s[..n].parse::<f64>().ok()).unwrap_or(0.0)
+    let mut indexes = Vec::new();
+    while let Some((index, after)) = rest.strip_prefix('[').and_then(|r| r.split_once(']')) {
+        if indexes.len() == MAX_INPUT_NESTING {
+            return Variable::TooDeep(name);
+        }
+        indexes.push(Some(index.to_string()).filter(|s| !s.is_empty()));
+        rest = after;
+    }
+    Variable::Set(name, indexes)
 }
 
 /// PHP's parse_str() of a query string ($_GET): keys and values urldecoded, `.` and spaces in a key's name made
@@ -105,24 +136,16 @@ fn leading_number(s: &str) -> f64 {
 pub fn parse_str(query: &str) -> Value {
     let decode = |s: &str| percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
     let mut root: Vec<(Key, Value)> = Vec::new();
-    for pair in query.split('&').filter(|p| !p.is_empty()) {
+    for pair in query.split('&').filter(|p| !p.is_empty()).take(MAX_INPUT_VARS) {
         let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
-        let k = decode(k);
-        let k = k.trim_start_matches(' ');
-        let (name, mut rest) = match k.find('[') {
-            Some(i) if k[i..].contains(']') => (k[..i].replace(['.', ' '], "_"), &k[i..]),
-            Some(i) => (format!("{}_{}", k[..i].replace(['.', ' '], "_"), &k[i + 1..]), ""),
-            None => (k.replace(['.', ' '], "_"), ""),
-        };
-        if name.is_empty() {
-            continue;
+        match variable(&decode(k)) {
+            Variable::Set(name, indexes) => {
+                let path: Vec<Option<String>> = std::iter::once(Some(name)).chain(indexes).collect();
+                insert(&mut root, &path, Value::Str(decode(v)));
+            }
+            Variable::TooDeep(name) => root.retain(|(k, _)| k.as_string() != name),
+            Variable::Skip => {}
         }
-        let mut path = vec![Some(name)];
-        while let Some(inner) = rest.strip_prefix('[').and_then(|r| r.split_once(']')) {
-            path.push(Some(inner.0.to_string()).filter(|s| !s.is_empty()));
-            rest = inner.1;
-        }
-        insert(&mut root, &path, Value::Str(decode(v)));
     }
     Value::Map(root)
 }
@@ -131,7 +154,12 @@ fn insert(map: &mut Vec<(Key, Value)>, path: &[Option<String>], value: Value) {
     let Some((first, rest)) = path.split_first() else { return };
     let key = match first {
         Some(s) => s.parse::<i64>().ok().filter(|n| n.to_string() == *s).map_or_else(|| Key::Str(s.clone()), Key::Int),
-        None => Key::Int(map.iter().filter_map(|(k, _)| if let Key::Int(i) = k { Some(*i + 1) } else { None }).max().unwrap_or(0).max(0)),
+        None => {
+            let last = map.iter().filter_map(|(k, _)| if let Key::Int(i) = k { Some(*i) } else { None }).max();
+            // PHP refuses to append after the largest integer key.
+            let Some(next) = last.map_or(Some(0), |i| i.checked_add(1)) else { return };
+            Key::Int(next.max(0))
+        }
     };
     let at = match map.iter().position(|(k, _)| *k == key) {
         Some(i) => i,
@@ -178,14 +206,19 @@ fn print_r_into(out: &mut String, v: &Value, pad: usize) {
 
 /// None for text that is not a serialized value (PHP's unserialize returned false).
 pub fn unserialize(s: &str) -> Option<Value> {
-    let mut p = Parser { s: s.as_bytes(), at: 0 };
+    let mut p = Parser { s: s.as_bytes(), at: 0, depth: 0 };
     let v = p.value()?;
     Some(v)
 }
 
+/// The deepest nesting read. The stored columns nest three deep; text nested past this reads as not serialized,
+/// which keeps the recursion well inside a worker thread's stack.
+pub const MAX_DEPTH: usize = 64;
+
 struct Parser<'a> {
     s: &'a [u8],
     at: usize,
+    depth: usize,
 }
 
 impl Parser<'_> {
@@ -244,6 +277,10 @@ impl Parser<'_> {
 
     fn map(&mut self, n: usize) -> Option<Vec<(Key, Value)>> {
         self.expect(b'{')?;
+        self.depth += 1;
+        if self.depth > MAX_DEPTH {
+            return None;
+        }
         let mut entries = Vec::with_capacity(n.min(256));
         for _ in 0..n {
             let key = match self.value()? {
@@ -255,13 +292,14 @@ impl Parser<'_> {
             entries.push((key, value));
         }
         self.expect(b'}')?;
+        self.depth -= 1;
         Some(entries)
     }
 
     fn string_body(&mut self, declared: usize) -> Option<String> {
         let start = self.at;
         let exact = start.checked_add(declared)?;
-        let end = if self.s.get(exact..exact + 2) == Some(b"\";") && self.continues(exact + 2) {
+        let end = if self.s.get(exact..exact.saturating_add(2)) == Some(b"\";") && self.continues(exact + 2) {
             exact
         } else {
             (exact..self.s.len().saturating_sub(1)).find(|&i| &self.s[i..i + 2] == b"\";" && self.continues(i + 2))?
