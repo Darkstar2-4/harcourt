@@ -5,7 +5,8 @@
 //!
 //! `wp.sql` is a `mysqldump --complete-insert` of the WordPress content tables (see docs/cms.md). `check` writes
 //! nothing: it renders every page whose template Rust has ported and compares it with the export, one line per
-//! page. `import` writes the cms tables, then runs the same check.
+//! page. `import` writes the cms tables and, when the dump has `wp_gf_form` and `wp_gf_form_meta`, the Gravity
+//! Forms definitions, then runs the same check.
 
 use std::{path::PathBuf, process::ExitCode};
 
@@ -74,6 +75,10 @@ async fn run() -> Result<bool, String> {
             let db = a.db.ok_or("import needs --db")?;
             let pool = hxweb::db::open(&db).await.map_err(|e| format!("{}: {e}", db.display()))?;
             import::write(&pool, &content, hxweb::db::unix_now()).await.map_err(|e| format!("write: {e}"))?;
+            match hxweb::orders::forms::import::write(&pool, &tables).await.map_err(|e| format!("forms: {e}"))? {
+                Some(n) => println!("gravity forms {n}"),
+                None => println!("gravity forms: none in the dump, left as they were"),
+            }
             println!("written to {}; checking what it loads back", db.display());
             Site::load(&pool).await.map_err(|e| format!("load: {e}"))?
         }

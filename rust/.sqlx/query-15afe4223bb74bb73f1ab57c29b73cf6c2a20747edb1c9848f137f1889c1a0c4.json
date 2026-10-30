@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO portalcontent (portal_id, name, form, active) VALUES (?1, ?2, ?3, ?4) RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "15afe4223bb74bb73f1ab57c29b73cf6c2a20747edb1c9848f137f1889c1a0c4"
+}

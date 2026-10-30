@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!: String\" FROM currency",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "541b3c5c7bfbd7d36658da6d007806a29f5246c0a2f781fa36848848546357d2"
+}

@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT h.id AS \"id!: i64\", COALESCE(h.effective_date, '') AS \"effective_date!: String\", COALESCE(h.portal_id, 0) AS \"portal_id!: i64\",\n                  COALESCE(h.industry_id, 0) AS \"industry_id!: i64\", COALESCE(h.language_code, '') AS \"language!: String\", h.access AS \"access!: String\",\n                  h.status AS \"status!: String\", COALESCE(h.html, '') AS \"html!: String\", COALESCE(h.css, '') AS \"css!: String\",\n                  COALESCE(h.js, '') AS \"js!: String\", p.name AS portal_name, i.name AS industry_name, l.name AS language_name\n           FROM hero h LEFT JOIN portal p ON p.id = h.portal_id LEFT JOIN industry i ON i.id = h.industry_id LEFT JOIN language l ON l.code = h.language_code\n           WHERE COALESCE(h.portal_id, 0) IN (0, ?1) AND COALESCE(h.industry_id, 0) IN (0, ?2) AND h.language_code IN ('EN', ?3)\n             AND (h.status = 'Active' OR (?4 AND h.status = 'Pending')) AND h.effective_date <= ?5\n           ORDER BY h.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "effective_date!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_id!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "industry_id!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language!: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "access!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!: String",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "html!: String",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "css!: String",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "js!: String",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal_name",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry_name",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "language_name",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5f5fec161a99c50fe51ba7fc99eb1f6ee3569f05e89c2d0915fe49c157f27211"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT count(*) AS \"n!: i64\" FROM blacklist WHERE ?1 = '' OR domain LIKE '%' || ?1 || '%' OR comment LIKE '%' || ?1 || '%'",
+  "describe": {
+    "columns": [
+      {
+        "name": "n!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cbe58b027f82ef09ea54dc1764c0f3f0edef78a99c336d1769e39eba5cabd6bd"
+}

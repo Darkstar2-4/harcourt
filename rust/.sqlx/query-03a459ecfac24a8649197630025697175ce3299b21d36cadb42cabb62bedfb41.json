@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE language SET code = ?2, country_code = ?3, name = ?4, local_name = ?5, ps_name = ?6, priority = ?7, menu = ?8, active = ?9 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "03a459ecfac24a8649197630025697175ce3299b21d36cadb42cabb62bedfb41"
+}

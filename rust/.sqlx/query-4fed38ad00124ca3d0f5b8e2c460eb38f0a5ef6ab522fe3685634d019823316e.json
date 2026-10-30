@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT 1 AS \"x!: i64\" FROM captcha_bypass WHERE email = ?1 COLLATE NOCASE LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "x!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4fed38ad00124ca3d0f5b8e2c460eb38f0a5ef6ab522fe3685634d019823316e"
+}

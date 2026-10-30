@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT state AS \"state!: String\" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 OR name = ?2)\n           ORDER BY CASE WHEN state = ?2 THEN 1 ELSE 2 END LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "state!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "606926a5ba7a1e996f7b0a7d0ef5176cb8f244f7eea8c2af8975450e22dcf188"
+}

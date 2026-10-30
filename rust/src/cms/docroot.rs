@@ -37,9 +37,9 @@ const STATIC: [(&str, &str); 18] = [
 
 /// The docroot's top-level directories and files Apache serves (PHP, its includes, static sites, icons) that the
 /// cms does not, and WordPress's admin and REST API: a request under one goes to the legacy stack. wp-content,
-/// wp-includes, hx-vendor and the catalog image directories are left to the file check, as hxweb's docroot holds
-/// their files.
-const APACHE: [&str; 44] = [
+/// wp-includes, hx, hx-vendor, scs_scripts and the catalog image directories are left to the file check, as hxweb's
+/// docroot holds their files.
+const APACHE: [&str; 42] = [
     ".github",
     ".scs_sql",
     "Landing Pages",
@@ -50,7 +50,6 @@ const APACHE: [&str; 44] = [
     "composer",
     "composer8",
     "docs",
-    "hx",
     "icons",
     "images",
     "includes",
@@ -61,7 +60,6 @@ const APACHE: [&str; 44] = [
     "pdf",
     "portalpage",
     "rust",
-    "scs_scripts",
     "scsps",
     "testing",
     "tools",
@@ -131,7 +129,7 @@ mod tests {
         assert_eq!(owner("/wp-content/uploads/x.png", r), Owner::Legacy);
         assert_eq!(owner("/wp-content/", r), Owner::Legacy);
         assert_eq!(owner("/notes.md", r), Owner::Legacy);
-        for p in ["/catalog.php", "/x/../y", "/.env", "/scs_scripts/a.css", "/campaign/", "/catalog/", "/wp-json/wp/v2/pages", "/Shop/a.PHP"] {
+        for p in ["/catalog.php", "/x/../y", "/.env", "/campaign/x.css", "/campaign/", "/catalog/", "/wp-json/wp/v2/pages", "/Shop/a.PHP"] {
             assert_eq!(owner(p, r), Owner::Legacy, "{p}");
         }
         for p in ["/", "/zzz.html", "/no-such-page/", "/company/zzz", "/sitemap_index.xml", "/hx-vendor/zzz.js"] {

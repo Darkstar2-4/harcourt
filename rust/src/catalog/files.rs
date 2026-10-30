@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Router,
@@ -28,9 +28,9 @@ use crate::{
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .route("/scs_file.php", get(scs_file))
-        .route("/customer_portal.php", get(customer_portal))
-        .route("/scs_index.php", get(scs_index))
-        .route("/beta.php", get(scs_index))
+        .route("/customer_portal.php", get(customer_portal).post(customer_portal))
+        .route("/scs_index.php", get(scs_index).post(scs_index))
+        .route("/beta.php", get(scs_index).post(scs_index))
 }
 
 /// What a content row is attached to, which decides who may fetch it.
@@ -277,14 +277,14 @@ jQuery(document).ready(function() {
 <div id=scscpq_page></div>"#;
 
 /// An SCS page: scs_header.php's landing redirect when the request begins a visit, else `body` in the SCS chrome.
-async fn scs_page(core: &Auth, visitor: &Visitor, uri: &Uri, headers: &HeaderMap, title: &str, description: Option<&str>, body: &str) -> Response {
+async fn scs_page(core: &Auth, visitor: &Visitor, title: &str, description: Option<&str>, body: &str) -> Response {
     let result = async {
         let chrome_data = Chrome::load(&core.pool).await?;
         let head = Head {
             title,
             description,
             js: &[],
-            framed: chrome::framed(uri.query(), headers),
+            framed: visitor.framed,
             dashboard: visitor.user().is_some_and(|u| u.role >= Role::Executive),
             catalog_url: "/catalog.php",
         };
@@ -292,21 +292,21 @@ async fn scs_page(core: &Auth, visitor: &Visitor, uri: &Uri, headers: &HeaderMap
     }
     .await;
     result.unwrap_or_else(|e| {
-        tracing::error!("{}: {e}", uri.path());
+        tracing::error!("scs page {title:?}: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
     })
 }
 
 /// scs_index.php and beta.php. Both set the description to an undefined variable, which moves the default after
 /// the registry's meta lines.
-async fn scs_index(State(core): State<Arc<Auth>>, visitor: Visitor, uri: Uri, headers: HeaderMap) -> Response {
-    scs_page(&core, &visitor, &uri, &headers, "Harcourt", Some(""), LOADER).await
+async fn scs_index(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
+    scs_page(&core, &visitor, "Harcourt", Some(""), LOADER).await
 }
 
 /// customer_portal.php: the portal in a frame, in an untitled SCS page.
-async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor, uri: Uri, headers: HeaderMap) -> Response {
+async fn customer_portal(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
     let body = "<iframe src='https://portal.harcourt.co' width='100%' frameBorder='0' style='height: 1000px;'></iframe>";
-    scs_page(&core, &visitor, &uri, &headers, "", None, body).await
+    scs_page(&core, &visitor, "", None, body).await
 }
 
 #[cfg(test)]
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn content_follows_the_visibility_of_what_owns_it() {
         let anon = Viewer::anonymous(Lang::En);
-        let customer = Viewer { kind: Kind::Account(UserId(1)), active: true, catalog: true, ..Viewer::anonymous(Lang::En) };
+        let customer = Viewer { kind: Kind::Account(UserId(1)), status: crate::identity::Status::Active, catalog: true, ..Viewer::anonymous(Lang::En) };
         let family = |status| Owner::Family { status, category_active: true, category_id: 3 };
         assert!(may_fetch(&anon, Owner::Public));
         assert!(!may_fetch(&anon, family(Status::Active)));

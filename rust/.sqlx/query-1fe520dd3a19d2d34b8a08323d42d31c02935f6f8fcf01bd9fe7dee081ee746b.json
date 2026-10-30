@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM log WHERE type = ?1 AND (?2 = '' OR subtype = ?2) AND (?3 = '' OR ip = ?3) AND (?4 = 0 OR date_time >= ?4) AND (?5 = 0 OR date_time <= ?5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "1fe520dd3a19d2d34b8a08323d42d31c02935f6f8fcf01bd9fe7dee081ee746b"
+}

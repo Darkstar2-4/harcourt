@@ -52,6 +52,9 @@ rust_decimal = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 chrono-tz = "0.10"
 similar = "2"
+# Staff import/export (staff/map.rs): Excel workbooks written and read.
+rust_xlsxwriter = "0.102"
+calamine = "0.37"
 futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]

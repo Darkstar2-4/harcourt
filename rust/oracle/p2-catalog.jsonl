@@ -1,0 +1,91 @@
+# scscpq_wp.php (the loader the WordPress pages post to), per persona. Paths, synthetic personas and made-up values only.
+{"name": "wp-get", "path": "/scscpq_wp.php"}
+{"name": "wp-no-action", "method": "POST", "path": "/scscpq_wp.php", "body": "page=catalog"}
+{"name": "wp-bad-action", "method": "POST", "path": "/scscpq_wp.php", "body": "action=nothing"}
+{"name": "wp-catalog-en", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=catalog&document=&token=&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en&remember=0"}
+{"name": "wp-catalog-fr", "method": "POST", "path": "/scscpq_wp.php", "language": "fr", "body": "action=initial&page=catalog&document=&token=&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalogue%2F%3Flang%3Dfr&language=fr&remember=0"}
+{"name": "wp-catalog-query", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F%3Faction%3Dsubcategory%26subcategory_id%3D449&language=en"}
+{"name": "wp-products-beta", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=products&url=https%3A%2F%2Fwww.harcourt.co%2Fbeta_catalog%2F&language=en"}
+{"name": "wp-newuser", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=newuser&url=https%3A%2F%2Fwww.harcourt.co%2Fnewuser%2F&language=en"}
+{"name": "wp-dashboard", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=dashboard&url=https%3A%2F%2Fwww.harcourt.co%2Fdashboard%2F&language=en"}
+{"name": "wp-cart", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=cart&url=https%3A%2F%2Fwww.harcourt.co%2Fcart%2F&language=en"}
+{"name": "wp-checkout", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=checkout&url=https%3A%2F%2Fwww.harcourt.co%2Fcheckout%2F&language=en"}
+{"name": "wp-portal", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=customer_portal&url=https%3A%2F%2Fwww.harcourt.co%2Fcustomer_portal%2F&language=en"}
+{"name": "wp-campaign", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=campaign&url=https%3A%2F%2Fwww.harcourt.co%2Fcampaign%2F%3Fcampaign%3Dnone&language=en"}
+{"name": "wp-impersonate", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=impersonate&url=https%3A%2F%2Fwww.harcourt.co%2Fimpersonate%2F&language=en"}
+{"name": "wp-no-page", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&language=en"}
+{"name": "wp-document", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&document=document_email&language=en"}
+{"name": "wp-token", "method": "POST", "path": "/scscpq_wp.php", "body": "action=initial&page=catalog&token=abc123&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-no-language", "method": "POST", "path": "/scscpq_wp.php", "language": "fr", "body": "action=initial&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F"}
+{"name": "wp-referer", "method": "POST", "path": "/scscpq_wp.php", "headers": {"Referer": "https://www.harcourt.co/catalog/"}, "body": "action=initial&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+# The composed catalog pages and their in-page navigation (X-HX-Nav), per persona.
+{"name": "cat-home", "path": "/catalog/"}
+{"name": "cat-family", "path": "/catalog/?action=subcategory&subcategory_id=449"}
+{"name": "cat-lang-en", "path": "/catalog/?lang=en&action=subcategory&subcategory_id=530"}
+{"name": "cat-search", "path": "/catalog/?search_source=search&search_id=0&search_code=pin"}
+{"name": "cat-sku", "path": "/catalog/?action=sku&subcategory_id=440&sku=U0hDUy03MTYxNC0wOA%3D%3D"}
+{"name": "cat-fr", "path": "/catalogue/?lang=fr", "language": "fr"}
+{"name": "cat-fr-family", "path": "/catalogue/?lang=fr&action=subcategory&subcategory_id=689", "language": "fr"}
+{"name": "cat-nav", "path": "/catalog/?action=subcategory&subcategory_id=449", "headers": {"X-HX-Nav": "1"}}
+{"name": "cat-nav-home", "path": "/catalog/", "headers": {"X-HX-Nav": "1"}}
+{"name": "cat-nav-fr", "path": "/catalogue/?lang=fr&action=subcategory&subcategory_id=689", "language": "fr", "headers": {"X-HX-Nav": "1"}}
+{"name": "cat-wrong-lang", "path": "/catalog/?lang=fr"}
+{"name": "cat-fr-no-lang", "path": "/catalogue/"}
+{"name": "cat-bare", "path": "/catalog"}
+# configure.php, the staff pricing lookup.
+{"name": "cfg-get", "path": "/configure.php"}
+{"name": "cfg-get-wp", "path": "/configure.php?scscpq_wp=1"}
+{"name": "wp-action-token", "method": "POST", "path": "/scscpq_wp.php", "body": "action=token&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-catalog", "method": "POST", "path": "/scscpq_wp.php", "body": "action=catalog&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-newuser", "method": "POST", "path": "/scscpq_wp.php", "body": "action=newuser&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-dashboard", "method": "POST", "path": "/scscpq_wp.php", "body": "action=dashboard&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-impersonate", "method": "POST", "path": "/scscpq_wp.php", "body": "action=impersonate&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-search", "method": "POST", "path": "/scscpq_wp.php", "body": "action=search&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-cart", "method": "POST", "path": "/scscpq_wp.php", "body": "action=cart&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-portal", "method": "POST", "path": "/scscpq_wp.php", "body": "action=portal&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-document", "method": "POST", "path": "/scscpq_wp.php", "body": "action=document&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-page", "method": "POST", "path": "/scscpq_wp.php", "body": "action=page&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-search_css", "method": "POST", "path": "/scscpq_wp.php", "body": "action=search_css&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-search_js", "method": "POST", "path": "/scscpq_wp.php", "body": "action=search_js&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-language", "method": "POST", "path": "/scscpq_wp.php", "body": "action=language&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-case-Initial", "method": "POST", "path": "/scscpq_wp.php", "body": "action=Initial&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-case-bogus_name", "method": "POST", "path": "/scscpq_wp.php", "body": "action=bogus_name&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-action-case-url", "method": "POST", "path": "/scscpq_wp.php", "body": "action=url&page=catalog&url=https%3A%2F%2Fwww.harcourt.co%2Fcatalog%2F&language=en"}
+{"name": "wp-get-document", "path": "/scscpq_wp.php?document=document_email"}
+{"name": "api-none", "path": "/scs_api.php"}
+{"name": "api-email", "path": "/scs_api.php?email=someone%40example.com&campaign=remote"}
+{"name": "api-bad-email", "path": "/scs_api.php?email=not-an-email&campaign=remote"}
+{"name": "api-post", "method": "POST", "path": "/scs_api.php", "body": "email=someone%40example.com&campaign=nothing"}
+{"name": "stock-none", "path": "/stock.php"}
+{"name": "stock-partial", "path": "/stock.php?name=990001%7CPat+Example&sku=1&cad=STEP&email=someone%40example.com"}
+{"name": "stock-no-name", "path": "/stock.php?name=990001&sku=1&cad=STEP&email=someone%40example.com"}
+# The search pages around the catalog's search (WordPress scscpq pages).
+{"name": "search-page", "path": "/search/"}
+{"name": "search-page-q", "path": "/search/?q=alignment+pin"}
+{"name": "search-page-q2", "path": "/search/?q=configurable+angle+bracket+017+004000"}
+{"name": "search-page-fr", "path": "/recherche/?lang=fr", "language": "fr"}
+{"name": "search-page-fr-q", "path": "/recherche/?lang=fr&q=goupille", "language": "fr"}
+{"name": "search-page-lang", "path": "/search/?lang=fr", "language": "fr"}
+{"name": "search-bare", "path": "/search"}
+{"name": "search-bare-q", "path": "/search?q=pin"}
+{"name": "metric-filter", "path": "/catalog_metric_filter.php"}
+{"name": "metric-filter-wp", "path": "/catalog_metric_filter.php?scscpq_wp=1"}
+# The other shells the catalog fills: the customer portal and the beta catalog.
+{"name": "portal-page", "path": "/customer_portal/"}
+{"name": "portal-page-fr", "path": "/portail-clients/?lang=fr", "language": "fr"}
+{"name": "portal-bare", "path": "/customer_portal"}
+{"name": "portal-fr-bare", "path": "/portail-clients"}
+{"name": "portal-fr-nolang", "path": "/portail-clients/"}
+{"name": "beta-page", "path": "/beta_catalog/"}
+{"name": "beta-bare", "path": "/beta_catalog"}
+{"name": "beta-query", "path": "/beta_catalog/?action=subcategory&subcategory_id=449"}
+{"name": "cat-post", "method": "POST", "path": "/catalog/", "body": "x=1"}
+{"name": "search-post", "method": "POST", "path": "/search/", "body": "q=pin"}
+{"name": "index-post", "method": "POST", "path": "/scs_index.php", "body": "x=1"}
+{"name": "portal-php-post", "method": "POST", "path": "/customer_portal.php", "body": "x=1"}
+{"name": "portal-ajax", "path": "/portal_ajax.php?action=catalog", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-products", "path": "/portal_ajax.php?action=products", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-other", "path": "/portal_ajax.php?action=other", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "portal-ajax-direct", "path": "/portal_ajax.php?action=catalog"}
+{"name": "search-php", "path": "/search.php"}
+{"name": "search-php-wp", "path": "/search.php?scscpq_wp=1"}

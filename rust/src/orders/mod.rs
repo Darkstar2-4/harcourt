@@ -7,13 +7,17 @@ use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
 use percent_encoding::percent_decode_str;
 
 use axum::{
-    extract::{FromRequestParts, Request, State},
+    extract::{FromRequest, FromRequestParts, Request, State},
     http::{header, request::Parts, Method, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     Router,
 };
 
+pub use crate::staff::{
+    csrf::{Posted, Rejected},
+    Staff,
+};
 use crate::{
     api::{ApiError, Auth, Authed, ClientIp, MinRole},
     identity::Role,
@@ -105,21 +109,20 @@ impl MinRole for SuperUser {
     const ROLE: Role = Role::SuperUser;
 }
 
-/// The gate of a staff page: `Authed<R>`, answered on refusal the way PHP's `$database->user->access()` does, with
-/// a redirect to the home page (`/` inside the WordPress frame, `/scs_index.php` outside it).
-pub struct Staff<R: MinRole>(pub Authed<R>);
-
-impl<R: MinRole> FromRequestParts<Arc<Orders>> for Staff<R> {
+/// The gate of a staff page is the staff module's: `Staff<R>` over the same core state.
+impl<R: MinRole + Send + Sync + 'static> FromRequestParts<Arc<Orders>> for Staff<R> {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Response> {
-        match Authed::<R>::from_request_parts(parts, &state.core).await {
-            Ok(a) => Ok(Staff(a)),
-            Err(ApiError::Unauthenticated | ApiError::Forbidden) => {
-                Err(html::redirect(if html::framed(parts.uri.query(), &parts.headers) { "/" } else { "/scs_index.php" }))
-            }
-            Err(e) => Err(e.into_response()),
-        }
+        Staff::<R>::from_request_parts(parts, &state.core).await
+    }
+}
+
+impl FromRequest<Arc<Orders>> for Posted {
+    type Rejection = Rejected;
+
+    async fn from_request(req: Request, state: &Arc<Orders>) -> Result<Self, Rejected> {
+        Posted::from_request(req, &state.core).await
     }
 }
 

@@ -1,9 +1,6 @@
-//! The visitor's profile (classes/profile.php): who downloads CAD and in which format. The PHP kept it in the
-//! session and the `harcourt_profile` cookie, which the browser holds; here it is read from that cookie for display
-//! and the catalog's profile gate only, together with the account's address fields.
-
-use axum::http::{header, HeaderMap};
-use sqlx::SqlitePool;
+//! The visitor's profile (classes/profile.php): who downloads CAD and in which format. accounts::profile loads it
+//! as the PHP did (the visit's copy, else the `harcourt_profile` cookie, with the account's address); the catalog
+//! keeps the fields it shows and its profile gate.
 
 use super::{forms, html::esc_text, pages::Ctx, registry::Registry, strings::Strings, viewer::Viewer};
 use crate::accounts::profile::{address_rows, legend, Layout, Profile as AddressProfile};
@@ -51,7 +48,7 @@ impl Profile {
 
     /// profile_class::quick_cad_message().
     pub fn quick_cad_message(&self, viewer: &Viewer, s: &Strings) -> String {
-        if !viewer.active || !viewer.cad {
+        if !viewer.active() || !viewer.cad {
             return String::new();
         }
         if self.cad_name.is_empty() || self.email.is_empty() {
@@ -89,57 +86,24 @@ fn set(value: &str) -> Option<String> {
     (!value.is_empty()).then(|| value.to_string())
 }
 
-fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
-    headers
-        .get_all(header::COOKIE)
-        .iter()
-        .filter_map(|v| v.to_str().ok())
-        .flat_map(|v| v.split(';'))
-        .filter_map(|pair| pair.trim().split_once('='))
-        .find(|(k, _)| *k == name)
-        .map(|(_, v)| percent_encoding::percent_decode_str(v).decode_utf8_lossy().into_owned())
-}
-
-/// profile_class::load(): the remembered profile, its email else the address the browser signed in with (the
-/// `harcourt` cookie), and a signed-in account's address.
-pub async fn load(pool: &SqlitePool, viewer: &Viewer, headers: &HeaderMap) -> sqlx::Result<Profile> {
-    let json: serde_json::Value = cookie(headers, "harcourt_profile").and_then(|c| serde_json::from_str(&c).ok()).unwrap_or_default();
-    let text = |k: &str| match json.get(k) {
-        Some(serde_json::Value::String(s)) => s.trim().to_string(),
-        Some(serde_json::Value::Number(n)) => n.to_string(),
-        _ => String::new(),
-    };
-    let mut p = Profile {
-        email: Some(text("email")).filter(|e| !e.is_empty()).or_else(|| cookie(headers, "harcourt")).unwrap_or_default(),
-        name_first: text("name_first"),
-        name_last: text("name_last"),
-        generate: json.get("generate").is_some_and(|g| g.as_i64().unwrap_or(0) != 0 || g.as_str().is_some_and(|s| s.trim() != "0" && !s.trim().is_empty())),
-        company_name: text("company_name"),
-        address: text("address"),
-        city: text("city"),
-        state: text("state"),
-        zip: text("zip"),
-        country_code: text("country_code"),
-        ..Profile::default()
-    };
-    let code = text("cad_code");
-    if !code.is_empty() {
-        if let Some(name) = sqlx::query_scalar!(r#"SELECT name AS "name!" FROM cad WHERE code = ?1 LIMIT 1"#, code).fetch_optional(pool).await? {
-            p.cad_code = code;
-            p.cad_name = name;
+impl From<&AddressProfile> for Profile {
+    fn from(p: &AddressProfile) -> Profile {
+        let text = |v: &Option<String>| v.as_deref().unwrap_or("").trim().to_string();
+        Profile {
+            email: text(&p.email),
+            name_first: text(&p.name_first),
+            name_last: text(&p.name_last),
+            generate: p.generate != 0,
+            cad_code: text(&p.cad_code),
+            cad_name: text(&p.cad_name),
+            company_name: text(&p.company_name),
+            address: text(&p.address),
+            city: text(&p.city),
+            state: text(&p.state),
+            zip: text(&p.zip),
+            country_code: text(&p.country_code),
         }
     }
-    if let Some(id) = viewer.account_id() {
-        if let Some(r) = sqlx::query!(r#"SELECT company_name, address, city, state, zip, country_code FROM "user" WHERE id = ?1"#, id.0).fetch_optional(pool).await? {
-            p.company_name = r.company_name.unwrap_or_default();
-            p.address = r.address.unwrap_or_default();
-            p.city = r.city.unwrap_or_default();
-            p.state = r.state.unwrap_or_default();
-            p.zip = r.zip.unwrap_or_default();
-            p.country_code = r.country_code.unwrap_or_default();
-        }
-    }
-    Ok(p)
 }
 
 /// profile_class::address(): an account's own company is not asked for, and when the account lacks nothing the
@@ -296,7 +260,10 @@ const ENTER_CSS: &str = r###"<style>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{catalog::viewer::{Kind, Lang}, identity::UserId};
+    use crate::{
+        catalog::viewer::{Kind, Lang},
+        identity::{Status, UserId},
+    };
 
     #[test]
     fn the_gate_asks_for_every_required_field() {
@@ -312,7 +279,7 @@ mod tests {
 
     #[test]
     fn quick_cad_message_follows_the_profile() {
-        let mut v = Viewer { kind: Kind::Account(UserId(1)), active: true, cad: true, ..Viewer::anonymous(Lang::En) };
+        let mut v = Viewer { kind: Kind::Account(UserId(1)), status: Status::Active, cad: true, ..Viewer::anonymous(Lang::En) };
         let mut p = Profile { email: "someone@example.com".into(), ..Profile::default() };
         let s = Strings::from_menu(Some(Some(r#"{"catalog_cad_click_profile":"Cliquez sur PROFIL."}"#)));
         assert_eq!(p.quick_cad_message(&v, &s), "Please complete profile to download CAD");

@@ -1,5 +1,6 @@
 //! The former WordPress pages, served from the static export (see export/README.md): chrome + body + per-page
-//! values, then live Gravity Forms islands from the headless WordPress endpoint. The export is reloaded when any
+//! values, then live Gravity Forms islands from the orders area's port (the headless WordPress endpoint for a form
+//! it lacks). The export is reloaded when any
 //! of its files changes, so edits by the translation tools show up within seconds.
 
 use std::{
@@ -148,19 +149,24 @@ impl Pages {
                 return Ok(html.clone());
             }
         }
-        let r = app
-            .http
-            .get(format!("{}/", app.legacy))
-            .query(&[("hx_form", form.to_string().as_str()), ("hx_lang", lang), ("hx_page", uri)])
-            .header(header::HOST, &app.site)
-            .header(header::USER_AGENT, "hxweb/0.1 island")
-            .send()
-            .await
-            .map_err(|e| format!("island {form}: {e}"))?;
-        if r.status() != StatusCode::OK {
-            return Err(format!("island {form} for {uri}: HTTP {}", r.status()));
-        }
-        let html = r.text().await.map_err(|e| format!("island {form} body: {e}"))?;
+        let html = match ported_island(app, form, lang, uri).await {
+            Some(html) => html,
+            None => {
+                let r = app
+                    .http
+                    .get(format!("{}/", app.legacy))
+                    .query(&[("hx_form", form.to_string().as_str()), ("hx_lang", lang), ("hx_page", uri)])
+                    .header(header::HOST, &app.site)
+                    .header(header::USER_AGENT, ISLAND_AGENT)
+                    .send()
+                    .await
+                    .map_err(|e| format!("island {form}: {e}"))?;
+                if r.status() != StatusCode::OK {
+                    return Err(format!("island {form} for {uri}: HTTP {}", r.status()));
+                }
+                r.text().await.map_err(|e| format!("island {form} body: {e}"))?
+            }
+        };
         let mut cache = self.islands.write().await;
         if cache.len() >= ISLAND_CACHE_MAX {
             cache.retain(|_, (at, _)| at.elapsed() < ISLAND_TTL);
@@ -171,6 +177,27 @@ impl Pages {
         cache.insert(key, (Instant::now(), html.clone()));
         Ok(html)
     }
+}
+
+const ISLAND_AGENT: &str = "hxweb/0.1 island";
+
+/// The form as the orders area renders it from SQLite (`GET /hx/forms/island`, in-process). None for a form it
+/// does not have, which WordPress still renders.
+async fn ported_island(app: &App, form: u32, lang: &str, uri: &str) -> Option<String> {
+    use tower::ServiceExt;
+    let lib = app.lib.clone()?;
+    let query = form_urlencoded::Serializer::new(String::new()).append_pair("hx_form", &form.to_string()).append_pair("hx_lang", lang).append_pair("hx_page", uri).finish();
+    let req = axum::http::Request::get(format!("/hx/forms/island?{query}"))
+        .header(header::HOST, &app.site)
+        .header(header::USER_AGENT, ISLAND_AGENT)
+        .body(Body::empty())
+        .ok()?;
+    let resp = lib.oneshot(req).await.ok()?;
+    if resp.status() != StatusCode::OK {
+        return None;
+    }
+    let bytes = axum::body::to_bytes(resp.into_body(), 4 << 20).await.ok()?;
+    String::from_utf8(bytes.to_vec()).ok()
 }
 
 /// What every former WordPress page gets before it leaves, whether it came from the export or from the cms

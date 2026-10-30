@@ -252,7 +252,7 @@ fn find<'a>(rows: &'a [Content], language: &str, item: &str) -> Option<&'a Conte
 }
 
 /// file_meta_class::mime() and content_constant_class::filetype() by the file's suffix.
-fn file_kind(name: &str) -> (&'static str, &'static str) {
+pub(super) fn file_kind(name: &str) -> (&'static str, &'static str) {
     let suffix = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     match suffix.as_str() {
         "txt" => ("text/plain", "html"),

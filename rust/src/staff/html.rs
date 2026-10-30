@@ -441,7 +441,8 @@ pub fn php_float(v: f64) -> String {
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
-/// htmlspecialchars(ENT_HTML401) as textarea() uses it: quotes are left alone only for single quotes.
+/// htmlspecialchars($text, ENT_HTML401) as textarea() uses it. ENT_HTML401 is 0, so neither quote is escaped
+/// (ENT_NOQUOTES); inside a textarea only `&` and `<` matter.
 fn esc_html401(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -449,7 +450,6 @@ fn esc_html401(s: &str) -> String {
             '&' => out.push_str("&amp;"),
             '<' => out.push_str("&lt;"),
             '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
             c => out.push(c),
         }
     }
@@ -685,8 +685,13 @@ pub fn page_break(found_rows: i64, page: i64, script: &str) -> String {
 /// page_item_break::page(): the pager under a list whose page number is 1-based. First / Previous / Next / Last run
 /// `script` with `%page%` replaced; the row count always shows, "Page n of m" only when a button is live.
 pub fn page_items(found_rows: i64, page: i64, script: &str) -> String {
+    page_items_of(found_rows, page, PAGE_ROWS, script)
+}
+
+/// `page_items` for a page that set its own `$database->query_limit`.
+pub fn page_items_of(found_rows: i64, page: i64, rows: i64, script: &str) -> String {
     let current = page.max(1);
-    let last = (found_rows + PAGE_ROWS - 1) / PAGE_ROWS;
+    let last = (found_rows + rows - 1) / rows;
     let back = (current > 1).then_some(current);
     let ahead = (last > current).then_some(current);
     let targets = [

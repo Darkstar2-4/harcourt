@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", category_id, subcategory_id, pricing FROM inventory WHERE sku = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "pricing",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7570564e3bbe376cb6a7c919d047f8244e66d8f33d9c21f7d8f3fafb6fceed65"
+}

@@ -83,6 +83,10 @@ impl Fields {
         self
     }
 
+    pub fn posted(pairs: Vec<(String, String)>) -> Fields {
+        Fields(pairs)
+    }
+
     #[cfg(test)]
     pub fn of(pairs: &[(&str, &str)]) -> Fields {
         Fields(pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect())

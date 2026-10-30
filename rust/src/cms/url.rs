@@ -191,6 +191,28 @@ mod tests {
     }
 
     #[test]
+    fn the_action_is_the_page_query_as_wordpress_rebuilt_it() {
+        assert_eq!(form_action("/catalog/"), "/catalog/");
+        assert_eq!(form_action("/catalogue/?lang=fr"), "/catalogue/?lang=fr");
+        assert_eq!(
+            form_action("/catalog/?action=subcategory&subcategory_id=440&page=1&parameter0=7/16-14"),
+            "/catalog/?action=subcategory&#038;subcategory_id=440&#038;page=1&#038;parameter0=7%2F16-14"
+        );
+        assert_eq!(form_action("/catalog/?search_source=search&search_id=21304&search_code="), "/catalog/?search_source=search&#038;search_id=21304&#038;search_code");
+        assert_eq!(form_action("/catalog/?search_source=search&amp%3Bsearch_id=698&amp%3Bsearch_code="), "/catalog/?search_source=search&#038;search_id=698&#038;search_code");
+        assert_eq!(form_action("/a/?x=1&x=2&y.z=a b&gf_token=t&l[]=p&l[]=q"), "/a/?x=2&#038;y_z=a+b&#038;l%5B0%5D=p&#038;l%5B1%5D=q");
+    }
+
+    #[test]
+    fn the_action_is_the_request_uri_as_gravity_forms_rebuilt_it() {
+        assert_eq!(form_action("/contact/#gf_1"), "/contact/#gf_1");
+        assert_eq!(form_action("/contact/?utm_source=Master+Screw,+return...+%28Mass%29&utm_medium=Email#gf_1"), "/contact/?utm_source=Master+Screw%2C+return...+%28Mass%29&#038;utm_medium=Email#gf_1");
+        assert_eq!(form_action("/contact/?a=&gf_token=x&b=1&b=2"), "/contact/?a&#038;b=2");
+        assert_eq!(form_action("/p/?q=<x>'"), "/p/?q=%3Cx%3E%27");
+        assert_eq!(form_action("/catalog/?amp;action=subcategory&amp;subcategory_id=7#gf_1"), "/catalog/?amp;action=subcategory&#038;subcategory_id=7#gf_1");
+    }
+
+    #[test]
     fn php_encoders() {
         assert_eq!(urlencode("a b~,"), "a+b%7E%2C");
         assert_eq!(rawurlencode("a b~,"), "a%20b~%2C");

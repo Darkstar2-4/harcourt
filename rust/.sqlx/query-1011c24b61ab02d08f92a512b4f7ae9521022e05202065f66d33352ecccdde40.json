@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM inventory WHERE subcategory_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "1011c24b61ab02d08f92a512b4f7ae9521022e05202065f66d33352ecccdde40"
+}

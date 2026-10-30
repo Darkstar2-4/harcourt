@@ -39,7 +39,10 @@ use crate::{
 /// WordPress did.
 const PAGES: &[&str] = &[
     "/",
+    "/beta_catalog/",
     "/boxjoint-inquiry-form/",
+    "/catalog/",
+    "/catalogue/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
@@ -54,6 +57,7 @@ const PAGES: &[&str] = &[
     "/contact-france/",
     "/contact-india/",
     "/contact-uk/",
+    "/customer_portal/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -83,6 +87,7 @@ const PAGES: &[&str] = &[
     "/innovations/tooling-configurators/",
     "/legal/",
     "/news/",
+    "/portail-clients/",
     "/privacy/",
     "/product/",
     "/product/alignment/",
@@ -100,12 +105,14 @@ const PAGES: &[&str] = &[
     "/nous-contacter-france/",
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
+    "/recherche/",
     "/resources/",
     "/resources/faq/",
     "/resources/lunch-learns/",
     "/ressources/",
     "/ressources/dejeuners-et-causeries/",
     "/ressources/faq/",
+    "/search/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
@@ -610,6 +617,11 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
 }
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+    // The catalog page in its own language is composed around the catalog (compose.rs); WordPress's answers to the
+    // rest (its redirects, a form post) stay here.
+    if crate::catalog::composed_page(uri.path(), uri.query().unwrap_or("")).is_some() {
+        return legacy();
+    }
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     serve(&wp, &uri, agent, None, true).await
 }
@@ -634,7 +646,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
         return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() => legacy.forward(&parts, body).await,
+            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
             _ => serve(&wp, &parts.uri, agent, None, false).await,
         };
     };
@@ -646,9 +658,9 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, Some(page.title.clone())).await {
         Ok(Some((Outcome::Redirect(url), _))) => crate::orders::html::redirect(&url),
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
-            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], render::ajax_postback(&h)).into_response()
+            (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], h).into_response()
         }
-        Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, false))) => serve(&wp, &parts.uri, agent, Some((form, h)), false).await,
+        Ok(Some((outcome, false))) => serve(&wp, &parts.uri, agent, outcome.on_page(form), false).await,
         Ok(None) => match &wp.legacy {
             Some(legacy) => legacy.forward(&parts, body).await,
             None => serve(&wp, &parts.uri, agent, None, false).await,
@@ -670,7 +682,7 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 /// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET
 /// or HEAD (`replay`) can be handed back to the legacy stack; a post that would be handed back gets the page at its
 /// path, or a 404.
-async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
+async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
     let q = query(raw_query);
@@ -702,7 +714,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
 
 /// `page` as WordPress printed it at `uri`, or WordPress's 404 page.
 #[allow(clippy::too_many_arguments)]
-async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &Query, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
+async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &Query, agent: &str, answer: Option<render::Answer>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
@@ -731,11 +743,11 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
             (StatusCode::NOT_FOUND, html, not_found_islands(site, q.lang), q.lang, request_uri)
         }
     };
-    let answered = answer.as_ref().and_then(|(form, _)| islands.iter().find(|(_, i)| i.form == *form).map(|(index, _)| *index));
+    let answered = answer.as_ref().and_then(|a| islands.iter().find(|(_, i)| i.form == a.form).map(|(index, _)| *index));
     let filled = crate::cms::forms::fill(&html, |form, index| {
         let embed = islands.get(&index).filter(|e| e.form == form).cloned();
         let position = islands.values().position(|i| i.form == form).unwrap_or(index) + 1;
-        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|(_, h)| h.clone());
+        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|a| a.html.clone());
         let wp = wp.clone();
         let wp_uri = wp_uri.clone();
         async move {
@@ -761,7 +773,11 @@ async fn respond(wp: &Arc<Wp>, site: &Site, page: Option<&Page>, uri: &Uri, q: &
             }
         }
     })
-    .await;
+    .await
+    .map(|html| match (&answer, answered) {
+        (Some(a), Some(index)) => a.page(&html, index + 1),
+        _ => html,
+    });
     match filled {
         Ok(html) => {
             let mut r = html_response(public(&wp.core.public_origin, &html), finished);

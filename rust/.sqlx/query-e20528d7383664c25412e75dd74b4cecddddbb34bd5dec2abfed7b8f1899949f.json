@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE inventory SET category_id = ?2, subcategory_id = ?3 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e20528d7383664c25412e75dd74b4cecddddbb34bd5dec2abfed7b8f1899949f"
+}

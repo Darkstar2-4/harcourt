@@ -156,11 +156,16 @@ impl Letterhead {
     pub async fn load(pool: &SqlitePool, docroot: &Path, template: &Template) -> sqlx::Result<Self> {
         let email = Registry::load(pool, "email").await?;
         let css_path = if template.css.is_empty() { email.get("css") } else { template.css.as_str() };
+        Ok(Letterhead::read(docroot, email.get("base_href"), css_path).await)
+    }
+
+    /// This base href and the stylesheet at `css_path` under the document root.
+    pub async fn read(docroot: &Path, base_href: &str, css_path: &str) -> Self {
         let css = match safe_relative(css_path) {
             Some(rel) => tokio::fs::read_to_string(docroot.join(rel)).await.unwrap_or_default(),
             None => String::new(),
         };
-        Ok(Letterhead { base_href: email.get("base_href").to_string(), css })
+        Letterhead { base_href: base_href.to_string(), css }
     }
 }
 

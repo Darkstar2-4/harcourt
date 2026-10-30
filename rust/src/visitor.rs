@@ -306,12 +306,13 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
                 overlay_campaign = Some(view.campaign_code.clone());
                 overlay_language = Some(view.language_code.clone());
                 overlay_currency = Some(view.currency_code.clone());
-                identity = match view.user_id {
-                    Some(id) => match account::load(pool, id).await? {
+                identity = match (view.bot_id, view.user_id) {
+                    (Some(bot_id), _) => bot::load(pool, bot_id).await?.map_or(Identity::Anonymous, Identity::Bot),
+                    (None, Some(id)) => match account::load(pool, id).await? {
                         Some(account) => Identity::Account(Box::new(SignedIn { account: view.apply(account), email: None, via: Via::Session })),
                         None => Identity::Anonymous,
                     },
-                    None => Identity::Anonymous,
+                    (None, None) => Identity::Anonymous,
                 };
             } else if let Some(account) = account::load(pool, found.user.id).await? {
                 identity = Identity::Account(Box::new(SignedIn { account, email, via: Via::Session }));
@@ -478,6 +479,8 @@ impl Header {
             "/scscpq_wp.php" => Header::Initial,
             "/cookie_reset.php" => Header::None,
             "/stock.php" => Header::Quiet,
+            "/scs_ajax.php" if crate::catalog::ajax::search_box_query(query.unwrap_or("")) => Header::None,
+            "/scs_api.php" => Header::None,
             "/scs_file.php" if asks("content_id") || asks("watermark") => Header::Quiet,
             "/scs_file.php" => Header::None,
             p if !p.ends_with(".php") => Header::None,
@@ -567,6 +570,8 @@ fn external_referer(referer: &str) -> Option<String> {
 
 struct View {
     user_id: Option<UserId>,
+    /// bot_impersonate.php: the Administrator sees the site as this bot.
+    bot_id: Option<i64>,
     role: Role,
     status: Status,
     grants: Grants,
@@ -607,7 +612,7 @@ async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &U
         r#"SELECT user_id, "type" AS "ty!", status AS "status!", catalog AS "catalog!: i64", cad AS "cad!: i64",
                   ecommerce AS "ecommerce!: i64", price_type AS "price_type!", price_pct AS "price_pct!: f64",
                   industry_id AS "industry_id!: i64", portal_id AS "portal_id!: i64", portal_legacy AS "portal_legacy!: i64",
-                  currency_code AS "currency_code!", language_code AS "language_code!", campaign_code
+                  currency_code AS "currency_code!", language_code AS "language_code!", campaign_code, bot_id
            FROM impersonation WHERE session_hash = ?1"#,
         hash
     )
@@ -617,6 +622,7 @@ async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &U
     let (Some(role), Some(status)) = (Role::parse(&r.ty), Status::parse(&r.status)) else { return Ok(None) };
     Ok(Some(View {
         user_id: r.user_id.map(UserId),
+        bot_id: r.bot_id,
         role: role.min(actor.role),
         status,
         grants: Grants { catalog: r.catalog != 0, cad: r.cad != 0, ecommerce: r.ecommerce != 0 },

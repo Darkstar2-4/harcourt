@@ -110,7 +110,8 @@ pub struct Viewer {
     /// The language saved on the account (user.language_code); a page in the other language sends the visitor there.
     pub account_lang: Option<Lang>,
     pub role: Role,
-    pub active: bool,
+    /// The account's or bot's status; a visitor who is not signed in counts as Pending, as the PHP's empty user did.
+    pub status: Status,
     pub catalog: bool,
     pub cad: bool,
     pub ecommerce: bool,
@@ -133,7 +134,7 @@ impl Viewer {
             lang,
             account_lang: None,
             role: Role::Customer,
-            active: false,
+            status: Status::Pending,
             catalog: false,
             cad: false,
             ecommerce: false,
@@ -152,8 +153,7 @@ impl Viewer {
     /// A crawler from the bot table (classes/bot.php session()): a Customer with the bot's status, catalog flag and
     /// portal, and nothing else.
     pub fn bot(bot_id: i64, status: Status, catalog: bool, portal_id: Option<i64>, lang: Lang) -> Viewer {
-        let active = status == Status::Active;
-        Viewer { kind: Kind::Bot { bot_id }, active, catalog: active && catalog, portal_id, ..Viewer::anonymous(lang) }
+        Viewer { kind: Kind::Bot { bot_id }, status, catalog: status == Status::Active && catalog, portal_id, ..Viewer::anonymous(lang) }
     }
 
     pub fn account_id(&self) -> Option<UserId> {
@@ -167,9 +167,13 @@ impl Viewer {
         matches!(self.kind, Kind::Bot { .. })
     }
 
+    pub fn active(&self) -> bool {
+        self.status == Status::Active
+    }
+
     /// May open catalog pages at all (catalog.php's checks before route()). Everyone else is shown document 157.
     pub fn may_browse(&self) -> bool {
-        !matches!(self.kind, Kind::Anonymous) && self.active && self.catalog
+        !matches!(self.kind, Kind::Anonymous) && self.active() && self.catalog
     }
 
     /// Administrators also see Pending subcategories.
@@ -214,7 +218,7 @@ pub async fn load(pool: &SqlitePool, visitor: &Visitor, lang: Lang) -> sqlx::Res
         lang,
         account_lang: Lang::from_code(&account.language_code),
         role: user.role,
-        active: user.is_active(),
+        status: user.status,
         catalog: account.catalog(),
         cad: account.cad(),
         ecommerce: account.ecommerce(),
@@ -273,7 +277,7 @@ mod tests {
         assert!(Viewer::bot(1, Status::Active, true, None, Lang::En).may_browse());
         assert!(!Viewer::bot(1, Status::Denied, true, None, Lang::En).may_browse());
         assert!(!Viewer::bot(1, Status::Active, false, None, Lang::En).may_browse());
-        let account = Viewer { kind: Kind::Account(UserId(4)), active: true, catalog: true, ..Viewer::anonymous(Lang::En) };
+        let account = Viewer { kind: Kind::Account(UserId(4)), status: Status::Active, catalog: true, ..Viewer::anonymous(Lang::En) };
         assert!(account.may_browse());
         assert!(!Viewer { catalog: false, ..account.clone() }.may_browse());
         assert!(!account.sees_pending());

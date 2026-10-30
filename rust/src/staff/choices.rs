@@ -4,7 +4,10 @@
 
 use sqlx::SqlitePool;
 
-use super::html::{text, OptGroup};
+use super::{
+    filesort,
+    html::{text, OptGroup},
+};
 
 pub type Options = Vec<(String, String)>;
 
@@ -59,15 +62,18 @@ pub async fn portals(pool: &SqlitePool) -> sqlx::Result<Options> {
 /// document->select(): documents grouped under their top-level document, labelled "id. name". The site root and
 /// its direct children sort last. Groups with the same name merge, as PHP array keys did.
 pub async fn documents(pool: &SqlitePool) -> sqlx::Result<Vec<OptGroup>> {
-    let rows = sqlx::query!(
-        r#"SELECT id AS "id!: i64", name,
-                  CASE WHEN parent_id = 1 THEN 9999 WHEN id = 1 THEN 9999 WHEN parent_id = 0 THEN id ELSE parent_id END AS "sort_key!: i64"
-           FROM document ORDER BY 3, parent_id, name COLLATE NOCASE, id DESC"#
+    let mut rows = sqlx::query!(
+        r#"SELECT id AS "id!: i64", name, parent_id,
+                  CASE WHEN parent_id = 1 THEN 9999 WHEN id = 1 THEN 9999 WHEN parent_id = 0 THEN id ELSE parent_id END AS sort_key
+           FROM document ORDER BY id"#
     )
     .fetch_all(pool)
     .await?;
+    filesort::sort(&mut rows, |a, b| {
+        a.sort_key.cmp(&b.sort_key).then(a.parent_id.cmp(&b.parent_id)).then_with(|| filesort::ci_opt(a.name.as_deref(), b.name.as_deref()))
+    });
     let mut groups: Vec<OptGroup> = Vec::new();
-    let mut run: Option<(i64, String)> = None;
+    let mut run: Option<(Option<i64>, String)> = None;
     for r in rows {
         let name = r.name.unwrap_or_default();
         if run.as_ref().is_none_or(|(key, _)| *key != r.sort_key) {

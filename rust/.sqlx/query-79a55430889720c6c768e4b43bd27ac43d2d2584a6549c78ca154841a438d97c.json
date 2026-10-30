@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM log WHERE ip = ?1 AND type = 'Initial' AND subtype = 'Campaign' AND date_time >= ?2 AND email = ?3) AS \"seen!: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "seen!: bool",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "79a55430889720c6c768e4b43bd27ac43d2d2584a6549c78ca154841a438d97c"
+}

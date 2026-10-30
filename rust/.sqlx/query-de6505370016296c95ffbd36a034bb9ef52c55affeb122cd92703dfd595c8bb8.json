@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT i.id AS \"id!: i64\", i.sku, c.name AS category, s.name AS subcategory, i.sort_order AS \"sort_order!: i64\", i.new_date,\n                  i.leadtime_option, i.leadtime_text, i.competitor_sku, i.active, i.pricing,\n                  json_array(i.parameter0, i.parameter1, i.parameter2, i.parameter3, i.parameter4, i.parameter5, i.parameter6, i.parameter7,\n                             i.parameter8, i.parameter9, i.parameter10, i.parameter11, i.parameter12, i.parameter13, i.parameter14,\n                             i.parameter15, i.parameter16, i.parameter17, i.parameter18, i.parameter19) AS \"parameters!: String\",\n                  json_array(i.nparameter0, i.nparameter1, i.nparameter2, i.nparameter3, i.nparameter4, i.nparameter5, i.nparameter6,\n                             i.nparameter7, i.nparameter8, i.nparameter9, i.nparameter10, i.nparameter11, i.nparameter12, i.nparameter13,\n                             i.nparameter14, i.nparameter15, i.nparameter16, i.nparameter17, i.nparameter18, i.nparameter19) AS \"nparameters!: String\"\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id\n           WHERE i.id IN (SELECT value FROM json_each(?1))",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sku",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "category",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "sort_order!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "new_date",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_option",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_text",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "competitor_sku",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "active",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "pricing",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "parameters!: String",
+        "ordinal": 11,
+        "type_info": "Null"
+      },
+      {
+        "name": "nparameters!: String",
+        "ordinal": 12,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "de6505370016296c95ffbd36a034bb9ef52c55affeb122cd92703dfd595c8bb8"
+}

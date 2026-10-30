@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO impersonation (session_hash, bot_id, created_at) VALUES (?1, ?2, ?3)\n           ON CONFLICT (session_hash) DO UPDATE SET bot_id = excluded.bot_id, user_id = NULL, created_at = excluded.created_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f0b390fbfdcdc882b40436087e0e094d4e737f24e67fc1536129be32bf29a79b"
+}

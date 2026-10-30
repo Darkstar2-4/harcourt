@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE campaign SET code = ?2, name = ?3, description = ?4, from_date = ?5, thru_date = ?6, \"type\" = ?7, sf_campaign_id = ?8, sort_order = ?9,\n                  active = ?10, title_omit = ?11, divs = ?12, subcategory = ?13, css = ?14, js = ?15 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "354925393ba1d419c25edead43b1f966c2f4f448c0b8bc7e86cfedf116f7b4db"
+}
