@@ -179,32 +179,69 @@ fn rawurlencode(s: &str) -> String {
     out
 }
 
-/// What redirect_canonical() does with the request's query when it sends a visitor elsewhere: parse_str() it,
-/// rawurlencode every key and value, and add_query_arg() them to `target`. A key keeps its first position and its
-/// last value, and an empty value loses its `=`.
+/// A query value after parse_str(): `a=1`, or `a[]=1&a[x]=2` as a list of (key, value).
+enum Arg {
+    One(String),
+    List(Vec<(String, String)>),
+}
+
+/// What WPML's redirect to a translation does with the request's query: parse_str() it, rawurlencode every key
+/// and value, and add_query_arg() them to `target`. A key keeps its first position and its last value, `a[]`
+/// keys collect into `a%5B0%5D`, and an empty value loses its `=`.
 fn with_query(target: &str, query: &str) -> String {
     let (base, existing) = target.split_once('?').unwrap_or((target, ""));
-    let mut args: Vec<(String, String)> = Vec::new();
-    let mut set = |k: String, v: String| match args.iter_mut().find(|(key, _)| *key == k) {
-        Some(slot) => slot.1 = v,
-        None => args.push((k, v)),
-    };
+    let mut args: Vec<(String, Arg)> = Vec::new();
     for kv in existing.split('&').filter(|kv| !kv.is_empty()) {
         let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        set(k.to_string(), v.to_string());
+        args.push((k.to_string(), Arg::One(v.to_string())));
     }
     for kv in query.split('&').filter(|kv| !kv.is_empty()) {
         let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        let k = urldecode(k).trim_start().replace(['.', ' '], "_");
-        if !k.is_empty() {
-            set(rawurlencode(&k), rawurlencode(&urldecode(v)));
+        let k = urldecode(k);
+        let k = k.trim_start();
+        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
+            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
+            None => (k.replace(['.', ' '], "_"), None),
+        };
+        if name.is_empty() {
+            continue;
+        }
+        let (name, v) = (rawurlencode(&name), rawurlencode(&urldecode(v)));
+        let slot = args.iter().position(|(key, _)| *key == name);
+        match (sub, slot) {
+            (None, Some(i)) => args[i].1 = Arg::One(v),
+            (None, None) => args.push((name, Arg::One(v))),
+            (Some(sub), slot) => {
+                let i = slot.unwrap_or_else(|| {
+                    args.push((name, Arg::List(Vec::new())));
+                    args.len() - 1
+                });
+                if let Arg::One(_) = args[i].1 {
+                    args[i].1 = Arg::List(Vec::new());
+                }
+                if let Arg::List(list) = &mut args[i].1 {
+                    let sub = if sub.is_empty() { list.len().to_string() } else { sub };
+                    match list.iter_mut().find(|(s, _)| *s == sub) {
+                        Some(e) => e.1 = v,
+                        None => list.push((sub, v)),
+                    }
+                }
+            }
         }
     }
-    if args.is_empty() {
-        return base.to_string();
+    let pair = |k: &str, v: &str| if v.is_empty() { k.to_string() } else { format!("{k}={v}") };
+    let q: Vec<String> = args
+        .iter()
+        .flat_map(|(k, a)| match a {
+            Arg::One(v) => vec![pair(k, v)],
+            Arg::List(list) => list.iter().map(|(s, v)| pair(&format!("{k}%5B{s}%5D"), v)).collect(),
+        })
+        .collect();
+    if q.is_empty() {
+        base.to_string()
+    } else {
+        format!("{base}?{}", q.join("&"))
     }
-    let q: Vec<String> = args.into_iter().map(|(k, v)| if v.is_empty() { k } else { format!("{k}={v}") }).collect();
-    format!("{base}?{}", q.join("&"))
 }
 
 /// What a claimed path answers, given the content and the requested language.
@@ -239,8 +276,8 @@ fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
 
 /// The answer for a request path, with or without its trailing slash, as prod answered it. A neutral request for a
 /// page in its own language got the exported page. Everything else was WordPress's: WPML drops `lang=en` with a
-/// 302, and redirect_canonical() sends a path without the slash, or a page asked for in the other language, in
-/// one 301 to the page's own URL, query kept.
+/// 302, redirect_canonical() adds a missing slash keeping the query as sent, and a page asked for in the other
+/// language moves in one 301 to its translation's URL with the query rebuilt (`with_query`).
 fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'a> {
     let slashed = if path.ends_with('/') { None } else { Some(format!("{path}/")) };
     let answer = resolve(site, slashed.as_deref().unwrap_or(path), q.lang);
@@ -256,7 +293,8 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
     }
     match (answer, slashed) {
         (Answer::Render(p), None) => Answer::Render(p),
-        (Answer::Render(p), Some(_)) => Answer::Redirect(with_query(&p.path, raw_query)),
+        (Answer::Render(p), Some(_)) if raw_query.is_empty() => Answer::Redirect(p.path.clone()),
+        (Answer::Render(p), Some(_)) => Answer::Redirect(format!("{}?{raw_query}", p.path)),
         (Answer::Redirect(to), _) => Answer::Redirect(with_query(&to, raw_query)),
         (other, _) => other,
     }
@@ -527,6 +565,7 @@ mod tests {
         assert_eq!(with_query("/product/", ""), "/product/");
         assert_eq!(with_query("/a/?lang=fr", "lang=fr&utm_source=x"), "/a/?lang=fr&utm_source=x");
         assert_eq!(with_query("/?page_id=4", "quot=&a.b=1&a.b=2"), "/?page_id=4&quot&a_b=2");
+        assert_eq!(with_query("/r/", "x[]=1&x[]=2&y[k]=a+b"), "/r/?x%5B0%5D=1&x%5B1%5D=2&y%5Bk%5D=a%20b");
     }
 
     #[test]
@@ -548,7 +587,7 @@ mod tests {
         assert_eq!(r("/product/alignment", "s=x"), "legacy");
         assert_eq!(r("/product/alignment/", "theme=light"), "render 1");
         assert_eq!(r("/product/alignment/", ""), "render 1");
-        assert_eq!(r("/product/alignment", "utm_source=a+b"), "/product/alignment/?utm_source=a%20b");
+        assert_eq!(r("/product/alignment", "utm_source=a+b"), "/product/alignment/?utm_source=a+b");
         assert_eq!(r("/gamme-de-produits/centrage", ""), "/product/alignment/");
         assert_eq!(r("/gamme-de-produits/centrage", "lang=fr"), "/gamme-de-produits/centrage/?lang=fr");
         assert_eq!(r("/gamme-de-produits/centrage/", "lang=x"), "/product/alignment/?lang=x");
