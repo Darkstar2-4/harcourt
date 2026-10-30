@@ -33,7 +33,10 @@ home, the database errors `inventory_info.php` printed) are not repeated.
   access counts and tabs on the oracle run ahead of the SQLite copy.
 - **`/robots.txt/`.** Apache refused the PATH_INFO on prod's docroot file with its 404. The rig's docroot copy has no
   `robots.txt` (Rust serves it from `rust/assets`), so the front controller sees no file and answers WordPress's 404.
-- **WordPress shapes not ported**, which the closed backend shows as 502: the search page under `?s=` on the front
-  page, the 404 over the blog query (`/sitemap.xml/`, `/sitemap.xml` with a query, a sitemap Yoast does not have, a
-  doubled slash WordPress cannot resolve), a post id on the front page under a doubled slash (`//?p=`), WordPress's
-  `page` argument on a page (`/catalog?page=0`), feeds, oEmbed and the archive pages.
+- **WordPress shapes not ported**, which the closed backend shows as 502: a blank search or a page of results with
+  a form under `?s=`, the 404 over the blog query as Yoast's sitemap router leaves it (`/sitemap.xml/`,
+  `/sitemap.xml` with a query, a sitemap Yoast does not have), a doubled slash WordPress cannot resolve, a post id on
+  the front page under a doubled slash (`//?p=`), WordPress's `page` argument on a page (`/catalog?page=0`), the
+  blog's own listing (`?order=`, `?author=`), author and date archives, Atom feeds of archives, the singles
+  of posts, case studies and testimonials, oEmbed, and the REST API beyond its no-route and invalid-id answers and the
+  posts' ids.
