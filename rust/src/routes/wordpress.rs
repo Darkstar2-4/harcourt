@@ -23,7 +23,9 @@ use crate::{
     api::{Auth, ClientIp},
     cms::{
         forms::{FormSource, Islands, OrdersForms},
-        theme, Content, FormEmbed, Lang, Page, Site, Status,
+        theme,
+        url::{urldecode, with_query},
+        Content, FormEmbed, Lang, Page, Site, Status,
     },
     orders::{
         forms::{model, render, submit::Outcome},
@@ -199,88 +201,6 @@ fn query(q: &str) -> Query {
     Query { lang, lang_en: last_lang == Some("lang=en"), rest_route, neutral, wordpress, without_lang, form_uri_query }
 }
 
-/// PHP's urldecode().
-fn urldecode(s: &str) -> String {
-    percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned()
-}
-
-/// PHP's rawurlencode().
-fn rawurlencode(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
-    }
-    out
-}
-
-/// A query value after parse_str(): `a=1`, or `a[]=1&a[x]=2` as a list of (key, value).
-enum Arg {
-    One(String),
-    List(Vec<(String, String)>),
-}
-
-/// What WPML's redirect to a translation does with the request's query: parse_str() it, rawurlencode every key
-/// and value, and add_query_arg() them to `target`. A key keeps its first position and its last value, `a[]`
-/// keys collect into `a%5B0%5D`, and an empty value loses its `=`.
-fn with_query(target: &str, query: &str) -> String {
-    let (base, existing) = target.split_once('?').unwrap_or((target, ""));
-    let mut args: Vec<(String, Arg)> = Vec::new();
-    for kv in existing.split('&').filter(|kv| !kv.is_empty()) {
-        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        args.push((k.to_string(), Arg::One(v.to_string())));
-    }
-    for kv in query.split('&').filter(|kv| !kv.is_empty()) {
-        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
-        let k = urldecode(k);
-        let k = k.trim_start();
-        let (name, sub) = match k.split_once('[').filter(|(n, rest)| !n.is_empty() && rest.contains(']')) {
-            Some((n, rest)) => (n.replace(['.', ' '], "_"), Some(rest[..rest.find(']').unwrap_or(0)].to_string())),
-            None => (k.replace(['.', ' '], "_"), None),
-        };
-        if name.is_empty() {
-            continue;
-        }
-        let (name, v) = (rawurlencode(&name), rawurlencode(&urldecode(v)));
-        let slot = args.iter().position(|(key, _)| *key == name);
-        match (sub, slot) {
-            (None, Some(i)) => args[i].1 = Arg::One(v),
-            (None, None) => args.push((name, Arg::One(v))),
-            (Some(sub), slot) => {
-                let i = slot.unwrap_or_else(|| {
-                    args.push((name, Arg::List(Vec::new())));
-                    args.len() - 1
-                });
-                if let Arg::One(_) = args[i].1 {
-                    args[i].1 = Arg::List(Vec::new());
-                }
-                if let Arg::List(list) = &mut args[i].1 {
-                    let sub = if sub.is_empty() { list.len().to_string() } else { sub };
-                    match list.iter_mut().find(|(s, _)| *s == sub) {
-                        Some(e) => e.1 = v,
-                        None => list.push((sub, v)),
-                    }
-                }
-            }
-        }
-    }
-    let pair = |k: &str, v: &str| if v.is_empty() { k.to_string() } else { format!("{k}={v}") };
-    let q: Vec<String> = args
-        .iter()
-        .flat_map(|(k, a)| match a {
-            Arg::One(v) => vec![pair(k, v)],
-            Arg::List(list) => list.iter().map(|(s, v)| pair(&format!("{k}%5B{s}%5D"), v)).collect(),
-        })
-        .collect();
-    if q.is_empty() {
-        base.to_string()
-    } else {
-        format!("{base}?{}", q.join("&"))
-    }
-}
-
 /// What a claimed path answers, given the content and the requested language.
 #[derive(Debug, PartialEq, Eq)]
 enum Answer<'a> {
@@ -431,10 +351,9 @@ fn unavailable(e: sqlx::Error) -> Response<Body> {
 
 /// The page at `uri`, with `answer` (a submitted form's markup) in place of the first island of that form. A
 /// neutral GET gets the page as hxweb finished the static pages; anything else (a post, other query keys) went to
-/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. While
-/// WordPress runs, such a request for a page with forms is still its to answer: its forms carry a fresh Zero Spam
-/// token that WordPress checks on submit. Only a GET or HEAD (`replay`) can be handed back to the legacy stack;
-/// a post that would be handed back gets the page at its path, or a 404.
+/// WordPress on prod and gets the page as WordPress printed it, forms marked for the visitor's browser. Only a GET
+/// or HEAD (`replay`) can be handed back to the legacy stack; a post that would be handed back gets the page at its
+/// path, or a 404.
 async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String)>, replay: bool) -> Response<Body> {
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let raw_query = uri.query().unwrap_or("");
@@ -459,9 +378,6 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, agent: &str, answer: Option<(u32, String
             _ => return (StatusCode::NOT_FOUND, "Not found").into_response(),
         },
     };
-    if !finished && replay && answer.is_none() && wp.legacy.is_some() && !islands(&site, page).is_empty() {
-        return legacy();
-    }
     let wp_uri = format!("{}{}", page.path, q.form_uri_query);
     let Some(html) = theme::render(&site, page, &wp_uri) else {
         tracing::error!("{path} is claimed but its template is not ported");
@@ -647,15 +563,6 @@ mod tests {
         assert!(lists_users("rest_route=%2Fwp%2Fv2%2Fusers&per_page=100"));
         assert!(lists_users("rest_route=//WP/v2/users/1"));
         assert!(!lists_users("rest_route=/wp/v2/pages"));
-    }
-
-    #[test]
-    fn redirects_keep_the_query_as_redirect_canonical_rebuilds_it() {
-        assert_eq!(with_query("/product/", "lang=%27+OR+%271%27%3D%271"), "/product/?lang=%27%20OR%20%271%27%3D%271");
-        assert_eq!(with_query("/product/", ""), "/product/");
-        assert_eq!(with_query("/a/?lang=fr", "lang=fr&utm_source=x"), "/a/?lang=fr&utm_source=x");
-        assert_eq!(with_query("/?page_id=4", "quot=&a.b=1&a.b=2"), "/?page_id=4&quot&a_b=2");
-        assert_eq!(with_query("/r/", "x[]=1&x[]=2&y[k]=a+b"), "/r/?x%5B0%5D=1&x%5B1%5D=2&y%5Bk%5D=a%20b");
     }
 
     #[test]

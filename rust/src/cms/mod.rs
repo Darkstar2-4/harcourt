@@ -26,6 +26,7 @@ pub mod import;
 pub mod media;
 pub mod model;
 pub mod theme;
+pub mod url;
 
 pub use model::*;
 

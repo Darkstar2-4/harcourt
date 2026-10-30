@@ -299,7 +299,7 @@ pub fn form(r: &Render) -> String {
     }
     let (target, anchor) = if r.embed.ajax { (format!(" target='gform_ajax_frame_{fid}'"), format!("#gf_{fid}")) } else { (String::new(), String::new()) };
     let css = if f.css_class.is_empty() { String::new() } else { format!(" class='{}'", esc(&f.css_class)) };
-    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}{anchor}' data-formid='{fid}' novalidate>", esc(r.page_uri)));
+    out.push_str(&format!("<form method='post' enctype='multipart/form-data'{target} id='gform_{fid}'{css} action='{}{anchor}' data-formid='{fid}' novalidate>", crate::cms::url::form_action(r.page_uri)));
     if r.recaptcha {
         out.push_str("<input type='hidden' class='registry_recaptcha_response' name='registry_recaptcha_response' value=''/>");
     }
@@ -399,7 +399,7 @@ mod tests {
         let html = form(&Render { form: &f, page_uri: "/contact-us/?a=1&b=2", embed: &embed, values: &values, errors: &errors, summary: Some("<div class='validation_error'>x</div>"), token: Some("1.ab"), recaptcha: true, browser: "gf_browser_unknown" });
         for part in [
             "id='gform_wrapper_3'",
-            "action='/contact-us/?a=1&amp;b=2'",
+            "action='/contact-us/?a=1&#038;b=2'",
             "<ul id='gform_fields_3'",
             "name='input_1' id='input_3_1' type='text' value='Pat &lt;b&gt;'",
             "<li id=\"field_3_10\" class=\"gfield gfield--type-email gfield_contains_required field_sublabel_below gfield--no-description field_description_below field_validation_below gfield_visibility_visible gfield_error\" >",

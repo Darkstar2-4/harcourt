@@ -19,7 +19,7 @@ pub fn esc(s: &str) -> String {
 }
 
 /// `&name;`, `&#123;` or `&#x1F;` at the start of `s`.
-fn starts_entity(s: &str) -> bool {
+pub fn starts_entity(s: &str) -> bool {
     let b = s.as_bytes();
     let body_end = match b.get(1) {
         Some(b'#') => match b.get(2) {

@@ -5,6 +5,7 @@ use super::{Ctx, Slot, ORIGIN};
 use crate::cms::{
     html::esc,
     model::{Lang, Menu, MenuItem, Page, Template},
+    url::urlencode,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -175,19 +176,6 @@ fn hreflang(c: &Ctx) -> String {
     }
     if let Some(en) = pages.iter().find(|p| p.lang == Lang::En) {
         out.push_str(&format!("<link rel=\"alternate\" hreflang=\"x-default\" href=\"{}\" />\n", esc(&en.url(ORIGIN))));
-    }
-    out
-}
-
-/// PHP urlencode().
-fn urlencode(s: &str) -> String {
-    let mut out = String::new();
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' => out.push(b as char),
-            b' ' => out.push('+'),
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
     }
     out
 }
