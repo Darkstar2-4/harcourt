@@ -23,9 +23,8 @@ home, the database errors `inventory_info.php` printed) are not repeated.
 
 ## Not comparable here
 
-- **Requests prod's nginx answers itself** (see `wordpress.expected.md`): `?hx_form=` in any letter case (nginx
-  reads arguments without regard to case, so `?HX_FORM=` is refused too, where Rust treats it as WordPress's front
-  page with an unknown argument and redirects like WordPress), `/hx_search_ctx.php` under a doubled slash (Rust's
+- **Requests prod's nginx answers itself** (see `wordpress.expected.md`; `?hx_form=` in any letter case now gets
+  nginx's page from hxweb too): `/hx_search_ctx.php` under a doubled slash (Rust's
   404 also sets `harcourt_profile`), and static files, whose MIME types are nginx's or Apache's (`favicon.ico`,
   `.js` under `mu-plugins`).
 - **The author sitemap.** The rig's `wp.sql` holds no users, so the cms has no authors and the sitemap index lists

@@ -121,7 +121,9 @@ async fn other_shapes_of_a_page_url_redirect_like_wordpress() {
     let unknown = app.clone().oneshot(Request::builder().uri("/product/clamping/").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(unknown.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("legacy"), "WordPress answers a page the cms lacks");
     assert_eq!(send(&app, Method::POST, "/product/clamping/").await.0, StatusCode::NOT_FOUND);
-    assert_eq!(send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/users").await.0, StatusCode::GONE);
+    let (status, _, body) = send(&app, Method::GET, "/product/alignment/?rest_route=/wp/v2/users").await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "the user listing gets prod's nginx 404, never WordPress");
+    assert!(body.contains("<center>nginx</center>"));
     assert_eq!(send(&app, Method::POST, "/product/alignment/").await.0, StatusCode::OK);
 }
 

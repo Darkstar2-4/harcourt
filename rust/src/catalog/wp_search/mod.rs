@@ -43,12 +43,16 @@ pub struct Search {
 }
 
 pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
-    let search = Arc::new(Search {
+    Router::new().route("/search/{*rest}", get(results).post(results)).layer(Extension(searcher(core)))
+}
+
+/// The search pages' state, for another route that shows WordPress's search (`/?s=` on the front page).
+pub fn searcher(core: Arc<Auth>) -> Arc<Search> {
+    Arc::new(Search {
         content: Content::new(core.pool.clone()),
         forms: OrdersForms { orders: Arc::new(Orders::from_env(core.clone())), fallback: Islands::from_env() },
         origin: core.public_origin.clone(),
-    });
-    Router::new().route("/search/{*rest}", get(results).post(results)).layer(Extension(search))
+    })
 }
 
 /// What a request under /search/ asks WordPress for.
@@ -614,22 +618,25 @@ fn more_link(url: &str) -> String {
     format!("&hellip;</p><p><a class=\"btn btn-primary\" href=\"{url}\">Continue reading <i class=\"fas fa-arrow-right\"></i></a></p>")
 }
 
-/// the_excerpt() of a result: the post's own excerpt, else its content's first 55 words with the theme's link on.
-fn excerpt(site: &Site, p: &Page) -> String {
+/// get_the_excerpt() of a post: its own excerpt, else its content's first 55 words with the theme's link on.
+pub fn excerpt_text(site: &Site, p: &Page) -> String {
     let own = field(site, p.id, "@excerpt");
-    let text = if own.trim().is_empty() {
-        let content = strip_shortcodes(post_content(site, p.id));
-        let words_from = strip_tags(&texturize(&excerpt_blocks(&content), p.lang));
-        let words: Vec<&str> = words_from.split([' ', '\t', '\n', '\r']).filter(|w| !w.is_empty()).collect();
-        if words.len() > EXCERPT_WORDS {
-            format!("{}{}", words[..EXCERPT_WORDS].join(" "), more_link(&permalink(p)))
-        } else {
-            words.join(" ")
-        }
+    if !own.trim().is_empty() {
+        return own.to_string();
+    }
+    let content = strip_shortcodes(post_content(site, p.id));
+    let words_from = strip_tags(&texturize(&excerpt_blocks(&content), p.lang));
+    let words: Vec<&str> = words_from.split([' ', '\t', '\n', '\r']).filter(|w| !w.is_empty()).collect();
+    if words.len() > EXCERPT_WORDS {
+        format!("{}{}", words[..EXCERPT_WORDS].join(" "), more_link(&permalink(p)))
     } else {
-        own.to_string()
-    };
-    autop(&texturize(&text, p.lang))
+        words.join(" ")
+    }
+}
+
+/// the_excerpt() of a result.
+fn excerpt(site: &Site, p: &Page) -> String {
+    autop(&texturize(&excerpt_text(site, p), p.lang))
 }
 
 /// wpautop() of an excerpt: paragraphs at blank lines, single line breaks as `<br />`.
@@ -762,6 +769,15 @@ fn sidebar(site: &Site, lang: Lang, last: Option<&Page>) -> String {
     }
 }
 
+/// Whether the cms holds all a page of results prints: Gravity Forms puts the styles and scripts of a form in the
+/// head when a result's content embeds one, and sidebar.php prints the last result's `sidebar_select` area, which
+/// only the export of that page recorded.
+fn drawable(site: &Site, shown: &[&Page]) -> bool {
+    let embeds = |p: &Page| post_content(site, p.id).contains("gravityform");
+    let area_known = |p: &Page| p.kind == PostType::Faq || field(site, p.id, "sidebar_select").is_empty() || site.meta(p.id).contains_key("sidebar");
+    !shown.iter().any(|p| embeds(p)) && shown.last().is_none_or(|p| area_known(p))
+}
+
 /// Yoast's graph for a search: the results page, the first result's featured image, the breadcrumb, then the
 /// site's own pieces as the 404 page prints them.
 fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page>, not_found: &str) -> String {
@@ -795,7 +811,8 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
 
 /// feed_links_extra(): the search's own feed, after the site's comments feed (the chrome has no hole there).
 fn with_feed_link(html: String, lang: Lang, s: &str) -> String {
-    let (shown, u) = (esc(s), urlencode(s, false));
+    // get_search_link() keeps the slashes of the terms.
+    let (shown, u) = (esc(s), urlencode(s, false).replace("%2F", "/"));
     let line = match lang {
         Lang::En => format!("<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Search Results for &#8220;{shown}&#8221; Feed\" href=\"{ORIGIN}/search/{u}/feed/rss2/\" />\n"),
         Lang::Fr => format!(
@@ -843,6 +860,14 @@ async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: H
         }
         Asked::Legacy => return legacy(),
     };
+    let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
+    show(&search, &s, lang, paged, page, &request_uri, &headers).await
+}
+
+/// WordPress's search page for `s` in `lang`: result page `paged`, the `page` query var, the forms posting back to
+/// `request_uri` as asked.
+pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page: usize, request_uri: &str, headers: &HeaderMap) -> Response {
+    let paged = paged.max(1);
     let site = match search.content.site().await {
         Ok(site) => site,
         Err(e) => {
@@ -854,24 +879,29 @@ async fn results(Extension(search): Extension<Arc<Search>>, uri: Uri, headers: H
     if !site.options(lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) {
         return legacy();
     }
-    let found = search_posts(&site, &s, lang);
+    if s.trim().is_empty() {
+        return legacy();
+    }
+    let found = search_posts(&site, s, lang);
     let pages = found.len().div_ceil(PER_PAGE);
-    let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
     let (status, html) = if paged > 1 && paged > pages {
-        (StatusCode::NOT_FOUND, theme::not_found(&site, lang, &request_uri))
+        (StatusCode::NOT_FOUND, theme::not_found(&site, lang, request_uri))
     } else {
         let shown: Vec<&Page> = found.iter().skip((paged - 1) * PER_PAGE).take(PER_PAGE).copied().collect();
+        if !drawable(&site, &shown) {
+            return legacy();
+        }
         let ajax = headers.get("x-requested-with").and_then(|v| v.to_str().ok()).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest"));
-        let holes = holes(&site, &Shown { s: &s, lang, paged, pages, page, ajax }, &shown);
-        let html = theme::without_post(&site, lang, &request_uri, &holes, &main_html(&site, &esc(&s), &shown));
-        (StatusCode::OK, with_feed_link(html, lang, &s))
+        let holes = holes(&site, &Shown { s, lang, paged, pages, page, ajax }, &shown);
+        let html = theme::without_post(&site, lang, request_uri, &holes, &main_html(&site, &esc(s), &shown));
+        (StatusCode::OK, with_feed_link(html, lang, s))
     };
     let islands: Vec<Island> = serde_json::from_str(site.options(lang).get(&format!("{}islands", theme::NOT_FOUND_OPTION)).map_or("[]", |f| f.value.as_str())).unwrap_or_default();
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let filled = crate::cms::forms::fill(&html, |form, index| {
         let island = islands.get(index).filter(|i| i.form == form);
         let position = islands.iter().position(|i| i.form == form).unwrap_or(index) + 1;
-        let (search, request_uri) = (search.clone(), &request_uri);
+        let search = search.clone();
         async move {
             let i = island.ok_or_else(|| format!("form {form} is not in the 404 page's islands"))?;
             let embed = FormEmbed {
