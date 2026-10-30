@@ -34,7 +34,7 @@ use crate::{accounts::profile::Profile as AddressProfile, api::Auth, db::unix_no
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/catalog.php", get(catalog_php))
+        .route("/catalog.php", get(catalog_php).post(catalog_php))
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
 }
