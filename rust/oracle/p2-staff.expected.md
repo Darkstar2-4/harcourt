@@ -67,5 +67,5 @@ Run `p2-staff.jsonl` with `--rust-session --jobs 1`. Signed-in cases are warm an
 - `xdashboard.php`: superseded by dashboard.php; no traffic and no links.
 - `pricing_utility.php`: its record types come from per-subcategory PHP configure modules (smart SKUs), which belong
   with the configurator.
-- `inventory_pricebook.php`, `portalcontent.php`, `portal_preview.php`, and the cron jobs `image_filmstrip` and
-  `cad_toolbox`: not reached in this round.
+- `inventory_pricebook.php`, `portal_preview.php`, and the cron jobs `image_filmstrip` and `cad_toolbox`: not reached in
+  this round.
