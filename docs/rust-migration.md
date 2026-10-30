@@ -61,7 +61,7 @@ The PR moves the site's request handling into one Rust program, `hxweb`. It brin
 | Orders | `src/orders/` | `cart.php`, `checkout.php`, `orderhd.php`, carriers, contact, every live Gravity Forms form, and the sender that drains the `outbox` table. |
 | Staff | `src/staff/` | The dashboard with its access requests, the log viewer, and the commands `hxweb export`, `hxweb import`, `hxweb job` and `hxweb remote-grants` for the data work, the cron jobs and remote grants (`hxweb export` alone prints their usage). |
 | WordPress | `src/cms/`, `src/routes/wordpress.rs`, `docs/cms.md` | The theme, the page content, menus, redirects, sitemaps, the 404 page, and editing page text from the staff dashboard. |
-| Database | `migrations/` | SQLite schema for all 37 application tables, generated from the MySQL schema, plus the tables Rust adds (`session`, `visit`, `access_code`, `remote_grant`, `outbox`, `cart`, the `cms_*` tables). |
+| Database | `migrations/` | SQLite schema for 35 application tables, generated from the MySQL schema, plus the tables Rust adds (`session`, `visit`, `access_code`, `remote_grant`, `outbox`, `cart`, the `cms_*` tables). |
 | Browser | `web/` | `hx/hx-nav.js` and `scs_scripts/scscpq_wp.js`, now generated from strict TypeScript. |
 
 Pages are rendered by Rust functions that write the same HTML, classes and ids the PHP wrote, so the existing CSS and scripts keep working. Every value a page prints is escaped. Queries are `sqlx::query!` with bound values, checked against `migrations/` when the program compiles, and `rust/.sqlx/` lets CI build without a database.

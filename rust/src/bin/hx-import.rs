@@ -29,11 +29,11 @@ use sqlx::{
 };
 
 /// The legacy tables the PHP site owns. A missing one on either side is an error, so a dropped table is loud.
-const LEGACY: [&str; 37] = [
+const LEGACY: [&str; 35] = [
     "blacklist", "bot", "cad", "campaign", "captcha_bypass", "carrier", "category", "company_category_block",
     "content", "country", "currency", "document", "hero", "industry", "inventory", "inventory_xref", "language",
-    "log", "mailform", "orderhd", "orderln", "pages", "portal", "portalcategory", "portalcontent", "portalitem",
-    "pricing", "punchout", "registry", "remote", "scs_migration", "search", "subcategory", "user", "user_category",
+    "log", "mailform", "orderhd", "orderln", "pages", "portal", "portalcategory", "portalcontent",
+    "pricing", "punchout", "registry", "remote", "search", "subcategory", "user", "user_category",
     "xinventory", "xuser",
 ];
 
