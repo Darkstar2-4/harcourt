@@ -17,7 +17,7 @@ use sqlx::SqlitePool;
 
 use super::{
     forms, html, model,
-    profile::{self, Profile},
+    profile::Profile,
     registry::{self, Registry},
     strings::{self, Strings},
     viewer::{self, Viewer},
@@ -68,7 +68,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
         let reg = registry::load(&core.pool).await?;
         let strings = strings::load(&core.pool, lang).await?;
-        let profile = profile::load(&core.pool, &viewer, &headers).await?;
+        let profile = Profile::from(&crate::accounts::profile::Profile::load(&core.pool, &headers, &visitor).await?);
         let ctx = Api { pool: &core.pool, viewer: &viewer, reg: &reg, strings: &strings, profile };
         let mut out = Map::new();
         let mut trace = vec!["json"];
@@ -140,7 +140,7 @@ impl Api<'_> {
         };
         let catalog = model::load(self.pool, self.viewer.lang, self.reg, model::Day::from_unix(crate::db::unix_now())).await?;
         let book = pricing::PriceBook::load(self.pool, self.reg.get("local", "configure_contact")).await?;
-        let buyer = pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active, currency_code: &self.viewer.currency_code };
+        let buyer = pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active(), currency_code: &self.viewer.currency_code };
         let s = self.strings;
         let mut html_parts: Vec<String> = Vec::new();
         let sku = part.as_ref().map_or(sku_url.clone(), |p| p.sku.clone());
@@ -171,7 +171,7 @@ impl Api<'_> {
                 }
             }
         }
-        if self.viewer.active && self.viewer.cad {
+        if self.viewer.active() && self.viewer.cad {
             let label = s.label("catalog_cad_download", "Download CAD", &[]);
             let onclick = format!("quick_cad('', {},1);", forms::js_quote(&sku));
             html_parts.push(format!("<p>{}</p>", forms::button(&label, &[("title", &label), ("class", "quick_cad_button"), ("onclick", &onclick)])));
@@ -243,7 +243,7 @@ impl Api<'_> {
         if p.cad_name.is_empty() {
             return s.label("catalog_cad_invalid_code", "Invalid CAD code: {code}", &[("code", &html::esc_text(&p.cad_code))]);
         }
-        if !self.viewer.active || !self.viewer.cad || sku.trim().is_empty() {
+        if !self.viewer.active() || !self.viewer.cad || sku.trim().is_empty() {
             return s.label("catalog_cad_quick_unavailable", "Quick CAD not available for {sku}", &[("sku", &html::esc_text(sku))]);
         }
         let server = self.reg.get("cad", "partserver_production");

@@ -622,6 +622,19 @@ mod tests {
     use crate::orders::forms::model::{parse, tests::*};
 
     #[test]
+    fn the_action_is_the_page_query_as_wordpress_rebuilt_it() {
+        assert_eq!(form_action("/catalog/"), "/catalog/");
+        assert_eq!(form_action("/catalogue/?lang=fr"), "/catalogue/?lang=fr");
+        assert_eq!(
+            form_action("/catalog/?action=subcategory&subcategory_id=440&page=1&parameter0=7/16-14"),
+            "/catalog/?action=subcategory&#038;subcategory_id=440&#038;page=1&#038;parameter0=7%2F16-14"
+        );
+        assert_eq!(form_action("/catalog/?search_source=search&search_id=21304&search_code="), "/catalog/?search_source=search&#038;search_id=21304&#038;search_code");
+        assert_eq!(form_action("/catalog/?search_source=search&amp%3Bsearch_id=698&amp%3Bsearch_code="), "/catalog/?search_source=search&#038;search_id=698&#038;search_code");
+        assert_eq!(form_action("/a/?x=1&x=2&y.z=a b&gf_token=t&l[]=p&l[]=q"), "/a/?x=2&#038;y_z=a+b&#038;l%5B0%5D=p&#038;l%5B1%5D=q");
+    }
+
+    #[test]
     fn the_form_carries_the_gravity_forms_names() {
         let f = parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap();
         let values = Values::from([("input_1".to_string(), "Pat <b>".to_string())]);

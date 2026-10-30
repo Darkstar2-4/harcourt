@@ -30,13 +30,14 @@ use super::{
     tabs::Tabs,
     viewer::{self, Lang, Viewer},
 };
-use crate::{api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
+use crate::{accounts::profile::Profile as AddressProfile, api::Auth, db::unix_now, identity::Role, pricing::PriceBook, visitor::Visitor};
 
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
-        .route("/catalog.php", get(catalog_php))
+        .route("/catalog.php", get(catalog_php).post(catalog_php))
         .route("/new_catalog.php", get(new_catalog))
         .route("/document_viewer.php", get(document_viewer))
+        .route("/search.php", get(search_php).post(search_php))
 }
 
 /// The query of a catalog.php request, as its constructor reads it.
@@ -163,16 +164,15 @@ impl Ctx<'_> {
     }
 
     pub fn buyer(&self) -> crate::pricing::Buyer<'_> {
-        crate::pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active, currency_code: &self.viewer.currency_code }
+        crate::pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active(), currency_code: &self.viewer.currency_code }
     }
 }
 
-pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, cookies: &HeaderMap) -> sqlx::Result<Ctx<'a>> {
+pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, profile: Profile) -> sqlx::Result<Ctx<'a>> {
     let registry = registry::load(pool).await?;
     let catalog = model::load(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
-    let profile = super::profile::load(pool, viewer, cookies).await?;
     let php_self = match (req.framed, viewer.lang) {
         (false, _) => "/catalog.php",
         (true, Lang::Fr) => "/catalogue/",
@@ -374,18 +374,27 @@ async fn catalog_php(
 
 type Params = std::collections::HashMap<String, String>;
 
+/// catalog.php. Its constructor loaded the profile, which writes the `harcourt_profile` cookie on every request.
 async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &axum::http::Uri, q: &Params) -> Response {
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
         let uri = uri.path_and_query().map_or_else(|| uri.path().to_string(), |pq| pq.as_str().to_string());
         let req = Request { uri, framed: visitor.framed, ..Request::parse(q) };
-        let mut ctx = load_ctx(&core.pool, &viewer, req, headers).await?;
+        let loaded = AddressProfile::load(&core.pool, headers, visitor).await?;
+        let cookie = loaded.remember(&core.pool, visitor, unix_now()).await?;
+        let mut ctx = load_ctx(&core.pool, &viewer, req, Profile::from(&loaded)).await?;
         ctx.search = Some(cache);
-        render(&mut ctx).await
+        Ok::<_, sqlx::Error>((render(&mut ctx).await?, cookie))
     }
     .await;
     match result {
-        Ok(body) => html_response(body),
+        Ok((body, cookie)) => {
+            let mut resp = html_response(body);
+            if let Some(c) = cookie {
+                resp.headers_mut().append(header::SET_COOKIE, c);
+            }
+            resp
+        }
         Err(e) => failed(e),
     }
 }
@@ -418,6 +427,34 @@ async fn new_catalog(
     match gate {
         Ok(Some(body)) => html_response(body),
         Ok(None) => catalog_view(&core, cache, &visitor, &headers, &uri, &q).await,
+        Err(e) => failed(e),
+    }
+}
+
+const SEARCH_FORM: &str = concat!(
+    "<form name=\"productSearch\" id=\"productSearch\" method=\"get\" action=\"/products.php?action=search\" accept-charset=\"utf-8\" autocomplete=\"on\">\n",
+    "<input type=\"hidden\" name=\"search_source\" id=\"search_source\" value=\"term\">\n",
+    "<input type=\"text\" name=\"search_code\" id=\"ajax_inventory_search\" placeholder=\"Product Search\" class=\"ui-autocomplete-input\" autocomplete=\"off\">\n",
+    "<button type=\"submit\"><img src=\"images/red-magnifier.png\"></button>\n",
+    "</form>\n",
+);
+
+/// search.php: the old product search form in the SCS page.
+async fn search_php(State(core): State<Arc<Auth>>, visitor: Visitor) -> Response {
+    let page = async {
+        let reg = registry::load(&core.pool).await?;
+        let viewer = viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await?;
+        let dashboard = match viewer.at_least(Role::Executive) {
+            true => Some(strings::load(&core.pool, viewer.lang).await?.get("menu_dashboard").to_string()),
+            false => None,
+        };
+        let ribbon = (!visitor.framed).then(|| chrome::ribbon(dashboard.as_deref()));
+        let body = format!("<p class='message left'>Product Search</p>{SEARCH_FORM}");
+        Ok::<_, sqlx::Error>(chrome::document(&reg, &chrome::Head::titled("Product Search"), &body, ribbon.as_deref()))
+    }
+    .await;
+    match page {
+        Ok(body) => html_response(body),
         Err(e) => failed(e),
     }
 }

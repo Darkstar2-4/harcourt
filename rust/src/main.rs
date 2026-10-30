@@ -12,7 +12,7 @@ use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, sync::Arc, time
 
 use axum::{
     body::Body,
-    extract::{Request, State},
+    extract::{ConnectInfo, Request, State},
     http::{Method, Response, StatusCode},
     Router,
 };
@@ -24,6 +24,8 @@ pub struct App {
     /// The library's routes, called in-process by the composer (the catalog fragment and the loader JSON). None
     /// without a database, in which case the composer passes the page to PHP.
     lib: Option<Router>,
+    /// The catalog pages' shell from the cms tables. None without a database.
+    cms: Option<compose::Cms>,
     site: String,
     /// The host visitors use. Differs from `site` on a staging copy (stage2.harcourt.co), where links are rewritten.
     public_host: String,
@@ -112,10 +114,12 @@ async fn main() {
     }
     let env = |k: &str, d: &str| std::env::var(k).unwrap_or_else(|_| d.to_string());
     let listen = env("HXWEB_LISTEN", "127.0.0.1:8090");
-    let lib = open_auth().await.map(hxweb::routes::all);
+    let core = open_auth().await;
+    let lib = core.clone().map(hxweb::routes::all);
     let app = Arc::new(App {
         legacy: env("HXWEB_LEGACY", "https://127.0.0.1:8443"),
         lib: lib.clone(),
+        cms: core.map(compose::Cms::new),
         site: env("HXWEB_SITE", "www.harcourt.co"),
         public_host: env("HXWEB_PUBLIC_HOST", &env("HXWEB_SITE", "www.harcourt.co")),
         http: client(Duration::from_secs(30)),
@@ -187,13 +191,18 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
 /// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs. A
 /// GET they hand back (`x-hxweb: legacy`, a query WordPress acts on) goes where an unclaimed path would.
 async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum::middleware::Next) -> Response<Body> {
-    let again = (req.method() == Method::GET || req.method() == Method::HEAD).then(|| (req.method().clone(), req.uri().clone(), req.headers().clone()));
+    let again = (req.method() == Method::GET || req.method() == Method::HEAD).then(|| {
+        (req.method().clone(), req.uri().clone(), req.headers().clone(), req.extensions().get::<ConnectInfo<SocketAddr>>().cloned())
+    });
     let resp = next.run(req).await;
-    if let Some((method, uri, headers)) = again.filter(|_| resp.headers().get("x-hxweb").is_some_and(|v| v == "legacy")) {
+    if let Some((method, uri, headers, peer)) = again.filter(|_| resp.headers().get("x-hxweb").is_some_and(|v| v == "legacy")) {
         let mut req = Request::new(Body::empty());
         *req.method_mut() = method;
         *req.uri_mut() = uri;
         *req.headers_mut() = headers;
+        if let Some(peer) = peer {
+            req.extensions_mut().insert(peer);
+        }
         return dispatch(State(app), req).await;
     }
     if resp.headers().get("x-hxweb").is_none_or(|v| v != "cms") {

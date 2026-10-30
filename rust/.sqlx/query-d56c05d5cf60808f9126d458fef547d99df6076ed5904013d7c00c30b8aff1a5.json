@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", sku, subcategory_id FROM inventory WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sku",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "d56c05d5cf60808f9126d458fef547d99df6076ed5904013d7c00c30b8aff1a5"
+}

@@ -35,7 +35,10 @@ use crate::{
 /// WordPress did.
 const PAGES: &[&str] = &[
     "/",
+    "/beta_catalog/",
     "/boxjoint-inquiry-form/",
+    "/catalog/",
+    "/catalogue/",
     "/company/",
     "/company/about-harcourt/",
     "/company/career-opportunities/",
@@ -50,6 +53,7 @@ const PAGES: &[&str] = &[
     "/contact-france/",
     "/contact-india/",
     "/contact-uk/",
+    "/customer_portal/",
     "/formulaire-de-contact/",
     "/gamme-de-produits/",
     "/gamme-de-produits/bridage/",
@@ -79,6 +83,7 @@ const PAGES: &[&str] = &[
     "/innovations/tooling-configurators/",
     "/legal/",
     "/news/",
+    "/portail-clients/",
     "/privacy/",
     "/product/",
     "/product/alignment/",
@@ -96,12 +101,14 @@ const PAGES: &[&str] = &[
     "/nous-contacter-france/",
     "/nous-contacter-inde/",
     "/nous-contacter-uk/",
+    "/recherche/",
     "/resources/",
     "/resources/faq/",
     "/resources/lunch-learns/",
     "/ressources/",
     "/ressources/dejeuners-et-causeries/",
     "/ressources/faq/",
+    "/search/",
     "/societe/",
     "/societe/a-propos-dharcourt/",
     "/societe/histoire/",
@@ -374,6 +381,11 @@ fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answer<'
 }
 
 async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -> Response<Body> {
+    // The catalog page in its own language is composed around the catalog (compose.rs); WordPress's answers to the
+    // rest (its redirects, a form post) stay here.
+    if crate::catalog::composed_page(uri.path(), uri.query().unwrap_or("")).is_some() {
+        return legacy();
+    }
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     serve(&wp, &uri, agent, None, true).await
 }
@@ -398,7 +410,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let Answer::Render(page) = resolve(&site, &path, q.lang) else { return serve(&wp, &parts.uri, agent, None, false).await };
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
         return match &wp.legacy {
-            Some(legacy) if !islands(&site, page).is_empty() => legacy.forward(&parts, body).await,
+            Some(legacy) if !islands(&site, page).is_empty() && !page.template.is_scscpq_shell() => legacy.forward(&parts, body).await,
             _ => serve(&wp, &parts.uri, agent, None, false).await,
         };
     };

@@ -1,6 +1,7 @@
 //! scs_ajax.php without its table-name dispatch. The search box's own request (`table=search`) is answered as live
 //! hxweb answered it, before PHP. Of the rest, only the staff autocompletes the site's pages call are served, to
-//! staff; any other table or caller gets the PHP's refusal, a bare 401.
+//! staff; any other table or caller gets the PHP's refusal, a bare 401. portal_ajax.php, the old welcome pages'
+//! sign-in form, is here as well.
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -17,11 +18,11 @@ use super::{search, viewer};
 use crate::{
     api::Auth,
     identity::Role,
-    visitor::{Visitor, PHP_CONTENT_TYPE},
+    visitor::{Identity, Visitor, PHP_CONTENT_TYPE},
 };
 
 pub fn router() -> Router<Arc<Auth>> {
-    Router::new().route("/scs_ajax.php", get(scs_ajax))
+    Router::new().route("/scs_ajax.php", get(scs_ajax)).route("/portal_ajax.php", get(portal_ajax).post(portal_ajax))
 }
 
 /// The autocompletes behind scs_ajax.php that Rust still answers.
@@ -58,9 +59,20 @@ impl AjaxRequest {
     }
 }
 
-/// The search box's request, which live hxweb took before PHP saw it: `table=search` exactly, searching.
+/// The search box's request, which live hxweb took before PHP saw it: `table=search` exactly, searching. PHP never
+/// ran for it, so neither did scs_header.php's visit handling.
 fn is_search_box(q: &HashMap<String, String>) -> bool {
     q.get("table").is_some_and(|t| t == "search") && q.get("action").is_none_or(|a| a == "search")
+}
+
+/// `is_search_box` for a raw query string, as the visitor layer sees it.
+pub fn search_box_query(query: &str) -> bool {
+    let q: HashMap<String, String> = query
+        .split('&')
+        .filter_map(|kv| kv.split_once('=').or(Some((kv, ""))))
+        .map(|(k, v)| (k.to_string(), percent_encoding::percent_decode_str(&v.replace('+', " ")).decode_utf8_lossy().into_owned()))
+        .collect();
+    is_search_box(&q)
 }
 
 /// ajax_class's gates: a Referer on this host and an XMLHttpRequest.
@@ -97,7 +109,7 @@ async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc
             return Ok(refused());
         };
         let v = viewer::load(&core.pool, &visitor, viewer::Lang::En).await?;
-        if !(v.active && v.at_least(Role::Internal)) {
+        if !(v.active() && v.at_least(Role::Internal)) {
             return Ok(refused());
         }
         let list = match source {
@@ -111,6 +123,34 @@ async fn scs_ajax(State(core): State<Arc<Auth>>, Extension(cache): Extension<Arc
         tracing::error!("scs_ajax: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
     })
+}
+
+/// The sign-in form portal_ajax.php handed the old welcome pages, posting the email to the catalog.
+const WELCOME_FORM: &str = "<form name='scs_form' id='scs_form' target='_top' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n<input type=hidden name='action' id='action' value='email'>\n<div class='entry' id='firstentry'>Email Address: <input name='email' type='text' /></div><div class='submitbutton'><input type=image id='Image1' src='/scs_images/continuebutton.gif' width='140' height='31' border='0' onmouseover=\"javascript:MM_swapImage('Image1','','images/continuebuttonover.gif',1)\" onmouseout=\"javascript:MM_swapImgRestore();\"></div></form>";
+const FORM_HOLDER: &str = "<form name='scs_form' id='scs_form' target='_top' method=post action='/catalog.php' accept-charset='utf-8' autocomplete=on>\n<input type=hidden name='action' id='action' value='email'>\n<div id='text-entry'><input type='text' name='email' id='email' /></div><div id='email-address'>E-mail Address: </div><div id='continue'><img src='/welcome-pages/continuebutton.gif' width='140' height='31' id='Image1' onmouseover='MM_swapImage('Image1','','/welcome-pages/continuebuttonover.gif',1)' onmouseout='MM_swapImgRestore()' onclick='document.scs_form.submit();' border='0'/></div><img src='/welcome-pages/formbackground2.gif' width='393' height='133' /></form>";
+
+/// portal_ajax.php: for a script's request with action catalog or products, the visitor's company and the two
+/// sign-in forms; for another action an empty list; for anything but a script's request, a refusal.
+async fn portal_ajax(visitor: Visitor, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> Response {
+    let html = |body: String| (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE)], body).into_response();
+    if !headers.get("x-requested-with").and_then(|v| v.to_str().ok()).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest")) {
+        return html("Direct request".into());
+    }
+    if !matches!(q.get("action").map(String::as_str), Some("catalog" | "products")) {
+        return html("[]".into());
+    }
+    let company = match &visitor.identity {
+        Identity::Account(s) => s.account.user.company_name.clone(),
+        Identity::Bot(b) => Some(b.name.clone()),
+        Identity::Anonymous => None,
+    };
+    let php = super::loader::php_json;
+    html(format!(
+        "{{\"welcome_company_name\":{},\"userformwelcome\":{},\"form-holder\":{}}}",
+        php(&company.map_or(Value::Null, Value::String)),
+        php(&json!(WELCOME_FORM)),
+        php(&json!(FORM_HOLDER))
+    ))
 }
 
 /// Company names containing every word of the term, one per name, in MySQL's case-blind order.
@@ -169,6 +209,8 @@ mod tests {
         assert!(is_search_box(&q(&[("table", "search"), ("action", "search")])));
         assert!(!is_search_box(&q(&[("table", "Search")])));
         assert!(!is_search_box(&q(&[("table", "search"), ("action", "save")])));
+        assert!(search_box_query("table=search&limit=20&term=HS"));
+        assert!(!search_box_query("table=user&source=company_name"));
     }
 
     #[test]
