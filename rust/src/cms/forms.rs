@@ -90,6 +90,33 @@ impl FormSource for Islands {
     }
 }
 
+/// Gravity Forms as the orders area renders them from SQLite, falling back to the WordPress island endpoint for a
+/// form that is not imported there.
+pub struct OrdersForms {
+    pub orders: crate::orders::Orders,
+    pub fallback: Option<Islands>,
+}
+
+impl FormSource for OrdersForms {
+    fn markup<'a>(&'a self, form: &'a FormEmbed<'a>) -> Markup<'a> {
+        Box::pin(async move {
+            let lang = match form.lang {
+                Lang::En => crate::orders::forms::model::Lang::En,
+                Lang::Fr => crate::orders::forms::model::Lang::Fr,
+            };
+            match crate::orders::forms::island(&self.orders, i64::from(form.form), lang, form.page_uri).await {
+                Ok(Some(html)) => return Ok(html),
+                Ok(None) => {}
+                Err(e) => tracing::warn!("form {}: {e}", form.form),
+            }
+            match &self.fallback {
+                Some(islands) => islands.markup(form).await,
+                None => Err(format!("form {} is not available", form.form)),
+            }
+        })
+    }
+}
+
 /// Replaces each `{{gform:N}}` in `page`, in order, with `markup(N)`. A hole whose form has no markup is an error,
 /// so a page never goes out with a form missing.
 pub async fn fill<F, Fut>(page: &str, mut markup: F) -> Result<String, String>

@@ -20,7 +20,7 @@ use percent_encoding::percent_decode_str;
 use crate::{
     api::Auth,
     cms::{
-        forms::{FormSource, Islands},
+        forms::{FormSource, Islands, OrdersForms},
         theme, Content, FormEmbed, Lang, Page, Site, Status,
     },
 };
@@ -81,8 +81,8 @@ pub struct Wp {
 }
 
 pub fn router(core: Arc<Auth>) -> Router {
-    let forms = Islands::from_env().map(|i| Arc::new(i) as Arc<dyn FormSource>);
-    router_with_forms(core, forms)
+    let forms = OrdersForms { orders: crate::orders::Orders::from_env(core.clone()), fallback: Islands::from_env() };
+    router_with_forms(core, Some(Arc::new(forms)))
 }
 
 /// The router with the given source of form markup (tests pass a fixed one).

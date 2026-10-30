@@ -77,7 +77,7 @@ async fn seed(pool: &SqlitePool) {
 async fn harness() -> (Router, SqlitePool) {
     let pool = db::open_memory().await.unwrap();
     seed(&pool).await;
-    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![] });
+    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
     (wordpress::router_with_forms(auth, Some(Arc::new(StubForms))), pool)
 }
 
@@ -173,7 +173,7 @@ async fn admin_cookie(pool: &SqlitePool, role: &str) -> String {
 }
 
 fn admin_app(pool: &SqlitePool) -> Router {
-    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![] });
+    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
     Router::new().nest("/dashboard/cms", hxweb::cms::admin::router(auth))
 }
 
