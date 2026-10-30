@@ -13,7 +13,7 @@ fn xhr(form: &str, cookie: Option<&str>) -> axum::http::Request<Body> {
 async fn a_configured_part_gets_its_family_price_and_buttons() {
     let h = harness().await;
     for sql in [
-        "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+        "INSERT INTO category (id, name, active) VALUES (1, 'Pins à billes', 1)",
         "INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', 'Active', 'In Stock')",
         "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)",
         r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, active, leadtime_option, pricing) VALUES (1, 'HBLT-1', 1, 7, 1, 'Subcategory', 'a:1:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:10;s:9:"qty_break";i:1;}}')"#,
@@ -27,7 +27,8 @@ async fn a_configured_part_gets_its_family_price_and_buttons() {
     let (_, _, body) = send(&h.app, xhr("action=sku&data%5Blina%5D=hblt-1", Some(&cookie))).await;
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     let html = v["html"].as_str().unwrap();
-    assert!(html.starts_with("<div>Pins: Ball Lock Pins</div><br><div>HBLT-1</div><br><div><div>Price: $10.00</div><p>Typical lead time: In Stock</p></div>"), "{html}");
+    assert!(body.contains(r#"<div>Pins à billes: Ball Lock Pins<\/div>"#), "{body}");
+    assert!(html.starts_with("<div>Pins à billes: Ball Lock Pins</div><br><div>HBLT-1</div><br><div><div>Price: $10.00</div><p>Typical lead time: In Stock</p></div>"), "{html}");
     assert!(html.contains("value='Add to Cart'"));
     assert_eq!(v["data"]["lina"], "hblt-1");
     let (_, _, body) = send(&h.app, xhr("action=sku&data%5Blina%5D=nope", Some(&cookie))).await;

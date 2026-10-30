@@ -16,9 +16,7 @@ use serde_json::{json, Map, Value};
 use sqlx::SqlitePool;
 
 use super::{
-    forms, html,
-    loader::php_json,
-    model,
+    forms, html, model,
     profile::{self, Profile},
     registry::{self, Registry},
     strings::{self, Strings},
@@ -110,7 +108,9 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     .await;
     match result {
         Ok((v, cookie)) => {
-            let mut resp = (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], php_json(&v)).into_response();
+            // json_encode($response, JSON_UNESCAPED_UNICODE): slashes escaped, other characters as they are.
+            let body = v.to_string().replace('/', "\\/");
+            let mut resp = (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response();
             if let Some(c) = cookie.and_then(|c| HeaderValue::from_str(&c).ok()) {
                 resp.headers_mut().insert(header::SET_COOKIE, c);
             }
