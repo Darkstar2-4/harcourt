@@ -58,3 +58,5 @@
 {"name": "wp-search-shape-accept-json", "path": "/search/products?q=pin", "headers": {"Accept": "application/json"}}
 {"name": "category", "path": "/category.php"}
 {"name": "category-wp", "path": "/category.php?scscpq_wp=1"}
+{"name": "industry", "path": "/industry.php"}
+{"name": "industry-wp", "path": "/industry.php?scscpq_wp=1"}

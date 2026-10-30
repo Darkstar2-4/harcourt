@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE industry SET name = ?2, active = ?3 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "44c5b393a8dda501ac45de76c3c9073b9e98e5705a08a9395ea47a567da1b43b"
+}

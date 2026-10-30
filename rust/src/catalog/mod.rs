@@ -20,6 +20,7 @@ pub mod configure;
 pub mod files;
 pub mod forms;
 pub mod html;
+pub mod industry;
 pub mod keywords;
 pub mod loader;
 pub mod metric_filter;
@@ -57,5 +58,6 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(callbacks::router())
         .merge(metric_filter::router())
         .merge(category::router())
+        .merge(industry::router())
         .layer(Extension(search::Cache::new()))
 }
