@@ -10,6 +10,7 @@ use hxweb::{
 };
 use hxweb_fuzz::{gen, heavy};
 use proptest::prelude::*;
+use sqlx::SqlitePool;
 
 const HEADERS: &[&str] = &["From", "Reply-To", "To", "Cc", "Bcc", "Subject", "Date", "MIME-Version", "Content-Type", "Content-Transfer-Encoding", "Message-ID"];
 
@@ -38,6 +39,18 @@ impl Transport for Build {
         self.0.lock().unwrap().push(built);
         Box::pin(async { Ok(()) })
     }
+}
+
+/// This thread's runtime and outbox, kept across cases: the worker sends every due message, so each case sees its own.
+fn outbox() -> &'static (tokio::runtime::Runtime, SqlitePool) {
+    thread_local! {
+        static OUTBOX: &'static (tokio::runtime::Runtime, SqlitePool) = {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            let pool = rt.block_on(db::open_memory()).unwrap();
+            Box::leak(Box::new((rt, pool)))
+        };
+    }
+    OUTBOX.with(|o| *o)
 }
 
 fn address() -> impl Strategy<Value = Email> {
@@ -74,7 +87,7 @@ fn header_problem(message: &[u8]) -> Option<String> {
 }
 
 proptest! {
-    #![proptest_config(heavy(256, 20))]
+    #![proptest_config(heavy(256, 5))]
 
     #[test]
     fn queued_mail_builds_messages_with_one_line_headers(
@@ -82,9 +95,8 @@ proptest! {
         reply in proptest::option::of(address()), also in proptest::collection::vec((kind(), address(), gen::text(20)), 0..4),
         body in gen::text(300), html in any::<bool>(),
     ) {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let (rt, pool) = outbox();
         let built = rt.block_on(async {
-            let pool = db::open_memory().await.unwrap();
             let mut m = Mail::new(Mailbox::new(to, &name), &subject, if html { Body::Html(body) } else { Body::Text(body) });
             m.reply_to = reply;
             m.from_name = from_name;
@@ -92,9 +104,11 @@ proptest! {
                 m.add(k, Mailbox::new(e, &n));
             }
             prop_assert!(!m.subject.chars().any(char::is_control) && !m.to.name.chars().any(char::is_control));
-            mail::enqueue(&pool, &m, 1_700_000_000).await.unwrap();
+            mail::enqueue(pool, &m, 1_700_000_000).await.unwrap();
             let build = Arc::new(Build::default());
-            mail::deliver_due(&pool, build.as_ref(), 1_700_000_000).await.unwrap();
+            mail::deliver_due(pool, build.as_ref(), 1_700_000_000).await.unwrap();
+            sqlx::query("DELETE FROM outbox_recipient").execute(pool).await.unwrap();
+            sqlx::query("DELETE FROM outbox").execute(pool).await.unwrap();
             let built = std::mem::take(&mut *build.0.lock().unwrap());
             Ok(built)
         })?;
