@@ -2,7 +2,8 @@
 -- frame ($_SESSION['scscpq_wp']), a language chosen this visit, the campaign it arrived from, and the message an
 -- OAuth callback left for the sign-up page to show once (microsoft_oauth_error, google_oauth_error), and how many
 -- access codes the sign-up page has turned down since it last sent one ($_SESSION['remote']), and the profile the
--- visit last loaded or typed ($_SESSION['harcourt_profile'], the JSON of the harcourt_profile cookie). The browser's
+-- visit last loaded or typed ($_SESSION['harcourt_profile'], the JSON of the harcourt_profile cookie). A destroyed
+-- visit (session_destroy()) is kept, emptied, until the browser comes back with its id, which PHP then began afresh. The browser's
 -- PHPSESSID names the visit and only its SHA-256 keys the row. It holds preferences, never a sign-in.
 CREATE TABLE visit (
     id            BLOB PRIMARY KEY CHECK (length(id) = 32),
@@ -13,6 +14,7 @@ CREATE TABLE visit (
     google_error  TEXT,
     code_tries    INTEGER NOT NULL DEFAULT 0,
     profile       TEXT,
+    destroyed     INTEGER NOT NULL DEFAULT 0 CHECK (destroyed IN (0, 1)),
     seen_at       INTEGER NOT NULL
 ) STRICT;
 CREATE INDEX visit_seen ON visit (seen_at);

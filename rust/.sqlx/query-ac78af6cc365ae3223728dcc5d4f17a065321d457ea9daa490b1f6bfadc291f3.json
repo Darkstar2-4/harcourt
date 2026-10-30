@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO visit (id, destroyed, seen_at) VALUES (?1, 1, ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ac78af6cc365ae3223728dcc5d4f17a065321d457ea9daa490b1f6bfadc291f3"
+}

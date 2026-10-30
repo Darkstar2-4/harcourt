@@ -172,11 +172,19 @@ pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) 
     Ok(())
 }
 
-/// session_destroy().
-pub async fn forget(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<()> {
+/// session_destroy(): everything the visit held is gone, and the next request with its id begins a visit again.
+pub async fn destroy(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<()> {
+    forget_idle(pool, now).await?;
     let key = id.0.as_slice();
     sqlx::query!("DELETE FROM visit WHERE id = ?1", key).execute(pool).await?;
+    sqlx::query!("INSERT INTO visit (id, destroyed, seen_at) VALUES (?1, 1, ?2)", key, now).execute(pool).await?;
     Ok(())
+}
+
+/// The visit was destroyed and this request comes back with its id: PHP began a new session under it. True once.
+pub async fn begins_again(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<bool> {
+    let key = id.0.as_slice();
+    Ok(sqlx::query!("DELETE FROM visit WHERE id = ?1 AND destroyed = 1", key).execute(pool).await?.rows_affected() > 0)
 }
 
 async fn forget_idle(pool: &SqlitePool, now: i64) -> sqlx::Result<()> {
@@ -208,7 +216,9 @@ mod tests {
         assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 2);
         reset_code_tries(&pool, &b).await.unwrap();
         assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 1);
-        forget(&pool, &b).await.unwrap();
+        destroy(&pool, &b, 1003).await.unwrap();
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
+        assert!(begins_again(&pool, &b).await.unwrap());
+        assert!(!begins_again(&pool, &b).await.unwrap(), "only the first request after");
     }
 }

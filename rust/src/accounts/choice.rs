@@ -112,7 +112,7 @@ if (!sessionStorage['scscpq_cookie']) {
 pub async fn cookie_reset(State(core): State<Arc<Auth>>, headers: HeaderMap) -> Response {
     let mut gone = vec![cookies::set(cookies::EMAIL, "", cookies::Life::Gone)];
     if let Some(sid) = cookies::get(&headers, "PHPSESSID") {
-        if let Err(e) = visit::forget(&core.pool, &VisitId::of(&sid)).await {
+        if let Err(e) = visit::destroy(&core.pool, &VisitId::of(&sid), unix_now()).await {
             tracing::error!("cookie_reset: {e}");
         }
     }

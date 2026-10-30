@@ -221,6 +221,8 @@ struct Php {
     page: Header,
     sid: Option<String>,
     first: bool,
+    /// The session id was made here for a browser that sent none, and is to be set.
+    minted: bool,
 }
 
 impl Php {
@@ -229,8 +231,20 @@ impl Php {
         let page = Header::of(parts.uri.path(), parts.uri.query());
         let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| !s.is_empty());
         let first = sent.is_none();
-        let sid = sent.or_else(|| (start && page != Header::None).then(new_php_session_id));
-        Php { page, sid, first }
+        let minted = first && start && page != Header::None;
+        let sid = sent.or_else(|| minted.then(new_php_session_id));
+        Php { page, sid, first, minted }
+    }
+
+    /// A browser back with the id of a destroyed session began a new one under it, as PHP adopted any id it was sent.
+    async fn after_destroy(mut self, pool: &SqlitePool) -> Php {
+        if let (false, Some(sid)) = (self.first || self.page == Header::None, &self.sid) {
+            match visit::begins_again(pool, &VisitId::of(sid)).await {
+                Ok(again) => self.first = again,
+                Err(e) => tracing::error!("visit: {e}"),
+            }
+        }
+        self
     }
 
     /// menu_class::initial() ran in full: the first request of a visit, on a page that started visits.
@@ -499,7 +513,7 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
         return Ok((None, Vec::new()));
     }
     let mut out = Vec::new();
-    if let (true, Some(sid)) = (php.first, &php.sid) {
+    if let (true, Some(sid)) = (php.minted, &php.sid) {
         out.extend(HeaderValue::from_str(&format!("{PHP_SESSION}={sid}; path=/; secure; HttpOnly; SameSite=Lax")).ok());
     }
     if php.initial() {
@@ -622,7 +636,7 @@ async fn impersonation(pool: &SqlitePool, token: &crate::token::Token, actor: &U
 pub async fn layer(State(core): State<Arc<Auth>>, req: Request, next: Next) -> Response {
     let now = unix_now();
     let (mut parts, body) = req.into_parts();
-    let php = Php::of(&parts, true);
+    let php = Php::of(&parts, true).after_destroy(&core.pool).await;
     let Resolved { visitor, effects } = resolve_or_anonymous(&core, &parts, &php, now).await;
     for effect in &effects {
         apply(&core.pool, &visitor, effect, now).await;

@@ -246,5 +246,9 @@ async fn cookie_reset_signs_out_and_forgets_the_choices() {
     let cleared: Vec<String> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap().split('=').next().unwrap().to_string()).collect();
     assert_eq!(cleared, ["harcourt", "__Host-hx_session"], "the sign-in, and always harcourt");
     assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
-    assert_eq!(count(&pool, "SELECT count(*) FROM visit").await, 0, "the visit is forgotten");
+    assert_eq!(count(&pool, "SELECT count(*) FROM visit WHERE language_code IS NULL AND destroyed = 1").await, 1, "the visit is forgotten");
+    let (status, headers, _) = send(&app, Method::GET, "/newuser.php", &[], None).await;
+    assert_eq!((status, headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/scs_index.php"), "back with the old id: a new visit");
+    let (status, _, _) = send(&app, Method::GET, "/newuser.php", &[], None).await;
+    assert_eq!(status, StatusCode::OK, "and then inside it");
 }
