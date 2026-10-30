@@ -24,7 +24,7 @@ fn generate() -> String {
 }
 
 /// Upper-case, spaces and hyphens removed. None when what is left cannot be a code, so junk costs no attempt.
-fn normalise(typed: &str) -> Option<String> {
+pub fn normalise(typed: &str) -> Option<String> {
     let code: String = typed.chars().filter(|c| !c.is_whitespace() && *c != '-').collect::<String>().to_ascii_uppercase();
     (code.len() == LEN && code.bytes().all(|c| ALPHABET.contains(&c))).then_some(code)
 }
