@@ -79,3 +79,12 @@
 {"name":"wp-home-search","path":"/?s=clamp","language":"en"}
 {"name":"wp-home-lang-en","path":"/?lang=en","language":"en"}
 {"name":"wp-contact-post","method":"POST","path":"/contact/","body":"a=1","language":"en"}
+{"name":"wp-news","path":"/news/","language":"en"}
+{"name":"wp-actualites","path":"/actualites/?lang=fr","language":"fr"}
+{"name":"wp-shadowboxing","path":"/innovations/shadowboxing/","language":"en"}
+{"name":"wp-hkit","path":"/innovations/hkit-valises/?lang=fr","language":"fr"}
+{"name":"wp-blackboard","path":"/innovations/blackboard/","language":"en"}
+{"name":"wp-blackboard-fr","path":"/innovations/blackboard/?lang=fr","language":"fr"}
+{"name":"wp-tooling-configurators","path":"/innovations/tooling-configurators/","language":"en"}
+{"name":"wp-tooling-configurators-fr","path":"/innovations/tooling-configurators/?lang=fr","language":"fr"}
+{"name":"wp-tooling-configurators-bare","path":"/innovations/tooling-configurators","language":"en"}
