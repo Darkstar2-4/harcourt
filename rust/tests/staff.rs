@@ -24,8 +24,13 @@ async fn harness() -> Harness {
 }
 
 async fn person(pool: &SqlitePool, id: i64, role: &str) -> String {
-    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name) VALUES (?1, 'Active', ?2, ?3)"#)
+    account(pool, id, role, "Active").await
+}
+
+async fn account(pool: &SqlitePool, id: i64, role: &str, status: &str) -> String {
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name) VALUES (?1, ?2, ?3, ?4)"#)
         .bind(id)
+        .bind(status)
         .bind(role)
         .bind(format!("Test company {id}"))
         .execute(pool)
@@ -154,6 +159,7 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
     assert_eq!(status, StatusCode::OK);
     assert!(page.contains("<p class='message left'>Executive Dashboard</p>"));
     assert!(page.contains(">Pending PO (1)</a>"));
+    assert!(page.contains("<td class=center><a href=\"/staff/orders/41\" >41</a></td>"), "a pending order opens in the order viewer");
     assert!(!page.contains("Pending Access"));
 
     let (_, _, page) = send(&h.app, get("/dashboard.php?tab=Campaign", Some(&admin))).await;
@@ -429,4 +435,285 @@ async fn every_dashboard_link_is_a_page_the_program_serves() {
         let (status, _, _) = send(&all, get(link, Some(&superuser))).await;
         assert!(status != StatusCode::NOT_FOUND && status != StatusCode::GONE, "{link}: {status}");
     }
+}
+
+fn unescape(s: &str) -> String {
+    s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#039;", "'").replace("&amp;", "&")
+}
+
+/// The fields a browser would post from the page's form: its inputs, ticked boxes, chosen options and text areas.
+fn form_of(page: &str) -> Vec<(String, String)> {
+    let input = regex::Regex::new(r"<input type=(text|hidden|checkbox) ([^>]*)>").unwrap();
+    let name = regex::Regex::new(r"name='([^']*)'").unwrap();
+    let value = regex::Regex::new(r"value='([^']*)'").unwrap();
+    let select = regex::Regex::new(r"(?s)<select name='([^']*)'[^>]*>(.*?)</select>").unwrap();
+    let chosen = regex::Regex::new(r"<option value='([^']*)' selected>").unwrap();
+    let area = regex::Regex::new(r"(?s)<textarea name='([^']*)'[^>]*>(.*?)</textarea>").unwrap();
+    let form = &page[page.find("<form name='scs_form'").expect("the form")..];
+    let mut out = Vec::new();
+    for c in input.captures_iter(form) {
+        let attrs = &c[2];
+        if &c[1] == "checkbox" && !attrs.contains(" checked") {
+            continue;
+        }
+        let v = value.captures(attrs).map_or(String::new(), |v| unescape(&v[1]));
+        out.push((name.captures(attrs).expect("a name")[1].to_string(), v));
+    }
+    for c in select.captures_iter(form) {
+        out.push((c[1].to_string(), chosen.captures(&c[2]).map_or(String::new(), |v| unescape(&v[1]))));
+    }
+    for c in area.captures_iter(form) {
+        out.push((c[1].to_string(), unescape(&c[2])));
+    }
+    out
+}
+
+/// The form of `page` with some fields changed, as posted.
+fn changed(page: &str, set: &[(&str, &str)]) -> Vec<(String, String)> {
+    let mut fields: Vec<(String, String)> = form_of(page).into_iter().filter(|(k, _)| !set.iter().any(|(n, _)| n == k)).collect();
+    fields.extend(set.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+    fields
+}
+
+fn token_for(cookie: &str) -> String {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::COOKIE, cookie.parse().unwrap());
+    hxweb::staff::csrf::CsrfToken::for_request(&headers).unwrap().as_str().to_string()
+}
+
+async fn post_form(app: &Router, path: &str, cookie: &str, fields: &[(String, String)]) -> (StatusCode, HeaderMap, String) {
+    let pairs: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    send(app, post(path, cookie, &pairs)).await
+}
+
+async fn count(pool: &SqlitePool, sql: &str) -> i64 {
+    sqlx::query_scalar(sql).fetch_one(pool).await.unwrap()
+}
+
+#[tokio::test]
+async fn the_table_admin_lists_creates_edits_and_deletes_a_row() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (status, _, page) = send(&h.app, get("/staff/admin/currency", Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<p class='message left'>Currencies</p>") && page.contains("<a href=\"/staff/admin/currency/new\">Add new</a>"), "{page}");
+
+    let (_, _, page) = send(&h.app, get("/staff/admin/currency/new", Some(&admin))).await;
+    let new = changed(&page, &[("code", "EUR"), ("name", "Euro"), ("plural", "Euros"), ("exchange_rate", "0.9"), ("active", "1")]);
+    let (status, headers, _) = post_form(&h.app, "/staff/admin/currency/new", &admin, &new).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let id: i64 = sqlx::query_scalar("SELECT id FROM currency WHERE code = 'EUR'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(headers[header::LOCATION], format!("/staff/admin/currency/{id}?saved=1"));
+    let (rate, active, symbol, revised): (f64, i64, Option<String>, i64) =
+        sqlx::query_as("SELECT exchange_rate, active, symbol, update_timestamp FROM currency WHERE id = ?1").bind(id).fetch_one(&h.pool).await.unwrap();
+    assert_eq!((rate, active, symbol), (0.9, 1, None));
+    assert!(revised > 0, "a save stamps the revised time");
+
+    let (_, _, list) = send(&h.app, get("/staff/admin/currency?q=eur", Some(&admin))).await;
+    assert!(list.contains(&format!("<td class=center><a href=\"/staff/admin/currency/{id}\">{id}</a></td><td>EUR</td><td>Euro</td><td>Euros</td>")), "{list}");
+    let (_, _, list) = send(&h.app, get("/staff/admin/currency?q=yen", Some(&admin))).await;
+    assert!(!list.contains("Euros"));
+
+    let path = format!("/staff/admin/currency/{id}");
+    let (_, _, page) = send(&h.app, get(&format!("{path}?saved=1"), Some(&admin))).await;
+    assert!(page.contains("<span class=message2><br>Saved</span>"));
+    let (status, _, again) = post_form(&h.app, &path, &admin, &changed(&page, &[("exchange_rate", "lots")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Exchange rate ($1.00 USD buys) must be a number"), "{again}");
+    assert!(again.contains("value='lots'"), "the form comes back as typed");
+    let (status, _, _) = post_form(&h.app, &path, &admin, &changed(&page, &[("exchange_rate", "0.95"), ("active", "")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let (rate, active, symbol): (f64, i64, Option<String>) = sqlx::query_as("SELECT exchange_rate, active, symbol FROM currency WHERE id = ?1").bind(id).fetch_one(&h.pool).await.unwrap();
+    assert_eq!((rate, active, symbol), (0.95, 0, None), "an untouched empty field stays NULL");
+
+    let (_, _, blank) = send(&h.app, get("/staff/admin/currency/new", Some(&admin))).await;
+    let (status, _, dup) = post_form(&h.app, "/staff/admin/currency/new", &admin, &changed(&blank, &[("code", "EUR"), ("name", "Euro again")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(dup.contains("value='EUR' style='border: 1px solid red !important;'>\n<br>Another row already has this Code"), "{dup}");
+
+    let (_, _, page) = send(&h.app, get(&path, Some(&admin))).await;
+    assert!(page.contains(&format!("formaction='/staff/admin/currency/{id}/delete'")));
+    let (status, headers, _) = post_form(&h.app, &format!("{path}/delete"), &admin, &form_of(&page)).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers[header::LOCATION], format!("/staff/admin/currency?deleted={id}"));
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM currency").await, 0);
+    let audit = count(&h.pool, "SELECT count(*) FROM log WHERE type = 'Auth' AND subtype IN ('admin_create', 'admin_update', 'admin_delete') AND user_id = 1").await;
+    assert_eq!(audit, 3);
+}
+
+#[tokio::test]
+async fn the_table_admin_turns_away_other_roles_and_accounts_that_are_not_active() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let (_, _, page) = send(&h.app, get("/staff/admin/carrier/new", Some(&admin))).await;
+    let fields = changed(&page, &[("name", "Truck Co")]);
+    let exec = person(&h.pool, 2, "Executive").await;
+    let pending = account(&h.pool, 3, "Administrator", "Pending").await;
+    let denied = account(&h.pool, 4, "Super User", "Denied").await;
+    for cookie in [None, Some(&exec), Some(&pending), Some(&denied)] {
+        let (status, headers, _) = send(&h.app, get("/staff/admin/carrier", cookie.map(String::as_str))).await;
+        assert_eq!((status, headers.get(header::LOCATION).map(|l| l.to_str().unwrap())), (StatusCode::FOUND, Some("/scs_index.php")));
+        if let Some(cookie) = cookie {
+            let mut own: Vec<(String, String)> = fields.iter().filter(|(k, _)| k != "csrf").cloned().collect();
+            own.push(("csrf".into(), token_for(cookie)));
+            let (status, _, _) = post_form(&h.app, "/staff/admin/carrier/new", cookie, &own).await;
+            assert_eq!(status, StatusCode::FOUND, "a post with its own session's token");
+        }
+    }
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM carrier").await, 0);
+    let (status, _, _) = send(&h.app, get("/staff/admin/nonesuch", Some(&admin))).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn a_write_needs_the_sessions_token_and_a_get_never_writes() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    let other = person(&h.pool, 2, "Super User").await;
+    sqlx::query("INSERT INTO carrier (id, name, active) VALUES (5, 'Truck Co', 1)").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/admin/carrier/5", Some(&admin))).await;
+    let mine = csrf_of(&page);
+    let (_, _, theirs) = send(&h.app, get("/staff/admin/carrier/5", Some(&other))).await;
+    let theirs = csrf_of(&theirs);
+    for token in [None, Some("not-the-token"), Some(theirs.as_str())] {
+        let mut fields: Vec<(String, String)> = changed(&page, &[("name", "Changed")]).into_iter().filter(|(k, _)| k != "csrf").collect();
+        if let Some(t) = token {
+            fields.push(("csrf".into(), t.into()));
+        }
+        for path in ["/staff/admin/carrier/5", "/staff/admin/carrier/5/delete", "/staff/admin/carrier/new"] {
+            let (status, _, _) = post_form(&h.app, path, &admin, &fields).await;
+            assert_eq!(status, StatusCode::FORBIDDEN, "{path} {token:?}");
+        }
+    }
+    let actions = format!("/staff/admin/carrier/5?action=delete&name=Changed&csrf={mine}");
+    let (status, _, _) = send(&h.app, get(&actions, Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _, _) = send(&h.app, get(&format!("/staff/admin/carrier/5/delete?csrf={mine}"), Some(&admin))).await;
+    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    let (status, _, _) = send(&h.app, get(&format!("/staff/admin/carrier/new?name=Other&csrf={mine}"), Some(&admin))).await;
+    assert_eq!(status, StatusCode::OK);
+    let rows: Vec<(i64, String)> = sqlx::query_as("SELECT id, name FROM carrier").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(rows, [(5, "Truck Co".to_string())]);
+}
+
+#[tokio::test]
+async fn an_administrator_edits_accounts_up_to_their_own_role() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 6, "Super User").await;
+    person(&h.pool, 7, "Customer").await;
+    sqlx::query(r#"UPDATE "user" SET language_code = 'FR', comment = '' WHERE id = 7"#).execute(&h.pool).await.unwrap();
+    let (_, _, list) = send(&h.app, get("/staff/admin/user?q=test+company", Some(&admin))).await;
+    assert!(list.contains("<td class=center>6</td><td>Test company 6</td>"), "{list}");
+    assert!(list.contains("<a href=\"/staff/admin/user/7\">7</a>"));
+    let (status, _, _) = send(&h.app, get("/staff/admin/user/6", Some(&admin))).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "an account above the editor's role does not open");
+
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    assert!(!page.contains("<option value='Super User'"), "no role above the editor's is offered");
+    assert!(!page.contains("formaction="), "deleting accounts is for Super Users");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/6", &admin, &changed(&page, &[])).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("type", "Super User")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Role must be one of the listed values"));
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7/delete", &admin, &form_of(&page)).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("type", "Executive"), ("city", "Springfield")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let row: (String, String, Option<String>, String, Option<String>, i64) =
+        sqlx::query_as(r#"SELECT "type", status, city, language_code, comment, catalog FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("Executive".into(), "Active".into(), Some("Springfield".into()), "FR".into(), Some(String::new()), 0), "the rest of the row is as it was");
+}
+
+#[tokio::test]
+async fn inventory_is_searched_by_part_number_and_edited_one_row_at_a_time() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Super User").await;
+    for i in 0..55 {
+        sqlx::query("INSERT INTO inventory (id, sku, subcategory_id, active, leadtime_option) VALUES (?1, ?2, 3, 1, 'Subcategory')")
+            .bind(i + 1)
+            .bind(format!("AB-{i:03}"))
+            .execute(&h.pool)
+            .await
+            .unwrap();
+    }
+    sqlx::query("INSERT INTO inventory (id, sku, leadtime_option) VALUES (100, 'CD-1', 'Weeks')").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/admin/inventory?q=ab-0", Some(&admin))).await;
+    assert!(page.contains("<td>AB-000</td>") && page.contains("<td>AB-049</td>") && !page.contains("<td>AB-050</td>") && !page.contains("CD-1"), "{page}");
+    assert!(page.contains("Part# starts with") && !page.contains("Add new"));
+    assert!(page.contains("<a href=\"/staff/admin/inventory?q=ab-0&amp;page=1\">Next &gt;</a>"), "{page}");
+    let (_, _, rest) = send(&h.app, get("/staff/admin/inventory?q=ab-0&page=1", Some(&admin))).await;
+    assert!(rest.contains("<td>AB-054</td>") && !rest.contains("<td>AB-049</td>") && !rest.contains("Next &gt;"));
+
+    let (_, _, page) = send(&h.app, get("/staff/admin/inventory/100", Some(&admin))).await;
+    assert!(page.contains("<td width='30%'>Part#</td><td width='70%'>CD-1</td>"), "the part number is shown, not edited");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/inventory/100", &admin, &changed(&page, &[("sort_order", "7"), ("active", "1"), ("leadtime_option", "Call")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let row: (String, i64, i64, String, String) =
+        sqlx::query_as("SELECT sku, sort_order, active, leadtime_option, new_date FROM inventory WHERE id = 100").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("CD-1".into(), 7, 1, "Call".into(), "0000-00-00".into()));
+    for (path, method) in [("/staff/admin/inventory/new", Method::GET), ("/staff/admin/inventory/new", Method::POST), ("/staff/admin/inventory/100/delete", Method::POST)] {
+        let req = if method == Method::GET { get(path, Some(&admin)) } else { post(path, &admin, &[("csrf", csrf_of(&page).as_str())]) };
+        let (status, _, _) = send(&h.app, req).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{method} {path}");
+    }
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM inventory").await, 56);
+}
+
+async fn order(pool: &SqlitePool, id: i64, po: &str, company: &str, day: u32) {
+    let when = hxweb::staff::time::from_local(2025, 3, day, 10, 30, 0);
+    sqlx::query("INSERT INTO orderhd (id, po, company_name, name, email, order_date, status, city, state) VALUES (?1, ?2, ?3, 'Sam', 'sam@example.com', ?4, 'Accept', 'Springfield', 'MI')")
+        .bind(id)
+        .bind(po)
+        .bind(company)
+        .bind(when)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn the_order_viewer_lists_orders_newest_first_and_shows_one_with_its_lines() {
+    let h = harness().await;
+    let exec = person(&h.pool, 2, "Executive").await;
+    order(&h.pool, 41, "PO-7", "Buyer <Co>", 4).await;
+    order(&h.pool, 42, "X-9", "Other Inc", 6).await;
+    for (line, sku, qty, price) in [(1, "HB-1", 2, 1.5), (2, "HB-2", 1, 1.25)] {
+        sqlx::query("INSERT INTO orderln (order_id, line_no, sku, description, quantity, price, extended) VALUES (41, ?1, ?2, 'Pin <b>', ?3, ?4, ?5)")
+            .bind(line)
+            .bind(sku)
+            .bind(qty)
+            .bind(price)
+            .bind(price * qty as f64)
+            .execute(&h.pool)
+            .await
+            .unwrap();
+    }
+    let (status, _, _) = send(&h.app, get("/staff/orders", Some(&person(&h.pool, 3, "Internal").await))).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let (status, _, page) = send(&h.app, get("/staff/orders", Some(&exec))).await;
+    assert_eq!(status, StatusCode::OK);
+    let (a, b) = (page.find("/staff/orders/42\"").unwrap(), page.find("/staff/orders/41\"").unwrap());
+    assert!(a < b, "newest first");
+    assert!(page.contains("<td>PO-7</td><td>Buyer &lt;Co></td><td>Sam</td><td>sam@example.com</td><td class=center>03/04/2025 10:30 AM</td><td>Accept</td>"), "{page}");
+    let only = |page: &str, id: i64| page.contains(&format!("/staff/orders/{id}\"")) && page.matches("<a href=\"/staff/orders/").count() == 1;
+    for (query, id) in [("po=po-7", 41), ("company=other", 42), ("from=03%2F05%2F2025", 42), ("thru=2025-03-04", 41), ("from=03/04/2025&thru=03/04/2025", 41)] {
+        let (_, _, page) = send(&h.app, get(&format!("/staff/orders?{query}"), Some(&exec))).await;
+        assert!(only(&page, id), "{query}: {page}");
+    }
+    let (_, _, page) = send(&h.app, get("/staff/orders?from=someday", Some(&exec))).await;
+    assert!(page.contains("Not a date (mm/dd/yyyy)") && !page.contains("<a href=\"/staff/orders/"));
+
+    let (status, _, page) = send(&h.app, get("/staff/orders/41", Some(&exec))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<tr><td width='30%'>PO#</td><td width='70%'>PO-7</td></tr>"));
+    assert!(page.contains("<tr><td width='30%'>Ship to</td><td width='70%'>Springfield, MI</td></tr>"));
+    assert!(page.contains("<tr><td class=center>1</td><td>HB-1</td><td>Pin &lt;b></td><td class=right>2</td><td class=right>1.50</td><td class=right>3.00</td><td></td></tr>"), "{page}");
+    assert!(page.contains("<td class=right><b>4.25</b></td>"));
+    assert!(!page.contains("<form"), "read only");
+    let (status, _, _) = send(&h.app, get("/staff/orders/99", Some(&exec))).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _, _) = send(&h.app, post("/staff/orders/41", &exec, &[("status", "Reject")])).await;
+    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
 }

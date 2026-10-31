@@ -1,6 +1,7 @@
 //! dashboard.php: the staff landing page. A menu of the staff pages for the visitor's role, then report tabs over
 //! the log, user and orderhd tables. `?tab=<title>` opens on a tab. The menu names only pages the program still
-//! serves; the maintenance pages it listed are `hxweb` commands now (cli.rs).
+//! serves: the order viewer, the table admin's tables the role may list, and the event log; bulk data work is
+//! `hxweb` commands (cli.rs).
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -35,7 +36,7 @@ type Link = (Role, &'static str, &'static str);
 
 const MENU: &[(&str, &[Link])] = &[
     ("Document Manager", &[(A, "Page Text", crate::cms::admin::PATH)]),
-    ("", &[(E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
+    ("", &[(E, "Orders", super::orders::PATH), (E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
 ];
 
 fn menu(role: Role) -> String {
@@ -49,6 +50,10 @@ fn menu(role: Role) -> String {
         for (_, label, path) in shown {
             m.item(label, path, Opts::new());
         }
+    }
+    m.group("Tables");
+    for spec in super::tables::SPECS.iter().filter(|s| role >= s.list) {
+        m.item(spec.title, &format!("{}/{}", super::admin::PATH, spec.table), Opts::new());
     }
     m.render()
 }
@@ -64,12 +69,6 @@ fn table(class: &str, headers: &[&str], rows: Vec<String>) -> String {
     out.extend(rows);
     out.extend(["</tbody>".to_string(), "</table>".into()]);
     out.join("\n")
-}
-
-/// `fn_url("/x.php", ["action" => "maintain", "record_id" => id, "return_url" => fn_url(PHP_SELF, ["tab" => …])])`.
-fn maintain_url(page: &str, id: i64, tab: &str, here: &str) -> String {
-    let back = format!("{here}{}", url_query(&[("tab", tab)]));
-    format!("{page}{}", url_query(&[("action", "maintain"), ("record_id", &id.to_string()), ("return_url", &back)]))
 }
 
 /// An access request's page (access.rs), which comes back to the tab.
@@ -165,7 +164,7 @@ async fn pending(pool: &SqlitePool, s: &Settings, here: &str, tabs: &mut Tabs) -
     Ok(())
 }
 
-async fn pending_po(pool: &SqlitePool, here: &str, tabs: &mut Tabs) -> sqlx::Result<()> {
+async fn pending_po(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     let orders = sqlx::query!(
         r#"SELECT id AS "id!: i64", company_name, name, email, order_date FROM orderhd WHERE status = 'Pending' ORDER BY id"#
     )
@@ -180,7 +179,7 @@ async fn pending_po(pool: &SqlitePool, here: &str, tabs: &mut Tabs) -> sqlx::Res
         .map(|o| {
             [
                 "<tr>".to_string(),
-                format!("<td class=center>{}</td>", href(&o.id.to_string(), &maintain_url("/orderhd.php", o.id, &tab, here), Opts::new())),
+                format!("<td class=center>{}</td>", href(&o.id.to_string(), &format!("{}/{}", super::orders::PATH, o.id), Opts::new())),
                 format!("<td>{}</td>", text(o.company_name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(o.name.as_deref().unwrap_or(""))),
                 format!("<td>{}</td>", text(o.email.as_deref().unwrap_or(""))),
@@ -495,7 +494,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Executive>, query: &Fields, her
     if role >= Role::Administrator {
         pending(pool, &s, here, &mut tabs).await?;
     }
-    pending_po(pool, here, &mut tabs).await?;
+    pending_po(pool, &mut tabs).await?;
     if role >= Role::Administrator {
         leadscore(pool, &s, viewer_last_login, &mut tabs).await?;
     }
@@ -550,7 +549,6 @@ mod tests {
 
     #[test]
     fn return_urls_come_back_to_the_tab() {
-        assert_eq!(maintain_url("/orderhd.php", 5, "Pending PO (2)", PATH), "/orderhd.php?action=maintain&record_id=5&return_url=%2Fdashboard.php%3Ftab%3DPending%2BPO%2B%25282%2529");
         assert_eq!(access_url(5, "Pending Access (2)", PATH), "/staff/access/5?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25282%2529");
         assert_eq!(content_key(17, 255), STANDARD_NO_PAD.encode("17\tff"));
     }

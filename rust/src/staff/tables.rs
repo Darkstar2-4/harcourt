@@ -1,0 +1,288 @@
+//! What the staff table admin (admin.rs) edits: one static spec per table. Columns that hold structured data (the
+//! subcategory parameters, options and documents, inventory pricing and parameters, campaign divs, language menus)
+//! are left out; `hxweb export` and `hxweb import` change those.
+
+use super::admin::{
+    col,
+    Kind::{Choice, Date, Decimal, Flag, Integer, LongText, Text, Time},
+    Search::{Code, Contains},
+    Spec,
+    Touch::{Created, Never, Saved},
+};
+use crate::identity::Role::{Administrator as A, SuperUser};
+
+const ACTIVE_DENIED: &[(&str, &str)] = &[("Active", "Active"), ("Denied", "Denied")];
+const ROLES: &[(&str, &str)] = &[
+    ("Customer", "Customer"),
+    ("External", "External"),
+    ("Internal", "Internal"),
+    ("Executive", "Executive"),
+    ("Administrator", "Administrator"),
+    ("Super User", "Super User"),
+];
+const ACCOUNT_STATUS: &[(&str, &str)] = &[("Pending", "Pending"), ("Active", "Active"), ("Denied", "Denied")];
+const PRICE_TYPE: &[(&str, &str)] = &[("", "No pricing"), ("base", "Base price"), ("discount", "Discount"), ("plus", "Base plus")];
+const CAMPAIGN_TYPE: &[(&str, &str)] = &[("Invite", "Invite"), ("Public", "Public"), ("Remote", "Remote")];
+const PORTAL_FORM: &[(&str, &str)] = &[
+    ("Portal Image", "Portal Image"),
+    ("Portal HTML", "Portal HTML"),
+    ("Category Image", "Category Image"),
+    ("Category HTML", "Category HTML"),
+    ("Link", "Link"),
+    ("Hyperlink", "Hyperlink"),
+];
+const FAMILY_STATUS: &[(&str, &str)] = &[("Active", "Active"), ("Pending", "Pending"), ("Inactive", "Inactive")];
+const FAMILY_OUTPUT: &[(&str, &str)] = &[("", "Products & CAD"), ("configurator", "Only CAD (Static SKU)"), ("smart", "Only CAD (SMART SKU)")];
+const LEADTIME: &[(&str, &str)] = &[("In Stock", "In Stock"), ("Weeks", "Weeks"), ("Call", "Call")];
+const PART_LEADTIME: &[(&str, &str)] = &[("Subcategory", "Subcategory"), ("In Stock", "In Stock"), ("Weeks", "Weeks"), ("Call", "Call")];
+
+/// A code table: every action for Administrators.
+const fn code_table(table: &'static str, title: &'static str, columns: &'static [super::admin::Col], search: &'static [&'static str], order: &'static str) -> Spec {
+    Spec { table, title, columns, search: Contains(search), order, list: A, edit: Some(A), create: Some(A), delete: Some(A), rank: None }
+}
+
+pub static SPECS: &[Spec] = &[
+    code_table(
+        "currency",
+        "Currencies",
+        &[
+            col("code", "Code", Text).list().req(),
+            col("name", "Name", Text).list().req(),
+            col("plural", "Plural", Text).list(),
+            col("symbol", "Symbol", Text).list(),
+            col("exchange_rate", "Exchange rate ($1.00 USD buys)", Decimal).list(),
+            col("adder_pct", "Adder (0.05 is 5%)", Decimal).list(),
+            col("active", "Active", Flag).list(),
+            col("update_timestamp", "Revised", Time(Saved)).list(),
+        ],
+        &["code", "name"],
+        "code",
+    ),
+    code_table(
+        "language",
+        "Languages",
+        &[
+            col("code", "Code", Text).list().req().not_null(),
+            col("country_code", "Country", Text).list().not_null(),
+            col("name", "Name", Text).list().req().not_null(),
+            col("local_name", "Local name", Text).list().not_null(),
+            col("ps_name", "PARTsolutions name", Text).not_null(),
+            col("priority", "Priority", Integer).list().not_null(),
+            col("image_url", "Flag image", Text).not_null(),
+            col("active", "Active", Flag).list().not_null(),
+        ],
+        &["code", "name", "local_name"],
+        "code",
+    ),
+    code_table(
+        "bot",
+        "Bots",
+        &[
+            col("code", "Code", Text).list().req().not_null(),
+            col("name", "Search engine", Text).list().not_null(),
+            col("pattern", "Host name pattern", Text).list().req().not_null(),
+            col("portal_id", "Portal", Integer).list().not_null(),
+            col("catalog", "Catalog", Flag).list().not_null(),
+            col("status", "Status", Choice(ACTIVE_DENIED)).list().req().not_null(),
+            col("comment", "Comment", LongText),
+        ],
+        &["code", "name", "pattern"],
+        "code",
+    ),
+    code_table(
+        "blacklist",
+        "Blacklist",
+        &[col("domain", "Domain", Text).list().req().not_null(), col("comment", "Comment", Text).list(), col("created", "Added", Time(Created)).list()],
+        &["domain", "comment"],
+        "domain",
+    ),
+    code_table(
+        "captcha_bypass",
+        "reCAPTCHA Bypass",
+        &[col("email", "Email or @domain", Text).list().req().not_null(), col("comment", "Comment", Text).list(), col("created", "Added", Time(Created)).list()],
+        &["email", "comment"],
+        "email",
+    ),
+    code_table("carrier", "Carriers", &[col("name", "Name", Text).list().req(), col("active", "Active", Flag).list()], &["name"], "name"),
+    code_table(
+        "campaign",
+        "Campaigns",
+        &[
+            col("code", "Code", Text).list().req(),
+            col("name", "Name", Text).list().req(),
+            col("type", "Type", Choice(CAMPAIGN_TYPE)).list(),
+            col("from_date", "From", Date).list(),
+            col("thru_date", "Thru", Date).list(),
+            col("active", "Active", Flag).list(),
+            col("invite", "Invite", Flag),
+            col("sort_order", "Sort order", Integer),
+            col("title_omit", "Omit the title", Flag),
+            col("description", "Description", LongText),
+            col("subcategory", "Subcategory ids", Text),
+            col("css", "Stylesheets", LongText),
+            col("js", "Scripts", LongText),
+            col("sf_campaign_id", "Salesforce campaign", Text),
+        ],
+        &["code", "name"],
+        "code",
+    ),
+    code_table(
+        "portal",
+        "Portals",
+        &[
+            col("name", "Name", Text).list().req().not_null(),
+            col("headline", "Headline", LongText),
+            col("legacy", "Legacy", Flag).list().not_null(),
+            col("active", "Active", Flag).list(),
+        ],
+        &["name"],
+        "name",
+    ),
+    code_table(
+        "portalcategory",
+        "Portal Categories",
+        &[
+            col("portal_id", "Portal", Integer).list(),
+            col("name", "Name", Text).list().req(),
+            col("output_order", "Order", Integer).list(),
+            col("headline", "Headline", LongText),
+            col("headline_portalcontent_id", "Headline content", Integer),
+            col("image_portalcontent_id", "Image content", Integer),
+            col("subcategory_id", "Subcategory", Integer).list(),
+            col("active", "Active", Flag).list(),
+        ],
+        &["name"],
+        "name",
+    ),
+    code_table(
+        "portalcontent",
+        "Portal Content",
+        &[
+            col("portal_id", "Portal", Integer).list().not_null(),
+            col("name", "Name", Text).list().req().not_null(),
+            col("form", "Form", Choice(PORTAL_FORM)).list().req().not_null(),
+            col("active", "Active", Flag).list().not_null(),
+        ],
+        &["name", "form"],
+        "name",
+    ),
+    code_table(
+        "mailform",
+        "Mail Forms",
+        &[
+            col("code", "Code", Text).list().req(),
+            col("name", "Name", Text).list().req(),
+            col("domain", "Domain", Text),
+            col("subject", "Subject", Text).list(),
+            col("recipient", "Recipient", Text).list().req().not_null(),
+            col("bcc", "BCC", LongText),
+            col("bcc_user_id", "BCC account", Integer),
+            col("css", "Stylesheet", Text),
+            col("header_html", "Header HTML", LongText),
+            col("footer_html", "Footer HTML", LongText),
+            col("active", "Active", Flag).list(),
+        ],
+        &["code", "name", "subject"],
+        "code",
+    ),
+    Spec {
+        table: "user",
+        title: "Company Accounts",
+        columns: &[
+            col("company_name", "Company", Text).list(),
+            col("ip", "IP address", Text).list(),
+            col("domain", "Domain", Text).list(),
+            col("type", "Role", Choice(ROLES)).list().req().not_null(),
+            col("status", "Status", Choice(ACCOUNT_STATUS)).list().req().not_null(),
+            col("last_login", "Last sign-in", Time(Never)).list().not_null(),
+            col("address", "Address", LongText),
+            col("city", "City", Text),
+            col("state", "State", Text),
+            col("zip", "Zip", Text),
+            col("country_code", "Country", Text),
+            col("customer_code", "Customer code", Text),
+            col("language_code", "Language", Text).not_null(),
+            col("currency_code", "Currency", Text).not_null(),
+            col("portal_id", "Portal", Integer).not_null(),
+            col("industry_id", "Industry", Integer).not_null(),
+            col("login_document_id", "Sign-in document", Integer).not_null(),
+            col("landing_document_id", "Landing document", Integer).not_null(),
+            col("catalog", "Catalog", Flag).not_null(),
+            col("cad", "CAD", Flag).not_null(),
+            col("ecommerce", "Ecommerce", Flag).not_null(),
+            col("leadscore", "Lead score", Flag).not_null(),
+            col("price_type", "Pricing", Choice(PRICE_TYPE)).not_null(),
+            col("price_pct", "Price adjustment (0.10 is 10%)", Decimal).not_null(),
+            col("revenue", "Revenue", Text).not_null(),
+            col("employees", "Employees", Text).not_null(),
+            col("comment", "Comment", LongText),
+            col("recaptcha_score", "reCAPTCHA score", Decimal).fixed().not_null(),
+        ],
+        search: Contains(&["company_name", "ip", "domain", "customer_code"]),
+        order: "company_name",
+        list: A,
+        edit: Some(A),
+        create: Some(A),
+        delete: Some(SuperUser),
+        rank: Some("type"),
+    },
+    Spec {
+        table: "subcategory",
+        title: "Subcategories",
+        columns: &[
+            col("name", "Name", Text).list().req(),
+            col("category_id", "Category", Integer).list(),
+            col("status", "Status", Choice(FAMILY_STATUS)).list().req().not_null(),
+            col("output", "Output", Choice(FAMILY_OUTPUT)).list().not_null(),
+            col("prj", "PARTsolutions project", Text).list(),
+            col("sort_order", "Sort order", Integer).list(),
+            col("new_date", "New until", Date).not_null(),
+            col("leadtime_option", "Lead time", Choice(LEADTIME)).not_null(),
+            col("leadtime_text", "Lead time text", Text),
+            col("image_url", "Image", Text),
+            col("thumbnail_url", "Thumbnail", Text),
+            col("sketch_url", "Sketch", Text),
+            col("search_words", "Search words (^ between)", LongText),
+            col("prj_landing_page", "PARTsolutions landing page", Flag),
+            col("page_break", "Page break", Flag),
+            col("price_increase", "Price increase", Integer),
+            col("custom", "Custom", Flag),
+            col("lookup", "Lookup", Flag),
+        ],
+        search: Contains(&["name", "prj"]),
+        order: "name",
+        list: A,
+        edit: Some(A),
+        create: Some(A),
+        delete: Some(A),
+        rank: None,
+    },
+    Spec {
+        table: "inventory",
+        title: "Inventory",
+        columns: &[
+            col("sku", "Part#", Text).list().fixed().not_null(),
+            col("category_id", "Category", Integer).list(),
+            col("subcategory_id", "Subcategory", Integer).list(),
+            col("active", "Active", Flag).list(),
+            col("leadtime_option", "Lead time", Choice(PART_LEADTIME)).list().not_null(),
+            col("leadtime_text", "Lead time text", Text),
+            col("sort_order", "Sort order", Integer).not_null(),
+            col("new_date", "New until", Date).not_null(),
+            col("prj", "PARTsolutions project", Text),
+            col("image_url", "Image", Text),
+            col("competitor_sku", "Competitor part numbers", Text),
+        ],
+        search: Code("sku"),
+        order: "sku",
+        list: A,
+        edit: Some(A),
+        create: None,
+        delete: None,
+        rank: None,
+    },
+];
+
+pub fn find(table: &str) -> Option<&'static Spec> {
+    SPECS.iter().find(|s| s.table == table)
+}
