@@ -1,6 +1,6 @@
 use hxweb::{
     catalog::php::{self as catalog_php, Key, Value},
-    cms::import::php as cms_php,
+    serialized as cms_php,
     pricing::ListPrices,
     staff::phpser::{self, Php},
 };

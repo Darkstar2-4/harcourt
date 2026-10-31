@@ -1,13 +1,12 @@
-//! Fills the cms tables from WordPress: `dump` and `php` read a mysqldump of the WordPress tables, `wp` turns
-//! them into the content model, `export` takes from the static export what only the rendered pages show (the
-//! text of each field as printed, Yoast's head lines, the scripts each page's plugins added) and checks that the
-//! Rust templates reproduce every ported page. `write` stores the result; running it again converges.
+//! Fills the cms tables from WordPress: `dump` and `crate::serialized` read a mysqldump of the WordPress tables,
+//! `wp` turns them into the content model, `export` takes from the static export what only the rendered pages show
+//! (the text of each field as printed, Yoast's head lines, the scripts each page's plugins added) and checks that
+//! the Rust templates reproduce every ported page. `write` stores the result; running it again converges.
 
 pub mod capture;
 pub mod dump;
 pub mod export;
 pub mod heads;
-pub mod php;
 pub mod wp;
 
 use std::collections::BTreeMap;
