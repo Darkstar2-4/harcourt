@@ -75,6 +75,11 @@ These are not bugs. Each is listed with its reason in the `rust/oracle/*.expecte
 - **State-changing forms need a token.** Every staff form carries a per-session token. A GET never changes data.
 - **The emailed code is random.** 8 characters from the system random source, 15 minutes, two wrong tries counted in the database, good once. The PHP code was derived from the clock.
 - **The old stack's addresses answer 410.** A `.php` path no route claims, WordPress's `wp-*` files and endpoints (sign-in, admin, REST, `admin-ajax.php`), `xmlrpc` and `?rest_route=` answer 410 from one rule in `src/retired.rs`. `scs_remote.php` is replaced by `remote_grant.rs`. The web SQL consoles, PHP diagnostics, developer toolboxes and `scs_filemanager.php` have no replacement.
+- **Pages with no traffic are dropped.** A week of the site's logs shows about 80 percent of page requests going to the catalog, search, product files and the catalog's scripts, and the staff pages getting 50 to 400 requests each. These answer 410 and have no replacement in the browser:
+  - the staff maintenance pages for users, inventory, subcategories, campaigns, portals and mail, whose data work is now `hxweb export`, `hxweb import` and `hxweb job` (access requests are decided on the dashboard; descriptions, documents and images are edited in the SQLite CLI);
+  - the order viewer, carrier codes, the Design Partner Agreement and the mail testers (orders are still saved and mailed, and the history stays in SQLite);
+  - the impersonation pages (replaced by remote grants, minted with `hxweb remote-grants`), the language, currency, bot, blacklist and captcha-bypass pages, and `login.php`;
+  - the alternative and beta catalogs and the catalog's maintenance pages.
 - **The blog is gone.** WordPress's blog, its feeds, the category, author and date archives, post, case-study and testimonial singles, attachments and embeds answer the 404 page. The sitemaps list the pages, FAQs and FAQ types.
 - **Errors are not printed to visitors.** `login.php` failed on every request and printed the database's error; it now answers 410 with the other dropped pages.
 - **Files are served by id to whoever may see them.** `scs_file.php` no longer serves a file by name.
