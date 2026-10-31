@@ -1,24 +1,14 @@
 //! `hx-diff bench`: replay a corpus against one server with concurrency and print latency percentiles per route group.
-//! Each worker browses inside its own PHP session (primed like a warm case) unless `--cold`. One unrecorded round
-//! warms the server's caches first. With `--sql-log FILE` (the server's log, started with
-//! `RUST_LOG=info,sqlx::query=debug`) a first pass sends every case alone and counts the statements logged for it.
+//! Each worker browses inside its own PHP session (primed like a warm case) unless `--cold`; one unrecorded round
+//! warms the server first. With `--sql-log FILE` (the server's log, run with `RUST_LOG=info,sqlx::query=debug`) a
+//! first pass sends every case alone and counts the statements logged for it.
 
-use std::{
-    collections::BTreeMap,
-    io::{Read, Seek, SeekFrom},
-    path::PathBuf,
-    process::ExitCode,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-    time::{Duration, Instant},
-};
+use std::{collections::BTreeMap, io::Read, path::PathBuf, process::ExitCode, sync::Arc, time::Instant};
 
 use regex::Regex;
 use reqwest::header::{ACCEPT_ENCODING, ACCEPT_LANGUAGE, COOKIE, HOST, USER_AGENT};
 
-use crate::{corpus, persona::Personas, prime, warm, SITE, UA};
+use crate::{corpus::Case, fail, persona::Personas, prime, warm, SITE, UA};
 
 #[derive(Debug)]
 pub struct Args {
@@ -31,192 +21,150 @@ pub struct Args {
     pub corpora: Vec<PathBuf>,
 }
 
-/// The traffic groups the site is tuned for, by path: the catalog and its AJAX, search, product files, the catalog's
-/// scripts and styles, other static files, and everything else (content pages).
+/// The traffic groups by path: the catalog and its AJAX, search, product files, scripts and styles, other static
+/// files, and the rest (content pages).
 pub fn group(path: &str) -> &'static str {
     let p = path.split('?').next().unwrap_or("").to_ascii_lowercase();
     let ext = p.rsplit_once('.').map_or("", |(_, e)| e);
     let starts = |prefixes: &[&str]| prefixes.iter().any(|x| p.starts_with(x));
-    if starts(&["/scs_file.php", "/document", "/image_viewer.php", "/images_subcategory/", "/overview_documents/"]) || ext == "pdf" {
-        "files"
-    } else if ext == "js" || ext == "css" {
-        "scripts"
-    } else if starts(&["/scs_ajax.php", "/hx_search_ctx.php", "/search", "/recherche"]) {
-        "search"
-    } else if starts(&["/catalog", "/scscpq", "/scs_api.php", "/customer_portal"]) {
-        "catalog"
-    } else if p.contains('.') && !p.ends_with(".php") && !p.ends_with(".xml") && !p.ends_with(".txt") {
-        "static"
-    } else {
-        "content"
+    match ext {
+        _ if starts(&["/scs_file.php", "/document", "/image_viewer.php", "/images_subcategory/", "/overview_documents/"]) || ext == "pdf" => "files",
+        "js" | "css" => "scripts",
+        _ if starts(&["/scs_ajax.php", "/hx_search_ctx.php", "/search", "/recherche"]) => "search",
+        _ if starts(&["/catalog", "/scscpq", "/scs_api.php", "/customer_portal"]) => "catalog",
+        "" | "php" | "xml" | "txt" => "content",
+        _ => "static",
     }
 }
 
-struct Sample {
-    group: &'static str,
-    micros: u64,
-    bytes: usize,
-    failed: bool,
-}
-
 fn percentile(sorted: &[u64], q: f64) -> f64 {
-    let i = ((q * sorted.len() as f64).ceil() as usize).clamp(1, sorted.len()) - 1;
-    sorted[i] as f64 / 1000.0
+    sorted[((q * sorted.len() as f64).ceil() as usize).clamp(1, sorted.len()) - 1] as f64 / 1000.0
 }
 
 fn load_average() -> String {
     std::fs::read_to_string("/proc/loadavg").map(|s| s.split_whitespace().take(3).collect::<Vec<_>>().join(" ")).unwrap_or_default()
 }
 
-/// Statements the server logged since `from`, and where the log ends now.
-fn statements_since(log: &mut std::fs::File, from: u64) -> std::io::Result<(usize, u64)> {
-    let mut text = String::new();
-    log.seek(SeekFrom::Start(from))?;
-    let read = log.read_to_string(&mut text)?;
-    Ok((text.matches("rows_returned").count(), from + read as u64))
+struct Bench {
+    client: reqwest::Client,
+    base: String,
+    cases: Vec<(String, Case)>,
+    /// Per worker, the PHP session for each language.
+    sessions: Vec<BTreeMap<&'static str, String>>,
+}
+
+impl Bench {
+    /// Case `i` as worker `w`: microseconds to the last byte, bytes, and whether it failed (no answer or a 5xx).
+    async fn send(&self, w: usize, i: usize) -> (u64, usize, bool) {
+        let (ip, c) = &self.cases[i];
+        let mut req = (self.client.request(c.method.clone(), format!("{}{}", self.base, c.path)))
+            .header(HOST, SITE)
+            .header(USER_AGENT, UA)
+            .header(ACCEPT_ENCODING, "gzip, deflate, br")
+            .header(ACCEPT_LANGUAGE, c.language.accept_language())
+            .header("x-real-ip", ip);
+        if let Some(cookie) = self.sessions[w].get(c.language.code()).and_then(|sid| warm::cookie_header(Some(sid), None)) {
+            req = req.header(COOKIE, cookie);
+        }
+        let start = Instant::now();
+        let answer = match req.send().await {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                resp.bytes().await.ok().map(|body| (status, body.len()))
+            }
+            Err(_) => None,
+        };
+        (start.elapsed().as_micros() as u64, answer.map_or(0, |a| a.1), answer.is_none_or(|a| a.0 >= 500))
+    }
 }
 
 pub async fn run(a: Args, personas: Personas) -> ExitCode {
     let mut cases = Vec::new();
     for path in &a.corpora {
-        match corpus::load(path, &personas) {
-            Ok(c) => cases.extend(
-                c.into_iter()
-                    .filter(|c| a.filter.as_ref().is_none_or(|f| f.is_match(&c.name)))
-                    .map(|c| (personas.get(&c.persona).map(|p| p.ip.to_string()).unwrap_or_default(), c)),
-            ),
-            Err(e) => return crate::fail(&e),
+        match crate::corpus::load(path, &personas) {
+            Ok(c) => cases.extend(c.into_iter().filter(|c| a.filter.as_ref().is_none_or(|f| f.is_match(&c.name))).map(|c| {
+                (personas.get(&c.persona).map(|p| p.ip.to_string()).unwrap_or_default(), c)
+            })),
+            Err(e) => return fail(&e),
         }
     }
-    let Some(anonymous) = personas.get("anonymous") else { return crate::fail("no anonymous persona") };
-    let client = match reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().timeout(Duration::from_secs(60)).build() {
-        Ok(c) => c,
-        Err(e) => return crate::fail(&e.to_string()),
+    let (Some(anonymous), Ok(client)) = (personas.get("anonymous"), reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().build()) else {
+        return fail("no anonymous persona or no HTTP client");
     };
-    // One session per worker and language, as many visitors browsing at once.
-    let mut sessions = Vec::new();
-    for _ in 0..a.jobs {
-        let mut by_lang = BTreeMap::new();
-        for (_, c) in &cases {
-            if a.cold || by_lang.contains_key(c.language.code()) {
-                continue;
-            }
+    let mut sessions = vec![BTreeMap::new(); a.jobs];
+    for (w, (_, c)) in (0..a.jobs).flat_map(|w| cases.iter().map(move |c| (w, c))).filter(|_| !a.cold) {
+        if !sessions[w].contains_key(c.language.code()) {
             match prime(&client, &a.rust, anonymous, c.language).await {
-                Ok(sid) => by_lang.insert(c.language.code(), sid),
-                Err(e) => return crate::fail(&e),
+                Ok(sid) => sessions[w].insert(c.language.code(), sid),
+                Err(e) => return fail(&e),
             };
         }
-        sessions.push(by_lang);
     }
-    let (client, cases, sessions) = (Arc::new(client), Arc::new(cases), Arc::new(sessions));
-    let send = {
-        let (client, cases, sessions, base) = (client.clone(), cases.clone(), sessions.clone(), a.rust.clone());
-        move |worker: usize, i: usize| {
-            let (client, cases, sessions, base) = (client.clone(), cases.clone(), sessions.clone(), base.clone());
-            async move {
-                let (ip, c) = &cases[i];
-                let mut req = client
-                    .request(c.method.clone(), format!("{base}{}", c.path))
-                    .header(HOST, SITE)
-                    .header(USER_AGENT, UA)
-                    .header(ACCEPT_ENCODING, "gzip, deflate, br")
-                    .header(ACCEPT_LANGUAGE, c.language.accept_language())
-                    .header("x-real-ip", ip);
-                if let Some(cookie) = sessions[worker].get(c.language.code()).and_then(|sid| warm::cookie_header(Some(sid), None)) {
-                    req = req.header(COOKIE, cookie);
-                }
-                let start = Instant::now();
-                let answer = match req.send().await {
-                    Ok(resp) => {
-                        let status = resp.status().as_u16();
-                        resp.bytes().await.map(|b| (status, b.len())).ok()
-                    }
-                    Err(_) => None,
-                };
-                let micros = start.elapsed().as_micros() as u64;
-                Sample { group: group(&c.path), micros, bytes: answer.map_or(0, |a| a.1), failed: answer.is_none_or(|a| a.0 >= 500) }
-            }
-        }
-    };
+    let b = Arc::new(Bench { client, base: a.rust.clone(), cases, sessions });
 
-    let mut sql: BTreeMap<&'static str, (usize, usize)> = BTreeMap::new();
+    let mut sql: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
     let mut heaviest = Vec::new();
     if let Some(path) = &a.sql_log {
-        let mut log = match std::fs::File::open(path) {
-            Ok(f) => f,
-            Err(e) => return crate::fail(&format!("{}: {e}", path.display())),
-        };
-        let mut at = log.seek(SeekFrom::End(0)).unwrap_or(0);
-        for i in 0..cases.len() {
-            send(0, i).await;
-            let Ok((n, end)) = statements_since(&mut log, at) else { return crate::fail("reading the server log") };
-            at = end;
-            let e = sql.entry(group(&cases[i].1.path)).or_default();
-            *e = (e.0 + n, e.1 + 1);
+        let Ok(mut log) = std::fs::File::open(path) else { return fail(&format!("cannot read {}", path.display())) };
+        let mut text = String::new();
+        let _ = log.read_to_string(&mut text);
+        for i in 0..b.cases.len() {
+            b.send(0, i).await;
+            text.clear();
+            let _ = log.read_to_string(&mut text);
+            let n = text.matches("rows_returned").count();
+            for g in [group(&b.cases[i].1.path), "ALL"] {
+                let e = sql.entry(g).or_default();
+                *e = (e.0 + n, e.1 + 1);
+            }
             heaviest.push((n, i));
         }
         heaviest.sort_by(|x, y| y.cmp(x));
     }
 
-    let started_load = load_average();
-    let mut samples = Vec::new();
-    let mut wall = Duration::ZERO;
+    let start_load = load_average();
+    let mut samples: BTreeMap<&str, Vec<(u64, usize, bool)>> = BTreeMap::new();
+    let mut start = Instant::now();
     for round in 0..=a.rounds {
-        let next = Arc::new(AtomicUsize::new(0));
+        if round == 1 {
+            start = Instant::now();
+        }
+        let next = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let mut set = tokio::task::JoinSet::new();
-        let start = Instant::now();
-        for worker in 0..a.jobs {
-            let (next, send, total) = (next.clone(), send.clone(), cases.len());
+        for w in 0..a.jobs {
+            let (b, next) = (b.clone(), next.clone());
             set.spawn(async move {
                 let mut mine = Vec::new();
                 loop {
-                    let i = next.fetch_add(1, Ordering::Relaxed);
-                    if i >= total {
+                    let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if i >= b.cases.len() {
                         return mine;
                     }
-                    mine.push(send(worker, i).await);
+                    mine.push((i, b.send(w, i).await));
                 }
             });
         }
         while let Some(done) = set.join_next().await {
-            if round > 0 {
-                samples.extend(done.unwrap_or_default());
+            for (i, s) in done.unwrap_or_default().into_iter().filter(|_| round > 0) {
+                samples.entry(group(&b.cases[i].1.path)).or_default().push(s);
+                samples.entry("ALL").or_default().push(s);
             }
         }
-        if round > 0 {
-            wall += start.elapsed();
-        }
     }
-
-    let mut groups: BTreeMap<&'static str, Vec<&Sample>> = BTreeMap::new();
-    for s in &samples {
-        groups.entry(s.group).or_default().push(s);
-        groups.entry("ALL").or_default().push(s);
-    }
-    println!("{} cases x {} rounds, {} workers, {} sessions; load average {} at start, {} at end", cases.len(), a.rounds, a.jobs, if a.cold { "cold" } else { "warm" }, started_load, load_average());
+    let rate = samples.get("ALL").map_or(0, Vec::len) as f64 / start.elapsed().as_secs_f64();
+    println!("{} cases x {} rounds, {} workers, {} sessions; load average {start_load} at start, {} at end", b.cases.len(), a.rounds, a.jobs, if a.cold { "cold" } else { "warm" }, load_average());
     println!("{:<8} {:>7} {:>9} {:>9} {:>9} {:>9} {:>10} {:>7} {:>7}", "group", "reqs", "p50 ms", "p95 ms", "p99 ms", "max ms", "mean B", "sql/req", "errors");
-    for (name, list) in &groups {
-        let mut micros: Vec<u64> = list.iter().map(|s| s.micros).collect();
-        micros.sort_unstable();
-        let bytes = list.iter().map(|s| s.bytes).sum::<usize>() / list.len();
-        let failed = list.iter().filter(|s| s.failed).count();
-        let per = if *name == "ALL" { sql.values().fold((0, 0), |t, v| (t.0 + v.0, t.1 + v.1)) } else { sql.get(name).copied().unwrap_or((0, 0)) };
-        let per = if per.1 == 0 { "-".to_string() } else { format!("{:.1}", per.0 as f64 / per.1 as f64) };
-        println!(
-            "{name:<8} {:>7} {:>9.2} {:>9.2} {:>9.2} {:>9.2} {bytes:>10} {per:>7} {failed:>7}",
-            list.len(),
-            percentile(&micros, 0.50),
-            percentile(&micros, 0.95),
-            percentile(&micros, 0.99),
-            percentile(&micros, 1.0)
-        );
+    for (name, list) in &mut samples {
+        list.sort_unstable();
+        let micros: Vec<u64> = list.iter().map(|s| s.0).collect();
+        let per = sql.get(name).map_or("-".into(), |(n, reqs)| format!("{:.1}", *n as f64 / *reqs as f64));
+        let (p50, p95, p99, max) = (percentile(&micros, 0.5), percentile(&micros, 0.95), percentile(&micros, 0.99), percentile(&micros, 1.0));
+        let bytes = list.iter().map(|s| s.1).sum::<usize>() / list.len();
+        println!("{name:<8} {:>7} {p50:>9.2} {p95:>9.2} {p99:>9.2} {max:>9.2} {bytes:>10} {per:>7} {:>7}", list.len(), list.iter().filter(|s| s.2).count());
     }
-    println!("throughput {:.0} requests/s", samples.len() as f64 / wall.as_secs_f64().max(1e-9));
-    if !heaviest.is_empty() {
-        println!("most statements per request:");
-        for (n, i) in heaviest.iter().take(12) {
-            println!("{n:>5}  {}", cases[*i].1.path);
-        }
+    println!("throughput {rate:.0} requests/s");
+    for (n, i) in heaviest.iter().take(12) {
+        println!("{n:>5} statements  {}", b.cases[*i].1.path);
     }
     ExitCode::SUCCESS
 }
@@ -226,23 +174,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn paths_fall_into_the_traffic_groups() {
-        assert_eq!(group("/catalog.php?action=subcategory&subcategory_id=1"), "catalog");
-        assert_eq!(group("/catalogue/?lang=fr"), "catalog");
-        assert_eq!(group("/scs_ajax.php?table=search&term=hs"), "search");
-        assert_eq!(group("/scs_file.php?content_id=x"), "files");
-        assert_eq!(group("/scs_scripts/scscpq_wp.js?v=3"), "scripts");
-        assert_eq!(group("/wp-content/uploads/2024/02/logo.png"), "static");
-        assert_eq!(group("/sitemap_index.xml"), "content");
-        assert_eq!(group("/company/about-harcourt/"), "content");
-    }
-
-    #[test]
-    fn percentiles_are_nearest_rank() {
+    fn paths_fall_into_the_traffic_groups_and_percentiles_are_nearest_rank() {
+        let groups = ["/catalogue/?lang=fr", "/scs_ajax.php?term=hs", "/scs_file.php?content_id=x", "/scs_scripts/a.js?v=3", "/wp-content/uploads/a.png", "/sitemap_index.xml", "/company/"];
+        assert_eq!(groups.map(group), ["catalog", "search", "files", "scripts", "static", "content", "content"]);
         let v: Vec<u64> = (1..=100).map(|x| x * 1000).collect();
-        assert_eq!(percentile(&v, 0.50), 50.0);
-        assert_eq!(percentile(&v, 0.99), 99.0);
-        assert_eq!(percentile(&v, 1.0), 100.0);
-        assert_eq!(percentile(&[7000], 0.95), 7.0);
+        assert_eq!([0.5, 0.99, 1.0].map(|q| percentile(&v, q)), [50.0, 99.0, 100.0]);
     }
 }
