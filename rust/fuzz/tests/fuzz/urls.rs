@@ -3,7 +3,7 @@ use std::time::Duration;
 use axum::http::{header, HeaderMap, HeaderValue, Uri};
 use hxweb::{
     accounts::cookies::{self, Life},
-    catalog::php::{self, Value},
+    catalog::query::{self, Value},
     cms::url::{self, Arg},
     orders::form_params,
     staff::csrf::{php_intval, Fields},
@@ -45,15 +45,15 @@ proptest! {
     #[test]
     fn both_parse_str_emulations_agree(q in gen::query()) {
         let wp = within(PURE, "cms parse_str", || url::parse_str(&q));
-        let Value::Map(cat) = within(PURE, "catalog parse_str", || php::parse_str(&q)) else { panic!("parse_str gives an array") };
+        let cat = within(PURE, "catalog parse_str", || query::parse_str(&q));
         let wp_names: Vec<&str> = wp.iter().map(|(k, _)| k.as_str()).collect();
-        let cat_names: Vec<String> = cat.iter().map(|(k, _)| k.as_string()).collect();
+        let cat_names: Vec<&str> = cat.iter().map(|(k, _)| k.as_str()).collect();
         prop_assert_eq!(&wp_names, &cat_names, "{}", q);
         for ((name, arg), (_, value)) in wp.iter().zip(&cat) {
             match (arg, value) {
                 (Arg::One(v), Value::Str(s)) => prop_assert_eq!(v, s, "{} in {}", name, q),
                 (Arg::List(list), Value::Map(entries)) => {
-                    let keys: Vec<String> = entries.iter().map(|(k, _)| k.as_string()).collect();
+                    let keys: Vec<&str> = entries.iter().map(|(k, _)| k.as_str()).collect();
                     let subs: Vec<&str> = list.iter().map(|(s, _)| s.as_str()).collect();
                     prop_assert_eq!(subs, keys, "{} in {}", name, q);
                     for ((_, v), (_, value)) in list.iter().zip(entries) {
@@ -190,7 +190,7 @@ proptest! {
     fn parse_str_handles_a_query_of_many_variables(n in 0usize..16_000, list in any::<bool>()) {
         let q = (0..n).map(|i| if list { format!("a[]={i}") } else { format!("v{i}={i}") }).collect::<Vec<_>>().join("&");
         within(PURE, "cms parse_str", || url::parse_str(&q));
-        within(PURE, "catalog parse_str", || php::parse_str(&q));
+        within(PURE, "catalog parse_str", || query::parse_str(&q));
         within(PURE, "with_query", || url::with_query("/", &q));
     }
 }

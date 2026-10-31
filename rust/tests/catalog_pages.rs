@@ -14,10 +14,10 @@ fn get(path: &str, cookie: Option<&str>) -> Request<Body> {
     catalog_support::request(Method::GET, path, cookie, &[("x-requested-with", "XMLHttpRequest")], Body::empty())
 }
 
-const PARAMS: &str = r#"a:2:{i:0;O:27:"subcategory_parameter_class":4:{s:2:"id";i:0;s:4:"name";s:8:"Diameter";s:4:"type";s:9:"Decimal:2";s:9:"hyperlink";i:0;}i:1;O:27:"subcategory_parameter_class":4:{s:2:"id";i:1;s:4:"name";s:4:"Mate";s:4:"type";s:9:"Uppercase";s:9:"hyperlink";i:1;}}"#;
+const PARAMS: &str = r#"[{"hyperlink":0,"id":0,"name":"Diameter","type":"Decimal:2"},{"hyperlink":1,"id":1,"name":"Mate","type":"Uppercase"}]"#;
 
 fn price(list: f64) -> String {
-    format!(r#"a:1:{{i:0;O:23:"inventory_pricing_class":2:{{s:5:"price";d:{list};s:9:"qty_break";i:1;}}}}"#)
+    format!(r#"[{{"price":{list:?},"qty_break":1}}]"#)
 }
 
 async fn exec(pool: &SqlitePool, sql: &str) {

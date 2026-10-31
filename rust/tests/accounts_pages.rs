@@ -35,10 +35,10 @@ async fn pool() -> SqlitePool {
              (1, 'USD', 'US Dollar', 'US dollars', 1, NULL, 1700000000, 1), (2, 'EUR', 'Euro', 'Euros', 0.95, 0.5, 1700000000, 1),
              (3, 'XTS', 'Testing Unit', 'Testing units', 0, 0, 0, 0)",
         r#"INSERT INTO campaign (id, code, name, description, "type", active, from_date, thru_date, title_omit, divs) VALUES
-             (1, 'OPEN', 'Open House', 'Come and see', 'Public', 1, '0000-00-00', '0000-00-00', 0, 'a:0:{}'),
-             (2, 'GUEST', 'Guest List', '', 'Invite', 1, '0000-00-00', '0000-00-00', 1, 'a:1:{s:7:"content";s:9:"guest_div";}'),
-             (3, 'FAR', 'Far Away', '', 'Remote', 1, '0000-00-00', '0000-00-00', 0, 'a:0:{}'),
-             (4, 'VIP', 'Members Only', '', 'Invite', 1, '0000-00-00', '0000-00-00', 0, 'a:0:{}')"#,
+             (1, 'OPEN', 'Open House', 'Come and see', 'Public', 1, '0000-00-00', '0000-00-00', 0, '[]'),
+             (2, 'GUEST', 'Guest List', '', 'Invite', 1, '0000-00-00', '0000-00-00', 1, '{"content":"guest_div"}'),
+             (3, 'FAR', 'Far Away', '', 'Remote', 1, '0000-00-00', '0000-00-00', 0, '[]'),
+             (4, 'VIP', 'Members Only', '', 'Invite', 1, '0000-00-00', '0000-00-00', 0, '[]')"#,
         "INSERT INTO content (record_type, record_id, record_item, name, filetype, html_content) VALUES
              ('campaign', 1, 'Public:000000', 'Welcome', 'html', '<p>Public words</p>'),
              ('campaign', 1, 'Semi-Private:000001', 'Members', 'html', '<p>Semi words</p>'),

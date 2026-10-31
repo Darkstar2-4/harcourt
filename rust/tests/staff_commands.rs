@@ -20,9 +20,9 @@ async fn seeded() -> SqlitePool {
     exec(
         &pool,
         "INSERT INTO inventory (id, sku, category_id, subcategory_id, sort_order, active, leadtime_option, new_date, pricing, parameter0, nparameter0, prj)
-         VALUES (1, 'TC-100', 1, 10, 2, 1, 'Subcategory', '2024-03-05', 'a:2:{i:0;O:23:\"inventory_pricing_class\":2:{s:5:\"price\";d:12.5;s:9:\"qty_break\";i:0;}i:1;O:23:\"inventory_pricing_class\":2:{s:5:\"price\";d:11;s:9:\"qty_break\";d:10;}}', 'Steel', 1.5, ''),
+         VALUES (1, 'TC-100', 1, 10, 2, 1, 'Subcategory', '2024-03-05', '[{\"price\":12.5,\"qty_break\":0},{\"price\":11.0,\"qty_break\":10.0}]', 'Steel', 1.5, ''),
                 (2, 'TC-200', 1, 10, 1, 0, 'Weeks', '0000-00-00', '', 'Brass', 0, 'prjCatalog=x'),
-                (3, 'BL-1', 2, 11, 0, 1, 'Call', '0000-00-00', 'a:0:{}', '', 0, '')",
+                (3, 'BL-1', 2, 11, 0, 1, 'Call', '0000-00-00', '[]', '', 0, '')",
     )
     .await;
     pool
@@ -184,7 +184,7 @@ async fn a_price_increase_raises_every_break_of_the_named_subcategories() {
     let text = printed(run_on(&pool, &["job", "price_increase", "--percent", "10", "10"]).await);
     assert_eq!(text, "Subcategories: 1\nIncrease: 10.00%\nSKUs updated: 1 SKUs skipped: 1\n");
     let pricing: String = sqlx::query_scalar("SELECT pricing FROM inventory WHERE id = 1").fetch_one(&pool).await.unwrap();
-    assert!(pricing.contains("d:13.75;") && pricing.contains("d:12.1;"), "{pricing}");
+    assert_eq!(pricing, r#"[{"price":13.75,"qty_break":0},{"price":12.1,"qty_break":10.0}]"#);
     assert!(count(&pool, "SELECT price_increase FROM subcategory WHERE id = 10").await > 0);
     assert_eq!(count(&pool, "SELECT count(*) FROM log WHERE type = 'Import Table' AND subtype = 'Price Increase: Percent'").await, 1);
     assert!(matches!(run_on(&pool, &["job", "price_increase", "--percent", "10", "11"]).await, Err(Fail::Run(_))), "a pending subcategory is not raised");

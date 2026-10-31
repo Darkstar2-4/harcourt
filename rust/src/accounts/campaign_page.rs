@@ -25,13 +25,13 @@ use crate::{
         visit,
     },
     api::Auth,
+    catalog::stored,
     db::unix_now,
     identity::{Email, Status},
     staff::{
         check,
         csrf::Fields,
         html::{esc, hidden, href, submit, text, url_query, Form as Widgets, Notes, Opts},
-        phpser,
         shell::{self, Head, View},
     },
     visitor::{self, Visitor},
@@ -61,8 +61,7 @@ async fn read(pool: &SqlitePool, code: &str) -> sqlx::Result<Option<Campaign>> {
     .fetch_optional(pool)
     .await?;
     Ok(row.map(|r| {
-        let divs = r.divs.as_deref().and_then(phpser::parse);
-        let content_class = divs.as_ref().and_then(|d| d.get("content")).map(|v| v.text()).unwrap_or_else(|| "campaign_content".into());
+        let content_class = stored::parse(r.divs.as_deref()).get("content").map(stored::text).unwrap_or_else(|| "campaign_content".into());
         let list = |s: Option<String>| -> Vec<String> { s.filter(|s| !s.is_empty()).map(|s| s.split('^').map(str::to_string).collect()).unwrap_or_default() };
         Campaign {
             id: r.id,

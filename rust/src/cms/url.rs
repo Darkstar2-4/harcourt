@@ -1,7 +1,7 @@
 //! WordPress's URL functions, for the URLs it printed or redirected to: PHP's encoders, parse_str(), the query
 //! rebuild of add_query_arg() and WPML's redirect, and esc_url().
 
-use crate::catalog::php::{variable, Variable, MAX_INPUT_VARS};
+use crate::catalog::query::{variable, Variable, MAX_INPUT_VARS};
 
 /// PHP urldecode().
 pub fn urldecode(s: &str) -> String {

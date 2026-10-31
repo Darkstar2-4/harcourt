@@ -6,7 +6,7 @@
 
 use sqlx::SqlitePool;
 
-use crate::catalog::php::{self, Value};
+use crate::catalog::stored;
 
 /// The `user.price_type` / `user.price_pct` pair, parsed once. No value means the visitor sees no prices
 /// ("No pricing" in classes/user.php); text this code does not know parses to no value as well.
@@ -96,19 +96,15 @@ impl Buyer<'_> {
     }
 }
 
-/// A part's list prices by quantity break (inventory.pricing, inventory_pricing_class), in stored order.
+/// A part's list prices by quantity break, in stored order.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ListPrices(pub Vec<(i64, f64)>);
 
 impl ListPrices {
-    pub fn parse(serialized: &str) -> ListPrices {
-        let Some(v) = php::unserialize(serialized) else { return ListPrices::default() };
-        ListPrices(
-            v.entries()
-                .iter()
-                .map(|(_, item)| (item.get("qty_break").map_or(0, Value::int), item.get("price").map_or(0.0, Value::float)))
-                .collect(),
-        )
+    /// inventory.pricing: `[{"price": 12.5, "qty_break": 0}, ...]`.
+    pub fn parse(json: &str) -> ListPrices {
+        let breaks = stored::parse(Some(json));
+        ListPrices(stored::entries(&breaks).into_iter().map(|(_, b)| (b.get("qty_break").map_or(0, stored::int), b.get("price").map_or(0.0, stored::float))).collect())
     }
 }
 
@@ -300,9 +296,10 @@ mod tests {
 
     #[test]
     fn list_prices_parse_from_inventory_pricing() {
-        let s = r#"a:2:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:12.5;s:9:"qty_break";i:1;}i:1;O:23:"inventory_pricing_class":2:{s:5:"price";s:5:"11.00";s:9:"qty_break";s:2:"25";}}"#;
-        assert_eq!(ListPrices::parse(s), ListPrices(vec![(1, 12.5), (25, 11.0)]));
+        let s = r#"[{"price":12.5,"qty_break":1},{"price":"11.00","qty_break":"25"},{"price":9.5,"qty_break":40.0}]"#;
+        assert_eq!(ListPrices::parse(s), ListPrices(vec![(1, 12.5), (25, 11.0), (40, 9.5)]));
         assert_eq!(ListPrices::parse(""), ListPrices::default());
+        assert_eq!(ListPrices::parse("[]"), ListPrices::default());
     }
 
     #[test]

@@ -16,7 +16,7 @@ async fn a_configured_part_gets_its_family_price_and_buttons() {
         "INSERT INTO category (id, name, active) VALUES (1, 'Pins à billes', 1)",
         "INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', 'Active', 'In Stock')",
         "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)",
-        r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, active, leadtime_option, pricing) VALUES (1, 'HBLT-1', 1, 7, 1, 'Subcategory', 'a:1:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:10;s:9:"qty_break";i:1;}}')"#,
+        r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, active, leadtime_option, pricing) VALUES (1, 'HBLT-1', 1, 7, 1, 'Subcategory', '[{"price":10.0,"qty_break":1}]')"#,
     ] {
         sqlx::query(sql).execute(&h.pool).await.unwrap();
     }

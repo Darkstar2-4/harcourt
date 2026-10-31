@@ -1,8 +1,10 @@
 #!/bin/bash
-# Start your own build of hxweb on hxport for differential testing: a fresh copy of the imported database, migrated
-# with your migrations/, the persona sessions seeded, the Gravity Forms definitions loaded and, when hxweb-cms is built
-# next to hxweb, the cms content imported from the oracle's WordPress tables. Listens on 127.0.0.1:<port>.
-#   cd ~/w/<area>/rust && cargo build --release --bin hxweb && /home/ubuntu/oracle-data/bin/hx-serve.sh <area> <port>
+# Start your own build of hxweb on hxport for differential testing: a fresh copy of the imported database, its
+# PHP-serialized columns made JSON by `hx-import --convert`, migrated with your migrations/, the persona sessions seeded,
+# the Gravity Forms definitions loaded and, when hxweb-cms is built next to hxweb, the cms content imported from the
+# oracle's WordPress tables. Listens on 127.0.0.1:<port>.
+#   cd ~/w/<area>/rust && cargo build --release --bin hxweb && cargo build --release --features import --bin hx-import
+#   /home/ubuntu/oracle-data/bin/hx-serve.sh <area> <port>
 # Then, from another shell: $ORACLE_DATA/bin/hx-diff run --oracle "$ORACLE_FRONT" --rust http://127.0.0.1:<port> ...
 # HX_DIFF overrides which hx-diff seeds the copy (default: the published one next to this script).
 set -euo pipefail
@@ -18,11 +20,15 @@ fi
 bin=target/release
 [ -x $bin/hxweb ] || bin=target/debug
 [ -x $bin/hxweb ] && [ -d migrations ] || { echo "build hxweb first (run from your rust/ directory)" >&2; exit 2; }
+[ -x $bin/hx-import ] || { echo "build hx-import too: cargo build --features import --bin hx-import (same profile as hxweb)" >&2; exit 2; }
 hxdiff=${HX_DIFF:-$ORACLE_DATA/bin/hx-diff}
 sqlx=${SQLX:-$HOME/.cargo/bin/sqlx}
 db=/tmp/hx_${area}_${port}.db
 rm -f "$db" "$db-wal" "$db-shm"
 cp "$ORACLE_DATA/hx.db" "$db"
+log=/tmp/hx_${area}_${port}.convert.log
+$bin/hx-import --convert "$db" > "$log" 2>&1 || { echo "hx-import --convert failed; see $log" >&2; tail -5 "$log" >&2; exit 1; }
+echo "serialized columns: $(grep -c 'read back ok' "$log") of 11 converted and read back"
 "$sqlx" migrate run --source migrations --database-url "sqlite://$db" >/dev/null
 "$hxdiff" seed --db "$db"
 python3 -I "$ORACLE_DATA/bin/gf_dump_to_sqlite.py" "$ORACLE_DATA/wp.sql" --tables wp_gf_form wp_gf_form_meta |

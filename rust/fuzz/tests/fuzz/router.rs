@@ -110,8 +110,8 @@ async fn seed(pool: &SqlitePool) -> Vec<Persona> {
         "INSERT INTO category (id, name) VALUES (1, 'Pins'), (2, 'Clamps')",
         "INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', 'Active', 'In Stock'), (8, 2, 'Toggle Clamps', 'Pending', '')",
         r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, active, leadtime_option, pricing) VALUES
-           (1, 'HBLT-1', 1, 7, 1, 'Subcategory', 'a:1:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:10;s:9:"qty_break";i:1;}}'),
-           (2, 'HBLT-2', 1, 7, 1, '', ''), (3, 'TC-9', 2, 8, 1, '', 'a:0:{}')"#,
+           (1, 'HBLT-1', 1, 7, 1, 'Subcategory', '[{"price":10.0,"qty_break":1}]'),
+           (2, 'HBLT-2', 1, 7, 1, '', ''), (3, 'TC-9', 2, 8, 1, '', '[]')"#,
         "INSERT INTO content (record_type, record_id, record_item, language_code, name) VALUES ('subcategory', 7, '', 'EN', 'Ball lock pins'), ('category', 2, '', 'FR', 'Brides')",
         "INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (1, 'Contact', '2020-01-01 00:00:00', 1, 0)",
     ];

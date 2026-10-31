@@ -127,7 +127,7 @@ pub fn display_size(image: (u32, u32), width: u32, height: u32) -> (u32, u32) {
 }
 
 fn param_u32(q: &HashMap<String, String>, k: &str) -> u32 {
-    q.get(k).map_or(0, |v| super::php::Value::Str(v.clone()).int().clamp(0, 10_000) as u32)
+    q.get(k).map_or(0, |v| super::query::int(v).clamp(0, 10_000) as u32)
 }
 
 fn php_page(status: StatusCode, body: String) -> Response {
@@ -193,7 +193,7 @@ impl Download {
             return None;
         }
         let mut next = || fields.next().unwrap_or_default();
-        Some(Download { file: next(), sku: next(), family_id: super::php::Value::Str(next()).int() })
+        Some(Download { file: next(), sku: next(), family_id: super::query::int(&next()) })
     }
 
     async fn record(&self, pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<()> {
@@ -224,7 +224,7 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
         let status = if q.contains_key("watermark") { StatusCode::OK } else { StatusCode::INTERNAL_SERVER_ERROR };
         return php_page(status, String::new());
     };
-    let id = html::base64_fields_decode(encoded).and_then(|f| f.first().map(|s| super::php::Value::Str(s.clone()).int())).unwrap_or(0);
+    let id = html::base64_fields_decode(encoded).and_then(|f| f.first().map(|s| super::query::int(s))).unwrap_or(0);
     let result = async {
         let viewer = viewer::load(&core.pool, &visitor, Lang::En).await?;
         Ok::<_, sqlx::Error>(content(&core.pool, id).await?.filter(|c| may_fetch(&viewer, c.owner)))
@@ -255,7 +255,7 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
         return image_response(found.bytes, &mime, &name, width, height, !override_.is_empty() && override_ != "0");
     }
     let inline = mime == "text/plain" || mime == "text/html";
-    let asked_inline = super::php::Value::Str(override_.to_string()).int() != 0;
+    let asked_inline = super::query::int(override_) != 0;
     file_response(found.bytes, if mime.is_empty() { "application/octet-stream" } else { &mime }, &name, asked_inline == inline)
 }
 

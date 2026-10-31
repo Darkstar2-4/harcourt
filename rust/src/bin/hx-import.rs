@@ -1,12 +1,16 @@
 //! hx-import: copy the SCS application tables from the MySQL database into a fresh SQLite file built from
 //! `migrations/`, then prove the copy: per table, the MySQL row count equals the SQLite row count, and a checksum of
-//! the values as inserted equals the checksum of the values read back from the finished file.
+//! the values as inserted equals the checksum of the values read back from the finished file. Last, the columns the
+//! PHP stored with serialize() become JSON (`SERIALIZED`), each value written only once its JSON reads back as the
+//! same data.
 //!
 //!     HX_IMPORT_MYSQL_URL=mysql://user:pass@127.0.0.1/db hx-import --out hx.db [--only user,log]
+//!     hx-import --convert hx.db
 //!
-//! Exit 0 when every table verifies, 1 on a mismatch or a row SQLite refuses, 2 on usage, connection or schema errors.
-//! The file is built as `<out>.partial` and renamed into place only after it verifies, so a failed run leaves the
-//! previous copy untouched and a rerun starts clean. WordPress tables are not copied here.
+//! `--convert` runs the last step alone, in place, on a file an older hx-import wrote; on a converted file it changes
+//! nothing. Exit 0 when every table and column verifies, 1 on a mismatch or a row SQLite refuses, 2 on usage,
+//! connection or schema errors. The file is built as `<out>.partial` and renamed into place only after it verifies,
+//! so a failed run leaves the previous copy untouched and a rerun starts clean. WordPress tables are not copied here.
 //!
 //! A generic copier cannot use `sqlx::query!`: identifiers come only from the two schemas and pass `ident`, and every
 //! value is a bound parameter.
@@ -21,6 +25,7 @@ use std::{
 };
 
 use futures_util::TryStreamExt;
+use hxweb::serialized;
 use sha2::{Digest, Sha256};
 use sqlx::{
     mysql::{MySqlConnectOptions, MySqlConnection},
@@ -39,6 +44,22 @@ const LEGACY: [&str; 34] = [
 
 /// Tables only the Rust program writes; they have no MySQL source.
 const RUST_OWNED: [&str; 5] = ["session", "access_code", "remote_grant", "outbox", "_sqlx_migrations"];
+
+/// The columns the PHP stored with serialize(), and whether the column is a list. Every reader takes a list's values
+/// in order and none reads its keys, so a list's keys are numbered afresh.
+const SERIALIZED: [(&str, &str, bool); 11] = [
+    ("campaign", "divs", false),
+    ("inventory", "documents", false),
+    ("inventory", "pricing", true),
+    ("pages", "css", false),
+    ("pages", "js", false),
+    ("subcategory", "documents", false),
+    ("subcategory", "download", false),
+    ("subcategory", "options", false),
+    ("subcategory", "parameters", true),
+    ("xinventory", "documents", false),
+    ("xinventory", "pricing", true),
+];
 
 const MAX_BIND: usize = 30_000;
 const MAX_BATCH: usize = 500;
@@ -279,30 +300,35 @@ impl Checksum {
     }
 }
 
-struct Args {
-    out: PathBuf,
-    only: Option<BTreeSet<String>>,
-    mysql_url: String,
+enum Args {
+    Copy { out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String },
+    Convert(PathBuf),
 }
 
 fn parse_args(mut it: impl Iterator<Item = String>, url: Option<String>) -> Result<Args, Failure> {
-    let usage = || Failure::Usage("usage: HX_IMPORT_MYSQL_URL=mysql://... hx-import --out PATH [--only t1,t2]".into());
-    let (mut out, mut only) = (None, None);
+    let usage = || Failure::Usage("usage: HX_IMPORT_MYSQL_URL=mysql://... hx-import --out PATH [--only t1,t2] | hx-import --convert PATH".into());
+    let (mut out, mut only, mut convert) = (None, None, None);
     while let Some(a) = it.next() {
         match a.as_str() {
             "--out" => out = Some(PathBuf::from(it.next().ok_or_else(usage)?)),
             "--only" => only = Some(it.next().ok_or_else(usage)?.split(',').map(|s| s.trim().to_string()).collect()),
+            "--convert" => convert = Some(PathBuf::from(it.next().ok_or_else(usage)?)),
             _ => return Err(usage()),
         }
     }
-    Ok(Args { out: out.ok_or_else(usage)?, only, mysql_url: url.ok_or_else(usage)? })
+    match (convert, out) {
+        (Some(path), None) if only.is_none() => Ok(Args::Convert(path)),
+        (None, Some(out)) => Ok(Args::Copy { out, only, mysql_url: url.ok_or_else(usage)? }),
+        _ => Err(usage()),
+    }
 }
 
 #[tokio::main]
 async fn main() -> ExitCode {
     let started = Instant::now();
     let result = match parse_args(std::env::args().skip(1), std::env::var("HX_IMPORT_MYSQL_URL").ok()) {
-        Ok(args) => run(args).await,
+        Ok(Args::Copy { out, only, mysql_url }) => run(out, only, mysql_url).await,
+        Ok(Args::Convert(path)) => convert_file(&path).await,
         Err(e) => Err(e),
     };
     match result {
@@ -311,7 +337,7 @@ async fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(Failure::Mismatch) => {
-            eprintln!("verification failed after {:.1}s; previous file left in place", started.elapsed().as_secs_f64());
+            eprintln!("verification failed after {:.1}s; nothing that failed was written", started.elapsed().as_secs_f64());
             ExitCode::from(1)
         }
         Err(Failure::Usage(m) | Failure::Setup(m)) => {
@@ -326,14 +352,14 @@ fn sidecars(p: &Path) -> [PathBuf; 3] {
     [p.to_path_buf(), PathBuf::from(format!("{s}-wal")), PathBuf::from(format!("{s}-shm"))]
 }
 
-async fn run(args: Args) -> Result<(), Failure> {
-    let partial = PathBuf::from(format!("{}.partial", args.out.display()));
+async fn run(out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String) -> Result<(), Failure> {
+    let partial = PathBuf::from(format!("{}.partial", out.display()));
     for f in sidecars(&partial) {
         if f.exists() {
             std::fs::remove_file(&f)?;
         }
     }
-    let opts = MySqlConnectOptions::from_str(&args.mysql_url)
+    let opts = MySqlConnectOptions::from_str(&mysql_url)
         .map_err(|e| Failure::Usage(format!("HX_IMPORT_MYSQL_URL: {e}")))?
         .charset("utf8mb4");
     let mut my = MySqlConnection::connect_with(&opts).await?;
@@ -353,12 +379,17 @@ async fn run(args: Args) -> Result<(), Failure> {
         .await?;
     hxweb::db::MIGRATOR.run(&lite).await.map_err(|e| Failure::Setup(format!("migrations: {e}")))?;
 
-    let tables = plan(&mut my, &lite, args.only.as_ref()).await?;
+    let tables = plan(&mut my, &lite, only.as_ref()).await?;
     let mut ok = true;
     for t in &tables {
         ok &= copy(&mut my, &lite, t).await?;
     }
     sqlx::raw_sql("ROLLBACK").execute(&mut my).await?;
+    for (table, column, list) in SERIALIZED {
+        if tables.iter().any(|t| t.name == table) {
+            ok &= convert_column(&lite, table, column, list).await?;
+        }
+    }
     if !ok {
         lite.close().await;
         return Err(Failure::Mismatch);
@@ -366,8 +397,8 @@ async fn run(args: Args) -> Result<(), Failure> {
     sqlx::query("PRAGMA journal_mode = WAL").execute(&lite).await?;
     sqlx::query("PRAGMA optimize").execute(&lite).await?;
     lite.close().await;
-    std::fs::rename(&partial, &args.out)?;
-    for f in sidecars(&args.out).into_iter().skip(1) {
+    std::fs::rename(&partial, &out)?;
+    for f in sidecars(&out).into_iter().skip(1) {
         if f.exists() {
             std::fs::remove_file(&f)?;
         }
@@ -569,6 +600,73 @@ async fn copy(my: &mut MySqlConnection, lite: &SqlitePool, t: &Table) -> Result<
     Ok(counts_ok && sum_ok)
 }
 
+/// `--convert`: the serialized columns of a file an older hx-import wrote, in place.
+async fn convert_file(path: &Path) -> Result<(), Failure> {
+    if !path.is_file() {
+        return Err(Failure::Usage(format!("{} is not a file", path.display())));
+    }
+    let lite = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(path)).await?;
+    let mut ok = true;
+    for (table, column, list) in SERIALIZED {
+        ok &= convert_column(&lite, table, column, list).await?;
+    }
+    lite.close().await;
+    if ok {
+        Ok(())
+    } else {
+        Err(Failure::Mismatch)
+    }
+}
+
+/// What becomes of one stored value, and its JSON when it changes. Empty values, JSON, and text PHP could not read
+/// stay as they are.
+fn converted(old: Option<&str>, list: bool) -> (&'static str, Option<String>) {
+    let Some(s) = old.filter(|s| !s.is_empty()) else { return ("empty", None) };
+    let Ok(v) = serialized::unserialize(s).map(|v| if list { v.renumbered() } else { v }) else {
+        return (if serde_json::from_str::<serde_json::Value>(s).is_ok() { "json" } else { "unreadable" }, None);
+    };
+    let Some(json) = v.to_json().map(|j| j.to_string()) else { return ("unreadable", None) };
+    match serde_json::from_str(&json) {
+        Ok(back) if v.same(&back) => ("converted", Some(json)),
+        _ => ("MISMATCH", None),
+    }
+}
+
+/// Rewrites one column's serialized values as JSON, then reads the column back. Ok(false) when a value's JSON does
+/// not read back as the same data (it is left as it was) or the column does not hold what was written.
+async fn convert_column(lite: &SqlitePool, table: &str, column: &str, list: bool) -> Result<bool, Failure> {
+    let started = Instant::now();
+    let select = format!("SELECT rowid, {} FROM {}", ident(column)?, ident(table)?);
+    let update = format!("UPDATE {} SET {} = ?1 WHERE rowid = ?2", ident(table)?, ident(column)?);
+    let mut conn = lite.acquire().await?;
+    let rows: Vec<(i64, Option<String>)> = sqlx::query_as(&select).fetch_all(&mut *conn).await?;
+    let mut outcomes: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut written = Checksum::default();
+    sqlx::query("BEGIN").execute(&mut *conn).await?;
+    for (rowid, old) in &rows {
+        let (outcome, new) = converted(old.as_deref(), list);
+        *outcomes.entry(outcome).or_default() += 1;
+        if let Some(json) = &new {
+            sqlx::query(&update).bind(json.as_str()).bind(*rowid).execute(&mut *conn).await?;
+        }
+        written.add(&[Value::Int(*rowid), new.or_else(|| old.clone()).map_or(Value::Null, Value::Text)]);
+    }
+    sqlx::query("COMMIT").execute(&mut *conn).await?;
+    let mut stored = Checksum::default();
+    for (rowid, v) in sqlx::query_as::<_, (i64, Option<String>)>(&select).fetch_all(&mut *conn).await? {
+        stored.add(&[Value::Int(rowid), v.map_or(Value::Null, Value::Text)]);
+    }
+    let outcome_text = outcomes.iter().map(|(k, n)| format!("{k} {n}")).collect::<Vec<_>>().join("  ");
+    println!(
+        "{:<24} rows {:>9}  {outcome_text}  read back {}  {:.1}s",
+        format!("{table}.{column}"),
+        rows.len(),
+        if stored == written { "ok" } else { "MISMATCH" },
+        started.elapsed().as_secs_f64()
+    );
+    Ok(!outcomes.contains_key("MISMATCH") && stored == written)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -682,7 +780,56 @@ mod tests {
         let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>().into_iter();
         assert!(parse_args(a(&["--out", "x.db"]), None).is_err());
         assert!(parse_args(a(&[]), Some("mysql://h/db".into())).is_err());
-        let ok = parse_args(a(&["--out", "x.db", "--only", "user, log"]), Some("mysql://h/db".into())).unwrap();
-        assert_eq!(ok.only.unwrap().into_iter().collect::<Vec<_>>(), vec!["log".to_string(), "user".to_string()]);
+        let Ok(Args::Copy { only, .. }) = parse_args(a(&["--out", "x.db", "--only", "user, log"]), Some("mysql://h/db".into())) else { panic!("a copy") };
+        assert_eq!(only.unwrap().into_iter().collect::<Vec<_>>(), vec!["log".to_string(), "user".to_string()]);
+        assert!(matches!(parse_args(a(&["--convert", "x.db"]), None), Ok(Args::Convert(p)) if p == Path::new("x.db")));
+        assert!(parse_args(a(&["--convert", "x.db", "--out", "y.db"]), Some("mysql://h/db".into())).is_err());
+    }
+
+    #[test]
+    fn serialized_values_become_json_once() {
+        let pricing = r#"a:2:{i:0;O:23:"inventory_pricing_class":2:{s:5:"price";d:12.5;s:9:"qty_break";i:0;}i:1;O:23:"inventory_pricing_class":2:{s:5:"price";d:11;s:9:"qty_break";d:10;}}"#;
+        assert_eq!(converted(Some(pricing), true), ("converted", Some(r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#.into())));
+        let gappy = r#"a:2:{i:0;s:1:"a";i:3;s:1:"b";}"#;
+        assert_eq!(converted(Some(gappy), true).1.as_deref(), Some(r#"["a","b"]"#));
+        assert_eq!(converted(Some(gappy), false).1.as_deref(), Some(r#"{"0":"a","3":"b"}"#));
+        assert_eq!(converted(Some("a:0:{}"), false), ("converted", Some("[]".into())));
+        assert_eq!(converted(Some(r#"[{"price":12.5,"qty_break":0}]"#), true), ("json", None));
+        assert_eq!(converted(Some(""), true), ("empty", None));
+        assert_eq!(converted(None, false), ("empty", None));
+        assert_eq!(converted(Some(r#"a:1:{i:0;s:3:"ab"#), true), ("unreadable", None));
+        assert_eq!(converted(Some("d:INF;"), false), ("unreadable", None));
+        assert_eq!(converted(Some(r#"a:2:{s:1:"k";i:1;s:1:"k";i:2;}"#), false), ("MISMATCH", None));
+    }
+
+    #[tokio::test]
+    async fn a_file_converts_in_place_and_a_second_run_changes_nothing() {
+        let pool = hxweb::db::open_memory().await.unwrap();
+        sqlx::raw_sql(
+            r#"INSERT INTO subcategory (id, name, parameters, options, download) VALUES
+                 (1, 'Pins', 'a:1:{i:0;O:27:"subcategory_parameter_class":2:{s:2:"id";i:0;s:4:"name";s:8:"Diameter";}}', 'a:1:{s:3:"sku";s:5:"Part#";}', 'a:0:{}'),
+                 (2, 'Clamps', NULL, '', 'not a value');
+               INSERT INTO campaign (id, code, divs) VALUES (1, 'OPEN', 'a:1:{s:7:"content";s:9:"guest_div";}');"#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(hxweb::catalog::stored::unconverted(&pool).await.unwrap());
+        let read = || async {
+            let rows: Vec<(Option<String>, Option<String>, Option<String>)> =
+                sqlx::query_as("SELECT parameters, options, download FROM subcategory ORDER BY id").fetch_all(&pool).await.unwrap();
+            let divs: Option<String> = sqlx::query_scalar("SELECT divs FROM campaign").fetch_one(&pool).await.unwrap();
+            (rows, divs)
+        };
+        for _ in 0..2 {
+            for (table, column, list) in SERIALIZED.iter().filter(|(t, ..)| ["subcategory", "campaign"].contains(t)) {
+                assert!(convert_column(&pool, table, column, *list).await.unwrap(), "{table}.{column}");
+            }
+            let (rows, divs) = read().await;
+            assert_eq!(rows[0], (Some(r#"[{"id":0,"name":"Diameter"}]"#.into()), Some(r#"{"sku":"Part#"}"#.into()), Some("[]".into())));
+            assert_eq!(rows[1], (None, Some(String::new()), Some("not a value".into())));
+            assert_eq!(divs.as_deref(), Some(r#"{"content":"guest_div"}"#));
+        }
+        assert!(!hxweb::catalog::stored::unconverted(&pool).await.unwrap());
     }
 }
