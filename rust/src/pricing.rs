@@ -1,5 +1,5 @@
 //! What a visitor pays. Owned by the catalog, reused by orders: the catalog shows these prices and the cart charges
-//! them, so both read them from here (classes/configure.php configure_meta_class, configure_results, output_*).
+//! them, so both read them from here.
 //!
 //! `PriceBook` is loaded once per request; everything else is a pure function of it, the buyer and the part's list
 //! prices, so a parts table of a thousand rows prices without touching the database.
@@ -8,8 +8,8 @@ use sqlx::SqlitePool;
 
 use crate::catalog::stored;
 
-/// The `user.price_type` / `user.price_pct` pair, parsed once. No value means the visitor sees no prices
-/// ("No pricing" in classes/user.php); text this code does not know parses to no value as well.
+/// The `user.price_type` / `user.price_pct` pair, parsed once. No value means the visitor sees no prices; text this
+/// code does not know parses to no value as well.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PriceTerms {
     Base,
@@ -27,7 +27,7 @@ impl PriceTerms {
         }
     }
 
-    /// The factor applied to the list price (configure_meta_class).
+    /// The factor applied to the list price.
     pub fn multiplier(self) -> f64 {
         match self {
             PriceTerms::Base => 1.0,
@@ -37,7 +37,7 @@ impl PriceTerms {
     }
 }
 
-/// An active currency with a rate (menu_class: active = 1 and exchange_rate > 0, US dollars first).
+/// An active currency with a rate (active = 1 and exchange_rate > 0, US dollars first).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Currency {
     pub code: String,
@@ -122,8 +122,8 @@ pub enum Quote {
     Priced { msrp: f64, price: f64, breaks: Vec<Break>, currency: String, discount: bool },
 }
 
-/// configure_class::inventory_msrp() and configure_results::update() for a stocked part.
-/// `adders` are the family's own currency adders (subcategory.currency), which replace the currency's.
+/// A stocked part's price at a quantity. `adders` are the family's own currency adders (subcategory.currency),
+/// which replace the currency's.
 pub fn quote(book: &PriceBook, buyer: &Buyer, adders: &[(String, f64)], list: &ListPrices, quantity: i64) -> Quote {
     let quantity = quantity.max(1);
     let code = buyer.currency(book).to_string();
@@ -160,7 +160,7 @@ pub fn quote(book: &PriceBook, buyer: &Buyer, adders: &[(String, f64)], list: &L
     Quote::Priced { msrp, price, breaks, currency: code, discount: matches!(terms, PriceTerms::Discount(_)) }
 }
 
-/// configure_class::currency_price().
+/// `$10.00` for a buyer in US dollars, else the amount and its code (US dollars when the buyer's is not offered).
 pub fn money(book: &PriceBook, buyer: &Buyer, amount: f64) -> String {
     let code = buyer.currency(book);
     let mut out = String::new();
@@ -175,7 +175,7 @@ pub fn money(book: &PriceBook, buyer: &Buyer, amount: f64) -> String {
     out
 }
 
-/// configure_class::output_simple(): the price at quantity one, or "Contact Harcourt".
+/// The price at quantity one, or "Contact Harcourt".
 pub fn simple(book: &PriceBook, buyer: &Buyer, quote: &Quote) -> String {
     match quote {
         Quote::Priced { price, .. } => money(book, buyer, *price),
@@ -183,7 +183,7 @@ pub fn simple(book: &PriceBook, buyer: &Buyer, quote: &Quote) -> String {
     }
 }
 
-/// configure_class::currency_name(): "Priced in ..." when prices are not plain US dollars for this buyer.
+/// "Priced in ..." when prices are not plain US dollars for this buyer.
 pub fn currency_note(book: &PriceBook, buyer: &Buyer, div: bool) -> Option<String> {
     let code = buyer.currency(book);
     if code == "USD" && book.currency(buyer.currency_code).is_some() {
@@ -194,7 +194,7 @@ pub fn currency_note(book: &PriceBook, buyer: &Buyer, div: bool) -> Option<Strin
     Some(if div { format!("<div>{text}</div>") } else { text })
 }
 
-/// configure_class::output_verbose() for a part: the break table, the discounted price or the plain price.
+/// A part's price block: the break table, the discounted price or the plain price.
 pub fn verbose(book: &PriceBook, buyer: &Buyer, quote: &Quote) -> String {
     let red = |s: String| format!("<font color=red>{s}</font>");
     match quote {

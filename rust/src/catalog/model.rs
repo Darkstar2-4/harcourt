@@ -78,7 +78,7 @@ impl Parameter {
         self.kind != ParamKind::Text
     }
 
-    /// subcategory_parameter_class::output() for a stored numeric value.
+    /// How a stored numeric value prints.
     pub fn output(&self, n: f64) -> String {
         match self.kind {
             ParamKind::Text | ParamKind::Number => php_float(n),
@@ -150,7 +150,7 @@ impl Family {
         self.parameters.iter().filter(|p| self.parameter_search.contains(&p.id))
     }
 
-    /// subcategory_class::leadtime().
+    /// The family's lead time as shown.
     pub fn leadtime(&self) -> String {
         leadtime(&self.leadtime_option, &self.leadtime_text, None)
     }
@@ -165,7 +165,7 @@ pub fn leadtime(option: &str, text: &str, family: Option<&Family>) -> String {
     }
 }
 
-/// catalog.php is_metric_name(): "(Metric" anywhere, or ISO as a whole upper-case word.
+/// A metric family's name: "(Metric" anywhere, or ISO as a whole upper-case word.
 pub fn is_metric_name(name: &str) -> bool {
     name.to_ascii_lowercase().contains("(metric")
         || name.split(|c: char| !c.is_alphanumeric() && c != '_').any(|w| w == "ISO")
@@ -210,7 +210,7 @@ impl Part {
 pub struct Catalog {
     pub categories: BTreeMap<i64, Category>,
     pub families: BTreeMap<i64, Family>,
-    /// inventory_class::new_date(): items dated on or after this ("YYYY/MM/DD") are new.
+    /// Items dated on or after this ("YYYY/MM/DD") are new.
     pub new_cutoff: String,
 }
 
@@ -405,7 +405,7 @@ pub async fn family_parts(pool: &SqlitePool, family_id: i64) -> sqlx::Result<Vec
     parts_query!(pool, "WHERE subcategory_id = ?1 AND active = 1 ORDER BY sort_order, sku COLLATE NOCASE", family_id)
 }
 
-/// inventory_class::read($sku, "sku"): the part with this number, active or not.
+/// The part with this number, active or not.
 pub async fn part_by_sku(pool: &SqlitePool, sku: &str) -> sqlx::Result<Option<Part>> {
     Ok(parts_query!(pool, "WHERE sku = ?1 COLLATE NOCASE ORDER BY id LIMIT 1", sku)?.into_iter().next())
 }
@@ -414,7 +414,7 @@ pub async fn part_by_id(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Part>
     Ok(parts_query!(pool, "WHERE id = ?1", id)?.into_iter().next())
 }
 
-/// A calendar day, counted from 1970-01-01, for the "new item" cut-off the PHP took from date().
+/// A calendar day, counted from 1970-01-01, for the "new item" cut-off.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Day(i64);
 
