@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT n AS \"n!: i64\" FROM catalog_version",
+  "describe": {
+    "columns": [
+      {
+        "name": "n!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "75291f7ff3446fd2b8a5146f106e7d630d62b2986d3575a3d5c4ee0f0f112193"
+}

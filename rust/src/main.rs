@@ -63,7 +63,10 @@ pub fn on(feature: &str) -> bool {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_target(false).init();
+    use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
+    // RUST_LOG as `info,sqlx::query=debug` logs every SQL statement (`hx-diff bench --sql-log` counts them).
+    let filter = std::env::var("RUST_LOG").ok().and_then(|v| v.parse::<Targets>().ok()).unwrap_or_else(|| Targets::new().with_default(tracing::Level::INFO));
+    tracing_subscriber::registry().with(tracing_subscriber::fmt::layer().with_target(false)).with(filter).init();
     let args: Vec<String> = std::env::args().skip(1).collect();
     if let Some(code) = hxweb::staff::cli::run(&args).await {
         std::process::exit(code);

@@ -84,6 +84,41 @@ async fn any_method_gets_the_page_a_get_gets() {
 }
 
 #[tokio::test]
+async fn edits_to_families_names_and_parts_show_on_the_next_page() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(20)).await;
+    let family = |lang: &'static str| page(&format!("lang={lang}&action=subcategory&subcategory_id=7"));
+    assert!(send(&h.app, get(&family("en"), Some(&cookie))).await.2.contains("<h1>Ball Lock Pins</h1>"));
+    exec(&h.pool, "UPDATE subcategory SET name = 'Ball Lock Pins II' WHERE id = 7").await;
+    assert!(send(&h.app, get(&family("en"), Some(&cookie))).await.2.contains("<h1>Ball Lock Pins II</h1>"));
+    exec(&h.pool, "UPDATE content SET name = 'Goupilles II' WHERE record_type = 'subcategory' AND record_id = 7 AND record_item = ''").await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 20").await;
+    assert!(send(&h.app, get(&family("fr"), Some(&cookie))).await.2.contains("<h1>Goupilles II</h1>"));
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'EN' WHERE id = 20").await;
+    let (_, _, body) = send(&h.app, get(&family("en"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>"));
+    exec(&h.pool, "UPDATE subcategory SET category_id = 2 WHERE id = 7").await;
+    exec(&h.pool, "UPDATE category SET active = 0 WHERE id = 2").await;
+    let (_, _, body) = send(&h.app, get(&family("en"), Some(&cookie))).await;
+    assert!(!body.contains(">HBLT-1</a>"), "a family in an inactive category shows no parts");
+}
+
+#[tokio::test]
+async fn the_catalog_version_moves_only_with_rows_the_model_reads() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let version = || async { sqlx::query_scalar::<_, i64>("SELECT n FROM catalog_version").fetch_one(&h.pool).await.unwrap() };
+    let before = version().await;
+    exec(&h.pool, "UPDATE inventory SET pricing = '' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE content SET name = 'Sign up' WHERE record_type = 'document'").await;
+    assert_eq!(version().await, before, "prices and documents are not part of the model");
+    exec(&h.pool, "UPDATE inventory SET new_date = '2026-10-30' WHERE id = 1").await;
+    exec(&h.pool, "DELETE FROM content WHERE record_type = 'subcategory' AND record_item = ''").await;
+    assert_eq!(version().await, before + 2);
+}
+
+#[tokio::test]
 async fn a_customer_sees_the_family_with_its_parts_and_tabs() {
     let h = harness().await;
     seed(&h.pool).await;

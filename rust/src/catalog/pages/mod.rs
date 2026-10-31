@@ -136,7 +136,7 @@ pub struct Ctx<'a> {
     pub pool: &'a SqlitePool,
     pub viewer: &'a Viewer,
     pub req: Request,
-    pub catalog: Catalog,
+    pub catalog: Arc<Catalog>,
     pub registry: Registry,
     pub strings: Strings,
     pub book: PriceBook,
@@ -179,9 +179,33 @@ impl Ctx<'_> {
     }
 }
 
-pub async fn load_ctx<'a>(pool: &'a SqlitePool, viewer: &'a Viewer, req: Request, profile: Profile) -> sqlx::Result<Ctx<'a>> {
+/// The catalog model, parsed once per `catalog_version`, which triggers move on every change to the rows it is read
+/// from (migrations/0900_catalog_version.sql), and per language and new-parts cutoff (the day and `new_days`).
+#[derive(Default)]
+pub struct Models(std::sync::Mutex<Vec<(ModelKey, Arc<Catalog>)>>);
+
+/// The catalog version, the language, the day and the `new_days` setting.
+type ModelKey = (i64, Lang, Day, String);
+
+impl Models {
+    async fn get(&self, pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day) -> sqlx::Result<Arc<Catalog>> {
+        let version = sqlx::query_scalar!(r#"SELECT n AS "n!: i64" FROM catalog_version"#).fetch_one(pool).await?;
+        let key = (version, lang, today, registry.get("local", "new_days").to_string());
+        if let Some(hit) = self.0.lock().ok().and_then(|m| m.iter().find(|(k, _)| *k == key).map(|(_, c)| c.clone())) {
+            return Ok(hit);
+        }
+        let catalog = Arc::new(model::load(pool, lang, registry, today).await?);
+        if let Ok(mut m) = self.0.lock() {
+            m.retain(|(k, _)| k.0 == version && k.2 == today);
+            m.push((key, catalog.clone()));
+        }
+        Ok(catalog)
+    }
+}
+
+pub async fn load_ctx<'a>(pool: &'a SqlitePool, models: &Models, viewer: &'a Viewer, req: Request, profile: Profile) -> sqlx::Result<Ctx<'a>> {
     let registry = registry::load(pool).await?;
-    let catalog = model::load(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
+    let catalog = models.get(pool, viewer.lang, &registry, Day::from_unix(unix_now())).await?;
     let strings = strings::load(pool, viewer.lang).await?;
     let book = PriceBook::load(pool, registry.get("local", "configure_contact")).await?;
     let php_self = match (req.framed, viewer.lang) {
@@ -453,9 +477,11 @@ fn failed(e: sqlx::Error) -> Response {
     (StatusCode::INTERNAL_SERVER_ERROR, [(header::CACHE_CONTROL, "no-store")], "Internal error").into_response()
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn catalog_php(
     State(core): State<Arc<Auth>>,
     Extension(cache): Extension<Arc<super::search::Cache>>,
+    Extension(models): Extension<Arc<Models>>,
     visitor: Visitor,
     headers: HeaderMap,
     uri: axum::http::Uri,
@@ -468,7 +494,7 @@ async fn catalog_php(
     if headers.contains_key("x-hx-view") {
         return StatusCode::NO_CONTENT.into_response();
     }
-    catalog_view(&core, cache, &visitor, &headers, &request_uri(&uri, sent), &q).await
+    catalog_view(&core, cache, &models, &visitor, &headers, &request_uri(&uri, sent), &q).await
 }
 
 type Params = std::collections::HashMap<String, String>;
@@ -480,13 +506,13 @@ fn request_uri(uri: &axum::http::Uri, sent: Option<Extension<SentPath>>) -> Stri
 }
 
 /// catalog.php. Its constructor loaded the profile, which writes the `harcourt_profile` cookie on every request.
-async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, visitor: &Visitor, headers: &HeaderMap, uri: &str, q: &Params) -> Response {
+async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, models: &Models, visitor: &Visitor, headers: &HeaderMap, uri: &str, q: &Params) -> Response {
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer::lang_for(visitor)).await?;
         let req = Request { uri: uri.to_string(), script: visitor.php_self.clone(), framed: visitor.framed, ..Request::parse(q) };
         let loaded = AddressProfile::load(&core.pool, headers, visitor).await?;
         let cookie = loaded.remember(&core.pool, visitor, unix_now()).await?;
-        let mut ctx = load_ctx(&core.pool, &viewer, req, Profile::from(&loaded)).await?;
+        let mut ctx = load_ctx(&core.pool, models, &viewer, req, Profile::from(&loaded)).await?;
         ctx.search = Some(cache);
         Ok::<_, sqlx::Error>((render(&mut ctx).await?, cookie))
     }

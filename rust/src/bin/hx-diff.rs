@@ -7,9 +7,13 @@
 //!     hx-diff personas [--sql]       the synthetic personas, or the MySQL that loads them into the oracle
 //!     hx-diff seed --db PATH         sessions for the personas in a migrated copy of the imported SQLite file
 //!     hx-diff rules                  the normalization rules and compared headers
+//!     hx-diff bench --rust URL [--jobs N] [--rounds N] [--cold] [--filter REGEX] [--sql-log FILE] CORPUS.jsonl...
+//!                                    latency percentiles and SQL statements per request, by route group (bench.rs)
 //!
 //! Exit 0 when every case passes, 1 when any fails, 2 on usage, input or connection errors.
 
+#[path = "hx-diff/bench.rs"]
+mod bench;
 #[path = "hx-diff/corpus.rs"]
 mod corpus;
 #[path = "hx-diff/normalize.rs"]
@@ -61,11 +65,13 @@ enum Command {
     Personas { sql: bool },
     Seed { db: PathBuf },
     Rules,
+    Bench(bench::Args),
 }
 
 const USAGE: &str = "usage: hx-diff run --oracle URL --rust URL [--personas all|a,b] [--rust-session] [--warm] \
 [--filter REGEX] [--jobs N] [--context N] [--max-lines N] [--timeout SECS] [--out DIR] CORPUS.jsonl...\n       hx-diff personas [--sql]\n       \
-hx-diff seed --db PATH\n       hx-diff rules";
+hx-diff seed --db PATH\n       hx-diff rules\n       \
+hx-diff bench --rust URL [--jobs N] [--rounds N] [--cold] [--filter REGEX] [--sql-log FILE] CORPUS.jsonl...";
 
 fn base_url(s: &str) -> Result<String, String> {
     let u = reqwest::Url::parse(s).map_err(|e| format!("{s}: {e}"))?;
@@ -134,6 +140,26 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
             }
             Ok(Command::Run(a))
         }
+        "bench" => {
+            let mut a = bench::Args { rust: String::new(), jobs: 8, rounds: 3, cold: false, filter: None, sql_log: None, corpora: Vec::new() };
+            let num = |name: &str, s: String| s.parse::<usize>().map_err(|_| format!("{name} wants a number, got {s:?}"));
+            while let Some(arg) = it.next() {
+                match arg.as_str() {
+                    "--rust" => a.rust = base_url(&value("--rust", &mut it)?)?,
+                    "--jobs" => a.jobs = num("--jobs", value("--jobs", &mut it)?)?.max(1),
+                    "--rounds" => a.rounds = num("--rounds", value("--rounds", &mut it)?)?.max(1),
+                    "--cold" => a.cold = true,
+                    "--filter" => a.filter = Some(Regex::new(&value("--filter", &mut it)?).map_err(|e| format!("--filter: {e}"))?),
+                    "--sql-log" => a.sql_log = Some(PathBuf::from(value("--sql-log", &mut it)?)),
+                    s if s.starts_with("--") => return Err(format!("unknown option {s}\n{USAGE}")),
+                    s => a.corpora.push(PathBuf::from(s)),
+                }
+            }
+            if a.rust.is_empty() || a.corpora.is_empty() {
+                return Err("bench needs --rust and at least one corpus file".into());
+            }
+            Ok(Command::Bench(a))
+        }
         _ => Err(USAGE.into()),
     }
 }
@@ -180,6 +206,7 @@ async fn main() -> ExitCode {
             Err(e) => fail(&e),
         },
         Command::Run(a) => run(a, personas).await,
+        Command::Bench(a) => bench::run(a, personas).await,
     }
 }
 

@@ -52,4 +52,5 @@ pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
         .merge(api::router())
         .merge(ajax::router())
         .layer(Extension(search::Cache::new()))
+        .layer(Extension(Arc::new(pages::Models::default())))
 }

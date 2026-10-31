@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT DISTINCT subcategory_id AS \"id!: i64\" FROM inventory WHERE active = 1 AND new_date >= ?1",
+  "query": "SELECT subcategory_id AS \"id!: i64\" FROM inventory WHERE new_date >= ?1 AND active = 1",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "1ee92694f09a800a1a8d0da92117b3d6647af6ead5a2215a5c2983328b4938e6"
+  "hash": "b224f65f233ef166136f28b0b6578eba8db8e81ede65bb47b7ea445c3f1586df"
 }

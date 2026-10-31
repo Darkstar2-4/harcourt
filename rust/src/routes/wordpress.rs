@@ -204,7 +204,7 @@ async fn front(State(wp): State<Arc<Wp>>, method: Method, headers: header::Heade
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let get = method == Method::GET || method == Method::HEAD;
     if let Some((file, kind)) = crate::assets::root().filter(|_| get).and_then(|root| crate::assets::find(root, &path)) {
-        return crate::assets::serve(file, kind).await;
+        return crate::assets::serve(file, kind, headers.get(header::IF_NONE_MATCH)).await;
     }
     // WordPress's own front controller: redirect_canonical() drops it from the URL as sent (the front routes
     // /index.php/more as /index.php).
