@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO \"user\" (ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain)\n           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2d4fdcb6433aabd6e7683717c446d0dc7b2a65923c27cc71b5ccfab88091609c"
+}

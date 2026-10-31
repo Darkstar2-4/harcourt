@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_option (lang, name, kind, value) VALUES (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "279d02d7534a756dbd291b6d373e41ce7fc8be9a62fe4f35a6a9f01d6a2b7846"
+}

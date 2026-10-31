@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", s.category_id, c.name AS category, s.name FROM subcategory s LEFT JOIN category c ON c.id = s.category_id\n           WHERE (?1 = 0 OR s.id = ?1)",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "930853285e3789e7a3fc191f3bba694491cd8eb418d8d3986cf34edf073a512d"
+}

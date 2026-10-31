@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM access_code WHERE email = ?1 AND code_mac = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ad501ab309e1c34fb7af9dd6e65110a2f3bbb67d126a501300a6e7153ce0514b"
+}

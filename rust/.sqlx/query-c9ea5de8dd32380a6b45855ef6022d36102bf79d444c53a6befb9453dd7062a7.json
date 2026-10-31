@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record_type AS \"record_type!\", record_id AS \"record_id!: i64\", filetype AS \"filetype!\", meta, content, html_content FROM content WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "record_type!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "record_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "filetype!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "meta",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "content",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c9ea5de8dd32380a6b45855ef6022d36102bf79d444c53a6befb9453dd7062a7"
+}

@@ -1,0 +1,38 @@
+# Accounts routes against the oracle. Synthetic personas and made-up form values only.
+# Every request here begins a visit (no cookies, no Referer), so the SCS pages answer with scs_header.php's landing redirect.
+{"name": "newuser-anonymous-en", "method": "GET", "path": "/newuser.php", "persona": "anonymous", "language": "en"}
+{"name": "newuser-framed-anonymous-en", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
+{"name": "cookie-reset-anonymous-en", "method": "GET", "path": "/cookie_reset.php", "persona": "anonymous", "language": "en"}
+{"name": "oauth-callback-anonymous-en", "method": "GET", "path": "/oauth/callback.php", "persona": "anonymous", "language": "en"}
+{"name": "oauth-google-callback-anonymous-en", "method": "GET", "path": "/oauth/google_callback.php", "persona": "anonymous", "language": "en"}
+{"name": "newuser-anonymous-fr", "method": "GET", "path": "/newuser.php", "persona": "anonymous", "language": "fr"}
+{"name": "newuser-framed-anonymous-fr", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "anonymous", "language": "fr"}
+{"name": "cookie-reset-anonymous-fr", "method": "GET", "path": "/cookie_reset.php", "persona": "anonymous", "language": "fr"}
+{"name": "oauth-callback-anonymous-fr", "method": "GET", "path": "/oauth/callback.php", "persona": "anonymous", "language": "fr"}
+{"name": "oauth-google-callback-anonymous-fr", "method": "GET", "path": "/oauth/google_callback.php", "persona": "anonymous", "language": "fr"}
+{"name": "newuser-customer-active", "method": "GET", "path": "/newuser.php", "persona": "customer-active", "language": "en"}
+{"name": "newuser-framed-customer-active", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
+{"name": "newuser-customer-pending", "method": "GET", "path": "/newuser.php", "persona": "customer-pending", "language": "en"}
+{"name": "newuser-framed-customer-pending", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-pending", "language": "en"}
+{"name": "newuser-customer-denied", "method": "GET", "path": "/newuser.php", "persona": "customer-denied", "language": "en"}
+{"name": "newuser-framed-customer-denied", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-denied", "language": "en"}
+{"name": "newuser-internal-active", "method": "GET", "path": "/newuser.php", "persona": "internal-active", "language": "en"}
+{"name": "newuser-framed-internal-active", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "internal-active", "language": "en"}
+{"name": "newuser-executive-pending", "method": "GET", "path": "/newuser.php", "persona": "executive-pending", "language": "en"}
+{"name": "newuser-framed-executive-pending", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "executive-pending", "language": "en"}
+{"name": "newuser-administrator-active", "method": "GET", "path": "/newuser.php", "persona": "administrator-active", "language": "en"}
+{"name": "newuser-framed-administrator-active", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "administrator-active", "language": "en"}
+{"name": "newuser-superuser-denied", "method": "GET", "path": "/newuser.php", "persona": "superuser-denied", "language": "en"}
+{"name": "newuser-framed-superuser-denied", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "superuser-denied", "language": "en"}
+{"name": "newuser-customer-active-fr", "method": "GET", "path": "/newuser.php", "persona": "customer-active-fr", "language": "fr"}
+{"name": "newuser-framed-customer-active-fr", "method": "GET", "path": "/newuser.php?scscpq_wp=1", "persona": "customer-active-fr", "language": "fr"}
+{"name": "cookie-reset-customer-active", "method": "GET", "path": "/cookie_reset.php", "persona": "customer-active", "language": "en"}
+{"name": "oauth-callback-error-customer-active", "method": "GET", "path": "/oauth/callback.php?error=access_denied&error_description=Cancelled&state=made-up", "persona": "customer-active", "language": "en"}
+{"name": "cookie-reset-administrator-active", "method": "GET", "path": "/cookie_reset.php", "persona": "administrator-active", "language": "en"}
+{"name": "oauth-callback-error-administrator-active", "method": "GET", "path": "/oauth/callback.php?error=access_denied&error_description=Cancelled&state=made-up", "persona": "administrator-active", "language": "en"}
+{"name": "cookie-reset-customer-active-fr", "method": "GET", "path": "/cookie_reset.php", "persona": "customer-active-fr", "language": "fr"}
+{"name": "oauth-callback-error-customer-active-fr", "method": "GET", "path": "/oauth/callback.php?error=access_denied&error_description=Cancelled&state=made-up", "persona": "customer-active-fr", "language": "fr"}
+{"name": "newuser-post-anonymous-en", "method": "POST", "path": "/newuser.php", "persona": "anonymous", "language": "en", "body": "action=register&profile_email=pat%40company.example&profile_name_first=Pat&profile_name_last=Example&profile_company_name=Example+Tools"}
+{"name": "newuser-post-anonymous-fr", "method": "POST", "path": "/newuser.php", "persona": "anonymous", "language": "fr", "body": "action=register&profile_email=pat%40company.example&profile_name_first=Pat&profile_name_last=Example&profile_company_name=Example+Tools"}
+{"name": "newuser-post-customer-active-en", "method": "POST", "path": "/newuser.php", "persona": "customer-active", "language": "en", "body": "action=register&profile_email=pat%40company.example&profile_name_first=Pat&profile_name_last=Example&profile_company_name=Example+Tools"}
+{"name": "newuser-post-customer-pending-en", "method": "POST", "path": "/newuser.php", "persona": "customer-pending", "language": "en", "body": "action=register&profile_email=pat%40company.example&profile_name_first=Pat&profile_name_last=Example&profile_company_name=Example+Tools"}

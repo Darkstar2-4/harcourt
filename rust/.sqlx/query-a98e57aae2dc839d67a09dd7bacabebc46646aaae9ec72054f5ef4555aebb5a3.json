@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cart_item WHERE session_hash = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a98e57aae2dc839d67a09dd7bacabebc46646aaae9ec72054f5ef4555aebb5a3"
+}

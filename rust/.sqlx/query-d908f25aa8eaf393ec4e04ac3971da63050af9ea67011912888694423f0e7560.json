@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO visit (id, microsoft_error, google_error, seen_at) VALUES (?1, ?2, ?3, ?4)\n         ON CONFLICT (id) DO UPDATE SET microsoft_error = coalesce(excluded.microsoft_error, microsoft_error),\n             google_error = coalesce(excluded.google_error, google_error), seen_at = excluded.seen_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "d908f25aa8eaf393ec4e04ac3971da63050af9ea67011912888694423f0e7560"
+}

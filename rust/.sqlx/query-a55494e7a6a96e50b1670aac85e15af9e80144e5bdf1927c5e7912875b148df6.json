@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT i.id AS \"id!: i64\", c.name AS category, s.name AS subcategory, i.sort_order AS \"sort_order!: i64\", i.sku\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id\n           WHERE (?1 = 0 OR i.subcategory_id = ?1) AND (?2 = 0 OR COALESCE(i.pricing, '') IN ('', '[]'))\n           ORDER BY i.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "sort_order!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sku",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a55494e7a6a96e50b1670aac85e15af9e80144e5bdf1927c5e7912875b148df6"
+}

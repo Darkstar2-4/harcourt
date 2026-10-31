@@ -1,0 +1,176 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.id AS \"id!: i64\", u.ip, u.company_name, u.address, u.city, u.state, u.zip, u.country_code, u.status, u.\"type\" AS kind,\n                  u.last_login, u.customer_code, u.catalog, u.cad, u.leadscore, u.ecommerce, u.price_type, u.price_pct, u.login_document_id,\n                  u.landing_document_id, u.portal_id, u.comment, u.language_code, u.currency_code, i.name AS industry, u.revenue, u.employees\n           FROM \"user\" u LEFT JOIN industry i ON i.id = u.industry_id\n           WHERE u.status IN (SELECT value FROM json_each(?1)) AND u.\"type\" IN (SELECT value FROM json_each(?2))\n             AND (?3 = 0 OR u.industry_id = ?3)\n           ORDER BY u.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ip",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "address",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "city",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_login",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "customer_code",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "catalog",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cad",
+        "ordinal": 13,
+        "type_info": "Integer"
+      },
+      {
+        "name": "leadscore",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ecommerce",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price_type",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "price_pct",
+        "ordinal": 17,
+        "type_info": "Float"
+      },
+      {
+        "name": "login_document_id",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "landing_document_id",
+        "ordinal": 19,
+        "type_info": "Integer"
+      },
+      {
+        "name": "portal_id",
+        "ordinal": 20,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 21,
+        "type_info": "Text"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 22,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency_code",
+        "ordinal": 23,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry",
+        "ordinal": 24,
+        "type_info": "Text"
+      },
+      {
+        "name": "revenue",
+        "ordinal": 25,
+        "type_info": "Text"
+      },
+      {
+        "name": "employees",
+        "ordinal": 26,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f0edc49ada63ae505dc9fff082407f421fc1b08d4bccb903bf7bf3e3fa690bce"
+}

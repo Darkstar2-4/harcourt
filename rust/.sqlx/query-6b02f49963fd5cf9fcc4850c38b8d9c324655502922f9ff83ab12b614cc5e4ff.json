@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name AS \"name!: String\" FROM carrier WHERE name IS NOT NULL ORDER BY name",
+  "describe": {
+    "columns": [
+      {
+        "name": "name!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6b02f49963fd5cf9fcc4850c38b8d9c324655502922f9ff83ab12b614cc5e4ff"
+}

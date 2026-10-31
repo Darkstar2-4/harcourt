@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.status AS \"status!\", s.category_id AS \"category_id: i64\", c.active AS \"active: i64\"\n           FROM subcategory s LEFT JOIN category c ON c.id = s.category_id WHERE s.id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "status!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "active: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "1f6e9e6a5f085652fa0c0b70665321a3996581c5172018cd7fd168985169f435"
+}

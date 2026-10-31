@@ -1,0 +1,67 @@
+[package]
+name = "hxweb"
+version = "0.2.0"
+edition = "2021"
+
+[lib]
+name = "hxweb"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hxweb"
+path = "src/main.rs"
+
+[[bin]]
+name = "hx-import"
+path = "src/bin/hx-import.rs"
+required-features = ["import"]
+
+[[bin]]
+name = "hx-diff"
+path = "src/bin/hx-diff.rs"
+
+[workspace]
+members = ["fuzz"]
+
+[features]
+import = ["sqlx/mysql", "dep:futures-util"]
+
+[dependencies]
+axum = { version = "0.8", features = ["multipart"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+serde = { version = "1", features = ["derive"] }
+# float_roundtrip: a float parsed from JSON is the one written, to the bit (prices are stored as JSON numbers).
+serde_json = { version = "1", features = ["float_roundtrip"] }
+regex = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
+sha2 = "0.10"
+hmac = "0.12"
+subtle = "2"
+rand = "0.8"
+base64 = "0.22"
+hex = "0.4"
+percent-encoding = "2"
+tower = { version = "0.5", features = ["util"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif"] }
+dns-lookup = "2"
+form_urlencoded = "1"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "ring", "webpki-roots", "hostname"] }
+rust_decimal = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono-tz = "0.10"
+similar = "2"
+# Staff import/export (staff/map.rs): Excel workbooks written and read.
+rust_xlsxwriter = "0.102"
+calamine = "0.37"
+zip = { version = "9", default-features = false }
+futures-util = { version = "0.3", optional = true }
+
+[dev-dependencies]
+http-body-util = "0.1"
+
+[profile.release]
+lto = true
+codegen-units = 1

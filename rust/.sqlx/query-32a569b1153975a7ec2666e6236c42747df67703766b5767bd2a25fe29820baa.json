@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET ip = ?2, company_name = ?3, address = ?4, city = ?5, state = ?6, zip = ?7, country_code = ?8, status = ?9, \"type\" = ?10,\n                      customer_code = ?11, catalog = ?12, cad = ?13, leadscore = ?14, ecommerce = ?15, price_type = ?16, price_pct = ?17,\n                      comment = ?18, login_document_id = ?19, landing_document_id = ?20, portal_id = ?21, language_code = ?22,\n                      currency_code = ?23, industry_id = ?24, revenue = ?25, employees = ?26\n               WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 26
+    },
+    "nullable": []
+  },
+  "hash": "32a569b1153975a7ec2666e6236c42747df67703766b5767bd2a25fe29820baa"
+}

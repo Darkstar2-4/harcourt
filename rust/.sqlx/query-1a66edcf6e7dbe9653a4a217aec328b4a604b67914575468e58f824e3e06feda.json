@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT (SELECT count(*) FROM search) AS \"a!: i64\", (SELECT coalesce(max(id), 0) FROM search) AS \"b!: i64\",\n                  (SELECT count(*) FROM subcategory) AS \"c!: i64\", (SELECT coalesce(max(id), 0) FROM subcategory) AS \"d!: i64\",\n                  (SELECT count(*) FROM category) AS \"e!: i64\", (SELECT count(*) FROM inventory) AS \"f!: i64\",\n                  (SELECT coalesce(max(id), 0) FROM inventory) AS \"g!: i64\",\n                  (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"h!: i64\",\n                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"i!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "a!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "b!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "c!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "d!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "e!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "f!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "g!: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "h!: i64",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "i!: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1a66edcf6e7dbe9653a4a217aec328b4a604b67914575468e58f824e3e06feda"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET status = ?2 WHERE id = ?1 AND status = 'Pending'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "21762d045c8ee315686428721de1f261f42fbf35119479f48e7d84d4b6a00709"
+}

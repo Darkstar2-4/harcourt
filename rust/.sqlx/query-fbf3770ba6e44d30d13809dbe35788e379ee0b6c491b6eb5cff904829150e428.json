@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT coalesce(m.display_meta, '') AS \"d!: String\", coalesce(m.notifications, '') AS \"n!: String\",\n                  coalesce(m.confirmations, '') AS \"c!: String\", f.title AS \"title!: String\"\n           FROM wp_gf_form f JOIN wp_gf_form_meta m ON m.form_id = f.id\n           WHERE f.id = ?1 AND f.is_active = 1 AND f.is_trash = 0",
+  "describe": {
+    "columns": [
+      {
+        "name": "d!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "n!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "c!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "title!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fbf3770ba6e44d30d13809dbe35788e379ee0b6c491b6eb5cff904829150e428"
+}

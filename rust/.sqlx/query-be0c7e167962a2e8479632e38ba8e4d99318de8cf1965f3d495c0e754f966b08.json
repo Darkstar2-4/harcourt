@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, author_id\n               FROM cms_page ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "post_type",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lang",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "path",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "template",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "menu_order",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "published_at",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "modified_at",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "author_id",
+        "ordinal": 13,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "be0c7e167962a2e8479632e38ba8e4d99318de8cf1965f3d495c0e754f966b08"
+}

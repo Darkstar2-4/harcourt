@@ -24,14 +24,22 @@ jobs:
       pull-requests: read
       issues: read
       id-token: write
+    env:
+      HAS_REVIEW_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
 
     steps:
+      - name: Skip when no review token is set
+        if: env.HAS_REVIEW_TOKEN != 'true'
+        run: echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set in this repository, so no automated review ran."
+
       - name: Checkout repository
+        if: env.HAS_REVIEW_TOKEN == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
+        if: env.HAS_REVIEW_TOKEN == 'true'
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:

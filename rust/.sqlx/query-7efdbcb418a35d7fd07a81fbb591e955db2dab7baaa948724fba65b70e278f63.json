@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT state AS \"code!\", name FROM country WHERE country = ?1 AND state <> '' ORDER BY name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "7efdbcb418a35d7fd07a81fbb591e955db2dab7baaa948724fba65b70e278f63"
+}

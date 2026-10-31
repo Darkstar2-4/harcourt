@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM search WHERE id NOT IN (SELECT min(id) FROM search GROUP BY language_code, lower(rtrim(code)), subcategory_id, inventory_id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "5ad3f3193d659c64276043e3ef64745c9f5811300cd99193bb6b4a7c26aa17bc"
+}

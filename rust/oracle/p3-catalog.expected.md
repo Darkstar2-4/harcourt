@@ -1,0 +1,8 @@
+# Catalog, round three: deliberate differences from the PHP oracle
+
+- `catalog.php?debug=1` prints the request's keys and values with `<` escaped; the PHP printed them raw. Its trace stops at the gate's choice (`Document: 157`, `Profile`, `Landing page: N` or `route`); past `route` the PHP also listed each view function it called, which only a signed-in account with a complete profile reaches.
+- `image_viewer.php` stays retired (410, `retired.rs`): it served a file whose path the PHP session held, and nothing puts one there any more. The PHP answered an empty page.
+- `scs_cad.php` is not ported: it requires `cad_toolbox.php`, which is gone, and fails on every request with a PHP fatal error that prints the server's path.
+- `/search/<terms>/` (WordPress's search results) is drawn without WordPress. A search's feeds (`/feed/`, `/rss2/`, `/atom/`, `/rdf/`) and its embed, a post that submits a form, and a WordPress query var other than `lang` and `page` still go to the legacy stack. Results whose posts hold a Gravity Form do not add the form's scripts to the head, and a French page whose last result's sidebar is a navigation menu shows that menu as the export recorded it on the result's own page (with its item marked current).
+- `/search/` and `/recherche/` (the catalog's search page in the cms) still hand WordPress's query vars (`s`, `page`, `paged`, `p`, `preview`, ...) and methods other than GET, HEAD and POST to the legacy stack: that routing is the cms's (routes/wordpress.rs).
+- The search box's learned ranking comes from HXWEB_SEARCH's `learned.tsv` and `popular.tsv` while the nightly search_learn.sh writes them, and otherwise from the program's own reading of the search log (`catalog::learn`), which gives the same tables.

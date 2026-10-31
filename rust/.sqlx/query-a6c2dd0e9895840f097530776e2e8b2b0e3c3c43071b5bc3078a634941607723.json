@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT page_id, name, value FROM cms_page_meta",
+  "describe": {
+    "columns": [
+      {
+        "name": "page_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "value",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a6c2dd0e9895840f097530776e2e8b2b0e3c3c43071b5bc3078a634941607723"
+}

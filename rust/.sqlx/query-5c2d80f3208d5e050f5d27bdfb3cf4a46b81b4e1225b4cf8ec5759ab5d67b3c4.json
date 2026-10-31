@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('', ?1, 0, '', ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "5c2d80f3208d5e050f5d27bdfb3cf4a46b81b4e1225b4cf8ec5759ab5d67b3c4"
+}

@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.company_name AS \"company_name?\", l.email AS \"email!\", l.type AS \"kind!\", l.subtype, l.subcategory_id AS \"subcategory_id!: i64\", l.comment\n           FROM log l LEFT JOIN \"user\" u ON u.id = l.user_id\n           WHERE l.type IN ('User', 'Page', 'Catalog', 'Search', 'PARTSolutions', 'Initial', 'IPStack', 'Blacklist')\n             AND l.date_time >= ?1 AND l.email <> '' AND l.user_id <> 0 AND u.leadscore = 1 AND lower(u.status) = 'active'\n           ORDER BY l.email, l.id DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "company_name?",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "email!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "subtype",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_id!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "7179f68d14559debe2fef1af52e10e508f681e7eb144576a0c3ea34e5124f802"
+}

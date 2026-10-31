@@ -1,0 +1,25 @@
+[package]
+name = "hxweb-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Property tests over hxweb's handling of untrusted input"
+
+[dependencies]
+hxweb = { path = ".." }
+proptest = "1"
+
+[dev-dependencies]
+percent-encoding = "2"
+axum = { version = "0.8", features = ["multipart"] }
+tokio = { version = "1", features = ["rt", "macros", "time"] }
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite"] }
+serde_json = "1"
+rust_decimal = "1"
+rust_xlsxwriter = "0.102"
+zip = { version = "9", default-features = false }
+lettre = { version = "0.11", default-features = false, features = ["builder"] }
+regex = "1"
+chrono = { version = "0.4", default-features = false, features = ["std"] }

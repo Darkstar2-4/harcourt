@@ -1,0 +1,22 @@
+# The orders area's pages. Run with --rust-session against ORACLE_FRONT. Synthetic personas and made-up values only.
+{"name": "cart-framed-customer-active-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
+{"name": "cart-framed-customer-active-fr-fr", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active-fr", "language": "fr"}
+{"name": "cart-framed-anonymous-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
+{"name": "cart-framed-anonymous-fr", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "anonymous", "language": "fr"}
+{"name": "cart-framed-customer-pending-en", "method": "GET", "path": "/cart.php?scscpq_wp=1", "persona": "customer-pending", "language": "en"}
+{"name": "cart-direct", "method": "GET", "path": "/cart.php", "persona": "customer-active", "language": "en"}
+{"name": "cart-direct-anonymous", "method": "GET", "path": "/cart.php", "persona": "anonymous", "language": "en"}
+{"name": "cart-clear", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=clear"}
+{"name": "cart-update-empty", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=update"}
+{"name": "cart-to-checkout", "method": "POST", "path": "/cart.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=checkout"}
+{"name": "checkout-empty-cart-customer-active", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-active", "language": "en"}
+{"name": "checkout-empty-cart-anonymous", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "anonymous", "language": "en"}
+{"name": "checkout-empty-cart-customer-denied", "method": "GET", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-denied", "language": "en"}
+{"name": "checkout-direct-anonymous", "method": "GET", "path": "/checkout.php", "persona": "anonymous", "language": "en"}
+{"name": "checkout-complete-empty-cart", "method": "POST", "path": "/checkout.php?scscpq_wp=1", "persona": "customer-active", "language": "en", "body": "action=complete&orderhd_name_first=Test&orderhd_name_last=Persona"}
+{"name": "contact-anonymous-en", "method": "GET", "path": "/contact.php", "persona": "anonymous", "language": "en"}
+{"name": "contact-anonymous-fr", "method": "GET", "path": "/contact.php", "persona": "anonymous", "language": "fr"}
+{"name": "contact-customer-active-en", "method": "GET", "path": "/contact.php", "persona": "customer-active", "language": "en"}
+{"name": "contact-customer-active-fr-fr", "method": "GET", "path": "/contact.php", "persona": "customer-active-fr", "language": "fr"}
+{"name": "contact-executive-active-en", "method": "GET", "path": "/contact.php", "persona": "executive-active", "language": "en"}
+{"name": "contact-customer-pending-en", "method": "GET", "path": "/contact.php", "persona": "customer-pending", "language": "en"}

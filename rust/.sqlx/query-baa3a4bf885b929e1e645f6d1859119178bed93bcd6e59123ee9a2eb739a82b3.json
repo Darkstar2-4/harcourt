@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT l.ip AS \"ip!\", l.email, u.company_name AS \"company_name?\", l.date_time AS \"date_time!: i64\", l.type AS \"kind!\",\n                  l.subtype, l.sku AS \"sku!\", l.comment\n           FROM log l LEFT JOIN \"user\" u ON u.id = l.user_id\n           WHERE l.bot_id = 0 AND (?1 IS NULL OR l.date_time >= ?1) AND (?2 IS NULL OR l.date_time <= ?2)\n             AND (?3 = '' OR l.type = ?3) AND (?4 = '' OR l.subtype = ?4) AND (?5 = 0 OR l.user_id = ?5)\n           ORDER BY l.date_time DESC, l.id DESC LIMIT ?6 OFFSET ?7",
+  "describe": {
+    "columns": [
+      {
+        "name": "ip!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name?",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "date_time!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind!",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "subtype",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "sku!",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "comment",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "baa3a4bf885b929e1e645f6d1859119178bed93bcd6e59123ee9a2eb739a82b3"
+}

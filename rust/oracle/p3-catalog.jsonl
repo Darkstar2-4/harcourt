@@ -1,0 +1,49 @@
+# Round three, catalog lane: the search pages, the WordPress search results and the catalog leftovers. Run with --rust-session.
+{"name": "search-page", "path": "/search/"}
+{"name": "search-page-q", "path": "/search/?q=alignment+pin"}
+{"name": "search-page-q-code", "path": "/search/?q=configurable+angle+bracket+017+004000"}
+{"name": "search-page-fr", "path": "/search/?lang=fr", "language": "fr"}
+{"name": "search-page-q-fr", "path": "/search/?q=pin&lang=fr", "language": "fr"}
+{"name": "search-page-bare", "path": "/search"}
+{"name": "search-page-bare-q", "path": "/search?q=alignment+pin"}
+{"name": "recherche-page", "path": "/recherche/?lang=fr", "language": "fr"}
+{"name": "recherche-page-en", "path": "/recherche"}
+{"name": "recherche-page-q", "path": "/recherche/?lang=fr&q=pin", "language": "fr"}
+{"name": "search-page-page2", "path": "/search/?page=2"}
+{"name": "search-page-s", "path": "/search/?s=pin"}
+{"name": "search-page-utm", "path": "/search/?utm_source=x&q=pin"}
+{"name": "search-page-hxlang", "path": "/search/?hxlang=fr"}
+{"name": "search-page-lang-en", "path": "/search/?lang=en&q=pin"}
+{"name": "search-page-scscpq", "path": "/search/?scscpq_wp=1"}
+{"name": "search-token", "path": "/search/token.json"}
+{"name": "search-embed", "path": "/search/embed/?lang=fr", "language": "fr"}
+{"name": "wp-search-products", "path": "/search/products"}
+{"name": "wp-search-products-q", "path": "/search/products?q=alignment+pin"}
+{"name": "wp-search-products-slash", "path": "/search/products/"}
+{"name": "wp-search-products-fr", "path": "/search/products?lang=fr", "language": "fr"}
+{"name": "wp-search-pin", "path": "/search/pin/"}
+{"name": "wp-search-two-words", "path": "/search/alignment+pin/"}
+{"name": "wp-search-none", "path": "/search/zzqqxx/"}
+{"name": "wp-search-home-s", "path": "/?s=clamp"}
+{"name": "wp-search-page2", "path": "/search/pin/page/2/"}
+{"name": "wp-search-the", "path": "/search/the/"}
+{"name": "wp-search-the-p2", "path": "/search/the/page/2/"}
+{"name": "wp-search-harcourt", "path": "/search/harcourt/"}
+{"name": "wp-search-quotes", "path": "/search/alignment+pin%27s%20%26%20%22x%22/"}
+{"name": "wp-search-le-fr", "path": "/search/le/?lang=fr", "language": "fr"}
+{"name": "wp-search-produits-fr", "path": "/search/produits/?lang=fr", "language": "fr"}
+{"name": "wp-search-lang-en", "path": "/search/products?lang=en"}
+{"name": "wp-search-space", "path": "/search/%20/"}
+{"name": "wp-search-shape-post", "method": "POST", "path": "/search/products", "body": "q=x"}
+{"name": "wp-search-shape-head", "method": "HEAD", "path": "/search/products"}
+{"name": "wp-search-shape-xhr", "path": "/search/products?q=pin", "headers": {"X-Requested-With": "XMLHttpRequest"}}
+{"name": "wp-search-shape-nav", "path": "/search/products?q=pin", "headers": {"X-HX-Nav": "1"}}
+{"name": "wp-search-shape-ref", "path": "/search/products?q=pin", "headers": {"Referer": "https://www.harcourt.co/search/"}}
+{"name": "wp-search-shape-fr-q", "path": "/search/products?q=pin&lang=fr", "language": "fr"}
+{"name": "wp-search-shape-hxlang", "path": "/search/products?hxlang=fr"}
+{"name": "wp-search-shape-scscpq", "path": "/search/products?scscpq_wp=1"}
+{"name": "wp-search-shape-en-lang", "path": "/search/products?lang=en"}
+{"name": "wp-search-shape-utm", "path": "/search/products?utm_source=x"}
+{"name": "wp-search-shape-page", "path": "/search/products?page=2"}
+{"name": "wp-search-shape-q-empty", "path": "/search/products?q="}
+{"name": "wp-search-shape-accept-json", "path": "/search/products?q=pin", "headers": {"Accept": "application/json"}}

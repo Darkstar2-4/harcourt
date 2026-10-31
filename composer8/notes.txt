@@ -1,6 +1,0 @@
-Disable firewall
-composer require dompdf/dompdf
-composer require mk-j/php_xlsxwriter 
-composer require phpmailer/phpmailer
-composer require google/reCAPTCHA
-composer require neitanod/forceutf8
