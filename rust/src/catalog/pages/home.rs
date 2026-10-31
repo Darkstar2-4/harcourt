@@ -50,7 +50,7 @@ pub async fn page(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     out.push_str(&unit_filter(ctx));
     let (new_parts, has_parts) = if ctx.req.new_date {
         let cutoff = ctx.catalog.new_cutoff.replace('/', "-");
-        let new_parts = sqlx::query_scalar!(r#"SELECT DISTINCT subcategory_id AS "id!: i64" FROM inventory WHERE active = 1 AND new_date >= ?1"#, cutoff)
+        let new_parts = sqlx::query_scalar!(r#"SELECT subcategory_id AS "id!: i64" FROM inventory WHERE active = 1 AND new_date >= ?1"#, cutoff)
             .fetch_all(ctx.pool)
             .await?;
         let has_parts = sqlx::query_scalar!(r#"SELECT DISTINCT subcategory_id AS "id!: i64" FROM inventory WHERE active = 1"#).fetch_all(ctx.pool).await?;

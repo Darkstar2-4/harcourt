@@ -255,7 +255,7 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
     }
 
     let new_inventory: HashSet<i64> = sqlx::query_scalar!(
-        r#"SELECT DISTINCT subcategory_id AS "id!: i64" FROM inventory WHERE new_date >= ?1 AND active = 1"#,
+        r#"SELECT subcategory_id AS "id!: i64" FROM inventory WHERE new_date >= ?1 AND active = 1"#,
         cutoff_sql
     )
     .fetch_all(pool)
