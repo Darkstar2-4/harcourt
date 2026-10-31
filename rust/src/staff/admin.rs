@@ -72,7 +72,7 @@ pub struct Col {
     pub listed: bool,
     pub editable: bool,
     pub required: bool,
-    /// As the schema has it. An emptied field stores NULL here, the zero of its kind in a NOT NULL column.
+    /// As the schema has it: whether a cleared field stores NULL or the zero of its kind.
     pub nullable: bool,
 }
 
@@ -722,8 +722,8 @@ mod tests {
     async fn a_part_number_search_pages_through_the_index() {
         let pool = db::open_memory().await.unwrap();
         let spec = tables::find("inventory").unwrap();
-        for searching in [false, true] {
-            let plan = sqlx::query(&format!("EXPLAIN QUERY PLAN {}", list_sql(spec, spec.order, false, searching)))
+        for (searching, desc) in [(false, false), (true, false), (false, true), (true, true)] {
+            let plan = sqlx::query(&format!("EXPLAIN QUERY PLAN {}", list_sql(spec, spec.order, desc, searching)))
                 .bind("AB")
                 .bind(ROWS + 1)
                 .bind(0)
