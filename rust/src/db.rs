@@ -18,7 +18,10 @@ pub async fn open(path: &Path) -> Result<SqlitePool, sqlx::Error> {
         .journal_mode(SqliteJournalMode::Wal)
         .synchronous(SqliteSynchronous::Normal)
         .foreign_keys(true)
-        .busy_timeout(Duration::from_secs(5));
+        .busy_timeout(Duration::from_secs(5))
+        // Pages are read from the mapped file instead of copied by a system call each; each connection keeps 16 MB.
+        .pragma("mmap_size", "1073741824")
+        .pragma("cache_size", "-16384");
     let pool = SqlitePoolOptions::new().max_connections(8).connect_with(options).await?;
     MIGRATOR.run(&pool).await?;
     Ok(pool)
