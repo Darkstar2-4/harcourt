@@ -165,26 +165,25 @@ async fn detail(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(id)
         Ok(lines) => lines,
         Err(e) => return shell::internal(e),
     };
-    let s = |v: &Option<String>| v.clone().unwrap_or_default();
-    let place = |parts: [&Option<String>; 5]| parts.iter().map(|p| s(p)).filter(|p| !p.trim().is_empty()).collect::<Vec<_>>().join(", ");
-    let account = order.user_id.filter(|u| *u > 0).map(|u| u.to_string()).unwrap_or_default();
+    let t = |v: &Option<String>| text(v.as_deref().unwrap_or(""));
+    let joined = |parts: &[&Option<String>]| text(&parts.iter().filter_map(|p| p.as_deref()).map(str::trim).filter(|p| !p.is_empty()).collect::<Vec<_>>().join(", "));
     let fields = [
         ("Order #", order.id.to_string()),
         ("Order Date/Time", when(order.order_date)),
         ("Status", text(&order.status)),
         ("Status Date/Time", when(order.status_date)),
-        ("PO#", text(&s(&order.po))),
-        ("Type", text(&s(&order.kind))),
-        ("Company", text(&s(&order.company_name))),
-        ("Name", text(&s(&order.name))),
-        ("Email", text(&s(&order.email))),
-        ("Phone", text(&s(&order.phone))),
-        ("Account", account),
-        ("Ship to", text(&place([&order.address, &order.city, &order.state, &order.zip, &order.country_code]))),
-        ("Bill to", text(&place([&order.billing_address, &order.billing_city, &order.billing_state, &order.billing_zip, &order.billing_country_code]))),
-        ("Carrier", text(&[s(&order.carrier_name), s(&order.carrier_account)].iter().filter(|p| !p.is_empty()).cloned().collect::<Vec<_>>().join(", "))),
-        ("Currency", text(&s(&order.currency_code))),
-        ("Comment", text(&s(&order.comment)).replace('\n', "<br>")),
+        ("PO#", t(&order.po)),
+        ("Type", t(&order.kind)),
+        ("Company", t(&order.company_name)),
+        ("Name", t(&order.name)),
+        ("Email", t(&order.email)),
+        ("Phone", t(&order.phone)),
+        ("Account", order.user_id.filter(|u| *u > 0).map(|u| u.to_string()).unwrap_or_default()),
+        ("Ship to", joined(&[&order.address, &order.city, &order.state, &order.zip, &order.country_code])),
+        ("Bill to", joined(&[&order.billing_address, &order.billing_city, &order.billing_state, &order.billing_zip, &order.billing_country_code])),
+        ("Carrier", joined(&[&order.carrier_name, &order.carrier_account])),
+        ("Currency", t(&order.currency_code)),
+        ("Comment", t(&order.comment).replace('\n', "<br>")),
     ];
     let mut body = vec![Notes::new(&format!("Order {}", order.id), "").render(), "<table class='standard noborder'>".to_string()];
     for (label, value) in fields.iter().filter(|(_, v)| !v.is_empty()) {
@@ -201,7 +200,7 @@ async fn detail(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(id)
             l.quantity,
             number_dp(l.price, 2),
             number_dp(l.extended, 2),
-            text(&s(&l.comment))
+            t(&l.comment)
         ));
     }
     let total: f64 = lines.iter().map(|l| l.extended).sum();

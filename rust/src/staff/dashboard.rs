@@ -36,12 +36,20 @@ type Link = (Role, &'static str, &'static str);
 
 const MENU: &[(&str, &[Link])] = &[
     ("Document Manager", &[(A, "Page Text", crate::cms::admin::PATH)]),
-    ("", &[(E, "Orders", super::orders::PATH), (E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
+    ("Orders", &[(E, "PO", super::orders::PATH)]),
+    ("", &[(E, "Event Log", "/scs_log.php"), (E, "Reset Cookie", "/cookie_reset.php")]),
 ];
 
+/// The groups of MENU, with the table admin's tables the role may list just before the role's own group.
 fn menu(role: Role) -> String {
     let mut m = MenuGroup::new("standard");
     for (title, items) in MENU {
+        if title.is_empty() {
+            m.group("Tables");
+            for spec in super::tables::SPECS.iter().filter(|s| role >= s.list) {
+                m.item(spec.title, &format!("{}/{}", super::admin::PATH, spec.table), Opts::new());
+            }
+        }
         let shown: Vec<&Link> = items.iter().filter(|(min, ..)| role >= *min).collect();
         if shown.is_empty() {
             continue;
@@ -50,10 +58,6 @@ fn menu(role: Role) -> String {
         for (_, label, path) in shown {
             m.item(label, path, Opts::new());
         }
-    }
-    m.group("Tables");
-    for spec in super::tables::SPECS.iter().filter(|s| role >= s.list) {
-        m.item(spec.title, &format!("{}/{}", super::admin::PATH, spec.table), Opts::new());
     }
     m.render()
 }
@@ -526,8 +530,12 @@ mod tests {
         assert!(exec.contains("<a href=\"/scs_log.php\" class='nobr'>Event Log</a>"));
         assert!(exec.contains("<span style='font-size: 140%;'>Executive</span><br>"));
         assert!(!exec.contains("Remote Access") && !exec.contains("/staff/cms"), "a group with nothing for the role is left out");
+        assert!(exec.contains("<span style='font-size: 140%;'>Orders</span><br>\n<a href=\"/staff/orders\" class='nobr'>PO</a>"));
+        assert!(!exec.contains("/staff/admin/"), "the tables are for Administrators");
         let admin = menu(Role::Administrator);
         assert!(admin.contains("<a href=\"/staff/cms\" class='nobr'>Page Text</a>"));
+        assert!(admin.contains("<span style='font-size: 140%;'>Tables</span><br>\n<a href=\"/staff/admin/currency\" class='nobr'>Currencies</a>\n | "));
+        assert!(admin.find(">Tables<") < admin.find(">Administrator<"), "the role's own group stays last");
         for gone in ["/user.php", "/inventory.php", "/subcategory.php", "/staff/remote-grants", "/category.php", "/cad_lookup.php", "/cookie.php"] {
             assert!(!menu(Role::SuperUser).contains(gone), "{gone}");
         }
