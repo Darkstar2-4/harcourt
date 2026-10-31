@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT i.id AS \"id!: i64\", c.name AS category, s.name AS subcategory, i.sort_order AS \"sort_order!: i64\", i.sku\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id\n           WHERE (?1 = 0 OR i.subcategory_id = ?1) AND (?2 = 0 OR COALESCE(i.pricing, '') IN ('', 'a:0:{}'))\n           ORDER BY i.id",
+  "query": "SELECT i.id AS \"id!: i64\", c.name AS category, s.name AS subcategory, i.sort_order AS \"sort_order!: i64\", i.sku\n           FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id\n           WHERE (?1 = 0 OR i.subcategory_id = ?1) AND (?2 = 0 OR COALESCE(i.pricing, '') IN ('', '[]'))\n           ORDER BY i.id",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "a07b1dd51d70639a5df99120a6c9117a2c3975bf2ba64cc6e714ea5299bf73bd"
+  "hash": "a55494e7a6a96e50b1670aac85e15af9e80144e5bdf1927c5e7912875b148df6"
 }

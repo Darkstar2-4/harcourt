@@ -5,11 +5,9 @@ use std::collections::{BTreeMap, HashSet};
 
 use sqlx::SqlitePool;
 
-use super::{
-    php::{self, Value},
-    registry::Registry,
-    viewer::Lang,
-};
+use serde_json::Value;
+
+use super::{registry::Registry, stored, viewer::Lang};
 
 pub const PARAMETERS: usize = 20;
 
@@ -50,7 +48,7 @@ pub enum ParamKind {
     Decimal(usize),
 }
 
-/// subcategory_parameter_class.
+/// One entry of subcategory.parameters.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameter {
     pub id: usize,
@@ -61,8 +59,8 @@ pub struct Parameter {
 
 impl Parameter {
     fn parse(v: &Value) -> Option<Parameter> {
-        let id = usize::try_from(v.get("id")?.int()).ok().filter(|i| *i < PARAMETERS)?;
-        let ty = v.get("type").map(Value::text).unwrap_or_else(|| "Alphanumeric".into());
+        let id = usize::try_from(stored::int(v.get("id")?)).ok().filter(|i| *i < PARAMETERS)?;
+        let ty = v.get("type").map(stored::text).unwrap_or_else(|| "Alphanumeric".into());
         let kind = match ty.as_str() {
             "Alphanumeric" | "Uppercase" | "Lowercase" => ParamKind::Text,
             "Numeric" => ParamKind::Number,
@@ -70,9 +68,9 @@ impl Parameter {
         };
         Some(Parameter {
             id,
-            name: v.get("name").map(Value::text).unwrap_or_default().trim().to_string(),
+            name: v.get("name").map(stored::text).unwrap_or_default().trim().to_string(),
             kind,
-            hyperlink: v.get("hyperlink").is_some_and(|h| h.int() != 0),
+            hyperlink: v.get("hyperlink").is_some_and(|h| stored::int(h) != 0),
         })
     }
 
@@ -80,7 +78,7 @@ impl Parameter {
         self.kind != ParamKind::Text
     }
 
-    /// subcategory_parameter_class::output() for a stored numeric value.
+    /// How a stored numeric value prints.
     pub fn output(&self, n: f64) -> String {
         match self.kind {
             ParamKind::Text | ParamKind::Number => php_float(n),
@@ -152,7 +150,7 @@ impl Family {
         self.parameters.iter().filter(|p| self.parameter_search.contains(&p.id))
     }
 
-    /// subcategory_class::leadtime().
+    /// The family's lead time as shown.
     pub fn leadtime(&self) -> String {
         leadtime(&self.leadtime_option, &self.leadtime_text, None)
     }
@@ -167,7 +165,7 @@ pub fn leadtime(option: &str, text: &str, family: Option<&Family>) -> String {
     }
 }
 
-/// catalog.php is_metric_name(): "(Metric" anywhere, or ISO as a whole upper-case word.
+/// A metric family's name: "(Metric" anywhere, or ISO as a whole upper-case word.
 pub fn is_metric_name(name: &str) -> bool {
     name.to_ascii_lowercase().contains("(metric")
         || name.split(|c: char| !c.is_alphanumeric() && c != '_').any(|w| w == "ISO")
@@ -212,7 +210,7 @@ impl Part {
 pub struct Catalog {
     pub categories: BTreeMap<i64, Category>,
     pub families: BTreeMap<i64, Family>,
-    /// inventory_class::new_date(): items dated on or after this ("YYYY/MM/DD") are new.
+    /// Items dated on or after this ("YYYY/MM/DD") are new.
     pub new_cutoff: String,
 }
 
@@ -228,10 +226,6 @@ impl Catalog {
     pub fn category_name(&self, id: i64) -> &str {
         self.categories.get(&id).map_or("", |c| c.name.as_str())
     }
-}
-
-fn list_of(v: Option<Value>) -> Vec<(String, String)> {
-    v.map(|v| v.entries().iter().map(|(k, v)| (k.as_string(), v.text())).collect()).unwrap_or_default()
 }
 
 fn carets(s: Option<&str>) -> Vec<String> {
@@ -273,14 +267,9 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
     .fetch_all(pool)
     .await?
     {
-        let parameters: Vec<Parameter> = r
-            .parameters
-            .as_deref()
-            .and_then(php::unserialize)
-            .map(|v| v.entries().iter().filter_map(|(_, p)| Parameter::parse(p)).collect())
-            .unwrap_or_default();
-        let options = r.options.as_deref().filter(|s| !s.is_empty()).and_then(php::unserialize);
-        let label = |key: &str| options.as_ref().and_then(|o| o.get(key)).map(Value::text);
+        let parameters = stored::entries(&stored::parse(r.parameters.as_deref())).into_iter().filter_map(|(_, p)| Parameter::parse(p)).collect();
+        let options = stored::parse(r.options.as_deref());
+        let label = |key: &str| options.get(key).map(stored::text);
         let currency = r
             .currency
             .as_deref()
@@ -309,7 +298,7 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
                     .filter(|s| !s.is_empty())
                     .map(|s| s.split('^').filter_map(|p| p.trim().parse().ok()).collect())
                     .unwrap_or_default(),
-                download: list_of(r.download.as_deref().filter(|s| !s.is_empty()).and_then(php::unserialize)),
+                download: stored::entries(&stored::parse(r.download.as_deref())).into_iter().map(|(k, v)| (k, stored::text(v))).collect(),
                 sku_label: label("sku"),
                 price_label: label("price"),
                 new_date: php_date(&r.new_date),
@@ -416,7 +405,7 @@ pub async fn family_parts(pool: &SqlitePool, family_id: i64) -> sqlx::Result<Vec
     parts_query!(pool, "WHERE subcategory_id = ?1 AND active = 1 ORDER BY sort_order, sku COLLATE NOCASE", family_id)
 }
 
-/// inventory_class::read($sku, "sku"): the part with this number, active or not.
+/// The part with this number, active or not.
 pub async fn part_by_sku(pool: &SqlitePool, sku: &str) -> sqlx::Result<Option<Part>> {
     Ok(parts_query!(pool, "WHERE sku = ?1 COLLATE NOCASE ORDER BY id LIMIT 1", sku)?.into_iter().next())
 }
@@ -425,7 +414,7 @@ pub async fn part_by_id(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Part>
     Ok(parts_query!(pool, "WHERE id = ?1", id)?.into_iter().next())
 }
 
-/// A calendar day, counted from 1970-01-01, for the "new item" cut-off the PHP took from date().
+/// A calendar day, counted from 1970-01-01, for the "new item" cut-off.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Day(i64);
 
@@ -474,9 +463,10 @@ mod tests {
     }
 
     #[test]
-    fn parameters_parse_from_the_serialized_column() {
-        let v = php::unserialize(r#"a:2:{i:0;O:27:"subcategory_parameter_class":6:{s:2:"id";i:0;s:4:"name";s:9:" Diameter";s:4:"type";s:9:"Decimal:3";s:7:"numeric";b:1;s:7:"decimal";s:1:"3";s:9:"hyperlink";i:0;}i:3;O:27:"subcategory_parameter_class":6:{s:2:"id";i:3;s:4:"name";s:4:"Mate";s:4:"type";s:9:"Uppercase";s:7:"numeric";b:0;s:7:"decimal";i:0;s:9:"hyperlink";i:1;}}"#).unwrap();
-        let ps: Vec<Parameter> = v.entries().iter().filter_map(|(_, p)| Parameter::parse(p)).collect();
+    fn parameters_parse_from_the_stored_list() {
+        let v = stored::parse(Some(r#"[{"decimal":3,"hyperlink":0,"id":0,"name":" Diameter","numeric":true,"type":"Decimal:3"},{"decimal":0,"hyperlink":1,"id":3,"name":"Mate","numeric":false,"type":"Uppercase"},{"id":20,"name":"Past the last"}]"#));
+        let ps: Vec<Parameter> = stored::entries(&v).into_iter().filter_map(|(_, p)| Parameter::parse(p)).collect();
+        assert_eq!(ps.len(), 2);
         assert_eq!(ps[0], Parameter { id: 0, name: "Diameter".into(), kind: ParamKind::Decimal(3), hyperlink: false });
         assert_eq!(ps[1], Parameter { id: 3, name: "Mate".into(), kind: ParamKind::Text, hyperlink: true });
         assert_eq!(ps[0].output(0.5), "0.500");

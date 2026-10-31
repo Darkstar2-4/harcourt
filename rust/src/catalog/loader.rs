@@ -367,16 +367,13 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
 fn url_query(url: &str) -> Vec<(String, String)> {
     let query = url.split_once('?').map_or("", |(_, q)| q);
     let query = query.split_once('#').map_or(query, |(q, _)| q);
-    match super::php::parse_str(query) {
-        super::php::Value::Map(entries) => entries
-            .into_iter()
-            .filter_map(|(k, v)| match v {
-                super::php::Value::Str(s) => Some((k.as_string(), s)),
-                _ => None,
-            })
-            .collect(),
-        _ => Vec::new(),
-    }
+    super::query::parse_str(query)
+        .into_iter()
+        .filter_map(|(k, v)| match v {
+            super::query::Value::Str(s) => Some((k, s)),
+            super::query::Value::Map(_) => None,
+        })
+        .collect()
 }
 
 /// scscpq_wp_class::document(): the sign-in welcome document for an account whose person is not known yet.

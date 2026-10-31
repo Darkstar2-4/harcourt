@@ -92,9 +92,9 @@ proptest! {
     fn floatval_reads_a_long_prefix_in_linear_time(piece in gen::text_of("0123456789.eE+-", 1..4), n in 0usize..20_000) {
         let s = piece.repeat(n);
         within(PURE, "floatval", || staff::map::floatval(&s));
-        let v = catalog::php::Value::Str(s);
-        within(PURE, "Value::float", || v.float());
-        within(PURE, "Value::int", || v.int());
+        within(PURE, "query::int", || catalog::query::int(&s));
+        let v = serde_json::Value::String(s);
+        within(PURE, "stored::float", || catalog::stored::float(&v));
     }
 
     /// The two copies of the site's clock agree, and date() writes every letter it knows for any instant.

@@ -21,6 +21,9 @@ pub async fn open(path: &Path) -> Result<SqlitePool, sqlx::Error> {
         .busy_timeout(Duration::from_secs(5));
     let pool = SqlitePoolOptions::new().max_connections(8).connect_with(options).await?;
     MIGRATOR.run(&pool).await?;
+    if crate::catalog::stored::unconverted(&pool).await? {
+        return Err(sqlx::Error::Configuration("PHP-serialized columns: run `hx-import --convert` on this file first (docs/rust-migration.md)".into()));
+    }
     Ok(pool)
 }
 

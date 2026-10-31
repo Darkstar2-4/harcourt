@@ -6,9 +6,9 @@ use std::collections::HashMap;
 
 use super::{
     dump::{Table, Tables, Value},
-    php::{self, Php},
     Import,
 };
+use crate::serialized::{self, Php};
 use crate::cms::model::{Author, Field, Fields, Kind, Lang, Media, MediaId, MediaSize, Menu, MenuItem, Page, PageId, PostType, Status, Taxonomy, Template, Term};
 
 /// (WPML element type, element id) -> (language, translation group).
@@ -90,7 +90,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         .values()
         .filter(|p| p.kind == "acf-field")
         .filter_map(|p| {
-            let settings = php::unserialize(&p.content).ok()?;
+            let settings = serialized::unserialize(&p.content).ok()?;
             if !p.name.starts_with("field_") {
                 return None;
             }
@@ -177,7 +177,7 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
     if let Some(tagline) = options.get("blogdescription") {
         en.insert("@blogdescription".into(), Field { kind: Kind::Choice, value: tagline.clone() });
     }
-    if let Some(titles) = options.get("wpseo_titles").and_then(|v| php::unserialize(v).ok()) {
+    if let Some(titles) = options.get("wpseo_titles").and_then(|v| serialized::unserialize(v).ok()) {
         for (k, v) in titles.items() {
             let Php::Str(key) = k else { continue };
             if !(key.starts_with("title-") || key.starts_with("noindex-") || key == "separator") {
@@ -299,10 +299,10 @@ fn field(acf_type: Option<&str>, raw: &str) -> Option<Field> {
 /// Serialized arrays (checkboxes, relationships, flexible content layouts) as JSON arrays of strings; any other
 /// value as is.
 fn choice_json(raw: &str) -> String {
-    if !php::is_serialized(raw) {
+    if !serialized::is_serialized(raw) {
         return raw.to_string();
     }
-    match php::unserialize(raw) {
+    match serialized::unserialize(raw) {
         Ok(Php::Array(items)) => serde_json::to_string(
             &items.iter().map(|(_, v)| v.as_str().map(str::to_string).or_else(|| v.as_int().map(|i| i.to_string())).unwrap_or_default()).collect::<Vec<_>>(),
         )
@@ -312,7 +312,7 @@ fn choice_json(raw: &str) -> String {
 }
 
 fn link_json(raw: &str) -> String {
-    let Ok(v) = php::unserialize(raw) else { return serde_json::json!({ "url": "", "title": "", "target": "" }).to_string() };
+    let Ok(v) = serialized::unserialize(raw) else { return serde_json::json!({ "url": "", "title": "", "target": "" }).to_string() };
     let s = |k: &str| v.get(k).and_then(Php::as_str).unwrap_or("").to_string();
     serde_json::json!({ "url": s("url"), "title": s("title"), "target": s("target") }).to_string()
 }
@@ -340,7 +340,7 @@ fn page_path(id: i64, posts: &HashMap<i64, Post>, front: Option<(i64, &LangOf)>)
 fn media(p: &Post, meta: &HashMap<i64, Vec<(String, String)>>, lang_of: &LangOf) -> Option<Media> {
     let translation = lang_of.get(&("post_attachment".to_string(), p.id)).copied();
     let file = meta_value(meta, p.id, "_wp_attached_file")?.to_string();
-    let info = meta_value(meta, p.id, "_wp_attachment_metadata").and_then(|m| php::unserialize(m).ok());
+    let info = meta_value(meta, p.id, "_wp_attachment_metadata").and_then(|m| serialized::unserialize(m).ok());
     let int = |k: &str| info.as_ref().and_then(|i| i.get(k)).and_then(Php::as_int).unwrap_or(0);
     let sizes = info
         .as_ref()
@@ -397,7 +397,7 @@ fn menus(
             }
         }
     }
-    let unser = |name: &str| options.get(name).and_then(|v| php::unserialize(v).ok());
+    let unser = |name: &str| options.get(name).and_then(|v| serialized::unserialize(v).ok());
     let navbar = unser("theme_mods_momentum-custom").and_then(|m| m.get("nav_menu_locations")?.get("navbar")?.as_int());
     let footer_widget = unser("sidebars_widgets")
         .and_then(|s| s.get("footer-widget-area").map(|a| a.items().iter().filter_map(|(_, w)| w.as_str().map(str::to_string)).collect::<Vec<_>>()))
@@ -429,7 +429,7 @@ fn menus(
                 let is_page = m("_menu_item_type") == "post_type" && m("_menu_item_object") == "page";
                 let url = if is_page { page_url(object_id).unwrap_or_default() } else { m("_menu_item_url").to_string() };
                 let label = if p.title.is_empty() && is_page { page_title(object_id).unwrap_or_default() } else { p.title.clone() };
-                let classes = php::unserialize(m("_menu_item_classes"))
+                let classes = serialized::unserialize(m("_menu_item_classes"))
                     .map(|c| c.items().iter().filter_map(|(_, v)| v.as_str().filter(|s| !s.is_empty()).map(str::to_string)).collect::<Vec<_>>().join(" "))
                     .unwrap_or_default();
                 let parent = m("_menu_item_menu_item_parent").parse::<i64>().unwrap_or(0);

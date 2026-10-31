@@ -29,7 +29,6 @@ pub mod filesort;
 pub mod html;
 pub mod maintain;
 pub mod map;
-pub mod phpser;
 pub mod shell;
 pub mod smart;
 pub mod time;

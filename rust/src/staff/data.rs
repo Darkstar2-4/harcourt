@@ -16,11 +16,10 @@ use super::{
     csrf::php_intval,
     filesort,
     map::{self, Field, FileType, Kind, Map, Record, Sheet},
-    phpser::{self, Php},
     smart::{self, Module, RecordType},
     time,
 };
-use crate::{db::unix_now, identity::Role};
+use crate::{catalog::stored, db::unix_now, identity::Role};
 
 const PARAMETERS: usize = 20;
 const BREAKS: usize = 10;
@@ -105,27 +104,25 @@ pub struct Break {
     pub price: Decimal,
 }
 
-fn decimal_of(p: Option<&Php>) -> Decimal {
-    p.map(Php::text).and_then(|s| Decimal::from_str(s.trim()).or_else(|_| Decimal::from_scientific(s.trim())).ok()).unwrap_or_default()
+fn decimal_of(v: Option<&serde_json::Value>) -> Decimal {
+    v.map(stored::text).and_then(|s| Decimal::from_str(s.trim()).or_else(|_| Decimal::from_scientific(s.trim())).ok()).unwrap_or_default()
 }
 
-/// inventory.pricing as the PHP serialized it.
-pub fn pricing(stored: &str) -> Vec<Break> {
-    phpser::parse(stored).map(|v| v.entries().iter().map(|(_, b)| Break { qty: decimal_of(b.get("qty_break")), price: decimal_of(b.get("price")) }).collect()).unwrap_or_default()
+/// inventory.pricing: `[{"price": 12.5, "qty_break": 0}, ...]`.
+pub fn pricing(json: &str) -> Vec<Break> {
+    let breaks = stored::parse(Some(json));
+    stored::entries(&breaks).into_iter().map(|(_, b)| Break { qty: decimal_of(b.get("qty_break")), price: decimal_of(b.get("price")) }).collect()
 }
 
-/// The breaks as the PHP serialized them: the first quantity an integer, later ones floats.
+/// The breaks as stored: the first from quantity 0.
 pub fn pricing_text(breaks: &[Break]) -> String {
-    let number = |d: &Decimal, first: bool| if first { Php::Int(0) } else { Php::Float(d.normalize().to_string()) };
-    let entries = breaks
+    let number = |d: &Decimal| serde_json::Number::from_f64(d.normalize().to_string().parse().unwrap_or(0.0)).map_or(serde_json::Value::Null, serde_json::Value::Number);
+    let list: Vec<serde_json::Value> = breaks
         .iter()
         .enumerate()
-        .map(|(i, b)| {
-            let props = vec![(Php::Str("price".into()), Php::Float(b.price.normalize().to_string())), (Php::Str("qty_break".into()), number(&b.qty, i == 0))];
-            (Php::Int(i as i64), Php::Object("inventory_pricing_class".into(), props))
-        })
+        .map(|(i, b)| serde_json::json!({ "price": number(&b.price), "qty_break": if i == 0 { 0.into() } else { number(&b.qty) } }))
         .collect();
-    phpser::write(&Php::Array(entries))
+    serde_json::Value::Array(list).to_string()
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -334,7 +331,7 @@ async fn inventory_ids(pool: &SqlitePool, subcategory_id: i64, no_price: bool) -
     let mut keys = sqlx::query!(
         r#"SELECT i.id AS "id!: i64", c.name AS category, s.name AS subcategory, i.sort_order AS "sort_order!: i64", i.sku
            FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id
-           WHERE (?1 = 0 OR i.subcategory_id = ?1) AND (?2 = 0 OR COALESCE(i.pricing, '') IN ('', 'a:0:{}'))
+           WHERE (?1 = 0 OR i.subcategory_id = ?1) AND (?2 = 0 OR COALESCE(i.pricing, '') IN ('', '[]'))
            ORDER BY i.id"#,
         subcategory_id,
         no_price
@@ -1557,9 +1554,12 @@ mod tests {
     }
 
     #[test]
-    fn breaks_round_trip_through_the_php_text() {
-        let breaks = vec![Break { qty: Decimal::ZERO, price: Decimal::new(1250, 2) }, Break { qty: Decimal::new(10, 0), price: Decimal::new(1100, 2) }];
-        assert_eq!(pricing(&pricing_text(&breaks)), breaks);
+    fn breaks_round_trip_through_the_stored_json() {
+        let breaks = vec![Break { qty: Decimal::new(5, 0), price: Decimal::new(1250, 2) }, Break { qty: Decimal::new(10, 0), price: Decimal::new(1100, 2) }];
+        let text = pricing_text(&breaks);
+        assert_eq!(text, r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#);
+        assert_eq!(pricing(&text), [Break { qty: Decimal::ZERO, ..breaks[0].clone() }, breaks[1].clone()]);
+        assert_eq!(pricing(r#"[{"price":284.92,"qty_break":0}]"#)[0].price.to_string(), "284.92");
         assert!(pricing("").is_empty());
     }
 

@@ -31,7 +31,8 @@ axum = { version = "0.8", features = ["multipart"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# float_roundtrip: a float parsed from JSON is the one written, to the bit (prices are stored as JSON numbers).
+serde_json = { version = "1", features = ["float_roundtrip"] }
 regex = "1"
 tracing = "0.1"
 tracing-subscriber = "0.3"

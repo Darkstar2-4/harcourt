@@ -23,8 +23,8 @@ use super::{
     forms::hidden,
     html,
     model::{self, Catalog, Day, Part, PARAMETERS},
-    php::{self, Key, Value},
     profile::Profile,
+    query::{self, Value},
     registry::{self, Registry},
     strings::{self, Strings},
     tabs::Tabs,
@@ -81,7 +81,7 @@ pub struct Request {
 }
 
 fn int(s: Option<&String>) -> i64 {
-    s.map_or(0, |v| super::php::Value::Str(v.clone()).int())
+    s.map_or(0, |v| query::int(v))
 }
 
 impl Request {
@@ -308,7 +308,7 @@ fn trace(req: &Request, view: &View) -> Value {
         steps.push("related_sku".into());
     }
     steps.push(view.traced());
-    Value::Map(steps.into_iter().enumerate().map(|(i, s)| (Key::Int(i as i64), Value::Str(s))).collect())
+    Value::Map(steps.into_iter().enumerate().map(|(i, s)| (i.to_string(), Value::Str(s))).collect())
 }
 
 /// The document document_viewer.php showed when catalog.php included it: a `document` in the request (PHP-true)
@@ -317,20 +317,14 @@ fn viewer_document(param: &str, chosen: i64) -> i64 {
     if param.is_empty() || param == "0" {
         return chosen;
     }
-    html::base64_fields_decode(param).and_then(|f| f.first().map(|s| Value::Str(s.clone()).int())).unwrap_or(0)
+    html::base64_fields_decode(param).and_then(|f| f.first().map(|s| query::int(s))).unwrap_or(0)
 }
 
 /// $_GET as element text: the PHP printed the keys and values raw, so any `<` in them could open a tag.
 fn text_safe(v: Value) -> Value {
     match v {
         Value::Str(s) => Value::Str(html::esc_text(&s)),
-        Value::Map(entries) => Value::Map(
-            entries
-                .into_iter()
-                .map(|(k, v)| (if let Key::Str(s) = k { Key::Str(html::esc_text(&s)) } else { k }, text_safe(v)))
-                .collect(),
-        ),
-        other => other,
+        Value::Map(entries) => Value::Map(entries.into_iter().map(|(k, v)| (html::esc_text(&k), text_safe(v))).collect()),
     }
 }
 
@@ -376,9 +370,9 @@ pub async fn render(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     }
     body.push_str("</form>");
     if request.debug {
-        let query = ctx.req.uri.split_once('?').map_or("", |(_, q)| q);
-        for v in [text_safe(php::parse_str(query)), traced] {
-            body.push_str(&format!("<pre>\n{}</pre>\n", php::print_r(&v)));
+        let raw = ctx.req.uri.split_once('?').map_or("", |(_, q)| q);
+        for v in [text_safe(Value::Map(query::parse_str(raw))), traced] {
+            body.push_str(&format!("<pre>\n{}</pre>\n", query::print_r(&v)));
         }
     }
     let ribbon = (!ctx.req.framed).then(|| chrome::ribbon(ctx.viewer.at_least(Role::Executive).then(|| ctx.strings.get("menu_dashboard"))));

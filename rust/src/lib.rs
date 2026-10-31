@@ -16,6 +16,7 @@ pub mod pricing;
 pub mod remote_grant;
 pub mod retired;
 pub mod routes;
+pub mod serialized;
 pub mod session;
 pub mod staff;
 pub mod visitor;

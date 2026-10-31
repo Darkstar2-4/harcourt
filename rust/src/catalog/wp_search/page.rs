@@ -6,7 +6,7 @@
 
 use super::{field, fold, parse_terms, post_content, urlencode};
 use crate::{
-    catalog::php::{self, Value},
+    catalog::query::{self, Value},
     cms::{Lang, Page, PostType, Site, Status},
 };
 
@@ -95,11 +95,11 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
     if !PATHS.contains(&slashed.as_str()) || path.starts_with("//") {
         return None;
     }
-    let Value::Map(entries) = php::parse_str(raw_query) else { return None };
+    let entries = query::parse_str(raw_query);
     let mut pairs: Vec<(String, String)> = Vec::with_capacity(entries.len());
     for (k, v) in entries {
         let Value::Str(v) = v else { return None };
-        pairs.push((k.as_string(), v));
+        pairs.push((k, v));
     }
     let get = |k: &str| pairs.iter().find(|(have, _)| have == k).map(|(_, v)| v.as_str());
     let last_lang = raw_query.split('&').filter_map(|kv| kv.strip_prefix("lang=")).next_back();

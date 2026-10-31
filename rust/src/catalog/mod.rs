@@ -2,9 +2,9 @@
 //! search box and the files they link to. PHP rendered all of this in catalog.php, scscpq_wp.php and friends; the
 //! markup, classes and ids here are the ones the site's CSS and `web/` scripts expect.
 //!
-//! `viewer` decides what a request may see, `html` writes markup and links, `php` reads the values the PHP stored
-//! with serialize(), `registry` the site settings, `strings` the interface text per language. Each other module
-//! owns one group of PHP entry points and contributes its routes to `router`.
+//! `viewer` decides what a request may see, `html` writes markup and links, `query` reads a query as `$_GET`,
+//! `stored` the JSON columns, `registry` the site settings, `strings` the interface text per language. Each other
+//! module owns one group of PHP entry points and contributes its routes to `router`.
 
 use std::sync::Arc;
 
@@ -22,10 +22,11 @@ pub mod learn;
 pub mod loader;
 pub mod model;
 pub mod pages;
-pub mod php;
 pub mod profile;
+pub mod query;
 pub mod registry;
 pub mod search;
+pub mod stored;
 pub mod strings;
 pub mod tabs;
 pub mod viewer;

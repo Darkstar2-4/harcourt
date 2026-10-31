@@ -7,10 +7,10 @@ use crate::{
         forms,
         html::{self, esc_text, href, href_with, Query},
         model::{self, Family, Parameter, Part},
-        php::Value,
         tabs::Tabs,
     },
     pricing::{self, ListPrices},
+    staff::catalog::php_floatval,
 };
 
 /// $database->query_limit: parts per page on a family with page breaks.
@@ -37,7 +37,7 @@ fn matches_param(part: &Part, param: &Parameter, wanted: &str) -> bool {
         return true;
     }
     if param.numeric() {
-        part.nparameter[param.id] == Value::Str(wanted.to_string()).float()
+        part.nparameter[param.id] == php_floatval(wanted)
     } else {
         part.parameter[param.id].trim_end().eq_ignore_ascii_case(wanted.trim_end())
     }
