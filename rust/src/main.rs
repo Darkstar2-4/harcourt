@@ -13,14 +13,10 @@ use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use axum::{
     body::Body,
     extract::{ConnectInfo, Request, State},
-    http::{header, Method, Response, StatusCode},
+    http::{Method, Response, StatusCode},
     Router,
 };
 use regex::Regex;
-use tower_http::compression::{
-    predicate::{Predicate, SizeAbove},
-    CompressionBody, CompressionLayer, CompressionLevel,
-};
 
 pub struct App {
     /// The library's routes, called in-process by the composer (the catalog fragment and the loader JSON).
@@ -109,16 +105,7 @@ async fn main() {
     });
     let unclaimed = Router::new().fallback(dispatch).with_state(app.clone());
     let router = lib.layer(axum::middleware::from_fn_with_state(app, finish_cms_pages)).fallback_service(unclaimed);
-    // Text is gzipped for browsers that ask; images, fonts, video and PDFs are compressed already.
-    let text = |_: StatusCode, _: axum::http::Version, h: &axum::http::HeaderMap, _: &axum::http::Extensions| {
-        h.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).is_some_and(|t| t.starts_with("text/") || ["javascript", "json", "xml"].iter().any(|k| t.contains(k)))
-    };
-    let gzip = CompressionLayer::new().quality(CompressionLevel::Fastest).compress_when(SizeAbove::new(1024).and(text));
-    let router = tower::ServiceBuilder::new()
-        .map_response(|r: Response<CompressionBody<Body>>| r.map(Body::new))
-        .layer(gzip)
-        .map_request(hxweb::visitor::apache_paths)
-        .service(router);
+    let router = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(router);
     let listener = tokio::net::TcpListener::bind(&listen).await.expect("bind");
     tracing::info!("hxweb listening on {listen}");
     axum::serve(listener, axum::ServiceExt::<Request>::into_make_service_with_connect_info::<SocketAddr>(router)).await.expect("serve");
