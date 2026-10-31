@@ -182,7 +182,10 @@ impl Ctx<'_> {
 /// The catalog model, parsed once per `catalog_version`, which triggers move on every change to the rows it is read
 /// from (migrations/0900_catalog_version.sql), and per language and new-parts cutoff (the day and `new_days`).
 #[derive(Default)]
-pub struct Models(std::sync::Mutex<Vec<((i64, Lang, Day, String), Arc<Catalog>)>>);
+pub struct Models(std::sync::Mutex<Vec<(ModelKey, Arc<Catalog>)>>);
+
+/// The catalog version, the language, the day and the `new_days` setting.
+type ModelKey = (i64, Lang, Day, String);
 
 impl Models {
     async fn get(&self, pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day) -> sqlx::Result<Arc<Catalog>> {
@@ -480,6 +483,7 @@ fn failed(e: sqlx::Error) -> Response {
     (StatusCode::INTERNAL_SERVER_ERROR, [(header::CACHE_CONTROL, "no-store")], "Internal error").into_response()
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn catalog_php(
     State(core): State<Arc<Auth>>,
     Extension(cache): Extension<Arc<super::search::Cache>>,
