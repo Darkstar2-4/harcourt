@@ -1,6 +1,7 @@
 //! The staff side of the site: a small dashboard (its reports, access requests, the event log; page text is the
-//! cms editor at /staff/cms) and the commands of the binary for the data work, the scheduled jobs and remote grants
-//! (cli.rs). Pages render here in Rust with the markup of the PHP they replace (html.rs, shell.rs).
+//! cms editor at /staff/cms), the order viewer, the table admin (admin.rs, one mechanism over the specs in
+//! tables.rs) and the commands of the binary for bulk data work, the scheduled jobs and remote grants (cli.rs).
+//! Pages render here in Rust with the markup of the PHP they replace (html.rs, shell.rs).
 //!
 //! Every handler takes `Staff<R>`, which holds the `Authed<R>` of a live session at role R or above, with the
 //! same minimum role the PHP page checked with `user->access()`. Every form posts a CSRF token (csrf.rs).
@@ -34,6 +35,7 @@ pub mod smart;
 pub mod time;
 
 pub mod access;
+pub mod admin;
 pub mod cli;
 pub mod company;
 pub mod dashboard;
@@ -41,6 +43,8 @@ pub mod data;
 pub mod filmstrip;
 pub mod jobs;
 pub mod log;
+pub mod orders;
+pub mod tables;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
 pub const HOME: &str = "/scs_index.php";
@@ -95,7 +99,9 @@ fn go_home(wp: bool) -> Response {
 pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .merge(access::routes())
+        .merge(admin::routes())
         .merge(company::routes())
         .merge(dashboard::routes())
         .merge(log::routes())
+        .merge(orders::routes())
 }

@@ -611,7 +611,7 @@ impl MenuGroup {
     }
 
     /// A link the caller has already decided this visitor may see.
-    pub fn item(&mut self, name: &'static str, url: &'static str, opts: Opts) {
+    pub fn item(&mut self, name: &'static str, url: &str, opts: Opts) {
         let mut opts = opts;
         opts.push_default("class", "nobr");
         if let Some((_, items)) = self.groups.last_mut() {
