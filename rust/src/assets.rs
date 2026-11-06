@@ -108,7 +108,7 @@ fn header_str(headers: &HeaderMap, name: header::HeaderName) -> Option<&str> {
     headers.get(name).and_then(|v| v.to_str().ok())
 }
 
-/// The file, streamed: the whole of it, or the one byte range asked for unless `If-Range` names another version. Its
+/// The file, streamed: the whole of it, or the one byte range asked for unless `If-Range` is not its ETag. Its
 /// ETag is its size and modification time; a browser that already holds that version (by `If-None-Match`, or by
 /// `If-Modified-Since` when it sent no ETag) gets 304. HEAD gets the headers alone.
 pub async fn serve(file: PathBuf, kind: &'static str, method: &Method, headers: &HeaderMap) -> Response<Body> {
@@ -129,9 +129,8 @@ pub async fn serve(file: PathBuf, kind: &'static str, method: &Method, headers: 
     if held {
         return (StatusCode::NOT_MODIFIED, validators).into_response();
     }
-    let same_version = |v: &str| v == tag || httpdate::parse_http_date(v).is_ok_and(|d| d == modified);
     let span = match header_str(headers, header::RANGE) {
-        Some(asked) if header_str(headers, header::IF_RANGE).is_none_or(same_version) => parse_range(asked, len),
+        Some(asked) if header_str(headers, header::IF_RANGE).is_none_or(|v| v == tag) => parse_range(asked, len),
         _ => Span::Whole,
     };
     let (status, first, count, content_range) = match span {
@@ -250,15 +249,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn if_range_keeps_the_range_only_for_the_current_version() {
+    async fn if_range_keeps_the_range_only_for_the_current_etag() {
         let file = sample("if-range");
         let (_, h, _) = ask(&file, Method::GET, &[]).await;
         let (tag, date) = (h[header::ETAG].to_str().unwrap(), h[header::LAST_MODIFIED].to_str().unwrap());
-        for current in [tag, date] {
-            let (status, _, body) = ask(&file, Method::GET, &[(header::RANGE, "bytes=0-1"), (header::IF_RANGE, current)]).await;
-            assert_eq!((status, body.as_str()), (StatusCode::PARTIAL_CONTENT, "01"));
-        }
-        for other in ["\"a-0\"", "Thu, 01 Jan 1970 00:00:00 GMT"] {
+        let (status, _, body) = ask(&file, Method::GET, &[(header::RANGE, "bytes=0-1"), (header::IF_RANGE, tag)]).await;
+        assert_eq!((status, body.as_str()), (StatusCode::PARTIAL_CONTENT, "01"));
+        let weak = format!("W/{tag}");
+        for other in ["\"a-0\"", "Thu, 01 Jan 1970 00:00:00 GMT", date, weak.as_str()] {
             let (status, _, body) = ask(&file, Method::GET, &[(header::RANGE, "bytes=0-1"), (header::IF_RANGE, other)]).await;
             assert_eq!((status, body.as_str()), (StatusCode::OK, DIGITS));
         }
