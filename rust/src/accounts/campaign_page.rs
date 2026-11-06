@@ -1,6 +1,7 @@
 //! campaign.php: a campaign's landing page. Everyone sees its Public content; a visitor who is not signed in gets
 //! the short sign-up form, which admits as the sign-up page does (an address at an Active company goes on to prove
-//! itself with an emailed code there; one at a blacklisted domain is turned away); a signed-in company that is not Denied sees the Semi-Private content and, until the
+//! itself with an emailed code there; one at a blacklisted domain is turned away; one whose account waits for
+//! approval is told so and gets no second account); a signed-in company that is not Denied sees the Semi-Private content and, until the
 //! browser has given an address, the address form; an Active company that has given one sees the Private content
 //! and the campaign's product families.
 //!
@@ -39,6 +40,7 @@ use crate::{
 };
 
 const NOT_AUTHORIZED: &str = "Your domain is not authorized to access this site. Please contact us for more information.";
+const PENDING: &str = "You access request is pending approval. Your request will be approved as soon as possible.";
 
 /// The `campaign` row as campaign.php used it. `kind` is the raw type: the page tests for "Invite" and "Remote"
 /// only, so anything else behaves as Public.
@@ -205,7 +207,8 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                         }
                         return Ok(to_code);
                     }
-                    Admission::Pending | Admission::Unknown => {
+                    Admission::Pending => notes.error("email", Some(PENDING)),
+                    Admission::Unknown => {
                         let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
                         let (id, sign_in) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
                         set_cookies.extend(cookies::session(&sign_in.token, false));

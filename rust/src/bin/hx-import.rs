@@ -392,6 +392,8 @@ async fn run(out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String) ->
     }
     if tables.iter().any(|t| t.name == "user") {
         clear_free_mail(&lite).await?;
+        let filled = account::fill_signup_emails(&lite).await?;
+        println!("{:<24} {filled} sign-up addresses recorded", "user.signup_email");
     }
     if !ok {
         lite.close().await;

@@ -152,8 +152,8 @@ pub async fn at_address(pool: &SqlitePool, ip: &str) -> sqlx::Result<Option<User
 }
 
 /// The account an address belongs to (classes/remote.php access()): the one that owns its domain, or, for an
-/// address at a free-mail provider, whose domain belongs to no account, the one that address signed up as. Of
-/// several, an Active one, then a Pending one, then the lowest id.
+/// address at a free-mail provider, whose domain belongs to no account, the one that address signed up as
+/// (`signup_email`). Of several, an Active one, then a Pending one, then the lowest id.
 pub async fn for_email(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<UserId>> {
     let id = match email.company_domain() {
         Some(domain) => {
@@ -168,8 +168,7 @@ pub async fn for_email(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<
         None => {
             let address = email.as_str();
             sqlx::query_scalar!(
-                r#"SELECT id AS "id!: i64" FROM "user"
-                   WHERE id IN (SELECT user_id FROM log WHERE type = 'User' AND subtype = 'Signup' AND lower(email) = ?1)
+                r#"SELECT id AS "id!: i64" FROM "user" WHERE signup_email = ?1
                    ORDER BY CASE status WHEN 'Active' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END, id LIMIT 1"#,
                 address
             )
@@ -178,6 +177,37 @@ pub async fn for_email(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<
         }
     };
     Ok(id.map(UserId))
+}
+
+/// The address the account signed up with: the one recorded at registration, or, for an account registered before
+/// that was recorded, the address of its latest sign-up log row (user.php's approval query).
+pub async fn signup_email(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<String>> {
+    let email = sqlx::query_scalar!(
+        r#"SELECT coalesce(signup_email, (
+                  SELECT email FROM log WHERE user_id = "user".id AND type = 'User' AND subtype = 'Signup' AND COALESCE(email, '') <> ''
+                  ORDER BY date_time DESC LIMIT 1)) AS "email?: String"
+           FROM "user" WHERE id = ?1"#,
+        id.0
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(email.flatten())
+}
+
+/// Record on each account without one the address of its latest sign-up log row, as migration 0108 did for the
+/// accounts that existed then. For a file filled after the migrations ran. Returns how many were filled.
+pub async fn fill_signup_emails(pool: &SqlitePool) -> sqlx::Result<u64> {
+    let done = sqlx::query!(
+        r#"UPDATE "user" SET signup_email = (
+               SELECT lower(trim(email)) FROM log
+               WHERE log.user_id = "user".id AND type = 'User' AND subtype = 'Signup' AND trim(coalesce(email, '')) <> ''
+               ORDER BY date_time DESC, id DESC LIMIT 1)
+           WHERE signup_email IS NULL
+             AND EXISTS (SELECT 1 FROM log WHERE log.user_id = "user".id AND type = 'User' AND subtype = 'Signup' AND trim(coalesce(email, '')) <> '')"#
+    )
+    .execute(pool)
+    .await?;
+    Ok(done.rows_affected())
 }
 
 /// Clear every account's domain that names a free-mail provider (`identity::is_free_mail`), which can name no

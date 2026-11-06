@@ -249,6 +249,25 @@ async fn any_other_address_asks_for_access_as_a_pending_account() {
 }
 
 #[tokio::test]
+async fn a_request_for_an_address_already_awaiting_approval_adds_no_account() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let form = "action=register&profile_email=lee%40gmail.com&profile_name_first=Lee&profile_name_last=Ray&profile_company_name=Lee+Co";
+    let first = ajax(&app, "", form).await;
+    assert!(first.json()["html"]["profile_register"].as_str().unwrap().contains("Congratulations, your access request has been submitted!"));
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6 AND signup_email = 'lee@gmail.com'"#).await, 1);
+
+    for form in [form.replace("lee%40", "Lee%40"), form.replace("lee%40gmail.com", "pat%40waiting.example")] {
+        let again = ajax(&app, "", &form).await;
+        assert_eq!(again.json()["html"]["profile_register"], "<p>You access request is pending approval. Your request will be approved as soon as possible.</p>", "{form}");
+        assert!(again.cookies().iter().all(|c| !c.contains("hx_session")), "{form}");
+    }
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user""#).await, 3);
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
+    assert_eq!(mails(&pool).await.len(), 1);
+}
+
+#[tokio::test]
 async fn a_blacklisted_domain_is_refused() {
     let pool = pool().await;
     let a = ajax(&app(&pool), "", "action=register&profile_email=x%40spam.example&profile_name_first=A&profile_name_last=B&profile_company_name=C").await;
@@ -522,4 +541,24 @@ async fn free_mail_domains_are_cleared_and_company_domains_kept() {
     let kept: Vec<(i64, Option<String>)> = sqlx::query_as(r#"SELECT id, domain FROM "user" WHERE id >= 30 ORDER BY id"#).fetch_all(&pool).await.unwrap();
     assert_eq!(kept, vec![(30, None), (31, None), (32, Some("mail.example.com".into())), (33, None)]);
     assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id = 5 AND domain = 'example.com'"#).await, 1);
+}
+
+#[tokio::test]
+async fn imported_accounts_take_the_address_of_their_latest_sign_up() {
+    let pool = pool().await;
+    sqlx::raw_sql(
+        r#"INSERT INTO "user" (id, status, signup_email) VALUES (40, 'Active', NULL), (41, 'Pending', NULL), (42, 'Pending', 'kept@gmail.com');
+           INSERT INTO log (date_time, user_id, email, type, subtype) VALUES
+             (100, 40, 'old@gmail.com', 'User', 'Signup'), (200, 40, ' Sam@GMail.com ', 'User', 'Signup'), (300, 40, 'other@gmail.com', 'User', 'Email'),
+             (100, 41, '', 'User', 'Signup'), (100, 42, 'new@gmail.com', 'User', 'Signup')"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert_eq!(account::fill_signup_emails(&pool).await.unwrap(), 1);
+    let rows: Vec<(i64, Option<String>)> = sqlx::query_as(r#"SELECT id, signup_email FROM "user" WHERE id >= 40 ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, vec![(40, Some("sam@gmail.com".into())), (41, None), (42, Some("kept@gmail.com".into()))]);
+    assert_eq!(account::for_email(&pool, &Email::parse("sam@gmail.com").unwrap()).await.unwrap(), Some(UserId(40)));
+    assert_eq!(account::for_email(&pool, &Email::parse("old@gmail.com").unwrap()).await.unwrap(), None);
+    assert_eq!(account::signup_email(&pool, UserId(42)).await.unwrap().as_deref(), Some("kept@gmail.com"));
 }

@@ -190,6 +190,21 @@ async fn a_campaign_sign_up_at_an_active_company_goes_on_to_the_emailed_code() {
 }
 
 #[tokio::test]
+async fn a_campaign_sign_up_for_an_account_awaiting_approval_says_so() {
+    let pool = pool().await;
+    sqlx::query(r#"UPDATE "user" SET domain = 'pending.example' WHERE id = 4"#).execute(&pool).await.unwrap();
+    let app = app(&pool);
+    let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=Pending+Co&email=pat%40pending.example";
+    let (status, headers, body) = send(&app, Method::POST, "/campaign.php", VISIT, Some(form)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("<p style='color:red;'>You access request is pending approval."), "{body}");
+    assert!(body.contains("value='register'") && !body.contains("Semi words"));
+    assert!(set_cookie_names(&headers).iter().all(|n| !n.contains("session")));
+    assert_eq!(count(&pool, r#"SELECT count(*) FROM "user""#).await, 4, "no new account");
+    assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
+}
+
+#[tokio::test]
 async fn paths_apache_ran_a_script_for_reach_the_script() {
     let pool = pool().await;
     let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(app(&pool));
