@@ -141,6 +141,20 @@ async fn a_customer_sees_the_family_with_its_parts_and_tabs() {
 }
 
 #[tokio::test]
+async fn a_decimal_option_keeps_every_part_it_is_printed_for() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET nparameter0 = 0.504 WHERE id = 2").await;
+    exec(&h.pool, "UPDATE inventory SET nparameter0 = 0.497 WHERE id = 3").await;
+    let cookie = signed_in(&h.pool, &Account::customer(22)).await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<option value='0.25'>0.25</option>\n<option value='0.50'>0.50</option>\n</select>"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7&parameter0=0.50"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-2</a>") && body.contains(">HBLT-3</a>"), "{body}");
+    assert!(!body.contains(">HBLT-1</a>"));
+}
+
+#[tokio::test]
 async fn a_search_selection_narrows_the_parts() {
     let h = harness().await;
     seed(&h.pool).await;
