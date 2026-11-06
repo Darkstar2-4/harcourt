@@ -25,7 +25,8 @@ use crate::{
     api::{Auth, Executive},
     audit::{self, Entry},
     db::unix_now,
-    identity::{is_free_mail, Role},
+    identity::{is_free_mail, Role, UserId},
+    session,
 };
 
 pub const PATH: &str = "/staff/admin";
@@ -122,6 +123,8 @@ pub struct Spec {
     /// A listed Choice column holding an account role: a row above the editor's own role is listed but cannot be
     /// opened, and the column offers no role above the editor's.
     pub rank: Option<&'static str>,
+    /// The rows are accounts: an Administrator sees a row's live sessions on its edit page and can end them.
+    pub sessions: bool,
 }
 
 impl Spec {
@@ -402,7 +405,38 @@ async fn form_page(pool: &SqlitePool, staff: &Staff<Executive>, spec: &'static S
     buttons.push(format!("<a href=\"{}\">Return</a>", esc(&spec.path())));
     body.push(format!("<p>{}</p>", buttons.join(" ")));
     body.push(close().into());
+    if let Some(id) = id.filter(|_| spec.sessions && role >= Role::Administrator) {
+        match sessions_panel(pool, staff, spec, id).await {
+            Ok(panel) => body.push(panel),
+            Err(e) => return shell::internal(e),
+        }
+    }
     shell::page(pool, staff.view(), &title(spec, id), &body.join("\n")).await
+}
+
+/// The account's live sessions by address, each with a button that ends it, and one that ends them all.
+async fn sessions_panel(pool: &SqlitePool, staff: &Staff<Executive>, spec: &Spec, id: i64) -> sqlx::Result<String> {
+    let live = session::live(pool, UserId(id), unix_now()).await?;
+    let action = esc(&format!("{}/{id}/sessions", spec.path()));
+    let csrf = format!("<input type=hidden name='{}' value='{}'>", super::csrf::FIELD, esc(staff.csrf.as_str()));
+    let end = |email: Option<&str>, label: &str| {
+        let which = email.map_or_else(String::new, |e| format!("<input type=hidden name='email' value='{}'>", esc(e)));
+        format!("<form method=post action='{action}' style='display:inline'>{csrf}{which}{}</form>", submit(label, Opts::new()).trim_end())
+    };
+    let mut out = vec!["<p class='standard'><b>Sessions</b></p>".to_string()];
+    if live.is_empty() {
+        out.push("<p class='standard'>No live sessions</p>".into());
+        return Ok(out.join("\n"));
+    }
+    out.push("<table class='small border'><thead><tr><th>Address</th><th>Sessions</th><th>Until</th><th></th></tr></thead><tbody>".into());
+    for l in &live {
+        let button = l.email.as_deref().map_or_else(String::new, |e| end(Some(e), "End"));
+        let address = l.email.as_deref().map_or_else(|| "(remote grant)".to_string(), esc);
+        out.push(format!("<tr><td>{address}</td><td class=center>{}</td><td>{}</td><td>{button}</td></tr>", l.count, time::date("m/d/Y h:i A", l.expires_at)));
+    }
+    out.push("</tbody></table>".into());
+    out.push(format!("<p>{}</p>", end(None, "End all sessions")));
+    Ok(out.join("\n"))
 }
 
 /// Previous and next links that keep the page's other query values.
@@ -501,8 +535,12 @@ async fn edit_form(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(
     let spec = gate(&staff, &table, |s| s.edit)?;
     let values = stored(&auth.pool, spec, id, staff.who.user.role).await?;
     let mut notes = Notes::new(&title(spec, Some(id)), "");
-    if Fields::from_query(raw.as_deref()).has("saved") {
+    let f = Fields::from_query(raw.as_deref());
+    if f.has("saved") {
         notes.say("Saved");
+    }
+    if f.has("ended") {
+        notes.say(&format!("Sessions ended: {}", f.int("ended")));
     }
     Ok(form_page(&auth.pool, &staff, spec, Some(id), &values, &notes).await)
 }
@@ -607,12 +645,23 @@ async fn delete(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path((ta
     Ok(found(&format!("{}?deleted={id}", spec.path())))
 }
 
+/// Ends the account's sessions under the posted `email`, or all of them when none is posted.
+async fn end_sessions(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path((table, id)): Path<(String, i64)>, posted: Posted) -> Page {
+    let spec = gate(&staff, &table, |s| s.sessions.then_some(Role::Administrator))?;
+    stored(&auth.pool, spec, id, staff.who.user.role).await?;
+    let email = Some(posted.fields.get("email")).filter(|e| !e.is_empty());
+    let ended = session::end(&auth.pool, UserId(id), email).await.map_err(shell::internal)?;
+    record(&auth.pool, &staff, "admin_end_sessions", spec, id).await;
+    Ok(found(&format!("{}/{id}?ended={ended}", spec.path())))
+}
+
 pub fn routes() -> Router<Arc<Auth>> {
     Router::new()
         .route("/staff/admin/{table}", get(list))
         .route("/staff/admin/{table}/new", get(new_form).post(create))
         .route("/staff/admin/{table}/{id}", get(edit_form).post(save))
         .route("/staff/admin/{table}/{id}/delete", post(delete))
+        .route("/staff/admin/{table}/{id}/sessions", post(end_sessions))
 }
 
 #[cfg(test)]

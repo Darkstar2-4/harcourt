@@ -38,7 +38,7 @@ const PART_LEADTIME: &[(&str, &str)] = &[("Subcategory", "Subcategory"), ("In St
 
 /// A code table: every action for Administrators.
 const fn code_table(table: &'static str, title: &'static str, columns: &'static [super::admin::Col], search: &'static [&'static str], order: &'static str) -> Spec {
-    Spec { table, title, columns, search: Contains(search), order, list: A, edit: Some(A), create: Some(A), delete: Some(A), rank: None }
+    Spec { table, title, columns, search: Contains(search), order, list: A, edit: Some(A), create: Some(A), delete: Some(A), rank: None, sessions: false }
 }
 
 pub static SPECS: &[Spec] = &[
@@ -226,6 +226,7 @@ pub static SPECS: &[Spec] = &[
         create: Some(A),
         delete: Some(SuperUser),
         rank: Some("type"),
+        sessions: true,
     },
     Spec {
         table: "subcategory",
@@ -257,6 +258,7 @@ pub static SPECS: &[Spec] = &[
         create: Some(A),
         delete: Some(A),
         rank: None,
+        sessions: false,
     },
     Spec {
         table: "inventory",
@@ -281,6 +283,7 @@ pub static SPECS: &[Spec] = &[
         create: None,
         delete: None,
         rank: None,
+        sessions: false,
     },
 ];
 
