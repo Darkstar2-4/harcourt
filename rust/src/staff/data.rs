@@ -93,7 +93,8 @@ pub struct Options {
     pub thru: String,
     pub source: EmailSource,
     pub record_type: String,
-    /// Xref: drop the stored lines the file does not hold.
+    /// Xref: drop the stored lines the file does not hold. A rejected line keeps the stored lines of its part (or of
+    /// its competitor number, when it names no part).
     pub replace: bool,
 }
 
@@ -1055,6 +1056,15 @@ async fn xref_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, s
         sqlx::query!("INSERT OR REPLACE INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES (?1, '', ?2, ?3)", sku, other, stamp)
             .execute(&mut *tx)
             .await?;
+    } else if update && stamp != 0 {
+        sqlx::query!(
+            "UPDATE inventory_xref SET update_timestamp = ?3 WHERE (?1 <> '' AND sku = ?1) OR (?1 = '' AND ?2 <> '' AND competitor_sku = ?2)",
+            sku,
+            other,
+            stamp
+        )
+        .execute(&mut *tx)
+        .await?;
     }
     Ok(errors)
 }

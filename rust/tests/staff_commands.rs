@@ -174,6 +174,17 @@ async fn erp_prices_replace_the_breaks_and_xref_lines_can_replace_the_list() {
 }
 
 #[tokio::test]
+async fn replacing_the_xref_list_keeps_the_stored_lines_of_rejected_lines() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES ('TC-100', '', 'OLD-1', 1), ('TC-200', '', 'OLD-2', 1), ('BL-1', '', 'OLD-3', 1)").await;
+    let file = Scratch::new("xref.txt", b"Item #\tXref\nTC-100\tNEW-1\nTC-200\tTC-200\n\tOLD-3\n");
+    let text = printed(run_on(&pool, &["import", "xref", file.path(), "--replace", "--update"]).await);
+    assert!(text.contains("Rejected records: 2\n"), "{text}");
+    let rows: Vec<(String, String)> = sqlx::query_as("SELECT sku, competitor_sku FROM inventory_xref ORDER BY sku").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [("BL-1".to_string(), "OLD-3".to_string()), ("TC-100".into(), "NEW-1".into()), ("TC-200".into(), "OLD-2".into())]);
+}
+
+#[tokio::test]
 async fn account_imports_check_every_column_against_the_lookups() {
     let pool = seeded().await;
     exec(&pool, "INSERT INTO currency (code, name, exchange_rate) VALUES ('USD', 'US Dollar', 1)").await;
