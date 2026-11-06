@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use chrono::DateTime;
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
     model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient},
@@ -184,12 +184,12 @@ fn utc(now: i64) -> String {
     DateTime::from_timestamp(now, 0).unwrap_or_default().format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
-async fn store(pool: &SqlitePool, form: &Form, values: &Values, ctx: &Context<'_>, spam: bool) -> sqlx::Result<i64> {
+/// Writes the entry in the caller's transaction.
+async fn store(conn: &mut SqliteConnection, form: &Form, values: &Values, ctx: &Context<'_>, spam: bool) -> sqlx::Result<i64> {
     let created = utc(ctx.now);
     let status = if spam { "spam" } else { "active" };
     let source: String = ctx.page_url.chars().take(200).collect();
     let agent: String = ctx.user_agent.chars().take(250).collect();
-    let mut tx = pool.begin().await?;
     let id = sqlx::query_scalar!(
         r#"INSERT INTO wp_gf_entry (form_id, date_created, date_updated, is_starred, is_read, ip, source_url, user_agent, currency, status)
            VALUES (?1, ?2, ?2, 0, 0, ?3, ?4, ?5, 'USD', ?6) RETURNING id AS "id!: i64""#,
@@ -200,15 +200,14 @@ async fn store(pool: &SqlitePool, form: &Form, values: &Values, ctx: &Context<'_
         agent,
         status
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await?;
     for (name, v) in values.iter().filter(|(_, v)| !v.is_empty()) {
         let key = name.trim_start_matches("input_");
         sqlx::query!("INSERT INTO wp_gf_entry_meta (form_id, entry_id, meta_key, meta_value, item_index) VALUES (?1, ?2, ?3, ?4, '')", form.id, id, key, v)
-            .execute(&mut *tx)
+            .execute(&mut *conn)
             .await?;
     }
-    tx.commit().await?;
     Ok(id)
 }
 
@@ -347,14 +346,18 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
             spam = akismet.is_spam(&submission(form, &values, params, ctx)).await;
         }
     }
-    let entry = store(pool, form, &values, ctx, spam).await?;
+    let mut tx = pool.begin().await?;
+    let entry = store(&mut tx, form, &values, ctx, spam).await?;
+    if !spam {
+        for n in &form.notifications {
+            if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
+                mail::enqueue_in(&mut tx, &m, ctx.now).await?;
+            }
+        }
+    }
+    tx.commit().await?;
     if spam {
         return Ok(Outcome::Confirmed { html: thanks(), entry: Some(entry), spam });
-    }
-    for n in &form.notifications {
-        if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
-            mail::enqueue(pool, &m, ctx.now).await?;
-        }
     }
     Ok(match &form.confirmation {
         Confirmation::Redirect(url) => Outcome::Redirect(url.clone()),

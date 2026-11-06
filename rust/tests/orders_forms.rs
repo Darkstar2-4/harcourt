@@ -183,6 +183,20 @@ async fn a_browser_post_as_multipart_is_read() {
 }
 
 #[tokio::test]
+async fn an_entry_is_kept_only_with_its_mail() {
+    let h = harness(None, None).await;
+    sqlx::query("CREATE TRIGGER outbox_down BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END").execute(&h.pool).await.unwrap();
+    let (status, _) = post(&h, &[]).await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 0);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry_meta").await, 0);
+    sqlx::query("DROP TRIGGER outbox_down").execute(&h.pool).await.unwrap();
+    post(&h, &[]).await;
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 1);
+}
+
+#[tokio::test]
 async fn invalid_input_comes_back_with_errors_and_nothing_is_kept() {
     let h = harness(None, None).await;
     let (_, html) = post(&h, &[("input_10", "nope"), ("input_4", "")]).await;
