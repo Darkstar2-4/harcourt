@@ -7,7 +7,7 @@ use chrono::DateTime;
 use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
-    model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient},
+    model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient, SubInput},
     render::{self, wording, FieldErrors, Render, Summary, Values},
     spam::Submission,
     Services, RECAPTCHA_FORMS,
@@ -91,6 +91,11 @@ fn value(values: &Values, f: &Field) -> String {
     }
 }
 
+/// GF_Field_Address::validate: a required address needs every part the form shows except the second street line.
+fn address_complete(inputs: &[SubInput], values: &Values) -> bool {
+    inputs.iter().filter(|s| !s.hidden && !s.id.ends_with(".2")).all(|s| values.get(&format!("input_{}", s.id)).is_some_and(|v| !v.is_empty()))
+}
+
 fn valid_date(s: &str, dmy: bool) -> bool {
     chrono::NaiveDate::parse_from_str(s, if dmy { "%d/%m/%Y" } else { "%m/%d/%Y" }).is_ok()
 }
@@ -103,6 +108,7 @@ pub fn validate(form: &Form, values: &Values) -> FieldErrors {
         let v = value(values, f);
         let message = match &f.kind {
             _ if v.is_empty() && f.required => Some(words.required.to_string()),
+            Kind::Address { inputs, .. } if f.required && !address_complete(inputs, values) => Some(words.incomplete_address.to_string()),
             _ if v.is_empty() => None,
             Kind::Email if Email::parse(&v).is_none() => Some(words.bad_email.to_string()),
             Kind::Phone(format) if !render::phone_ok(*format, &v) => Some(BAD_PHONE.to_string()),
@@ -388,6 +394,19 @@ mod tests {
         assert!(!e.contains_key(&1));
         let ok = validate(&f, &values(&[("input_1", "Pat"), ("input_10", "pat@example.com"), ("input_9", "(555) 010-0100"), ("input_4", "Hi")]));
         assert!(ok.is_empty());
+    }
+
+    #[test]
+    fn a_required_address_needs_each_part_it_shows() {
+        let meta = r#"{"id":4,"title":"Address","fields":[{"type":"address","id":5,"label":"Address","isRequired":true,"inputs":[
+            {"id":"5.1","label":"Street Address"},{"id":"5.2","label":"Address Line 2"},{"id":"5.3","label":"City"},
+            {"id":"5.4","label":"State / Province"},{"id":"5.5","label":"ZIP / Postal Code","isHidden":true},{"id":"5.6","label":"Country"}]}]}"#;
+        let f = parse(meta, "{}", CONFIRMATIONS).unwrap();
+        let full = [("input_5.1", "1 Test Way"), ("input_5.3", "Testville"), ("input_5.4", "MI"), ("input_5.6", "United States")];
+        assert!(validate(&f, &values(&full)).is_empty(), "the second line and a hidden part may stay blank");
+        let partial = values(&[("input_5.3", "Testville"), ("input_5.6", "United States")]);
+        assert_eq!(validate(&f, &partial).get(&5).map(String::as_str), Some(render::ENGLISH.incomplete_address));
+        assert_eq!(validate(&f, &values(&[])).get(&5).map(String::as_str), Some(render::ENGLISH.required));
     }
 
     #[test]

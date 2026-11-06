@@ -87,6 +87,8 @@ pub fn browser_class(ua: &str) -> String {
 /// Gravity Forms' own words in the site's two languages (French from gravityforms-fr_FR.po).
 pub struct Wording {
     pub required: &'static str,
+    /// A required address with some of its required parts left blank.
+    pub incomplete_address: &'static str,
     pub bad_email: &'static str,
     /// "Please enter a valid date in the format (", before the format and ")."
     pub bad_date: &'static str,
@@ -100,6 +102,7 @@ pub struct Wording {
 
 pub const ENGLISH: Wording = Wording {
     required: "This field is required.",
+    incomplete_address: "This field is required. Please enter a complete address.",
     bad_email: "The email address entered is invalid, please check the formatting (e.g. email@domain.com).",
     bad_date: "Please enter a valid date in the format (",
     problem: "There was a problem with your submission. Please review the fields below.",
@@ -111,6 +114,7 @@ pub const ENGLISH: Wording = Wording {
 
 pub const FRENCH: Wording = Wording {
     required: "Ce champ est nécessaire.",
+    incomplete_address: "Ce champ est nécessaire. Veuillez saisir une adresse complète.",
     bad_email: "L\u{2019}adresse e-mail saisie n\u{2019}est pas valide, veuillez vérifier son formatage (p.\u{a0}ex.\u{a0}email@domaine.com).",
     bad_date: "Veuillez saisir une date valide au format (",
     problem: "Une erreur s\u{2019}est produite lors de votre envoi. Veuillez vérifier les champs ci-dessous.",
