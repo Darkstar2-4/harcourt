@@ -143,7 +143,7 @@ pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx
     customs(ctx, &family, &mut tabs).await?;
     if !ctx.req.sku.is_empty() {
         let part = model::part_by_sku(ctx.pool, &ctx.req.sku).await?;
-        ctx.part = part.filter(|p| ctx.catalog.family(p.subcategory_id).is_some_and(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending()) && !ctx.blocked(f.category_id)));
+        ctx.part = part.filter(|p| p.subcategory_id == family.id);
         sku_tab(ctx, &family, &mut tabs);
     }
     cad(ctx, &family, &mut tabs);
