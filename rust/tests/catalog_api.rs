@@ -43,8 +43,9 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
     let cookie = signed_in(&h.pool, &Account::customer(71)).await;
     let (_, headers, body) = send(&h.app, xhr("action=profile&profile_email=&cad_code=", Some(&cookie))).await;
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
-    assert_eq!(v["html"]["profile_message"], "Correct 3 error(s)");
+    assert_eq!(v["html"]["profile_message"], "Correct 4 error(s)", "email, first and last name, CAD format");
     assert_eq!(v["error"]["profile_email"], 1);
+    assert_eq!(v["error"]["cad_code_error"], 1);
     let profile_cookie = |h: &axum::http::HeaderMap| h.get_all("set-cookie").iter().any(|c| c.to_str().unwrap().starts_with("harcourt_profile="));
     assert!(!profile_cookie(&headers));
     let (_, headers, body) = send(&h.app, xhr("action=profile&profile_email=buyer%40example.com&profile_name_first=Pat&profile_name_last=Lee&cad_code=STEP&profile_generate=0", Some(&cookie))).await;
@@ -52,6 +53,35 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
     assert_eq!(v["html"]["profile_message"], "Profile Updated");
     assert_eq!(v["html"]["cad_name"], "STEP AP214");
     assert!(profile_cookie(&headers));
+}
+
+#[tokio::test]
+async fn a_saved_profile_is_what_the_next_request_reads() {
+    let h = harness().await;
+    sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'address', 'profile', 'email', 'required'), ('', 'address', 'profile', 'name', 'required'), ('', 'address', 'profile', 'address', 'required'), ('', 'address', 'profile', 'country_code', 'required')").execute(&h.pool).await.unwrap();
+    sqlx::query("INSERT INTO cad (code, name, type, direct, active) VALUES ('STEP', 'STEP AP214', '3D', 0, 1)").execute(&h.pool).await.unwrap();
+    let mut a = Account::customer(72);
+    a.cad = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let gated = |body: &str| body.contains("<div class=profile_box>");
+    let (_, _, body) = send(&h.app, request(Method::GET, "/catalog.php?scscpq_wp=1&lang=en", Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty())).await;
+    assert!(gated(&body), "an account without the address the profile requires is asked for it");
+    let quick_cad = || xhr("action=quick_cad&sku=HBLT-1", Some(&cookie));
+    let (_, _, body) = send(&h.app, quick_cad()).await;
+    assert!(body.contains("Invalid CAD code"), "{body}");
+    let form = "action=profile&profile_email=Buyer%40Example.com&profile_name_first=Pat&profile_name_last=Lee&profile_address=1+Main+St&profile_country_code=US&cad_code=STEP&profile_generate=1";
+    let (_, headers, body) = send(&h.app, xhr(form, Some(&cookie))).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["html"]["profile_message"], "Profile Updated", "{body}");
+    assert_eq!(v["error"]["profile_address"], 0);
+    assert_eq!(v["html"]["quick_cad_status"], "CAD Format: STEP AP214. CAD emailed to buyer@example.com when complete. Click PROFILE to change.");
+    assert!(headers.get_all("set-cookie").iter().any(|c| c.to_str().unwrap().starts_with("harcourt=buyer%40example.com;")));
+    let address: Option<String> = sqlx::query_scalar(r#"SELECT address FROM "user" WHERE id = 72"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(address.as_deref(), Some("1 Main St"));
+    let (_, _, body) = send(&h.app, request(Method::GET, "/catalog.php?scscpq_wp=1&lang=en", Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty())).await;
+    assert!(!gated(&body), "{body}");
+    let (_, _, body) = send(&h.app, quick_cad()).await;
+    assert!(!body.contains("Invalid CAD code"), "the saved format is the one quick CAD uses: {body}");
 }
 
 #[tokio::test]
