@@ -36,6 +36,8 @@ pub struct User {
 }
 
 impl Role {
+    pub const ALL: [Role; 6] = [Role::Customer, Role::External, Role::Internal, Role::Executive, Role::Administrator, Role::SuperUser];
+
     pub fn as_str(self) -> &'static str {
         match self {
             Role::Customer => "Customer",

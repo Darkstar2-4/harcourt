@@ -233,6 +233,50 @@ async fn the_email_export_dates_each_address_in_detroit() {
 }
 
 #[tokio::test]
+async fn the_email_export_names_the_company_an_address_belongs_to_now() {
+    let pool = seeded().await;
+    exec(
+        &pool,
+        r#"INSERT INTO "user" (id, status, "type", company_name, domain, signup_email) VALUES
+             (5, 'Active', 'Customer', 'Old Works', NULL, NULL),
+             (6, 'Active', 'Customer', 'New Works', 'works.example', NULL),
+             (8, 'Active', 'Customer', 'Home Shop', NULL, 'lee@gmail.com'),
+             (9, 'Active', 'Customer', 'Past Shop', NULL, NULL)"#,
+    )
+    .await;
+    exec(
+        &pool,
+        "INSERT INTO log (date_time, user_id, email, type) VALUES
+           (1709604000, 5, 'pat@works.example', 'Login'), (1712000000, 6, 'pat@works.example', 'Login'),
+           (1709604000, 3, 'lee@gmail.com', 'Login'),
+           (1709604000, 4, 'sam@gmail.com', 'Login'), (1712000000, 9, 'sam@gmail.com', 'Login'),
+           (1709604000, 2, 'gone@nowhere.example', 'Login')",
+    )
+    .await;
+    let out = Scratch::new("owners.csv", b"");
+    printed(run_on(&pool, &["export", "email", "--out", out.path()]).await);
+    let text = out.text();
+    let line = |email: &str| text.lines().find(|l| l.contains(email)).map(str::to_string);
+    assert!(line("pat@works.example").is_some_and(|l| l.contains("New Works")), "{text}");
+    assert!(line("lee@gmail.com").is_some_and(|l| l.contains("Home Shop")), "{text}");
+    assert!(line("sam@gmail.com").is_some_and(|l| l.contains("Past Shop")), "the account it was last seen under: {text}");
+    assert!(line("gone@nowhere.example").is_none(), "{text}");
+    assert!(!text.contains("Old Works"), "{text}");
+}
+
+#[tokio::test]
+async fn the_subcategory_sheet_exports_the_status_and_its_import_leaves_it() {
+    let pool = seeded().await;
+    let out = Scratch::new("families.csv", b"");
+    printed(run_on(&pool, &["export", "subcategory", "--out", out.path()]).await);
+    assert!(out.text().lines().next().is_some_and(|h| h.contains("Status")), "{}", out.text());
+    let sheet = Scratch::new("status.csv", b"Subcategory ID,Leadtime Option,Leadtime Weeks,Status\n10,Call,,Inactive\n");
+    printed(run_on(&pool, &["import", "subcategory", sheet.path(), "--update"]).await);
+    let status: String = sqlx::query_scalar("SELECT status FROM subcategory WHERE id = 10").fetch_one(&pool).await.unwrap();
+    assert_eq!(status, "Active");
+}
+
+#[tokio::test]
 async fn prj_links_import_from_a_partsolutions_export_and_missing_ones_export() {
     let pool = seeded().await;
     let export = Scratch::new("export.csv", b"Name;a;b;Part;URL\n;;;TC-100_1;https://example.com/p?prjCatalog=h&prjNode=n&prjName=TC&values=v\n;;;NO-SUCH;https://example.com/p?prjCatalog=h&prjNode=n&prjName=NS&values=v\n");

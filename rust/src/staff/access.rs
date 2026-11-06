@@ -156,7 +156,7 @@ async fn decide(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, staff: St
     let r = if r.status != Status::Pending {
         r
     } else {
-        match decide_request(pool, id, status).await {
+        match decide_request(pool, id, status, staff.who.user.role).await {
             Ok(true) => {
                 let subtype = if status == Status::Active { "access_approved" } else { "access_denied" };
                 let comment = format!("user {id}");
@@ -177,11 +177,21 @@ async fn decide(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, staff: St
 }
 
 /// Approving makes the account Active and lets the address it signed up with skip reCAPTCHA from now on, together;
-/// denying makes it Denied. Only a pending account changes; false when it was not pending.
-pub async fn decide_request(pool: &SqlitePool, id: i64, status: Status) -> sqlx::Result<bool> {
+/// denying makes it Denied. Only a pending account at or below the deciding role changes; false otherwise.
+pub async fn decide_request(pool: &SqlitePool, id: i64, status: Status, decider: Role) -> sqlx::Result<bool> {
     let name = status_name(status);
+    let roles = serde_json::to_string(&Role::ALL.iter().filter(|r| **r <= decider).map(|r| r.as_str()).collect::<Vec<_>>()).unwrap_or_default();
     let mut tx = pool.begin().await?;
-    let changed = sqlx::query!(r#"UPDATE "user" SET status = ?2 WHERE id = ?1 AND status = 'Pending'"#, id, name).execute(&mut *tx).await?.rows_affected() == 1;
+    let changed = sqlx::query!(
+        r#"UPDATE "user" SET status = ?2 WHERE id = ?1 AND status = 'Pending' AND "type" IN (SELECT value FROM json_each(?3))"#,
+        id,
+        name,
+        roles
+    )
+    .execute(&mut *tx)
+    .await?
+    .rows_affected()
+        == 1;
     if changed && status == Status::Active {
         bypass_on_approval(&mut tx, id).await?;
     }

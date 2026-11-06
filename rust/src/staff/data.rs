@@ -19,14 +19,18 @@ use super::{
     smart::{self, Module, RecordType},
     time,
 };
-use crate::{catalog::stored, db::unix_now, identity::Role};
+use crate::{
+    accounts::account,
+    catalog::stored,
+    db::unix_now,
+    identity::{Email, Role},
+};
 
 const PARAMETERS: usize = 20;
 const BREAKS: usize = 10;
 const PRICES: usize = 5;
 const INVENTORY_LEADTIME: [&str; 4] = ["Subcategory", "In Stock", "Weeks", "Call"];
 const SUBCATEGORY_LEADTIME: [&str; 3] = ["In Stock", "Weeks", "Call"];
-const ROLES: [Role; 6] = [Role::Customer, Role::External, Role::Internal, Role::Executive, Role::Administrator, Role::SuperUser];
 pub const STATUSES: [&str; 3] = ["Pending", "Active", "Denied"];
 
 /// A table the commands move.
@@ -180,7 +184,7 @@ fn subcategory_map() -> Map {
     m.add(Field::new("name", Kind::Alphanumeric).name("Subcategory Name").width(80).export_only());
     m.add(Field::new("leadtime_option", Kind::Alphanumeric).name("Leadtime Option").width(20).required());
     m.add(Field::new("leadtime_text", Kind::Alphanumeric).name("Leadtime Weeks").width(20).required());
-    m.add(Field::new("status", Kind::Alphanumeric).name("Status"));
+    m.add(Field::new("status", Kind::Alphanumeric).name("Status").export_only());
     m.add(Field::new("prj", Kind::Alphanumeric).name("PRJ").width(60));
     m.add(Field::new("sort_order", Kind::Decimal(0)).name("Sort Order").width(10));
     m
@@ -452,7 +456,7 @@ async fn xref_export(pool: &SqlitePool, map: &Map) -> sqlx::Result<Vec<Record>> 
 async fn user_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<Vec<Record>> {
     let all = |given: &[String], every: Vec<String>| if given.is_empty() { every } else { given.to_vec() };
     let statuses = serde_json::to_string(&all(&o.statuses, STATUSES.map(String::from).to_vec())).unwrap_or_default();
-    let roles = serde_json::to_string(&all(&o.roles, ROLES.iter().map(|r| r.as_str().to_string()).collect())).unwrap_or_default();
+    let roles = serde_json::to_string(&all(&o.roles, Role::ALL.iter().map(|r| r.as_str().to_string()).collect())).unwrap_or_default();
     let mut rows = sqlx::query!(
         r#"SELECT u.id AS "id!: i64", u.ip, u.company_name, u.address, u.city, u.state, u.zip, u.country_code, u.status, u."type" AS kind,
                   u.last_login, u.customer_code, u.catalog, u.cad, u.leadscore, u.ecommerce, u.price_type, u.price_pct, u.login_document_id,
@@ -511,41 +515,59 @@ async fn user_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<
         .collect())
 }
 
+/// Every address seen signed in, dated by its own first and last sighting, with the company of the account it
+/// belongs to now (`account::for_email`), or else of the account it was last seen under.
 async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<Vec<Record>> {
-    let mut rows = sqlx::query!(
+    let mut seen = sqlx::query!(
         r#"SELECT e.email AS "email!: String", e.first_seen AS "first_seen!: i64", e.last_seen AS "last_seen!: i64",
-                  u.company_name, u.address, u.city, u.state, u.zip, u.country_code
-           FROM (SELECT email, min(user_id) AS user_id, min(date_time) AS first_seen, max(date_time) AS last_seen
+                  l.user_id AS "last_user_id!: i64"
+           FROM (SELECT email, min(date_time) AS first_seen, max(date_time) AS last_seen, max(id) AS last_id
                  FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e
-           JOIN "user" u ON u.id = e.user_id
-           WHERE COALESCE(u.company_name, '') <> ''
-           ORDER BY e.email"#
+           JOIN log l ON l.id = e.last_id"#
     )
     .fetch_all(pool)
     .await?;
-    rows.retain(|r| {
-        let seen = match o.source {
+    seen.retain(|r| {
+        let at = match o.source {
             EmailSource::All => return true,
             EmailSource::First => r.first_seen,
             EmailSource::Last => r.last_seen,
         };
-        let day = time::date("Y/m/d", seen);
+        let day = time::date("Y/m/d", at);
         (o.from.is_empty() || day >= o.from) && (o.thru.is_empty() || day <= o.thru)
     });
-    filesort::sort(&mut rows, |a, b| filesort::ci(&a.email, &b.email));
+    let mut rows = Vec::with_capacity(seen.len());
+    for r in seen {
+        let owner = match Email::parse(&r.email) {
+            Some(email) => account::for_email(pool, &email).await?,
+            None => None,
+        };
+        let id = owner.map_or(r.last_user_id, |u| u.0);
+        let company = sqlx::query!(
+            r#"SELECT company_name AS "company_name!: String", address, city, state, zip, country_code
+               FROM "user" WHERE id = ?1 AND COALESCE(company_name, '') <> ''"#,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+        if let Some(c) = company {
+            rows.push((r.email, c));
+        }
+    }
+    filesort::sort(&mut rows, |a, b| filesort::ci(&a.0, &b.0));
     Ok(rows
         .into_iter()
-        .map(|r| {
+        .map(|(email, c)| {
             aligned(
                 map,
                 HashMap::from([
-                    ("email", r.email),
-                    ("company_name", opt(r.company_name)),
-                    ("address", opt(r.address)),
-                    ("city", opt(r.city)),
-                    ("state", opt(r.state)),
-                    ("zip", opt(r.zip)),
-                    ("country_code", opt(r.country_code)),
+                    ("email", email),
+                    ("company_name", c.company_name),
+                    ("address", opt(c.address)),
+                    ("city", opt(c.city)),
+                    ("state", opt(c.state)),
+                    ("zip", opt(c.zip)),
+                    ("country_code", opt(c.country_code)),
                 ]),
             )
         })
@@ -1185,7 +1207,7 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
         }
     }
     if has(line, "type") {
-        let roles: Vec<&str> = ROLES.iter().map(|r| r.as_str()).collect();
+        let roles: Vec<&str> = Role::ALL.iter().map(|r| r.as_str()).collect();
         u.kind = import_match(val(line, "type"), &roles).to_string();
         if u.kind.is_empty() {
             e.push(invalid("type"));
