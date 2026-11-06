@@ -57,19 +57,19 @@ pub fn variable(key: &str) -> Variable {
 /// `_`, `a[]` and `a[k]` building nested arrays, a repeated key keeping its first place and its last value.
 pub fn parse_str(query: &str) -> Vec<(String, Value)> {
     let decode = |s: &str| percent_encoding::percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
-    let mut root: Vec<(String, Value)> = Vec::new();
+    let mut root = Level::default();
     for pair in query.split('&').filter(|p| !p.is_empty()).take(MAX_INPUT_VARS) {
         let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
         match variable(&decode(k)) {
             Variable::Set(name, indexes) => {
                 let path: Vec<Option<String>> = std::iter::once(Some(name)).chain(indexes).collect();
-                insert(&mut root, &path, decode(v));
+                root.insert(&path, decode(v));
             }
-            Variable::TooDeep(name) => root.retain(|(k, _)| *k != name),
+            Variable::TooDeep(name) => root.remove(&name),
             Variable::Skip => {}
         }
     }
-    root
+    root.into_entries()
 }
 
 /// An array key PHP holds as an integer: the decimal form of one.
@@ -77,33 +77,74 @@ fn int_key(k: &str) -> Option<i64> {
     k.parse::<i64>().ok().filter(|n| n.to_string() == k)
 }
 
-fn insert(map: &mut Vec<(String, Value)>, path: &[Option<String>], value: String) {
-    let Some((first, rest)) = path.split_first() else { return };
-    let key = match first {
-        Some(s) => s.clone(),
-        None => {
-            // `[]` takes the next integer key, and PHP refuses to append after the largest one.
-            let last = map.iter().filter_map(|(k, _)| int_key(k)).max();
-            let Some(next) = last.map_or(Some(0), |i| i.checked_add(1)) else { return };
-            next.max(0).to_string()
+/// One array while the query is read, indexed so each variable costs the same however many came before it: its
+/// entries in first-given order (`None` where a name was dropped), where each key sits, and its largest integer key.
+#[derive(Default)]
+struct Level {
+    entries: Vec<Option<(String, Slot)>>,
+    at: std::collections::HashMap<String, usize>,
+    largest_int: Option<i64>,
+}
+
+enum Slot {
+    Str(String),
+    Map(Level),
+}
+
+impl Level {
+    fn insert(&mut self, path: &[Option<String>], value: String) {
+        let Some((first, rest)) = path.split_first() else { return };
+        let key = match first {
+            Some(s) => s.clone(),
+            None => {
+                // `[]` takes the next integer key, and PHP refuses to append after the largest one.
+                let Some(next) = self.largest_int.map_or(Some(0), |i| i.checked_add(1)) else { return };
+                next.max(0).to_string()
+            }
+        };
+        let at = match self.at.get(&key) {
+            Some(&i) => i,
+            None => {
+                if let Some(n) = int_key(&key) {
+                    self.largest_int = Some(self.largest_int.map_or(n, |m| m.max(n)));
+                }
+                self.at.insert(key.clone(), self.entries.len());
+                self.entries.push(Some((key, Slot::Str(String::new()))));
+                self.entries.len() - 1
+            }
+        };
+        let Some((_, slot)) = self.entries[at].as_mut() else { return };
+        if rest.is_empty() {
+            *slot = Slot::Str(value);
+            return;
         }
-    };
-    let at = match map.iter().position(|(k, _)| *k == key) {
-        Some(i) => i,
-        None => {
-            map.push((key, Value::Str(String::new())));
-            map.len() - 1
+        if !matches!(slot, Slot::Map(_)) {
+            *slot = Slot::Map(Level::default());
         }
-    };
-    if rest.is_empty() {
-        map[at].1 = Value::Str(value);
-        return;
+        if let Slot::Map(inner) = slot {
+            inner.insert(rest, value);
+        }
     }
-    if !matches!(map[at].1, Value::Map(_)) {
-        map[at].1 = Value::Map(Vec::new());
+
+    /// Drops a name and what was set under it; set again later, it goes last, as PHP does.
+    fn remove(&mut self, key: &str) {
+        if let Some(i) = self.at.remove(key) {
+            self.entries[i] = None;
+        }
     }
-    if let Value::Map(inner) = &mut map[at].1 {
-        insert(inner, rest, value);
+
+    fn into_entries(self) -> Vec<(String, Value)> {
+        self.entries
+            .into_iter()
+            .flatten()
+            .map(|(k, slot)| {
+                let value = match slot {
+                    Slot::Str(s) => Value::Str(s),
+                    Slot::Map(level) => Value::Map(level.into_entries()),
+                };
+                (k, value)
+            })
+            .collect()
     }
 }
 
