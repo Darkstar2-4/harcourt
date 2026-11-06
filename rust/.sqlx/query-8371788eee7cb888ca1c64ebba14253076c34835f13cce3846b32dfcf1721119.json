@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country AS \"country!: String\" FROM country\n           WHERE state = '' AND (country = ?1 COLLATE NOCASE OR name = ?1 COLLATE NOCASE OR instr(lower(COALESCE(alias, '')), ?2) > 0)\n           ORDER BY CASE WHEN country = ?1 COLLATE NOCASE THEN 1 WHEN name = ?1 COLLATE NOCASE THEN 2 ELSE 3 END LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "country!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8371788eee7cb888ca1c64ebba14253076c34835f13cce3846b32dfcf1721119"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!: i64\", sku, subcategory_id FROM inventory",
+  "query": "SELECT id AS \"id!: i64\", domain AS \"domain!\" FROM \"user\" WHERE domain IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -9,14 +9,9 @@
         "type_info": "Integer"
       },
       {
-        "name": "sku",
+        "name": "domain!",
         "ordinal": 1,
         "type_info": "Text"
-      },
-      {
-        "name": "subcategory_id",
-        "ordinal": 2,
-        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -24,9 +19,8 @@
     },
     "nullable": [
       false,
-      false,
       true
     ]
   },
-  "hash": "c5950f1a389d02508a0fce1ae92cf0f76b4fe5fd5aabce22928152df8353b8ae"
+  "hash": "7203dbeb28aa43436eaf4c7710929b96e2391234c1a952269ab0548983dfb4fb"
 }

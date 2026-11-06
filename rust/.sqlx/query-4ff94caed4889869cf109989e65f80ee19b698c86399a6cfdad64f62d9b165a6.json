@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT e.email AS \"email!: String\", e.first_day AS \"first_day!: String\", e.last_day AS \"last_day!: String\",\n                  u.company_name, u.address, u.city, u.state, u.zip, u.country_code\n           FROM (SELECT email, min(user_id) AS user_id,\n                        strftime('%Y/%m/%d', min(date_time), 'unixepoch', 'localtime') AS first_day,\n                        strftime('%Y/%m/%d', max(date_time), 'unixepoch', 'localtime') AS last_day\n                 FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e\n           JOIN \"user\" u ON u.id = e.user_id\n           WHERE COALESCE(u.company_name, '') <> ''\n           ORDER BY e.email",
+  "query": "SELECT e.email AS \"email!: String\", e.first_seen AS \"first_seen!: i64\", e.last_seen AS \"last_seen!: i64\",\n                  u.company_name, u.address, u.city, u.state, u.zip, u.country_code\n           FROM (SELECT email, min(user_id) AS user_id, min(date_time) AS first_seen, max(date_time) AS last_seen\n                 FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e\n           JOIN \"user\" u ON u.id = e.user_id\n           WHERE COALESCE(u.company_name, '') <> ''\n           ORDER BY e.email",
   "describe": {
     "columns": [
       {
@@ -9,14 +9,14 @@
         "type_info": "Text"
       },
       {
-        "name": "first_day!: String",
+        "name": "first_seen!: i64",
         "ordinal": 1,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "last_day!: String",
+        "name": "last_seen!: i64",
         "ordinal": 2,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
         "name": "company_name",
@@ -54,8 +54,8 @@
     },
     "nullable": [
       true,
-      true,
-      true,
+      false,
+      false,
       true,
       true,
       true,
@@ -64,5 +64,5 @@
       true
     ]
   },
-  "hash": "3a877cf428c1e7486f5aca1664489fbc5a048530ef4554a7256a96c5fc3211d0"
+  "hash": "4ff94caed4889869cf109989e65f80ee19b698c86399a6cfdad64f62d9b165a6"
 }

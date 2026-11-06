@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT state AS \"state!\", verifier AS \"verifier!\", nonce AS \"nonce!\", created_at AS \"created_at!: i64\"\n                   FROM oauth_login WHERE token_hash = ?1 AND provider = ?2 AND outcome IS NULL",
+  "query": "DELETE FROM oauth_login WHERE token_hash = ?1 AND provider = ?2 AND outcome IS NULL\n           RETURNING state AS \"state!\", verifier AS \"verifier!\", nonce AS \"nonce!\", created_at AS \"created_at!: i64\"",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "19a2149dad3cfa222de34c6f2278b20eb9a75537d6f6bb15a66a1ec20a82c03e"
+  "hash": "357065a72d6bc0bbaf97c26138dc54766aa2db45609047384c35203ccb87a1d2"
 }

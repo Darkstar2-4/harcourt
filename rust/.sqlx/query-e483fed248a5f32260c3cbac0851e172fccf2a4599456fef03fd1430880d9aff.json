@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cart_item WHERE session_hash = ?1\n           RETURNING sku AS \"sku!\", quantity AS \"quantity!: i64\", comment AS \"comment!\", added_at AS \"added_at!: i64\", rowid AS \"rowid!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "quantity!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "added_at!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "rowid!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "e483fed248a5f32260c3cbac0851e172fccf2a4599456fef03fd1430880d9aff"
+}
