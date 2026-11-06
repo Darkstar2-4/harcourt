@@ -388,6 +388,40 @@ async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
 }
 
 #[tokio::test]
+async fn a_checkout_places_the_cart_its_form_showed() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "2").await;
+    let shown = checkout_token(&h, &c).await;
+    add(&h, &c, "SKU-2", "1").await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &shown));
+    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("Your shopping cart has changed. Check the order and place it again.") && page.contains("value='Pat'"), "{page}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 0);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 2);
+
+    let first = checkout_token(&h, &c).await;
+    let second = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &first));
+    let (status, _, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderln").await, 2);
+    add(&h, &c, "SKU-1", "5").await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &second));
+    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::OK, "a second form for the cart already placed does not place the new cart");
+    assert!(page.contains("Your shopping cart has changed."), "{page}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 1);
+}
+
+#[tokio::test]
 async fn the_checkout_form_stars_what_the_registry_requires() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
