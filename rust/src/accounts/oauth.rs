@@ -95,7 +95,7 @@ const COOKIE: &str = "__Host-hx_oauth";
 const STATE_SECS: i64 = 300;
 /// The outcome waits this long for the sign-up page.
 const KEEP_SECS: i64 = 900;
-const LANDING: &str = "/request-access";
+pub const LANDING: &str = "/request-access";
 const INVALID_STATE: &str = "Invalid OAuth state. Please try again.";
 
 /// One OAuth app. The endpoints are fields so a test can point them at a local stand-in.
@@ -584,7 +584,7 @@ async fn admit(pool: &SqlitePool, services: &Services, kind: Kind, person: &Pers
             let (id, signin) = admission::register(pool, services, &registration, &email, true, ctx).await?;
             set.extend(signin.cookies());
             let mut lines = vec![format!("Email: {}", escape(email.as_str())), format!("Name: {}", escape(&person.display_name)), format!("{} OAuth registration", kind.name())];
-            admission::log_signup(pool, id, ctx, &lines.join("<br>")).await;
+            admission::log_signup(pool, id, &email, ctx, &lines.join("<br>")).await;
             lines.push(String::new());
             lines.extend(admission::request_lines(ctx));
             admission::notify_staff(pool, None, &lines, ctx.now).await?;

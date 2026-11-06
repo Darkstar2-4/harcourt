@@ -266,7 +266,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
     lines.push(format!("reCAPTCHA Score: {}", score.text));
-    admission::log_signup(pool, id, &ctx, &lines.join("<br>")).await;
+    admission::log_signup(pool, id, &email, &ctx, &lines.join("<br>")).await;
     lines.push(String::new());
     lines.extend(admission::request_lines(&ctx));
     admission::notify_staff(pool, None, &lines, req.now).await?;

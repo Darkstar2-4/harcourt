@@ -1,5 +1,6 @@
 //! campaign.php: a campaign's landing page. Everyone sees its Public content; a visitor who is not signed in gets
-//! the short sign-up form; a signed-in company that is not Denied sees the Semi-Private content and, until the
+//! the short sign-up form, which admits as the sign-up page does (an address at an Active company goes on to prove
+//! itself with an emailed code there; one at a blacklisted domain is turned away); a signed-in company that is not Denied sees the Semi-Private content and, until the
 //! browser has given an address, the address form; an Active company that has given one sees the Private content
 //! and the campaign's product families.
 //!
@@ -16,12 +17,12 @@ use sqlx::SqlitePool;
 
 use crate::{
     accounts::{
-        admission::{self, Registration},
+        admission::{self, Admission, Registration},
         bot::BotStatus,
         cookies,
         locale::Labels,
         log::{self, Kind, Subject},
-        registry,
+        oauth, registry,
         visit,
     },
     api::Auth,
@@ -36,6 +37,8 @@ use crate::{
     },
     visitor::{self, Visitor},
 };
+
+const NOT_AUTHORIZED: &str = "Your domain is not authorized to access this site. Please contact us for more information.";
 
 /// The `campaign` row as campaign.php used it. `kind` is the raw type: the page tests for "Invite" and "Remote"
 /// only, so anything else behaves as Public.
@@ -186,14 +189,33 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
             if let (false, Some(email)) = (notes.has_errors(), Email::parse(&typed.email)) {
                 let user_agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
                 let ctx = admission::Context { ip: &ip, user_agent, dns_name: None, now };
-                let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
-                let (id, sign_in) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
-                set_cookies.extend(cookies::session(&sign_in.token, false));
-                set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
-                let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);
-                admission::log_signup(pool, id, &ctx, &comment).await;
-                reader.signed_in = Some((id.0, Status::Pending, typed.company_name.clone()));
-                reader.cookie = email.as_str().to_string();
+                match admission::classify(pool, &email).await? {
+                    Admission::Blacklisted => {
+                        admission::log_blacklisted(pool, &email, &ctx, "campaign registration").await;
+                        notes.error("email", Some(NOT_AUTHORIZED));
+                    }
+                    Admission::Company { company, known } => {
+                        if !known {
+                            admission::notify_auto_approved(pool, &company, &email, "Campaign registration (access token emailed for verification)", &ctx).await?;
+                        }
+                        admission::remember_address(pool, &email, now).await?;
+                        let mut to_code = (StatusCode::FOUND, [(header::LOCATION, oauth::LANDING), (header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE)]).into_response();
+                        if let Some(c) = cookies::php_year(cookies::EMAIL, email.as_str(), now) {
+                            to_code.headers_mut().append(header::SET_COOKIE, c);
+                        }
+                        return Ok(to_code);
+                    }
+                    Admission::Pending | Admission::Unknown => {
+                        let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
+                        let (id, sign_in) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
+                        set_cookies.extend(cookies::session(&sign_in.token, false));
+                        set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
+                        let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);
+                        admission::log_signup(pool, id, &email, &ctx, &comment).await;
+                        reader.signed_in = Some((id.0, Status::Pending, typed.company_name.clone()));
+                        reader.cookie = email.as_str().to_string();
+                    }
+                }
             }
         }
         Posted::Email(email) if reader.signed_in.is_some() => {
@@ -243,6 +265,9 @@ async fn render(pool: &SqlitePool, visitor: &Visitor, campaign: &Campaign, asked
             out.push_str(&format!("<div style=\"font-size: 20px; font-weight: normal;font-style: italic\">Correct {errors} error(s)</div>"));
         }
         out.push_str("</div>");
+        if let Some(message) = notes.error_text("email") {
+            out.push_str(&format!("<p style='color:red;'>{message}</p>"));
+        }
         for (label, field, value, size) in [
             ("First Name", "first_name", &typed.first_name, 50),
             ("Last Name", "last_name", &typed.last_name, 50),

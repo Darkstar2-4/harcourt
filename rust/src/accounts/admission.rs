@@ -31,7 +31,7 @@ pub enum Admission {
     Company { company: Box<Account>, known: bool },
     /// The company that owns the domain is waiting for approval.
     Pending,
-    /// No company owns the domain, or the one that does is Denied.
+    /// No account owns the address (`account::for_email`), or the one that does is Denied.
     Unknown,
 }
 
@@ -48,7 +48,7 @@ pub async fn classify(pool: &SqlitePool, email: &Email) -> sqlx::Result<Admissio
     if blacklisted(pool, email).await? {
         return Ok(Admission::Blacklisted);
     }
-    let Some(id) = account::for_domain(pool, email).await? else { return Ok(Admission::Unknown) };
+    let Some(id) = account::for_email(pool, email).await? else { return Ok(Admission::Unknown) };
     let Some(company) = account::load(pool, id).await? else { return Ok(Admission::Unknown) };
     Ok(match company.status() {
         Status::Active => {
@@ -213,8 +213,9 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     Ok((id, SignIn { token, remembered: renew > 0, email: email.clone() }))
 }
 
-pub async fn log_signup(pool: &SqlitePool, id: UserId, ctx: &Context<'_>, comment: &str) {
-    let who = Subject { ip: ctx.ip, user_id: id.0, ..Default::default() };
+/// The sign-up row, with the address that signed up: staff approval and `account::for_email` read it there.
+pub async fn log_signup(pool: &SqlitePool, id: UserId, email: &Email, ctx: &Context<'_>, comment: &str) {
+    let who = Subject { ip: ctx.ip, user_id: id.0, email: Some(email.as_str()), ..Default::default() };
     log::record(pool, Kind::UserSignup, &who, comment).await;
 }
 
