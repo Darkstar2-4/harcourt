@@ -249,7 +249,7 @@ async fn a_low_recaptcha_score_blocks_the_contact_form_unless_bypassed() {
     assert!(html.contains("We were unable to verify your submission."), "{html}");
     assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 0);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM log WHERE type = 'Recaptcha' AND subtype = 'Blocked' AND email = 'pat@example.com'").await, 1);
-    sqlx::query("INSERT INTO captcha_bypass (email) VALUES ('pat@example.com')").execute(&h.pool).await.unwrap();
+    sqlx::query("INSERT INTO captcha_bypass (email) VALUES ('Pat@Example.com')").execute(&h.pool).await.unwrap();
     let (_, html) = post(&h, &[]).await;
     assert!(html.contains("gform_confirmation_message_3"));
     assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry WHERE status = 'active'").await, 1);
