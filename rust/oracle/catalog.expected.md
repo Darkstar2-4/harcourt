@@ -12,4 +12,10 @@
 - Subcategory images are omitted when `HXWEB_DOCROOT` lacks the file, as PHP's `forms->img()` did.
 - Links write `&` raw and escape only quotes, `<` and `>`; element text from the tables escapes only `<`.
 - Part-number lookups and quick CAD never call PARTsolutions while a page renders; `scscpq_api.php?action=download` fetches only https URLs on `*.partcommunity.com`.
+- `scscpq_wp.php` links `/catalog.php` for the products and catalog pages whatever the page's address holds; the PHP linked the retired `/beta_catalog.php` when the address contained `beta` anywhere (`wp-products-beta`).
+- A family the viewer is not shown (Pending to a non-Administrator, or in an inactive category) shows its name only; the PHP listed no parts but still showed its overview, tabs and configurator. A part number given with a family it is not in leaves the part tab without a part; the PHP showed it under that family's names and prices.
+- `scscpq_api.php?action=sku` and quick CAD answer as the catalog page does: the part's family and price only to an active account with the catalog grant that is shown the family; others get the part number and the contact line. The PHP answered any visitor.
+- Accounts on plus terms see what they pay in the quantity-break table; the PHP showed the list price there.
+- The search box and its results place a part in the family it is in now, and a family in its category now, before `search_utility` refills the `search` table.
+- The "New Item!" cut-off and a hero's effective date turn over at midnight in Detroit, as the PHP's did.
 - `scs_file.php`, `scs_index.php`, `customer_portal.php`, `scs_ajax.php` and the search box: see `fix-files.expected.md`.
