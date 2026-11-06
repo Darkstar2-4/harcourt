@@ -627,7 +627,7 @@ fn cad(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
     if ctx.viewer.account_id().is_none() && !ctx.viewer.is_bot() {
         return;
     }
-    if !ctx.viewer.cad || !ctx.viewer.active() || ctx.profile.email.is_empty() || family.prj.is_empty() {
+    if !ctx.viewer.uses_quick_cad() || ctx.profile.email.is_empty() || family.prj.is_empty() {
         return;
     }
     let mut prj = family.prj.clone();

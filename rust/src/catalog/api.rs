@@ -139,9 +139,8 @@ impl Api<'_> {
         }
     }
 
-    /// Whether the catalog shows this viewer the part's family: listed, and not in a category blocked for it.
     fn shows(&self, catalog: &model::Catalog, part: &model::Part) -> bool {
-        catalog.family(part.subcategory_id).is_some_and(|f| catalog.lists(f, self.viewer.sees_pending()) && !self.viewer.blocked.contains(f.category_id))
+        catalog.family(part.subcategory_id).is_some_and(|f| catalog.shows(self.viewer, f))
     }
 
     /// Whether this number is an inventory part the catalog hides from this viewer. A configured number the inventory
@@ -195,7 +194,7 @@ impl Api<'_> {
                 }
             }
         }
-        if self.viewer.active() && self.viewer.cad {
+        if self.viewer.uses_quick_cad() {
             let label = s.label("catalog_cad_download", "Download CAD", &[]);
             let onclick = format!("quick_cad('', {},1);", forms::js_quote(&sku));
             html_parts.push(format!("<p>{}</p>", forms::button(&label, &[("title", &label), ("class", "quick_cad_button"), ("onclick", &onclick)])));
@@ -267,7 +266,7 @@ impl Api<'_> {
         if p.cad_name.is_empty() {
             return s.label("catalog_cad_invalid_code", "Invalid CAD code: {code}", &[("code", &html::esc_text(&p.cad_code))]);
         }
-        if !self.viewer.active() || !self.viewer.cad || sku.trim().is_empty() || self.hides(sku).await {
+        if !self.viewer.uses_quick_cad() || sku.trim().is_empty() || self.hides(sku).await {
             return s.label("catalog_cad_quick_unavailable", "Quick CAD not available for {sku}", &[("sku", &html::esc_text(sku))]);
         }
         let server = self.reg.get("cad", "partserver_production");

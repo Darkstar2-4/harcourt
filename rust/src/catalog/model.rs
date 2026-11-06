@@ -231,7 +231,16 @@ impl Catalog {
 
     /// Whether the catalog lists this family at all (`listed`).
     pub fn lists(&self, family: &Family, sees_pending: bool) -> bool {
-        listed(family.status, self.categories.get(&family.category_id).is_some_and(|c| c.active), sees_pending)
+        listed(family.status, self.category_active(family.category_id), sees_pending)
+    }
+
+    /// Whether this viewer is shown the family (`Viewer::sees_family`).
+    pub fn shows(&self, viewer: &super::viewer::Viewer, family: &Family) -> bool {
+        viewer.sees_family(family.status, self.category_active(family.category_id), family.category_id)
+    }
+
+    fn category_active(&self, id: i64) -> bool {
+        self.categories.get(&id).is_some_and(|c| c.active)
     }
 }
 
