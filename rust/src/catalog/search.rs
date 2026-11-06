@@ -22,7 +22,10 @@ use axum::{
 use serde_json::{json, Value};
 use sqlx::SqlitePool;
 
-use super::viewer::{self, Viewer};
+use super::{
+    model,
+    viewer::{self, Viewer},
+};
 use crate::{api::Auth, identity::Role, visitor::Visitor};
 
 /// What searchers opened, as the nightly search_learn.sh wrote it into HXWEB_SEARCH. Without those files the index
@@ -111,6 +114,15 @@ struct Family {
     names: [Box<str>; 2],
     /// The family-name entry per language, where the index has one.
     rows: [Option<u32>; 2],
+    status: model::Status,
+    /// Whether the family's category is active (categories.tsv).
+    category_active: bool,
+}
+
+/// One `inventory` row (parts.tsv).
+struct Stock {
+    sku: Box<str>,
+    active: bool,
 }
 
 /// Every entry's normalized code, back to back in entry order. Binary searches and block scans then read one
@@ -142,8 +154,8 @@ struct Index {
     category_words: Vec<(Box<str>, Vec<u32>)>,
     family_entries: Vec<u32>,
     families: HashMap<u32, Family>,
-    /// inventory_id -> SKU, to label competitor part numbers.
-    skus: HashMap<u32, Box<str>>,
+    /// inventory_id -> the part, to label competitor part numbers and leave out inactive parts.
+    parts: HashMap<u32, Stock>,
     /// Typed term as `phrase()` keys it -> (picks, entry) of what searchers opened after it, most picks first. A
     /// family is held by one of its family-name entries; `Answer::shown` swaps in the visitor's language.
     learned: HashMap<String, Vec<(u32, u32)>>,
@@ -158,12 +170,14 @@ struct Index {
 struct Ctx {
     lang: Lang,
     admin: bool,
+    /// Sees Pending families (`Viewer::sees_pending`).
+    pending: bool,
     blocked: Vec<u32>,
 }
 
 impl Default for Ctx {
     fn default() -> Self {
-        Ctx { lang: Lang::En, admin: false, blocked: Vec::new() }
+        Ctx { lang: Lang::En, admin: false, pending: false, blocked: Vec::new() }
     }
 }
 
@@ -251,11 +265,30 @@ impl Index {
         let by_code = order(&|a, b| norms.get(a).len().cmp(&norms.get(b).len()).then_with(|| tail(a, b)));
         let by_rank = order(&tail);
 
+        let mut active_categories: HashSet<u32> = HashSet::new();
+        let mut category_words: HashMap<String, Vec<u32>> = HashMap::new();
+        for line in categories.lines() {
+            // An export without the active column (older search_export files) has every category active.
+            if let [id, en, fr, active @ ..] = line.split('\t').collect::<Vec<_>>().as_slice() {
+                if let Ok(id) = id.parse::<u32>() {
+                    if active.first().is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0)) {
+                        active_categories.insert(id);
+                    }
+                    for s in tokens(en).into_iter().chain(tokens(fr)) {
+                        let cats = category_words.entry(stem(&s)).or_default();
+                        if !cats.contains(&id) {
+                            cats.push(id);
+                        }
+                    }
+                }
+            }
+        }
         let mut fams: HashMap<u32, Family> = HashMap::new();
         for line in families.lines() {
-            if let [id, _, _, en, fr] = line.split('\t').collect::<Vec<_>>()[..] {
-                if let Ok(id) = id.parse() {
-                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None] });
+            if let [id, category, status, en, fr] = line.split('\t').collect::<Vec<_>>()[..] {
+                if let (Ok(id), Some(category)) = (id.parse(), number::<u32>(category)) {
+                    let (status, category_active) = (model::Status::parse(status), active_categories.contains(&category));
+                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None], status, category_active });
                 }
             }
         }
@@ -278,24 +311,13 @@ impl Index {
                 }
             }
         }
-        let mut category_words: HashMap<String, Vec<u32>> = HashMap::new();
-        for line in categories.lines() {
-            if let [id, en, fr] = line.split('\t').collect::<Vec<_>>()[..] {
-                if let Ok(id) = id.parse::<u32>() {
-                    for s in tokens(en).into_iter().chain(tokens(fr)) {
-                        let cats = category_words.entry(stem(&s)).or_default();
-                        if !cats.contains(&id) {
-                            cats.push(id);
-                        }
-                    }
-                }
-            }
-        }
-        let skus = parts
+        let parts = parts
             .lines()
             .filter_map(|l| {
                 let mut f = l.split('\t');
-                Some((f.next()?.parse().ok()?, f.next()?.into()))
+                let (id, sku) = (f.next()?.parse().ok()?, f.next()?.into());
+                let active = f.nth(1).is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0));
+                Some((id, Stock { sku, active }))
             })
             .collect();
         let (mut by_term, mut by_stem): (Learned, Learned) = Default::default();
@@ -330,7 +352,7 @@ impl Index {
             category_words: sorted(category_words),
             family_entries,
             families: fams,
-            skus,
+            parts,
             learned: tally(by_term),
             learned_stems: tally(by_stem),
             popular,
@@ -339,6 +361,17 @@ impl Index {
 
     fn norm(&self, i: usize) -> &str {
         self.norms.get(i)
+    }
+
+    /// Whether this viewer is shown the entry: the catalog lists its family (`model::listed`), its part is active,
+    /// and its category is not blocked. Administrators see active rows only (live's rule, kept).
+    fn shows(&self, e: &Entry, ctx: &Ctx) -> bool {
+        let family = self.families.get(&e.subcategory_id).is_some_and(|f| model::listed(f.status, f.category_active, ctx.pending));
+        let part = match e.kind {
+            Kind::Part | Kind::Competitor => self.parts.get(&e.inventory_id).is_some_and(|p| p.active),
+            Kind::Family | Kind::SearchWord => true,
+        };
+        family && part && !(ctx.admin && !e.active) && !ctx.blocked.contains(&e.category_id)
     }
 
     /// Entries within `scope` whose normalized code starts with `p`.
@@ -650,11 +683,6 @@ fn reached(ix: &Index, reach: &[Reach], head: usize) -> Vec<(u32, u32)> {
         .collect()
 }
 
-/// The table filters live applies: blocked categories, and administrators see active rows only (live's rule, kept).
-fn visible(e: &Entry, ctx: &Ctx) -> bool {
-    !(ctx.admin && !e.active) && !ctx.blocked.contains(&e.category_id)
-}
-
 /// The answer being filled tier by tier.
 struct Answer<'a> {
     ix: &'a Index,
@@ -678,7 +706,7 @@ impl Answer<'_> {
             Some(l) if l != self.ctx.lang => self.ix.families.get(&m.subcategory_id)?.rows[self.ctx.lang as usize]?,
             _ => e,
         };
-        visible(&self.ix.entries[s as usize], self.ctx).then_some(s)
+        self.ix.shows(&self.ix.entries[s as usize], self.ctx).then_some(s)
     }
 
     fn seen(&self, s: u32) -> bool {
@@ -747,7 +775,7 @@ fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
     let prefixed = ix.block(0..ix.entries.len(), &q);
     let exact = prefixed.start..prefixed.start + prefixed.clone().take_while(|&i| ix.norm(i) == q).count();
     let lookup = !term.contains(char::is_whitespace)
-        && !ix.entries[exact.clone()].iter().any(|e| matches!(e.kind, Kind::Part | Kind::Competitor) && visible(e, ctx));
+        && !ix.entries[exact.clone()].iter().any(|e| matches!(e.kind, Kind::Part | Kind::Competitor) && ix.shows(e, ctx));
     let mut out = Answer {
         ix,
         ctx,
@@ -847,8 +875,8 @@ fn label(ix: &Index, e: &Entry, lang: Lang) -> String {
     };
     match e.kind {
         Kind::Part => e.code.to_string(),
-        Kind::Competitor => match ix.skus.get(&e.inventory_id) {
-            Some(sku) => format!("{} (Harcourt {sku})", e.code),
+        Kind::Competitor => match ix.parts.get(&e.inventory_id) {
+            Some(p) => format!("{} (Harcourt {})", e.code, p.sku),
             None => e.code.to_string(),
         },
         Kind::SearchWord => match family() {
@@ -868,7 +896,7 @@ fn answer_json(ix: &Index, hits: &[Hit], term: &str, ctx: &Ctx) -> Value {
                 let e = &ix.entries[entry as usize];
                 let sku = match e.kind {
                     Kind::Part => &*e.code,
-                    Kind::Competitor => ix.skus.get(&e.inventory_id).map_or("", |s| &**s),
+                    Kind::Competitor => ix.parts.get(&e.inventory_id).map_or("", |p| &*p.sku),
                     Kind::Family | Kind::SearchWord => "",
                 };
                 json!({"value": term, "label": label(ix, e, ctx.lang), "category": e.kind.category(), "id": e.row_id,
@@ -887,6 +915,7 @@ fn scope(viewer: &Viewer, lang: Lang) -> Ctx {
     Ctx {
         lang,
         admin: viewer.at_least(Role::Administrator),
+        pending: viewer.sees_pending(),
         blocked: viewer.blocked.ids().into_iter().filter_map(|id| u32::try_from(id).ok()).collect(),
     }
 }
@@ -899,9 +928,11 @@ fn page_lang(headers: &HeaderMap) -> Lang {
     if path.starts_with("/catalogue/") || query.split('&').any(|kv| kv.eq_ignore_ascii_case("lang=fr")) { Lang::Fr } else { Lang::En }
 }
 
-/// Row counts and highest ids of the tables the index reads: any edit, import or rebuild changes one of them.
+/// Row counts and highest ids of the tables the index reads, and the count and id sum of the families of each listed
+/// status, of the active categories and of the active parts: any edit, import, rebuild or change of what the catalog
+/// shows changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Stamp([i64; 10]);
+struct Stamp([i64; 19]);
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     let r = sqlx::query!(
@@ -910,13 +941,22 @@ async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
                   (SELECT count(*) FROM category) AS "e!: i64", (SELECT count(*) FROM inventory) AS "f!: i64",
                   (SELECT coalesce(max(id), 0) FROM inventory) AS "g!: i64",
                   (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "h!: i64",
-                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "i!: i64""#
+                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "i!: i64",
+                  (SELECT count(*) FROM subcategory WHERE status = 'Active') AS "j!: i64",
+                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Active') AS "k!: i64",
+                  (SELECT count(*) FROM subcategory WHERE status = 'Pending') AS "l!: i64",
+                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Pending') AS "m!: i64",
+                  (SELECT coalesce(sum(id * coalesce(category_id, 0)), 0) FROM subcategory) AS "n!: i64",
+                  (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS "o!: i64",
+                  (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS "p!: i64",
+                  (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS "q!: i64",
+                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64""#
     )
     .fetch_one(pool)
     .await?;
     // The day: what searchers opened is learned again daily.
     let day = crate::db::unix_now() / 86_400;
-    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, day]))
+    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, day]))
 }
 
 fn cell(s: &str) -> String {
@@ -927,7 +967,7 @@ fn opt<T: ToString>(v: Option<T>) -> String {
     v.map(|v| v.to_string()).unwrap_or_default()
 }
 
-/// The four inputs search_export.php wrote, as tab-separated text.
+/// The four inputs search_export.php wrote, as tab-separated text, with an active column on categories and parts.
 async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
     let mut rows = String::new();
     for r in sqlx::query!(
@@ -975,12 +1015,13 @@ async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
         ));
     }
     let mut categories = String::new();
-    for r in sqlx::query!(r#"SELECT id AS "id!: i64" FROM category"#).fetch_all(pool).await? {
-        categories.push_str(&format!("{}\t{}\t{}\n", r.id, cell(&name(&category_names, r.id, "EN")), cell(&name(&category_names, r.id, "FR"))));
+    for r in sqlx::query!(r#"SELECT id AS "id!: i64", coalesce(active, 0) AS "active!: i64" FROM category"#).fetch_all(pool).await? {
+        let (en, fr) = (cell(&name(&category_names, r.id, "EN")), cell(&name(&category_names, r.id, "FR")));
+        categories.push_str(&format!("{}\t{en}\t{fr}\t{}\n", r.id, r.active));
     }
     let mut parts = String::new();
-    for r in sqlx::query!(r#"SELECT id AS "id!: i64", sku, subcategory_id FROM inventory"#).fetch_all(pool).await? {
-        parts.push_str(&format!("{}\t{}\t{}\n", r.id, cell(&r.sku), opt(r.subcategory_id)));
+    for r in sqlx::query!(r#"SELECT id AS "id!: i64", sku, subcategory_id, coalesce(active, 0) AS "active!: i64" FROM inventory"#).fetch_all(pool).await? {
+        parts.push_str(&format!("{}\t{}\t{}\t{}\n", r.id, cell(&r.sku), opt(r.subcategory_id), r.active));
     }
     Ok([rows, families, categories, parts])
 }
@@ -1157,10 +1198,21 @@ mod tests {
 30\t10\tActive\tSolid Key Inserts\tInsert fileté plein
 40\t6\tActive\tPlain Pins\tBroches lisses
 41\t6\tActive\tDowel Pins\t
+50\t2\tActive\tBushing Mounts\tSupports de canons
 99\t1\tInactive\tOld Family\tAncienne famille
 ";
-    const CATEGORIES: &str = "1\tDrilling\tCanons de Perçage\n6\tAlignment\tBroches et Goupilles de centrage\n14\tClamping\tBridage\n10\tTooling Essentials\tLes Essentiels\n";
-    const PARTS: &str = "1000\tLS-1\t10\n1003\tHBM-10\t50\n";
+    const CATEGORIES: &str = "1\tDrilling\tCanons de Perçage\n6\tAlignment\tBroches et Goupilles de centrage\n14\tClamping\tBridage\n10\tTooling Essentials\tLes Essentiels\n2\tMounts\tSupports\n";
+    const PARTS: &str = "\
+1000\tLS-1\t10\t1
+1001\tLS-1A\t10\t1
+1002\tLS-10\t10\t1
+1003\tHBM-10\t50\t1
+1004\tHBM-10-L\t50\t1
+1005\tXLS1-9\t10\t1
+1006\tOLD-1\t10\t1
+1007\tSC-5\t20\t1
+1008\tÉ-7\t10\t1
+";
 
     fn ix() -> Index {
         Index::build(ROWS, FAMILIES, CATEGORIES, PARTS, "", "").unwrap()
@@ -1298,6 +1350,27 @@ mod tests {
     }
 
     #[test]
+    fn only_what_the_catalog_lists() {
+        let families = FAMILIES.replace("20\t14\tActive", "20\t14\tPending");
+        let categories = CATEGORIES.replace("6\tAlignment\tBroches et Goupilles de centrage", "6\tAlignment\tBroches et Goupilles de centrage\t0");
+        let parts = PARTS.replace("1001\tLS-1A\t10\t1", "1001\tLS-1A\t10\t0");
+        let ix = Index::build(ROWS, &families, &categories, &parts, "", "").unwrap();
+        let en = Ctx::default();
+        let admin = Ctx { admin: true, pending: true, ..Ctx::default() };
+        let labels = |term: &str, ctx: &Ctx| run(&ix, term, ctx).into_iter().map(|(l, _)| l).collect::<Vec<_>>();
+        assert_eq!(run(&ix, "ls", &en), [row("LS-1", "prefix"), row("LS-10", "prefix"), lookup("ls")], "an inactive part");
+        assert!(!labels("ls-1a", &en).contains(&"LS-1A".to_string()));
+        assert_eq!(run(&ix, "swing", &en), [lookup("swing")], "a Pending family");
+        assert_eq!(run(&ix, "sc-5", &en), [lookup("sc-5")], "a part of a Pending family");
+        assert_eq!(run(&ix, "swing", &admin), [row("Swing Clamps", "prefix"), lookup("swing")], "Pending, to those who see Pending");
+        assert_eq!(run(&ix, "sc-5", &admin)[0], row("SC-5", "exact"));
+        for ctx in [&en, &admin] {
+            assert!(!labels("dowel", ctx).iter().any(|l| l.contains("Dowel Pins")), "a family in an inactive category");
+        }
+        assert_eq!(run(&self::ix(), "dowel", &en)[0], row("Dowel Pins", "prefix"), "listed while its category is active");
+    }
+
+    #[test]
     fn blocked_and_admin() {
         let ix = ix();
         let blocked = Ctx { blocked: vec![14], ..Ctx::default() };
@@ -1414,6 +1487,31 @@ ghost\t10\tNOPE-1\t4
         h
     }
 
+    #[tokio::test]
+    async fn the_stamp_changes_with_what_the_catalog_shows() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1), (2, 'Clamps', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active'), (8, 2, 'Swing Clamps', 'Pending')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let mut last = stamp(&pool).await.unwrap();
+        for sql in [
+            "UPDATE subcategory SET status = 'Pending' WHERE id = 7",
+            "UPDATE subcategory SET status = 'Active' WHERE id = 8",
+            "UPDATE subcategory SET category_id = 1 WHERE id = 8",
+            "UPDATE category SET active = 0 WHERE id = 2",
+            "UPDATE inventory SET active = 0 WHERE id = 1",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+            let now = stamp(&pool).await.unwrap();
+            assert_ne!(now, last, "{sql}");
+            last = now;
+        }
+    }
+
     #[test]
     fn the_page_decides_the_language() {
         assert_eq!(page_lang(&referer("/catalog/?search_source=search")), Lang::En);
@@ -1445,8 +1543,8 @@ ghost\t10\tNOPE-1\t4
             + ix.trigrams.values().map(|v| v.capacity() * 4).sum::<usize>()
             + ids(&ix.words)
             + ids(&ix.category_words)
-            + ix.skus.capacity() * (size_of::<(u32, Box<str>)>() + 1)
-            + ix.skus.values().map(|s| s.len()).sum::<usize>()
+            + ix.parts.capacity() * (size_of::<(u32, Stock)>() + 1)
+            + ix.parts.values().map(|p| p.sku.len()).sum::<usize>()
     }
 
     #[test]

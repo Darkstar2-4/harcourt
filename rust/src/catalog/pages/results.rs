@@ -53,7 +53,25 @@ async fn hit(ctx: &Ctx<'_>, row: Option<Row>) -> sqlx::Result<Option<Hit>> {
         Some(id) => model::part_by_id(ctx.pool, id).await?,
         None => None,
     };
-    Ok(Some(Hit { table, category_id: category_id.unwrap_or(0), subcategory_id: subcategory_id.unwrap_or(0), part }))
+    let (category_id, subcategory_id) = (category_id.unwrap_or(0), subcategory_id.unwrap_or(0));
+    if !shows(ctx, &table, category_id, subcategory_id, part.as_ref().is_some_and(|p| p.active)) {
+        return Ok(None);
+    }
+    Ok(Some(Hit { table, category_id, subcategory_id, part }))
+}
+
+/// A part number or a competitor's number for one: the row stands for an inventory part.
+fn names_part(table: &str) -> bool {
+    matches!(table, "inventory" | "competitor_sku")
+}
+
+/// Whether the catalog shows this viewer what a keyword row names: an active category, or a family the catalog lists
+/// (`Catalog::lists`) and, for a part, an active part. A blocked category still shows, as its overlay.
+fn shows(ctx: &Ctx, table: &str, category_id: i64, subcategory_id: i64, part_active: bool) -> bool {
+    if table == "category" {
+        return ctx.catalog.categories.get(&category_id).is_some_and(|c| c.active);
+    }
+    ctx.catalog.family(subcategory_id).is_some_and(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending())) && (part_active || !names_part(table))
 }
 
 /// What catalog.php's constructor read for search_source=search and lookup, before anything is printed: the row
@@ -125,18 +143,20 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let lang = ctx.viewer.lang.code();
     let within = ctx.subcategory_id;
     let rows: Vec<keywords::Row> = sqlx::query!(
-        r#"SELECT table_name AS "table!", code AS "code!", coalesce(code_normalized, '') AS "normalized!: String", category_id AS "category_id!: i64",
-                  subcategory_id AS "subcategory_id!: i64", inventory_id AS "inventory_id: i64", coalesce(ranking, 0) AS "ranking!: i64"
-           FROM search
-           WHERE coalesce(language_code, '') IN ('', ?1) AND (?2 = 0 OR subcategory_id = ?2)
-             AND table_name IS NOT NULL AND code IS NOT NULL AND category_id IS NOT NULL AND subcategory_id IS NOT NULL
-           ORDER BY id"#,
+        r#"SELECT s.table_name AS "table!", s.code AS "code!", coalesce(s.code_normalized, '') AS "normalized!: String", s.category_id AS "category_id!: i64",
+                  s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
+                  coalesce(i.active, 0) AS "part_active!: i64"
+           FROM search s LEFT JOIN inventory i ON i.id = s.inventory_id
+           WHERE coalesce(s.language_code, '') IN ('', ?1) AND (?2 = 0 OR s.subcategory_id = ?2)
+             AND s.table_name IS NOT NULL AND s.code IS NOT NULL AND s.category_id IS NOT NULL AND s.subcategory_id IS NOT NULL
+           ORDER BY s.id"#,
         lang,
         within
     )
     .fetch_all(ctx.pool)
     .await?
     .into_iter()
+    .filter(|r| shows(ctx, &r.table, r.category_id, r.subcategory_id, r.part_active != 0))
     .map(|r| keywords::Row {
         code_normalized: if r.normalized.is_empty() { keywords::normalize(&r.code) } else { r.normalized },
         table: r.table,
@@ -233,13 +253,13 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     Ok(out)
 }
 
-/// category_subcategories(): a category's families in catalog order, Pending ones for administrators.
+/// category_subcategories(): a category's families the catalog lists, in catalog order.
 fn category_subcategories(ctx: &Ctx, category_id: i64) -> Vec<i64> {
     let mut list: Vec<&crate::catalog::model::Family> = ctx
         .catalog
         .families
         .values()
-        .filter(|f| f.category_id == category_id && f.status.visible(ctx.viewer.sees_pending()))
+        .filter(|f| f.category_id == category_id && ctx.catalog.lists(f, ctx.viewer.sees_pending()))
         .collect();
     list.sort_by(|a, b| a.sort_order.cmp(&b.sort_order).then_with(|| a.table_name.cmp(&b.table_name)));
     list.into_iter().map(|f| f.id).collect()
