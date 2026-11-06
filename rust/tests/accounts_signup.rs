@@ -249,6 +249,25 @@ async fn any_other_address_asks_for_access_as_a_pending_account() {
 }
 
 #[tokio::test]
+async fn a_request_for_an_address_already_awaiting_approval_adds_no_account() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let form = "action=register&profile_email=lee%40gmail.com&profile_name_first=Lee&profile_name_last=Ray&profile_company_name=Lee+Co";
+    let first = ajax(&app, "", form).await;
+    assert!(first.json()["html"]["profile_register"].as_str().unwrap().contains("Congratulations, your access request has been submitted!"));
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6 AND signup_email = 'lee@gmail.com'"#).await, 1);
+
+    for form in [form.replace("lee%40", "Lee%40"), form.replace("lee%40gmail.com", "pat%40waiting.example")] {
+        let again = ajax(&app, "", &form).await;
+        assert_eq!(again.json()["html"]["profile_register"], "<p>You access request is pending approval. Your request will be approved as soon as possible.</p>", "{form}");
+        assert!(again.cookies().iter().all(|c| !c.contains("hx_session")), "{form}");
+    }
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user""#).await, 3);
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
+    assert_eq!(mails(&pool).await.len(), 1);
+}
+
+#[tokio::test]
 async fn a_blacklisted_domain_is_refused() {
     let pool = pool().await;
     let a = ajax(&app(&pool), "", "action=register&profile_email=x%40spam.example&profile_name_first=A&profile_name_last=B&profile_company_name=C").await;

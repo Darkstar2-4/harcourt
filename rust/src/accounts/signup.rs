@@ -240,7 +240,11 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
                 reply.html.set("scscpq_content", remote_form(pool, &company, rc.as_ref()).await?);
                 return Ok(reply);
             }
-            Admission::Pending | Admission::Unknown => {}
+            Admission::Pending => {
+                reply.html.set("profile_register", PENDING.into());
+                return Ok(reply);
+            }
+            Admission::Unknown => {}
         }
     }
     for (key, _) in posted {
