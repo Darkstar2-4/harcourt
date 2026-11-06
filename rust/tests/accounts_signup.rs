@@ -523,3 +523,23 @@ async fn free_mail_domains_are_cleared_and_company_domains_kept() {
     assert_eq!(kept, vec![(30, None), (31, None), (32, Some("mail.example.com".into())), (33, None)]);
     assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id = 5 AND domain = 'example.com'"#).await, 1);
 }
+
+#[tokio::test]
+async fn imported_accounts_take_the_address_of_their_latest_sign_up() {
+    let pool = pool().await;
+    sqlx::raw_sql(
+        r#"INSERT INTO "user" (id, status, signup_email) VALUES (40, 'Active', NULL), (41, 'Pending', NULL), (42, 'Pending', 'kept@gmail.com');
+           INSERT INTO log (date_time, user_id, email, type, subtype) VALUES
+             (100, 40, 'old@gmail.com', 'User', 'Signup'), (200, 40, ' Sam@GMail.com ', 'User', 'Signup'), (300, 40, 'other@gmail.com', 'User', 'Email'),
+             (100, 41, '', 'User', 'Signup'), (100, 42, 'new@gmail.com', 'User', 'Signup')"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert_eq!(account::fill_signup_emails(&pool).await.unwrap(), 1);
+    let rows: Vec<(i64, Option<String>)> = sqlx::query_as(r#"SELECT id, signup_email FROM "user" WHERE id >= 40 ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, vec![(40, Some("sam@gmail.com".into())), (41, None), (42, Some("kept@gmail.com".into()))]);
+    assert_eq!(account::for_email(&pool, &Email::parse("sam@gmail.com").unwrap()).await.unwrap(), Some(UserId(40)));
+    assert_eq!(account::for_email(&pool, &Email::parse("old@gmail.com").unwrap()).await.unwrap(), None);
+    assert_eq!(account::signup_email(&pool, UserId(42)).await.unwrap().as_deref(), Some("kept@gmail.com"));
+}

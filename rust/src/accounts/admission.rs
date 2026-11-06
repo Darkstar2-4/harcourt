@@ -177,9 +177,10 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     let none_if_empty = |s: &str| (!s.is_empty()).then(|| s.to_string());
     let (address, city, state, zip, country) =
         (none_if_empty(&reg.address), none_if_empty(&reg.city), none_if_empty(&reg.state), none_if_empty(&reg.zip), none_if_empty(&reg.country_code));
+    let signup_email = email.as_str();
     let id = sqlx::query_scalar!(
-        r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id AS "id!: i64""#,
+        r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain, signup_email)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) RETURNING id AS "id!: i64""#,
         ctx.ip,
         reg.company_name,
         address,
@@ -189,7 +190,8 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
         country,
         ctx.now,
         reg.recaptcha_score,
-        reg.domain
+        reg.domain,
+        signup_email
     )
     .fetch_one(pool)
     .await?;
@@ -213,7 +215,7 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     Ok((id, SignIn { token, remembered: renew > 0, email: email.clone() }))
 }
 
-/// The sign-up row, with the address that signed up: staff approval and `account::for_email` read it there.
+/// The sign-up row, with the address that signed up, for the staff log.
 pub async fn log_signup(pool: &SqlitePool, id: UserId, email: &Email, ctx: &Context<'_>, comment: &str) {
     let who = Subject { ip: ctx.ip, user_id: id.0, email: Some(email.as_str()), ..Default::default() };
     log::record(pool, Kind::UserSignup, &who, comment).await;

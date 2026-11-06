@@ -20,11 +20,11 @@ use super::{
     shell, time, Staff,
 };
 use crate::{
-    accounts::registry,
+    accounts::{account, registry},
     api::{Administrator, Auth, ClientIp},
     audit::{self, Entry},
     db::unix_now,
-    identity::{is_free_mail, Role, Status},
+    identity::{is_free_mail, Role, Status, UserId},
 };
 
 const PATH: &str = "/staff/access/{id}";
@@ -190,14 +190,7 @@ fn bypass_entry(email: &str) -> String {
 }
 
 async fn bypass_on_approval(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
-    let email = sqlx::query_scalar!(
-        r#"SELECT email AS "email!" FROM log WHERE user_id = ?1 AND type = 'User' AND subtype = 'Signup' AND COALESCE(email, '') <> ''
-           ORDER BY date_time DESC LIMIT 1"#,
-        id
-    )
-    .fetch_optional(pool)
-    .await?;
-    let Some(email) = email else { return Ok(()) };
+    let Some(email) = account::signup_email(pool, UserId(id)).await? else { return Ok(()) };
     let entry = bypass_entry(&email);
     let now = unix_now();
     sqlx::query!(
