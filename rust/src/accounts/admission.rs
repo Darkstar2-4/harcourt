@@ -31,7 +31,7 @@ pub enum Admission {
     Company { company: Box<Account>, known: bool },
     /// The company that owns the domain is waiting for approval.
     Pending,
-    /// No account owns the address (`account::for_email`), or the one that does is Denied.
+    /// No account owns the address (`account::for_email`).
     Unknown,
 }
 
@@ -173,11 +173,17 @@ pub struct Registration {
 /// The visitor's address is kept as `signup_ip` for staff reviewing the request, never as `ip`: the company address
 /// that signs visitors in is for staff alone to set. With IPStack on, the location and currency are looked up
 /// afterwards, as user->update() did for every new user, without holding up the sign-up.
-pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<(UserId, SignIn)> {
+/// None when the address has an account after all (`account::for_email`), as when two requests for it overlap: it
+/// is looked for again under the write lock, so only the first adds one.
+pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<Option<(UserId, SignIn)>> {
     let none_if_empty = |s: &str| (!s.is_empty()).then(|| s.to_string());
     let (address, city, state, zip, country) =
         (none_if_empty(&reg.address), none_if_empty(&reg.city), none_if_empty(&reg.state), none_if_empty(&reg.zip), none_if_empty(&reg.country_code));
     let signup_email = email.as_str();
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+    if account::for_email(&mut *tx, email).await?.is_some() {
+        return Ok(None);
+    }
     let id = sqlx::query_scalar!(
         r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain, signup_email)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) RETURNING id AS "id!: i64""#,
@@ -193,8 +199,9 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
         reg.domain,
         signup_email
     )
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
     let id = UserId(id);
     if services.ipstack {
         let (pool, ip) = (pool.clone(), ctx.ip.to_string());
@@ -212,7 +219,7 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     } else {
         session::create(pool, id, &basis, ctx.now).await?
     };
-    Ok((id, SignIn { token, remembered: renew > 0, email: email.clone() }))
+    Ok(Some((id, SignIn { token, remembered: renew > 0, email: email.clone() })))
 }
 
 /// The sign-up row, with the address that signed up, for the staff log.

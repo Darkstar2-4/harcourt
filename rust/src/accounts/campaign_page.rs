@@ -210,13 +210,17 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                     Admission::Pending => notes.error("email", Some(PENDING)),
                     Admission::Unknown => {
                         let registration = Registration { company_name: typed.company_name.clone(), ..Registration::default() };
-                        let (id, sign_in) = admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await?;
-                        set_cookies.extend(cookies::session(&sign_in.token, false));
-                        set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
-                        let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);
-                        admission::log_signup(pool, id, &email, &ctx, &comment).await;
-                        reader.signed_in = Some((id.0, Status::Pending, typed.company_name.clone()));
-                        reader.cookie = email.as_str().to_string();
+                        match admission::register(pool, &core.accounts, &registration, &email, false, &ctx).await? {
+                            Some((id, sign_in)) => {
+                                set_cookies.extend(cookies::session(&sign_in.token, false));
+                                set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
+                                let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);
+                                admission::log_signup(pool, id, &email, &ctx, &comment).await;
+                                reader.signed_in = Some((id.0, Status::Pending, typed.company_name.clone()));
+                                reader.cookie = email.as_str().to_string();
+                            }
+                            None => notes.error("email", Some(PENDING)),
+                        }
                     }
                 }
             }

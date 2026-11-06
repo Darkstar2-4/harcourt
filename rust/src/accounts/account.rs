@@ -1,7 +1,7 @@
 //! The whole `user` row (classes/user.php user_data_class): a company account and what it may see. `identity::User`
 //! is the part sign-in decisions need; `Account` adds everything a page reads.
 
-use sqlx::SqlitePool;
+use sqlx::{SqliteExecutor, SqlitePool};
 
 use crate::identity::{is_free_mail, Email, Role, Status, User, UserId};
 
@@ -151,43 +151,33 @@ pub async fn at_address(pool: &SqlitePool, ip: &str) -> sqlx::Result<Option<User
     Ok(id.map(UserId))
 }
 
-/// The account an address belongs to (classes/remote.php access()): the one that owns its domain, or, for an
-/// address at a free-mail provider, whose domain belongs to no account, the one that address signed up as
-/// (`signup_email`). Of several, an Active one, then a Pending one, then the lowest id.
-pub async fn for_email(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<UserId>> {
-    let id = match email.company_domain() {
-        Some(domain) => {
-            sqlx::query_scalar!(
-                r#"SELECT id AS "id!: i64" FROM "user" WHERE lower(domain) = lower(?1)
-                   ORDER BY CASE status WHEN 'Active' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END, id LIMIT 1"#,
-                domain
-            )
-            .fetch_optional(pool)
-            .await?
-        }
-        None => {
-            let address = email.as_str();
-            sqlx::query_scalar!(
-                r#"SELECT id AS "id!: i64" FROM "user" WHERE signup_email = ?1
-                   ORDER BY CASE status WHEN 'Active' THEN 0 WHEN 'Pending' THEN 1 ELSE 2 END, id LIMIT 1"#,
-                address
-            )
-            .fetch_optional(pool)
-            .await?
-        }
-    };
+/// The account an address belongs to (classes/remote.php access()): one that owns its company domain (never a
+/// free-mail one), or the one that address signed up as (`signup_email`), so a request not yet approved, which has no
+/// domain, is found again. Denied accounts belong to no one. Of several, an Active one, then a Pending one; then the
+/// domain's owner; then the lowest id.
+pub async fn for_email(db: impl SqliteExecutor<'_>, email: &Email) -> sqlx::Result<Option<UserId>> {
+    let (domain, address) = (email.company_domain(), email.as_str());
+    let id = sqlx::query_scalar!(
+        r#"SELECT id AS "id!: i64" FROM "user"
+           WHERE (lower(domain) = lower(?1) OR signup_email = ?2) AND status IN ('Active', 'Pending')
+           ORDER BY status <> 'Active', coalesce(lower(domain) = lower(?1), 0) DESC, id LIMIT 1"#,
+        domain,
+        address
+    )
+    .fetch_optional(db)
+    .await?;
     Ok(id.map(UserId))
 }
 
 /// The address the account signed up with, recorded at registration (and, for accounts older than that column, by
 /// migration 0108 and the import from their latest sign-up log row). Log rows are never read here: their user id
 /// can belong to an account deleted before this one took the id.
-pub async fn signup_email(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<String>> {
+pub async fn signup_email(db: impl SqliteExecutor<'_>, id: UserId) -> sqlx::Result<Option<String>> {
     let email = sqlx::query_scalar!(
         r#"SELECT signup_email AS "email?: String" FROM "user" WHERE id = ?1"#,
         id.0
     )
-    .fetch_optional(pool)
+    .fetch_optional(db)
     .await?;
     Ok(email.flatten())
 }
