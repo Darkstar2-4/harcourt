@@ -127,6 +127,9 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
     let accounts = hxweb::accounts::Services::from_env(|k| std::env::var(k).ok())
         .inspect_err(|e| tracing::error!("not starting: {e}"))
         .ok()?;
+    if let Err(e) = accounts.bots.reload(&pool).await {
+        tracing::error!("bot table: {e}");
+    }
     hxweb::orders::mail::start_from_env(pool.clone());
     Some(Arc::new(hxweb::api::Auth {
         pool,

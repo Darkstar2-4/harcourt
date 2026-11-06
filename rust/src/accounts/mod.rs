@@ -22,10 +22,11 @@ pub mod visit;
 
 use std::time::Duration;
 
-/// What the accounts flows need besides the database: DNS for bot matching, an HTTP client for OAuth and
-/// reCAPTCHA, the OAuth app settings, and whether a new account's address is looked up at IPStack.
+/// What the accounts flows need besides the database: DNS and the compiled bot table for bot matching, an HTTP
+/// client for OAuth and reCAPTCHA, the OAuth app settings, and whether a new account's address is looked up at IPStack.
 pub struct Services {
     pub dns: bot::Dns,
+    pub bots: bot::Bots,
     pub http: reqwest::Client,
     pub oauth: oauth::Providers,
     /// `HXWEB_IPSTACK=on`. Off by default, so a test or staging server never calls the paid service.
@@ -44,12 +45,12 @@ impl Services {
             Some("on") => true,
             Some(other) => return Err(format!("HXWEB_IPSTACK: expected on or off, got {other:?}")),
         };
-        Ok(Services { dns: bot::Dns::system(), http, oauth: oauth::Providers::from_env(&get)?, ipstack })
+        Ok(Services { dns: bot::Dns::system(), bots: bot::Bots::default(), http, oauth: oauth::Providers::from_env(&get)?, ipstack })
     }
 
     /// No network: DNS answers only from the table given, no OAuth app is configured and IPStack is off.
     pub fn offline(dns: bot::Dns) -> Self {
-        Services { dns, http: reqwest::Client::new(), oauth: oauth::Providers::none(), ipstack: false }
+        Services { dns, bots: bot::Bots::default(), http: reqwest::Client::new(), oauth: oauth::Providers::none(), ipstack: false }
     }
 }
 

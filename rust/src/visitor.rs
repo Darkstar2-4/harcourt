@@ -275,7 +275,7 @@ async fn resolve(core: &Auth, parts: &Parts, php: &Php, now: i64) -> sqlx::Resul
     }
     if !has_session && matches!(identity, Identity::Anonymous) {
         if let Some(ip) = client {
-            if let Some(b) = bot::identify(pool, &core.accounts.dns, ip).await? {
+            if let Some(b) = bot::identify(pool, &core.accounts.dns, &core.accounts.bots, ip).await? {
                 effects.push(Effect::Bot(b.clone()));
                 identity = Identity::Bot(b);
             }

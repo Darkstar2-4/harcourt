@@ -131,25 +131,56 @@ fn missing(encoded: &str) -> Response {
     php_page(StatusCode::OK, format!("Content missing: {}", html::esc(encoded)))
 }
 
-/// An image, resized when a smaller width or height is asked for, else the stored bytes.
-fn image_response(bytes: Vec<u8>, mime: &str, name: &str, width: u32, height: u32, attachment: bool) -> Response {
-    let mut body = bytes;
-    let mut mime = mime.to_string();
-    if width > 0 || height > 0 {
-        if let Ok(img) = image::load_from_memory(&body) {
-            let (dw, dh) = display_size((img.width(), img.height()), width, height);
-            if (dw, dh) != (img.width(), img.height()) {
-                let format = image::guess_format(&body).unwrap_or(image::ImageFormat::Png);
-                let resized = img.resize_exact(dw, dh, image::imageops::FilterType::Triangle);
-                let mut out = std::io::Cursor::new(Vec::new());
-                if resized.write_to(&mut out, format).is_ok() {
-                    body = out.into_inner();
-                    mime = format.to_mime_type().to_string();
-                }
-            }
+/// The longest side a resized image is made at.
+const MAX_SIDE: u32 = 2000;
+
+/// `size` scaled down in proportion so neither side exceeds MAX_SIDE.
+fn capped((w, h): (u32, u32)) -> (u32, u32) {
+    let longest = w.max(h);
+    if longest <= MAX_SIDE {
+        return (w, h);
+    }
+    let scale = |side: u32| ((u64::from(side) * u64::from(MAX_SIDE) / u64::from(longest)) as u32).max(1);
+    (scale(w), scale(h))
+}
+
+/// The stored image at the display size asked for, in its own format and with its MIME type; None when it is sent as
+/// stored (no smaller size asked for, or not an image this can decode within its limits).
+fn resized(bytes: &[u8], width: u32, height: u32) -> Option<(Vec<u8>, &'static str)> {
+    let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?;
+    let format = reader.format()?;
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(12_000);
+    limits.max_image_height = Some(12_000);
+    limits.max_alloc = Some(256 << 20);
+    reader.limits(limits);
+    let img = reader.decode().ok()?;
+    let (dw, dh) = capped(display_size((img.width(), img.height()), width, height));
+    if (dw, dh) == (img.width(), img.height()) {
+        return None;
+    }
+    let mut out = std::io::Cursor::new(Vec::new());
+    img.resize_exact(dw, dh, image::imageops::FilterType::Triangle).write_to(&mut out, format).ok()?;
+    Some((out.into_inner(), format.to_mime_type()))
+}
+
+/// An image, resized when a smaller width or height is asked for, else the stored bytes. Decoding and resizing run
+/// on the blocking pool.
+async fn image_response(bytes: Vec<u8>, mime: String, name: &str, width: u32, height: u32, attachment: bool) -> Response {
+    if width == 0 && height == 0 {
+        return file_response(bytes, &mime, name, attachment);
+    }
+    let sized = tokio::task::spawn_blocking(move || match resized(&bytes, width, height) {
+        Some((body, mime)) => (body, mime.to_string()),
+        None => (bytes, mime),
+    });
+    match sized.await {
+        Ok((body, mime)) => file_response(body, &mime, name, attachment),
+        Err(e) => {
+            tracing::error!("scs_file: resize: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
         }
     }
-    file_response(body, &mime, name, attachment)
 }
 
 fn file_response(body: Vec<u8>, mime: &str, name: &str, attachment: bool) -> Response {
@@ -243,7 +274,7 @@ async fn scs_file(State(core): State<Arc<Auth>>, visitor: Visitor, Query(q): Que
     let is_image = found.meta.get("type").is_some_and(|t| t.as_i64().unwrap_or(0) != 0 || t.as_str().is_some_and(|s| !s.is_empty() && s != "0"));
     if is_image {
         let (width, height) = (param_u32(&q, "width"), param_u32(&q, "height"));
-        return image_response(found.bytes, &mime, &name, width, height, !override_.is_empty() && override_ != "0");
+        return image_response(found.bytes, mime, &name, width, height, !override_.is_empty() && override_ != "0").await;
     }
     let inline = mime == "text/plain" || mime == "text/html";
     let asked_inline = super::query::int(override_) != 0;
@@ -320,6 +351,24 @@ mod tests {
         assert_eq!(display_size((800, 600), 0, 150), (200, 150));
         assert_eq!(display_size((800, 600), 1600, 0), (800, 600), "never enlarged");
         assert_eq!(display_size((800, 600), 100, 100), (100, 100));
+    }
+
+    #[tokio::test]
+    async fn an_image_is_resized_to_the_width_asked_for() {
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::RgbImage::new(300, 200).write_to(&mut png, image::ImageFormat::Png).unwrap();
+        let png = png.into_inner();
+        let size = |resp: Response| async move {
+            assert_eq!(resp.headers()[header::CONTENT_TYPE], "image/png");
+            let bytes = http_body_util::BodyExt::collect(resp.into_body()).await.unwrap().to_bytes();
+            let img = image::load_from_memory(&bytes).unwrap();
+            (img.width(), img.height())
+        };
+        assert_eq!(size(image_response(png.clone(), "image/png".into(), "a.png", 150, 0, false).await).await, (150, 100));
+        assert_eq!(size(image_response(png.clone(), "image/png".into(), "a.png", 600, 0, false).await).await, (300, 200), "never enlarged");
+        assert_eq!(size(image_response(png, "image/png".into(), "a.png", 0, 0, false).await).await, (300, 200));
+        assert_eq!(capped((300, 200)), (300, 200));
+        assert_eq!(capped((4000, 100)), (2000, 50));
     }
 
     #[test]
