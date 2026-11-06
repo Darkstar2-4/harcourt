@@ -138,6 +138,27 @@ async fn the_cart_call_adds_reprices_and_removes() {
 }
 
 #[tokio::test]
+async fn the_cart_call_writes_the_total_as_the_cart_page_does() {
+    let h = harness().await;
+    sqlx::query("INSERT INTO currency (code, name, plural, exchange_rate, active) VALUES ('CAD', 'Canadian dollar', 'Canadian dollars', 1.25, 1), ('EUR', 'Euro', 'Euros', 0.9, 0)").execute(&h.pool).await.unwrap();
+    for (id, code, domain) in [(1, "CAD", "example.com"), (2, "EUR", "example.org")] {
+        account(&h.pool, id, "Customer", 1).await;
+        sqlx::query(r#"UPDATE "user" SET currency_code = ?1, domain = ?2 WHERE id = ?3"#).bind(code).bind(domain).bind(id).execute(&h.pool).await.unwrap();
+    }
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "1").await;
+    let a = add(&h, &c, "SKU-2", "2").await;
+    assert_eq!(a["cart_extended"].as_str(), Some("16.00 CAD"));
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &c, &[], false)).await;
+    assert!(page.contains("<span id=cart_extended>16.00 CAD</span>"), "{page}");
+    let c = cookie(&h.pool, 2).await;
+    let a = add(&h, &c, "SKU-1", "1").await;
+    assert_eq!(a["cart_extended"].as_str(), Some("10.00 USD"), "an account whose currency is not offered sees US dollars named");
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &c, &[], false)).await;
+    assert!(page.contains("Priced in <b>US dollars</b>") && page.contains("<span id=cart_extended>10.00 USD</span>"), "{page}");
+}
+
+#[tokio::test]
 async fn carts_belong_to_one_session_and_end_with_it() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;

@@ -685,7 +685,7 @@ async fn place(state: &Orders, shopper: &Shopper, ip: &str, mut order: Order, li
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let mailing = Mailing::load(state).await?;
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let host = state.core.public_origin.trim_start_matches("https://");
 
     let mut tx = pool.begin().await?;
@@ -822,7 +822,7 @@ async fn form(state: &Orders, shopper: &Shopper, framed: bool, order: &Order, li
     let local = Registry::load(pool, "local").await?;
     let choices = Choices::load(pool).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let mut body = header(order, true, &choices, errors, &local, billing_same);
     body.push_str(&cart::table(lines, false, &money, &labels, local.get("thumbnail")));
     let buttons = [html::button("<< Edit Order", "window.location.href='/cart.php';", "cart_button"), html::button("Place Order >>", "fn_action('complete');", "cart_button")];
@@ -838,7 +838,7 @@ async fn confirmation(state: &Orders, shopper: &Shopper, framed: bool, id: i64) 
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let currency = Currency::load(pool, &order.currency_code).await?;
-    let money = MoneyFormat { order: &currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&currency);
     let mut messages = vec!["Order Complete!".to_string()];
     if let Some(template) = mailform::load(pool, "checkout").await? {
         messages.extend(recipients(&template, &order).iter().map(|r| format!("Email successfully sent to {}", r.to.email.as_str())));

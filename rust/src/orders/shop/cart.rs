@@ -289,7 +289,7 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
             }
         }
     }
-    let cart_extended = if missing { "Pricing available upon request.".to_string() } else { format!("${}", number_format(total, 2)) };
+    let cart_extended = if missing { "Pricing available upon request.".to_string() } else { shopper.money(&shopper.currency).price(total) };
     let answer = AjaxAnswer { json_code, constant, sku, quantity: requested, status, cart_size: lines.len(), cart_extended };
     let body = php_json(&serde_json::to_string(&answer).map_err(|_| ApiError::Internal)?);
     Ok(html::page_response(body))
@@ -369,7 +369,7 @@ async fn page(state: &Orders, shopper: &Shopper, framed: bool, messages: Vec<Str
     let lines = lines(state, shopper).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let thumb = crate::orders::mailform::Registry::load(pool, "local").await?.get("thumbnail").to_string();
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let chrome = html::Chrome::load(pool).await?;
     let head = html::Head { title: "Shopping Cart", description: None, js: &[], framed, dashboard: shopper.user.role >= crate::identity::Role::Executive, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
