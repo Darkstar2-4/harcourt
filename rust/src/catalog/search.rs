@@ -241,10 +241,12 @@ impl Index {
     }
 
     fn build(rows: &str, families: &str, categories: &str, parts: &str, learned: &str, popular: &str) -> Result<Index, String> {
-        let mut parsed: Vec<(String, Entry)> = rows.lines().filter_map(entry).collect();
-        let skipped = rows.lines().filter(|l| !l.is_empty()).count() - parsed.len();
-        if parsed.is_empty() {
-            return Err("rows.tsv: no rows".into());
+        // Categories are found by the words of their names (categories.tsv), not by their rows.
+        let lines: Vec<&str> = rows.lines().filter(|l| !l.is_empty() && l.split('\t').nth(1) != Some("category")).collect();
+        let mut parsed: Vec<(String, Entry)> = lines.iter().filter_map(|l| entry(l)).collect();
+        let skipped = lines.len() - parsed.len();
+        if parsed.is_empty() && skipped > 0 {
+            return Err(format!("rows.tsv: none of {skipped} lines understood"));
         }
         if skipped > 0 {
             tracing::warn!("search: {skipped} lines of rows.tsv not understood, left out");
@@ -944,23 +946,21 @@ fn page_lang(headers: &HeaderMap) -> Lang {
     if path.starts_with("/catalogue/") || query.split('&').any(|kv| kv.eq_ignore_ascii_case("lang=fr")) { Lang::Fr } else { Lang::En }
 }
 
-/// The search table's row count and highest id, `catalog_version` (moved by every change to the categories,
-/// families, parts and their names: migrations/0900_catalog_version.sql) and the site's day, on which what searchers
-/// opened is learned again: any edit, import, rebuild or change of what the catalog shows changes one of them.
+/// `search_version` (moved by every change to the search table: migrations/0901_search_version.sql),
+/// `catalog_version` (moved by every change to the categories, families, parts and their names:
+/// migrations/0900_catalog_version.sql) and the site's day, on which what searchers opened is learned again: any
+/// edit, import, rebuild or change of what the catalog shows changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Stamp {
-    tables: [i64; 3],
+    tables: [i64; 2],
     day: model::Day,
 }
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
-    let r = sqlx::query!(
-        r#"SELECT (SELECT count(*) FROM search) AS "a!: i64", (SELECT coalesce(max(id), 0) FROM search) AS "b!: i64",
-                  (SELECT n FROM catalog_version) AS "c!: i64""#
-    )
-    .fetch_one(pool)
-    .await?;
-    Ok(Stamp { tables: [r.a, r.b, r.c], day: model::Day::from_unix(crate::db::unix_now()) })
+    let r = sqlx::query!(r#"SELECT (SELECT n FROM search_version) AS "a!: i64", (SELECT n FROM catalog_version) AS "b!: i64""#)
+        .fetch_one(pool)
+        .await?;
+    Ok(Stamp { tables: [r.a, r.b], day: model::Day::from_unix(crate::db::unix_now()) })
 }
 
 fn cell(s: &str) -> String {
@@ -1564,6 +1564,13 @@ ghost\t10\tNOPE-1\t4
             assert_ne!(now, last, "{sql}");
             last = now;
         }
+        let row = |code: &str| {
+            format!("INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', '{code}', 1, 8, 1, 2000001);")
+        };
+        sqlx::raw_sql(&row("HBLT-1")).execute(&pool).await.unwrap();
+        let last = stamp(&pool).await.unwrap();
+        sqlx::raw_sql(&format!("BEGIN; DELETE FROM search; {} COMMIT;", row("HBLT-2"))).execute(&pool).await.unwrap();
+        assert_ne!(stamp(&pool).await.unwrap(), last, "a rebuild of the search table to as many rows and the same ids");
     }
 
     #[tokio::test]
@@ -1614,17 +1621,42 @@ ghost\t10\tNOPE-1\t4
             }
         };
         let good = built(&cache).await;
-        sqlx::query("UPDATE search SET id = 30, table_name = 'category', inventory_id = 0 WHERE id = 20").execute(&pool).await.unwrap();
+        sqlx::query("UPDATE search SET id = 30, language_code = 'DE' WHERE id = 20").execute(&pool).await.unwrap();
         for wait in [RECHECK * 2, RECHECK * 4] {
             let kept = cache.index(&pool).await.unwrap().unwrap();
             assert!(Arc::ptr_eq(&first, &kept), "the index there was");
             assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(wait));
             assert_eq!(built(&cache).await, good, "the tables of the index served");
         }
-        sqlx::query("UPDATE search SET id = 40, table_name = 'inventory', inventory_id = 1 WHERE id = 30").execute(&pool).await.unwrap();
+        sqlx::query("UPDATE search SET id = 40, language_code = '' WHERE id = 30").execute(&pool).await.unwrap();
         let rebuilt = cache.index(&pool).await.unwrap().unwrap();
         assert!(!Arc::ptr_eq(&first, &rebuilt));
         assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(RECHECK));
+    }
+
+    #[tokio::test]
+    async fn a_table_of_category_rows_alone_is_an_empty_index() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001), (21, 'EN', 1, 'category', 'Pins', 1, 0, 0, -999999)",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let cache = Cache::new();
+        let first = cache.index(&pool).await.unwrap().unwrap();
+        assert_eq!(first_row(&first, "HBLT-1", &Ctx::default()), Some(20));
+        sqlx::query("UPDATE subcategory SET status = 'Inactive' WHERE id = 7").execute(&pool).await.unwrap();
+        sqlx::query("DELETE FROM search WHERE table_name <> 'category'").execute(&pool).await.unwrap();
+        if let Some(b) = cache.built.lock().await.as_mut() {
+            b.checked = Instant::now().checked_sub(RECHECK * 2).unwrap();
+        }
+        let empty = cache.index(&pool).await.unwrap().unwrap();
+        assert!(empty.entries.is_empty());
+        assert_eq!(first_row(&empty, "HBLT-1", &Ctx::default()), None);
+        assert!(matches!(search(&empty, "HBLT-1", &Ctx::default(), 10)[..], [Hit::Lookup]));
     }
 
     #[test]
