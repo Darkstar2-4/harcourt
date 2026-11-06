@@ -594,7 +594,9 @@ async fn admit(pool: &SqlitePool, services: &Services, kind: Kind, person: &Pers
                 domain: email.company_domain().map(str::to_string),
                 recaptcha_score: 1.0,
             };
-            let (id, signin) = admission::register(pool, services, &registration, &email, true, ctx).await?;
+            let Some((id, signin)) = admission::register(pool, services, &registration, &email, true, ctx).await? else {
+                return Ok((Outcome::Pending, set));
+            };
             set.extend(signin.cookies());
             let mut lines = vec![format!("Email: {}", escape(email.as_str())), format!("Name: {}", escape(&person.display_name)), format!("{} OAuth registration", kind.name())];
             admission::log_signup(pool, id, &email, ctx, &lines.join("<br>")).await;

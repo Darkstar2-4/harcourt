@@ -562,3 +562,49 @@ async fn imported_accounts_take_the_address_of_their_latest_sign_up() {
     assert_eq!(account::for_email(&pool, &Email::parse("old@gmail.com").unwrap()).await.unwrap(), None);
     assert_eq!(account::signup_email(&pool, UserId(42)).await.unwrap().as_deref(), Some("kept@gmail.com"));
 }
+
+#[tokio::test]
+async fn a_company_address_awaiting_approval_is_found_again_by_the_form_and_by_sign_in() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let ms = stand_in(Kind::Microsoft, serde_json::json!({"mail": "lee@newco.example", "userPrincipalName": "lee@newco.example"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: Some(ms), google: None });
+    let form = "action=register&profile_email=lee%40newco.example&profile_name_first=Lee&profile_name_last=Ray&profile_company_name=New+Co";
+    let first = ajax(&app, "", form).await;
+    assert!(first.json()["html"]["profile_register"].as_str().unwrap().contains("Congratulations, your access request has been submitted!"));
+    let id = scalar(&pool, r#"SELECT id FROM "user" WHERE id > 6"#).await;
+
+    let again = ajax(&app, "", form).await;
+    assert_eq!(again.json()["html"]["profile_register"], "<p>You access request is pending approval. Your request will be approved as soon as possible.</p>");
+    let (back, shown) = round_trip(&app, &nonce, "/oauth/init.php", "/oauth/callback.php", false).await;
+    assert!(shown.body.contains("You access request is pending approval."), "{}", shown.body);
+    assert!(back.cookies().iter().all(|c| !c.contains("hx_session")));
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6"#).await, 1);
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
+
+    let colleague = Email::parse("kim@newco.example").unwrap();
+    assert_eq!(admission::classify(&pool, &colleague).await.unwrap(), Admission::Unknown, "the request is the address's, not the domain's");
+
+    sqlx::query(r#"UPDATE "user" SET status = 'Active' WHERE id = ?1"#).bind(id).execute(&pool).await.unwrap();
+    let (_, shown) = round_trip(&app, &nonce, "/oauth/init.php", "/oauth/callback.php", false).await;
+    assert!(shown.body.contains("Congratulations, you now have access!"), "{}", shown.body);
+    assert_eq!(scalar(&pool, &format!("SELECT count(*) FROM session WHERE user_id = {id} AND via = 'domain' AND email = 'lee@newco.example'")).await, 1);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6"#).await, 1);
+}
+
+#[tokio::test]
+async fn an_address_is_registered_once_however_many_requests_ask() {
+    let pool = pool().await;
+    let services = Services::offline(Dns::fixed(&[], &[]));
+    let email = Email::parse("lee@newco.example").unwrap();
+    let ctx = admission::Context { ip: CLIENT_IP, user_agent: "test", dns_name: None, now: 1_700_000_000 };
+    let reg = admission::Registration { company_name: "New Co".into(), ..Default::default() };
+    let (a, b) = tokio::join!(
+        admission::register(&pool, &services, &reg, &email, false, &ctx),
+        admission::register(&pool, &services, &reg, &email, false, &ctx)
+    );
+    let made: Vec<UserId> = [a.unwrap(), b.unwrap()].into_iter().flatten().map(|(id, _)| id).collect();
+    assert_eq!(made.len(), 1);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE signup_email = 'lee@newco.example'"#).await, 1);
+    assert_eq!(account::for_email(&pool, &email).await.unwrap(), Some(made[0]));
+}
