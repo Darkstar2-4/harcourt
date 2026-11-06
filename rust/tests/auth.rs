@@ -69,7 +69,7 @@ async fn count(pool: &SqlitePool, table: &str) -> i64 {
 }
 
 async fn cookie_for(pool: &SqlitePool, id: i64) -> String {
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
@@ -144,7 +144,7 @@ async fn expired_sessions_are_refused() {
     let h = harness().await;
     seed(&h.pool, 1, "Active", "Customer").await;
     let long_ago = db::unix_now() - session::TTL_SECS - 5;
-    let token = session::create(&h.pool, UserId(1), None, long_ago).await.unwrap();
+    let token = session::create(&h.pool, UserId(1), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), long_ago).await.unwrap();
     let cookie = format!("{}={}", session::COOKIE, token.as_str());
     let (status, _, _) = send(&h.app, get_page("/me", Some(&cookie))).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);

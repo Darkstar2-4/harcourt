@@ -153,7 +153,7 @@ async fn seed(pool: &SqlitePool) -> Vec<Persona> {
             .execute(pool)
             .await
             .unwrap();
-        let token = session::create(pool, UserId(id), Some(&format!("person{id}@example.com")), db::unix_now()).await.unwrap();
+        let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse(&format!("person{id}@example.com")).unwrap()), db::unix_now()).await.unwrap();
         let cookie = format!("{}={}; PHPSESSID=fuzz{id}", session::COOKIE, token.as_str());
         let mut headers = HeaderMap::new();
         headers.insert(header::COOKIE, HeaderValue::from_str(&cookie).unwrap());

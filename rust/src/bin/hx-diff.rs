@@ -247,8 +247,9 @@ async fn seed(db: &Path, personas: &Personas) -> Result<usize, String> {
         let hash = hash.as_slice();
         let email = format!("persona@{}", a.domain);
         sqlx::query!("DELETE FROM session WHERE user_id = ?1", a.id).execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        // As a registration, so a persona of any status keeps the session, as PHP signed it in by address whatever its status.
         sqlx::query!(
-            "INSERT INTO session (token_hash, user_id, email, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO session (token_hash, user_id, via, email, created_at, expires_at) VALUES (?1, ?2, 'registration', ?3, ?4, ?5)",
             hash,
             a.id,
             email,

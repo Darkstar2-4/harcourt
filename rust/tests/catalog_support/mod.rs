@@ -116,7 +116,7 @@ pub async fn seed_account(pool: &SqlitePool, a: &Account) {
 
 /// A session cookie for an account already seeded.
 pub async fn cookie_for(pool: &SqlitePool, id: i64) -> String {
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 

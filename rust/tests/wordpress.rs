@@ -309,7 +309,7 @@ async fn the_notice_banner_is_a_site_wide_option() {
 
 async fn admin_cookie(pool: &SqlitePool, role: &str) -> String {
     sqlx::query(r#"INSERT INTO "user" (id, status, "type", domain, company_name) VALUES (500, 'Active', ?1, 'staff.example', 'Example staff')"#).bind(role).execute(pool).await.unwrap();
-    let token = hxweb::session::create(pool, UserId(500), Some("editor@staff.example"), db::unix_now()).await.unwrap();
+    let token = hxweb::session::create(pool, UserId(500), &hxweb::session::Basis::Domain(hxweb::identity::Email::parse("editor@staff.example").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", hxweb::session::COOKIE, token.as_str())
 }
 

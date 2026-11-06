@@ -36,7 +36,7 @@ async fn account(pool: &SqlitePool, id: i64, role: &str, status: &str) -> String
         .execute(pool)
         .await
         .unwrap();
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 

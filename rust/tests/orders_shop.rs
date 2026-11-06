@@ -68,7 +68,7 @@ async fn account(pool: &SqlitePool, id: i64, role: &str, ecommerce: i64) {
 }
 
 async fn cookie(pool: &SqlitePool, id: i64) -> String {
-    let token = session::create(pool, UserId(id), Some("buyer@example.com"), db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Domain(hxweb::identity::Email::parse("buyer@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 

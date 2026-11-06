@@ -18,7 +18,8 @@ use crate::{
         registry, Services,
     },
     identity::{Email, Status, UserId},
-    session,
+    remote_grant,
+    session::{self, Basis},
     token::Token,
 };
 
@@ -56,6 +57,17 @@ pub async fn classify(pool: &SqlitePool, email: &Email) -> sqlx::Result<Admissio
         }
         Status::Pending => Admission::Pending,
         Status::Denied => Admission::Unknown,
+    })
+}
+
+/// Whether what let a session in still holds, asked on each use with the checks its sign-in made: the address's
+/// domain still belongs to this account and the account is Active; a registration's address is not blacklisted; the
+/// grant's Administrator may still grant this account.
+pub async fn still_admits(pool: &SqlitePool, basis: &Basis, user: UserId) -> sqlx::Result<bool> {
+    Ok(match basis {
+        Basis::Domain(email) => matches!(classify(pool, email).await?, Admission::Company { company, .. } if company.id() == user),
+        Basis::Registration(email) => !blacklisted(pool, email).await?,
+        Basis::Grant { by } => remote_grant::allowed(pool, *by, user).await?.is_some(),
     })
 }
 
@@ -112,10 +124,11 @@ pub async fn remote_days(pool: &SqlitePool) -> sqlx::Result<i64> {
 /// (scs_header.php login_update(1)).
 pub async fn grant(pool: &SqlitePool, company: &Account, email: &Email, ctx: &Context<'_>) -> sqlx::Result<SignIn> {
     let renew = remote_days(pool).await? * 86400;
+    let basis = Basis::Domain(email.clone());
     let token = if renew > 0 {
-        session::create_remembered(pool, company.id(), Some(email.as_str()), ctx.now, renew).await?
+        session::create_remembered(pool, company.id(), &basis, ctx.now, renew).await?
     } else {
-        session::create(pool, company.id(), Some(email.as_str()), ctx.now).await?
+        session::create(pool, company.id(), &basis, ctx.now).await?
     };
     remember_address(pool, email, ctx.now).await?;
     let id = company.id().0;
@@ -190,11 +203,12 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
         });
     }
     let renew = if remembered { remote_days(pool).await? * 86400 } else { 0 };
+    let basis = Basis::Registration(email.clone());
     let token = if renew > 0 {
         remember_address(pool, email, ctx.now).await?;
-        session::create_remembered(pool, id, Some(email.as_str()), ctx.now, renew).await?
+        session::create_remembered(pool, id, &basis, ctx.now, renew).await?
     } else {
-        session::create(pool, id, Some(email.as_str()), ctx.now).await?
+        session::create(pool, id, &basis, ctx.now).await?
     };
     Ok((id, SignIn { token, remembered: renew > 0, email: email.clone() }))
 }
