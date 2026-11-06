@@ -267,7 +267,8 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
     let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
-        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml"))),
+        // home_url(), which WPML gives the request's language.
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml{}", q.lang.query()))),
         _ => None,
     }
 }

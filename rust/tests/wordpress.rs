@@ -227,6 +227,7 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml"));
     assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
+    assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml?lang=fr"));
     assert_eq!(send(&app, Method::GET, "/post-sitemap.xml").await.0, StatusCode::NOT_FOUND);
 
     let (status, _, xml) = send(&app, Method::GET, "/page-sitemap.xml/").await;
