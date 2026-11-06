@@ -158,7 +158,7 @@ pub async fn handle(state: &Orders, params: &HashMap<String, String>, lang: mode
 }
 
 fn page_of(params: &HashMap<String, String>) -> Option<(model::Lang, String)> {
-    let page = params.get("hx_page").filter(|p| p.starts_with('/') && !p.starts_with("//"))?;
+    let page = params.get("hx_page").filter(|p| crate::routes::local_path(p))?;
     Some((model::Lang::parse(params.get("hx_lang").map_or("en", String::as_str)), page.clone()))
 }
 

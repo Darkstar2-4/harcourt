@@ -127,6 +127,33 @@ struct Api<'a> {
 }
 
 impl Api<'_> {
+    async fn catalog(&self) -> sqlx::Result<model::Catalog> {
+        model::load(self.pool, self.viewer.lang, self.reg, model::Day::from_unix(crate::db::unix_now())).await
+    }
+
+    /// The inventory part a configurator number names, as typed or with underscores read as spaces.
+    async fn find_part(&self, sku: &str) -> sqlx::Result<Option<model::Part>> {
+        match model::part_by_sku(self.pool, sku).await? {
+            Some(p) => Ok(Some(p)),
+            None => model::part_by_sku(self.pool, &sku.replace('_', " ")).await,
+        }
+    }
+
+    /// Whether the catalog shows this viewer the part's family: listed, and not in a category blocked for it.
+    fn shows(&self, catalog: &model::Catalog, part: &model::Part) -> bool {
+        catalog.family(part.subcategory_id).is_some_and(|f| catalog.lists(f, self.viewer.sees_pending()) && !self.viewer.blocked.contains(f.category_id))
+    }
+
+    /// Whether this number is an inventory part the catalog hides from this viewer. A configured number the inventory
+    /// does not hold is the configurator's to answer for; a failed lookup counts as hidden.
+    async fn hides(&self, sku: &str) -> bool {
+        match self.find_part(sku.trim()).await {
+            Ok(None) => false,
+            Ok(Some(part)) => self.catalog().await.map_or(true, |c| !self.shows(&c, &part)),
+            Err(_) => true,
+        }
+    }
+
     /// json_sku(): the configured part's family, number, prices and buttons.
     async fn sku(&self, p: &HashMap<String, String>, out: &mut Map<String, Value>) -> sqlx::Result<()> {
         let data: Map<String, Value> = p.iter().filter_map(|(k, v)| k.strip_prefix("data[").and_then(|k| k.strip_suffix(']')).map(|k| (k.to_string(), json!(v)))).collect();
@@ -134,11 +161,8 @@ impl Api<'_> {
             return Ok(());
         }
         let sku_url = data.get("lina").and_then(Value::as_str).unwrap_or("").to_uppercase();
-        let part = match model::part_by_sku(self.pool, &sku_url).await? {
-            Some(p) => Some(p),
-            None => model::part_by_sku(self.pool, &sku_url.replace('_', " ")).await?,
-        };
-        let catalog = model::load(self.pool, self.viewer.lang, self.reg, model::Day::from_unix(crate::db::unix_now())).await?;
+        let catalog = self.catalog().await?;
+        let part = self.find_part(&sku_url).await?.filter(|p| self.shows(&catalog, p));
         let book = pricing::PriceBook::load(self.pool, self.reg.get("local", "configure_contact")).await?;
         let buyer = pricing::Buyer { terms: self.viewer.price, may_buy: self.viewer.active(), currency_code: &self.viewer.currency_code };
         let s = self.strings;
@@ -221,7 +245,7 @@ impl Api<'_> {
         html_out.insert("cad_name".into(), json!(form.cad_name));
         html_out.insert("profile_message".into(), json!(self.strings.label("catalog_profile_updated", "Profile Updated", &[])));
         let success_url = get("success_url");
-        if success_url.starts_with('/') && !success_url.starts_with("//") {
+        if crate::routes::local_path(&success_url) {
             out.insert("success_url".into(), json!(success_url));
         } else {
             out.insert("profile_tab".into(), json!(get("profile_tab")));
@@ -243,7 +267,7 @@ impl Api<'_> {
         if p.cad_name.is_empty() {
             return s.label("catalog_cad_invalid_code", "Invalid CAD code: {code}", &[("code", &html::esc_text(&p.cad_code))]);
         }
-        if !self.viewer.active() || !self.viewer.cad || sku.trim().is_empty() {
+        if !self.viewer.active() || !self.viewer.cad || sku.trim().is_empty() || self.hides(sku).await {
             return s.label("catalog_cad_quick_unavailable", "Quick CAD not available for {sku}", &[("sku", &html::esc_text(sku))]);
         }
         let server = self.reg.get("cad", "partserver_production");

@@ -133,7 +133,8 @@ fn docroot() -> Option<&'static Path> {
 }
 
 /// fn_escape() outside SQL: the value in single quotes with quotes and backslashes escaped, as the PHP put it into
-/// generated JavaScript.
+/// generated JavaScript. Angle brackets and the JavaScript line separators are written as escapes too, so the
+/// string cannot end the `<script>` element it sits in or break its line; JavaScript reads them back unchanged.
 pub fn js_quote(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('\'');
@@ -146,6 +147,10 @@ pub fn js_quote(s: &str) -> String {
             '\r' => out.push_str("\\r"),
             '\0' => out.push_str("\\0"),
             '\x1a' => out.push_str("\\Z"),
+            '<' => out.push_str("\\x3C"),
+            '>' => out.push_str("\\x3E"),
+            '\u{2028}' => out.push_str("\\u2028"),
+            '\u{2029}' => out.push_str("\\u2029"),
             c => out.push(c),
         }
     }
@@ -188,5 +193,6 @@ mod tests {
         assert_eq!(img("/scs_images/a.png", &[("align", "top"), ("width", "450")]).unwrap(), "<img src='/scs_images/a.png' align='top' width='450' border='0'>");
         assert_eq!(img("", &[]), None);
         assert_eq!(js_quote("O'Brien \\ x"), "'O\\'Brien \\\\ x'");
+        assert_eq!(js_quote("1<2>0"), "'1\\x3C2\\x3E0'");
     }
 }

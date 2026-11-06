@@ -63,6 +63,12 @@ fn from_this_site(headers: &HeaderMap, path: &str, origin: &str) -> bool {
     }
 }
 
+/// A path on this site and nothing else a browser could read as another host: it starts with one slash and holds no
+/// backslash (read as a slash) and no control character (tabs and newlines are dropped from URLs).
+pub fn local_path(url: &str) -> bool {
+    url.starts_with('/') && !url.starts_with("//") && !url.contains('\\') && !url.chars().any(char::is_control)
+}
+
 /// A URL on `origin` itself, not on a host that merely starts with the same text.
 fn on_origin(url: &str, origin: &str) -> bool {
     url.strip_prefix(origin).is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '?', '#']))

@@ -1008,7 +1008,7 @@ fn redirect(origin: &str, to: &str) -> Response<Body> {
 /// slashes) to the admin URL instead.
 fn found(origin: &str, to: &str) -> Response<Body> {
     let admin = format!("{origin}/wp-admin/");
-    let to = if to.starts_with("//") || to.starts_with("/\\") { admin.as_str() } else { to };
+    let to = if to.starts_with('/') && !super::local_path(to) { admin.as_str() } else { to };
     match HeaderValue::from_str(to) {
         Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),

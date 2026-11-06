@@ -37,8 +37,7 @@ fn found(to: &str) -> Response {
 
 /// A return address on this site: a path, never another host.
 fn local(url: &str) -> Option<&str> {
-    let safe = url.starts_with('/') && !url.starts_with("//") && !url.contains('\\') && !url.chars().any(char::is_control);
-    safe.then_some(url)
+    crate::routes::local_path(url).then_some(url)
 }
 
 struct Request {

@@ -226,6 +226,12 @@ impl Catalog {
     pub fn category_name(&self, id: i64) -> &str {
         self.categories.get(&id).map_or("", |c| c.name.as_str())
     }
+
+    /// Whether the catalog lists this family at all: Active (or Pending, to those who see Pending) in an active
+    /// category. A category blocked for one account is that account's overlay, asked separately.
+    pub fn lists(&self, family: &Family, sees_pending: bool) -> bool {
+        family.status.visible(sees_pending) && self.categories.get(&family.category_id).is_some_and(|c| c.active)
+    }
 }
 
 fn carets(s: Option<&str>) -> Vec<String> {

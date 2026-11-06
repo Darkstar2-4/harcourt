@@ -19,8 +19,7 @@ const PAGE_SIZE: usize = 50;
 /// The parts the family lists for this request (query_subcategory()): the family must be visible to the viewer
 /// and its category active; selected search parameters and the new-items filter narrow it.
 fn listed<'p>(ctx: &Ctx, family: &Family, parts: &'p [Part]) -> Vec<&'p Part> {
-    let category_active = ctx.catalog.categories.get(&family.category_id).is_some_and(|c| c.active);
-    if !family.status.visible(ctx.viewer.sees_pending()) || !category_active {
+    if !ctx.catalog.lists(family, ctx.viewer.sees_pending()) {
         return Vec::new();
     }
     parts
@@ -122,12 +121,15 @@ pub async fn page(ctx: &mut Ctx<'_>) -> sqlx::Result<Page> {
 pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx::Result<Page> {
     let Some(family) = ctx.family().cloned() else { return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() }) };
     if ctx.blocked(family.category_id) {
-        let head = format!("<div id=products_header>\n<h1>{}</h1>\n</div>\n{}", esc_text(&family.name), ctx.overlay(family.category_id));
-        return Ok(Page { head, tabs: Tabs::new(), tail: String::new() });
+        return Ok(blocked_page(ctx, &family));
     }
     let all = model::family_parts(ctx.pool, family.id).await?;
     let given = listing.unwrap_or_default();
-    let matching = if given.is_empty() { listed(ctx, &family, &all) } else { given.iter().collect() };
+    let matching = match (given.is_empty(), ctx.catalog.lists(&family, ctx.viewer.sees_pending())) {
+        (true, _) => listed(ctx, &family, &all),
+        (false, true) => given.iter().collect(),
+        (false, false) => Vec::new(),
+    };
     let found = matching.len();
     let shown: Vec<&Part> = if family.page_break && !ctx.viewer.is_bot() && given.is_empty() {
         let page = ctx.req.page.max(1) as usize;
@@ -148,7 +150,8 @@ pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx
     }
     customs(ctx, &family, &mut tabs).await?;
     if !ctx.req.sku.is_empty() {
-        ctx.part = model::part_by_sku(ctx.pool, &ctx.req.sku).await?;
+        let part = model::part_by_sku(ctx.pool, &ctx.req.sku).await?;
+        ctx.part = part.filter(|p| ctx.catalog.family(p.subcategory_id).is_some_and(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending()) && !ctx.blocked(f.category_id)));
         sku_tab(ctx, &family, &mut tabs);
     }
     cad(ctx, &family, &mut tabs);
@@ -157,12 +160,25 @@ pub async fn page_listing(ctx: &mut Ctx<'_>, listing: Option<Vec<Part>>) -> sqlx
     Ok(Page { head, tabs, tail })
 }
 
+/// A family in a category blocked for this account: its name and the overlay, nothing of its content.
+fn blocked_page(ctx: &Ctx, family: &Family) -> Page {
+    let head = format!("<div id=products_header>\n<h1>{}</h1>\n</div>\n{}", esc_text(&family.name), ctx.overlay(family.category_id));
+    Page { head, tabs: Tabs::new(), tail: String::new() }
+}
+
 /// output_sku(): a part found by search on its own page, without the family's parts list.
 pub async fn part_page(ctx: &mut Ctx<'_>, part: Part) -> sqlx::Result<Page> {
     ctx.subcategory_id = part.subcategory_id;
     ctx.part = Some(part);
-    let Some(family) = ctx.family().cloned() else { return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() }) };
+    let shown = ctx.family().filter(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending())).cloned();
+    let Some(family) = shown else {
+        ctx.part = None;
+        return Ok(Page { head: String::new(), tabs: Tabs::new(), tail: String::new() });
+    };
     ctx.category_id = family.category_id;
+    if ctx.blocked(family.category_id) {
+        return Ok(blocked_page(ctx, &family));
+    }
     let mut tabs = Tabs::new();
     let head = title(ctx, &family);
     sku_tab(ctx, &family, &mut tabs);
