@@ -397,3 +397,16 @@ async fn the_form_posts_back_to_the_path_as_apache_ran_it() {
         assert!(body.contains(&format!("data-fetch-path='{script}'")), "{path}");
     }
 }
+
+#[tokio::test]
+async fn a_discontinued_part_keeps_its_page_without_add_to_cart() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    let mut a = Account::customer(26);
+    a.ecommerce = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=SEJMVC0z"), Some(&cookie))).await;
+    assert!(part.contains("Part number: HBLT-3<br>"), "{part}");
+    assert!(!part.contains("value='Add to Cart'"), "{part}");
+}

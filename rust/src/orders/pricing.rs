@@ -44,17 +44,18 @@ impl Pricing for CatalogPrices {
             let row = sqlx::query!(
                 r#"SELECT coalesce(i.pricing, '') AS "pricing!: String", coalesce(c.name, '') AS "category!: String",
                           coalesce(s.name, '') AS "family!: String", s.status AS "status!: String", s.currency,
-                          coalesce(s.category_id, 0) AS "family_category!: i64", coalesce(fc.active, 0) AS "category_active!: i64"
+                          coalesce(s.category_id, 0) AS "family_category!: i64", coalesce(fc.active, 0) AS "category_active!: i64",
+                          coalesce(i.active, 0) AS "active!: i64"
                    FROM inventory i
                    JOIN subcategory s ON s.id = i.subcategory_id
                    LEFT JOIN category c ON c.id = i.category_id
                    LEFT JOIN category fc ON fc.id = s.category_id
-                   WHERE i.sku = ?1 AND i.active = 1"#,
+                   WHERE i.sku = ?1"#,
                 sku
             )
             .fetch_optional(pool)
             .await?;
-            let Some(row) = row.filter(|r| viewer.sees_family(Status::parse(&r.status), r.category_active != 0, r.family_category)) else { return Ok(None) };
+            let Some(row) = row.filter(|r| model::orderable(r.active != 0) && viewer.sees_family(Status::parse(&r.status), r.category_active != 0, r.family_category)) else { return Ok(None) };
             let book = PriceBook::load(pool, "").await?;
             let buyer = Buyer { terms: viewer.price, may_buy: viewer.active(), currency_code: &viewer.currency_code };
             let quote = pricing::quote(&book, &buyer, &model::currency_adders(row.currency.as_deref()), &ListPrices::parse(&row.pricing), i64::from(quantity));

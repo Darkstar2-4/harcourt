@@ -944,36 +944,23 @@ fn page_lang(headers: &HeaderMap) -> Lang {
     if path.starts_with("/catalogue/") || query.split('&').any(|kv| kv.eq_ignore_ascii_case("lang=fr")) { Lang::Fr } else { Lang::En }
 }
 
-/// Row counts and highest ids of the tables the index reads, and the count and id sum of the families of each listed
-/// status, of the active categories and of the active parts: any edit, import, rebuild or change of what the catalog
-/// shows changes one of them.
+/// The search table's row count and highest id, `catalog_version` (moved by every change to the categories,
+/// families, parts and their names: migrations/0900_catalog_version.sql) and the site's day, on which what searchers
+/// opened is learned again: any edit, import, rebuild or change of what the catalog shows changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Stamp([i64; 20]);
+struct Stamp {
+    tables: [i64; 3],
+    day: model::Day,
+}
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     let r = sqlx::query!(
         r#"SELECT (SELECT count(*) FROM search) AS "a!: i64", (SELECT coalesce(max(id), 0) FROM search) AS "b!: i64",
-                  (SELECT count(*) FROM subcategory) AS "c!: i64", (SELECT coalesce(max(id), 0) FROM subcategory) AS "d!: i64",
-                  (SELECT count(*) FROM category) AS "e!: i64", (SELECT count(*) FROM inventory) AS "f!: i64",
-                  (SELECT coalesce(max(id), 0) FROM inventory) AS "g!: i64",
-                  (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "h!: i64",
-                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS "i!: i64",
-                  (SELECT count(*) FROM subcategory WHERE status = 'Active') AS "j!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Active') AS "k!: i64",
-                  (SELECT count(*) FROM subcategory WHERE status = 'Pending') AS "l!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Pending') AS "m!: i64",
-                  (SELECT coalesce(sum(id * coalesce(category_id, 0)), 0) FROM subcategory) AS "n!: i64",
-                  (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS "o!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS "p!: i64",
-                  (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS "q!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64",
-                  (SELECT coalesce(sum(id * coalesce(subcategory_id, 0)), 0) FROM inventory) AS "s!: i64""#
+                  (SELECT n FROM catalog_version) AS "c!: i64""#
     )
     .fetch_one(pool)
     .await?;
-    // The day: what searchers opened is learned again daily.
-    let day = crate::db::unix_now() / 86_400;
-    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, r.s, day]))
+    Ok(Stamp { tables: [r.a, r.b, r.c], day: model::Day::from_unix(crate::db::unix_now()) })
 }
 
 fn cell(s: &str) -> String {
@@ -1557,6 +1544,7 @@ ghost\t10\tNOPE-1\t4
             "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1), (2, 'Clamps', 1)",
             "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active'), (8, 2, 'Swing Clamps', 'Pending')",
             "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO content (record_type, record_id, language_code, name) VALUES ('subcategory', 7, 'EN', 'Ball Lock Pins')",
         ] {
             sqlx::query(sql).execute(&pool).await.unwrap();
         }
@@ -1568,6 +1556,8 @@ ghost\t10\tNOPE-1\t4
             "UPDATE category SET active = 0 WHERE id = 2",
             "UPDATE inventory SET active = 0 WHERE id = 1",
             "UPDATE inventory SET subcategory_id = 8 WHERE id = 1",
+            "UPDATE content SET name = 'Quick Release Pins' WHERE record_type = 'subcategory' AND record_id = 7",
+            "UPDATE category SET name = 'Fasteners' WHERE id = 1",
         ] {
             sqlx::query(sql).execute(&pool).await.unwrap();
             let now = stamp(&pool).await.unwrap();

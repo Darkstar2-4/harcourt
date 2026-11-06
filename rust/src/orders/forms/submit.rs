@@ -168,7 +168,10 @@ async fn recaptcha_passes(pool: &SqlitePool, services: &Services, form: &Form, v
         return Ok(true);
     }
     let email = first_of(form, values, |f| matches!(f.kind, Kind::Email)).trim().to_lowercase();
-    let bypassed = !email.is_empty() && sqlx::query_scalar!(r#"SELECT id AS "id!: i64" FROM captcha_bypass WHERE email = ?1 LIMIT 1"#, email).fetch_optional(pool).await?.is_some();
+    let bypassed = match Email::parse(&email) {
+        Some(e) => crate::accounts::admission::captcha_bypassed(pool, &e).await?,
+        None => false,
+    };
     if bypassed {
         return Ok(true);
     }
