@@ -1161,16 +1161,17 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
     if has(line, "city") {
         u.city = text("city");
     }
+    let mut unknown_country = false;
     if has(line, "country_code") {
-        let given = if val(line, "country_code").is_empty() { "US".to_string() } else { text("country_code") };
-        u.country_code = find_country(tx, &given).await?;
-        if u.country_code.is_empty() {
-            e.push(("country_code".into(), format!("Invalid: {given}")));
+        u.country_code = find_country(tx, val(line, "country_code")).await?;
+        unknown_country = !val(line, "country_code").is_empty() && u.country_code.is_empty();
+        if unknown_country {
+            e.push(invalid("country_code"));
         }
     }
     if has(line, "state") {
         u.state = find_state(tx, &u.country_code, val(line, "state")).await?;
-        if !val(line, "state").is_empty() && u.country_code.is_empty() {
+        if !val(line, "state").is_empty() && (u.state.is_empty() || unknown_country) {
             e.push(invalid("state"));
         }
     }
@@ -1386,24 +1387,27 @@ impl UserRow {
     }
 }
 
-/// country->find_country(): the country by code, name, or a word of its aliases.
+/// country->find_country(): the country by code, name or one of its aliases (stored `^alias^alias^`), in any case;
+/// "" for none.
 async fn find_country(tx: &mut sqlx::SqliteConnection, code: &str) -> sqlx::Result<String> {
-    if code.is_empty() {
+    if code.is_empty() || code.contains('^') {
         return Ok(String::new());
     }
-    let like = format!("%{code}%");
+    let alias = format!("^{}^", code.to_lowercase());
     let found = sqlx::query_scalar!(
-        r#"SELECT country AS "country!: String" FROM country WHERE state = '' AND (country = ?1 OR name = ?1 OR alias LIKE ?2)
-           ORDER BY CASE WHEN country = ?1 THEN 1 WHEN name = ?1 THEN 2 ELSE 3 END LIMIT 1"#,
+        r#"SELECT country AS "country!: String" FROM country
+           WHERE state = '' AND (country = ?1 COLLATE NOCASE OR name = ?1 COLLATE NOCASE OR instr(lower(COALESCE(alias, '')), ?2) > 0)
+           ORDER BY CASE WHEN country = ?1 COLLATE NOCASE THEN 1 WHEN name = ?1 COLLATE NOCASE THEN 2 ELSE 3 END LIMIT 1"#,
         code,
-        like
+        alias
     )
     .fetch_optional(&mut *tx)
     .await?;
     Ok(found.unwrap_or_default())
 }
 
-/// country->find_state(): a US or Canadian state by code or name; elsewhere the text as given.
+/// country->find_state(): a US or Canadian state by code or name in any case, "" for none; elsewhere the text as
+/// given.
 async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) -> sqlx::Result<String> {
     if code.is_empty() {
         return Ok(String::new());
@@ -1412,8 +1416,8 @@ async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) 
         return Ok(code.to_string());
     }
     let found = sqlx::query_scalar!(
-        r#"SELECT state AS "state!: String" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 OR name = ?2)
-           ORDER BY CASE WHEN state = ?2 THEN 1 ELSE 2 END LIMIT 1"#,
+        r#"SELECT state AS "state!: String" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 COLLATE NOCASE OR name = ?2 COLLATE NOCASE)
+           ORDER BY CASE WHEN state = ?2 COLLATE NOCASE THEN 1 ELSE 2 END LIMIT 1"#,
         country,
         code
     )

@@ -204,6 +204,35 @@ async fn account_imports_check_every_column_against_the_lookups() {
 }
 
 #[tokio::test]
+async fn account_countries_and_states_match_whole_names_codes_and_aliases() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO country (country, state, name, alias) VALUES ('US', '', 'United States', '^usa^america^'), ('CA', '', 'Canada', '^can^'), ('US', 'MI', 'Michigan', NULL)").await;
+    exec(&pool, r#"INSERT INTO "user" (id, ip, status, "type", company_name, country_code, state) VALUES (5, '192.0.2.5', 'Active', 'Customer', 'Example Co', 'CA', 'ON'), (6, '192.0.2.6', 'Active', 'Customer', 'Sample Co', 'US', 'MI')"#).await;
+    let file = Scratch::new(
+        "places.txt",
+        b"id\tip\tCompany Name\tCountry Code\tState/Province\n5\t192.0.2.5\tExample Co\t\t\n6\t192.0.2.6\tSample Co\tUSA\tmichigan\n6\t192.0.2.6\tSample Co\tus\tNowhere\n6\t192.0.2.6\tSample Co\tmeric\tMI\n",
+    );
+    let text = printed(run_on(&pool, &["import", "user", file.path(), "--update"]).await);
+    assert!(text.contains("  line 4: state: Invalid: Nowhere\n"), "{text}");
+    assert!(text.contains("  line 5: country_code: Invalid: MERIC\n  line 5: state: Invalid: MI\n"), "an alias matches whole: {text}");
+    let rows: Vec<(i64, Option<String>, Option<String>)> = sqlx::query_as(r#"SELECT id, country_code, state FROM "user" WHERE id IN (5, 6) ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [(5, Some(String::new()), Some(String::new())), (6, Some("US".into()), Some("MI".into()))], "a blank country stays blank");
+}
+
+#[tokio::test]
+async fn the_email_export_dates_each_address_in_detroit() {
+    let pool = seeded().await;
+    exec(&pool, r#"INSERT INTO "user" (id, ip, status, "type", company_name) VALUES (5, '192.0.2.5', 'Active', 'Customer', 'Example Co')"#).await;
+    // 2024-03-05 02:00 UTC is the evening of March 4 in Detroit.
+    exec(&pool, "INSERT INTO log (ip, date_time, user_id, email, type) VALUES ('192.0.2.5', 1709604000, 5, 'pat@example.com', 'Login')").await;
+    let out = Scratch::new("emails.csv", b"");
+    let on = |d| ["export", "email", "--source", "first", "--from", d, "--thru", d, "--out", out.path()];
+    printed(run_on(&pool, &on("2024-03-04")).await);
+    assert!(out.text().contains("pat@example.com"), "{}", out.text());
+    assert_eq!(run_on(&pool, &on("2024-03-05")).await, Err(Fail::Run("No records found".into())));
+}
+
+#[tokio::test]
 async fn prj_links_import_from_a_partsolutions_export_and_missing_ones_export() {
     let pool = seeded().await;
     let export = Scratch::new("export.csv", b"Name;a;b;Part;URL\n;;;TC-100_1;https://example.com/p?prjCatalog=h&prjNode=n&prjName=TC&values=v\n;;;NO-SUCH;https://example.com/p?prjCatalog=h&prjNode=n&prjName=NS&values=v\n");
