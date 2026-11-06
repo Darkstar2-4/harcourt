@@ -8,7 +8,7 @@ use axum::{
     Router,
 };
 use http_body_util::BodyExt;
-use hxweb::{api::Auth, db, identity::UserId, session};
+use hxweb::{api::Auth, db, identity::{Status, UserId}, session};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
@@ -795,4 +795,16 @@ async fn the_order_viewer_lists_orders_newest_first_and_shows_one_with_its_lines
     assert_eq!(status, StatusCode::NOT_FOUND);
     let (status, _, _) = send(&h.app, post("/staff/orders/41", &exec, &[("status", "Reject")])).await;
     assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[tokio::test]
+async fn a_request_is_decided_once() {
+    let h = harness().await;
+    pending(&h.pool, 9, "Pending Co", "buyer@example.com").await;
+    assert!(hxweb::staff::access::decide_request(&h.pool, 9, Status::Active).await.unwrap());
+    assert!(!hxweb::staff::access::decide_request(&h.pool, 9, Status::Denied).await.unwrap(), "already decided");
+    assert!(!hxweb::staff::access::decide_request(&h.pool, 9, Status::Active).await.unwrap());
+    assert_eq!(status_of(&h.pool, 9).await, "Active");
+    let bypasses: Vec<String> = sqlx::query_scalar("SELECT email FROM captcha_bypass").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(bypasses, vec!["@example.com".to_string()]);
 }

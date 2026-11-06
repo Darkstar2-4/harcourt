@@ -12,7 +12,7 @@ use axum::{
     Router,
 };
 use serde_json::{Map, Value};
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
     csrf::{Fields, Posted},
@@ -153,31 +153,40 @@ async fn decide(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, staff: St
         Ok(None) => return (StatusCode::NOT_FOUND, "No such account\n").into_response(),
         Err(e) => return shell::internal(e),
     };
-    if r.status != Status::Pending {
-        let mut notes = Notes::new(TITLE, "");
-        notes.say(&format!("Already {}", status_name(r.status)));
-        return render(pool, &staff, &r, &back_to(f), notes).await;
-    }
-    match decide_request(pool, id, status).await {
-        Ok(()) => {
-            let subtype = if status == Status::Active { "access_approved" } else { "access_denied" };
-            let comment = format!("user {id}");
-            audit::record(pool, Entry { subtype, user_id: staff.who.user.id.0, email: staff.who.email.as_deref(), ip: &ip, comment: &comment }).await;
-            found(&back_to(f))
+    let r = if r.status != Status::Pending {
+        r
+    } else {
+        match decide_request(pool, id, status).await {
+            Ok(true) => {
+                let subtype = if status == Status::Active { "access_approved" } else { "access_denied" };
+                let comment = format!("user {id}");
+                audit::record(pool, Entry { subtype, user_id: staff.who.user.id.0, email: staff.who.email.as_deref(), ip: &ip, comment: &comment }).await;
+                return found(&back_to(f));
+            }
+            Ok(false) => match request(pool, &staff, id).await {
+                Ok(Some(decided)) => decided,
+                Ok(None) => return (StatusCode::NOT_FOUND, "No such account\n").into_response(),
+                Err(e) => return shell::internal(e),
+            },
+            Err(e) => return shell::internal(e),
         }
-        Err(e) => shell::internal(e),
-    }
+    };
+    let mut notes = Notes::new(TITLE, "");
+    notes.say(&format!("Already {}", status_name(r.status)));
+    render(pool, &staff, &r, &back_to(f), notes).await
 }
 
-/// Approving makes the account Active and lets the address it signed up with skip reCAPTCHA from now on; denying
-/// makes it Denied. Only a pending account changes.
-pub async fn decide_request(pool: &SqlitePool, id: i64, status: Status) -> sqlx::Result<()> {
+/// Approving makes the account Active and lets the address it signed up with skip reCAPTCHA from now on, together;
+/// denying makes it Denied. Only a pending account changes; false when it was not pending.
+pub async fn decide_request(pool: &SqlitePool, id: i64, status: Status) -> sqlx::Result<bool> {
     let name = status_name(status);
-    let changed = sqlx::query!(r#"UPDATE "user" SET status = ?2 WHERE id = ?1 AND status = 'Pending'"#, id, name).execute(pool).await?.rows_affected();
-    if changed == 1 && status == Status::Active {
-        bypass_on_approval(pool, id).await?;
+    let mut tx = pool.begin().await?;
+    let changed = sqlx::query!(r#"UPDATE "user" SET status = ?2 WHERE id = ?1 AND status = 'Pending'"#, id, name).execute(&mut *tx).await?.rows_affected() == 1;
+    if changed && status == Status::Active {
+        bypass_on_approval(&mut tx, id).await?;
     }
-    Ok(())
+    tx.commit().await?;
+    Ok(changed)
 }
 
 /// The reCAPTCHA bypass an approval adds: the whole company domain, or the one address on a free-mail domain.
@@ -189,8 +198,8 @@ fn bypass_entry(email: &str) -> String {
     }
 }
 
-async fn bypass_on_approval(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
-    let Some(email) = account::signup_email(pool, UserId(id)).await? else { return Ok(()) };
+async fn bypass_on_approval(db: &mut SqliteConnection, id: i64) -> sqlx::Result<()> {
+    let Some(email) = account::signup_email(&mut *db, UserId(id)).await? else { return Ok(()) };
     let entry = bypass_entry(&email);
     let now = unix_now();
     sqlx::query!(
@@ -199,7 +208,7 @@ async fn bypass_on_approval(pool: &SqlitePool, id: i64) -> sqlx::Result<()> {
         entry,
         now
     )
-    .execute(pool)
+    .execute(db)
     .await?;
     Ok(())
 }
