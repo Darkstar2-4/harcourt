@@ -115,15 +115,30 @@ impl<'a> Ctx<'a> {
 
     /// Prints a stored value verbatim, or its sentinel when probing.
     pub fn slot(&mut self, slot: Slot) {
-        if let Some(slots) = self.slots.as_mut() {
-            self.out.push_str(&probe::sentinel(slots.len()));
-            slots.push(slot);
+        if self.probe(&slot) {
             return;
         }
         let value = self.stored(&slot).unwrap_or_default().to_string();
         let value = expand_shortcodes(&value);
         self.images.note_html(&value);
         self.out.push_str(&value);
+    }
+
+    /// Prints a stored value through `esc_attr()`, or its sentinel when probing. The text the export printed is
+    /// already escaped and prints unchanged.
+    pub fn attr_slot(&mut self, slot: Slot) {
+        if self.probe(&slot) {
+            return;
+        }
+        let value = super::html::esc(self.stored(&slot).unwrap_or_default());
+        self.out.push_str(&value);
+    }
+
+    fn probe(&mut self, slot: &Slot) -> bool {
+        let Some(slots) = self.slots.as_mut() else { return false };
+        self.out.push_str(&probe::sentinel(slots.len()));
+        slots.push(slot.clone());
+        true
     }
 
     fn stored(&self, slot: &Slot) -> Option<&'a str> {

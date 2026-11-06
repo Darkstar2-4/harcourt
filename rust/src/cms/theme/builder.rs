@@ -45,7 +45,7 @@ impl Row {
 fn img(c: &mut Ctx, name: &str, before: &str, after: &str) {
     let Some(m) = c.media(name) else { return };
     c.push(&format!("{before}<img src=\"{}\" alt=\"", Ctx::media_url(Some(m))));
-    c.slot(Slot::Field(c.page.id, format!("{name}_alt")));
+    c.attr_slot(Slot::Field(c.page.id, format!("{name}_alt")));
     c.push(after);
 }
 
@@ -352,4 +352,42 @@ fn builder_cta(c: &mut Ctx, row: &Row) {
     c.push("                </div>\n              </div>\n              <div class=\"cta-description col-12 col-lg-9\">\n                ");
     c.html(&row.f("description"));
     c.push("              </div>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </section>\n");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cms::model::{Field, Lang, Media, MediaId, Page, PageId, PostType, Site, Status, Template};
+
+    #[test]
+    fn image_alts_print_through_esc_attr() {
+        let page = Page {
+            id: PageId(9),
+            kind: PostType::Page,
+            name: "p".into(),
+            group_id: 0,
+            lang: Lang::En,
+            path: "/p/".into(),
+            template: Template::Builder,
+            status: Status::Publish,
+            title: "P".into(),
+            parent_id: None,
+            menu_order: 0,
+            published_at: String::new(),
+            modified_at: String::new(),
+            author_id: None,
+        };
+        let mut site = Site::new(vec![page.clone()]);
+        site.media.insert(
+            MediaId(4),
+            Media { id: MediaId(4), file: "2024/01/a.jpg".into(), mime: "image/jpeg".into(), width: 1, height: 1, alt: String::new(), sizes: vec![], name: "a".into(), parent_id: None, lang: None, group_id: None },
+        );
+        let field = |v: &str| Field { kind: Kind::Html, value: v.into() };
+        for (alt, printed) in [("Jig \"A\" & <B>", "Jig &quot;A&quot; &amp; &lt;B&gt;"), ("Tom&#039;s &amp; co", "Tom&#039;s &amp; co")] {
+            site.fields.insert(PageId(9), [("image".to_string(), field("4")), ("image_alt".to_string(), field(alt))].into_iter().collect());
+            let mut c = Ctx::new(&site, &page, "/p/");
+            img(&mut c, "image", "", "\" />");
+            assert_eq!(c.out, format!("<img src=\"{}2024/01/a.jpg\" alt=\"{printed}\" />", super::super::UPLOADS));
+        }
+    }
 }
