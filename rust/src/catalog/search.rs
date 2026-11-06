@@ -38,7 +38,8 @@ type Learned = HashMap<String, Vec<(u32, u32)>>;
 const DEFAULT_LIMIT: usize = 10;
 const MAX_LIMIT: usize = 100;
 const MAX_TERM_CHARS: usize = 100;
-const TYPO_CODE_CHARS: RangeInclusive<usize> = 4..=25;
+/// The lengths of a term corrected for a typo, here and on the results page (`keywords::correct`).
+pub(super) const TYPO_CODE_CHARS: RangeInclusive<usize> = 4..=25;
 const TYPO_WORD_LETTERS: usize = 4;
 const CODE_ALPHABET: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const WORD_ALPHABET: &str = "abcdefghijklmnopqrstuvwxyz0123456789";
