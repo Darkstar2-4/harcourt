@@ -40,6 +40,7 @@ function cart_update(obj,code,code2) {
 	quantity=jQuery("#" + code).val();
 	jQuery.ajax({
 	    url: cart_url,
+	    type: 'POST',
 	    data: {action: 'json', json_code: code, json_quantity: quantity },
 	    dataType: 'json',
 	    success:function(data){
@@ -88,6 +89,7 @@ function cart_delete(sku,code) {
 	if (!confirm('Delete ' + sku)) return;
 	jQuery.ajax({
 	    url: cart_url,
+	    type: 'POST',
 	    data: {action: 'json', json_code: code, json_quantity: '0' },
 	    dataType: 'json',
 	    success:function(data){

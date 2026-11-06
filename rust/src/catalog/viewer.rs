@@ -6,6 +6,7 @@
 
 use sqlx::SqlitePool;
 
+use super::model::Status as FamilyStatus;
 use crate::{
     accounts::{account::PriceType, bot::BotStatus},
     identity::{Role, Status, UserId},
@@ -179,6 +180,12 @@ impl Viewer {
     /// Administrators also see Pending subcategories.
     pub fn sees_pending(&self) -> bool {
         self.role >= Role::Administrator
+    }
+
+    /// Whether the catalog shows this viewer a family and its parts: a catalog it may browse, a family that is
+    /// Active (or Pending, to Administrators), in an active category that is not blocked for it.
+    pub fn sees_family(&self, status: FamilyStatus, category_active: bool, category_id: i64) -> bool {
+        self.may_browse() && status.visible(self.sees_pending()) && category_active && !self.blocked.contains(category_id)
     }
 
     pub fn at_least(&self, role: Role) -> bool {

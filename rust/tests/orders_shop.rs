@@ -13,11 +13,12 @@ use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use http_body_util::BodyExt;
 use hxweb::{
     api::Auth,
+    catalog::viewer::Viewer,
     db,
     identity::UserId,
     orders::{
         forms,
-        pricing::{Price, PriceFuture, Priced, Pricing},
+        pricing::{CatalogPrices, Price, PriceFuture, Priced, Pricing},
         Orders,
     },
     session,
@@ -29,7 +30,7 @@ use tower::ServiceExt;
 struct PriceList(HashMap<&'static str, Option<i64>>);
 
 impl Pricing for PriceList {
-    fn price<'a>(&'a self, _pool: &'a SqlitePool, _account: UserId, sku: &'a str, quantity: u32) -> PriceFuture<'a> {
+    fn price<'a>(&'a self, _pool: &'a SqlitePool, _viewer: &'a Viewer, sku: &'a str, quantity: u32) -> PriceFuture<'a> {
         Box::pin(async move {
             Ok(self.0.get(sku).map(|unit| Priced {
                 description: format!("Test category: {sku}"),
@@ -48,10 +49,13 @@ struct Harness {
 }
 
 async fn harness() -> Harness {
+    harness_with(Arc::new(PriceList(HashMap::from([("SKU-1", Some(10)), ("SKU-2", Some(3)), ("SKU-Q", None)])))).await
+}
+
+async fn harness_with(pricing: Arc<dyn Pricing>) -> Harness {
     let pool = db::open_memory().await.unwrap();
     let core = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
-    let prices = PriceList(HashMap::from([("SKU-1", Some(10)), ("SKU-2", Some(3)), ("SKU-Q", None)]));
-    let state = Orders { core, pricing: Arc::new(prices), docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
+    let state = Orders { core, pricing, docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
     let app = hxweb::orders::router(Arc::new(state)).layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 10], 40000))));
     Harness { app, pool }
 }
@@ -79,6 +83,7 @@ fn request(method: Method, uri: &str, cookie: &str, form: &[(&str, &str)], ajax:
         .uri(uri)
         .header(header::COOKIE, cookie)
         .header(header::REFERER, "https://www.harcourt.co/catalog/")
+        .header(header::ORIGIN, "https://www.harcourt.co")
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if ajax {
         r = r.header("x-requested-with", "XMLHttpRequest");
@@ -199,6 +204,54 @@ async fn the_cart_page_updates_and_clears() {
     assert!(page.contains("Shopping Cart Cleared") && page.contains("Your shopping cart is empty"));
 }
 
+/// A catalog of one shown family with a priced and an unpriced part, a Pending family, and a family in a category
+/// blocked for account 1.
+async fn catalog_fixtures(pool: &SqlitePool) {
+    for sql in [
+        "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)",
+        "INSERT INTO category (id, name, sort_order, active) VALUES (1, 'Fixtures', 1, 1), (2, 'Restricted', 2, 1)",
+        "INSERT INTO subcategory (id, category_id, name, status, output) VALUES (7, 1, 'Locating Pins', 'Active', ''), (8, 1, 'Prototype Pins', 'Pending', ''), (9, 2, 'Restricted Pins', 'Active', '')",
+        r#"INSERT INTO inventory (sku, category_id, subcategory_id, pricing, active) VALUES
+           ('A-1', 1, 7, '[{"price":10.0,"qty_break":1},{"price":9.0,"qty_break":10}]', 1), ('N-1', 1, 7, '', 1),
+           ('P-1', 1, 8, '[{"price":5.0,"qty_break":1}]', 1), ('B-1', 2, 9, '[{"price":5.0,"qty_break":1}]', 1),
+           ('X-1', 1, 7, '[{"price":5.0,"qty_break":1}]', 0)"#,
+        "INSERT INTO user_category (user_id, category_id) VALUES (1, 2)",
+    ] {
+        sqlx::query(sql).execute(pool).await.unwrap();
+    }
+    sqlx::query(
+        r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, catalog, price_type, price_pct, currency_code, domain) VALUES
+           (1, 'Active', 'Customer', 'Test company 1', 1, 1, 'discount', 0.1, 'USD', 'example.com'),
+           (2, 'Active', 'Administrator', 'Test company 2', 1, 1, 'base', 0, 'USD', 'example.com')"#,
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn the_cart_charges_what_the_catalog_shows_the_account() {
+    let h = harness_with(Arc::new(CatalogPrices)).await;
+    catalog_fixtures(&h.pool).await;
+    let customer = cookie(&h.pool, 1).await;
+    let a = add(&h, &customer, "A-1", "10").await;
+    assert_eq!((a["status"].as_str(), a["cart_extended"].as_str()), (Some("A-1 cart updated"), Some("$81.00")), "10% off the break at 10");
+    for hidden in ["P-1", "B-1", "X-1", "NOPE"] {
+        let a = add(&h, &customer, hidden, "1").await;
+        assert_eq!(a["status"].as_str(), Some(format!("{hidden} invalid").as_str()));
+    }
+    let a = add(&h, &customer, "N-1", "1").await;
+    assert_eq!((a["cart_size"].as_i64(), a["cart_extended"].as_str()), (Some(2), Some("Pricing available upon request.")));
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &customer, &[], false)).await;
+    assert!(page.contains("Fixtures: Locating Pins") && page.contains("<td class=right>$8.10</td>"), "{page}");
+
+    let admin = cookie(&h.pool, 2).await;
+    let a = add(&h, &admin, "P-1", "2").await;
+    assert_eq!((a["status"].as_str(), a["cart_extended"].as_str()), (Some("P-1 cart updated"), Some("$10.00")), "Administrators see Pending families");
+    let a = add(&h, &admin, "B-1", "1").await;
+    assert_eq!(a["cart_extended"].as_str(), Some("$15.00"), "the block is account 1's");
+}
+
 async fn checkout_fixtures(pool: &SqlitePool) {
     sqlx::query("INSERT INTO mailform (code, name, recipient, bcc, subject) VALUES ('checkout', 'Check Out', 'orders@example.com', '[\"copy@example.com\"]', 'PO #%po%')")
         .execute(pool)
@@ -231,18 +284,35 @@ fn order_form<'a>(billing_same: bool) -> Vec<(&'a str, &'a str)> {
     f
 }
 
+/// The one-time token the checkout form carries.
+async fn checkout_token(h: &Harness, cookie: &str) -> String {
+    let (_, _, page) = send(&h.app, request(Method::GET, "/checkout.php", cookie, &[], false)).await;
+    let field = "name='checkout_token' id='checkout_token' value='";
+    let start = page.find(field).expect("the form carries a token") + field.len();
+    page[start..].split('\'').next().unwrap().to_string()
+}
+
 #[tokio::test]
-async fn checkout_writes_the_order_and_queues_both_mails() {
+async fn a_placed_order_clears_the_cart_queues_its_mail_and_shows_its_confirmation() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
     checkout_fixtures(&h.pool).await;
     let c = cookie(&h.pool, 1).await;
     add(&h, &c, "SKU-1", "3").await;
     add(&h, &c, "SKU-Q", "1").await;
-    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &order_form(true), false)).await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &token));
+    let (status, headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    let id: i64 = sqlx::query_scalar("SELECT id FROM orderhd").fetch_one(&h.pool).await.unwrap();
+    let location = headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    assert_eq!(location, format!("/checkout.php?order={id}"));
+    let (status, _, page) = send(&h.app, request(Method::GET, &location, &c, &[], false)).await;
     assert_eq!(status, StatusCode::OK);
     assert!(page.contains("Thank you Pat Buyer for your order!"), "{page}");
-    assert!(page.contains("Order Complete!"));
+    assert!(page.contains("Order Complete!<span class=message2><br>Email successfully sent to orders@example.com<br>Email successfully sent to buyer@example.com</span>"), "{page}");
+    assert!(page.contains(&format!("<tr><td>Order #</td><td>{id}</tr>")) && page.contains("<td class=right>$30.00</td>"));
     let (po, email, status, billing, user): (String, String, String, String, i64) =
         sqlx::query_as("SELECT po, email, status, billing_city, user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
     assert_eq!((po.as_str(), email.as_str(), status.as_str(), billing.as_str(), user), ("ABC-1", "buyer@example.com", "Pending", "Testville", 1));
@@ -257,14 +327,34 @@ async fn checkout_writes_the_order_and_queues_both_mails() {
 }
 
 #[tokio::test]
+async fn one_form_submitted_twice_places_one_order() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "2").await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(false);
+    form.extend([("orderhd_billing_address", "1 Test Way"), ("orderhd_billing_city", "Testville"), ("orderhd_billing_state_us", "MI"), ("orderhd_billing_zip", "48000"), ("orderhd_billing_country_code", "US"), ("checkout_token", &token)]);
+    let (first, first_headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    let (again, again_headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!((first, again), (StatusCode::SEE_OTHER, StatusCode::SEE_OTHER));
+    assert_eq!(first_headers.get(header::LOCATION), again_headers.get(header::LOCATION), "both answer with the one order");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderln").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 2);
+}
+
+#[tokio::test]
 async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
     checkout_fixtures(&h.pool).await;
     let c = cookie(&h.pool, 1).await;
     add(&h, &c, "SKU-1", "1").await;
+    let token = checkout_token(&h, &c).await;
     let mut form: Vec<(&str, &str)> = order_form(false).into_iter().filter(|(k, _)| *k != "orderhd_city" && *k != "carrier_name").collect();
-    form.push(("cc", "12"));
+    form.extend([("cc", "12"), ("checkout_token", &token)]);
     let (_, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
     assert!(page.contains("error(s)"), "{page}");
     assert!(page.contains("Valid entries are 4 digits or blank"));

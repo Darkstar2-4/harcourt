@@ -134,9 +134,14 @@ pub fn post_form(path: &str, cookie: Option<&str>, form: &str) -> Request<Body> 
     request(Method::POST, path, cookie, &[(header::CONTENT_TYPE.as_str(), "application/x-www-form-urlencoded")], Body::from(form.to_string()))
 }
 
-/// A request from a browser in the middle of a visit: it holds the PHP session cookie.
+/// A request from a browser in the middle of a visit: it holds the PHP session cookie, and a post comes from a page
+/// of the site.
 pub fn request(method: Method, path: &str, cookie: Option<&str>, headers: &[(&str, &str)], body: Body) -> Request<Body> {
+    let posts = method != Method::GET && method != Method::HEAD;
     let mut req = Request::builder().method(method).uri(path);
+    if posts && !headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("origin")) {
+        req = req.header(header::ORIGIN, ORIGIN);
+    }
     req = req.header(header::COOKIE, cookie.map_or_else(|| "PHPSESSID=test".to_string(), |c| format!("{c}; PHPSESSID=test")));
     for (k, v) in headers {
         req = req.header(*k, *v);

@@ -6,12 +6,12 @@ use std::sync::Arc;
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::{IntoResponse, Response},
 };
 use rust_decimal::Decimal;
 use serde::Serialize;
-use sqlx::SqlitePool;
+use sqlx::{SqliteExecutor, SqlitePool};
 
 use super::{fn_base64, number_format, quoted, shopper, CartKey, Labels, MoneyFormat, Shopper};
 use crate::{
@@ -87,24 +87,21 @@ async fn remove(pool: &SqlitePool, key: &CartKey, sku: &str) -> sqlx::Result<()>
     Ok(())
 }
 
-pub async fn clear(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<()> {
+pub async fn clear<'c>(db: impl SqliteExecutor<'c>, key: &CartKey) -> sqlx::Result<()> {
     let hash = key.as_slice();
-    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(pool).await?;
+    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(db).await?;
     Ok(())
 }
 
-/// Prices every line. A SKU the catalog no longer offers to this account leaves the cart.
+/// Prices every line. A SKU the catalog no longer offers to this account is left out.
 pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>> {
     let pool = &state.core.pool;
     let mut out = Vec::new();
     let Some(key) = &shopper.cart else { return Ok(out) };
     for item in items(pool, key).await? {
-        match state.pricing.price(pool, shopper.user.id, &item.sku, item.quantity).await? {
-            Some(priced) => {
-                let thumbnail = thumbnail(state, &item.sku).await?;
-                out.push(Line { sku: item.sku, description: priced.description, quantity: item.quantity, comment: item.comment, price: priced.price, thumbnail });
-            }
-            None => remove(pool, key, &item.sku).await?,
+        if let Some(priced) = state.pricing.price(pool, &shopper.viewer, &item.sku, item.quantity).await? {
+            let thumbnail = thumbnail(state, &item.sku).await?;
+            out.push(Line { sku: item.sku, description: priced.description, quantity: item.quantity, comment: item.comment, price: priced.price, thumbnail });
         }
     }
     Ok(out)
@@ -274,7 +271,7 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
             }
             format!("{sku_text} removed from cart")
         }
-        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, shopper.user.id, &sku_text, q).await?.is_some() => {
+        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
             put(pool, key, &sku_text, q, None, unix_now()).await?;
             format!("{sku_text} cart updated")
         }
@@ -318,10 +315,20 @@ pub fn php_json(json: &str) -> String {
 
 const SCRIPT: &str = "<script>\nfunction fn_action(action) {\n    if (action=='clear') {\n        if (!confirm('Clear Shopping Cart?')) return;\n    }\n    document.scs_form.action.value=action;\n    document.scs_form.submit();\n}\n</script>\n";
 
-pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+pub(super) fn home(visitor: &Visitor) -> Response {
+    html::redirect(if visitor.framed { "/" } else { "/scs_index.php" })
+}
+
+/// GET: the cart as it stands.
+pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap) -> Result<Response, ApiError> {
+    let Some(shopper) = shopper(&state.core.pool, &visitor, &headers).await? else { return Ok(home(&visitor)) };
+    page(&state, &shopper, visitor.framed, vec!["Shopping Cart".to_string()]).await
+}
+
+/// POST: the AJAX add and delete, and the form's update, clear and checkout, read from the body alone.
+pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap, body: Bytes) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
-    let framed = visitor.framed;
-    let params = form_params(uri.query(), &body);
+    let params = form_params(None, &body);
     let shopper = shopper(pool, &visitor, &headers).await?;
     if headers.contains_key("x-requested-with") {
         return match shopper {
@@ -329,7 +336,7 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: H
             None => Ok(html::page_response(String::new())),
         };
     }
-    let Some(shopper) = shopper else { return Ok(html::redirect(if framed { "/" } else { "/scs_index.php" })) };
+    let Some(shopper) = shopper else { return Ok(home(&visitor)) };
     let mut messages = vec!["Shopping Cart".to_string()];
     match (params.get("action").map(String::as_str), &shopper.cart) {
         (Some("checkout"), _) => return Ok(html::redirect("/checkout.php")),
@@ -354,7 +361,12 @@ pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, headers: H
         }
         _ => {}
     }
-    let lines = lines(&state, &shopper).await?;
+    page(&state, &shopper, visitor.framed, messages).await
+}
+
+async fn page(state: &Orders, shopper: &Shopper, framed: bool, messages: Vec<String>) -> Result<Response, ApiError> {
+    let pool = &state.core.pool;
+    let lines = lines(state, shopper).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let thumb = crate::orders::mailform::Registry::load(pool, "local").await?.get("thumbnail").to_string();
     let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };

@@ -49,7 +49,11 @@ async fn harness() -> Harness {
         .route("/me", get(|who: Authed<AnyRole>| async move { who.user.id.0.to_string() }))
         .route("/admin", get(|who: Authed<Administrator>| async move { who.user.id.0.to_string() }))
         .with_state(auth.clone());
-    let app = Router::new().nest_service("/api", api::router(auth)).merge(pages).layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
+    let app = Router::new()
+        .nest_service("/api", api::router(auth.clone()))
+        .merge(pages)
+        .layer(axum::middleware::from_fn_with_state(auth, hxweb::routes::same_origin))
+        .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 40000))));
     Harness { app, pool }
 }
 
@@ -74,7 +78,7 @@ async fn cookie_for(pool: &SqlitePool, id: i64) -> String {
 }
 
 fn post(path: &str, cookie: Option<&str>, body: &str) -> Request<Body> {
-    let mut req = Request::builder().method(Method::POST).uri(path).header(header::CONTENT_TYPE, "application/json");
+    let mut req = Request::builder().method(Method::POST).uri(path).header(header::CONTENT_TYPE, "application/json").header(header::ORIGIN, ORIGIN);
     if let Some(c) = cookie {
         req = req.header(header::COOKIE, c);
     }

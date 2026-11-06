@@ -132,9 +132,6 @@ pub async fn page(State(core): State<Arc<Auth>>, visitor: Visitor, headers: Head
 }
 
 pub async fn post(State(core): State<Arc<Auth>>, visitor: Visitor, headers: HeaderMap, uri: Uri, Form(posted): Form<Vec<(String, String)>>) -> Response {
-    if headers.get(header::ORIGIN).is_some_and(|o| o.as_bytes() != core.public_origin.as_bytes()) {
-        return StatusCode::FORBIDDEN.into_response();
-    }
     respond(&core, &visitor, &headers, Fields::posted(posted).with_query(&Fields::from_query(uri.query()))).await
 }
 

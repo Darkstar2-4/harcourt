@@ -179,19 +179,20 @@ struct Php {
     page: Header,
     sid: Option<String>,
     first: bool,
-    /// The session id was made here for a browser that sent none, and is to be set.
-    minted: bool,
+    /// The session id, sent or made here, is to be set on the response: every page that starts a session sets it
+    /// with this site's attributes, whatever set it before.
+    issue: bool,
 }
 
 impl Php {
     /// `start`: give a browser that has no PHP session one, as session_start() did for the PHP pages.
     fn of(parts: &Parts, start: bool) -> Php {
         let page = Header::of(parts.uri.path(), parts.uri.query());
-        let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| !s.is_empty());
+        let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| php_session_id(s));
         let first = sent.is_none();
-        let minted = first && start && page != Header::None;
-        let sid = sent.or_else(|| minted.then(new_php_session_id));
-        Php { page, sid, first, minted }
+        let issue = start && page != Header::None;
+        let sid = sent.or_else(|| (first && issue).then(new_php_session_id));
+        Php { page, sid, first, issue }
     }
 
     /// A browser back with the id of a destroyed session began a new one under it, as PHP adopted any id it was sent.
@@ -437,6 +438,12 @@ const SCRIPT_PATH: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'#').add(b'%')
 /// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
 const PHP_SESSION: &str = "PHPSESSID";
 
+/// An id PHP would have adopted: up to 256 characters of `[A-Za-z0-9,-]`. PHP started a new session for any
+/// other.
+fn php_session_id(s: &str) -> bool {
+    !s.is_empty() && s.len() <= 256 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b',' || b == b'-')
+}
+
 /// A new PHP session id: 32 hex digits, as PHP made them.
 fn new_php_session_id() -> String {
     let mut id = [0u8; 16];
@@ -503,7 +510,7 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
         return Ok((None, Vec::new()));
     }
     let mut out = Vec::new();
-    if let (true, Some(sid)) = (php.minted, &php.sid) {
+    if let (true, Some(sid)) = (php.issue, &php.sid) {
         out.extend(HeaderValue::from_str(&format!("{PHP_SESSION}={sid}; path=/; secure; HttpOnly; SameSite=Lax")).ok());
     }
     if php.initial() {

@@ -45,12 +45,13 @@ async fn the_profile_form_is_checked_then_saved_in_its_cookie() {
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["html"]["profile_message"], "Correct 3 error(s)");
     assert_eq!(v["error"]["profile_email"], 1);
-    assert!(headers.get("set-cookie").is_none());
+    let profile_cookie = |h: &axum::http::HeaderMap| h.get_all("set-cookie").iter().any(|c| c.to_str().unwrap().starts_with("harcourt_profile="));
+    assert!(!profile_cookie(&headers));
     let (_, headers, body) = send(&h.app, xhr("action=profile&profile_email=buyer%40example.com&profile_name_first=Pat&profile_name_last=Lee&cad_code=STEP&profile_generate=0", Some(&cookie))).await;
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["html"]["profile_message"], "Profile Updated");
     assert_eq!(v["html"]["cad_name"], "STEP AP214");
-    assert!(headers["set-cookie"].to_str().unwrap().starts_with("harcourt_profile="));
+    assert!(profile_cookie(&headers));
 }
 
 #[tokio::test]

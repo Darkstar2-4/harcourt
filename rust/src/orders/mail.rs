@@ -18,7 +18,7 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::{db::unix_now, identity::Email};
 
@@ -110,6 +110,14 @@ fn one_line(s: &str) -> String {
 }
 
 pub async fn enqueue(pool: &SqlitePool, mail: &Mail, now: i64) -> sqlx::Result<i64> {
+    let mut tx = pool.begin().await?;
+    let id = enqueue_in(&mut tx, mail, now).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+/// Queues the mail inside the caller's transaction: it is sent only if the rest of that transaction commits.
+pub async fn enqueue_in(conn: &mut SqliteConnection, mail: &Mail, now: i64) -> sqlx::Result<i64> {
     let (body, content_type) = match &mail.body {
         Body::Text(t) => (t.as_str(), "text"),
         Body::Html(h) => (h.as_str(), "html"),
@@ -117,7 +125,6 @@ pub async fn enqueue(pool: &SqlitePool, mail: &Mail, now: i64) -> sqlx::Result<i
     let reply_to = mail.reply_to.as_ref().map(Email::as_str);
     let from_name = mail.from_name.as_deref().map(one_line).filter(|n| !n.is_empty());
     let to = mail.to.email.as_str();
-    let mut tx = pool.begin().await?;
     let id = sqlx::query_scalar!(
         r#"INSERT INTO outbox (to_email, to_name, reply_to, from_name, subject, body, content_type, created_at, next_attempt_at)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8) RETURNING id AS "id!: i64""#,
@@ -130,7 +137,7 @@ pub async fn enqueue(pool: &SqlitePool, mail: &Mail, now: i64) -> sqlx::Result<i
         content_type,
         now
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await?;
     for (kind, m) in &mail.also {
         let kind = kind.as_str();
@@ -142,10 +149,9 @@ pub async fn enqueue(pool: &SqlitePool, mail: &Mail, now: i64) -> sqlx::Result<i
             email,
             m.name
         )
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await?;
     }
-    tx.commit().await?;
     Ok(id)
 }
 

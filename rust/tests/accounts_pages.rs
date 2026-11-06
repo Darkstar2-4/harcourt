@@ -68,7 +68,11 @@ async fn signed_in(pool: &SqlitePool, id: i64) -> String {
 }
 
 async fn send(app: &Router, method: Method, uri: &str, cookie: &str, form: Option<&str>) -> (StatusCode, HeaderMap, String) {
+    let posts = method != Method::GET && method != Method::HEAD;
     let mut req = Request::builder().method(method).uri(uri).header(header::COOKIE, cookie);
+    if posts {
+        req = req.header(header::ORIGIN, ORIGIN);
+    }
     let body = match form {
         Some(f) => {
             req = req.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
@@ -250,4 +254,13 @@ async fn campaign_codes_match_as_mysql_compared_them_and_the_ribbon_speaks_the_r
     let executive = signed_in(&pool, 5).await;
     let (_, _, body) = send(&app, Method::GET, "/campaign.php?campaign=OPEN", &executive, None).await;
     assert!(body.contains("<a href=\"/dashboard.php\" >Tableau de bord</a>"), "{body}");
+}
+
+#[tokio::test]
+async fn a_page_inside_a_visit_sets_the_visits_cookie_again() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let (_, headers, _) = send(&app, Method::GET, "/campaign.php?campaign=open", VISIT, None).await;
+    let set: Vec<&str> = headers.get_all(header::SET_COOKIE).iter().map(|v| v.to_str().unwrap()).collect();
+    assert!(set.contains(&"PHPSESSID=0123456789abcdef0123456789abcdef; path=/; secure; HttpOnly; SameSite=Lax"), "{set:?}");
 }
