@@ -231,8 +231,9 @@ async fn any_other_address_asks_for_access_as_a_pending_account() {
     let form = "action=register&profile_email=lee%40newco.example&profile_name_first=Lee&profile_name_last=Ray&profile_company_name=New+%3CCo%3E&profile_city=Ottawa";
     let a = ajax(&app, "", form).await;
     assert!(a.json()["html"]["profile_register"].as_str().unwrap().contains("Congratulations, your access request has been submitted!"));
-    let (ip, company, status): (String, String, String) = sqlx::query_as(r#"SELECT ip, company_name, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
-    assert_eq!((ip.as_str(), company.as_str(), status.as_str()), (CLIENT_IP, "New <Co>", "Pending"));
+    let (ip, signup_ip, company, status): (Option<String>, String, String, String) =
+        sqlx::query_as(r#"SELECT ip, signup_ip, company_name, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
+    assert_eq!((ip, signup_ip.as_str(), company.as_str(), status.as_str()), (None, CLIENT_IP, "New <Co>", "Pending"), "the request's address is for review, not a company address");
     let sent = mails(&pool).await;
     assert_eq!((sent.len(), sent[0].0.as_str(), sent[0].1.as_str()), (1, "staff@example.net", "New access request"));
     assert!(sent[0].2.contains("Company Name: New &lt;Co&gt;<br>Name: Lee Ray<br>City: Ottawa<br>reCAPTCHA Score: 1<br><br>Browser: "), "{}", sent[0].2);
@@ -389,6 +390,18 @@ async fn google_needs_a_verified_address() {
     let app = app_with(&pool, Providers { microsoft: None, google: Some(g) });
     let (_, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
     assert!(shown.body.contains("Congratulations, you now have access!"));
+}
+
+#[tokio::test]
+async fn a_google_sign_up_at_a_free_mail_address_asks_for_access_with_no_domain() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let g = stand_in(Kind::Google, serde_json::json!({"email": "lee@gmail.com", "email_verified": true}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: None, google: Some(g) });
+    let (_, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
+    assert!(shown.body.contains("Congratulations, your access request has been submitted!"), "{}", shown.body);
+    let (domain, status): (Option<String>, String) = sqlx::query_as(r#"SELECT domain, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
+    assert_eq!((domain, status.as_str()), (None, "Pending"));
 }
 
 #[tokio::test]

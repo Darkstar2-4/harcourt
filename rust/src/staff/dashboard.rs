@@ -129,7 +129,7 @@ fn recaptcha(score: f64, s: &Settings) -> String {
 
 async fn pending(pool: &SqlitePool, s: &Settings, here: &str, tabs: &mut Tabs) -> sqlx::Result<()> {
     let users = sqlx::query!(
-        r#"SELECT id AS "id!: i64", ip, company_name, recaptcha_score, last_login FROM "user"
+        r#"SELECT id AS "id!: i64", coalesce(ip, signup_ip) AS "ip?: String", company_name, recaptcha_score, last_login FROM "user"
            WHERE status = 'Pending' ORDER BY recaptcha_score DESC, company_name"#
     )
     .fetch_all(pool)
@@ -333,7 +333,7 @@ async fn leadscore(pool: &SqlitePool, s: &Settings, viewer_last_login: i64, tabs
 async fn access(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
     let since = unix_now() - WEEK;
     let users = sqlx::query!(
-        r#"SELECT id AS "id!: i64", ip, company_name, city, state, zip, country_code, last_login FROM "user"
+        r#"SELECT id AS "id!: i64", coalesce(ip, signup_ip) AS "ip?: String", company_name, city, state, zip, country_code, last_login FROM "user"
            WHERE last_login >= ?1 ORDER BY last_login DESC"#,
         since
     )

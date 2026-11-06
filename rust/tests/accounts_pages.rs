@@ -63,7 +63,7 @@ fn app(pool: &SqlitePool) -> Router {
 }
 
 async fn signed_in(pool: &SqlitePool, id: i64) -> String {
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}; {VISIT}", session::COOKIE, token.as_str())
 }
 

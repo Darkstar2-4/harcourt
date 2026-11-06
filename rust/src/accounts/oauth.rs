@@ -578,7 +578,7 @@ async fn admit(pool: &SqlitePool, services: &Services, kind: Kind, person: &Pers
                 state: person.state.clone(),
                 zip: person.zip.clone(),
                 country_code: String::new(),
-                domain: Some(email.domain().to_string()),
+                domain: email.company_domain().map(str::to_string),
                 recaptcha_score: 1.0,
             };
             let (id, signin) = admission::register(pool, services, &registration, &email, true, ctx).await?;

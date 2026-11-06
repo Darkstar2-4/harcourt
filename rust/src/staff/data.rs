@@ -1115,7 +1115,7 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
         employees: r.employees,
     });
     let ip = val(line, "ip");
-    if !ip.parse::<std::net::Ipv4Addr>().is_ok_and(|a| !a.is_unspecified() && a.to_string() == ip) {
+    if !ip.is_empty() && !ip.parse::<std::net::Ipv4Addr>().is_ok_and(|a| !a.is_unspecified() && a.to_string() == ip) {
         e.push(("ip".into(), format!("Invalid: {ip}")));
     }
     let text = |k: &str| val(line, k).to_string();
@@ -1308,7 +1308,9 @@ impl UserRow {
         }
     }
 
+    /// An empty `ip` is an account with no company address: self-registered accounts have none until staff set one.
     async fn save(&self, tx: &mut sqlx::SqliteConnection, id: i64, ip: &str) -> sqlx::Result<()> {
+        let ip = Some(ip).filter(|ip| !ip.is_empty());
         let (catalog, cad, leadscore, ecommerce) = (i64::from(self.catalog), i64::from(self.cad), i64::from(self.leadscore), i64::from(self.ecommerce));
         let id = if id == 0 {
             let now = unix_now();

@@ -106,6 +106,24 @@ impl Email {
     pub fn domain(&self) -> &str {
         self.0.split_once('@').map_or("", |(_, d)| d)
     }
+
+    /// The domain, when it can name a company: anything but a free-mail provider.
+    pub fn company_domain(&self) -> Option<&str> {
+        Some(self.domain()).filter(|d| !is_free_mail(d))
+    }
+}
+
+/// Mail providers anyone can sign up to. An address at one says nothing about a company, so none of these is ever
+/// an account's domain.
+pub const FREE_MAIL: [&str; 26] = [
+    "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "live.com", "msn.com", "aol.com", "icloud.com", "me.com", "mac.com",
+    "protonmail.com", "proton.me", "gmx.com", "gmx.de", "web.de", "mail.com", "zoho.com", "yandex.com", "qq.com", "163.com", "comcast.net", "verizon.net",
+    "att.net", "sbcglobal.net",
+];
+
+pub fn is_free_mail(domain: &str) -> bool {
+    let domain = domain.trim();
+    FREE_MAIL.iter().any(|d| d.eq_ignore_ascii_case(domain))
 }
 
 pub async fn load_user(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<User>> {
@@ -144,5 +162,13 @@ mod tests {
         for bad in ["", "a", "a@", "@example.com", "a@b", "a@@example.com", "a b@example.com", "a@exa mple.com", "a@.example.com", "a@example..com", "a'@example.com", "a@exam\nple.com", "a\n@example.com"] {
             assert!(Email::parse(bad).is_none(), "{bad:?}");
         }
+    }
+
+    #[test]
+    fn a_free_mail_domain_is_no_company_domain() {
+        assert_eq!(Email::parse("pat@example.com").unwrap().company_domain(), Some("example.com"));
+        assert_eq!(Email::parse("Pat@GMail.com").unwrap().company_domain(), None);
+        assert!(is_free_mail(" Outlook.COM "));
+        assert!(!is_free_mail("mail.example.com"));
     }
 }

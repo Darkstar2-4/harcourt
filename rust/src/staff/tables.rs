@@ -4,7 +4,7 @@
 
 use super::admin::{
     col,
-    Kind::{Choice, Date, Decimal, Flag, Integer, LongText, Text, Time},
+    Kind::{Choice, Date, Decimal, Domain, Flag, Integer, LongText, Text, Time},
     Search::{Code, Contains},
     Spec,
     Touch::{Created, Never, Saved},
@@ -38,7 +38,7 @@ const PART_LEADTIME: &[(&str, &str)] = &[("Subcategory", "Subcategory"), ("In St
 
 /// A code table: every action for Administrators.
 const fn code_table(table: &'static str, title: &'static str, columns: &'static [super::admin::Col], search: &'static [&'static str], order: &'static str) -> Spec {
-    Spec { table, title, columns, search: Contains(search), order, list: A, edit: Some(A), create: Some(A), delete: Some(A), rank: None }
+    Spec { table, title, columns, search: Contains(search), order, list: A, edit: Some(A), create: Some(A), delete: Some(A), rank: None, sessions: false }
 }
 
 pub static SPECS: &[Spec] = &[
@@ -191,7 +191,8 @@ pub static SPECS: &[Spec] = &[
         columns: &[
             col("company_name", "Company", Text).list(),
             col("ip", "IP address", Text).list(),
-            col("domain", "Domain", Text).list(),
+            col("domain", "Domain", Domain).list(),
+            col("signup_ip", "Sign-up IP address", Text).fixed(),
             col("type", "Role", Choice(ROLES)).list().req().not_null(),
             col("status", "Status", Choice(ACCOUNT_STATUS)).list().req().not_null(),
             col("last_login", "Last sign-in", Time(Never)).list().not_null(),
@@ -225,6 +226,7 @@ pub static SPECS: &[Spec] = &[
         create: Some(A),
         delete: Some(SuperUser),
         rank: Some("type"),
+        sessions: true,
     },
     Spec {
         table: "subcategory",
@@ -256,6 +258,7 @@ pub static SPECS: &[Spec] = &[
         create: Some(A),
         delete: Some(A),
         rank: None,
+        sessions: false,
     },
     Spec {
         table: "inventory",
@@ -280,6 +283,7 @@ pub static SPECS: &[Spec] = &[
         create: None,
         delete: None,
         rank: None,
+        sessions: false,
     },
 ];
 

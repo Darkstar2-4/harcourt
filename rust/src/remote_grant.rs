@@ -6,12 +6,13 @@
 //!
 //!  * minting is for an Active Administrator (`may_grant`) and may not reach above the Administrator's own role;
 //!  * the credential is 256 random bits, valid for ten minutes, redeemable once;
-//!  * redeeming is one atomic UPDATE, so two requests with the same token cannot both succeed.
+//!  * redeeming is one atomic UPDATE, so two requests with the same token cannot both succeed;
+//!  * redeeming, and every use of the session it starts, asks `may_grant` again of both accounts as they are then.
 
 use sqlx::SqlitePool;
 
 use crate::{
-    identity::{Role, User, UserId},
+    identity::{load_user, Role, User, UserId},
     token::Token,
 };
 
@@ -41,20 +42,32 @@ pub async fn mint(pool: &SqlitePool, target: UserId, granted_by: UserId, now: i6
     Ok((token, expires_at))
 }
 
-/// The account the grant is for, once. None for anything unknown, expired or already used.
-pub async fn redeem(pool: &SqlitePool, token: &Token, now: i64) -> sqlx::Result<Option<UserId>> {
+pub struct Redeemed {
+    pub target: UserId,
+    pub granted_by: UserId,
+}
+
+/// The grant, once. None for anything unknown, expired or already used. Whether the grantor may still grant is
+/// `allowed`'s question.
+pub async fn redeem(pool: &SqlitePool, token: &Token, now: i64) -> sqlx::Result<Option<Redeemed>> {
     let hash = token.hash();
     let hash = hash.as_slice();
-    let id = sqlx::query_scalar!(
+    let row = sqlx::query!(
         r#"UPDATE remote_grant SET used_at = ?2
            WHERE token_hash = ?1 AND used_at IS NULL AND expires_at > ?2
-           RETURNING user_id AS "user_id!: i64""#,
+           RETURNING user_id AS "user_id!: i64", granted_by AS "granted_by!: i64""#,
         hash,
         now
     )
     .fetch_optional(pool)
     .await?;
-    Ok(id.map(UserId))
+    Ok(row.map(|r| Redeemed { target: UserId(r.user_id), granted_by: UserId(r.granted_by) }))
+}
+
+/// The target, when `by` may grant it (`may_grant`) with both accounts as they stand now.
+pub async fn allowed(pool: &SqlitePool, by: UserId, target: UserId) -> sqlx::Result<Option<User>> {
+    let (Some(actor), Some(target)) = (load_user(pool, by).await?, load_user(pool, target).await?) else { return Ok(None) };
+    Ok(may_grant(&actor, &target).then_some(target))
 }
 
 /// A grant that can still be redeemed, for the staff list. `id` is the row id; the token is never shown again.

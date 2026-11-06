@@ -36,7 +36,7 @@ async fn account(pool: &SqlitePool, id: i64, role: &str, status: &str) -> String
         .execute(pool)
         .await
         .unwrap();
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
@@ -624,6 +624,52 @@ async fn an_administrator_edits_accounts_up_to_their_own_role() {
     let row: (String, String, Option<String>, String, Option<String>, i64) =
         sqlx::query_as(r#"SELECT "type", status, city, language_code, comment, catalog FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(row, ("Executive".into(), "Active".into(), Some("Springfield".into()), "FR".into(), Some(String::new()), 0), "the rest of the row is as it was");
+}
+
+#[tokio::test]
+async fn an_account_domain_is_never_a_free_mail_domain() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 7, "Customer").await;
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("domain", "GMail.com")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Domain cannot be a free-mail domain"), "{again}");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("domain", "works.example")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let domain: Option<String> = sqlx::query_scalar(r#"SELECT domain FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(domain.as_deref(), Some("works.example"));
+}
+
+#[tokio::test]
+async fn an_administrator_ends_an_accounts_sessions_from_its_page() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 7, "Customer").await;
+    for address in ["lee@works.example", "lee@works.example", "pat@works.example"] {
+        let basis = session::Basis::Registration(hxweb::identity::Email::parse(address).unwrap());
+        session::create(&h.pool, UserId(7), &basis, db::unix_now()).await.unwrap();
+    }
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    assert!(page.contains("<b>Sessions</b>") && page.contains("<td>lee@works.example</td><td class=center>2</td>"), "{page}");
+    assert!(page.contains("<td>pat@works.example</td><td class=center>1</td>"));
+    assert!(page.contains("action='/staff/admin/user/7/sessions'") && page.contains("value='End all sessions'"));
+
+    let token = token_for(&admin);
+    let one = [("csrf".to_string(), token.clone()), ("email".to_string(), "lee@works.example".to_string())];
+    let (status, headers, _) = post_form(&h.app, "/staff/admin/user/7/sessions", &admin, &one).await;
+    assert_eq!((status, headers[header::LOCATION].to_str().unwrap()), (StatusCode::FOUND, "/staff/admin/user/7?ended=2"));
+    let left: Vec<String> = sqlx::query_scalar("SELECT email FROM session WHERE user_id = 7 ORDER BY email").fetch_all(&h.pool).await.unwrap();
+    assert_eq!(left, ["pat@works.example", "tester@example.com"]);
+
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7?ended=2", Some(&admin))).await;
+    assert!(page.contains("Sessions ended: 2"));
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7/sessions", &admin, &[("csrf".to_string(), token)]).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM session WHERE user_id = 7").await, 0);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM session WHERE user_id = 1").await, 1, "the Administrator's own session is untouched");
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    assert!(page.contains("No live sessions"));
 }
 
 #[tokio::test]

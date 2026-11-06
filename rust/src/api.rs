@@ -17,7 +17,7 @@ use crate::{
     audit::{self, Entry},
     config::Secret,
     db::unix_now,
-    identity::{self, Role, User},
+    identity::{Role, User},
     remote_grant, session,
     token::Token,
 };
@@ -172,15 +172,15 @@ async fn redeem(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, Json(body
         Some(token) => remote_grant::redeem(&auth.pool, &token, now).await?,
         None => None,
     };
-    let account = match redeemed {
-        Some(id) => identity::load_user(&auth.pool, id).await?.filter(User::is_active),
+    let allowed = match redeemed {
+        Some(grant) => remote_grant::allowed(&auth.pool, grant.granted_by, grant.target).await?.map(|account| (account, grant.granted_by)),
         None => None,
     };
-    let Some(account) = account else {
+    let Some((account, by)) = allowed else {
         audit::record(&auth.pool, Entry { subtype: "remote_redeem_failed", user_id: 0, email: None, ip: &ip, comment: "" }).await;
         return Err(ApiError::Unauthenticated);
     };
-    let token = session::create(&auth.pool, account.id, None, now).await?;
+    let token = session::create(&auth.pool, account.id, &session::Basis::Grant { by }, now).await?;
     audit::record(&auth.pool, Entry { subtype: "remote_redeemed", user_id: account.id.0, email: None, ip: &ip, comment: "" }).await;
     signed_in(&token)
 }

@@ -133,7 +133,7 @@ async fn log_count(pool: &SqlitePool, ty: &str, subtype: &str) -> i64 {
 }
 
 async fn cookie_for(pool: &SqlitePool, id: i64, email: Option<&str>) -> String {
-    let token = session::create(pool, UserId(id), email, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse(email.unwrap_or("tester@example.com")).unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
@@ -302,10 +302,27 @@ async fn a_remembered_session_slides_forward_when_used() {
     seed(&pool, 3, "Active", "Customer", None).await;
     let now = db::unix_now();
     let renew = 30 * 86400;
-    let token = session::create_remembered(&pool, UserId(3), Some("pat@example.com"), now - 10 * 86400, renew).await.unwrap();
+    let pat = session::Basis::Registration(hxweb::identity::Email::parse("pat@example.com").unwrap());
+    let token = session::create_remembered(&pool, UserId(3), &pat, now - 10 * 86400, renew).await.unwrap();
     assert!(session::lookup(&pool, &token, now).await.unwrap().is_some());
     let expires: i64 = sqlx::query_scalar("SELECT expires_at FROM session").fetch_one(&pool).await.unwrap();
     assert_eq!(expires, now + renew);
-    let stale = session::create_remembered(&pool, UserId(3), None, now - renew - 5, renew).await.unwrap();
+    let stale = session::create_remembered(&pool, UserId(3), &pat, now - renew - 5, renew).await.unwrap();
     assert!(session::lookup(&pool, &stale, now).await.unwrap().is_none(), "unused for longer than remote_days");
+}
+
+#[tokio::test]
+async fn a_remembered_session_ends_at_its_full_age_however_often_it_is_used() {
+    let pool = pool().await;
+    seed(&pool, 3, "Active", "Customer", None).await;
+    let renew = 30 * 86400;
+    let began = db::unix_now() - session::MAX_AGE_SECS + 86400;
+    let pat = session::Basis::Registration(hxweb::identity::Email::parse("pat@example.com").unwrap());
+    let token = session::create_remembered(&pool, UserId(3), &pat, began, renew).await.unwrap();
+    for used in (1..=12).map(|week| began + week * 7 * 86400).chain([began + session::MAX_AGE_SECS - 1]) {
+        assert!(session::lookup(&pool, &token, used).await.unwrap().is_some(), "used weekly");
+    }
+    let expires: i64 = sqlx::query_scalar("SELECT expires_at FROM session").fetch_one(&pool).await.unwrap();
+    assert_eq!(expires, began + session::MAX_AGE_SECS, "renewed no further than its full age");
+    assert!(session::lookup(&pool, &token, began + session::MAX_AGE_SECS).await.unwrap().is_none());
 }

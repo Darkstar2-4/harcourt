@@ -29,7 +29,7 @@ async fn harness() -> (Router, SqlitePool) {
 
 async fn cookie(pool: &SqlitePool, id: i64, role: &str) -> String {
     sqlx::query(r#"INSERT INTO "user" (id, status, "type", language_code) VALUES (?1, 'Active', ?2, 'FR')"#).bind(id).bind(role).execute(pool).await.unwrap();
-    let token = session::create(pool, UserId(id), None, db::unix_now()).await.unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap()), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
