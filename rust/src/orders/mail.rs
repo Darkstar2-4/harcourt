@@ -302,9 +302,10 @@ struct Claimed {
     mail: Result<Mail, String>,
 }
 
-/// Takes the next due message and leases it, in one statement, so two workers never send the same row at once.
-async fn claim(pool: &SqlitePool, now: i64) -> sqlx::Result<Option<Claimed>> {
-    let lease = now + LEASE_SECS;
+/// Takes the next message due at `due` and leases it from `at`, in one statement, so two workers never send the
+/// same row at once.
+async fn claim(pool: &SqlitePool, due: i64, at: i64) -> sqlx::Result<Option<Claimed>> {
+    let lease = at + LEASE_SECS;
     let Some(row) = sqlx::query!(
         r#"UPDATE outbox SET next_attempt_at = ?1
            WHERE id = (SELECT id FROM outbox WHERE sent_at IS NULL AND failed_at IS NULL AND next_attempt_at <= ?2
@@ -312,7 +313,7 @@ async fn claim(pool: &SqlitePool, now: i64) -> sqlx::Result<Option<Claimed>> {
            RETURNING id AS "id!: i64", to_email AS "to_email!", to_name AS "to_name!", reply_to, from_name, subject AS "subject!",
                      body AS "body!", content_type AS "content_type!", attempts AS "attempts!: i64""#,
         lease,
-        now
+        due
     )
     .fetch_optional(pool)
     .await?
@@ -370,20 +371,23 @@ async fn mark_failed(pool: &SqlitePool, claimed: &Claimed, error: &SendError, no
     Ok(())
 }
 
-/// Sends every message that is due at `now`, one at a time. Returns how many were attempted.
+/// Sends every message that is due at `now`, one at a time. Returns how many were attempted. A slow batch dates
+/// each lease and result from `now` plus the time it has taken, so a message claimed late is not due again early.
 pub async fn deliver_due(pool: &SqlitePool, transport: &dyn Transport, now: i64) -> sqlx::Result<usize> {
+    let started = std::time::Instant::now();
+    let clock = || now.saturating_add(i64::try_from(started.elapsed().as_secs()).unwrap_or(i64::MAX));
     let mut attempted = 0;
-    while let Some(claimed) = claim(pool, now).await? {
+    while let Some(claimed) = claim(pool, now, clock()).await? {
         attempted += 1;
         let result = match &claimed.mail {
             Ok(mail) => transport.send(mail).await,
             Err(e) => Err(SendError::Reject(e.clone())),
         };
         match result {
-            Ok(()) => mark_sent(pool, claimed.id, now).await?,
+            Ok(()) => mark_sent(pool, claimed.id, clock()).await?,
             Err(e) => {
                 tracing::warn!(outbox_id = claimed.id, "mail not sent: {e:?}");
-                mark_failed(pool, &claimed, &e, now).await?;
+                mark_failed(pool, &claimed, &e, clock()).await?;
             }
         }
     }
