@@ -77,7 +77,7 @@ fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
     let sidebar = yoast::faq_widgets(site, lang)?;
     // Yoast links a translation by the post its indexable was built from: the English one.
     let url = site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).unwrap_or(p).url(ORIGIN);
-    let noindex = site.meta(p.id).get("noindex").is_some_and(|v| v == "1") || yoast::setting(site, &format!("noindex-{}", p.kind.as_str())) == Some("1");
+    let noindex = yoast::noindex(site, p);
     // Yoast texturizes its breadcrumb with the English marks on every page; the theme prints the title with the
     // page's own.
     let crumb = texturize(&p.title, Lang::En);

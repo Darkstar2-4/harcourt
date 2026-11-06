@@ -244,6 +244,22 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
 }
 
 #[tokio::test]
+async fn sitemaps_leave_out_what_yoast_keeps_from_search_engines() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (2010, 'noindex', '1')").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (2010, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml?lang=fr").await;
+    assert_eq!(xml.matches("<loc>https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr</loc>").count(), 1, "the noindexed page is left out");
+
+    sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES ('en', '@wpseo:noindex-page', 'choice', '1')").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES ('en', 2, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!xml.contains("page-sitemap"), "a post type kept from search engines has no sitemap");
+    assert_eq!(send(&app, Method::GET, "/page-sitemap.xml").await.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
 async fn the_request_access_page_renders_its_template_in_both_languages() {
     let (app, pool) = harness().await;
     for (id, lang, path) in [(133, "en", "/request-access/"), (2013, "fr", "/demande-dacces/")] {

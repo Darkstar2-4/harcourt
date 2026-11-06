@@ -3,7 +3,7 @@
 //! exported pages show of the site-wide parts (the social lines, the author, the breadcrumb's first crumb).
 
 use super::{
-    model::{Lang, Page, Site},
+    model::{Lang, Page, PostType, Site, Taxonomy},
     theme::ORIGIN,
 };
 
@@ -13,6 +13,21 @@ pub const INDEXED: &str = "index, follow, max-image-preview:large, max-snippet:-
 /// A Yoast setting from wpseo_titles, as the import keeps it.
 pub fn setting<'a>(site: &'a Site, key: &str) -> Option<&'a str> {
     site.options(Lang::En).get(&format!("@wpseo:{key}")).map(|f| f.value.as_str())
+}
+
+/// Whether Yoast keeps a post out of search engines: by its own robots setting or by its type's.
+pub fn noindex(site: &Site, p: &Page) -> bool {
+    site.meta(p.id).get("noindex").is_some_and(|v| v == "1") || type_noindex(site, p.kind)
+}
+
+/// Whether Yoast keeps every post of a type out of search engines, and so out of the sitemaps.
+pub fn type_noindex(site: &Site, kind: PostType) -> bool {
+    setting(site, &format!("noindex-{}", kind.as_str())) == Some("1")
+}
+
+/// Whether Yoast keeps every archive of a taxonomy out of search engines, and so out of the sitemaps.
+pub fn taxonomy_noindex(site: &Site, taxonomy: Taxonomy) -> bool {
+    setting(site, &format!("noindex-tax-{}", taxonomy.as_str())) == Some("1")
 }
 
 /// Yoast's separator setting as printed.
