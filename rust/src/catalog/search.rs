@@ -1033,11 +1033,13 @@ struct Built {
     index: Option<Arc<Index>>,
 }
 
-/// The index for one database, built on first use and rebuilt when its tables change. A build that fails keeps
-/// the previous index.
+/// The index for one database, built on first use and rebuilt when its tables change. One request at a time checks
+/// and rebuilds; the others keep the index there is meanwhile (they wait only for the first). A build that fails
+/// keeps the previous index.
 #[derive(Default)]
 pub struct Cache {
     built: tokio::sync::Mutex<Option<Built>>,
+    rebuild: tokio::sync::Mutex<()>,
 }
 
 impl Cache {
@@ -1046,46 +1048,67 @@ impl Cache {
     }
 
     async fn index(&self, pool: &SqlitePool) -> sqlx::Result<Option<Arc<Index>>> {
-        let mut built = self.built.lock().await;
-        if let Some(b) = built.as_ref().filter(|b| b.checked.elapsed() < RECHECK) {
-            return Ok(b.index.clone());
-        }
+        let serving = match self.built.lock().await.as_ref() {
+            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
+            Some(b) => b.index.clone(),
+            None => None,
+        };
+        let _rebuild = match (self.rebuild.try_lock(), serving) {
+            (Ok(guard), _) => guard,
+            (Err(_), Some(ix)) => return Ok(Some(ix)),
+            (Err(_), None) => self.rebuild.lock().await,
+        };
+        let previous = match self.built.lock().await.as_ref() {
+            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
+            Some(b) => Some((b.stamp.clone(), b.index.clone())),
+            None => None,
+        };
         let now = stamp(pool).await?;
-        if let Some(b) = built.as_mut().filter(|b| b.stamp == now) {
-            b.checked = Instant::now();
-            return Ok(b.index.clone());
-        }
-        let [rows, families, categories, parts] = export(pool).await?;
-        let files = std::env::var_os("HXWEB_SEARCH")
-            .filter(|d| Path::new(d).join(LEARNED_FILES[0]).is_file())
-            .map(|d| LEARNED_FILES.map(|f| std::fs::read(Path::new(&d).join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()));
-        let [learned, popular] = match files {
-            Some(files) => files,
-            None => {
-                let (learned, popular) = super::learn::from_log(pool, crate::db::unix_now()).await?;
-                [learned, popular]
-            }
+        let index = match previous {
+            Some((stamp, index)) if stamp == now => index,
+            previous => build(pool).await?.or_else(|| previous.and_then(|(_, ix)| ix)),
         };
-        let start = Instant::now();
-        let result = tokio::task::spawn_blocking(move || Index::build(&rows, &families, &categories, &parts, &learned, &popular)).await;
-        let previous = built.as_ref().and_then(|b| b.index.clone());
-        let index = match result {
-            Ok(Ok(ix)) => {
-                tracing::info!("search index built: {} entries in {:?}", ix.entries.len(), start.elapsed());
-                Some(Arc::new(ix))
-            }
-            Ok(Err(e)) => {
-                tracing::warn!("search index not built: {e}");
-                previous
-            }
-            Err(e) => {
-                tracing::error!("search index build failed: {e}");
-                previous
-            }
-        };
-        *built = Some(Built { stamp: now, checked: Instant::now(), index: index.clone() });
+        *self.built.lock().await = Some(Built { stamp: now, checked: Instant::now(), index: index.clone() });
         Ok(index)
     }
+}
+
+/// The index from the tables as they are now; None when it cannot be built. The learned files are read and the
+/// index built on the blocking pool.
+async fn build(pool: &SqlitePool) -> sqlx::Result<Option<Arc<Index>>> {
+    let [rows, families, categories, parts] = export(pool).await?;
+    let files = match std::env::var_os("HXWEB_SEARCH") {
+        Some(dir) => tokio::task::spawn_blocking(move || learned_files(Path::new(&dir))).await.ok().flatten(),
+        None => None,
+    };
+    let [learned, popular] = match files {
+        Some(files) => files,
+        None => {
+            let (learned, popular) = super::learn::from_log(pool, crate::db::unix_now()).await?;
+            [learned, popular]
+        }
+    };
+    let start = Instant::now();
+    match tokio::task::spawn_blocking(move || Index::build(&rows, &families, &categories, &parts, &learned, &popular)).await {
+        Ok(Ok(ix)) => {
+            tracing::info!("search index built: {} entries in {:?}", ix.entries.len(), start.elapsed());
+            Ok(Some(Arc::new(ix)))
+        }
+        Ok(Err(e)) => {
+            tracing::warn!("search index not built: {e}");
+            Ok(None)
+        }
+        Err(e) => {
+            tracing::error!("search index build failed: {e}");
+            Ok(None)
+        }
+    }
+}
+
+/// What search_learn.sh wrote into `dir`, when it wrote learned.tsv there.
+fn learned_files(dir: &Path) -> Option<[String; 2]> {
+    let read = |f: &str| std::fs::read(dir.join(f)).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+    dir.join(LEARNED_FILES[0]).is_file().then(|| LEARNED_FILES.map(read))
 }
 
 /// The search row the search box would put first for `term`: what the results page opens when its own keyword
@@ -1511,6 +1534,31 @@ ghost\t10\tNOPE-1\t4
             assert_ne!(now, last, "{sql}");
             last = now;
         }
+    }
+
+    #[tokio::test]
+    async fn the_index_is_served_while_another_request_rebuilds_it() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let cache = Cache::new();
+        let first = cache.index(&pool).await.unwrap().unwrap();
+        if let Some(b) = cache.built.lock().await.as_mut() {
+            b.checked = Instant::now().checked_sub(RECHECK * 2).unwrap();
+        }
+        let rebuilding = cache.rebuild.lock().await;
+        let served = tokio::time::timeout(Duration::from_secs(5), cache.index(&pool)).await.expect("not kept waiting").unwrap().unwrap();
+        assert!(Arc::ptr_eq(&first, &served));
+        drop(rebuilding);
+        let rechecked = cache.index(&pool).await.unwrap().unwrap();
+        assert!(Arc::ptr_eq(&first, &rechecked), "the tables did not change");
+        assert!(cache.built.lock().await.as_ref().is_some_and(|b| b.checked.elapsed() < RECHECK));
     }
 
     #[test]
