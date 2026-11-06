@@ -121,8 +121,10 @@ pub const FREE_MAIL: [&str; 26] = [
     "att.net", "sbcglobal.net",
 ];
 
+/// Whether a domain is one of `FREE_MAIL`, in any case, with or without the root's trailing dot.
 pub fn is_free_mail(domain: &str) -> bool {
     let domain = domain.trim();
+    let domain = domain.strip_suffix('.').unwrap_or(domain);
     FREE_MAIL.iter().any(|d| d.eq_ignore_ascii_case(domain))
 }
 
@@ -169,6 +171,8 @@ mod tests {
         assert_eq!(Email::parse("pat@example.com").unwrap().company_domain(), Some("example.com"));
         assert_eq!(Email::parse("Pat@GMail.com").unwrap().company_domain(), None);
         assert!(is_free_mail(" Outlook.COM "));
+        assert!(is_free_mail("gmail.com."));
+        assert!(!is_free_mail("gmail.com.."));
         assert!(!is_free_mail("mail.example.com"));
     }
 }

@@ -170,6 +170,26 @@ async fn the_campaign_sign_up_records_a_pending_company() {
 }
 
 #[tokio::test]
+async fn a_campaign_sign_up_at_an_active_company_goes_on_to_the_emailed_code() {
+    let pool = pool().await;
+    sqlx::query(r#"UPDATE "user" SET domain = 'active.example' WHERE id = 2"#).execute(&pool).await.unwrap();
+    let app = app(&pool);
+    let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=Active+Co&email=pat%40active.example";
+    let (status, headers, _) = send(&app, Method::POST, "/campaign.php", VISIT, Some(form)).await;
+    assert_eq!((status, location(&headers)), (StatusCode::FOUND, Some("/request-access")));
+    let names = set_cookie_names(&headers);
+    assert!(names.contains(&"harcourt".to_string()) && !names.iter().any(|n| n.contains("session")), "{names:?}");
+    assert_eq!(count(&pool, r#"SELECT count(*) FROM "user""#).await, 4, "no new account");
+    assert_eq!(count(&pool, "SELECT count(*) FROM session").await, 0);
+    assert_eq!(count(&pool, "SELECT count(*) FROM remote WHERE email = 'pat@active.example'").await, 1);
+
+    let (status, _, body) = send(&app, Method::POST, "/campaign.php", VISIT, Some(&form.replace("active.example", "new.example"))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Semi words"));
+    assert_eq!(count(&pool, r#"SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'Signup' AND email = 'pat@new.example'"#).await, 1);
+}
+
+#[tokio::test]
 async fn paths_apache_ran_a_script_for_reach_the_script() {
     let pool = pool().await;
     let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(app(&pool));

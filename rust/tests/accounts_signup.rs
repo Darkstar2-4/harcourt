@@ -17,13 +17,18 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
 use hxweb::{
     accounts::{
+        account,
+        admission::{self, Admission},
         bot::Dns,
         oauth::{Kind, Provider, Providers},
         Services,
     },
     api::Auth,
     config::Secret,
-    db, routes,
+    db,
+    identity::{Email, UserId},
+    routes,
+    session::Basis,
 };
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -435,4 +440,86 @@ async fn what_was_typed_stays_in_the_form_for_the_visit() {
     let shown = page(&app, "").await;
     assert!(shown.body.contains("<p class=profile_welcome>Welcome Typed Co!</p>"), "{}", shown.body);
     assert!(shown.body.contains("value='typed@'"));
+}
+
+#[tokio::test]
+async fn a_domain_belongs_to_its_active_company_ahead_of_older_requests() {
+    let pool = pool().await;
+    sqlx::query(
+        r#"INSERT INTO "user" (id, status, "type", domain, company_name, catalog) VALUES
+             (20, 'Denied', 'Customer', 'shared.example', 'Turned Away', 0), (21, 'Pending', 'Customer', 'Shared.Example', 'Asked Again', 0),
+             (22, 'Active', 'Customer', 'shared.example', 'Shared Tools', 1), (23, 'Active', 'Customer', 'shared.example', 'Shared Later', 1)"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let email = Email::parse("lee@shared.example").unwrap();
+    match admission::classify(&pool, &email).await.unwrap() {
+        Admission::Company { company, .. } => assert_eq!(company.id(), UserId(22)),
+        other => panic!("{other:?}"),
+    }
+    assert!(admission::still_admits(&pool, &Basis::Domain(email.clone()), UserId(22)).await.unwrap());
+    assert!(!admission::still_admits(&pool, &Basis::Domain(email.clone()), UserId(23)).await.unwrap());
+
+    sqlx::query(r#"UPDATE "user" SET status = 'Denied' WHERE id IN (22, 23)"#).execute(&pool).await.unwrap();
+    assert_eq!(admission::classify(&pool, &email).await.unwrap(), Admission::Pending, "a pending request ahead of a denied one");
+}
+
+#[tokio::test]
+async fn a_refreshed_callback_shows_the_sign_in_it_made_and_makes_no_other() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let ms = stand_in(Kind::Microsoft, serde_json::json!({"mail": "pat@example.com", "userPrincipalName": "pat@example.com"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: Some(ms), google: None });
+    let start = send(&app, Method::GET, "/oauth/init.php", "", None, false).await;
+    let location = start.headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    *nonce.lock().unwrap() = param(&location, "nonce");
+    let callback = format!("/oauth/callback.php?code=c1&state={}", param(&location, "state"));
+    let back = send(&app, Method::GET, &callback, &start.jar(), None, false).await;
+    let jar = [start.jar(), back.jar()].join("; ");
+    assert!(page(&app, &jar).await.body.contains("Congratulations, you now have access!"));
+
+    let again = send(&app, Method::GET, &callback, &jar, None, false).await;
+    assert_eq!((again.status, again.headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/request-access"));
+    let shown = page(&app, &jar).await;
+    assert!(shown.body.contains("Congratulations, you now have access!"), "{}", shown.body);
+    assert!(!shown.body.contains("Invalid OAuth state"));
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'Remote Login'").await, 1);
+}
+
+#[tokio::test]
+async fn a_free_mail_address_signs_in_again_to_the_account_it_asked_for() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let g = stand_in(Kind::Google, serde_json::json!({"email": "lee@gmail.com", "email_verified": true, "name": "Lee Park"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: None, google: Some(g) });
+    let (_, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
+    assert!(shown.body.contains("Congratulations, your access request has been submitted!"));
+    let id = scalar(&pool, r#"SELECT id FROM "user" WHERE id > 6"#).await;
+    assert_eq!(scalar(&pool, &format!("SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'Signup' AND user_id = {id} AND email = 'lee@gmail.com'")).await, 1);
+
+    let (_, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
+    assert!(shown.body.contains("You access request is pending approval."), "{}", shown.body);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6"#).await, 1);
+
+    sqlx::query(r#"UPDATE "user" SET status = 'Active' WHERE id = ?1"#).bind(id).execute(&pool).await.unwrap();
+    let (back, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
+    assert!(shown.body.contains("Congratulations, you now have access!"), "{}", shown.body);
+    assert!(back.cookies().iter().any(|c| c.starts_with("__Host-hx_session=")));
+    assert_eq!(scalar(&pool, &format!("SELECT count(*) FROM session WHERE user_id = {id} AND via = 'domain' AND email = 'lee@gmail.com'")).await, 1);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id > 6"#).await, 1);
+
+    let other = Email::parse("kim@gmail.com").unwrap();
+    assert_eq!(admission::classify(&pool, &other).await.unwrap(), Admission::Unknown, "another address at the provider is a stranger");
+}
+
+#[tokio::test]
+async fn free_mail_domains_are_cleared_and_company_domains_kept() {
+    let pool = pool().await;
+    sqlx::query(r#"INSERT INTO "user" (id, domain) VALUES (30, 'gmail.com.'), (31, ' GMail.com'), (32, 'mail.example.com'), (33, NULL)"#).execute(&pool).await.unwrap();
+    assert_eq!(account::clear_free_mail_domains(&pool).await.unwrap(), 2);
+    let kept: Vec<(i64, Option<String>)> = sqlx::query_as(r#"SELECT id, domain FROM "user" WHERE id >= 30 ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(kept, vec![(30, None), (31, None), (32, Some("mail.example.com".into())), (33, None)]);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id = 5 AND domain = 'example.com'"#).await, 1);
 }

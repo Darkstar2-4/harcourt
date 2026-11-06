@@ -2,7 +2,7 @@
 //! `migrations/`, then prove the copy: per table, the MySQL row count equals the SQLite row count, and a checksum of
 //! the values as inserted equals the checksum of the values read back from the finished file. Last, the columns the
 //! PHP stored with serialize() become JSON (`SERIALIZED`), each value written only once its JSON reads back as the
-//! same data.
+//! same data, and an account domain that names a free-mail provider is cleared, as migration 0105 did.
 //!
 //!     HX_IMPORT_MYSQL_URL=mysql://user:pass@127.0.0.1/db hx-import --out hx.db [--only user,log]
 //!     hx-import --convert hx.db
@@ -25,7 +25,7 @@ use std::{
 };
 
 use futures_util::TryStreamExt;
-use hxweb::serialized;
+use hxweb::{accounts::account, serialized};
 use sha2::{Digest, Sha256};
 use sqlx::{
     mysql::{MySqlConnectOptions, MySqlConnection},
@@ -389,6 +389,10 @@ async fn run(out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String) ->
         if tables.iter().any(|t| t.name == table) {
             ok &= convert_column(&lite, table, column, list).await?;
         }
+    }
+    if tables.iter().any(|t| t.name == "user") {
+        let cleared = account::clear_free_mail_domains(&lite).await?;
+        println!("{:<24} {cleared} free-mail domains cleared", "user.domain");
     }
     if !ok {
         lite.close().await;
