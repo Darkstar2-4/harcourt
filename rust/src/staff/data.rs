@@ -981,7 +981,8 @@ async fn erp_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool) ->
     Ok(Vec::new())
 }
 
-/// A break applies from one above the quantity before it; a break that does not lower the price is skipped.
+/// A break applies from one above the quantity before it; a break that does not lower the price is skipped. A part
+/// with no quantity break keeps its list price from quantity 0.
 fn erp_breaks(line: &Line) -> Vec<Break> {
     let mut steps: Vec<(f64, f64)> = Vec::new();
     let (mut last_price, mut last_break) = (999_999.0, 0.0);
@@ -1002,6 +1003,10 @@ fn erp_breaks(line: &Line) -> Vec<Break> {
         if qty == 999_999.0 {
             break;
         }
+    }
+    let list = map::floatval(val(line, "_price0"));
+    if steps.is_empty() && list > 0.0 {
+        steps.push((0.0, list));
     }
     steps.into_iter().map(|(q, p)| Break { qty: decimal(if q == 0.0 { 0.0 } else { q + 1.0 }), price: decimal(p) }).collect()
 }
@@ -1564,6 +1569,16 @@ mod tests {
             .collect();
         let b = erp_breaks(&line);
         assert_eq!(b.iter().map(|b| (b.qty.to_string(), b.price.to_string())).collect::<Vec<_>>(), [("0".into(), "5".into()), ("11".into(), "4".into()), ("51".into(), "3".into())]);
+    }
+
+    #[test]
+    fn erp_lines_with_no_break_keep_the_list_price() {
+        let line = |cells: &[(&str, &str)]| -> Line { cells.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect() };
+        let b = erp_breaks(&line(&[("_price0", "12.3400"), ("_break1", "0"), ("_price1", "0")]));
+        assert_eq!(b, [Break { qty: Decimal::ZERO, price: Decimal::new(1234, 2) }]);
+        assert!(erp_breaks(&line(&[("_price0", "0"), ("_break1", "0"), ("_price1", "0")])).is_empty());
+        let b = erp_breaks(&line(&[("_price0", "9"), ("_break1", "10"), ("_price1", "8")]));
+        assert_eq!(b, [Break { qty: Decimal::ZERO, price: Decimal::new(8, 0) }], "the breaks, when there are any");
     }
 
     #[test]
