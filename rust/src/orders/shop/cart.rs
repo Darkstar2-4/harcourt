@@ -259,6 +259,16 @@ fn quantity(d: Decimal) -> Option<u32> {
     d.abs().to_u32().filter(|q| *q > 0)
 }
 
+/// The quantity a cart line is updated to, read as the add path reads one: None for a 0, which removes the line. A
+/// blank field, or a number too large for a quantity, leaves the line's quantity as it is.
+fn updated_quantity(typed: &str, current: u32) -> Option<u32> {
+    if typed.trim().is_empty() {
+        return Some(current);
+    }
+    let n = fn_number(typed).abs();
+    (!n.is_zero()).then(|| quantity(n).unwrap_or(current))
+}
+
 #[derive(Serialize)]
 struct AjaxAnswer {
     json_code: String,
@@ -378,7 +388,7 @@ pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, headers:
                 for item in items(pool, key).await? {
                     let typed = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
                     let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
-                    match typed.trim().parse::<u32>().ok().filter(|q| *q > 0) {
+                    match updated_quantity(typed, item.quantity) {
                         Some(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
                         None => remove(pool, key, &item.sku).await?,
                     }
@@ -417,6 +427,17 @@ async fn page(state: &Orders, shopper: &Shopper, framed: bool, messages: Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_update_reads_quantities_as_an_add_does() {
+        assert_eq!(updated_quantity("4", 1), Some(4));
+        assert_eq!(updated_quantity("2.0", 1), Some(2));
+        assert_eq!(updated_quantity("2.5", 1), Some(3));
+        assert_eq!(updated_quantity("2 pcs", 1), Some(2));
+        assert_eq!(updated_quantity(" ", 5), Some(5));
+        assert_eq!(updated_quantity("0", 5), None);
+        assert_eq!(updated_quantity("99999999999", 5), Some(5));
+    }
 
     #[test]
     fn fn_number_reads_like_php() {
