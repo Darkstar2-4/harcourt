@@ -388,30 +388,10 @@ pub fn read_upload(file_name: &str, bytes: &[u8], worksheet: Option<&str>) -> Re
         _ => {
             let text = String::from_utf8_lossy(bytes);
             let delimiter = file_type.delimiter() as char;
-            let rows = fgets_lines(&text).map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
+            let rows = text.split_inclusive('\n').map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
             Ok(Sheet { file_type, rows, worksheet: None })
         }
     }
-}
-
-/// The lines fgets($fh, 4096) returned: up to each newline, at most 4095 bytes.
-fn fgets_lines(text: &str) -> impl Iterator<Item = &str> {
-    let mut rest = text;
-    std::iter::from_fn(move || {
-        if rest.is_empty() {
-            return None;
-        }
-        let mut end = rest.find('\n').map_or(rest.len(), |i| i + 1);
-        if end > 4095 {
-            end = 4095;
-            while !rest.is_char_boundary(end) {
-                end -= 1;
-            }
-        }
-        let (line, tail) = rest.split_at(end);
-        rest = tail;
-        Some(line)
-    })
 }
 
 /// Why an Excel file was not read.
@@ -670,5 +650,13 @@ mod tests {
         assert_eq!(import_value(&f(Kind::Date), "3/5/2024", FileType::Txt), "2024/03/05");
         assert_eq!(import_value(&f(Kind::Date), "45356", FileType::Xlsx), "2024/03/05");
         assert_eq!(import_value(&f(Kind::Uppercase), "ab-1", FileType::Txt), "AB-1");
+    }
+
+    #[test]
+    fn long_text_lines_read_whole() {
+        let long = "x".repeat(5000);
+        let sheet = read_upload("parts.txt", format!("sku\tname\nA-1\t{long}\nA-2\tshort\n").as_bytes(), None).ok().unwrap();
+        assert_eq!(sheet.rows.len(), 3);
+        assert_eq!(sheet.rows[1], ["A-1".to_string(), long]);
     }
 }
