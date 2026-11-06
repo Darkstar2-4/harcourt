@@ -120,3 +120,25 @@ async fn a_leased_message_is_not_sent_by_a_second_worker() {
     assert_eq!(mail::deliver_due(&pool, &t, 1001).await.unwrap(), 0);
     assert_eq!(mail::deliver_due(&pool, &t, 1000 + mail::LEASE_SECS).await.unwrap(), 1, "a crashed send comes back after its lease");
 }
+
+struct SlowTransport;
+impl mail::Transport for SlowTransport {
+    fn send<'a>(&'a self, _mail: &'a Mail) -> mail::SendFuture<'a> {
+        Box::pin(async {
+            tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
+            Ok(())
+        })
+    }
+}
+
+#[tokio::test]
+async fn each_lease_runs_from_when_its_message_was_claimed() {
+    let pool = db::open_memory().await.unwrap();
+    let first = mail::enqueue(&pool, &sample(), 1000).await.unwrap();
+    let second = mail::enqueue(&pool, &sample(), 1000).await.unwrap();
+    assert_eq!(mail::deliver_due(&pool, &SlowTransport, 1000).await.unwrap(), 2);
+    let (a, b) = (row(&pool, first).await, row(&pool, second).await);
+    assert_eq!(a.next_attempt_at, 1000 + mail::LEASE_SECS);
+    assert!(b.next_attempt_at > a.next_attempt_at, "claimed after the first send: {}", b.next_attempt_at);
+    assert!(b.sent_at.is_some_and(|s| s > 1001), "{:?}", b.sent_at);
+}

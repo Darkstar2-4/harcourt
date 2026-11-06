@@ -156,6 +156,66 @@ async fn a_valid_post_is_stored_and_notifies() {
 }
 
 #[tokio::test]
+async fn a_browser_post_as_multipart_is_read() {
+    let h = harness(None, None).await;
+    let t = token();
+    let boundary = "----hxtestboundary";
+    let mut body = String::new();
+    for (k, v) in [("gform_submit", "3"), ("is_submit_3", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Line one\r\nLine two"), ("state_3", t.as_str()), ("registry_recaptcha_response", "browser-token")] {
+        body.push_str(&format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n"));
+    }
+    body.push_str(&format!("--{boundary}\r\nContent-Disposition: form-data; name=\"input_9\"; filename=\"notes.txt\"\r\nContent-Type: text/plain\r\n\r\nnot kept\r\n--{boundary}--\r\n"));
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/hx/forms/submit?hx_lang=en&hx_page=%2Fcontact-us%2F")
+        .header(header::CONTENT_TYPE, format!("multipart/form-data; boundary={boundary}"))
+        .header(header::USER_AGENT, "test-agent")
+        .body(Body::from(body))
+        .unwrap();
+    let res = h.app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let html = String::from_utf8_lossy(&res.into_body().collect().await.unwrap().to_bytes()).into_owned();
+    assert!(html.contains("<strong>Thank you!</strong>"), "{html}");
+    let message: String = sqlx::query_scalar("SELECT meta_value FROM wp_gf_entry_meta WHERE meta_key = '4'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(message, "Line one\r\nLine two");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry WHERE status = 'active'").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 1);
+}
+
+#[tokio::test]
+async fn a_confirmation_fills_its_merge_tags() {
+    let h = harness(None, None).await;
+    let set = |confirmation: &'static str| sqlx::query("UPDATE wp_gf_form_meta SET confirmations = ?1 WHERE form_id = 3").bind(confirmation).execute(&h.pool);
+    set(r#"{"c":{"isDefault":true,"type":"message","message":"<p>Thanks {Name:1}, we will write to {Email:10}.</p>"}}"#).await.unwrap();
+    let (_, html) = post(&h, &[("input_1", "Pat <Buyer> & Co")]).await;
+    assert!(html.contains("<p>Thanks Pat &lt;Buyer&gt; &amp; Co, we will write to pat@example.com.</p>"), "{html}");
+    set(r#"{"c":{"isDefault":true,"type":"redirect","url":"https://www.example.com/thanks/?name={Name:1}&entry={entry_id}"}}"#).await.unwrap();
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/hx/forms/submit?hx_lang=en&hx_page=%2Fcontact-us%2F")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(Body::from(format!("gform_submit=3&input_1=Pat+%26+Co&input_10=pat%40example.com&input_4=Hi&registry_recaptcha_response=t&state_3={}", enc(&token()))))
+        .unwrap();
+    let res = h.app.clone().oneshot(req).await.unwrap();
+    let entry: i64 = sqlx::query_scalar("SELECT max(id) FROM wp_gf_entry").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(res.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()), Some(format!("https://www.example.com/thanks/?name=Pat+%26+Co&entry={entry}").as_str()));
+}
+
+#[tokio::test]
+async fn an_entry_is_kept_only_with_its_mail() {
+    let h = harness(None, None).await;
+    sqlx::query("CREATE TRIGGER outbox_down BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END").execute(&h.pool).await.unwrap();
+    let (status, _) = post(&h, &[]).await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 0);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry_meta").await, 0);
+    sqlx::query("DROP TRIGGER outbox_down").execute(&h.pool).await.unwrap();
+    post(&h, &[]).await;
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 1);
+}
+
+#[tokio::test]
 async fn invalid_input_comes_back_with_errors_and_nothing_is_kept() {
     let h = harness(None, None).await;
     let (_, html) = post(&h, &[("input_10", "nope"), ("input_4", "")]).await;

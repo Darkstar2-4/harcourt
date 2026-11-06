@@ -4,10 +4,10 @@
 use std::collections::HashMap;
 
 use chrono::DateTime;
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
-    model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient},
+    model::{Confirmation, Field, Form, Honeypot, Kind, Notification, Recipient, SubInput},
     render::{self, wording, FieldErrors, Render, Summary, Values},
     spam::Submission,
     Services, RECAPTCHA_FORMS,
@@ -91,6 +91,11 @@ fn value(values: &Values, f: &Field) -> String {
     }
 }
 
+/// GF_Field_Address::validate: a required address needs every part the form shows except the second street line.
+fn address_complete(inputs: &[SubInput], values: &Values) -> bool {
+    inputs.iter().filter(|s| !s.hidden && !s.id.ends_with(".2")).all(|s| values.get(&format!("input_{}", s.id)).is_some_and(|v| !v.is_empty()))
+}
+
 fn valid_date(s: &str, dmy: bool) -> bool {
     chrono::NaiveDate::parse_from_str(s, if dmy { "%d/%m/%Y" } else { "%m/%d/%Y" }).is_ok()
 }
@@ -103,6 +108,7 @@ pub fn validate(form: &Form, values: &Values) -> FieldErrors {
         let v = value(values, f);
         let message = match &f.kind {
             _ if v.is_empty() && f.required => Some(words.required.to_string()),
+            Kind::Address { inputs, .. } if f.required && !address_complete(inputs, values) => Some(words.incomplete_address.to_string()),
             _ if v.is_empty() => None,
             Kind::Email if Email::parse(&v).is_none() => Some(words.bad_email.to_string()),
             Kind::Phone(format) if !render::phone_ok(*format, &v) => Some(BAD_PHONE.to_string()),
@@ -184,12 +190,12 @@ fn utc(now: i64) -> String {
     DateTime::from_timestamp(now, 0).unwrap_or_default().format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
-async fn store(pool: &SqlitePool, form: &Form, values: &Values, ctx: &Context<'_>, spam: bool) -> sqlx::Result<i64> {
+/// Writes the entry in the caller's transaction.
+async fn store(conn: &mut SqliteConnection, form: &Form, values: &Values, ctx: &Context<'_>, spam: bool) -> sqlx::Result<i64> {
     let created = utc(ctx.now);
     let status = if spam { "spam" } else { "active" };
     let source: String = ctx.page_url.chars().take(200).collect();
     let agent: String = ctx.user_agent.chars().take(250).collect();
-    let mut tx = pool.begin().await?;
     let id = sqlx::query_scalar!(
         r#"INSERT INTO wp_gf_entry (form_id, date_created, date_updated, is_starred, is_read, ip, source_url, user_agent, currency, status)
            VALUES (?1, ?2, ?2, 0, 0, ?3, ?4, ?5, 'USD', ?6) RETURNING id AS "id!: i64""#,
@@ -200,15 +206,14 @@ async fn store(pool: &SqlitePool, form: &Form, values: &Values, ctx: &Context<'_
         agent,
         status
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await?;
     for (name, v) in values.iter().filter(|(_, v)| !v.is_empty()) {
         let key = name.trim_start_matches("input_");
         sqlx::query!("INSERT INTO wp_gf_entry_meta (form_id, entry_id, meta_key, meta_value, item_index) VALUES (?1, ?2, ?3, ?4, '')", form.id, id, key, v)
-            .execute(&mut *tx)
+            .execute(&mut *conn)
             .await?;
     }
-    tx.commit().await?;
     Ok(id)
 }
 
@@ -231,9 +236,27 @@ fn all_fields(form: &Form, values: &Values) -> String {
     out
 }
 
+/// Where a merged value goes: plain text (a subject, a name), HTML (a message), or a URL (a redirect).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Escape {
+    Text,
+    Html,
+    Url,
+}
+
+impl Escape {
+    fn apply(self, v: &str) -> String {
+        match self {
+            Escape::Text => v.to_string(),
+            Escape::Html => esc(v),
+            Escape::Url => form_urlencoded::byte_serialize(v.as_bytes()).collect(),
+        }
+    }
+}
+
 /// Fills `{Label:ID}`, `{:ID}`, `{form_title}`, `{admin_email}`, `{entry_id}`, `{embed_post:post_title}`,
-/// `{embed_url}`, `{ip}`, `{date_mdy}` and `{all_fields}`. In HTML every value is escaped.
-fn merge(template: &str, html: bool, form: &Form, values: &Values, ctx: &Context<'_>, entry: i64, admin: &str) -> String {
+/// `{embed_url}`, `{ip}`, `{date_mdy}` and `{all_fields}`. Every value is escaped for where the text goes.
+fn merge(template: &str, escape: Escape, form: &Form, values: &Values, ctx: &Context<'_>, entry: i64, admin: &str) -> String {
     let mut out = String::new();
     let mut rest = template;
     while let Some(start) = rest.find('{') {
@@ -246,7 +269,7 @@ fn merge(template: &str, html: bool, form: &Form, values: &Values, ctx: &Context
         };
         let tag = &after[..end];
         let filled = match tag {
-            "all_fields" if html => Some(all_fields(form, values)),
+            "all_fields" if escape == Escape::Html => Some(all_fields(form, values)),
             "all_fields" => Some(form.fields.iter().filter(|f| f.takes_input()).map(|f| format!("{}: {}", f.label, value(values, f))).collect::<Vec<_>>().join("\n")),
             "form_title" => Some(form.title.clone()),
             "admin_email" => Some(admin.to_string()),
@@ -258,8 +281,8 @@ fn merge(template: &str, html: bool, form: &Form, values: &Values, ctx: &Context
             _ => tag.rsplit_once(':').and_then(|(_, id)| id.parse::<i64>().ok()).and_then(|id| form.fields.iter().find(|f| f.id == id)).map(|f| value(values, f)),
         };
         match filled {
-            Some(v) if html && tag != "all_fields" => out.push_str(&esc(&v)),
-            Some(v) => out.push_str(&v),
+            Some(v) if escape == Escape::Html && tag == "all_fields" => out.push_str(&v),
+            Some(v) => out.push_str(&escape.apply(&v)),
             None => {
                 out.push('{');
                 out.push_str(tag);
@@ -287,10 +310,10 @@ fn notification(n: &Notification, form: &Form, values: &Values, ctx: &Context<'_
     };
     let mut to = to.into_iter();
     let first = to.next()?;
-    let subject = merge(&n.subject, false, form, values, ctx, entry, admin_text);
+    let subject = merge(&n.subject, Escape::Text, form, values, ctx, entry, admin_text);
     let template = n.message.replace("\r\n", "\n").replace('\n', "<br />\n");
     let template = template.replace("{all_fields}<br />", "{all_fields}");
-    let body = merge(&template, true, form, values, ctx, entry, admin_text);
+    let body = merge(&template, Escape::Html, form, values, ctx, entry, admin_text);
     let mut mail = Mail::new(Mailbox::bare(first), &subject, Body::Html(body));
     for more in to {
         mail.add(Copy::To, Mailbox::bare(more));
@@ -298,8 +321,8 @@ fn notification(n: &Notification, form: &Form, values: &Values, ctx: &Context<'_
     for b in addresses(&n.bcc, admin) {
         mail.add(Copy::Bcc, Mailbox::bare(b));
     }
-    mail.reply_to = Email::parse(&merge(&n.reply_to, false, form, values, ctx, entry, admin_text));
-    let from_name = merge(&n.from_name, false, form, values, ctx, entry, admin_text);
+    mail.reply_to = Email::parse(&merge(&n.reply_to, Escape::Text, form, values, ctx, entry, admin_text));
+    let from_name = merge(&n.from_name, Escape::Text, form, values, ctx, entry, admin_text);
     mail.from_name = (!from_name.trim().is_empty()).then_some(from_name);
     Some(mail)
 }
@@ -347,18 +370,23 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
             spam = akismet.is_spam(&submission(form, &values, params, ctx)).await;
         }
     }
-    let entry = store(pool, form, &values, ctx, spam).await?;
+    let mut tx = pool.begin().await?;
+    let entry = store(&mut tx, form, &values, ctx, spam).await?;
+    if !spam {
+        for n in &form.notifications {
+            if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
+                mail::enqueue_in(&mut tx, &m, ctx.now).await?;
+            }
+        }
+    }
+    tx.commit().await?;
     if spam {
         return Ok(Outcome::Confirmed { html: thanks(), entry: Some(entry), spam });
     }
-    for n in &form.notifications {
-        if let Some(m) = notification(n, form, &values, ctx, entry, services.admin_email.as_ref()) {
-            mail::enqueue(pool, &m, ctx.now).await?;
-        }
-    }
+    let admin = services.admin_email.as_ref().map_or("", Email::as_str);
     Ok(match &form.confirmation {
-        Confirmation::Redirect(url) => Outcome::Redirect(url.clone()),
-        Confirmation::Message(m) => Outcome::Confirmed { html: render::confirmation(form, m, anchor), entry: Some(entry), spam },
+        Confirmation::Redirect(url) => Outcome::Redirect(merge(url, Escape::Url, form, &values, ctx, entry, admin)),
+        Confirmation::Message(m) => Outcome::Confirmed { html: render::confirmation(form, &merge(m, Escape::Html, form, &values, ctx, entry, admin), anchor), entry: Some(entry), spam },
     })
 }
 
@@ -388,6 +416,19 @@ mod tests {
     }
 
     #[test]
+    fn a_required_address_needs_each_part_it_shows() {
+        let meta = r#"{"id":4,"title":"Address","fields":[{"type":"address","id":5,"label":"Address","isRequired":true,"inputs":[
+            {"id":"5.1","label":"Street Address"},{"id":"5.2","label":"Address Line 2"},{"id":"5.3","label":"City"},
+            {"id":"5.4","label":"State / Province"},{"id":"5.5","label":"ZIP / Postal Code","isHidden":true},{"id":"5.6","label":"Country"}]}]}"#;
+        let f = parse(meta, "{}", CONFIRMATIONS).unwrap();
+        let full = [("input_5.1", "1 Test Way"), ("input_5.3", "Testville"), ("input_5.4", "MI"), ("input_5.6", "United States")];
+        assert!(validate(&f, &values(&full)).is_empty(), "the second line and a hidden part may stay blank");
+        let partial = values(&[("input_5.3", "Testville"), ("input_5.6", "United States")]);
+        assert_eq!(validate(&f, &partial).get(&5).map(String::as_str), Some(render::ENGLISH.incomplete_address));
+        assert_eq!(validate(&f, &values(&[])).get(&5).map(String::as_str), Some(render::ENGLISH.required));
+    }
+
+    #[test]
     fn a_french_form_is_validated_in_french() {
         let f = crate::orders::forms::model::localize(parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap(), crate::orders::forms::model::Lang::Fr);
         let e = validate(&f, &values(&[("input_10", "nope")]));
@@ -400,8 +441,8 @@ mod tests {
         let f = parse(META, NOTIFICATIONS, CONFIRMATIONS).unwrap();
         let v = values(&[("input_1", "Pat <Buyer>"), ("input_10", "pat@example.com"), ("input_4", "line 1\nline 2")]);
         let c = ctx();
-        assert_eq!(merge("New submission from {form_title} by {Name:1} {unknown}", false, &f, &v, &c, 5, ""), "New submission from Contact by Pat <Buyer> {unknown}");
-        let html = merge("Doc: {embed_post:post_title} {Name:1}\n{all_fields}", true, &f, &v, &c, 5, "");
+        assert_eq!(merge("New submission from {form_title} by {Name:1} {unknown}", Escape::Text, &f, &v, &c, 5, ""), "New submission from Contact by Pat <Buyer> {unknown}");
+        let html = merge("Doc: {embed_post:post_title} {Name:1}\n{all_fields}", Escape::Html, &f, &v, &c, 5, "");
         assert!(html.starts_with("Doc: Contact Us Pat &lt;Buyer&gt;\n<table"));
         assert!(html.contains("<strong>Message</strong>") && html.contains("line 1<br />\nline 2"));
         assert!(!html.contains("<strong>Phone Number</strong>"), "empty fields are left out");

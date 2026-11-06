@@ -194,7 +194,7 @@ async fn island_route(State(state): State<Arc<Orders>>, headers: HeaderMap, uri:
 async fn submit_route(State(state): State<Arc<Orders>>, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Response {
     let query = form_params(uri.query(), &[]);
     let Some((lang, page)) = page_of(&query) else { return text(StatusCode::BAD_REQUEST, "missing hx_page\n") };
-    let params = form_params(None, &body);
+    let Some(params) = super::posted_params(None, &headers, body).await else { return text(StatusCode::BAD_REQUEST, "unreadable form post\n") };
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     match handle(&state, &params, lang, &page, &ip, agent, None).await {
         Ok(Some((submit::Outcome::Redirect(url), _))) => html::redirect(&url),

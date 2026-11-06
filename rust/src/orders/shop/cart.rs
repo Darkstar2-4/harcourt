@@ -11,7 +11,7 @@ use axum::{
 };
 use rust_decimal::Decimal;
 use serde::Serialize;
-use sqlx::{SqliteExecutor, SqlitePool};
+use sqlx::{SqliteConnection, SqliteExecutor, SqlitePool};
 
 use super::{fn_base64, number_format, quoted, shopper, CartKey, Labels, MoneyFormat, Shopper};
 use crate::{
@@ -27,6 +27,7 @@ use crate::{
 };
 
 /// A cart line as stored: what the shopper chose, not what it costs.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Item {
     pub sku: String,
     pub quantity: u32,
@@ -93,18 +94,44 @@ pub async fn clear<'c>(db: impl SqliteExecutor<'c>, key: &CartKey) -> sqlx::Resu
     Ok(())
 }
 
+/// Empties the cart and returns what it held, in one statement, in the caller's transaction.
+pub async fn take(conn: &mut SqliteConnection, key: &CartKey) -> sqlx::Result<Vec<Item>> {
+    let hash = key.as_slice();
+    let mut rows = sqlx::query!(
+        r#"DELETE FROM cart_item WHERE session_hash = ?1
+           RETURNING sku AS "sku!", quantity AS "quantity!: i64", comment AS "comment!", added_at AS "added_at!: i64", rowid AS "rowid!: i64""#,
+        hash
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    rows.sort_by_key(|r| (r.added_at, r.rowid));
+    Ok(rows.into_iter().map(|r| Item { sku: r.sku, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment }).collect())
+}
+
+/// The shopper's cart as stored, empty without a cart.
+pub async fn stored(pool: &SqlitePool, shopper: &Shopper) -> sqlx::Result<Vec<Item>> {
+    match &shopper.cart {
+        Some(key) => items(pool, key).await,
+        None => Ok(Vec::new()),
+    }
+}
+
 /// Prices every line. A SKU the catalog no longer offers to this account is left out.
-pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>> {
+pub async fn priced(state: &Orders, shopper: &Shopper, items: &[Item]) -> sqlx::Result<Vec<Line>> {
     let pool = &state.core.pool;
     let mut out = Vec::new();
-    let Some(key) = &shopper.cart else { return Ok(out) };
-    for item in items(pool, key).await? {
+    for item in items {
         if let Some(priced) = state.pricing.price(pool, &shopper.viewer, &item.sku, item.quantity).await? {
             let thumbnail = thumbnail(state, &item.sku).await?;
-            out.push(Line { sku: item.sku, description: priced.description, quantity: item.quantity, comment: item.comment, price: priced.price, thumbnail });
+            out.push(Line { sku: item.sku.clone(), description: priced.description, quantity: item.quantity, comment: item.comment.clone(), price: priced.price, thumbnail });
         }
     }
     Ok(out)
+}
+
+/// The shopper's cart, priced.
+pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>> {
+    priced(state, shopper, &stored(&state.core.pool, shopper).await?).await
 }
 
 /// The subcategory thumbnail `$forms->img()` shows: a local file only when it exists under the document root.
@@ -289,7 +316,7 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
             }
         }
     }
-    let cart_extended = if missing { "Pricing available upon request.".to_string() } else { format!("${}", number_format(total, 2)) };
+    let cart_extended = if missing { "Pricing available upon request.".to_string() } else { shopper.money(&shopper.currency).price(total) };
     let answer = AjaxAnswer { json_code, constant, sku, quantity: requested, status, cart_size: lines.len(), cart_extended };
     let body = php_json(&serde_json::to_string(&answer).map_err(|_| ApiError::Internal)?);
     Ok(html::page_response(body))
@@ -369,7 +396,7 @@ async fn page(state: &Orders, shopper: &Shopper, framed: bool, messages: Vec<Str
     let lines = lines(state, shopper).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let thumb = crate::orders::mailform::Registry::load(pool, "local").await?.get("thumbnail").to_string();
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let chrome = html::Chrome::load(pool).await?;
     let head = html::Head { title: "Shopping Cart", description: None, js: &[], framed, dashboard: shopper.user.role >= crate::identity::Role::Executive, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);

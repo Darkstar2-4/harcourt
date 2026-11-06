@@ -97,11 +97,23 @@ pub async fn shopper(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap) 
     }))
 }
 
+impl Shopper {
+    /// How amounts in `order`'s currency are written for this account: by the account's own currency code, as
+    /// the catalog writes them, even when that currency is not offered and prices are in US dollars.
+    pub fn money<'a>(&'a self, order: &'a Currency) -> MoneyFormat<'a> {
+        let viewer = self.viewer.currency_code.as_str();
+        MoneyFormat { order, viewer, viewer_offered: self.currency.code == viewer }
+    }
+}
+
 /// How `currency_price()` writes an amount: `$` only when both the order and the viewer deal in US dollars, the
 /// code after it when either does not.
 pub struct MoneyFormat<'a> {
     pub order: &'a Currency,
+    /// The account's currency code.
     pub viewer: &'a str,
+    /// Whether the catalog prices in the viewer's currency.
+    pub viewer_offered: bool,
 }
 
 impl MoneyFormat<'_> {
@@ -116,9 +128,10 @@ impl MoneyFormat<'_> {
         out
     }
 
-    /// `currency_name(FALSE)`: says which currency prices are in, unless that is the default.
+    /// `currency_name(FALSE)`: says which currency prices are in, unless they are in US dollars and the account's
+    /// currency is one the catalog offers.
     pub fn name(&self) -> String {
-        if self.order.code != "USD" || self.viewer != "USD" {
+        if self.order.code != "USD" || !self.viewer_offered {
             format!("Priced in <b>{}</b>", super::html::esc(&self.order.plural))
         } else {
             String::new()
@@ -194,10 +207,13 @@ mod tests {
     fn prices_show_dollars_or_the_code() {
         let usd = Currency::usd();
         let cad = Currency { code: "CAD".into(), plural: "Canadian dollars".into() };
-        assert_eq!(MoneyFormat { order: &usd, viewer: "USD" }.price(Decimal::new(123450, 2)), "$1,234.50");
-        assert_eq!(MoneyFormat { order: &cad, viewer: "CAD" }.price(Decimal::new(5, 0)), "5.00 CAD");
-        assert_eq!(MoneyFormat { order: &usd, viewer: "USD" }.name(), "");
-        assert_eq!(MoneyFormat { order: &cad, viewer: "CAD" }.name(), "Priced in <b>Canadian dollars</b>");
+        let money = |order, viewer, viewer_offered| MoneyFormat { order, viewer, viewer_offered };
+        assert_eq!(money(&usd, "USD", true).price(Decimal::new(123450, 2)), "$1,234.50");
+        assert_eq!(money(&cad, "CAD", true).price(Decimal::new(5, 0)), "5.00 CAD");
+        assert_eq!(money(&usd, "USD", true).name(), "");
+        assert_eq!(money(&cad, "CAD", true).name(), "Priced in <b>Canadian dollars</b>");
+        assert_eq!((money(&usd, "EUR", false).price(Decimal::new(5, 0)), money(&usd, "EUR", false).name()), ("5.00 USD".into(), "Priced in <b>US dollars</b>".into()));
+        assert_eq!(money(&usd, "CAD", true).name(), "", "an order in US dollars for an account now in Canadian dollars");
     }
 
     #[test]

@@ -138,6 +138,27 @@ async fn the_cart_call_adds_reprices_and_removes() {
 }
 
 #[tokio::test]
+async fn the_cart_call_writes_the_total_as_the_cart_page_does() {
+    let h = harness().await;
+    sqlx::query("INSERT INTO currency (code, name, plural, exchange_rate, active) VALUES ('CAD', 'Canadian dollar', 'Canadian dollars', 1.25, 1), ('EUR', 'Euro', 'Euros', 0.9, 0)").execute(&h.pool).await.unwrap();
+    for (id, code, domain) in [(1, "CAD", "example.com"), (2, "EUR", "example.org")] {
+        account(&h.pool, id, "Customer", 1).await;
+        sqlx::query(r#"UPDATE "user" SET currency_code = ?1, domain = ?2 WHERE id = ?3"#).bind(code).bind(domain).bind(id).execute(&h.pool).await.unwrap();
+    }
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "1").await;
+    let a = add(&h, &c, "SKU-2", "2").await;
+    assert_eq!(a["cart_extended"].as_str(), Some("16.00 CAD"));
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &c, &[], false)).await;
+    assert!(page.contains("<span id=cart_extended>16.00 CAD</span>"), "{page}");
+    let c = cookie(&h.pool, 2).await;
+    let a = add(&h, &c, "SKU-1", "1").await;
+    assert_eq!(a["cart_extended"].as_str(), Some("10.00 USD"), "an account whose currency is not offered sees US dollars named");
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &c, &[], false)).await;
+    assert!(page.contains("Priced in <b>US dollars</b>") && page.contains("<span id=cart_extended>10.00 USD</span>"), "{page}");
+}
+
+#[tokio::test]
 async fn carts_belong_to_one_session_and_end_with_it() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
@@ -364,6 +385,40 @@ async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
     assert!(page.contains("value='Pat'"));
     assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 0);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 0);
+}
+
+#[tokio::test]
+async fn a_checkout_places_the_cart_its_form_showed() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "2").await;
+    let shown = checkout_token(&h, &c).await;
+    add(&h, &c, "SKU-2", "1").await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &shown));
+    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("Your shopping cart has changed. Check the order and place it again.") && page.contains("value='Pat'"), "{page}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 0);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 2);
+
+    let first = checkout_token(&h, &c).await;
+    let second = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &first));
+    let (status, _, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderln").await, 2);
+    add(&h, &c, "SKU-1", "5").await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &second));
+    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::OK, "a second form for the cart already placed does not place the new cart");
+    assert!(page.contains("Your shopping cart has changed."), "{page}");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 1);
 }
 
 #[tokio::test]

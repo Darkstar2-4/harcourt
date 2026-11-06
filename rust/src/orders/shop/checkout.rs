@@ -8,6 +8,10 @@
 //! Each form carries a one-time token. Placing the order writes the header, its lines, the token, the emptied
 //! cart and the mails in one transaction, and answers with the order's confirmation page, so a reload or a second
 //! submit of the same form shows that order again instead of placing another.
+//!
+//! The token also carries a digest of the cart the form shows, and the order takes the cart it empties. A form
+//! whose cart has changed since it was shown (another tab placed it, a line was added, the session that held it
+//! ended) is shown again with the cart as it now stands.
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -21,8 +25,8 @@ use rust_decimal::{prelude::FromPrimitive, Decimal};
 use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
-    cart::{self, Line},
-    quoted, shopper, Currency, Labels, MoneyFormat, Shopper,
+    cart::{self, Item, Line},
+    quoted, shopper, CartKey, Currency, Labels, MoneyFormat, Shopper,
 };
 use crate::{
     api::{ApiError, ClientIp},
@@ -615,8 +619,31 @@ fn merge(o: &Order, id: i64, base: Merge) -> Merge {
     m
 }
 
-/// The form field that carries the checkout's one-time token.
+/// The form field that carries the checkout's one-time token and, after a dot, the digest of the cart it shows.
 const TOKEN_FIELD: &str = "checkout_token";
+
+/// What the form shows of the cart: whose cart it is and each priced line.
+fn cart_digest(key: Option<&CartKey>, lines: &[Line]) -> String {
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new().chain_update(b"hx checkout cart\0").chain_update(key.map_or(&[][..], CartKey::as_slice));
+    for line in lines {
+        let price = quoted(&line.price).map_or(String::new(), |(unit, extended)| format!("{unit}/{extended}"));
+        let quantity = line.quantity.to_string();
+        for part in [line.sku.as_str(), quantity.as_str(), line.comment.as_str(), price.as_str()] {
+            h.update(part.len().to_be_bytes());
+            h.update(part.as_bytes());
+        }
+    }
+    URL_SAFE_NO_PAD.encode(h.finalize())
+}
+
+/// The token and the cart digest a submitted form carries.
+fn posted_form(params: &HashMap<String, String>) -> (Option<Token>, &str) {
+    let value = params.get(TOKEN_FIELD).map_or("", String::as_str);
+    let (token, digest) = value.split_once('.').unwrap_or((value, ""));
+    (Token::parse(token), digest)
+}
 
 /// Someone an order's mail goes to: staff at the template's recipient, or the buyer at the order's address.
 struct Recipient {
@@ -675,38 +702,48 @@ impl Mailing {
     }
 }
 
-/// Places the order. Everything it needs is read first; then the header, its lines, the token, the emptied cart
-/// and the mails commit together or not at all. Returns the order this token placed, which is an earlier one when
-/// the same form was submitted again, or None when the token is another account's.
-async fn place(state: &Orders, shopper: &Shopper, ip: &str, mut order: Order, lines: &[Line], token: &Token) -> Result<Option<i64>, ApiError> {
+enum Placed {
+    /// The order this token placed: this one, or an earlier one when the same form was submitted again.
+    Order(i64),
+    /// The cart no longer holds `items`; nothing was written.
+    CartChanged,
+    /// The token placed another account's order.
+    Refused,
+}
+
+/// Places the order for `items` (the cart as read before), priced as `lines`. Everything else it needs is read
+/// first; then the emptied cart, the header, its lines, the token and the mails commit together or not at all.
+async fn place(state: &Orders, shopper: &Shopper, ip: &str, mut order: Order, items: &[Item], lines: &[Line], token: &Token) -> Result<Placed, ApiError> {
+    let Some(key) = &shopper.cart else { return Ok(Placed::CartChanged) };
     let pool = &state.core.pool;
     order.order_date = unix_now();
     let local = Registry::load(pool, "local").await?;
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let mailing = Mailing::load(state).await?;
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let host = state.core.public_origin.trim_start_matches("https://");
 
     let mut tx = pool.begin().await?;
+    if cart::take(&mut tx, key).await? != items {
+        tx.rollback().await?;
+        return Ok(placed_with(pool, token, shopper).await?.map_or(Placed::CartChanged, Placed::Order));
+    }
     order.id = insert_order(&mut tx, shopper.user.id.0, &order, lines).await?;
     let hash = token.hash();
     let hash = hash.as_slice();
     let claimed = sqlx::query!("INSERT INTO checkout_token (token_hash, order_id) VALUES (?1, ?2) ON CONFLICT DO NOTHING", hash, order.id).execute(&mut *tx).await?.rows_affected() == 1;
     if !claimed {
         tx.rollback().await?;
-        return Ok(placed_with(pool, token, shopper).await?);
+        return Ok(placed_with(pool, token, shopper).await?.map_or(Placed::Refused, Placed::Order));
     }
     let summary = summary(&order, lines, &choices, &local, &money, &labels);
     for mail in mailing.iter().flat_map(|m| m.mails(host, shopper, ip, &order, &summary, &local)) {
         mail::enqueue_in(&mut tx, &mail, order.order_date).await?;
     }
-    if let Some(key) = &shopper.cart {
-        cart::clear(&mut *tx, key).await?;
-    }
     tx.commit().await?;
     log_order(pool, ip, shopper, &format!("Order #{}", order.id), order.order_date).await;
-    Ok(Some(order.id))
+    Ok(Placed::Order(order.id))
 }
 
 /// The order this shopper's account placed with this token, if it did.
@@ -797,9 +834,9 @@ async fn log_order(pool: &SqlitePool, ip: &str, shopper: &Shopper, comment: &str
     }
 }
 
-/// The checkout page around `body`: the chrome, the messages, the script and the form, with the token when the
-/// form can be submitted.
-async fn shell(pool: &SqlitePool, shopper: &Shopper, framed: bool, messages: &[String], errors: usize, token: Option<&Token>, body: &str) -> sqlx::Result<Response> {
+/// The checkout page around `body`: the chrome, the messages, the script and the form, with the token and cart
+/// digest when the form can be submitted.
+async fn shell(pool: &SqlitePool, shopper: &Shopper, framed: bool, messages: &[String], errors: usize, token: Option<&str>, body: &str) -> sqlx::Result<Response> {
     let chrome = html::Chrome::load(pool).await?;
     let head = html::Head { title: "Shopping Cart Checkout", description: None, js: &[], framed, dashboard: shopper.user.role >= Role::Executive, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
@@ -808,7 +845,7 @@ async fn shell(pool: &SqlitePool, shopper: &Shopper, framed: bool, messages: &[S
     out.push_str(&html::form_open("/checkout.php"));
     out.push_str(&html::hidden("action", ""));
     if let Some(token) = token {
-        out.push_str(&html::hidden(TOKEN_FIELD, token.as_str()));
+        out.push_str(&html::hidden(TOKEN_FIELD, token));
     }
     out.push_str(body);
     out.push_str(html::FORM_CLOSE);
@@ -816,18 +853,25 @@ async fn shell(pool: &SqlitePool, shopper: &Shopper, framed: bool, messages: &[S
     Ok(html::page_response(out))
 }
 
-/// The order form, prefilled or as posted with its errors, under a fresh token.
-async fn form(state: &Orders, shopper: &Shopper, framed: bool, order: &Order, lines: &[Line], errors: &Errors, billing_same: bool) -> Result<Response, ApiError> {
+/// The order form, prefilled or as posted with its errors, under a fresh token. `changed`: the form was submitted
+/// for a cart that has changed since.
+#[allow(clippy::too_many_arguments)]
+async fn form(state: &Orders, shopper: &Shopper, framed: bool, order: &Order, lines: &[Line], errors: &Errors, billing_same: bool, changed: bool) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let local = Registry::load(pool, "local").await?;
     let choices = Choices::load(pool).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&shopper.currency);
     let mut body = header(order, true, &choices, errors, &local, billing_same);
     body.push_str(&cart::table(lines, false, &money, &labels, local.get("thumbnail")));
     let buttons = [html::button("<< Edit Order", "window.location.href='/cart.php';", "cart_button"), html::button("Place Order >>", "fn_action('complete');", "cart_button")];
     body.push_str(&format!("<p class=center>{}</p>", buttons.join(" ")));
-    Ok(shell(pool, shopper, framed, &["Shopping Cart Checkout".to_string()], errors.len(), Some(&Token::generate()), &body).await?)
+    let mut messages = vec!["Shopping Cart Checkout".to_string()];
+    if changed {
+        messages.push("Your shopping cart has changed. Check the order and place it again.".to_string());
+    }
+    let token = format!("{}.{}", Token::generate().as_str(), cart_digest(shopper.cart.as_ref(), lines));
+    Ok(shell(pool, shopper, framed, &messages, errors.len(), Some(&token), &body).await?)
 }
 
 /// The confirmation of one of this shopper's account's orders, or None when it has no such order.
@@ -838,7 +882,7 @@ async fn confirmation(state: &Orders, shopper: &Shopper, framed: bool, id: i64) 
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
     let currency = Currency::load(pool, &order.currency_code).await?;
-    let money = MoneyFormat { order: &currency, viewer: &shopper.currency.code };
+    let money = shopper.money(&currency);
     let mut messages = vec!["Order Complete!".to_string()];
     if let Some(template) = mailform::load(pool, "checkout").await? {
         messages.extend(recipients(&template, &order).iter().map(|r| format!("Email successfully sent to {}", r.to.email.as_str())));
@@ -873,7 +917,7 @@ pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, headers: H
         return Ok(cart::home(&visitor));
     }
     let order = prefill(pool, &shopper, &remembered(&headers)).await?;
-    form(&state, &shopper, visitor.framed, &order, &lines, &Errors::default(), false).await
+    form(&state, &shopper, visitor.framed, &order, &lines, &Errors::default(), false, false).await
 }
 
 /// POST: the form submitted, read from the body alone. A placed order, or one this form's token already placed,
@@ -882,26 +926,36 @@ pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp
     let pool = &state.core.pool;
     let params = form_params(None, &body);
     let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(cart::home(&visitor)) };
-    let token = params.get(TOKEN_FIELD).and_then(|t| Token::parse(t));
+    let (token, shown) = posted_form(&params);
     if let Some(token) = &token {
         if let Some(id) = placed_with(pool, token, &shopper).await? {
             return Ok(confirmed(id));
         }
     }
-    let lines = cart::lines(&state, &shopper).await?;
+    let items = cart::stored(pool, &shopper).await?;
+    let mut lines = cart::priced(&state, &shopper, &items).await?;
     if lines.is_empty() {
         return Ok(cart::home(&visitor));
     }
     let mut order = prefill(pool, &shopper, &remembered(&headers)).await?;
     let completing = params.get("action").is_some_and(|a| a == "complete");
     let errors = if completing { read_form(pool, &params, &mut order).await? } else { Errors::default() };
-    if let (true, Some(token)) = (completing && errors.is_empty(), &token) {
-        if let Some(id) = place(&state, &shopper, &ip, order.clone(), &lines, token).await? {
-            return Ok(confirmed(id));
+    let mut changed = completing && token.is_some() && shown != cart_digest(shopper.cart.as_ref(), &lines);
+    if let (true, Some(token)) = (completing && errors.is_empty() && !changed, &token) {
+        match place(&state, &shopper, &ip, order.clone(), &items, &lines, token).await? {
+            Placed::Order(id) => return Ok(confirmed(id)),
+            Placed::CartChanged => {
+                changed = true;
+                lines = cart::lines(&state, &shopper).await?;
+                if lines.is_empty() {
+                    return Ok(cart::home(&visitor));
+                }
+            }
+            Placed::Refused => {}
         }
     }
     let billing_same = completing && params.contains_key("billing_same_as_shipping");
-    form(&state, &shopper, visitor.framed, &order, &lines, &errors, billing_same).await
+    form(&state, &shopper, visitor.framed, &order, &lines, &errors, billing_same, changed).await
 }
 
 #[cfg(test)]

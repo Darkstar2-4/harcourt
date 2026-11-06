@@ -26,6 +26,8 @@ pub struct App {
     site: String,
     /// The host visitors use. Differs from `site` on a staging copy (stage2.harcourt.co), where links are rewritten.
     public_host: String,
+    /// HXWEB_PUBLIC_ORIGIN, which the library's same-origin check expects of a post.
+    public_origin: String,
     pages: pages::Pages,
     vendor: vendor::Vendor,
     re: Res,
@@ -78,6 +80,7 @@ async fn main() {
     let lib = hxweb::routes::all(core.clone());
     let app = Arc::new(App {
         lib: Some(lib.clone()),
+        public_origin: core.public_origin.clone(),
         cms: Some(compose::Cms::new(core)),
         site: env("HXWEB_SITE", "www.harcourt.co"),
         public_host: env("HXWEB_PUBLIC_HOST", &env("HXWEB_SITE", "www.harcourt.co")),
