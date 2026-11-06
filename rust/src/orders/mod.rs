@@ -6,7 +6,12 @@ use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
 
 use percent_encoding::percent_decode_str;
 
-use axum::{extract::FromRequestParts, http::request::Parts, Router};
+use axum::{
+    body::Bytes,
+    extract::{FromRequest, FromRequestParts, Multipart},
+    http::{header, request::Parts, HeaderMap},
+    Router,
+};
 
 use crate::{
     api::{Auth, ClientIp},
@@ -67,6 +72,29 @@ pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> 
         out.insert(decode(k), decode(v));
     }
     out
+}
+
+/// `$_REQUEST` for a post, urlencoded or `multipart/form-data` (Gravity Forms posts its forms that way): query fields,
+/// then body fields over them. An uploaded file is not kept. None for a multipart body that cannot be read, or one
+/// over axum's default body limit.
+pub async fn posted_params(query: Option<&str>, headers: &HeaderMap, body: Bytes) -> Option<HashMap<String, String>> {
+    let content_type = headers.get(header::CONTENT_TYPE);
+    let multipart = content_type.and_then(|v| v.to_str().ok()).is_some_and(|v| v.trim_start().to_ascii_lowercase().starts_with("multipart/form-data"));
+    if !multipart {
+        return Some(form_params(query, &body));
+    }
+    let mut out = form_params(query, &[]);
+    let mut req = axum::extract::Request::new(axum::body::Body::from(body));
+    req.headers_mut().extend(content_type.map(|v| (header::CONTENT_TYPE, v.clone())));
+    let mut parts = Multipart::from_request(req, &()).await.ok()?;
+    while let Some(field) = parts.next_field().await.ok()? {
+        if field.file_name().is_some() {
+            continue;
+        }
+        let name = field.name().unwrap_or("").to_string();
+        out.insert(name, field.text().await.ok()?);
+    }
+    Some(out)
 }
 
 impl FromRequestParts<Arc<Orders>> for ClientIp {

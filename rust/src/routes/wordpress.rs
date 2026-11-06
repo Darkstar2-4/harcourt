@@ -778,7 +778,7 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     let Ok(body) = axum::body::to_bytes(body, 8 << 20).await else {
         return (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large").into_response();
     };
-    let params = crate::orders::form_params(None, &body);
+    let params = crate::orders::posted_params(None, &parts.headers, body).await.unwrap_or_default();
     let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let site = match wp.content.site().await {
         Ok(s) => s,

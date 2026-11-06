@@ -156,6 +156,33 @@ async fn a_valid_post_is_stored_and_notifies() {
 }
 
 #[tokio::test]
+async fn a_browser_post_as_multipart_is_read() {
+    let h = harness(None, None).await;
+    let t = token();
+    let boundary = "----hxtestboundary";
+    let mut body = String::new();
+    for (k, v) in [("gform_submit", "3"), ("is_submit_3", "1"), ("input_1", "Pat Buyer"), ("input_10", "pat@example.com"), ("input_4", "Line one\r\nLine two"), ("state_3", t.as_str()), ("registry_recaptcha_response", "browser-token")] {
+        body.push_str(&format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n"));
+    }
+    body.push_str(&format!("--{boundary}\r\nContent-Disposition: form-data; name=\"input_9\"; filename=\"notes.txt\"\r\nContent-Type: text/plain\r\n\r\nnot kept\r\n--{boundary}--\r\n"));
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/hx/forms/submit?hx_lang=en&hx_page=%2Fcontact-us%2F")
+        .header(header::CONTENT_TYPE, format!("multipart/form-data; boundary={boundary}"))
+        .header(header::USER_AGENT, "test-agent")
+        .body(Body::from(body))
+        .unwrap();
+    let res = h.app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let html = String::from_utf8_lossy(&res.into_body().collect().await.unwrap().to_bytes()).into_owned();
+    assert!(html.contains("<strong>Thank you!</strong>"), "{html}");
+    let message: String = sqlx::query_scalar("SELECT meta_value FROM wp_gf_entry_meta WHERE meta_key = '4'").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(message, "Line one\r\nLine two");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM wp_gf_entry WHERE status = 'active'").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 1);
+}
+
+#[tokio::test]
 async fn invalid_input_comes_back_with_errors_and_nothing_is_kept() {
     let h = harness(None, None).await;
     let (_, html) = post(&h, &[("input_10", "nope"), ("input_4", "")]).await;
