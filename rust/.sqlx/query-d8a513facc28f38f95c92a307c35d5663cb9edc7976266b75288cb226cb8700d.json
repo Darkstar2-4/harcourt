@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cart_item SET touched_at = ?2 WHERE session_hash = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d8a513facc28f38f95c92a307c35d5663cb9edc7976266b75288cb226cb8700d"
+}

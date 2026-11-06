@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET company_name = coalesce(?2, company_name), address = coalesce(?3, address), city = coalesce(?4, city),\n                   state = coalesce(?5, state), zip = coalesce(?6, zip), country_code = coalesce(?7, country_code) WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "3888b6c7e3dc468cb6ab365e816f71437beada0a79dc557a36230587e8dccbb3"
+}

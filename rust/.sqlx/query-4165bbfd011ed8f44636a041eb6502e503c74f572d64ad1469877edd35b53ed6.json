@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cms_page SET modified_at = strftime('%Y-%m-%d %H:%M:%S', ?2, 'unixepoch') WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4165bbfd011ed8f44636a041eb6502e503c74f572d64ad1469877edd35b53ed6"
+}

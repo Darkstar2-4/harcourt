@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET status = ?2 WHERE id = ?1 AND status = 'Pending' AND \"type\" IN (SELECT value FROM json_each(?3))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "9fcd4b87afeddbdc4bf5246ade0672892567c901d9479acc138232d3370f860a"
+}
