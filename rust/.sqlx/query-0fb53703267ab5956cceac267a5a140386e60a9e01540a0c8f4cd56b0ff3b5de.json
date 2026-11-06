@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT t.order_id AS \"id!: i64\" FROM checkout_token t JOIN orderhd o ON o.id = t.order_id WHERE t.token_hash = ?1 AND o.user_id = ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0fb53703267ab5956cceac267a5a140386e60a9e01540a0c8f4cd56b0ff3b5de"
+}

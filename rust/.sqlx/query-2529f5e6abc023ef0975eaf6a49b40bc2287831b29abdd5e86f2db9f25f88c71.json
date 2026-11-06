@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT email, count(*) AS \"count!: i64\", max(expires_at) AS \"expires_at!: i64\" FROM session\n           WHERE user_id = ?1 AND expires_at > ?2 GROUP BY email ORDER BY email",
+  "describe": {
+    "columns": [
+      {
+        "name": "email",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "count!: i64",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "expires_at!: i64",
+        "ordinal": 2,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "2529f5e6abc023ef0975eaf6a49b40bc2287831b29abdd5e86f2db9f25f88c71"
+}

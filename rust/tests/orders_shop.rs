@@ -72,7 +72,9 @@ async fn account(pool: &SqlitePool, id: i64, role: &str, ecommerce: i64) {
 }
 
 async fn cookie(pool: &SqlitePool, id: i64) -> String {
-    let token = session::create(pool, UserId(id), &session::Basis::Domain(hxweb::identity::Email::parse("buyer@example.com").unwrap()), db::unix_now()).await.unwrap();
+    let domain: String = sqlx::query_scalar(r#"SELECT domain FROM "user" WHERE id = ?1"#).bind(id).fetch_one(pool).await.unwrap();
+    let email = hxweb::identity::Email::parse(&format!("buyer@{domain}")).unwrap();
+    let token = session::create(pool, UserId(id), &session::Basis::Domain(email), db::unix_now()).await.unwrap();
     format!("{}={}", session::COOKIE, token.as_str())
 }
 
@@ -222,7 +224,7 @@ async fn catalog_fixtures(pool: &SqlitePool) {
     sqlx::query(
         r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, catalog, price_type, price_pct, currency_code, domain) VALUES
            (1, 'Active', 'Customer', 'Test company 1', 1, 1, 'discount', 0.1, 'USD', 'example.com'),
-           (2, 'Active', 'Administrator', 'Test company 2', 1, 1, 'base', 0, 'USD', 'example.com')"#,
+           (2, 'Active', 'Administrator', 'Test company 2', 1, 1, 'base', 0, 'USD', 'example.org')"#,
     )
     .execute(pool)
     .await

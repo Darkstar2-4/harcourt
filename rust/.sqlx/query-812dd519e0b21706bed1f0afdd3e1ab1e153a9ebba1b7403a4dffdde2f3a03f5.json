@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.id AS \"id!: i64\", u.status AS \"status!\", u.\"type\" AS \"ty!\", u.company_name AS company_name, s.via AS \"via!\",\n                  s.email AS email, s.granted_by AS \"granted_by?: i64\", s.created_at AS \"created_at!: i64\",\n                  s.expires_at AS \"expires_at!: i64\", s.renew_secs AS \"renew_secs!: i64\"\n           FROM session s JOIN \"user\" u ON u.id = s.user_id\n           WHERE s.token_hash = ?1 AND s.expires_at > ?2 AND s.created_at > ?3",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ty!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "company_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "via!",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "granted_by?: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!: i64",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expires_at!: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "renew_secs!: i64",
+        "ordinal": 9,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "812dd519e0b21706bed1f0afdd3e1ab1e153a9ebba1b7403a4dffdde2f3a03f5"
+}
