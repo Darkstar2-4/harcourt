@@ -345,7 +345,7 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
             for (k, v) in url_query(req.url) {
                 query.set(&k, v);
             }
-            (if req.url.to_ascii_lowercase().contains("beta") { "/beta_catalog.php" } else { "/catalog.php" }, true)
+            ("/catalog.php", true)
         }
         "campaign" => {
             for (k, v) in url_query(req.url) {
@@ -605,8 +605,8 @@ mod tests {
         let req = Initial { page: "catalog", document: "", token: None, url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None, ecommerce: false, impersonating: false, email_cookie: false };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
-        let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
-        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
+        let beta = Initial { url: "https://www.harcourt.co/catalog/?search_code=BETA-1", ..req };
+        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/catalog.php?search_code=BETA-1&scscpq_wp=1".into(), true)));
         let odd = Initial { url: "https://www.harcourt.co/catalog/?a%20b=1&c.d=2&e%5B%5D=3&a_b=4", ..req };
         assert_eq!(page_url(&v, &odd), Some(("https://www.harcourt.co/catalog.php?a_b=4&c_d=2&scscpq_wp=1".into(), true)), "names as parse_str() made them");
         let campaign = Initial { page: "campaign", url: "https://www.harcourt.co/campaign/?campaign=Spring%20Sale&ref=mail", ..req };
