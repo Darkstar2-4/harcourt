@@ -393,6 +393,9 @@ fn forward_headers(app: &App, incoming: &HeaderMap, jar: &CookieJar, page_url: &
     if let Ok(v) = HeaderValue::from_str(page_url) {
         h.insert(header::REFERER, v);
     }
+    if let Ok(v) = HeaderValue::from_str(&app.public_origin) {
+        h.insert(header::ORIGIN, v);
+    }
     h.insert("x-requested-with", HeaderValue::from_static("XMLHttpRequest"));
     if let Some(c) = jar.header() {
         h.insert(header::COOKIE, c);
