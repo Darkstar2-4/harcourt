@@ -4,7 +4,7 @@
 
 use super::admin::{
     col,
-    Kind::{Choice, Date, Decimal, Flag, Integer, LongText, Text, Time},
+    Kind::{Choice, Date, Decimal, Domain, Flag, Integer, LongText, Text, Time},
     Search::{Code, Contains},
     Spec,
     Touch::{Created, Never, Saved},
@@ -191,7 +191,7 @@ pub static SPECS: &[Spec] = &[
         columns: &[
             col("company_name", "Company", Text).list(),
             col("ip", "IP address", Text).list(),
-            col("domain", "Domain", Text).list(),
+            col("domain", "Domain", Domain).list(),
             col("type", "Role", Choice(ROLES)).list().req().not_null(),
             col("status", "Status", Choice(ACCOUNT_STATUS)).list().req().not_null(),
             col("last_login", "Last sign-in", Time(Never)).list().not_null(),

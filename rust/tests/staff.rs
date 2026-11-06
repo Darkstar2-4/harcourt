@@ -627,6 +627,21 @@ async fn an_administrator_edits_accounts_up_to_their_own_role() {
 }
 
 #[tokio::test]
+async fn an_account_domain_is_never_a_free_mail_domain() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 7, "Customer").await;
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("domain", "GMail.com")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Domain cannot be a free-mail domain"), "{again}");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("domain", "works.example")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let domain: Option<String> = sqlx::query_scalar(r#"SELECT domain FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(domain.as_deref(), Some("works.example"));
+}
+
+#[tokio::test]
 async fn inventory_is_searched_by_part_number_and_edited_one_row_at_a_time() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Super User").await;

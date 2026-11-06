@@ -3,7 +3,7 @@
 
 use sqlx::SqlitePool;
 
-use crate::identity::{Role, Status, User, UserId};
+use crate::identity::{Email, Role, Status, User, UserId};
 
 /// classes/user.php price_type. Unknown text means no pricing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -151,8 +151,10 @@ pub async fn at_address(pool: &SqlitePool, ip: &str) -> sqlx::Result<Option<User
     Ok(id.map(UserId))
 }
 
-/// The account that owns this mail domain, lowest id first, whatever its status (classes/remote.php access()).
-pub async fn for_domain(pool: &SqlitePool, domain: &str) -> sqlx::Result<Option<UserId>> {
+/// The account that owns the address's domain, lowest id first, whatever its status (classes/remote.php access()).
+/// A free-mail domain belongs to no account, whatever a row says.
+pub async fn for_domain(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<UserId>> {
+    let Some(domain) = email.company_domain() else { return Ok(None) };
     let id = sqlx::query_scalar!(
         r#"SELECT id AS "id!: i64" FROM "user" WHERE lower(domain) = lower(?1) ORDER BY id LIMIT 1"#,
         domain

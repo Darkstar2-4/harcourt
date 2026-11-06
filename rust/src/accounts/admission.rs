@@ -47,7 +47,7 @@ pub async fn classify(pool: &SqlitePool, email: &Email) -> sqlx::Result<Admissio
     if blacklisted(pool, email).await? {
         return Ok(Admission::Blacklisted);
     }
-    let Some(id) = account::for_domain(pool, email.domain()).await? else { return Ok(Admission::Unknown) };
+    let Some(id) = account::for_domain(pool, email).await? else { return Ok(Admission::Unknown) };
     let Some(company) = account::load(pool, id).await? else { return Ok(Admission::Unknown) };
     Ok(match company.status() {
         Status::Active => {
@@ -149,7 +149,8 @@ pub struct Registration {
     pub state: String,
     pub zip: String,
     pub country_code: String,
-    /// Set from the mail domain for OAuth sign-ups, so approving the account lets the domain in.
+    /// Set from the mail domain for OAuth sign-ups, so approving the account lets the domain in. Never a free-mail
+    /// domain (`Email::company_domain`).
     pub domain: Option<String>,
     pub recaptcha_score: f64,
 }

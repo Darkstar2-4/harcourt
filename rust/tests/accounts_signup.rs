@@ -388,6 +388,18 @@ async fn google_needs_a_verified_address() {
 }
 
 #[tokio::test]
+async fn a_google_sign_up_at_a_free_mail_address_asks_for_access_with_no_domain() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let g = stand_in(Kind::Google, serde_json::json!({"email": "lee@gmail.com", "email_verified": true}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: None, google: Some(g) });
+    let (_, shown) = round_trip(&app, &nonce, "/oauth/google_init.php", "/oauth/google_callback.php", false).await;
+    assert!(shown.body.contains("Congratulations, your access request has been submitted!"), "{}", shown.body);
+    let (domain, status): (Option<String>, String) = sqlx::query_as(r#"SELECT domain, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
+    assert_eq!((domain, status.as_str()), (None, "Pending"));
+}
+
+#[tokio::test]
 async fn an_unconfigured_provider_says_so() {
     let pool = pool().await;
     let app = app(&pool);

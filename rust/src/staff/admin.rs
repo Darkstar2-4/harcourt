@@ -25,7 +25,7 @@ use crate::{
     api::{Auth, Executive},
     audit::{self, Entry},
     db::unix_now,
-    identity::Role,
+    identity::{is_free_mail, Role},
 };
 
 pub const PATH: &str = "/staff/admin";
@@ -34,6 +34,8 @@ pub(super) const ROWS: i64 = 50;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
     Text,
+    /// A company's mail domain: text, never a free-mail provider's (`identity::is_free_mail`).
+    Domain,
     LongText,
     Integer,
     Decimal,
@@ -275,6 +277,7 @@ fn parse(col: &Col, f: &Fields, current: Option<&str>, allowed: &[(String, Strin
         Kind::Decimal => text.parse::<f64>().ok().filter(|v| v.is_finite()).map(Value::Real).ok_or_else(|| wrong("a number")),
         Kind::Date => time::parse_date(&text).map(|(y, m, d)| Value::Text(format!("{y:04}-{m:02}-{d:02}"))).ok_or_else(|| wrong("a date (mm/dd/yyyy)")),
         Kind::Choice(_) if !allowed.iter().any(|(v, _)| *v == text) => Err(wrong("one of the listed values")),
+        Kind::Domain if is_free_mail(&text) => Err(format!("{} cannot be a free-mail domain", col.label)),
         _ => Ok(Value::Text(text)),
     }
 }
@@ -681,7 +684,7 @@ mod tests {
 
     fn sample(spec: &Spec, col: &Col) -> Value {
         match col.kind {
-            Kind::Text | Kind::LongText => Value::Text(format!("{} sample", col.name)),
+            Kind::Text | Kind::LongText | Kind::Domain => Value::Text(format!("{} sample", col.name)),
             Kind::Integer | Kind::Flag => Value::Int(1),
             Kind::Decimal => Value::Real(1.5),
             Kind::Date => Value::Text("2025-01-02".into()),
@@ -749,6 +752,9 @@ mod tests {
         let allowed = vec![("Weeks".to_string(), "Weeks".to_string())];
         assert_eq!(parse(&c("c", Kind::Choice(&[])), &f, None, &allowed), Ok(Value::Text("Weeks".into())));
         assert_eq!(parse(&c("c", Kind::Choice(&[])), &f, None, &[]), Err("L must be one of the listed values".into()));
+        let f = Fields::of(&[("w", " works.example "), ("g", "GMail.com")]);
+        assert_eq!(parse(&c("w", Kind::Domain), &f, None, &[]), Ok(Value::Text("works.example".into())));
+        assert_eq!(parse(&c("g", Kind::Domain), &f, None, &[]), Err("L cannot be a free-mail domain".into()));
     }
 
     #[test]

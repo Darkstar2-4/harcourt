@@ -24,7 +24,7 @@ use crate::{
     api::{Administrator, Auth, ClientIp},
     audit::{self, Entry},
     db::unix_now,
-    identity::{Role, Status},
+    identity::{is_free_mail, Role, Status},
 };
 
 const PATH: &str = "/staff/access/{id}";
@@ -181,17 +181,11 @@ pub async fn decide_request(pool: &SqlitePool, id: i64, status: Status) -> sqlx:
     Ok(())
 }
 
-const FREE_EMAIL: [&str; 26] = [
-    "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "live.com", "msn.com", "aol.com", "icloud.com", "me.com", "mac.com",
-    "protonmail.com", "proton.me", "gmx.com", "gmx.de", "web.de", "mail.com", "zoho.com", "yandex.com", "qq.com", "163.com", "comcast.net", "verizon.net",
-    "att.net", "sbcglobal.net",
-];
-
 /// The reCAPTCHA bypass an approval adds: the whole company domain, or the one address on a free-mail domain.
 fn bypass_entry(email: &str) -> String {
     let email = email.trim().to_lowercase();
     match email.split_once('@') {
-        Some((_, domain)) if !domain.is_empty() && !FREE_EMAIL.contains(&domain) => format!("@{domain}"),
+        Some((_, domain)) if !domain.is_empty() && !is_free_mail(domain) => format!("@{domain}"),
         _ => email,
     }
 }
