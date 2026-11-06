@@ -193,6 +193,26 @@ async fn an_account_signed_in_by_company_address_keeps_its_cart_in_the_php_sessi
 }
 
 #[tokio::test]
+async fn a_cart_without_a_session_lasts_a_day_from_its_last_use() {
+    let h = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
+    sqlx::query("UPDATE cart_item SET added_at = added_at - 25 * 3600, touched_at = touched_at - 2 * 3600").execute(&h.pool).await.unwrap();
+    let a = add(&h, "PHPSESSID=visit-one", "SKU-2", "1").await;
+    assert_eq!(a["cart_size"].as_i64(), Some(2), "added a day ago, used since: {a}");
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
+    let (first, second) = (page.find("<td class=nobr>SKU-1</td>"), page.find("<td class=nobr>SKU-2</td>"));
+    assert!(first.is_some() && first < second, "lines keep their order: {page}");
+    sqlx::query("UPDATE cart_item SET touched_at = touched_at - 25 * 3600").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
+    assert!(page.contains("<p>Your shopping cart is empty</p>"), "unused for a day");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 0);
+}
+
+#[tokio::test]
 async fn accounts_without_ecommerce_cannot_shop() {
     let h = harness().await;
     account(&h.pool, 2, "Customer", 0).await;

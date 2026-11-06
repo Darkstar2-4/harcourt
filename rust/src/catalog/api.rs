@@ -23,6 +23,10 @@ use super::{
     viewer::{self, Viewer},
 };
 use crate::{
+    accounts::{
+        cookies,
+        profile::{self as address, Layout, Profile as AddressProfile},
+    },
     api::Auth,
     identity::Role,
     pricing,
@@ -75,11 +79,12 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
         let reg = registry::load(&core.pool).await?;
         let strings = strings::load(&core.pool, lang).await?;
-        let profile = Profile::from(&crate::accounts::profile::Profile::load(&core.pool, &headers, &visitor).await?);
+        let remembered = AddressProfile::load(&core.pool, &headers, &visitor).await?;
+        let profile = Profile::from(&remembered);
         let ctx = Api { pool: &core.pool, viewer: &viewer, reg: &reg, strings: &strings, profile };
         let mut out = Map::new();
         let mut trace = vec!["json"];
-        let mut cookie = None;
+        let mut cookies = Vec::new();
         match get("action") {
             "sku" => {
                 trace.extend(["json_sku", "configurator"]);
@@ -88,7 +93,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
             "cad" => trace.push("json_cad"),
             "profile" => {
                 trace.push("json_profile");
-                cookie = ctx.profile(&p, &mut out).await?;
+                cookies = ctx.profile(&p, remembered, &visitor, &mut out).await?;
             }
             "quick_cad" => {
                 trace.extend(["json_quick_cad", "json_quick_cad_process"]);
@@ -101,16 +106,16 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         if viewer.at_least(Role::SuperUser) {
             out.insert("trace".into(), json!(trace));
         }
-        Ok::<_, sqlx::Error>((Value::Object(out), cookie))
+        Ok::<_, sqlx::Error>((Value::Object(out), cookies))
     }
     .await;
     match result {
-        Ok((v, cookie)) => {
+        Ok((v, cookies)) => {
             // json_encode($response, JSON_UNESCAPED_UNICODE): slashes escaped, other characters as they are.
             let body = v.to_string().replace('/', "\\/");
             let mut resp = (StatusCode::OK, [(header::CONTENT_TYPE, PHP_CONTENT_TYPE), (header::CACHE_CONTROL, "no-store")], body).into_response();
-            if let Some(c) = cookie.and_then(|c| HeaderValue::from_str(&c).ok()) {
-                resp.headers_mut().insert(header::SET_COOKIE, c);
+            for c in cookies {
+                resp.headers_mut().append(header::SET_COOKIE, c);
             }
             resp
         }
@@ -212,40 +217,37 @@ impl Api<'_> {
         Ok(())
     }
 
-    /// json_profile(): check the form, then save the profile in its cookie. The account's address is the accounts
-    /// area's to change; the form's other fields are kept in the cookie as the PHP kept them in the session.
-    async fn profile(&self, p: &HashMap<String, String>, out: &mut Map<String, Value>) -> sqlx::Result<Option<String>> {
+    /// json_profile(): check the form (address_class verify() over the posted fields, the ones the form left out at
+    /// their values), then json_profile_update(): the account takes the company and address, and the profile is kept
+    /// for the visit and in its cookie, where the next request loads it from.
+    async fn profile(&self, p: &HashMap<String, String>, remembered: AddressProfile, visitor: &Visitor, out: &mut Map<String, Value>) -> sqlx::Result<Vec<HeaderValue>> {
         let get = |k: &str| p.get(k).map(|v| v.trim().to_string()).unwrap_or_default();
-        let mut form = self.profile.clone();
-        form.email = get("profile_email");
-        form.name_first = get("profile_name_first");
-        form.name_last = get("profile_name_last");
-        if self.viewer.account_id().is_none() || form.company_name.is_empty() {
-            form.company_name = get("profile_company_name");
-        }
-        form.generate = matches!(get("profile_generate").to_ascii_lowercase().as_str(), "1" | "true");
-        form.cad_code = get("cad_code");
-        form.cad_name = sqlx::query_scalar!(r#"SELECT name AS "name!" FROM cad WHERE code = ?1 AND name IS NOT NULL LIMIT 1"#, form.cad_code).fetch_optional(self.pool).await?.unwrap_or_default();
-        let mut errors = Map::new();
-        for (field, rule) in self.reg.items("address", "profile") {
-            let value = match field.as_str() {
-                "name" => format!("{}{}", form.name_first, form.name_last),
-                f => form.field(f),
-            };
-            let key = if field == "name" { "profile_name_first".to_string() } else { format!("profile_{field}") };
-            errors.insert(key, json!(i32::from(rule == "required" && value.is_empty())));
-        }
-        let email_ok = crate::identity::Email::parse(&form.email).is_some();
-        errors.insert("profile_email".into(), json!(i32::from(!email_ok)));
-        errors.insert("cad_code_error".into(), json!(i32::from(form.cad_name.is_empty())));
-        let count = errors.values().filter(|v| v.as_i64() == Some(1)).count();
+        let layout = Layout::load(self.pool).await?;
+        let input = self.profile.posted_form(self.viewer.account_id().is_some(), &layout, p);
+        let (mut saved, failed) = address::verify(&layout, &input, remembered);
+        saved.generate = i64::from(matches!(get("profile_generate").to_ascii_lowercase().as_str(), "1" | "true"));
+        let cad_code = get("cad_code");
+        saved.cad_name = sqlx::query_scalar!(r#"SELECT name AS "name!" FROM cad WHERE code = ?1 AND name IS NOT NULL LIMIT 1"#, cad_code).fetch_optional(self.pool).await?;
+        saved.cad_code = Some(cad_code);
+        let cad_failed = saved.cad_name.is_none();
+        let failed_input = |k: &str| if k == "cad_code" { cad_failed } else { failed.iter().any(|(f, _)| f == k) };
+        let mut errors: Map<String, Value> = input.iter().map(|(k, _)| (k.clone(), json!(i32::from(failed_input(k))))).collect();
+        errors.insert("cad_code_error".into(), json!(i32::from(cad_failed)));
+        let count = failed.len() + usize::from(cad_failed);
         out.insert("success_url".into(), json!(""));
         out.insert("profile_tab".into(), json!(""));
         if count > 0 {
             out.insert("html".into(), json!({"profile_message": self.strings.label("catalog_profile_errors", "Correct {count} error(s)", &[("count", &count.to_string())])}));
             out.insert("error".into(), Value::Object(errors));
-            return Ok(None);
+            return Ok(Vec::new());
         }
+        let now = crate::db::unix_now();
+        if let Some(id) = self.viewer.account_id() {
+            saved.save_address(self.pool, &layout, id).await?;
+        }
+        let mut cookies: Vec<HeaderValue> = cookies::php_year(cookies::EMAIL, saved.email.as_deref().unwrap_or(""), now).into_iter().collect();
+        cookies.extend(saved.remember(self.pool, visitor, now).await?);
+        let form = Profile::from(&saved);
         let mut html_out = Map::new();
         html_out.insert("quick_cad_status".into(), json!(form.quick_cad_message(self.viewer, self.strings)));
         html_out.insert("cad_name".into(), json!(form.cad_name));
@@ -259,10 +261,7 @@ impl Api<'_> {
         }
         out.insert("html".into(), Value::Object(html_out));
         out.insert("error".into(), Value::Object(errors));
-        let cookie = json!({"email": form.email, "name_first": form.name_first, "name_last": form.name_last, "generate": i32::from(form.generate),
-                            "cad_code": form.cad_code, "language_code": self.viewer.lang.code(), "company_name": form.company_name}).to_string();
-        let encoded = percent_encoding::utf8_percent_encode(&cookie, percent_encoding::NON_ALPHANUMERIC);
-        Ok(Some(format!("harcourt_profile={encoded}; Path=/; Max-Age=31536000; Secure; HttpOnly; SameSite=Lax")))
+        Ok(cookies)
     }
 
     /// json_quick_cad_process(): ask PARTsolutions for the part's CAD in the profile's format; a download is polled

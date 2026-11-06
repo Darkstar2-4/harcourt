@@ -26,14 +26,15 @@ fn listed<'p>(ctx: &Ctx, family: &Family, parts: &'p [Part]) -> Vec<&'p Part> {
         .collect()
 }
 
-/// MySQL's comparison: numbers as numbers, text case-insensitively and ignoring trailing spaces. No value selected
-/// matches everything.
+/// Numbers as the select prints them, so an option keeps every part it was printed for (MySQL compared the stored
+/// decimal, which kept none of a value printed rounded); text as MySQL compared it, case-insensitively and ignoring
+/// trailing spaces. No value selected matches everything.
 fn matches_param(part: &Part, param: &Parameter, wanted: &str) -> bool {
     if wanted.is_empty() {
         return true;
     }
     if param.numeric() {
-        part.nparameter[param.id] == php_floatval(wanted)
+        param.output(part.nparameter[param.id]) == param.output(php_floatval(wanted))
     } else {
         part.parameter[param.id].trim_end().eq_ignore_ascii_case(wanted.trim_end())
     }
@@ -45,8 +46,9 @@ fn values(ctx: &Ctx, family: &Family, parts: &[Part], param: &Parameter) -> Vec<
     if param.numeric() {
         let mut nums: Vec<f64> = others.map(|p| p.nparameter[param.id]).filter(|n| *n != 0.0).collect();
         nums.sort_by(|a, b| a.total_cmp(b));
-        nums.dedup();
-        nums.into_iter().map(|n| param.output(n)).collect()
+        let mut printed: Vec<String> = nums.into_iter().map(|n| param.output(n)).collect();
+        printed.dedup();
+        printed
     } else {
         let mut texts: Vec<String> = others.map(|p| p.parameter[param.id].clone()).filter(|t| !t.is_empty()).collect();
         texts.sort_by_key(|t| t.to_lowercase());

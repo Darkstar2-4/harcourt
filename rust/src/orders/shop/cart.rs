@@ -45,6 +45,7 @@ pub struct Line {
 }
 
 pub async fn items(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<Vec<Item>> {
+    touch(pool, key, unix_now()).await?;
     let hash = key.as_slice();
     let rows = sqlx::query!(
         r#"SELECT sku, quantity AS "quantity!: i64", comment FROM cart_item WHERE session_hash = ?1 ORDER BY added_at, rowid"#,
@@ -55,19 +56,28 @@ pub async fn items(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<Vec<Item>> 
     Ok(rows.into_iter().map(|r| Item { sku: r.sku, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment }).collect())
 }
 
-/// How long a cart kept in a PHP session lasts; a session's cart goes with the session.
+/// How long a cart kept in a PHP session lasts after its last use; a session's cart goes with the session.
 const PHP_CART_SECS: i64 = 86400;
+
+/// The shopper uses the cart: carts without a session left unused longer than a PHP session lasted go, each as a
+/// whole, and this one is used now.
+async fn touch(pool: &SqlitePool, key: &CartKey, now: i64) -> sqlx::Result<()> {
+    let stale = now - PHP_CART_SECS;
+    sqlx::query!("DELETE FROM cart_item WHERE touched_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
+    let hash = key.as_slice();
+    sqlx::query!("UPDATE cart_item SET touched_at = ?2 WHERE session_hash = ?1", hash, now).execute(pool).await?;
+    Ok(())
+}
 
 /// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
 async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
-    let stale = now - PHP_CART_SECS;
-    sqlx::query!("DELETE FROM cart_item WHERE added_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
+    touch(pool, key, now).await?;
     let hash = key.as_slice();
     let quantity = i64::from(quantity);
     let initial = comment.unwrap_or("");
     let replace_comment = comment.is_some();
     sqlx::query!(
-        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at) VALUES (?1, ?2, ?3, ?4, ?5)
+        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)
          ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
              comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
         hash,
@@ -83,6 +93,7 @@ async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment
 }
 
 async fn remove(pool: &SqlitePool, key: &CartKey, sku: &str) -> sqlx::Result<()> {
+    touch(pool, key, unix_now()).await?;
     let hash = key.as_slice();
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1 AND sku = ?2", hash, sku).execute(pool).await?;
     Ok(())

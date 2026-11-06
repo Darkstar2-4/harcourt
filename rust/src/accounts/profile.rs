@@ -17,6 +17,7 @@ use crate::{
         registry, visit,
     },
     db::unix_now,
+    identity::UserId,
     visitor::{Identity, Visitor},
 };
 
@@ -179,6 +180,28 @@ impl Profile {
         if let Some(id) = &visitor.visit {
             visit::set_profile(pool, id, &self.to_cookie(), now).await?;
         }
+        Ok(())
+    }
+
+    /// scscpq_api.php json_profile_update(): the profile's company and address become the account's. A field the
+    /// form does not have is left as the account has it (the PHP blanked it).
+    pub async fn save_address(&self, pool: &SqlitePool, layout: &Layout, id: UserId) -> sqlx::Result<()> {
+        let asked = |f: Field, v: &Option<String>| if layout.need(f).is_some() { v.clone() } else { None };
+        let (company_name, address, city) = (asked(Field::CompanyName, &self.company_name), asked(Field::Address, &self.address), asked(Field::City, &self.city));
+        let (state, zip, country_code) = (asked(Field::State, &self.state), asked(Field::Zip, &self.zip), asked(Field::CountryCode, &self.country_code));
+        sqlx::query!(
+            r#"UPDATE "user" SET company_name = coalesce(?2, company_name), address = coalesce(?3, address), city = coalesce(?4, city),
+                   state = coalesce(?5, state), zip = coalesce(?6, zip), country_code = coalesce(?7, country_code) WHERE id = ?1"#,
+            id.0,
+            company_name,
+            address,
+            city,
+            state,
+            zip,
+            country_code
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
@@ -465,16 +488,21 @@ pub fn check_email(raw: &str, required: bool) -> Result<String, &'static str> {
     Ok(address)
 }
 
+/// The input the state is read from, by country: the US and Canada pick from a list, others type it.
+pub fn state_input(country_code: &str) -> &'static str {
+    match country_code {
+        "US" => "state_us",
+        "CA" => "state_ca",
+        _ => "state_other",
+    }
+}
+
 /// address_class verify() over the posted form: the profile it describes and the errors, keyed by input name.
 pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (Profile, Vec<(String, String)>) {
     let input = |key: &str| posted.iter().find(|(k, _)| *k == field_name(key)).map_or("", |(_, v)| v.as_str()).to_string();
     let mut errors = Vec::new();
     p.country_code = Some(fn_text(&input("country_code")));
-    let state_field = match p.get("country_code") {
-        "US" => "state_us",
-        "CA" => "state_ca",
-        _ => "state_other",
-    };
+    let state_field = state_input(p.get("country_code"));
     let mut check = |f: Field, data_key: &str, input_key: &str, p: &mut Profile| {
         let Some(need) = layout.need(f) else {
             p.set(data_key, String::new());

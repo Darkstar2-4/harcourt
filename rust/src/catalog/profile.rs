@@ -3,7 +3,7 @@
 //! keeps the fields it shows and its profile gate.
 
 use super::{forms, html::esc_text, pages::Ctx, registry::Registry, strings::Strings, viewer::Viewer};
-use crate::accounts::profile::{address_rows, legend, Layout, Profile as AddressProfile};
+use crate::accounts::profile::{address_rows, legend, state_input, Layout, Profile as AddressProfile};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Profile {
@@ -62,6 +62,18 @@ impl Profile {
         };
         let format = s.label("catalog_cad_format_msg", "CAD Format: {format}.", &[("format", &format)]);
         format!("{format} {delivery} {}", s.label("catalog_cad_click_profile", "Click PROFILE to change.", &[]))
+    }
+
+    /// json_profile()'s input: the posted form, with each field `enter` left out at the profile's value.
+    pub fn posted_form(&self, account: bool, layout: &Layout, posted: &std::collections::HashMap<String, String>) -> Vec<(String, String)> {
+        let omit = omitted(self, account, layout);
+        let kept: Vec<(String, String)> = omit
+            .iter()
+            .map(|&f| (format!("profile_{}", if f == "state" { state_input(&self.country_code) } else { f }), self.field(f)))
+            .collect();
+        let mut input: Vec<(String, String)> = posted.iter().filter(|(k, _)| !kept.iter().any(|(i, _)| i == *k)).map(|(k, v)| (k.clone(), v.clone())).collect();
+        input.extend(kept);
+        input
     }
 
     /// The fields the address form draws, as accounts::profile has them.
