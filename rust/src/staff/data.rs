@@ -770,8 +770,20 @@ pub async fn import(pool: &SqlitePool, table: Table, o: &Options, sheet: Sheet, 
             continue;
         }
         report.accepted += 1;
-        let line: Line = columns.iter().map(|f| (f.key.clone(), map::import_value(f, cells.get(header.column[&f.key]).copied().unwrap_or(""), sheet.file_type))).collect();
-        let errors = target.line(&mut tx, &line, update, header.complete).await.map_err(fail)?;
+        let (mut line, mut errors) = (Line::new(), Errors::new());
+        for f in &columns {
+            let cell = cells.get(header.column[&f.key]).copied().unwrap_or("");
+            match map::import_value(f, cell, sheet.file_type) {
+                Ok(value) => line.insert(f.key.clone(), value),
+                Err(e) => {
+                    errors.push((f.key.clone(), e));
+                    line.insert(f.key.clone(), String::new())
+                }
+            };
+        }
+        let checked = target.line(&mut tx, &line, update && errors.is_empty(), header.complete).await.map_err(fail)?;
+        let unread: Vec<String> = errors.iter().map(|(k, _)| k.clone()).collect();
+        errors.extend(checked.into_iter().filter(|(k, _)| !unread.contains(k)));
         if errors.is_empty() {
             report.saved += 1;
         } else {
@@ -875,6 +887,9 @@ async fn inventory_line(
     let leadtime = has(line, "leadtime_option").then(|| (import_match(val(line, "leadtime_option"), &INVENTORY_LEADTIME), val(line, "leadtime_text")));
     if let Some((option, text)) = leadtime {
         leadtime_errors(option, text, &INVENTORY_LEADTIME, &mut errors);
+    }
+    if has(line, "price0") && val(line, "price0").is_empty() {
+        errors.push(("price0".into(), "Cannot be blank".into()));
     }
     let breaks = has(line, "price0").then(|| {
         let mut out: Vec<Break> = Vec::new();
@@ -1407,6 +1422,9 @@ async fn pricing_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool
     let code = val(line, "code0");
     if !r.fields.is_empty() && code.is_empty() {
         return Ok(vec![("code0".into(), "Invalid: ".into())]);
+    }
+    if let Some(i) = (0..r.prices.len()).find(|i| val(line, &format!("price{i}")).is_empty()) {
+        return Ok(vec![(format!("price{i}"), "Cannot be blank".into())]);
     }
     if !update {
         return Ok(Vec::new());

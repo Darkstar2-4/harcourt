@@ -105,6 +105,36 @@ async fn an_import_reviews_unless_asked_to_update() {
 }
 
 #[tokio::test]
+async fn cells_a_column_cannot_read_reject_their_line() {
+    let pool = seeded().await;
+    let mut header = vec!["Harcourt SKU".to_string(), "New Date".into(), "Active".into(), "Base Price".into()];
+    for i in 1..10 {
+        header.push(format!("Qty Break #{i}"));
+        header.push(format!("Price #{i}"));
+    }
+    let line = |cells: [&str; 4]| {
+        let mut l: Vec<String> = cells.map(String::from).to_vec();
+        l.resize(header.len(), String::new());
+        l.join("\t")
+    };
+    let body = [header.join("\t"), line(["TC-100", "soon", "Y", "n/a"]), line(["TC-200", "2024-06-01", "TRUE", "$7.25"]), line(["BL-1", "", "maybe", ""])].join("\n");
+    let file = Scratch::new("cells.txt", body.as_bytes());
+    let text = printed(run_on(&pool, &["import", "inventory", file.path(), "--update"]).await);
+    assert!(text.contains("  line 2: new_date: Not a date: soon\n  line 2: price0: Not a number: n/a\n"), "{text}");
+    assert!(text.contains("  line 4: active: Not yes or no: maybe\n  line 4: price0: Cannot be blank\n"), "{text}");
+    let rows: Vec<(String, String, i64, String)> = sqlx::query_as("SELECT sku, new_date, active, COALESCE(pricing, '') FROM inventory ORDER BY id").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows[0], ("TC-100".into(), "2024-03-05".into(), 1, r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#.into()), "a rejected line saves nothing");
+    assert_eq!(rows[1], ("TC-200".into(), "2024-06-01".into(), 1, r#"[{"price":7.25,"qty_break":0}]"#.into()));
+    assert_eq!(rows[2], ("BL-1".into(), "0000-00-00".into(), 1, "[]".into()));
+
+    let prices = Scratch::new("rail.txt", b"subcategory_id\trecord_type\tPer MM Rail price\n549\trail_length\t\n549\trail_length\t0.25\n");
+    let text = printed(run_on(&pool, &["import", "pricing", prices.path(), "--subcategory", "549", "--record-type", "rail_length", "--update"]).await);
+    assert!(text.contains("  line 2: price0: Cannot be blank\n"), "{text}");
+    let stored: Vec<f64> = sqlx::query_scalar("SELECT price0 FROM pricing WHERE subcategory_id = '549'").fetch_all(&pool).await.unwrap();
+    assert_eq!(stored, [0.25]);
+}
+
+#[tokio::test]
 async fn a_rejected_line_rolls_back_a_subcategory_update_and_the_sort_order_is_a_column() {
     let pool = seeded().await;
     let bad = Scratch::new("lead.txt", b"Subcategory ID\tLeadtime Option\tLeadtime Weeks\tSort Order\n10\tweeks\t4\t15\n11\tsoon\t\t5\n");
