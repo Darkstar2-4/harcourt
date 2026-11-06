@@ -44,12 +44,17 @@ impl Images {
 
     /// `wp_get_attachment_image($id, 'full')`. Empty when there is no such attachment.
     pub fn full(&mut self, media: Option<&Media>, uploads: &str) -> String {
-        self.attachment(media, uploads, "attachment-full size-full")
+        self.attachment(media, uploads, "attachment-full size-full", &[])
     }
 
     /// the_post_thumbnail(): the featured image at its full size (the theme sets no post-thumbnail size).
     pub fn post_thumbnail(&mut self, media: Option<&Media>, uploads: &str) -> String {
-        self.attachment(media, uploads, "attachment-post-thumbnail size-post-thumbnail wp-post-image")
+        self.attachment(media, uploads, "attachment-post-thumbnail size-post-thumbnail wp-post-image", &[])
+    }
+
+    /// `the_post_thumbnail('full', ['itemprop' => 'image'])` of loops/single-post-faq.php.
+    pub fn post_thumbnail_full(&mut self, media: Option<&Media>, uploads: &str) -> String {
+        self.attachment(media, uploads, "attachment-full size-full wp-post-image", &[("itemprop", "image")])
     }
 
     /// wp_filter_content_tags() on `<img>` tags of rendered content: an image of an attachment that exists gets its
@@ -119,10 +124,11 @@ impl Images {
         tag
     }
 
-    fn attachment(&mut self, media: Option<&Media>, uploads: &str, class: &str) -> String {
+    fn attachment(&mut self, media: Option<&Media>, uploads: &str, class: &str, extra: &[(&'static str, &str)]) -> String {
         let Some(m) = media else { return String::new() };
         let src = format!("{uploads}{}", m.file);
         let mut attrs: Vec<(&str, String)> = vec![("src", src.clone()), ("class", class.into()), ("alt", m.alt.trim().to_string())];
+        attrs.extend(extra.iter().map(|(k, v)| (*k, v.to_string())));
         let loading = self.loading(m.width, m.height);
         attrs.extend(loading.iter().map(|(k, v)| (*k, v.to_string())));
         if let Some(srcset) = srcset(m, &src, uploads) {

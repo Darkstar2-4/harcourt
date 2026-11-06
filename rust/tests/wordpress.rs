@@ -180,6 +180,30 @@ async fn a_post_the_export_left_out_is_not_found() {
 }
 
 #[tokio::test]
+async fn an_faq_shows_its_featured_image_above_the_answer() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO cms_media (id, file, mime, width, height) VALUES (90, '2020/01/example.png', 'image/png', 400, 300)").execute(&pool).await.unwrap();
+    for (name, kind, value) in [("content", "html", "<p>An example answer.</p>"), ("@thumbnail", "media", "90")] {
+        sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (436, ?1, ?2, ?3)").bind(name).bind(kind).bind(value).execute(&pool).await.unwrap();
+    }
+    for (name, value) in [("title", "Example question? - Example"), ("islands", ISLANDS)] {
+        sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (436, ?1, ?2)").bind(name).bind(value).execute(&pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (436, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, html) = send(&app, Method::GET, "/faq/example-question/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("class=\"post-436 faq type-faq status-publish has-post-thumbnail hentry\""), "{html}");
+    assert!(html.contains(
+        "<main itemprop=\"articleBody\">\n\n      <img width=\"400\" height=\"300\" src=\"https://www.harcourt.co/wp-content/uploads/2020/01/example.png\" class=\"attachment-full size-full wp-post-image\" alt=\"\" itemprop=\"image\" decoding=\"async\""
+    ));
+    assert!(html.contains("<p>An example answer.</p>"));
+}
+
+#[tokio::test]
 async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
     let (app, pool) = harness().await;
     sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (437, 437, 'en', '/innovations/example-builder/', 'layouts/template-product-boxjoint.php', 'publish', 'Example', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00')")
