@@ -194,7 +194,8 @@ pub fn currency_note(book: &PriceBook, buyer: &Buyer, div: bool) -> Option<Strin
     Some(if div { format!("<div>{text}</div>") } else { text })
 }
 
-/// A part's price block: the break table, the discounted price or the plain price.
+/// A part's price block: the break table, the discounted price or the plain price. The break table's Price column
+/// is the list price beside a discounted "Your Price", else what the account pays.
 pub fn verbose(book: &PriceBook, buyer: &Buyer, quote: &Quote) -> String {
     let red = |s: String| format!("<font color=red>{s}</font>");
     match quote {
@@ -214,7 +215,7 @@ pub fn verbose(book: &PriceBook, buyer: &Buyer, quote: &Quote) -> String {
                     number_format(from as f64, 0),
                     if thru == 0 { "+" } else { "" },
                     if thru == 0 { String::new() } else { number_format(thru as f64, 0) },
-                    money(book, buyer, b.msrp)
+                    money(book, buyer, if *discount { b.msrp } else { b.price })
                 ));
                 if *discount {
                     out.push_str(&format!("<td class='right'>{}</td>", red(format!("<b><i>{}</i></b>", money(book, buyer, b.price)))));
@@ -357,6 +358,13 @@ mod tests {
         let table = verbose(&b, &base, &q);
         assert!(table.contains("<td class='right'>1</td><td class='right'>9</td><td class='right'>$10.00</td>"));
         assert!(table.contains("<td class='right'>100+</td><td class='right'></td><td class='right'>$8.25</td>"));
+        let plus = Buyer { terms: Some(PriceTerms::Plus(0.1)), ..base };
+        let q = quote(&b, &plus, &[], &list(), 1);
+        let table = verbose(&b, &plus, &q);
+        assert!(table.contains("<td class='right'>1</td><td class='right'>9</td><td class='right'>$11.00</td></tr>"), "{table}");
+        assert!(table.contains("<td class='right'>100+</td><td class='right'></td><td class='right'>$9.08</td></tr>"), "{table}");
+        let q = quote(&b, &plus, &[], &ListPrices(vec![(1, 20.0)]), 1);
+        assert_eq!(verbose(&b, &plus, &q), "<div>Price: $22.00</div>");
     }
 
     #[test]
