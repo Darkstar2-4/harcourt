@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT (SELECT count(*) FROM search) AS \"a!: i64\", (SELECT coalesce(max(id), 0) FROM search) AS \"b!: i64\",\n                  (SELECT count(*) FROM subcategory) AS \"c!: i64\", (SELECT coalesce(max(id), 0) FROM subcategory) AS \"d!: i64\",\n                  (SELECT count(*) FROM category) AS \"e!: i64\", (SELECT count(*) FROM inventory) AS \"f!: i64\",\n                  (SELECT coalesce(max(id), 0) FROM inventory) AS \"g!: i64\",\n                  (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"h!: i64\",\n                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"i!: i64\",\n                  (SELECT count(*) FROM subcategory WHERE status = 'Active') AS \"j!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Active') AS \"k!: i64\",\n                  (SELECT count(*) FROM subcategory WHERE status = 'Pending') AS \"l!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Pending') AS \"m!: i64\",\n                  (SELECT coalesce(sum(id * coalesce(category_id, 0)), 0) FROM subcategory) AS \"n!: i64\",\n                  (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS \"o!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS \"p!: i64\",\n                  (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS \"q!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS \"r!: i64\"",
+  "query": "SELECT (SELECT count(*) FROM search) AS \"a!: i64\", (SELECT coalesce(max(id), 0) FROM search) AS \"b!: i64\",\n                  (SELECT count(*) FROM subcategory) AS \"c!: i64\", (SELECT coalesce(max(id), 0) FROM subcategory) AS \"d!: i64\",\n                  (SELECT count(*) FROM category) AS \"e!: i64\", (SELECT count(*) FROM inventory) AS \"f!: i64\",\n                  (SELECT coalesce(max(id), 0) FROM inventory) AS \"g!: i64\",\n                  (SELECT count(*) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"h!: i64\",\n                  (SELECT coalesce(max(revised), 0) FROM content WHERE record_type IN ('category', 'subcategory') AND record_item = '') AS \"i!: i64\",\n                  (SELECT count(*) FROM subcategory WHERE status = 'Active') AS \"j!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Active') AS \"k!: i64\",\n                  (SELECT count(*) FROM subcategory WHERE status = 'Pending') AS \"l!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM subcategory WHERE status = 'Pending') AS \"m!: i64\",\n                  (SELECT coalesce(sum(id * coalesce(category_id, 0)), 0) FROM subcategory) AS \"n!: i64\",\n                  (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS \"o!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS \"p!: i64\",\n                  (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS \"q!: i64\",\n                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS \"r!: i64\",\n                  (SELECT coalesce(sum(id * coalesce(subcategory_id, 0)), 0) FROM inventory) AS \"s!: i64\"",
   "describe": {
     "columns": [
       {
@@ -92,6 +92,11 @@
         "name": "r!: i64",
         "ordinal": 17,
         "type_info": "Integer"
+      },
+      {
+        "name": "s!: i64",
+        "ordinal": 18,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -115,8 +120,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "91c96eda478cf25295a0155f754717c82460d5c55a90e75c5ca573bd27a258b9"
+  "hash": "88cef80f64d93d4441940b4c7335656f451a10ef7ff5a087f9052c46a86b7faa"
 }

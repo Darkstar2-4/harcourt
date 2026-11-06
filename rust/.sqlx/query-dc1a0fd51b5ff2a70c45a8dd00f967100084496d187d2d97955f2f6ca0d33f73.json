@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET signup_email = (\n               SELECT lower(trim(email)) FROM log\n               WHERE log.user_id = \"user\".id AND type = 'User' AND subtype = 'Signup' AND trim(coalesce(email, '')) <> ''\n               ORDER BY date_time DESC, id DESC LIMIT 1)\n           WHERE signup_email IS NULL\n             AND EXISTS (SELECT 1 FROM log WHERE log.user_id = \"user\".id AND type = 'User' AND subtype = 'Signup' AND trim(coalesce(email, '')) <> '')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "dc1a0fd51b5ff2a70c45a8dd00f967100084496d187d2d97955f2f6ca0d33f73"
+}

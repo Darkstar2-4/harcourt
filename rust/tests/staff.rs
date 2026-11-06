@@ -282,9 +282,10 @@ async fn search_utility_rebuilds_the_search_table_and_converges() {
 }
 
 async fn pending(pool: &SqlitePool, id: i64, company: &str, email: &str) {
-    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ip, last_login) VALUES (?1, 'Pending', 'Customer', ?2, '192.0.2.9', 0)"#)
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ip, last_login, signup_email) VALUES (?1, 'Pending', 'Customer', ?2, '192.0.2.9', 0, lower(?3))"#)
         .bind(id)
         .bind(company)
+        .bind(email)
         .execute(pool)
         .await
         .unwrap();
