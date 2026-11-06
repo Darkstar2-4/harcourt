@@ -1,6 +1,7 @@
 //! hx-import: copy the SCS application tables from the MySQL database into a fresh SQLite file built from
 //! `migrations/`, then prove the copy: per table, the MySQL row count equals the SQLite row count, and a checksum of
-//! the values as inserted equals the checksum of the values read back from the finished file. Last, the columns the
+//! the values as inserted equals the checksum of the values read back from the finished file, and a table that never
+//! reuses an id goes on from MySQL's AUTO_INCREMENT. Last, the columns the
 //! PHP stored with serialize() become JSON (`SERIALIZED`), each value written only once its JSON reads back as the
 //! same data, and an account domain that names a free-mail provider is cleared, as migration 0105 did.
 //!
@@ -378,11 +379,13 @@ async fn run(out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String) ->
         )
         .await?;
     hxweb::db::MIGRATOR.run(&lite).await.map_err(|e| Failure::Setup(format!("migrations: {e}")))?;
+    sqlx::query("PRAGMA foreign_keys = OFF").execute(&lite).await?;
 
     let tables = plan(&mut my, &lite, only.as_ref()).await?;
     let mut ok = true;
     for t in &tables {
         ok &= copy(&mut my, &lite, t).await?;
+        carry_counter(&mut my, &lite, &t.name).await?;
     }
     sqlx::raw_sql("ROLLBACK").execute(&mut my).await?;
     for (table, column, list) in SERIALIZED {
@@ -481,6 +484,20 @@ async fn plan(my: &mut MySqlConnection, lite: &SqlitePool, only: Option<&BTreeSe
         out.push(Table { name: name.clone(), columns });
     }
     Ok(out)
+}
+
+/// A table that never reuses an id goes on numbering where MySQL's AUTO_INCREMENT would have, so a row deleted on
+/// the PHP site before the copy does not lend its id, and what still names it, to a new row.
+async fn carry_counter(my: &mut MySqlConnection, lite: &SqlitePool, table: &str) -> Result<(), Failure> {
+    let next = sqlx::query(
+        "SELECT CAST(auto_increment AS CHAR) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+    )
+    .bind(table)
+    .fetch_optional(&mut *my)
+    .await?;
+    let Some(next) = next.map(|r| text(&r, 0)).transpose()?.and_then(|n| n.parse::<i64>().ok()) else { return Ok(()) };
+    sqlx::query("UPDATE sqlite_sequence SET seq = max(seq, ?2) WHERE name = ?1").bind(table).bind(next - 1).execute(lite).await?;
+    Ok(())
 }
 
 fn insert_sql(table: &str, cols: &str, ncols: usize, rows: usize) -> String {

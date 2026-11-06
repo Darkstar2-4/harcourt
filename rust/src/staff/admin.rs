@@ -783,6 +783,44 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_deleted_row_gives_its_id_and_attachments_to_no_one() {
+        let pool = db::open_memory().await.unwrap();
+        for table in ["user", "subcategory", "bot", "campaign", "portal", "portalcontent"] {
+            let spec = tables::find(table).unwrap();
+            let row = |n: usize| -> Writes {
+                let edited = spec.columns.iter().filter(|c| c.editable).map(|c| match (c.kind, sample(spec, c)) {
+                    (Kind::Text | Kind::LongText | Kind::Domain, Value::Text(s)) => (c.name, Value::Text(format!("{s}{n}"))),
+                    (_, v) => (c.name, v),
+                });
+                writes(spec, edited.collect(), true)
+            };
+            let first = insert(&pool, spec, &row(1)).await.unwrap();
+            delete_row(&pool, spec, first).await.unwrap();
+            let second = insert(&pool, spec, &row(2)).await.unwrap();
+            assert!(second > first, "{table}: {second} after {first}");
+        }
+        sqlx::raw_sql(
+            r#"INSERT INTO subcategory (id, name) VALUES (40, 'Pins');
+               INSERT INTO content (record_type, record_id, record_item, language_code) VALUES ('subcategory', 40, 'overview', 'EN'), ('category', 40, 'overview', 'EN');
+               INSERT INTO "user" (id, company_name) VALUES (40, 'Works');
+               INSERT INTO user_category (user_id, category_id) VALUES (40, 1);
+               INSERT INTO log (user_id, type, subtype) VALUES (40, 'User', 'Signup');"#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        delete_row(&pool, tables::find("subcategory").unwrap(), 40).await.unwrap();
+        delete_row(&pool, tables::find("user").unwrap(), 40).await.unwrap();
+        let left: Vec<String> = sqlx::query_scalar("SELECT record_type FROM content").fetch_all(&pool).await.unwrap();
+        assert_eq!(left, ["category"]);
+        let grants: i64 = sqlx::query_scalar("SELECT count(*) FROM user_category").fetch_one(&pool).await.unwrap();
+        let history: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE user_id = 40").fetch_one(&pool).await.unwrap();
+        assert_eq!((grants, history), (0, 1));
+        let next = insert(&pool, tables::find("user").unwrap(), &writes(tables::find("user").unwrap(), vec![("company_name", Value::Text("New".into()))], true)).await.unwrap();
+        assert!(next > 40);
+    }
+
+    #[tokio::test]
     async fn a_part_number_search_pages_through_the_index() {
         let pool = db::open_memory().await.unwrap();
         let spec = tables::find("inventory").unwrap();
