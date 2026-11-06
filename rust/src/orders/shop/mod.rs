@@ -14,6 +14,7 @@ use sqlx::SqlitePool;
 use super::{pricing::Price, Orders};
 use crate::{
     accounts::cookies,
+    catalog::viewer::{self, Viewer},
     identity::{User, UserId},
     visitor::Visitor,
 };
@@ -32,6 +33,8 @@ pub struct Shopper {
     pub cart: Option<CartKey>,
     pub currency: Currency,
     pub language: String,
+    /// What the catalog shows this account, which is what it may order.
+    pub viewer: Viewer,
 }
 
 /// Which cart is the shopper's. With a session it is the session's, and goes with it. An account signed in by
@@ -65,10 +68,11 @@ impl Currency {
         Currency { code: "USD".into(), plural: "US dollars".into() }
     }
 
-    /// An active currency, or US dollars for a code the `currency` table does not offer, as `currency_code()` does.
+    /// A currency the catalog prices in (active, with a rate), or US dollars for any other code, as
+    /// `currency_code()` does.
     pub async fn load(pool: &SqlitePool, code: &str) -> sqlx::Result<Self> {
         let row = sqlx::query!(
-            r#"SELECT code AS "code!: String", coalesce(plural, '') AS "plural!: String" FROM currency WHERE code = ?1 AND active = 1"#,
+            r#"SELECT code AS "code!: String", coalesce(plural, '') AS "plural!: String" FROM currency WHERE code = ?1 AND active = 1 AND exchange_rate > 0"#,
             code
         )
         .fetch_optional(pool)
@@ -82,12 +86,14 @@ pub async fn shopper(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap) 
     let Some(signed_in) = visitor.signed_in().filter(|_| visitor.ecommerce()) else { return Ok(None) };
     let account = &signed_in.account;
     let currency = Currency::load(pool, &account.currency_code).await?;
+    let viewer = viewer::load(pool, visitor, viewer::lang_for(visitor)).await?;
     Ok(Some(Shopper {
         user: account.user.clone(),
         email: signed_in.email.as_ref().map(|e| e.as_str().to_string()),
         cart: CartKey::of(visitor, account.user.id, headers),
         currency,
         language: account.language_code.clone(),
+        viewer,
     }))
 }
 

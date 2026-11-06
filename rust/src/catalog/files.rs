@@ -48,9 +48,7 @@ pub enum Owner {
 pub fn may_fetch(viewer: &Viewer, owner: Owner) -> bool {
     match owner {
         Owner::Public => true,
-        Owner::Family { status, category_active, category_id } => {
-            viewer.may_browse() && status.visible(viewer.sees_pending()) && category_active && !viewer.blocked.contains(category_id)
-        }
+        Owner::Family { status, category_active, category_id } => viewer.sees_family(status, category_active, category_id),
         Owner::Portal(id) => viewer.may_browse() && (viewer.portal_id == Some(id) || viewer.at_least(Role::Internal)),
         Owner::Unknown => false,
     }
@@ -70,14 +68,7 @@ async fn family_owner(pool: &SqlitePool, family_id: i64) -> sqlx::Result<Owner> 
     )
     .fetch_optional(pool)
     .await?;
-    Ok(row.map_or(Owner::Unknown, |r| {
-        let status = match r.status.as_str() {
-            "Active" => Status::Active,
-            "Pending" => Status::Pending,
-            _ => Status::Inactive,
-        };
-        Owner::Family { status, category_active: r.active.unwrap_or(0) != 0, category_id: r.category_id.unwrap_or(0) }
-    }))
+    Ok(row.map_or(Owner::Unknown, |r| Owner::Family { status: Status::parse(&r.status), category_active: r.active.unwrap_or(0) != 0, category_id: r.category_id.unwrap_or(0) }))
 }
 
 async fn content(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Content>> {

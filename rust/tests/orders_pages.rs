@@ -13,7 +13,7 @@ use hxweb::{
     api::Auth,
     db,
     identity::UserId,
-    orders::{forms, pricing::Unpriced, Orders},
+    orders::{forms, pricing::CatalogPrices, Orders},
     session,
 };
 use sqlx::SqlitePool;
@@ -22,7 +22,7 @@ use tower::ServiceExt;
 async fn harness() -> (Router, SqlitePool) {
     let pool = db::open_memory().await.unwrap();
     let core = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
-    let state = Orders { core: core.clone(), pricing: Arc::new(Unpriced), docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
+    let state = Orders { core: core.clone(), pricing: Arc::new(CatalogPrices), docroot: PathBuf::from("/nonexistent"), forms: forms::Services::default() };
     let pages = hxweb::orders::router(Arc::new(state)).layer(axum::middleware::from_fn_with_state(core, hxweb::visitor::layer));
     (pages.layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 30], 40000)))), pool)
 }

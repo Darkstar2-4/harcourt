@@ -23,7 +23,7 @@ use hxweb::{
             spam::{Akismet, CheckFuture, Recaptcha, Submission, TokenKey},
             Services,
         },
-        pricing::Unpriced,
+        pricing::CatalogPrices,
         Orders,
     },
 };
@@ -79,7 +79,7 @@ async fn harness(akismet: Option<Arc<dyn Akismet>>, recaptcha: Option<Arc<dyn Re
     sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'recaptcha', 'score_spam', '', '0.5')").execute(&pool).await.unwrap();
     let core = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])) });
     let forms = Services { admin_email: Email::parse("web@example.com"), token_key: Some(TokenKey::new(&KEY)), akismet, recaptcha, manifest: None };
-    let state = Orders { core, pricing: Arc::new(Unpriced), docroot: PathBuf::from("/nonexistent"), forms };
+    let state = Orders { core, pricing: Arc::new(CatalogPrices), docroot: PathBuf::from("/nonexistent"), forms };
     let app = hxweb::orders::router(Arc::new(state)).layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 20], 40000))));
     Harness { app, pool }
 }

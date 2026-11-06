@@ -40,7 +40,7 @@ impl Orders {
         let get = |k: &str| std::env::var(k).ok();
         Orders {
             core,
-            pricing: Arc::new(pricing::Unpriced),
+            pricing: Arc::new(pricing::CatalogPrices),
             docroot: PathBuf::from(get("HXWEB_DOCROOT").unwrap_or_else(|| "/home/harcou6/public_html".into())),
             forms: forms::Services::from_env(get),
         }

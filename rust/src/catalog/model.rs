@@ -27,7 +27,7 @@ pub enum Status {
 }
 
 impl Status {
-    fn parse(s: &str) -> Status {
+    pub fn parse(s: &str) -> Status {
         match s {
             "Active" => Status::Active,
             "Pending" => Status::Pending,
@@ -235,6 +235,14 @@ fn carets(s: Option<&str>) -> Vec<String> {
     }
 }
 
+/// subcategory.currency: the family's own adder for a currency code, `{"CAD": 0.05}`.
+pub fn currency_adders(json: Option<&str>) -> Vec<(String, f64)> {
+    json.filter(|s| !s.is_empty())
+        .and_then(|s| serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(s).ok())
+        .map(|m| m.into_iter().map(|(k, v)| (k, v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())).unwrap_or(0.0))).collect())
+        .unwrap_or_default()
+}
+
 pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day) -> sqlx::Result<Catalog> {
     let new_days: i64 = registry.get("local", "new_days").trim().parse().unwrap_or(0);
     let cutoff = today.minus_days(new_days);
@@ -270,13 +278,7 @@ pub async fn load(pool: &SqlitePool, lang: Lang, registry: &Registry, today: Day
         let parameters = stored::entries(&stored::parse(r.parameters.as_deref())).into_iter().filter_map(|(_, p)| Parameter::parse(p)).collect();
         let options = stored::parse(r.options.as_deref());
         let label = |key: &str| options.get(key).map(stored::text);
-        let currency = r
-            .currency
-            .as_deref()
-            .filter(|s| !s.is_empty())
-            .and_then(|s| serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(s).ok())
-            .map(|m| m.into_iter().map(|(k, v)| (k, v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())).unwrap_or(0.0))).collect())
-            .unwrap_or_default();
+        let currency = currency_adders(r.currency.as_deref());
         let name = r.name.unwrap_or_default();
         catalog.families.insert(
             r.id,

@@ -99,7 +99,7 @@ pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>>
     let mut out = Vec::new();
     let Some(key) = &shopper.cart else { return Ok(out) };
     for item in items(pool, key).await? {
-        match state.pricing.price(pool, shopper.user.id, &item.sku, item.quantity).await? {
+        match state.pricing.price(pool, &shopper.viewer, &item.sku, item.quantity).await? {
             Some(priced) => {
                 let thumbnail = thumbnail(state, &item.sku).await?;
                 out.push(Line { sku: item.sku, description: priced.description, quantity: item.quantity, comment: item.comment, price: priced.price, thumbnail });
@@ -274,7 +274,7 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
             }
             format!("{sku_text} removed from cart")
         }
-        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, shopper.user.id, &sku_text, q).await?.is_some() => {
+        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
             put(pool, key, &sku_text, q, None, unix_now()).await?;
             format!("{sku_text} cart updated")
         }
