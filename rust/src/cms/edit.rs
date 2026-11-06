@@ -127,6 +127,7 @@ pub async fn save_page(pool: &SqlitePool, id: PageId, changes: &[Change], by: Us
             }
         }
     }
+    sqlx::query!("UPDATE cms_page SET modified_at = strftime('%Y-%m-%d %H:%M:%S', ?2, 'unixepoch') WHERE id = ?1", id.0, now).execute(&mut *tx).await?;
     let fields: Fields = sqlx::query!("SELECT name, value FROM cms_field WHERE page_id = ?1 AND kind = 'html'", id.0)
         .fetch_all(&mut *tx)
         .await?

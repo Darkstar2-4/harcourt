@@ -334,6 +334,10 @@ async fn an_edit_shows_on_the_next_request_and_a_revision_restores_it() {
     edit::restore(&pool, rev, UserId(9), 103).await.unwrap();
     let (_, _, html) = send(&app, Method::GET, "/product/alignment/").await;
     assert!(html.contains("<h1 class=\"mt-5\">Edited title</h1>"));
+
+    edit::save_page(&pool, PageId(165), &[Change { name: "hero_title".into(), value: "Dated".into() }], UserId(7), "", 1_700_000_000).await.unwrap();
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml").await;
+    assert!(xml.contains("<loc>https://www.harcourt.co/product/alignment/</loc>\n\t\t<lastmod>2023-11-14T22:13:20+00:00</lastmod>"), "{xml}");
 }
 
 #[tokio::test]
