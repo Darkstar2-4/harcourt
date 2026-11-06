@@ -3,7 +3,7 @@
 
 use sqlx::SqlitePool;
 
-use crate::identity::{Email, Role, Status, User, UserId};
+use crate::identity::{is_free_mail, Email, Role, Status, User, UserId};
 
 /// classes/user.php price_type. Unknown text means no pricing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,6 +162,19 @@ pub async fn for_domain(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option
     .fetch_optional(pool)
     .await?;
     Ok(id.map(UserId))
+}
+
+/// Clear every account's domain that names a free-mail provider (`identity::is_free_mail`), which can name no
+/// company. Returns how many were cleared.
+pub async fn clear_free_mail_domains(pool: &SqlitePool) -> sqlx::Result<u64> {
+    let rows = sqlx::query!(r#"SELECT id AS "id!: i64", domain AS "domain!" FROM "user" WHERE domain IS NOT NULL"#).fetch_all(pool).await?;
+    let mut tx = pool.begin().await?;
+    let mut cleared = 0;
+    for r in rows.iter().filter(|r| is_free_mail(&r.domain)) {
+        cleared += sqlx::query!(r#"UPDATE "user" SET domain = NULL WHERE id = ?1"#, r.id).execute(&mut *tx).await?.rows_affected();
+    }
+    tx.commit().await?;
+    Ok(cleared)
 }
 
 pub async fn set_language(pool: &SqlitePool, id: UserId, code: &str) -> sqlx::Result<()> {

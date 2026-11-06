@@ -17,6 +17,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use http_body_util::BodyExt;
 use hxweb::{
     accounts::{
+        account,
         bot::Dns,
         oauth::{Kind, Provider, Providers},
         Services,
@@ -435,4 +436,14 @@ async fn what_was_typed_stays_in_the_form_for_the_visit() {
     let shown = page(&app, "").await;
     assert!(shown.body.contains("<p class=profile_welcome>Welcome Typed Co!</p>"), "{}", shown.body);
     assert!(shown.body.contains("value='typed@'"));
+}
+
+#[tokio::test]
+async fn free_mail_domains_are_cleared_and_company_domains_kept() {
+    let pool = pool().await;
+    sqlx::query(r#"INSERT INTO "user" (id, domain) VALUES (30, 'gmail.com.'), (31, ' GMail.com'), (32, 'mail.example.com'), (33, NULL)"#).execute(&pool).await.unwrap();
+    assert_eq!(account::clear_free_mail_domains(&pool).await.unwrap(), 2);
+    let kept: Vec<(i64, Option<String>)> = sqlx::query_as(r#"SELECT id, domain FROM "user" WHERE id >= 30 ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(kept, vec![(30, None), (31, None), (32, Some("mail.example.com".into())), (33, None)]);
+    assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE id = 5 AND domain = 'example.com'"#).await, 1);
 }
