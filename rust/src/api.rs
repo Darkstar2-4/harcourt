@@ -18,7 +18,7 @@ use crate::{
     audit::{self, Entry},
     config::Secret,
     db::unix_now,
-    identity::{self, Role, User},
+    identity::{Role, User},
     remote_grant, session,
     token::Token,
 };
@@ -190,7 +190,7 @@ async fn redeem(State(auth): State<Arc<Auth>>, ClientIp(ip): ClientIp, Json(body
         None => None,
     };
     let account = match redeemed {
-        Some(id) => identity::load_user(&auth.pool, id).await?.filter(User::is_active),
+        Some(grant) => remote_grant::allowed(&auth.pool, grant.granted_by, grant.target).await?,
         None => None,
     };
     let Some(account) = account else {
