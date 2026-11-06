@@ -73,6 +73,12 @@ These are not bugs. Each is listed with its reason in the `rust/oracle/*.expecte
 
 - **Staff pages need a real sign-in.** An emailed code or OAuth, not a company's address. Pending and Denied staff accounts are turned away, and the role is checked before any AJAX call.
 - **State-changing forms need a token.** Every staff form carries a per-session token. A GET never changes data.
+- **Every post comes from a page of this site.** A request other than GET or HEAD needs this site's `Origin`, or, without one, a `Referer` on this site. `/api/remote/redeem`, which admits a caller by its token alone, is the one exception. The cart and checkout act only on a POST.
+- **The cart charges the catalog's price.** A cart line is priced as the catalog prices it for that account (price terms, currency, quantity break), and the cart takes only parts the catalog shows the account.
+- **An order is placed once.** The checkout form carries a one-time token. The order, its lines, the emptied cart and its mail are written together or not at all, and the confirmation is its own page (`/checkout.php?order=<id>`), so a second submit or a refresh shows the same order.
+- **Sign-ins end and are asked again.** A remembered sign-in ends 90 days after it began, however often it is used. Each use checks again what let it in: the address's domain still belongs to the account and is not blacklisted, or the Administrator who made a remote grant may still grant it. A Denied account is signed out everywhere, and Administrators can end an account's sign-ins from its admin page.
+- **Only staff set a company's domain and address.** A free-mail provider's domain is never an account's domain. A sign-up records the visitor's address in `signup_ip` for review; the `ip` that signs visitors in by address is set by staff.
+- **Static files stream.** Files under `public/` and the uploads are sent in pieces, with byte ranges (so video seeks), `Last-Modified` and the ETag.
 - **The emailed code is random.** 8 characters from the system random source, 15 minutes, two wrong tries counted in the database, good once. The PHP code was derived from the clock.
 - **The old stack's addresses answer 410.** A `.php` path no route claims, WordPress's `wp-*` files and endpoints (sign-in, admin, REST, `admin-ajax.php`), `xmlrpc` and `?rest_route=` answer 410 from one rule in `src/retired.rs`. `scs_remote.php` is replaced by `remote_grant.rs`. The web SQL consoles, PHP diagnostics, developer toolboxes and `scs_filemanager.php` have no replacement.
 - **Pages with no traffic are dropped.** A week of the site's logs shows about 80 percent of page requests going to the catalog, search, product files and the catalog's scripts, and the staff pages getting 50 to 400 requests each. These answer 410 and have no replacement in the browser:
@@ -175,5 +181,6 @@ The staff commands (`hxweb job`, `hxweb export`, `hxweb import`, `hxweb remote-g
 ## Decisions for the site owner
 
 - The PHP signs a company in automatically from its IP address. The Rust model keeps that for customers browsing and using the cart, and asks staff for an emailed code or OAuth. Keeping address sign-in for staff pages would need an explicit allow-list of company addresses.
+- The PHP saved each self-registered account's address in `user.ip`, the column that signs visitors in by address, and nothing tells those rows from addresses staff confirmed. The import keeps them. Review the accounts with an `ip` before cut-over and clear the ones no one confirmed.
 - Which Microsoft 365 mailbox sends the site's mail (`HXWEB_SMTP_USER`)? Until one is set, mail waits in `outbox`.
 - Production's PHP is not the `aws-production` branch. It is an upstream version with local edits (32 code files differ). Commit that drift upstream before comparing this PR to the repository's PHP.
