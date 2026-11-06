@@ -56,7 +56,7 @@ struct Request {
 
 async fn load(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Request>> {
     let Some(u) = sqlx::query!(
-        r#"SELECT id AS "id!: i64", ip, company_name, address, city, state, zip, country_code, status, "type" AS kind, recaptcha_score, last_login
+        r#"SELECT id AS "id!: i64", coalesce(ip, signup_ip) AS "ip?: String", company_name, address, city, state, zip, country_code, status, "type" AS kind, recaptcha_score, last_login
            FROM "user" WHERE id = ?1"#,
         id
     )

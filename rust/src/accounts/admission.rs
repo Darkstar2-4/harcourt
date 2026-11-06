@@ -157,14 +157,15 @@ pub struct Registration {
 
 /// A Pending account for staff to approve, signed in as itself so the visitor sees "pending" (newuser.php
 /// json_register_update and process_oauth_register). `remembered` keeps the sign-in like an OAuth grant.
-/// A new account at the visitor's address. With IPStack on, its location and currency are looked up afterwards, as
-/// user->update() did for every new user, without holding up the sign-up.
+/// The visitor's address is kept as `signup_ip` for staff reviewing the request, never as `ip`: the company address
+/// that signs visitors in is for staff alone to set. With IPStack on, the location and currency are looked up
+/// afterwards, as user->update() did for every new user, without holding up the sign-up.
 pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<(UserId, SignIn)> {
     let none_if_empty = |s: &str| (!s.is_empty()).then(|| s.to_string());
     let (address, city, state, zip, country) =
         (none_if_empty(&reg.address), none_if_empty(&reg.city), none_if_empty(&reg.state), none_if_empty(&reg.zip), none_if_empty(&reg.country_code));
     let id = sqlx::query_scalar!(
-        r#"INSERT INTO "user" (ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain)
+        r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id AS "id!: i64""#,
         ctx.ip,
         reg.company_name,

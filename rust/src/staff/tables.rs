@@ -192,6 +192,7 @@ pub static SPECS: &[Spec] = &[
             col("company_name", "Company", Text).list(),
             col("ip", "IP address", Text).list(),
             col("domain", "Domain", Domain).list(),
+            col("signup_ip", "Sign-up IP address", Text).fixed(),
             col("type", "Role", Choice(ROLES)).list().req().not_null(),
             col("status", "Status", Choice(ACCOUNT_STATUS)).list().req().not_null(),
             col("last_login", "Last sign-in", Time(Never)).list().not_null(),
