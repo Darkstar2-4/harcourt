@@ -523,8 +523,8 @@ async fn raisable(pool: &SqlitePool) -> sqlx::Result<Vec<i64>> {
 }
 
 /// inventory_increase.php: raise every price break of the parts in these subcategories (all that may be raised when
-/// none are named). It cannot be rolled back. Each subcategory is raised in one transaction and stamped with the
-/// time; a part with no base price is skipped.
+/// none are named). It cannot be undone. Every subcategory is raised, stamped with the time and logged in one
+/// transaction, so a failure raises none of them; a part with no base price is skipped.
 pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories: &[i64], now: i64) -> Result<String, String> {
     let fail = |e: sqlx::Error| format!("price increase: {e}");
     let allowed = raisable(pool).await.map_err(fail)?;
@@ -533,8 +533,8 @@ pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories
     }
     let chosen = if subcategories.is_empty() { allowed } else { subcategories.to_vec() };
     let (mut updated, mut skipped) = (0i64, 0i64);
+    let mut tx = pool.begin().await.map_err(fail)?;
     for &id in &chosen {
-        let mut tx = pool.begin().await.map_err(fail)?;
         let parts = sqlx::query!(r#"SELECT id AS "id!: i64", pricing FROM inventory WHERE subcategory_id = ?1"#, id).fetch_all(&mut *tx).await.map_err(fail)?;
         for part in parts {
             let mut breaks = part.pricing.as_deref().map(pricing).unwrap_or_default();
@@ -550,7 +550,6 @@ pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories
             updated += 1;
         }
         sqlx::query!("UPDATE subcategory SET price_increase = ?2 WHERE id = ?1", id, now).execute(&mut *tx).await.map_err(fail)?;
-        tx.commit().await.map_err(fail)?;
     }
     let comment = [
         format!("Subcategories: {}", number(chosen.len() as i64)),
@@ -560,9 +559,10 @@ pub async fn price_increase(pool: &SqlitePool, increase: Increase, subcategories
     .join("\n");
     let subtype = format!("Price Increase: {}", increase.kind());
     sqlx::query!("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('', ?1, 0, '', 'Import Table', ?2, ?3)", now, subtype, comment)
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .map_err(fail)?;
+    tx.commit().await.map_err(fail)?;
     Ok(comment + "\n")
 }
 

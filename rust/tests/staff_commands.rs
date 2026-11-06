@@ -222,6 +222,16 @@ async fn a_price_increase_raises_every_break_of_the_named_subcategories() {
 }
 
 #[tokio::test]
+async fn a_price_increase_that_cannot_be_logged_raises_nothing() {
+    let pool = seeded().await;
+    exec(&pool, "CREATE TRIGGER no_log BEFORE INSERT ON log BEGIN SELECT RAISE(ABORT, 'log is read only'); END").await;
+    assert!(matches!(run_on(&pool, &["job", "price_increase", "--percent", "10", "--all"]).await, Err(Fail::Run(_))));
+    let pricing: String = sqlx::query_scalar("SELECT pricing FROM inventory WHERE id = 1").fetch_one(&pool).await.unwrap();
+    assert_eq!(pricing, r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#);
+    assert_eq!(count(&pool, "SELECT count(*) FROM subcategory WHERE price_increase > 0").await, 0);
+}
+
+#[tokio::test]
 async fn remote_grants_are_minted_listed_and_revoked_in_a_staff_accounts_name() {
     let pool = seeded().await;
     for (id, role) in [(1, "Administrator"), (2, "Executive"), (5, "Customer"), (6, "Super User")] {
