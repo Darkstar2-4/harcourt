@@ -23,7 +23,7 @@ pub mod cart;
 pub mod checkout;
 
 pub fn routes() -> Router<Arc<Orders>> {
-    Router::new().route("/cart.php", get(cart::page).post(cart::page)).route("/checkout.php", get(checkout::page).post(checkout::page))
+    Router::new().route("/cart.php", get(cart::view).post(cart::action)).route("/checkout.php", get(checkout::view).post(checkout::action))
 }
 
 /// A signed-in account allowed to shop (`user.ecommerce`), in this browser session.

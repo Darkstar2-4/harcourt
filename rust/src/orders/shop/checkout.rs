@@ -10,7 +10,7 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::Response,
 };
 use rust_decimal::Decimal;
@@ -677,26 +677,35 @@ async fn log_order(pool: &SqlitePool, ip: &str, shopper: &Shopper, comment: &str
     }
 }
 
-pub async fn page(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, uri: Uri, body: Bytes) -> Result<Response, ApiError> {
+/// GET: the order form.
+pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap) -> Result<Response, ApiError> {
+    page(&state, &visitor, &ip, &headers, &HashMap::new()).await
+}
+
+/// POST: the order form submitted, read from the body alone.
+pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, body: Bytes) -> Result<Response, ApiError> {
+    page(&state, &visitor, &ip, &headers, &form_params(None, &body)).await
+}
+
+async fn page(state: &Orders, visitor: &Visitor, ip: &str, headers: &HeaderMap, params: &HashMap<String, String>) -> Result<Response, ApiError> {
     let pool = &state.core.pool;
     let framed = visitor.framed;
     let home = if framed { "/" } else { "/scs_index.php" };
-    let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(html::redirect(home)) };
-    let lines = cart::lines(&state, &shopper).await?;
+    let Some(shopper) = shopper(pool, visitor, headers).await? else { return Ok(html::redirect(home)) };
+    let lines = cart::lines(state, &shopper).await?;
     if lines.is_empty() {
         return Ok(html::redirect(home));
     }
-    let params = form_params(uri.query(), &body);
     let local = Registry::load(pool, "local").await?;
-    let remembered = crate::accounts::cookies::get(&headers, crate::accounts::cookies::EMAIL).unwrap_or_default();
+    let remembered = crate::accounts::cookies::get(headers, crate::accounts::cookies::EMAIL).unwrap_or_default();
     let mut order = prefill(pool, &shopper, &remembered).await?;
     let mut errors = Errors::default();
     let completing = params.get("action").is_some_and(|a| a == "complete");
     let mut placed = None;
     if completing {
-        errors = read_form(pool, &params, &mut order).await?;
+        errors = read_form(pool, params, &mut order).await?;
         if errors.is_empty() {
-            placed = Some(complete(&state, &shopper, &ip, &mut order, &lines, &local).await?);
+            placed = Some(complete(state, &shopper, ip, &mut order, &lines, &local).await?);
         }
     }
     let chrome = html::Chrome::load(pool).await?;
