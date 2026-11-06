@@ -33,6 +33,8 @@ use crate::{api::Auth, identity::Role, visitor::Visitor};
 const LEARNED_FILES: [&str; 2] = ["learned.tsv", "popular.tsv"];
 /// How long a built index is used before the tables are checked for changes.
 const RECHECK: Duration = Duration::from_secs(30);
+/// The longest wait before a build that failed is tried again; each failure in a row doubles the wait up to this.
+const MAX_RETRY: Duration = Duration::from_secs(15 * 60);
 /// Typed term -> (picks, entry) of what searchers opened after it.
 type Learned = HashMap<String, Vec<(u32, u32)>>;
 const DEFAULT_LIMIT: usize = 10;
@@ -1041,15 +1043,19 @@ async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
     Ok([rows, families, categories, parts])
 }
 
+#[derive(Clone)]
 struct Built {
-    stamp: Stamp,
+    /// The tables the index was built from; None before any build succeeded.
+    stamp: Option<Stamp>,
     checked: Instant,
+    /// How long after `checked` the tables are looked at again.
+    wait: Duration,
     index: Option<Arc<Index>>,
 }
 
 /// The index for one database, built on first use and rebuilt when its tables change. One request at a time checks
 /// and rebuilds; the others keep the index there is meanwhile (they wait only for the first). A build that fails
-/// keeps the previous index.
+/// keeps the previous index and is tried again later, less often each time it fails.
 #[derive(Default)]
 pub struct Cache {
     built: tokio::sync::Mutex<Option<Built>>,
@@ -1063,7 +1069,7 @@ impl Cache {
 
     async fn index(&self, pool: &SqlitePool) -> sqlx::Result<Option<Arc<Index>>> {
         let serving = match self.built.lock().await.as_ref() {
-            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
+            Some(b) if b.checked.elapsed() < b.wait => return Ok(b.index.clone()),
             Some(b) => b.index.clone(),
             None => None,
         };
@@ -1073,16 +1079,22 @@ impl Cache {
             (Err(_), None) => self.rebuild.lock().await,
         };
         let previous = match self.built.lock().await.as_ref() {
-            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
-            Some(b) => Some((b.stamp.clone(), b.index.clone())),
-            None => None,
+            Some(b) if b.checked.elapsed() < b.wait => return Ok(b.index.clone()),
+            Some(b) => b.clone(),
+            // A first build that fails is tried again after RECHECK.
+            None => Built { stamp: None, checked: Instant::now(), wait: RECHECK / 2, index: None },
         };
         let now = stamp(pool).await?;
-        let index = match previous {
-            Some((stamp, index)) if stamp == now => index,
-            previous => build(pool).await?.or_else(|| previous.and_then(|(_, ix)| ix)),
+        let built = if previous.stamp.as_ref() == Some(&now) {
+            Built { checked: Instant::now(), wait: RECHECK, ..previous }
+        } else {
+            match build(pool).await? {
+                Some(ix) => Built { stamp: Some(now), checked: Instant::now(), wait: RECHECK, index: Some(ix) },
+                None => Built { checked: Instant::now(), wait: (previous.wait * 2).min(MAX_RETRY), ..previous },
+            }
         };
-        *self.built.lock().await = Some(Built { stamp: now, checked: Instant::now(), index: index.clone() });
+        let index = built.index.clone();
+        *self.built.lock().await = Some(built);
         Ok(index)
     }
 }
@@ -1587,6 +1599,42 @@ ghost\t10\tNOPE-1\t4
         let rechecked = cache.index(&pool).await.unwrap().unwrap();
         assert!(Arc::ptr_eq(&first, &rechecked), "the tables did not change");
         assert!(cache.built.lock().await.as_ref().is_some_and(|b| b.checked.elapsed() < RECHECK));
+    }
+
+    #[tokio::test]
+    async fn a_build_that_fails_keeps_the_index_and_is_tried_again_less_often() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let cache = Cache::new();
+        let first = cache.index(&pool).await.unwrap().unwrap();
+        let built = |cache: &Arc<Cache>| {
+            let cache = cache.clone();
+            async move {
+                let mut b = cache.built.lock().await;
+                let b = b.as_mut().unwrap();
+                b.checked = Instant::now().checked_sub(b.wait + Duration::from_secs(1)).unwrap();
+                b.stamp.clone()
+            }
+        };
+        let good = built(&cache).await;
+        sqlx::query("UPDATE search SET id = 30, table_name = 'category', inventory_id = 0 WHERE id = 20").execute(&pool).await.unwrap();
+        for wait in [RECHECK * 2, RECHECK * 4] {
+            let kept = cache.index(&pool).await.unwrap().unwrap();
+            assert!(Arc::ptr_eq(&first, &kept), "the index there was");
+            assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(wait));
+            assert_eq!(built(&cache).await, good, "the tables of the index served");
+        }
+        sqlx::query("UPDATE search SET id = 40, table_name = 'inventory', inventory_id = 1 WHERE id = 30").execute(&pool).await.unwrap();
+        let rebuilt = cache.index(&pool).await.unwrap().unwrap();
+        assert!(!Arc::ptr_eq(&first, &rebuilt));
+        assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(RECHECK));
     }
 
     #[test]
