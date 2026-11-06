@@ -34,14 +34,15 @@ fn thumbnail(docroot: &Path, url: &str) -> Option<DynamicImage> {
 }
 
 /// process(): the strip, the stylesheet, a log row and the registry's timestamp. The first square stays empty and
-/// a subcategory without a usable thumbnail points at it, as the PHP counted from one.
+/// a subcategory without a usable thumbnail points at it, as the PHP counted from one; the strip has a square for
+/// each subcategory after it. A thumbnail under 80 pixels fills what it covers of its square.
 pub async fn run(pool: &SqlitePool, docroot: &Path, now: i64) -> Result<String, String> {
     let fail = |e: sqlx::Error| e.to_string();
     let subcategories = sqlx::query!(r#"SELECT id AS "id!: i64", COALESCE(thumbnail_url, '') AS "thumbnail!: String" FROM subcategory ORDER BY id"#)
         .fetch_all(pool)
         .await
         .map_err(fail)?;
-    let mut strip = RgbaImage::new(subcategories.len() as u32 * SIZE, SIZE);
+    let mut strip = RgbaImage::new((subcategories.len() as u32 + 1) * SIZE, SIZE);
     let mut css = vec![
         format!("/* Generated: {} */", rfc2822(now)),
         String::new(),
@@ -59,7 +60,7 @@ pub async fn run(pool: &SqlitePool, docroot: &Path, now: i64) -> Result<String, 
         let placed = match thumbnail(docroot, &s.thumbnail) {
             Some(img) => {
                 offset += 1;
-                let square = img.crop_imm(0, 0, SIZE, SIZE).to_rgba8();
+                let square = img.crop_imm(0, 0, SIZE.min(img.width()), SIZE.min(img.height())).to_rgba8();
                 imageops::overlay(&mut strip, &square, i64::from(offset * SIZE), 0);
                 offset
             }
@@ -110,11 +111,31 @@ mod tests {
         assert!(css.starts_with("/* Generated: Fri, 30 Oct 2026 10:49:00 -0400 */\n\n.catalog_subcategory_list span {"));
         assert!(css.ends_with(".subcat3 { background-position: -80px; }\n.subcat4 { background-position: 0px 0; }\n.subcat5 { background-position: 0px 0; }"));
         let strip = image::open(root.join(STRIP)).unwrap().to_rgba8();
-        assert_eq!(strip.dimensions(), (240, 80));
+        assert_eq!(strip.dimensions(), (320, 80));
         assert_eq!(strip.get_pixel(100, 10).0, [200, 0, 0, 255]);
         assert_eq!(strip.get_pixel(10, 10).0[3], 0);
         let stamp: String = sqlx::query_scalar("SELECT data FROM registry WHERE module = 'local' AND field = 'filmstrip_timestamp'").fetch_one(&pool).await.unwrap();
         assert_eq!(stamp, "1793371740");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[tokio::test]
+    async fn the_last_thumbnail_fits_and_a_small_one_fills_its_corner() {
+        let root = std::env::temp_dir().join(format!("hx-filmstrip-small-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("scs_scripts")).unwrap();
+        std::fs::create_dir_all(root.join("images_subcategory")).unwrap();
+        RgbaImage::from_pixel(90, 90, image::Rgba([200, 0, 0, 255])).save_with_format(root.join("images_subcategory/a.png"), ImageFormat::Png).unwrap();
+        RgbaImage::from_pixel(50, 40, image::Rgba([0, 0, 200, 255])).save_with_format(root.join("images_subcategory/b.png"), ImageFormat::Png).unwrap();
+        let pool = crate::db::open_memory().await.unwrap();
+        sqlx::query("INSERT INTO subcategory (id, name, thumbnail_url) VALUES (1, 'A', '/images_subcategory/a.png'), (2, 'B', '/images_subcategory/b.png')").execute(&pool).await.unwrap();
+        assert_eq!(run(&pool, &root, 1793371740).await.unwrap(), "Items processed: 3\n");
+        let css = std::fs::read_to_string(root.join(CSS)).unwrap();
+        assert!(css.ends_with(".subcat1 { background-position: -80px; }\n.subcat2 { background-position: -160px; }"));
+        let strip = image::open(root.join(STRIP)).unwrap().to_rgba8();
+        assert_eq!(strip.dimensions(), (240, 80));
+        assert_eq!(strip.get_pixel(159, 79).0, [200, 0, 0, 255]);
+        assert_eq!(strip.get_pixel(209, 39).0, [0, 0, 200, 255]);
+        assert_eq!(strip.get_pixel(210, 40).0[3], 0);
         std::fs::remove_dir_all(root).unwrap();
     }
 }
