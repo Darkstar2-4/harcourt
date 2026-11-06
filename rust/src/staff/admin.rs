@@ -548,6 +548,15 @@ async fn record(pool: &SqlitePool, staff: &Staff<Executive>, subtype: &str, spec
     audit::record(pool, Entry { subtype, user_id: staff.who.user.id.0, email: staff.who.email.as_deref(), ip: &ip, comment: &comment }).await;
 }
 
+/// Rebuilds what the site keeps compiled from a table once staff have changed it.
+async fn changed(auth: &Auth, spec: &Spec) {
+    if spec.table == "bot" {
+        if let Err(e) = auth.accounts.bots.reload(&auth.pool).await {
+            tracing::error!("bot table: {e}");
+        }
+    }
+}
+
 async fn create(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(table): Path<String>, posted: Posted) -> Page {
     let spec = gate(&staff, &table, |s| s.create)?;
     let mut notes = Notes::new(&title(spec, None), "");
@@ -556,6 +565,7 @@ async fn create(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(tab
         match insert(&auth.pool, spec, &writes(spec, edited, true)).await {
             Ok(id) => {
                 record(&auth.pool, &staff, "admin_create", spec, id).await;
+                changed(&auth, spec).await;
                 return Ok(found(&format!("{}/{id}?saved=1", spec.path())));
             }
             Err(e) => {
@@ -578,6 +588,7 @@ async fn save(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path((tabl
         match update(&auth.pool, spec, id, &writes(spec, edited, false)).await {
             Ok(()) => {
                 record(&auth.pool, &staff, "admin_update", spec, id).await;
+                changed(&auth, spec).await;
                 return Ok(found(&format!("{}/{id}?saved=1", spec.path())));
             }
             Err(e) => {
@@ -601,6 +612,7 @@ async fn delete(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path((ta
         return Ok(form_page(&auth.pool, &staff, spec, Some(id), &before, &notes).await);
     }
     record(&auth.pool, &staff, "admin_delete", spec, id).await;
+    changed(&auth, spec).await;
     Ok(found(&format!("{}?deleted={id}", spec.path())))
 }
 

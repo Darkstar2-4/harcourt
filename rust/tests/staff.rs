@@ -542,6 +542,38 @@ async fn the_table_admin_lists_creates_edits_and_deletes_a_row() {
 }
 
 #[tokio::test]
+async fn a_bot_saved_in_the_table_admin_is_recognised_at_once() {
+    use hxweb::accounts::bot::{self, Dns};
+    let pool = db::open_memory().await.unwrap();
+    let crawler: std::net::IpAddr = "192.0.2.10".parse().unwrap();
+    let dns = Dns::fixed(&[(crawler, "crawl-1.search.example")], &[("crawl-1.search.example", crawler)]);
+    let auth = Arc::new(Auth { pool: pool.clone(), secret: None, public_origin: "https://www.harcourt.co".into(), trusted_proxies: vec![], accounts: hxweb::accounts::Services::offline(dns) });
+    let app = hxweb::routes::staff::router(auth.clone());
+    let admin = person(&pool, 1, "Administrator").await;
+    let core = &auth;
+    let recognised = move || async move { bot::identify(&core.pool, &core.accounts.dns, &core.accounts.bots, crawler).await.unwrap().map(|b| b.name) };
+    assert_eq!(recognised().await, None);
+
+    let (_, _, page) = send(&app, get("/staff/admin/bot/new", Some(&admin))).await;
+    let new = changed(&page, &[("code", "crawl"), ("name", "Search crawler"), ("pattern", r"/\.search\.example$/i"), ("portal_id", "0"), ("status", "Active")]);
+    let (status, _, _) = post_form(&app, "/staff/admin/bot/new", &admin, &new).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(recognised().await.as_deref(), Some("Search crawler"));
+
+    let id: i64 = sqlx::query_scalar("SELECT id FROM bot WHERE code = 'crawl'").fetch_one(&pool).await.unwrap();
+    let path = format!("/staff/admin/bot/{id}");
+    let (_, _, page) = send(&app, get(&path, Some(&admin))).await;
+    let (status, _, _) = post_form(&app, &path, &admin, &changed(&page, &[("name", "Renamed crawler")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(recognised().await.as_deref(), Some("Renamed crawler"));
+
+    let (_, _, page) = send(&app, get(&path, Some(&admin))).await;
+    let (status, _, _) = post_form(&app, &format!("{path}/delete"), &admin, &form_of(&page)).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(recognised().await, None);
+}
+
+#[tokio::test]
 async fn the_table_admin_turns_away_other_roles_and_accounts_that_are_not_active() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;

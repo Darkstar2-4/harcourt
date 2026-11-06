@@ -5,7 +5,7 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    sync::Mutex,
+    sync::{Arc, Mutex, MutexGuard, PoisonError},
     time::{Duration, Instant},
 };
 
@@ -134,27 +134,79 @@ fn parse_status(s: &str) -> Option<BotStatus> {
     }
 }
 
+struct Rule {
+    bot: Bot,
+    pattern: Regex,
+}
+
+/// The bot table with its patterns compiled: read on first use and again whenever staff change it.
+#[derive(Default)]
+pub struct Bots(Mutex<Loaded>);
+
+#[derive(Default)]
+struct Loaded {
+    generation: u64,
+    rules: Option<Arc<[Rule]>>,
+}
+
+impl Bots {
+    fn loaded(&self) -> MutexGuard<'_, Loaded> {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Reads the table again. A read that began before this call is not kept.
+    pub async fn reload(&self, pool: &SqlitePool) -> sqlx::Result<()> {
+        let generation = {
+            let mut loaded = self.loaded();
+            loaded.generation += 1;
+            loaded.rules = None;
+            loaded.generation
+        };
+        self.load(pool, generation).await.map(drop)
+    }
+
+    async fn rules(&self, pool: &SqlitePool) -> sqlx::Result<Arc<[Rule]>> {
+        let generation = {
+            let loaded = self.loaded();
+            if let Some(rules) = &loaded.rules {
+                return Ok(rules.clone());
+            }
+            loaded.generation
+        };
+        self.load(pool, generation).await
+    }
+
+    async fn load(&self, pool: &SqlitePool, generation: u64) -> sqlx::Result<Arc<[Rule]>> {
+        let rows = sqlx::query!(
+            r#"SELECT id AS "id!: i64", code AS "code!", pattern AS "pattern!", name AS "name!", portal_id AS "portal_id!: i64",
+                      catalog AS "catalog!: i64", status AS "status!" FROM bot ORDER BY id"#
+        )
+        .fetch_all(pool)
+        .await?;
+        let rules: Arc<[Rule]> = rows
+            .into_iter()
+            .filter_map(|r| {
+                let status = parse_status(&r.status)?;
+                let Some(pattern) = compile(&r.pattern) else {
+                    tracing::debug!(bot = r.id, "bot pattern is not a readable PCRE literal");
+                    return None;
+                };
+                Some(Rule { bot: Bot { id: r.id, code: r.code, name: r.name, portal_id: r.portal_id, catalog: r.catalog != 0, status }, pattern })
+            })
+            .collect();
+        let mut loaded = self.loaded();
+        if loaded.generation == generation {
+            loaded.rules = Some(rules.clone());
+        }
+        Ok(rules)
+    }
+}
+
 /// The first bot, in id order, whose pattern matches the forward-confirmed name of `ip`. Denied bots match too;
 /// what Denied means is the caller's decision.
-pub async fn identify(pool: &SqlitePool, dns: &Dns, ip: IpAddr) -> sqlx::Result<Option<Bot>> {
+pub async fn identify(pool: &SqlitePool, dns: &Dns, bots: &Bots, ip: IpAddr) -> sqlx::Result<Option<Bot>> {
     let Some(name) = dns.confirmed_name(ip).await else { return Ok(None) };
-    let rows = sqlx::query!(
-        r#"SELECT id AS "id!: i64", code AS "code!", pattern AS "pattern!", name AS "name!", portal_id AS "portal_id!: i64",
-                  catalog AS "catalog!: i64", status AS "status!" FROM bot ORDER BY id"#
-    )
-    .fetch_all(pool)
-    .await?;
-    for r in rows {
-        let Some(status) = parse_status(&r.status) else { continue };
-        let Some(re) = compile(&r.pattern) else {
-            tracing::debug!(bot = r.id, "bot pattern is not a readable PCRE literal");
-            continue;
-        };
-        if re.is_match(&name) {
-            return Ok(Some(Bot { id: r.id, code: r.code, name: r.name, portal_id: r.portal_id, catalog: r.catalog != 0, status }));
-        }
-    }
-    Ok(None)
+    Ok(bots.rules(pool).await?.iter().find(|r| r.pattern.is_match(&name)).map(|r| r.bot.clone()))
 }
 
 #[cfg(test)]
@@ -205,8 +257,25 @@ mod tests {
         .await
         .unwrap();
         let dns = Dns::fixed(&[(ip("192.0.2.1"), "crawl-1.example.net")], &[("crawl-1.example.net", ip("192.0.2.1"))]);
-        let bot = identify(&pool, &dns, ip("192.0.2.1")).await.unwrap().unwrap();
+        let bots = Bots::default();
+        let bot = identify(&pool, &dns, &bots, ip("192.0.2.1")).await.unwrap().unwrap();
         assert_eq!((bot.id, bot.portal_id, bot.catalog, bot.status), (3, 4, true, BotStatus::Active));
-        assert!(identify(&pool, &dns, ip("192.0.2.9")).await.unwrap().is_none());
+        assert!(identify(&pool, &dns, &bots, ip("192.0.2.9")).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn the_compiled_table_changes_when_it_is_reloaded() {
+        let pool = crate::db::open_memory().await.unwrap();
+        sqlx::query(r#"INSERT INTO bot (id, code, pattern, name, status) VALUES (1, 'crawl', '/\.example\.net$/', 'Crawler', 'Active')"#).execute(&pool).await.unwrap();
+        let dns = Dns::fixed(&[(ip("192.0.2.1"), "crawl-1.example.net")], &[("crawl-1.example.net", ip("192.0.2.1"))]);
+        let bots = Bots::default();
+        async fn named(pool: &SqlitePool, dns: &Dns, bots: &Bots) -> Option<String> {
+            identify(pool, dns, bots, ip("192.0.2.1")).await.unwrap().map(|b| b.name)
+        }
+        assert_eq!(named(&pool, &dns, &bots).await.as_deref(), Some("Crawler"));
+        sqlx::query("UPDATE bot SET name = 'Renamed'").execute(&pool).await.unwrap();
+        assert_eq!(named(&pool, &dns, &bots).await.as_deref(), Some("Crawler"), "compiled once");
+        bots.reload(&pool).await.unwrap();
+        assert_eq!(named(&pool, &dns, &bots).await.as_deref(), Some("Renamed"));
     }
 }
