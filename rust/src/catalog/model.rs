@@ -202,9 +202,18 @@ pub struct Part {
 }
 
 impl Part {
+    pub fn orderable(&self) -> bool {
+        orderable(self.active)
+    }
+
     pub fn leadtime(&self, family: &Family) -> String {
         leadtime(&self.leadtime_option, &self.leadtime_text, Some(family))
     }
+}
+
+/// Whether the cart takes a part: active ones only. A discontinued part keeps its page but is not sold.
+pub fn orderable(active: bool) -> bool {
+    active
 }
 
 /// Everything the catalog views read about categories and families, for one language.

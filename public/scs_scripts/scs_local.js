@@ -1,4 +1,4 @@
-var scs_local_version=20250506;
+var scs_local_version=20261106;
 var cart_url=window.location.origin + "/cart.php";
 jQuery(document).ready(function() {
 	if (window.self !== window.top) scscpq_ipc("scscpq_wp_iframe", "resize", 0);
@@ -44,6 +44,10 @@ function cart_update(obj,code,code2) {
 	    data: {action: 'json', json_code: code, json_quantity: quantity },
 	    dataType: 'json',
 	    success:function(data){
+			if (/ invalid$/.test(data.status)) {
+				alert(data.status);
+				return;
+			}
 			jQuery("#" + code).val('');
 			if ( jQuery("#menu_cart_size" ).length ) {
             	if (quantity) cart_flying(code);

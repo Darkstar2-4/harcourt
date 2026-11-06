@@ -189,7 +189,7 @@ impl Api<'_> {
                     block.push_str(&format!("<p>Typical lead time: {}</p>", html::esc_text(&leadtime)));
                 }
                 html_parts.push(format!("<div>{block}</div>"));
-                if self.viewer.ecommerce {
+                if self.viewer.ecommerce && part.orderable() {
                     let field_sku = html::base64_fields(&["sku_cad", &sku]);
                     let field_list = html::base64_fields(&["list_cad", &sku]);
                     let onclick = format!("cart_update(this,{},{});", forms::js_quote(&field_sku), forms::js_quote(&field_list));
