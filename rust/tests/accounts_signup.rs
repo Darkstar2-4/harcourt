@@ -466,6 +466,29 @@ async fn a_domain_belongs_to_its_active_company_ahead_of_older_requests() {
 }
 
 #[tokio::test]
+async fn a_refreshed_callback_shows_the_sign_in_it_made_and_makes_no_other() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let ms = stand_in(Kind::Microsoft, serde_json::json!({"mail": "pat@example.com", "userPrincipalName": "pat@example.com"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: Some(ms), google: None });
+    let start = send(&app, Method::GET, "/oauth/init.php", "", None, false).await;
+    let location = start.headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    *nonce.lock().unwrap() = param(&location, "nonce");
+    let callback = format!("/oauth/callback.php?code=c1&state={}", param(&location, "state"));
+    let back = send(&app, Method::GET, &callback, &start.jar(), None, false).await;
+    let jar = [start.jar(), back.jar()].join("; ");
+    assert!(page(&app, &jar).await.body.contains("Congratulations, you now have access!"));
+
+    let again = send(&app, Method::GET, &callback, &jar, None, false).await;
+    assert_eq!((again.status, again.headers.get(header::LOCATION).unwrap().to_str().unwrap()), (StatusCode::FOUND, "/request-access"));
+    let shown = page(&app, &jar).await;
+    assert!(shown.body.contains("Congratulations, you now have access!"), "{}", shown.body);
+    assert!(!shown.body.contains("Invalid OAuth state"));
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM session").await, 1);
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'Remote Login'").await, 1);
+}
+
+#[tokio::test]
 async fn a_free_mail_address_signs_in_again_to_the_account_it_asked_for() {
     let pool = pool().await;
     let nonce = Arc::new(Mutex::new(String::new()));

@@ -21,6 +21,7 @@ use subtle::ConstantTimeEq;
 
 use crate::{
     accounts::{
+        account::Account,
         admission::{self, Admission, Context, Registration},
         cookies,
         html::escape,
@@ -29,7 +30,7 @@ use crate::{
     },
     api::Auth,
     db::unix_now,
-    identity::Email,
+    identity::{Email, Status},
     token::Token,
     visitor::Visitor,
 };
@@ -273,7 +274,12 @@ pub struct Callback {
 }
 
 /// Store the outcome for the sign-up page and send the browser there. `existing` is this browser's row, if any.
-async fn finish(pool: &SqlitePool, kind: Kind, existing: Option<Token>, outcome: Outcome, now: i64, mut set: Vec<HeaderValue>) -> Response {
+async fn finish(pool: &SqlitePool, kind: Kind, existing: Option<Token>, outcome: Outcome, now: i64, set: Vec<HeaderValue>) -> Response {
+    settle(pool, kind, existing, outcome, now, set, true).await
+}
+
+/// `finish`, where `replace` false leaves an outcome already waiting for the browser as it is.
+async fn settle(pool: &SqlitePool, kind: Kind, existing: Option<Token>, outcome: Outcome, now: i64, mut set: Vec<HeaderValue>, replace: bool) -> Response {
     let token = existing.unwrap_or_else(Token::generate);
     let hash = token.hash();
     let hash = hash.as_slice();
@@ -290,12 +296,14 @@ async fn finish(pool: &SqlitePool, kind: Kind, existing: Option<Token>, outcome:
     let saved = sqlx::query!(
         "INSERT INTO oauth_login (token_hash, provider, created_at, outcome, message) VALUES (?1, ?2, ?3, ?4, ?5)
          ON CONFLICT (token_hash) DO UPDATE SET provider = excluded.provider, state = NULL, verifier = NULL, nonce = NULL,
-             created_at = excluded.created_at, outcome = excluded.outcome, message = excluded.message",
+             created_at = excluded.created_at, outcome = excluded.outcome, message = excluded.message
+         WHERE ?6 OR oauth_login.outcome IS NULL",
         hash,
         provider,
         now,
         code,
-        message
+        message,
+        replace
     )
     .execute(pool)
     .await;
@@ -482,42 +490,38 @@ async fn identify(core: &Auth, p: &Provider, kind: Kind, code: &str, verifier: &
 async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap, q: Callback) -> Response {
     let pool = &core.pool;
     let now = unix_now();
-    let token = browser_token(headers);
-    if token.is_none() {
+    let Some(token) = browser_token(headers) else {
         if let Some(id) = &visitor.visit {
             if let Err(e) = visit::leave_oauth_error(pool, id, kind == Kind::Google, INVALID_STATE, now).await {
                 tracing::error!("oauth callback: {e}");
             }
         }
         return redirect(LANDING, Vec::new());
-    }
-    let pending = match &token {
-        Some(t) => {
-            let hash = t.hash();
-            let hash = hash.as_slice();
-            let code = kind.code();
-            sqlx::query!(
-                r#"SELECT state AS "state!", verifier AS "verifier!", nonce AS "nonce!", created_at AS "created_at!: i64"
-                   FROM oauth_login WHERE token_hash = ?1 AND provider = ?2 AND outcome IS NULL"#,
-                hash,
-                code
-            )
-            .fetch_optional(pool)
-            .await
-            .unwrap_or_else(|e| {
-                tracing::error!("oauth callback: {e}");
-                None
-            })
+    };
+    let hash = token.hash();
+    let hash = hash.as_slice();
+    let code = kind.code();
+    let claimed = sqlx::query!(
+        r#"DELETE FROM oauth_login WHERE token_hash = ?1 AND provider = ?2 AND outcome IS NULL
+           RETURNING state AS "state!", verifier AS "verifier!", nonce AS "nonce!", created_at AS "created_at!: i64""#,
+        hash,
+        code
+    )
+    .fetch_optional(pool)
+    .await;
+    let row = match claimed {
+        Ok(Some(row)) => row,
+        Ok(None) => return settle(pool, kind, Some(token), repeated(&visitor), now, Vec::new(), false).await,
+        Err(e) => {
+            tracing::error!("oauth callback: {e}");
+            return finish(pool, kind, Some(token), Outcome::Failed, now, Vec::new()).await;
         }
-        None => None,
     };
-    let state_ok = match (&pending, &q.state) {
-        (Some(row), Some(s)) => !s.is_empty() && bool::from(row.state.as_bytes().ct_eq(s.as_bytes())),
-        _ => false,
-    };
-    let Some(row) = pending.filter(|_| state_ok) else {
+    let token = Some(token);
+    let state_ok = q.state.as_deref().is_some_and(|s| !s.is_empty() && bool::from(row.state.as_bytes().ct_eq(s.as_bytes())));
+    if !state_ok {
         return finish(pool, kind, token, Outcome::Error(INVALID_STATE.into()), now, Vec::new()).await;
-    };
+    }
     if now - row.created_at > STATE_SECS {
         return finish(pool, kind, token, Outcome::Error("Authentication request expired. Please try again.".into()), now, Vec::new()).await;
     }
@@ -542,6 +546,15 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
         }
     };
     finish(pool, kind, token, outcome, now, set).await
+}
+
+/// A callback for a sign-in already used, by a refresh or a second request: the browser it signed in sees that.
+fn repeated(visitor: &Visitor) -> Outcome {
+    match visitor.account().map(Account::status) {
+        Some(Status::Active) => Outcome::Granted,
+        Some(Status::Pending) => Outcome::Pending,
+        _ => Outcome::Error(INVALID_STATE.into()),
+    }
 }
 
 /// newuser.php process_oauth() after the provider: the same decision as the sign-up form.
