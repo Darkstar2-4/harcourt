@@ -58,9 +58,16 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
     let get = |k: &str| p.get(k).map(String::as_str).unwrap_or("");
     if !headers.contains_key("x-requested-with") {
         let action = get("action").trim();
-        return match action {
-            "download" => download(get("url")).await,
-            _ => text(format!("function: html_{}", html::esc(action))),
+        if action != "download" {
+            return text(format!("function: html_{}", html::esc(action)));
+        }
+        return match viewer::load(&core.pool, &visitor, viewer::lang_for(&visitor)).await {
+            Ok(viewer) if viewer.uses_quick_cad() => download(get("url")).await,
+            Ok(_) => text("Error detected Access denied".into()),
+            Err(e) => {
+                tracing::error!("scscpq_api: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
+            }
         };
     }
     let result = async {
