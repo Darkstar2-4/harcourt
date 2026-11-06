@@ -105,6 +105,36 @@ async fn an_import_reviews_unless_asked_to_update() {
 }
 
 #[tokio::test]
+async fn cells_a_column_cannot_read_reject_their_line() {
+    let pool = seeded().await;
+    let mut header = vec!["Harcourt SKU".to_string(), "New Date".into(), "Active".into(), "Base Price".into()];
+    for i in 1..10 {
+        header.push(format!("Qty Break #{i}"));
+        header.push(format!("Price #{i}"));
+    }
+    let line = |cells: [&str; 4]| {
+        let mut l: Vec<String> = cells.map(String::from).to_vec();
+        l.resize(header.len(), String::new());
+        l.join("\t")
+    };
+    let body = [header.join("\t"), line(["TC-100", "soon", "Y", "n/a"]), line(["TC-200", "2024-06-01", "TRUE", "$7.25"]), line(["BL-1", "", "maybe", ""])].join("\n");
+    let file = Scratch::new("cells.txt", body.as_bytes());
+    let text = printed(run_on(&pool, &["import", "inventory", file.path(), "--update"]).await);
+    assert!(text.contains("  line 2: new_date: Not a date: soon\n  line 2: price0: Not a number: n/a\n"), "{text}");
+    assert!(text.contains("  line 4: active: Not yes or no: maybe\n  line 4: price0: Cannot be blank\n"), "{text}");
+    let rows: Vec<(String, String, i64, String)> = sqlx::query_as("SELECT sku, new_date, active, COALESCE(pricing, '') FROM inventory ORDER BY id").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows[0], ("TC-100".into(), "2024-03-05".into(), 1, r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#.into()), "a rejected line saves nothing");
+    assert_eq!(rows[1], ("TC-200".into(), "2024-06-01".into(), 1, r#"[{"price":7.25,"qty_break":0}]"#.into()));
+    assert_eq!(rows[2], ("BL-1".into(), "0000-00-00".into(), 1, "[]".into()));
+
+    let prices = Scratch::new("rail.txt", b"subcategory_id\trecord_type\tPer MM Rail price\n549\trail_length\t\n549\trail_length\t0.25\n");
+    let text = printed(run_on(&pool, &["import", "pricing", prices.path(), "--subcategory", "549", "--record-type", "rail_length", "--update"]).await);
+    assert!(text.contains("  line 2: price0: Cannot be blank\n"), "{text}");
+    let stored: Vec<f64> = sqlx::query_scalar("SELECT price0 FROM pricing WHERE subcategory_id = '549'").fetch_all(&pool).await.unwrap();
+    assert_eq!(stored, [0.25]);
+}
+
+#[tokio::test]
 async fn a_rejected_line_rolls_back_a_subcategory_update_and_the_sort_order_is_a_column() {
     let pool = seeded().await;
     let bad = Scratch::new("lead.txt", b"Subcategory ID\tLeadtime Option\tLeadtime Weeks\tSort Order\n10\tweeks\t4\t15\n11\tsoon\t\t5\n");
@@ -144,6 +174,17 @@ async fn erp_prices_replace_the_breaks_and_xref_lines_can_replace_the_list() {
 }
 
 #[tokio::test]
+async fn replacing_the_xref_list_keeps_the_stored_lines_of_rejected_lines() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES ('TC-100', '', 'OLD-1', 1), ('TC-200', '', 'OLD-2', 1), ('BL-1', '', 'OLD-3', 1)").await;
+    let file = Scratch::new("xref.txt", b"Item #\tXref\nTC-100\tNEW-1\nTC-200\tTC-200\n\tOLD-3\n");
+    let text = printed(run_on(&pool, &["import", "xref", file.path(), "--replace", "--update"]).await);
+    assert!(text.contains("Rejected records: 2\n"), "{text}");
+    let rows: Vec<(String, String)> = sqlx::query_as("SELECT sku, competitor_sku FROM inventory_xref ORDER BY sku").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [("BL-1".to_string(), "OLD-3".to_string()), ("TC-100".into(), "NEW-1".into()), ("TC-200".into(), "OLD-2".into())]);
+}
+
+#[tokio::test]
 async fn account_imports_check_every_column_against_the_lookups() {
     let pool = seeded().await;
     exec(&pool, "INSERT INTO currency (code, name, exchange_rate) VALUES ('USD', 'US Dollar', 1)").await;
@@ -160,6 +201,35 @@ async fn account_imports_check_every_column_against_the_lookups() {
     printed(run_on(&pool, &["export", "user", "--status", "Active", "--role", "Customer", "--out", out.path()]).await);
     assert!(out.text().lines().nth(1).unwrap().starts_with("5,192.0.2.5,\"Example Co\""));
     assert_eq!(run_on(&pool, &["export", "user", "--status", "Denied", "--out", out.path()]).await, Err(Fail::Run("No records found".into())));
+}
+
+#[tokio::test]
+async fn account_countries_and_states_match_whole_names_codes_and_aliases() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO country (country, state, name, alias) VALUES ('US', '', 'United States', '^usa^america^'), ('CA', '', 'Canada', '^can^'), ('US', 'MI', 'Michigan', NULL)").await;
+    exec(&pool, r#"INSERT INTO "user" (id, ip, status, "type", company_name, country_code, state) VALUES (5, '192.0.2.5', 'Active', 'Customer', 'Example Co', 'CA', 'ON'), (6, '192.0.2.6', 'Active', 'Customer', 'Sample Co', 'US', 'MI')"#).await;
+    let file = Scratch::new(
+        "places.txt",
+        b"id\tip\tCompany Name\tCountry Code\tState/Province\n5\t192.0.2.5\tExample Co\t\t\n6\t192.0.2.6\tSample Co\tUSA\tmichigan\n6\t192.0.2.6\tSample Co\tus\tNowhere\n6\t192.0.2.6\tSample Co\tmeric\tMI\n",
+    );
+    let text = printed(run_on(&pool, &["import", "user", file.path(), "--update"]).await);
+    assert!(text.contains("  line 4: state: Invalid: Nowhere\n"), "{text}");
+    assert!(text.contains("  line 5: country_code: Invalid: MERIC\n  line 5: state: Invalid: MI\n"), "an alias matches whole: {text}");
+    let rows: Vec<(i64, Option<String>, Option<String>)> = sqlx::query_as(r#"SELECT id, country_code, state FROM "user" WHERE id IN (5, 6) ORDER BY id"#).fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [(5, Some(String::new()), Some(String::new())), (6, Some("US".into()), Some("MI".into()))], "a blank country stays blank");
+}
+
+#[tokio::test]
+async fn the_email_export_dates_each_address_in_detroit() {
+    let pool = seeded().await;
+    exec(&pool, r#"INSERT INTO "user" (id, ip, status, "type", company_name) VALUES (5, '192.0.2.5', 'Active', 'Customer', 'Example Co')"#).await;
+    // 2024-03-05 02:00 UTC is the evening of March 4 in Detroit.
+    exec(&pool, "INSERT INTO log (ip, date_time, user_id, email, type) VALUES ('192.0.2.5', 1709604000, 5, 'pat@example.com', 'Login')").await;
+    let out = Scratch::new("emails.csv", b"");
+    let on = |d| ["export", "email", "--source", "first", "--from", d, "--thru", d, "--out", out.path()];
+    printed(run_on(&pool, &on("2024-03-04")).await);
+    assert!(out.text().contains("pat@example.com"), "{}", out.text());
+    assert_eq!(run_on(&pool, &on("2024-03-05")).await, Err(Fail::Run("No records found".into())));
 }
 
 #[tokio::test]
@@ -189,6 +259,16 @@ async fn a_price_increase_raises_every_break_of_the_named_subcategories() {
     assert_eq!(count(&pool, "SELECT count(*) FROM log WHERE type = 'Import Table' AND subtype = 'Price Increase: Percent'").await, 1);
     assert!(matches!(run_on(&pool, &["job", "price_increase", "--percent", "10", "11"]).await, Err(Fail::Run(_))), "a pending subcategory is not raised");
     assert!(matches!(run_on(&pool, &["job", "price_increase", "--fixed", "1"]).await, Err(Fail::Usage(_))), "name the subcategories or --all");
+}
+
+#[tokio::test]
+async fn a_price_increase_that_cannot_be_logged_raises_nothing() {
+    let pool = seeded().await;
+    exec(&pool, "CREATE TRIGGER no_log BEFORE INSERT ON log BEGIN SELECT RAISE(ABORT, 'log is read only'); END").await;
+    assert!(matches!(run_on(&pool, &["job", "price_increase", "--percent", "10", "--all"]).await, Err(Fail::Run(_))));
+    let pricing: String = sqlx::query_scalar("SELECT pricing FROM inventory WHERE id = 1").fetch_one(&pool).await.unwrap();
+    assert_eq!(pricing, r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#);
+    assert_eq!(count(&pool, "SELECT count(*) FROM subcategory WHERE price_increase > 0").await, 0);
 }
 
 #[tokio::test]

@@ -93,7 +93,8 @@ pub struct Options {
     pub thru: String,
     pub source: EmailSource,
     pub record_type: String,
-    /// Xref: drop the stored lines the file does not hold.
+    /// Xref: drop the stored lines the file does not hold. A rejected line keeps the stored lines of its part (or of
+    /// its competitor number, when it names no part).
     pub replace: bool,
 }
 
@@ -512,11 +513,9 @@ async fn user_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<
 
 async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<Vec<Record>> {
     let mut rows = sqlx::query!(
-        r#"SELECT e.email AS "email!: String", e.first_day AS "first_day!: String", e.last_day AS "last_day!: String",
+        r#"SELECT e.email AS "email!: String", e.first_seen AS "first_seen!: i64", e.last_seen AS "last_seen!: i64",
                   u.company_name, u.address, u.city, u.state, u.zip, u.country_code
-           FROM (SELECT email, min(user_id) AS user_id,
-                        strftime('%Y/%m/%d', min(date_time), 'unixepoch', 'localtime') AS first_day,
-                        strftime('%Y/%m/%d', max(date_time), 'unixepoch', 'localtime') AS last_day
+           FROM (SELECT email, min(user_id) AS user_id, min(date_time) AS first_seen, max(date_time) AS last_seen
                  FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e
            JOIN "user" u ON u.id = e.user_id
            WHERE COALESCE(u.company_name, '') <> ''
@@ -525,12 +524,13 @@ async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result
     .fetch_all(pool)
     .await?;
     rows.retain(|r| {
-        let day = match o.source {
+        let seen = match o.source {
             EmailSource::All => return true,
-            EmailSource::First => &r.first_day,
-            EmailSource::Last => &r.last_day,
+            EmailSource::First => r.first_seen,
+            EmailSource::Last => r.last_seen,
         };
-        (o.from.is_empty() || day.as_str() >= o.from.as_str()) && (o.thru.is_empty() || day.as_str() <= o.thru.as_str())
+        let day = time::date("Y/m/d", seen);
+        (o.from.is_empty() || day >= o.from) && (o.thru.is_empty() || day <= o.thru)
     });
     filesort::sort(&mut rows, |a, b| filesort::ci(&a.email, &b.email));
     Ok(rows
@@ -770,8 +770,20 @@ pub async fn import(pool: &SqlitePool, table: Table, o: &Options, sheet: Sheet, 
             continue;
         }
         report.accepted += 1;
-        let line: Line = columns.iter().map(|f| (f.key.clone(), map::import_value(f, cells.get(header.column[&f.key]).copied().unwrap_or(""), sheet.file_type))).collect();
-        let errors = target.line(&mut tx, &line, update, header.complete).await.map_err(fail)?;
+        let (mut line, mut errors) = (Line::new(), Errors::new());
+        for f in &columns {
+            let cell = cells.get(header.column[&f.key]).copied().unwrap_or("");
+            match map::import_value(f, cell, sheet.file_type) {
+                Ok(value) => line.insert(f.key.clone(), value),
+                Err(e) => {
+                    errors.push((f.key.clone(), e));
+                    line.insert(f.key.clone(), String::new())
+                }
+            };
+        }
+        let checked = target.line(&mut tx, &line, update && errors.is_empty(), header.complete).await.map_err(fail)?;
+        let unread: Vec<String> = errors.iter().map(|(k, _)| k.clone()).collect();
+        errors.extend(checked.into_iter().filter(|(k, _)| !unread.contains(k)));
         if errors.is_empty() {
             report.saved += 1;
         } else {
@@ -876,6 +888,9 @@ async fn inventory_line(
     if let Some((option, text)) = leadtime {
         leadtime_errors(option, text, &INVENTORY_LEADTIME, &mut errors);
     }
+    if has(line, "price0") && val(line, "price0").is_empty() {
+        errors.push(("price0".into(), "Cannot be blank".into()));
+    }
     let breaks = has(line, "price0").then(|| {
         let mut out: Vec<Break> = Vec::new();
         for i in 0..BREAKS {
@@ -966,7 +981,8 @@ async fn erp_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool) ->
     Ok(Vec::new())
 }
 
-/// A break applies from one above the quantity before it; a break that does not lower the price is skipped.
+/// A break applies from one above the quantity before it; a break that does not lower the price is skipped. A part
+/// with no quantity break keeps its list price from quantity 0.
 fn erp_breaks(line: &Line) -> Vec<Break> {
     let mut steps: Vec<(f64, f64)> = Vec::new();
     let (mut last_price, mut last_break) = (999_999.0, 0.0);
@@ -987,6 +1003,10 @@ fn erp_breaks(line: &Line) -> Vec<Break> {
         if qty == 999_999.0 {
             break;
         }
+    }
+    let list = map::floatval(val(line, "_price0"));
+    if steps.is_empty() && list > 0.0 {
+        steps.push((0.0, list));
     }
     steps.into_iter().map(|(q, p)| Break { qty: decimal(if q == 0.0 { 0.0 } else { q + 1.0 }), price: decimal(p) }).collect()
 }
@@ -1035,6 +1055,15 @@ async fn xref_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, s
         sqlx::query!("INSERT OR REPLACE INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES (?1, '', ?2, ?3)", sku, other, stamp)
             .execute(&mut *tx)
             .await?;
+    } else if update && stamp != 0 {
+        sqlx::query!(
+            "UPDATE inventory_xref SET update_timestamp = ?3 WHERE (?1 <> '' AND sku = ?1) OR (?1 = '' AND ?2 <> '' AND competitor_sku = ?2)",
+            sku,
+            other,
+            stamp
+        )
+        .execute(&mut *tx)
+        .await?;
     }
     Ok(errors)
 }
@@ -1132,16 +1161,17 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
     if has(line, "city") {
         u.city = text("city");
     }
+    let mut unknown_country = false;
     if has(line, "country_code") {
-        let given = if val(line, "country_code").is_empty() { "US".to_string() } else { text("country_code") };
-        u.country_code = find_country(tx, &given).await?;
-        if u.country_code.is_empty() {
-            e.push(("country_code".into(), format!("Invalid: {given}")));
+        u.country_code = find_country(tx, val(line, "country_code")).await?;
+        unknown_country = !val(line, "country_code").is_empty() && u.country_code.is_empty();
+        if unknown_country {
+            e.push(invalid("country_code"));
         }
     }
     if has(line, "state") {
         u.state = find_state(tx, &u.country_code, val(line, "state")).await?;
-        if !val(line, "state").is_empty() && u.country_code.is_empty() {
+        if !val(line, "state").is_empty() && (u.state.is_empty() || unknown_country) {
             e.push(invalid("state"));
         }
     }
@@ -1357,24 +1387,27 @@ impl UserRow {
     }
 }
 
-/// country->find_country(): the country by code, name, or a word of its aliases.
+/// country->find_country(): the country by code, name or one of its aliases (stored `^alias^alias^`), in any case;
+/// "" for none.
 async fn find_country(tx: &mut sqlx::SqliteConnection, code: &str) -> sqlx::Result<String> {
-    if code.is_empty() {
+    if code.is_empty() || code.contains('^') {
         return Ok(String::new());
     }
-    let like = format!("%{code}%");
+    let alias = format!("^{}^", code.to_lowercase());
     let found = sqlx::query_scalar!(
-        r#"SELECT country AS "country!: String" FROM country WHERE state = '' AND (country = ?1 OR name = ?1 OR alias LIKE ?2)
-           ORDER BY CASE WHEN country = ?1 THEN 1 WHEN name = ?1 THEN 2 ELSE 3 END LIMIT 1"#,
+        r#"SELECT country AS "country!: String" FROM country
+           WHERE state = '' AND (country = ?1 COLLATE NOCASE OR name = ?1 COLLATE NOCASE OR instr(lower(COALESCE(alias, '')), ?2) > 0)
+           ORDER BY CASE WHEN country = ?1 COLLATE NOCASE THEN 1 WHEN name = ?1 COLLATE NOCASE THEN 2 ELSE 3 END LIMIT 1"#,
         code,
-        like
+        alias
     )
     .fetch_optional(&mut *tx)
     .await?;
     Ok(found.unwrap_or_default())
 }
 
-/// country->find_state(): a US or Canadian state by code or name; elsewhere the text as given.
+/// country->find_state(): a US or Canadian state by code or name in any case, "" for none; elsewhere the text as
+/// given.
 async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) -> sqlx::Result<String> {
     if code.is_empty() {
         return Ok(String::new());
@@ -1383,8 +1416,8 @@ async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) 
         return Ok(code.to_string());
     }
     let found = sqlx::query_scalar!(
-        r#"SELECT state AS "state!: String" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 OR name = ?2)
-           ORDER BY CASE WHEN state = ?2 THEN 1 ELSE 2 END LIMIT 1"#,
+        r#"SELECT state AS "state!: String" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 COLLATE NOCASE OR name = ?2 COLLATE NOCASE)
+           ORDER BY CASE WHEN state = ?2 COLLATE NOCASE THEN 1 ELSE 2 END LIMIT 1"#,
         country,
         code
     )
@@ -1407,6 +1440,9 @@ async fn pricing_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool
     let code = val(line, "code0");
     if !r.fields.is_empty() && code.is_empty() {
         return Ok(vec![("code0".into(), "Invalid: ".into())]);
+    }
+    if let Some(i) = (0..r.prices.len()).find(|i| val(line, &format!("price{i}")).is_empty()) {
+        return Ok(vec![(format!("price{i}"), "Cannot be blank".into())]);
     }
     if !update {
         return Ok(Vec::new());
@@ -1546,6 +1582,16 @@ mod tests {
             .collect();
         let b = erp_breaks(&line);
         assert_eq!(b.iter().map(|b| (b.qty.to_string(), b.price.to_string())).collect::<Vec<_>>(), [("0".into(), "5".into()), ("11".into(), "4".into()), ("51".into(), "3".into())]);
+    }
+
+    #[test]
+    fn erp_lines_with_no_break_keep_the_list_price() {
+        let line = |cells: &[(&str, &str)]| -> Line { cells.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect() };
+        let b = erp_breaks(&line(&[("_price0", "12.3400"), ("_break1", "0"), ("_price1", "0")]));
+        assert_eq!(b, [Break { qty: Decimal::ZERO, price: Decimal::new(1234, 2) }]);
+        assert!(erp_breaks(&line(&[("_price0", "0"), ("_break1", "0"), ("_price1", "0")])).is_empty());
+        let b = erp_breaks(&line(&[("_price0", "9"), ("_break1", "10"), ("_price1", "8")]));
+        assert_eq!(b, [Break { qty: Decimal::ZERO, price: Decimal::new(8, 0) }], "the breaks, when there are any");
     }
 
     #[test]

@@ -388,30 +388,10 @@ pub fn read_upload(file_name: &str, bytes: &[u8], worksheet: Option<&str>) -> Re
         _ => {
             let text = String::from_utf8_lossy(bytes);
             let delimiter = file_type.delimiter() as char;
-            let rows = fgets_lines(&text).map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
+            let rows = text.split_inclusive('\n').map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
             Ok(Sheet { file_type, rows, worksheet: None })
         }
     }
-}
-
-/// The lines fgets($fh, 4096) returned: up to each newline, at most 4095 bytes.
-fn fgets_lines(text: &str) -> impl Iterator<Item = &str> {
-    let mut rest = text;
-    std::iter::from_fn(move || {
-        if rest.is_empty() {
-            return None;
-        }
-        let mut end = rest.find('\n').map_or(rest.len(), |i| i + 1);
-        if end > 4095 {
-            end = 4095;
-            while !rest.is_char_boundary(end) {
-                end -= 1;
-            }
-        }
-        let (line, tail) = rest.split_at(end);
-        rest = tail;
-        Some(line)
-    })
 }
 
 /// Why an Excel file was not read.
@@ -483,40 +463,66 @@ fn read_xlsx(bytes: &[u8], wanted: Option<&str>) -> Result<Sheet, Unread> {
     Ok(Sheet { file_type: FileType::Xlsx, rows, worksheet: Some(name) })
 }
 
-/// upload_value(): a cell of the file as the column takes it.
-pub fn import_value(field: &Field, value: &str, file: FileType) -> String {
+/// upload_value(): a cell of the file as the column takes it, or why the column cannot take it. A blank number stays
+/// blank and a blank date is no date.
+pub fn import_value(field: &Field, value: &str, file: FileType) -> Result<String, String> {
     let value = value.trim();
-    match field.kind {
-        Kind::Decimal(d) | Kind::Percent(d) => number_format(posted_number(value), d),
-        Kind::Boolean => if value.starts_with(['1', ',', 'Y', 'y']) { "1" } else { "0" }.into(),
+    let unread = |what: &str| Err(format!("Not {what}: {value}"));
+    Ok(match field.kind {
+        Kind::Decimal(_) | Kind::Percent(_) if value.is_empty() => String::new(),
+        Kind::Decimal(d) | Kind::Percent(d) => match posted_number(value) {
+            Some(n) => number_format(n, d),
+            None => return unread("a number"),
+        },
+        Kind::Boolean => match yes_no(value) {
+            Some(yes) => if yes { "1" } else { "0" }.into(),
+            None => return unread("yes or no"),
+        },
+        Kind::Id if !value.is_empty() && !is_numeric(value) => return unread("a number"),
         Kind::Id => super::csrf::php_intval(value).to_string(),
-        Kind::Date => {
-            let date = if value.is_empty() {
-                None
-            } else if file == FileType::Xlsx && !value.contains('/') {
-                let days = floatval(value);
-                chrono::NaiveDate::from_ymd_opt(1899, 12, 30).and_then(|d| d.checked_add_signed(chrono::Duration::days(days as i64)))
-            } else {
-                parse_any_date(value)
-            };
-            date.map_or_else(|| "0000/00/00".into(), |d| d.format("%Y/%m/%d").to_string())
-        }
+        Kind::Date => match value {
+            "" | "0000-00-00" | "0000/00/00" => "0000/00/00".into(),
+            _ => {
+                let date = if file == FileType::Xlsx && is_numeric(value) {
+                    chrono::NaiveDate::from_ymd_opt(1899, 12, 30).and_then(|d| d.checked_add_signed(chrono::Duration::days(floatval(value) as i64)))
+                } else {
+                    parse_any_date(value)
+                };
+                match date {
+                    Some(d) => d.format("%Y/%m/%d").to_string(),
+                    None => return unread("a date"),
+                }
+            }
+        },
         Kind::Uppercase => value.to_uppercase(),
         Kind::Lowercase => value.to_lowercase(),
         Kind::Text => value.replace("<br>", "\r\n").replace("<BR>", "\r\n"),
         _ => value.to_string(),
+    })
+}
+
+/// A yes-or-no cell: blank, 0, N, No, False and Off say no; 1, Y, Yes, True and On say yes, as does any other number.
+pub fn yes_no(s: &str) -> Option<bool> {
+    let lower = s.trim().to_ascii_lowercase();
+    match lower.as_str() {
+        "" | "0" | "n" | "no" | "false" | "off" => Some(false),
+        "1" | "y" | "yes" | "true" | "on" => Some(true),
+        _ if is_numeric(&lower) => Some(floatval(&lower) != 0.0),
+        _ => None,
     }
 }
 
-/// fn_number(): the number in the text, a percent sign making it hundredths.
-fn posted_number(s: &str) -> f64 {
+/// fn_number(): the number in the text, written with or without `$`, thousands commas and spaces; a percent sign
+/// makes it hundredths. `None` when the rest is not a number.
+fn posted_number(s: &str) -> Option<f64> {
     let multiplier = if s.contains('%') { 0.01 } else { 1.0 };
-    let kept: String = s.chars().filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-').collect();
-    floatval(&kept) * multiplier
+    let kept: String = s.chars().filter(|c| !matches!(c, '$' | ',' | '%' | ' ' | '\u{a0}')).collect();
+    is_numeric(&kept).then(|| floatval(&kept) * multiplier)
 }
 
-/// strtotime() for the date forms people type: `m/d/Y`, `Y-m-d`, `Y/m/d`.
+/// strtotime() for the date forms people type: `m/d/Y`, `Y-m-d`, `Y/m/d`, any time after the date ignored.
 fn parse_any_date(s: &str) -> Option<chrono::NaiveDate> {
+    let s = s.split_whitespace().next()?;
     let parts: Vec<&str> = s.split(['/', '-']).collect();
     let [a, b, c] = parts[..] else { return None };
     let (a, b, c): (i32, u32, u32) = (a.trim().parse().ok()?, b.trim().parse().ok()?, c.trim().parse().ok()?);
@@ -665,10 +671,32 @@ mod tests {
     #[test]
     fn imported_values_take_the_column_type() {
         let f = |k| Field::new("x", k);
-        assert_eq!(import_value(&f(Kind::Decimal(2)), " $1,234.5 ", FileType::Txt), "1234.50");
-        assert_eq!(import_value(&f(Kind::Boolean), "yes", FileType::Txt), "1");
-        assert_eq!(import_value(&f(Kind::Date), "3/5/2024", FileType::Txt), "2024/03/05");
-        assert_eq!(import_value(&f(Kind::Date), "45356", FileType::Xlsx), "2024/03/05");
-        assert_eq!(import_value(&f(Kind::Uppercase), "ab-1", FileType::Txt), "AB-1");
+        let ok = |k, v: &str, file| import_value(&f(k), v, file).unwrap();
+        assert_eq!(ok(Kind::Decimal(2), " $1,234.5 ", FileType::Txt), "1234.50");
+        assert_eq!(ok(Kind::Percent(4), "12.5%", FileType::Txt), "0.1250");
+        assert_eq!(ok(Kind::Decimal(2), "", FileType::Txt), "");
+        assert_eq!(ok(Kind::Boolean, "yes", FileType::Txt), "1");
+        assert_eq!(ok(Kind::Boolean, "TRUE", FileType::Txt), "1");
+        assert_eq!(ok(Kind::Boolean, "N", FileType::Txt), "0");
+        assert_eq!(ok(Kind::Boolean, "", FileType::Txt), "0");
+        assert_eq!(ok(Kind::Date, "3/5/2024", FileType::Txt), "2024/03/05");
+        assert_eq!(ok(Kind::Date, "45356", FileType::Xlsx), "2024/03/05");
+        assert_eq!(ok(Kind::Date, "2024-03-05", FileType::Xlsx), "2024/03/05");
+        assert_eq!(ok(Kind::Date, "2024-03-05 00:00:00", FileType::Txt), "2024/03/05");
+        assert_eq!(ok(Kind::Date, "", FileType::Txt), "0000/00/00");
+        assert_eq!(ok(Kind::Id, "12", FileType::Txt), "12");
+        assert_eq!(ok(Kind::Uppercase, "ab-1", FileType::Txt), "AB-1");
+        assert_eq!(import_value(&f(Kind::Decimal(2)), "n/a", FileType::Txt), Err("Not a number: n/a".into()));
+        assert_eq!(import_value(&f(Kind::Date), "soon", FileType::Txt), Err("Not a date: soon".into()));
+        assert_eq!(import_value(&f(Kind::Boolean), "maybe", FileType::Txt), Err("Not yes or no: maybe".into()));
+        assert_eq!(import_value(&f(Kind::Id), "five", FileType::Txt), Err("Not a number: five".into()));
+    }
+
+    #[test]
+    fn long_text_lines_read_whole() {
+        let long = "x".repeat(5000);
+        let sheet = read_upload("parts.txt", format!("sku\tname\nA-1\t{long}\nA-2\tshort\n").as_bytes(), None).ok().unwrap();
+        assert_eq!(sheet.rows.len(), 3);
+        assert_eq!(sheet.rows[1], ["A-1".to_string(), long]);
     }
 }
