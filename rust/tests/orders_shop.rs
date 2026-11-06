@@ -284,18 +284,35 @@ fn order_form<'a>(billing_same: bool) -> Vec<(&'a str, &'a str)> {
     f
 }
 
+/// The one-time token the checkout form carries.
+async fn checkout_token(h: &Harness, cookie: &str) -> String {
+    let (_, _, page) = send(&h.app, request(Method::GET, "/checkout.php", cookie, &[], false)).await;
+    let field = "name='checkout_token' id='checkout_token' value='";
+    let start = page.find(field).expect("the form carries a token") + field.len();
+    page[start..].split('\'').next().unwrap().to_string()
+}
+
 #[tokio::test]
-async fn checkout_writes_the_order_and_queues_both_mails() {
+async fn a_placed_order_clears_the_cart_queues_its_mail_and_shows_its_confirmation() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
     checkout_fixtures(&h.pool).await;
     let c = cookie(&h.pool, 1).await;
     add(&h, &c, "SKU-1", "3").await;
     add(&h, &c, "SKU-Q", "1").await;
-    let (status, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &order_form(true), false)).await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &token));
+    let (status, headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    let id: i64 = sqlx::query_scalar("SELECT id FROM orderhd").fetch_one(&h.pool).await.unwrap();
+    let location = headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    assert_eq!(location, format!("/checkout.php?order={id}"));
+    let (status, _, page) = send(&h.app, request(Method::GET, &location, &c, &[], false)).await;
     assert_eq!(status, StatusCode::OK);
     assert!(page.contains("Thank you Pat Buyer for your order!"), "{page}");
-    assert!(page.contains("Order Complete!"));
+    assert!(page.contains("Order Complete!<span class=message2><br>Email successfully sent to orders@example.com<br>Email successfully sent to buyer@example.com</span>"), "{page}");
+    assert!(page.contains(&format!("<tr><td>Order #</td><td>{id}</tr>")) && page.contains("<td class=right>$30.00</td>"));
     let (po, email, status, billing, user): (String, String, String, String, i64) =
         sqlx::query_as("SELECT po, email, status, billing_city, user_id FROM orderhd").fetch_one(&h.pool).await.unwrap();
     assert_eq!((po.as_str(), email.as_str(), status.as_str(), billing.as_str(), user), ("ABC-1", "buyer@example.com", "Pending", "Testville", 1));
@@ -310,14 +327,34 @@ async fn checkout_writes_the_order_and_queues_both_mails() {
 }
 
 #[tokio::test]
+async fn one_form_submitted_twice_places_one_order() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "2").await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(false);
+    form.extend([("orderhd_billing_address", "1 Test Way"), ("orderhd_billing_city", "Testville"), ("orderhd_billing_state_us", "MI"), ("orderhd_billing_zip", "48000"), ("orderhd_billing_country_code", "US"), ("checkout_token", &token)]);
+    let (first, first_headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    let (again, again_headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    assert_eq!((first, again), (StatusCode::SEE_OTHER, StatusCode::SEE_OTHER));
+    assert_eq!(first_headers.get(header::LOCATION), again_headers.get(header::LOCATION), "both answer with the one order");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderhd").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM orderln").await, 1);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox").await, 2);
+}
+
+#[tokio::test]
 async fn a_checkout_with_errors_writes_nothing_and_keeps_the_input() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
     checkout_fixtures(&h.pool).await;
     let c = cookie(&h.pool, 1).await;
     add(&h, &c, "SKU-1", "1").await;
+    let token = checkout_token(&h, &c).await;
     let mut form: Vec<(&str, &str)> = order_form(false).into_iter().filter(|(k, _)| *k != "orderhd_city" && *k != "carrier_name").collect();
-    form.push(("cc", "12"));
+    form.extend([("cc", "12"), ("checkout_token", &token)]);
     let (_, _, page) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
     assert!(page.contains("error(s)"), "{page}");
     assert!(page.contains("Valid entries are 4 digits or blank"));

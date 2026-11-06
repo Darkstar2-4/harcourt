@@ -4,21 +4,25 @@
 //! kept the half-filled form in the PHP session. Here nothing about the buyer is written to a cookie: the form is
 //! prefilled from this account's last order placed with the same signed-in address, and a form with errors is
 //! shown again from what was posted.
+//!
+//! Each form carries a one-time token. Placing the order writes the header, its lines, the token, the emptied
+//! cart and the mails in one transaction, and answers with the order's confirmation page, so a reload or a second
+//! submit of the same form shows that order again instead of placing another.
 
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     body::Bytes,
     extract::State,
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode, Uri},
     response::Response,
 };
-use rust_decimal::Decimal;
-use sqlx::SqlitePool;
+use rust_decimal::{prelude::FromPrimitive, Decimal};
+use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{
     cart::{self, Line},
-    quoted, shopper, Labels, MoneyFormat, Shopper,
+    quoted, shopper, Currency, Labels, MoneyFormat, Shopper,
 };
 use crate::{
     api::{ApiError, ClientIp},
@@ -27,10 +31,12 @@ use crate::{
     orders::{
         form_params,
         html::{self, esc, esc_text},
-        mail::{self, Mailbox},
-        mailform::{self, Letterhead, Merge, Registry},
+        mail::{self, Mail, Mailbox},
+        mailform::{self, Letterhead, Merge, Registry, Template},
+        pricing::Price,
         Orders,
     },
+    token::Token,
     visitor::Visitor,
 };
 
@@ -262,9 +268,8 @@ async fn prefill(pool: &SqlitePool, shopper: &Shopper, remembered: &str) -> sqlx
     Ok(order)
 }
 
-/// Writes the header and its lines in one transaction. Returns the order number.
-pub async fn place(pool: &SqlitePool, user_id: i64, order: &Order, lines: &[Line], now: i64) -> sqlx::Result<i64> {
-    let mut tx = pool.begin().await?;
+/// Writes the header and its lines in the caller's transaction. Returns the order number.
+async fn insert_order(conn: &mut SqliteConnection, user_id: i64, order: &Order, lines: &[Line]) -> sqlx::Result<i64> {
     let o = order;
     let id = sqlx::query_scalar!(
         r#"INSERT INTO orderhd (user_id, punchout_id, order_date, email, name_first, name_last, name, company_name, address, city,
@@ -274,7 +279,7 @@ pub async fn place(pool: &SqlitePool, user_id: i64, order: &Order, lines: &[Line
                ?20, ?21, ?22, ?23, ?24)
            RETURNING id AS "id!: i64""#,
         user_id,
-        now,
+        o.order_date,
         o.email,
         o.name_first,
         o.name_last,
@@ -298,7 +303,7 @@ pub async fn place(pool: &SqlitePool, user_id: i64, order: &Order, lines: &[Line
         o.billing.zip,
         o.billing.country_code
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await?;
     for (n, line) in lines.iter().enumerate() {
         let line_no = n as i64 + 1;
@@ -317,10 +322,9 @@ pub async fn place(pool: &SqlitePool, user_id: i64, order: &Order, lines: &[Line
             extended,
             line.comment
         )
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await?;
     }
-    tx.commit().await?;
     Ok(id)
 }
 
@@ -611,53 +615,169 @@ fn merge(o: &Order, id: i64, base: Merge) -> Merge {
     m
 }
 
-struct Placed {
-    html: String,
-    messages: Vec<String>,
+/// The form field that carries the checkout's one-time token.
+const TOKEN_FIELD: &str = "checkout_token";
+
+/// Someone an order's mail goes to: staff at the template's recipient, or the buyer at the order's address.
+struct Recipient {
+    to: Mailbox,
+    buyer: bool,
 }
 
-async fn complete(state: &Orders, shopper: &Shopper, ip: &str, order: &mut Order, lines: &[Line], local: &Registry) -> Result<Placed, ApiError> {
-    let pool = &state.core.pool;
-    let now = unix_now();
-    order.order_date = now;
-    order.id = place(pool, shopper.user.id.0, order, lines, now).await?;
-    let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
-    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
-    let labels = Labels::load(pool, &shopper.language).await?;
-    let thumb = local.get("thumbnail").to_string();
-    let mut html = header(order, false, &choices, &Errors::default(), local, false);
-    html.push_str(&cart::table(lines, false, &money, &labels, &thumb));
+fn recipients(template: &Template, order: &Order) -> Vec<Recipient> {
+    let staff = template.recipient.clone().map(|e| Recipient { to: Mailbox::bare(e), buyer: false });
+    let buyer = Email::parse(&order.email).map(|e| Recipient { to: Mailbox::new(e, &order.name), buyer: true });
+    staff.into_iter().chain(buyer).collect()
+}
+
+/// The placed order as its confirmation page and its mails show it.
+fn summary(order: &Order, lines: &[Line], choices: &Choices, local: &Registry, money: &MoneyFormat, labels: &Labels) -> String {
+    let mut html = header(order, false, choices, &Errors::default(), local, false);
+    html.push_str(&cart::table(lines, false, money, labels, local.get("thumbnail")));
     if !local.get("cc_email").is_empty() {
         html.push_str(&format!("<p>{}</p>", local.get("cc_email")));
     }
-    let comment = format!("Order #{}", order.id);
-    log_order(pool, ip, shopper, &comment, now).await;
-    if let Some(key) = &shopper.cart {
-        cart::clear(pool, key).await?;
-    }
-    let mut messages = vec!["Order Complete!".to_string()];
-    if let Some(template) = mailform::load(pool, "checkout").await? {
-        let host = state.core.public_origin.trim_start_matches("https://");
-        let company = Registry::load(pool, "company").await?;
-        let base = Merge::standard(now, ip, host, shopper.user.id.0, shopper.user.company_name.as_deref().unwrap_or(""), &company);
-        let merge = merge(order, order.id, base);
+    html
+}
+
+/// What the order's mails need, read before the order is written.
+struct Mailing {
+    template: Template,
+    letterhead: Letterhead,
+    company: Registry,
+}
+
+impl Mailing {
+    async fn load(state: &Orders) -> sqlx::Result<Option<Self>> {
+        let pool = &state.core.pool;
+        let Some(template) = mailform::load(pool, "checkout").await? else { return Ok(None) };
         let letterhead = Letterhead::load(pool, &state.docroot, &template).await?;
-        if let Some(staff) = template.compose(&letterhead, &merge, None, None, &html) {
-            mail::enqueue(pool, &staff, now).await?;
-            messages.push(format!("Email successfully sent to {}", staff.to.email.as_str()));
-        }
-        let mut customer_html = "<p>This confirms that your web order has been successfully sent to our team. A formal order acknowledgement will follow from sales@harcourt.co as soon as your order has been processed in our system.</p>".to_string();
-        customer_html.push_str(&html);
-        if !local.get("cc_email").is_empty() {
-            customer_html.push_str("<p>No orders will ship without a credit card on file.</p>");
-        }
-        let to = Email::parse(&order.email).map(|e| Mailbox::new(e, &order.name));
-        if let Some(customer) = to.and_then(|to| template.compose(&letterhead, &merge, Some("Order Confirmation"), Some(to), &customer_html)) {
-            mail::enqueue(pool, &customer, now).await?;
-            messages.push(format!("Email successfully sent to {}", customer.to.email.as_str()));
-        }
+        let company = Registry::load(pool, "company").await?;
+        Ok(Some(Mailing { template, letterhead, company }))
     }
-    Ok(Placed { html, messages })
+
+    /// The staff copy and the buyer's confirmation, as scsmail_rev1.php composed them.
+    fn mails(&self, host: &str, shopper: &Shopper, ip: &str, order: &Order, summary: &str, local: &Registry) -> Vec<Mail> {
+        let base = Merge::standard(order.order_date, ip, host, shopper.user.id.0, shopper.user.company_name.as_deref().unwrap_or(""), &self.company);
+        let merge = merge(order, order.id, base);
+        let mut buyer_html = "<p>This confirms that your web order has been successfully sent to our team. A formal order acknowledgement will follow from sales@harcourt.co as soon as your order has been processed in our system.</p>".to_string();
+        buyer_html.push_str(summary);
+        if !local.get("cc_email").is_empty() {
+            buyer_html.push_str("<p>No orders will ship without a credit card on file.</p>");
+        }
+        recipients(&self.template, order)
+            .into_iter()
+            .filter_map(|r| {
+                let (subject, body) = if r.buyer { (Some("Order Confirmation"), buyer_html.as_str()) } else { (None, summary) };
+                self.template.compose(&self.letterhead, &merge, subject, Some(r.to), body)
+            })
+            .collect()
+    }
+}
+
+/// Places the order. Everything it needs is read first; then the header, its lines, the token, the emptied cart
+/// and the mails commit together or not at all. Returns the order this token placed, which is an earlier one when
+/// the same form was submitted again, or None when the token is another account's.
+async fn place(state: &Orders, shopper: &Shopper, ip: &str, mut order: Order, lines: &[Line], token: &Token) -> Result<Option<i64>, ApiError> {
+    let pool = &state.core.pool;
+    order.order_date = unix_now();
+    let local = Registry::load(pool, "local").await?;
+    let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
+    let labels = Labels::load(pool, &shopper.language).await?;
+    let mailing = Mailing::load(state).await?;
+    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let host = state.core.public_origin.trim_start_matches("https://");
+
+    let mut tx = pool.begin().await?;
+    order.id = insert_order(&mut tx, shopper.user.id.0, &order, lines).await?;
+    let hash = token.hash();
+    let hash = hash.as_slice();
+    let claimed = sqlx::query!("INSERT INTO checkout_token (token_hash, order_id) VALUES (?1, ?2) ON CONFLICT DO NOTHING", hash, order.id).execute(&mut *tx).await?.rows_affected() == 1;
+    if !claimed {
+        tx.rollback().await?;
+        return Ok(placed_with(pool, token, shopper).await?);
+    }
+    let summary = summary(&order, lines, &choices, &local, &money, &labels);
+    for mail in mailing.iter().flat_map(|m| m.mails(host, shopper, ip, &order, &summary, &local)) {
+        mail::enqueue_in(&mut tx, &mail, order.order_date).await?;
+    }
+    if let Some(key) = &shopper.cart {
+        cart::clear(&mut *tx, key).await?;
+    }
+    tx.commit().await?;
+    log_order(pool, ip, shopper, &format!("Order #{}", order.id), order.order_date).await;
+    Ok(Some(order.id))
+}
+
+/// The order this shopper's account placed with this token, if it did.
+async fn placed_with(pool: &SqlitePool, token: &Token, shopper: &Shopper) -> sqlx::Result<Option<i64>> {
+    let hash = token.hash();
+    let hash = hash.as_slice();
+    sqlx::query_scalar!(
+        r#"SELECT t.order_id AS "id!: i64" FROM checkout_token t JOIN orderhd o ON o.id = t.order_id WHERE t.token_hash = ?1 AND o.user_id = ?2"#,
+        hash,
+        shopper.user.id.0
+    )
+    .fetch_optional(pool)
+    .await
+}
+
+/// One of this shopper's account's orders as it was placed, with its lines.
+async fn stored(state: &Orders, shopper: &Shopper, id: i64) -> sqlx::Result<Option<(Order, Vec<Line>)>> {
+    let pool = &state.core.pool;
+    let row = sqlx::query!(
+        r#"SELECT order_date AS "order_date!: i64", coalesce(email, '') AS "email!: String", coalesce(name_first, '') AS "name_first!: String",
+                  coalesce(name_last, '') AS "name_last!: String", coalesce(name, '') AS "name!: String",
+                  coalesce(company_name, '') AS "company_name!: String", coalesce(phone, '') AS "phone!: String",
+                  coalesce(address, '') AS "address!: String", coalesce(city, '') AS "city!: String", coalesce(state, '') AS "state!: String",
+                  coalesce(zip, '') AS "zip!: String", coalesce(country_code, '') AS "country_code!: String", coalesce(po, '') AS "po!: String",
+                  coalesce(comment, '') AS "comment!: String", coalesce(cc, '') AS "cc!: String",
+                  coalesce(carrier_name, '') AS "carrier_name!: String", coalesce(carrier_account, '') AS "carrier_account!: String",
+                  coalesce(currency_code, 'USD') AS "currency_code!: String", coalesce(billing_address, '') AS "billing_address!: String",
+                  coalesce(billing_city, '') AS "billing_city!: String", coalesce(billing_state, '') AS "billing_state!: String",
+                  coalesce(billing_zip, '') AS "billing_zip!: String", coalesce(billing_country_code, '') AS "billing_country_code!: String"
+           FROM orderhd WHERE id = ?1 AND user_id = ?2"#,
+        id,
+        shopper.user.id.0
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(r) = row else { return Ok(None) };
+    let order = Order {
+        id,
+        order_date: r.order_date,
+        email: r.email,
+        name_first: r.name_first,
+        name_last: r.name_last,
+        name: r.name,
+        company_name: r.company_name,
+        phone: r.phone,
+        ship: Address { address: r.address, city: r.city, state: r.state, zip: r.zip, country_code: r.country_code },
+        billing: Address { address: r.billing_address, city: r.billing_city, state: r.billing_state, zip: r.billing_zip, country_code: r.billing_country_code },
+        po: r.po,
+        comment: r.comment,
+        cc: r.cc,
+        carrier_name: r.carrier_name,
+        carrier_account: r.carrier_account,
+        currency_code: r.currency_code,
+    };
+    let rows = sqlx::query!(
+        r#"SELECT sku AS "sku!: String", description AS "description!: String", quantity AS "quantity!: i64", price AS "price!: f64",
+                  extended AS "extended!: f64", coalesce(comment, '') AS "comment!: String"
+           FROM orderln WHERE order_id = ?1 ORDER BY line_no"#,
+        id
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut lines = Vec::with_capacity(rows.len());
+    for r in rows {
+        let unit = Decimal::from_f64(r.price).unwrap_or_default().round_dp(5);
+        let extended = Decimal::from_f64(r.extended).unwrap_or_default().round_dp(2);
+        let price = if unit.is_zero() { Price::OnRequest } else { Price::Quoted { unit, extended } };
+        let thumbnail = cart::thumbnail(state, &r.sku).await?;
+        lines.push(Line { sku: r.sku, description: r.description, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment, price, thumbnail });
+    }
+    Ok(Some((order, lines)))
 }
 
 /// The `user:po` row classes/log.php writes for a placed order (its canonical names are User and PO).
@@ -677,64 +797,111 @@ async fn log_order(pool: &SqlitePool, ip: &str, shopper: &Shopper, comment: &str
     }
 }
 
-/// GET: the order form.
-pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap) -> Result<Response, ApiError> {
-    page(&state, &visitor, &ip, &headers, &HashMap::new()).await
-}
-
-/// POST: the order form submitted, read from the body alone.
-pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, body: Bytes) -> Result<Response, ApiError> {
-    page(&state, &visitor, &ip, &headers, &form_params(None, &body)).await
-}
-
-async fn page(state: &Orders, visitor: &Visitor, ip: &str, headers: &HeaderMap, params: &HashMap<String, String>) -> Result<Response, ApiError> {
-    let pool = &state.core.pool;
-    let framed = visitor.framed;
-    let home = if framed { "/" } else { "/scs_index.php" };
-    let Some(shopper) = shopper(pool, visitor, headers).await? else { return Ok(html::redirect(home)) };
-    let lines = cart::lines(state, &shopper).await?;
-    if lines.is_empty() {
-        return Ok(html::redirect(home));
-    }
-    let local = Registry::load(pool, "local").await?;
-    let remembered = crate::accounts::cookies::get(headers, crate::accounts::cookies::EMAIL).unwrap_or_default();
-    let mut order = prefill(pool, &shopper, &remembered).await?;
-    let mut errors = Errors::default();
-    let completing = params.get("action").is_some_and(|a| a == "complete");
-    let mut placed = None;
-    if completing {
-        errors = read_form(pool, params, &mut order).await?;
-        if errors.is_empty() {
-            placed = Some(complete(state, &shopper, ip, &mut order, &lines, &local).await?);
-        }
-    }
+/// The checkout page around `body`: the chrome, the messages, the script and the form, with the token when the
+/// form can be submitted.
+async fn shell(pool: &SqlitePool, shopper: &Shopper, framed: bool, messages: &[String], errors: usize, token: Option<&Token>, body: &str) -> sqlx::Result<Response> {
     let chrome = html::Chrome::load(pool).await?;
     let head = html::Head { title: "Shopping Cart Checkout", description: None, js: &[], framed, dashboard: shopper.user.role >= Role::Executive, catalog_url: "/catalog.php" };
     let mut out = html::open(&chrome, &head);
-    let messages = placed.as_ref().map_or_else(|| vec!["Shopping Cart Checkout".to_string()], |p| p.messages.clone());
-    out.push_str(&html::message(&messages, errors.len()));
+    out.push_str(&html::message(messages, errors));
     out.push_str(SCRIPT);
     out.push_str(&html::form_open("/checkout.php"));
     out.push_str(&html::hidden("action", ""));
-    match &placed {
-        Some(p) => {
-            out.push_str(&format!("<p>Thank you {} for your order! You will receive an emailed order confirmation shortly with firm shipping dates. You will be notified further once the product ships.</p>\n", esc(&order.name)));
-            out.push_str(&p.html);
-        }
-        None => {
-            let choices = Choices::load(pool).await?;
-            let billing_same = completing && params.contains_key("billing_same_as_shipping");
-            out.push_str(&header(&order, true, &choices, &errors, &local, billing_same));
-            let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
-            let labels = Labels::load(pool, &shopper.language).await?;
-            out.push_str(&cart::table(&lines, false, &money, &labels, local.get("thumbnail")));
-            let buttons = [html::button("<< Edit Order", "window.location.href='/cart.php';", "cart_button"), html::button("Place Order >>", "fn_action('complete');", "cart_button")];
-            out.push_str(&format!("<p class=center>{}</p>", buttons.join(" ")));
-        }
+    if let Some(token) = token {
+        out.push_str(&html::hidden(TOKEN_FIELD, token.as_str()));
     }
+    out.push_str(body);
     out.push_str(html::FORM_CLOSE);
     out.push_str(html::close());
     Ok(html::page_response(out))
+}
+
+/// The order form, prefilled or as posted with its errors, under a fresh token.
+async fn form(state: &Orders, shopper: &Shopper, framed: bool, order: &Order, lines: &[Line], errors: &Errors, billing_same: bool) -> Result<Response, ApiError> {
+    let pool = &state.core.pool;
+    let local = Registry::load(pool, "local").await?;
+    let choices = Choices::load(pool).await?;
+    let labels = Labels::load(pool, &shopper.language).await?;
+    let money = MoneyFormat { order: &shopper.currency, viewer: &shopper.currency.code };
+    let mut body = header(order, true, &choices, errors, &local, billing_same);
+    body.push_str(&cart::table(lines, false, &money, &labels, local.get("thumbnail")));
+    let buttons = [html::button("<< Edit Order", "window.location.href='/cart.php';", "cart_button"), html::button("Place Order >>", "fn_action('complete');", "cart_button")];
+    body.push_str(&format!("<p class=center>{}</p>", buttons.join(" ")));
+    Ok(shell(pool, shopper, framed, &["Shopping Cart Checkout".to_string()], errors.len(), Some(&Token::generate()), &body).await?)
+}
+
+/// The confirmation of one of this shopper's account's orders, or None when it has no such order.
+async fn confirmation(state: &Orders, shopper: &Shopper, framed: bool, id: i64) -> Result<Option<Response>, ApiError> {
+    let pool = &state.core.pool;
+    let Some((order, lines)) = stored(state, shopper, id).await? else { return Ok(None) };
+    let local = Registry::load(pool, "local").await?;
+    let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
+    let labels = Labels::load(pool, &shopper.language).await?;
+    let currency = Currency::load(pool, &order.currency_code).await?;
+    let money = MoneyFormat { order: &currency, viewer: &shopper.currency.code };
+    let mut messages = vec!["Order Complete!".to_string()];
+    if let Some(template) = mailform::load(pool, "checkout").await? {
+        messages.extend(recipients(&template, &order).iter().map(|r| format!("Email successfully sent to {}", r.to.email.as_str())));
+    }
+    let mut body = format!("<p>Thank you {} for your order! You will receive an emailed order confirmation shortly with firm shipping dates. You will be notified further once the product ships.</p>\n", esc(&order.name));
+    body.push_str(&summary(&order, &lines, &choices, &local, &money, &labels));
+    Ok(Some(shell(pool, shopper, framed, &messages, 0, None, &body).await?))
+}
+
+/// Where a placed order is shown: its confirmation, at an address a reload asks for again without placing it.
+fn confirmed(id: i64) -> Response {
+    let mut r = html::redirect(&format!("/checkout.php?order={id}"));
+    *r.status_mut() = StatusCode::SEE_OTHER;
+    r
+}
+
+fn remembered(headers: &HeaderMap) -> String {
+    crate::accounts::cookies::get(headers, crate::accounts::cookies::EMAIL).unwrap_or_default()
+}
+
+/// GET: the order form, or with `order=` the confirmation of one of this account's orders.
+pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap, uri: Uri) -> Result<Response, ApiError> {
+    let pool = &state.core.pool;
+    let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(cart::home(&visitor)) };
+    if let Some(id) = form_params(uri.query(), &[]).get("order").and_then(|v| v.parse::<i64>().ok()) {
+        if let Some(page) = confirmation(&state, &shopper, visitor.framed, id).await? {
+            return Ok(page);
+        }
+    }
+    let lines = cart::lines(&state, &shopper).await?;
+    if lines.is_empty() {
+        return Ok(cart::home(&visitor));
+    }
+    let order = prefill(pool, &shopper, &remembered(&headers)).await?;
+    form(&state, &shopper, visitor.framed, &order, &lines, &Errors::default(), false).await
+}
+
+/// POST: the form submitted, read from the body alone. A placed order, or one this form's token already placed,
+/// answers with its confirmation's address.
+pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, ClientIp(ip): ClientIp, headers: HeaderMap, body: Bytes) -> Result<Response, ApiError> {
+    let pool = &state.core.pool;
+    let params = form_params(None, &body);
+    let Some(shopper) = shopper(pool, &visitor, &headers).await? else { return Ok(cart::home(&visitor)) };
+    let token = params.get(TOKEN_FIELD).and_then(|t| Token::parse(t));
+    if let Some(token) = &token {
+        if let Some(id) = placed_with(pool, token, &shopper).await? {
+            return Ok(confirmed(id));
+        }
+    }
+    let lines = cart::lines(&state, &shopper).await?;
+    if lines.is_empty() {
+        return Ok(cart::home(&visitor));
+    }
+    let mut order = prefill(pool, &shopper, &remembered(&headers)).await?;
+    let completing = params.get("action").is_some_and(|a| a == "complete");
+    let errors = if completing { read_form(pool, &params, &mut order).await? } else { Errors::default() };
+    if let (true, Some(token)) = (completing && errors.is_empty(), &token) {
+        if let Some(id) = place(&state, &shopper, &ip, order.clone(), &lines, token).await? {
+            return Ok(confirmed(id));
+        }
+    }
+    let billing_same = completing && params.contains_key("billing_same_as_shipping");
+    form(&state, &shopper, visitor.framed, &order, &lines, &errors, billing_same).await
 }
 
 #[cfg(test)]

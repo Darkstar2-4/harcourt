@@ -11,7 +11,7 @@ use axum::{
 };
 use rust_decimal::Decimal;
 use serde::Serialize;
-use sqlx::SqlitePool;
+use sqlx::{SqliteExecutor, SqlitePool};
 
 use super::{fn_base64, number_format, quoted, shopper, CartKey, Labels, MoneyFormat, Shopper};
 use crate::{
@@ -87,9 +87,9 @@ async fn remove(pool: &SqlitePool, key: &CartKey, sku: &str) -> sqlx::Result<()>
     Ok(())
 }
 
-pub async fn clear(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<()> {
+pub async fn clear<'c>(db: impl SqliteExecutor<'c>, key: &CartKey) -> sqlx::Result<()> {
     let hash = key.as_slice();
-    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(pool).await?;
+    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(db).await?;
     Ok(())
 }
 
@@ -315,7 +315,7 @@ pub fn php_json(json: &str) -> String {
 
 const SCRIPT: &str = "<script>\nfunction fn_action(action) {\n    if (action=='clear') {\n        if (!confirm('Clear Shopping Cart?')) return;\n    }\n    document.scs_form.action.value=action;\n    document.scs_form.submit();\n}\n</script>\n";
 
-fn home(visitor: &Visitor) -> Response {
+pub(super) fn home(visitor: &Visitor) -> Response {
     html::redirect(if visitor.framed { "/" } else { "/scs_index.php" })
 }
 
