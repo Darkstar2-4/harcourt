@@ -469,7 +469,11 @@ pub fn import_value(field: &Field, value: &str, file: FileType) -> Result<String
     let value = value.trim();
     let unread = |what: &str| Err(format!("Not {what}: {value}"));
     Ok(match field.kind {
-        Kind::Decimal(_) | Kind::Percent(_) if value.is_empty() => String::new(),
+        Kind::Decimal(_) | Kind::Percent(_) | Kind::Numeric if value.is_empty() => String::new(),
+        Kind::Numeric => match posted_number(value) {
+            Some(n) => float_text(n),
+            None => return unread("a number"),
+        },
         Kind::Decimal(d) | Kind::Percent(d) => match posted_number(value) {
             Some(n) => number_format(n, d),
             None => return unread("a number"),
@@ -686,6 +690,11 @@ mod tests {
         assert_eq!(ok(Kind::Date, "", FileType::Txt), "0000/00/00");
         assert_eq!(ok(Kind::Id, "12", FileType::Txt), "12");
         assert_eq!(ok(Kind::Uppercase, "ab-1", FileType::Txt), "AB-1");
+        assert_eq!(ok(Kind::Numeric, "1,250", FileType::Txt), "1250");
+        assert_eq!(ok(Kind::Numeric, " 2.5 ", FileType::Txt), "2.5");
+        assert_eq!(ok(Kind::Numeric, "", FileType::Txt), "");
+        assert_eq!(import_value(&f(Kind::Numeric), "n/a", FileType::Txt), Err("Not a number: n/a".into()));
+        assert_eq!(import_value(&f(Kind::Numeric), "12 mm", FileType::Txt), Err("Not a number: 12 mm".into()));
         assert_eq!(import_value(&f(Kind::Decimal(2)), "n/a", FileType::Txt), Err("Not a number: n/a".into()));
         assert_eq!(import_value(&f(Kind::Date), "soon", FileType::Txt), Err("Not a date: soon".into()));
         assert_eq!(import_value(&f(Kind::Boolean), "maybe", FileType::Txt), Err("Not yes or no: maybe".into()));

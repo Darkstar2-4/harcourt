@@ -101,7 +101,7 @@ fn revisions_table(revs: &[edit::RevisionSummary], csrf: &str) -> String {
 
 fn textarea(name: &str, label: &str, value: &str) -> String {
     let rows = (value.lines().count() + 1).clamp(2, 20);
-    format!("<label for=\"{0}\">{1}</label><textarea id=\"{0}\" name=\"{0}\" rows=\"{rows}\">{2}</textarea>", esc(name), esc(label), esc(value))
+    format!("<label for=\"{0}\">{1}</label><textarea id=\"{0}\" name=\"{0}\" rows=\"{rows}\">{2}</textarea>", esc(name), esc(label), crate::staff::html::esc(value))
 }
 
 async fn page_form(State(core): State<Arc<Auth>>, staff: Staff<Administrator>, Path(id): Path<i64>) -> Response {
@@ -194,5 +194,11 @@ mod tests {
         let (c, note) = changes(fields.into_iter());
         assert_eq!(note, "typo");
         assert_eq!(c, vec![Change { name: "hero_title".into(), value: "a\nb".into() }, Change { name: "meta:title".into(), value: "T".into() }]);
+    }
+
+    #[test]
+    fn a_textarea_shows_the_stored_text_byte_for_byte() {
+        let area = textarea("hero_title", "hero_title", "Say &quot;hi&quot; & <b>go</b>");
+        assert!(area.ends_with("rows=\"2\">Say &amp;quot;hi&amp;quot; &amp; &lt;b&gt;go&lt;/b&gt;</textarea>"), "{area}");
     }
 }

@@ -391,8 +391,7 @@ async fn run(out: PathBuf, only: Option<BTreeSet<String>>, mysql_url: String) ->
         }
     }
     if tables.iter().any(|t| t.name == "user") {
-        let cleared = account::clear_free_mail_domains(&lite).await?;
-        println!("{:<24} {cleared} free-mail domains cleared", "user.domain");
+        clear_free_mail(&lite).await?;
     }
     if !ok {
         lite.close().await;
@@ -604,7 +603,7 @@ async fn copy(my: &mut MySqlConnection, lite: &SqlitePool, t: &Table) -> Result<
     Ok(counts_ok && sum_ok)
 }
 
-/// `--convert`: the serialized columns of a file an older hx-import wrote, in place.
+/// `--convert`: the serialized columns and free-mail domains of a file an older hx-import wrote, in place.
 async fn convert_file(path: &Path) -> Result<(), Failure> {
     if !path.is_file() {
         return Err(Failure::Usage(format!("{} is not a file", path.display())));
@@ -614,12 +613,20 @@ async fn convert_file(path: &Path) -> Result<(), Failure> {
     for (table, column, list) in SERIALIZED {
         ok &= convert_column(&lite, table, column, list).await?;
     }
+    clear_free_mail(&lite).await?;
     lite.close().await;
     if ok {
         Ok(())
     } else {
         Err(Failure::Mismatch)
     }
+}
+
+/// Account domains that name a free-mail provider, cleared as migration 0105 did.
+async fn clear_free_mail(lite: &SqlitePool) -> Result<(), Failure> {
+    let cleared = account::clear_free_mail_domains(lite).await?;
+    println!("{:<24} {cleared} free-mail domains cleared", "user.domain");
+    Ok(())
 }
 
 /// What becomes of one stored value, and its JSON when it changes. Empty values, JSON, and text PHP could not read
@@ -835,5 +842,21 @@ mod tests {
             assert_eq!(divs.as_deref(), Some(r#"{"content":"guest_div"}"#));
         }
         assert!(!hxweb::catalog::stored::unconverted(&pool).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn converting_a_file_clears_free_mail_domains() {
+        let path = std::env::temp_dir().join(format!("hx-import-convert-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
+        hxweb::db::MIGRATOR.run(&pool).await.unwrap();
+        sqlx::raw_sql(r#"INSERT INTO "user" (id, domain) VALUES (1, 'gmail.com'), (2, 'example-industrial.com'), (3, NULL)"#).execute(&pool).await.unwrap();
+        pool.close().await;
+        convert_file(&path).await.ok().unwrap();
+        let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path)).await.unwrap();
+        let domains: Vec<Option<String>> = sqlx::query_scalar(r#"SELECT domain FROM "user" ORDER BY id"#).fetch_all(&pool).await.unwrap();
+        assert_eq!(domains, [None, Some("example-industrial.com".into()), None]);
+        pool.close().await;
+        std::fs::remove_file(&path).unwrap();
     }
 }

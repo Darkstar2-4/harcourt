@@ -63,10 +63,12 @@ fn from_this_site(headers: &HeaderMap, path: &str, origin: &str) -> bool {
     }
 }
 
-/// A path on this site and nothing else a browser could read as another host: it starts with one slash and holds no
-/// backslash (read as a slash) and no control character (tabs and newlines are dropped from URLs).
+/// A path on this site and nothing else a browser could read as another host: its path part (before any `?` or `#`)
+/// starts with one slash and holds no backslash (read as a slash there), and nothing in it is a control character
+/// (tabs and newlines are dropped from URLs).
 pub fn local_path(url: &str) -> bool {
-    url.starts_with('/') && !url.starts_with("//") && !url.contains('\\') && !url.chars().any(char::is_control)
+    let path = url.split(['?', '#']).next().unwrap_or_default();
+    path.starts_with('/') && !path.starts_with("//") && !path.contains('\\') && !url.chars().any(char::is_control)
 }
 
 /// A URL on `origin` itself, not on a host that merely starts with the same text.
@@ -90,5 +92,14 @@ mod tests {
         assert!(from_this_site(&headers(&[(header::REFERER, "https://www.harcourt.co/cart.php?x=1")]), "/cart.php", SITE));
         assert!(from_this_site(&headers(&[(header::REFERER, SITE)]), "/cart.php", SITE));
         assert!(from_this_site(&headers(&[]), "/api/remote/redeem", SITE));
+    }
+
+    #[test]
+    fn a_local_path_may_carry_any_query() {
+        assert!(local_path("/page/?lang=en&x=a\\b"));
+        assert!(local_path("/page/?next=//x#a\\b"));
+        assert!(local_path("/cart.php"));
+        assert!(!local_path("page/"));
+        assert!(!local_path("?x=/a"));
     }
 }
