@@ -183,6 +183,25 @@ async fn a_browser_post_as_multipart_is_read() {
 }
 
 #[tokio::test]
+async fn a_confirmation_fills_its_merge_tags() {
+    let h = harness(None, None).await;
+    let set = |confirmation: &'static str| sqlx::query("UPDATE wp_gf_form_meta SET confirmations = ?1 WHERE form_id = 3").bind(confirmation).execute(&h.pool);
+    set(r#"{"c":{"isDefault":true,"type":"message","message":"<p>Thanks {Name:1}, we will write to {Email:10}.</p>"}}"#).await.unwrap();
+    let (_, html) = post(&h, &[("input_1", "Pat <Buyer> & Co")]).await;
+    assert!(html.contains("<p>Thanks Pat &lt;Buyer&gt; &amp; Co, we will write to pat@example.com.</p>"), "{html}");
+    set(r#"{"c":{"isDefault":true,"type":"redirect","url":"https://www.example.com/thanks/?name={Name:1}&entry={entry_id}"}}"#).await.unwrap();
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/hx/forms/submit?hx_lang=en&hx_page=%2Fcontact-us%2F")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(Body::from(format!("gform_submit=3&input_1=Pat+%26+Co&input_10=pat%40example.com&input_4=Hi&registry_recaptcha_response=t&state_3={}", enc(&token()))))
+        .unwrap();
+    let res = h.app.clone().oneshot(req).await.unwrap();
+    let entry: i64 = sqlx::query_scalar("SELECT max(id) FROM wp_gf_entry").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(res.headers().get(header::LOCATION).and_then(|v| v.to_str().ok()), Some(format!("https://www.example.com/thanks/?name=Pat+%26+Co&entry={entry}").as_str()));
+}
+
+#[tokio::test]
 async fn an_entry_is_kept_only_with_its_mail() {
     let h = harness(None, None).await;
     sqlx::query("CREATE TRIGGER outbox_down BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END").execute(&h.pool).await.unwrap();
