@@ -230,7 +230,8 @@ impl Api<'_> {
         saved.cad_name = sqlx::query_scalar!(r#"SELECT name AS "name!" FROM cad WHERE code = ?1 AND name IS NOT NULL LIMIT 1"#, cad_code).fetch_optional(self.pool).await?;
         saved.cad_code = Some(cad_code);
         let cad_failed = saved.cad_name.is_none();
-        let mut errors: Map<String, Value> = input.iter().map(|(k, _)| (k.clone(), json!(i32::from(failed.iter().any(|(f, _)| f == k))))).collect();
+        let failed_input = |k: &str| if k == "cad_code" { cad_failed } else { failed.iter().any(|(f, _)| f == k) };
+        let mut errors: Map<String, Value> = input.iter().map(|(k, _)| (k.clone(), json!(i32::from(failed_input(k))))).collect();
         errors.insert("cad_code_error".into(), json!(i32::from(cad_failed)));
         let count = failed.len() + usize::from(cad_failed);
         out.insert("success_url".into(), json!(""));
