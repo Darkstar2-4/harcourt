@@ -116,6 +116,7 @@ struct Family {
     /// The family-name entry per language, where the index has one.
     rows: [Option<u32>; 2],
     status: model::Status,
+    category_id: u32,
     /// Whether the family's category is active (categories.tsv).
     category_active: bool,
 }
@@ -123,6 +124,7 @@ struct Family {
 /// One `inventory` row (parts.tsv).
 struct Stock {
     sku: Box<str>,
+    subcategory_id: u32,
     active: bool,
 }
 
@@ -289,8 +291,28 @@ impl Index {
             if let [id, category, status, en, fr] = line.split('\t').collect::<Vec<_>>()[..] {
                 if let (Ok(id), Some(category)) = (id.parse(), number::<u32>(category)) {
                     let (status, category_active) = (model::Status::parse(status), active_categories.contains(&category));
-                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None], status, category_active });
+                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None], status, category_id: category, category_active });
                 }
+            }
+        }
+        let parts: HashMap<u32, Stock> = parts
+            .lines()
+            .filter_map(|l| {
+                let mut f = l.split('\t');
+                let (id, sku) = (f.next()?.parse().ok()?, f.next()?.into());
+                let subcategory_id = f.next().and_then(number::<u32>).unwrap_or(0);
+                let active = f.next().is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0));
+                Some((id, Stock { sku, subcategory_id, active }))
+            })
+            .collect();
+        // A row names a part's family and a family's category as they were when the table was filled; the part and
+        // the family say where they are now.
+        for e in &mut entries {
+            if matches!(e.kind, Kind::Part | Kind::Competitor) {
+                e.subcategory_id = parts.get(&e.inventory_id).map_or(0, |p| p.subcategory_id);
+            }
+            if let Some(f) = fams.get(&e.subcategory_id) {
+                e.category_id = f.category_id;
             }
         }
         let mut trigrams: HashMap<[u8; 3], Vec<u32>> = HashMap::new();
@@ -312,15 +334,6 @@ impl Index {
                 }
             }
         }
-        let parts = parts
-            .lines()
-            .filter_map(|l| {
-                let mut f = l.split('\t');
-                let (id, sku) = (f.next()?.parse().ok()?, f.next()?.into());
-                let active = f.nth(1).is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0));
-                Some((id, Stock { sku, active }))
-            })
-            .collect();
         let (mut by_term, mut by_stem): (Learned, Learned) = Default::default();
         for line in learned.lines() {
             let [term, sub, sku, picks] = line.split('\t').collect::<Vec<_>>()[..] else { continue };
@@ -933,7 +946,7 @@ fn page_lang(headers: &HeaderMap) -> Lang {
 /// status, of the active categories and of the active parts: any edit, import, rebuild or change of what the catalog
 /// shows changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Stamp([i64; 19]);
+struct Stamp([i64; 20]);
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     let r = sqlx::query!(
@@ -951,13 +964,14 @@ async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
                   (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS "o!: i64",
                   (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS "p!: i64",
                   (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS "q!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64""#
+                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64",
+                  (SELECT coalesce(sum(id * coalesce(subcategory_id, 0)), 0) FROM inventory) AS "s!: i64""#
     )
     .fetch_one(pool)
     .await?;
     // The day: what searchers opened is learned again daily.
     let day = crate::db::unix_now() / 86_400;
-    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, day]))
+    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, r.s, day]))
 }
 
 fn cell(s: &str) -> String {
@@ -1374,6 +1388,19 @@ mod tests {
     }
 
     #[test]
+    fn parts_and_families_are_placed_where_they_are_now() {
+        let parts = PARTS.replace("1000\tLS-1\t10\t1", "1000\tLS-1\t20\t1");
+        let families = FAMILIES.replace("41\t6\tActive", "41\t14\tActive");
+        let ix = Index::build(ROWS, &families, CATEGORIES, &parts, "", "").unwrap();
+        let ls1 = by_code(&ix, "LS-1");
+        assert_eq!((ls1.subcategory_id, ls1.category_id), (20, 14), "the part's family and its category");
+        let dowel = by_code(&ix, "Dowel Pins");
+        assert_eq!((dowel.subcategory_id, dowel.category_id), (41, 14), "the family's category");
+        let v = answer_json(&ix, &search(&ix, "ls-1", &Ctx::default(), 1), "ls-1", &Ctx::default());
+        assert_eq!(v["items"][0]["subcategory_id"], 20);
+    }
+
+    #[test]
     fn only_what_the_catalog_lists() {
         let families = FAMILIES.replace("20\t14\tActive", "20\t14\tPending");
         let categories = CATEGORIES.replace("6\tAlignment\tBroches et Goupilles de centrage", "6\tAlignment\tBroches et Goupilles de centrage\t0");
@@ -1528,6 +1555,7 @@ ghost\t10\tNOPE-1\t4
             "UPDATE subcategory SET category_id = 1 WHERE id = 8",
             "UPDATE category SET active = 0 WHERE id = 2",
             "UPDATE inventory SET active = 0 WHERE id = 1",
+            "UPDATE inventory SET subcategory_id = 8 WHERE id = 1",
         ] {
             sqlx::query(sql).execute(&pool).await.unwrap();
             let now = stamp(&pool).await.unwrap();

@@ -92,6 +92,22 @@ async fn an_entered_term_the_keyword_search_misses_opens_the_best_suggestion() {
 }
 
 #[tokio::test]
+async fn a_part_moved_to_another_family_opens_there_before_the_search_table_is_rebuilt() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    for sql in ["INSERT INTO language (code, name, active) VALUES ('EN', 'English', 1)", "UPDATE inventory SET subcategory_id = 8, category_id = 2 WHERE id = 2"] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let cookie = signed_in(&h.pool, &Account::customer(43)).await;
+    let (_, _, body) = send(&h.app, suggest("hblt-2", Some(&cookie), "/catalog/")).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!((&v["items"][0]["label"], &v["items"][0]["subcategory_id"]), (&"HBLT-2".into(), &8.into()), "{body}");
+    let req = request(Method::GET, "/catalog.php?scscpq_wp=1&search_source=search&search_id=21&search_code=HBLT-2", Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty());
+    let (_, _, body) = send(&h.app, req).await;
+    assert!(body.contains("Part number: HBLT-2<br>\nCategory: Secret<br>\nSubcategory: Hidden Pins</p>"), "{body}");
+}
+
+#[tokio::test]
 async fn every_other_table_is_refused_even_to_staff() {
     let h = harness().await;
     seed(&h.pool).await;

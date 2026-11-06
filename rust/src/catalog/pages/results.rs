@@ -53,7 +53,7 @@ async fn hit(ctx: &Ctx<'_>, row: Option<Row>) -> sqlx::Result<Option<Hit>> {
         Some(id) => model::part_by_id(ctx.pool, id).await?,
         None => None,
     };
-    let (category_id, subcategory_id) = (category_id.unwrap_or(0), subcategory_id.unwrap_or(0));
+    let (category_id, subcategory_id) = place(ctx, &table, category_id.unwrap_or(0), subcategory_id.unwrap_or(0), part.as_ref().map(|p| p.subcategory_id));
     if !shows(ctx, &table, category_id, subcategory_id, part.as_ref().is_some_and(|p| p.active)) {
         return Ok(None);
     }
@@ -63,6 +63,16 @@ async fn hit(ctx: &Ctx<'_>, row: Option<Row>) -> sqlx::Result<Option<Hit>> {
 /// A part number or a competitor's number for one: the row stands for an inventory part.
 fn names_part(table: &str) -> bool {
     matches!(table, "inventory" | "competitor_sku")
+}
+
+/// Where a `search` row points now: a part row to the part's current family (none when the part is gone), and any
+/// family to its current category. The table is filled from those and can lag behind them.
+fn place(ctx: &Ctx, table: &str, category_id: i64, subcategory_id: i64, part_family: Option<i64>) -> (i64, i64) {
+    if table == "category" {
+        return (category_id, subcategory_id);
+    }
+    let subcategory_id = if names_part(table) { part_family.unwrap_or(0) } else { subcategory_id };
+    (ctx.catalog.family(subcategory_id).map_or(category_id, |f| f.category_id), subcategory_id)
 }
 
 /// Whether the catalog shows this viewer what a keyword row names: an active category, or a family the catalog lists
@@ -145,23 +155,25 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let rows: Vec<keywords::Row> = sqlx::query!(
         r#"SELECT s.table_name AS "table!", s.code AS "code!", coalesce(s.code_normalized, '') AS "normalized!: String", s.category_id AS "category_id!: i64",
                   s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
-                  coalesce(i.active, 0) AS "part_active!: i64"
+                  coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
            FROM search s LEFT JOIN inventory i ON i.id = s.inventory_id
-           WHERE coalesce(s.language_code, '') IN ('', ?1) AND (?2 = 0 OR s.subcategory_id = ?2)
+           WHERE coalesce(s.language_code, '') IN ('', ?1)
              AND s.table_name IS NOT NULL AND s.code IS NOT NULL AND s.category_id IS NOT NULL AND s.subcategory_id IS NOT NULL
            ORDER BY s.id"#,
-        lang,
-        within
+        lang
     )
     .fetch_all(ctx.pool)
     .await?
     .into_iter()
-    .filter(|r| shows(ctx, &r.table, r.category_id, r.subcategory_id, r.part_active != 0))
-    .map(|r| keywords::Row {
-        code_normalized: if r.normalized.is_empty() { keywords::normalize(&r.code) } else { r.normalized },
-        table: r.table,
-        code: r.code,
-        category_id: r.category_id, subcategory_id: r.subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking })
+    .filter_map(|r| {
+        let (category_id, subcategory_id) = place(ctx, &r.table, r.category_id, r.subcategory_id, r.part_family);
+        let shown = (within == 0 || subcategory_id == within) && shows(ctx, &r.table, category_id, subcategory_id, r.part_active != 0);
+        shown.then(|| keywords::Row {
+            code_normalized: if r.normalized.is_empty() { keywords::normalize(&r.code) } else { r.normalized },
+            table: r.table,
+            code: r.code,
+            category_id, subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking })
+    })
     .collect();
     let names: Vec<(i64, String)> = sqlx::query!(
         r#"SELECT record_id AS "id!: i64", name AS "name!" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', ?1)"#,
