@@ -48,7 +48,7 @@ impl Profile {
 
     /// profile_class::quick_cad_message().
     pub fn quick_cad_message(&self, viewer: &Viewer, s: &Strings) -> String {
-        if !viewer.active() || !viewer.cad {
+        if !viewer.uses_quick_cad() {
             return String::new();
         }
         if self.cad_name.is_empty() || self.email.is_empty() {
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn quick_cad_message_follows_the_profile() {
-        let mut v = Viewer { kind: Kind::Account(UserId(1)), status: Status::Active, cad: true, ..Viewer::anonymous(Lang::En) };
+        let mut v = Viewer { kind: Kind::Account(UserId(1)), status: Status::Active, catalog: true, cad: true, ..Viewer::anonymous(Lang::En) };
         let mut p = Profile { email: "someone@example.com".into(), ..Profile::default() };
         let s = Strings::from_menu(Some(Some(r#"{"catalog_cad_click_profile":"Cliquez sur PROFIL."}"#)));
         assert_eq!(p.quick_cad_message(&v, &s), "Please complete profile to download CAD");

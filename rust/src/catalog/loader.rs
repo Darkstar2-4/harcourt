@@ -303,7 +303,7 @@ pub async fn answer(pool: &SqlitePool, viewer: &Viewer, req: &Initial<'_>, actio
             }
             Some((url, false)) => {
                 trace.push("url");
-                out.set("scscpq_iframe", json!(format!("<iframe id=scscpq_wp_iframe src={} width='100%' frameBorder='0' style='height: 100px;'>", forms::js_quote(&url))));
+                out.set("scscpq_iframe", json!(iframe(&url)));
             }
             None => out.set("scscpq_page", json!("")),
         }
@@ -345,7 +345,7 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
             for (k, v) in url_query(req.url) {
                 query.set(&k, v);
             }
-            (if req.url.to_ascii_lowercase().contains("beta") { "/beta_catalog.php" } else { "/catalog.php" }, true)
+            ("/catalog.php", true)
         }
         "campaign" => {
             for (k, v) in url_query(req.url) {
@@ -360,6 +360,10 @@ fn page_url(viewer: &Viewer, req: &Initial) -> Option<(String, bool)> {
     };
     query.set("scscpq_wp", "1");
     Some((format!("{}{path}{}", req.origin, query.encoded()), link))
+}
+
+fn iframe(url: &str) -> String {
+    format!("<iframe id=scscpq_wp_iframe src='{}' width='100%' frameBorder='0' style='height: 100px;'>", html::esc_attr(url))
 }
 
 /// The page's own query, as parse_str() reads it: `.` and spaces in a name become `_`, a repeated name keeps its first
@@ -601,10 +605,14 @@ mod tests {
         let req = Initial { page: "catalog", document: "", token: None, url: "https://www.harcourt.co/catalogue/?lang=fr&action=sku&sku=SEJMVC0z", origin: "https://www.harcourt.co", referrer: None, ecommerce: false, impersonating: false, email_cookie: false };
         assert_eq!(page_url(&v, &req), Some(("https://www.harcourt.co/catalog.php?lang=fr&action=sku&sku=SEJMVC0z&scscpq_wp=1".into(), true)));
         assert_eq!(page_url(&v, &Initial { page: "dashboard", ..req }), None);
-        let beta = Initial { url: "https://www.harcourt.co/beta_catalog/", ..req };
-        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/beta_catalog.php?scscpq_wp=1".into(), true)));
+        let beta = Initial { url: "https://www.harcourt.co/catalog/?search_code=BETA-1", ..req };
+        assert_eq!(page_url(&v, &beta), Some(("https://www.harcourt.co/catalog.php?search_code=BETA-1&scscpq_wp=1".into(), true)));
         let odd = Initial { url: "https://www.harcourt.co/catalog/?a%20b=1&c.d=2&e%5B%5D=3&a_b=4", ..req };
         assert_eq!(page_url(&v, &odd), Some(("https://www.harcourt.co/catalog.php?a_b=4&c_d=2&scscpq_wp=1".into(), true)), "names as parse_str() made them");
+        let campaign = Initial { page: "campaign", url: "https://www.harcourt.co/campaign/?campaign=Spring%20Sale&ref=mail", ..req };
+        let (url, link) = page_url(&v, &campaign).unwrap_or_default();
+        assert!(!link);
+        assert_eq!(iframe(&url), "<iframe id=scscpq_wp_iframe src='https://www.harcourt.co/campaign.php?campaign=Spring+Sale&ref=mail&scscpq_wp=1' width='100%' frameBorder='0' style='height: 100px;'>");
         assert_eq!(language(" fr-CA"), Some(Lang::Fr));
         assert_eq!(language("en"), Some(Lang::En));
         assert_eq!(language(""), None);

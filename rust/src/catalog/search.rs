@@ -33,6 +33,8 @@ use crate::{api::Auth, identity::Role, visitor::Visitor};
 const LEARNED_FILES: [&str; 2] = ["learned.tsv", "popular.tsv"];
 /// How long a built index is used before the tables are checked for changes.
 const RECHECK: Duration = Duration::from_secs(30);
+/// The longest wait before a build that failed is tried again; each failure in a row doubles the wait up to this.
+const MAX_RETRY: Duration = Duration::from_secs(15 * 60);
 /// Typed term -> (picks, entry) of what searchers opened after it.
 type Learned = HashMap<String, Vec<(u32, u32)>>;
 const DEFAULT_LIMIT: usize = 10;
@@ -116,6 +118,7 @@ struct Family {
     /// The family-name entry per language, where the index has one.
     rows: [Option<u32>; 2],
     status: model::Status,
+    category_id: u32,
     /// Whether the family's category is active (categories.tsv).
     category_active: bool,
 }
@@ -123,6 +126,7 @@ struct Family {
 /// One `inventory` row (parts.tsv).
 struct Stock {
     sku: Box<str>,
+    subcategory_id: u32,
     active: bool,
 }
 
@@ -289,8 +293,28 @@ impl Index {
             if let [id, category, status, en, fr] = line.split('\t').collect::<Vec<_>>()[..] {
                 if let (Ok(id), Some(category)) = (id.parse(), number::<u32>(category)) {
                     let (status, category_active) = (model::Status::parse(status), active_categories.contains(&category));
-                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None], status, category_active });
+                    fams.insert(id, Family { names: [en.into(), fr.into()], rows: [None, None], status, category_id: category, category_active });
                 }
+            }
+        }
+        let parts: HashMap<u32, Stock> = parts
+            .lines()
+            .filter_map(|l| {
+                let mut f = l.split('\t');
+                let (id, sku) = (f.next()?.parse().ok()?, f.next()?.into());
+                let subcategory_id = f.next().and_then(number::<u32>).unwrap_or(0);
+                let active = f.next().is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0));
+                Some((id, Stock { sku, subcategory_id, active }))
+            })
+            .collect();
+        // A row names a part's family and a family's category as they were when the table was filled; the part and
+        // the family say where they are now.
+        for e in &mut entries {
+            if matches!(e.kind, Kind::Part | Kind::Competitor) {
+                e.subcategory_id = parts.get(&e.inventory_id).map_or(0, |p| p.subcategory_id);
+            }
+            if let Some(f) = fams.get(&e.subcategory_id) {
+                e.category_id = f.category_id;
             }
         }
         let mut trigrams: HashMap<[u8; 3], Vec<u32>> = HashMap::new();
@@ -312,15 +336,6 @@ impl Index {
                 }
             }
         }
-        let parts = parts
-            .lines()
-            .filter_map(|l| {
-                let mut f = l.split('\t');
-                let (id, sku) = (f.next()?.parse().ok()?, f.next()?.into());
-                let active = f.nth(1).is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0));
-                Some((id, Stock { sku, active }))
-            })
-            .collect();
         let (mut by_term, mut by_stem): (Learned, Learned) = Default::default();
         for line in learned.lines() {
             let [term, sub, sku, picks] = line.split('\t').collect::<Vec<_>>()[..] else { continue };
@@ -933,7 +948,7 @@ fn page_lang(headers: &HeaderMap) -> Lang {
 /// status, of the active categories and of the active parts: any edit, import, rebuild or change of what the catalog
 /// shows changes one of them.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Stamp([i64; 19]);
+struct Stamp([i64; 20]);
 
 async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
     let r = sqlx::query!(
@@ -951,13 +966,14 @@ async fn stamp(pool: &SqlitePool) -> sqlx::Result<Stamp> {
                   (SELECT count(*) FROM category WHERE coalesce(active, 0) <> 0) AS "o!: i64",
                   (SELECT coalesce(sum(id), 0) FROM category WHERE coalesce(active, 0) <> 0) AS "p!: i64",
                   (SELECT count(*) FROM inventory WHERE coalesce(active, 0) <> 0) AS "q!: i64",
-                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64""#
+                  (SELECT coalesce(sum(id), 0) FROM inventory WHERE coalesce(active, 0) <> 0) AS "r!: i64",
+                  (SELECT coalesce(sum(id * coalesce(subcategory_id, 0)), 0) FROM inventory) AS "s!: i64""#
     )
     .fetch_one(pool)
     .await?;
     // The day: what searchers opened is learned again daily.
     let day = crate::db::unix_now() / 86_400;
-    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, day]))
+    Ok(Stamp([r.a, r.b, r.c, r.d, r.e, r.f, r.g, r.h, r.i, r.j, r.k, r.l, r.m, r.n, r.o, r.p, r.q, r.r, r.s, day]))
 }
 
 fn cell(s: &str) -> String {
@@ -1027,15 +1043,19 @@ async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
     Ok([rows, families, categories, parts])
 }
 
+#[derive(Clone)]
 struct Built {
-    stamp: Stamp,
+    /// The tables the index was built from; None before any build succeeded.
+    stamp: Option<Stamp>,
     checked: Instant,
+    /// How long after `checked` the tables are looked at again.
+    wait: Duration,
     index: Option<Arc<Index>>,
 }
 
 /// The index for one database, built on first use and rebuilt when its tables change. One request at a time checks
 /// and rebuilds; the others keep the index there is meanwhile (they wait only for the first). A build that fails
-/// keeps the previous index.
+/// keeps the previous index and is tried again later, less often each time it fails.
 #[derive(Default)]
 pub struct Cache {
     built: tokio::sync::Mutex<Option<Built>>,
@@ -1049,7 +1069,7 @@ impl Cache {
 
     async fn index(&self, pool: &SqlitePool) -> sqlx::Result<Option<Arc<Index>>> {
         let serving = match self.built.lock().await.as_ref() {
-            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
+            Some(b) if b.checked.elapsed() < b.wait => return Ok(b.index.clone()),
             Some(b) => b.index.clone(),
             None => None,
         };
@@ -1059,16 +1079,22 @@ impl Cache {
             (Err(_), None) => self.rebuild.lock().await,
         };
         let previous = match self.built.lock().await.as_ref() {
-            Some(b) if b.checked.elapsed() < RECHECK => return Ok(b.index.clone()),
-            Some(b) => Some((b.stamp.clone(), b.index.clone())),
-            None => None,
+            Some(b) if b.checked.elapsed() < b.wait => return Ok(b.index.clone()),
+            Some(b) => b.clone(),
+            // A first build that fails is tried again after RECHECK.
+            None => Built { stamp: None, checked: Instant::now(), wait: RECHECK / 2, index: None },
         };
         let now = stamp(pool).await?;
-        let index = match previous {
-            Some((stamp, index)) if stamp == now => index,
-            previous => build(pool).await?.or_else(|| previous.and_then(|(_, ix)| ix)),
+        let built = if previous.stamp.as_ref() == Some(&now) {
+            Built { checked: Instant::now(), wait: RECHECK, ..previous }
+        } else {
+            match build(pool).await? {
+                Some(ix) => Built { stamp: Some(now), checked: Instant::now(), wait: RECHECK, index: Some(ix) },
+                None => Built { checked: Instant::now(), wait: (previous.wait * 2).min(MAX_RETRY), ..previous },
+            }
         };
-        *self.built.lock().await = Some(Built { stamp: now, checked: Instant::now(), index: index.clone() });
+        let index = built.index.clone();
+        *self.built.lock().await = Some(built);
         Ok(index)
     }
 }
@@ -1374,6 +1400,19 @@ mod tests {
     }
 
     #[test]
+    fn parts_and_families_are_placed_where_they_are_now() {
+        let parts = PARTS.replace("1000\tLS-1\t10\t1", "1000\tLS-1\t20\t1");
+        let families = FAMILIES.replace("41\t6\tActive", "41\t14\tActive");
+        let ix = Index::build(ROWS, &families, CATEGORIES, &parts, "", "").unwrap();
+        let ls1 = by_code(&ix, "LS-1");
+        assert_eq!((ls1.subcategory_id, ls1.category_id), (20, 14), "the part's family and its category");
+        let dowel = by_code(&ix, "Dowel Pins");
+        assert_eq!((dowel.subcategory_id, dowel.category_id), (41, 14), "the family's category");
+        let v = answer_json(&ix, &search(&ix, "ls-1", &Ctx::default(), 1), "ls-1", &Ctx::default());
+        assert_eq!(v["items"][0]["subcategory_id"], 20);
+    }
+
+    #[test]
     fn only_what_the_catalog_lists() {
         let families = FAMILIES.replace("20\t14\tActive", "20\t14\tPending");
         let categories = CATEGORIES.replace("6\tAlignment\tBroches et Goupilles de centrage", "6\tAlignment\tBroches et Goupilles de centrage\t0");
@@ -1528,6 +1567,7 @@ ghost\t10\tNOPE-1\t4
             "UPDATE subcategory SET category_id = 1 WHERE id = 8",
             "UPDATE category SET active = 0 WHERE id = 2",
             "UPDATE inventory SET active = 0 WHERE id = 1",
+            "UPDATE inventory SET subcategory_id = 8 WHERE id = 1",
         ] {
             sqlx::query(sql).execute(&pool).await.unwrap();
             let now = stamp(&pool).await.unwrap();
@@ -1559,6 +1599,42 @@ ghost\t10\tNOPE-1\t4
         let rechecked = cache.index(&pool).await.unwrap().unwrap();
         assert!(Arc::ptr_eq(&first, &rechecked), "the tables did not change");
         assert!(cache.built.lock().await.as_ref().is_some_and(|b| b.checked.elapsed() < RECHECK));
+    }
+
+    #[tokio::test]
+    async fn a_build_that_fails_keeps_the_index_and_is_tried_again_less_often() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let cache = Cache::new();
+        let first = cache.index(&pool).await.unwrap().unwrap();
+        let built = |cache: &Arc<Cache>| {
+            let cache = cache.clone();
+            async move {
+                let mut b = cache.built.lock().await;
+                let b = b.as_mut().unwrap();
+                b.checked = Instant::now().checked_sub(b.wait + Duration::from_secs(1)).unwrap();
+                b.stamp.clone()
+            }
+        };
+        let good = built(&cache).await;
+        sqlx::query("UPDATE search SET id = 30, table_name = 'category', inventory_id = 0 WHERE id = 20").execute(&pool).await.unwrap();
+        for wait in [RECHECK * 2, RECHECK * 4] {
+            let kept = cache.index(&pool).await.unwrap().unwrap();
+            assert!(Arc::ptr_eq(&first, &kept), "the index there was");
+            assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(wait));
+            assert_eq!(built(&cache).await, good, "the tables of the index served");
+        }
+        sqlx::query("UPDATE search SET id = 40, table_name = 'inventory', inventory_id = 1 WHERE id = 30").execute(&pool).await.unwrap();
+        let rebuilt = cache.index(&pool).await.unwrap().unwrap();
+        assert!(!Arc::ptr_eq(&first, &rebuilt));
+        assert_eq!(cache.built.lock().await.as_ref().map(|b| b.wait), Some(RECHECK));
     }
 
     #[test]

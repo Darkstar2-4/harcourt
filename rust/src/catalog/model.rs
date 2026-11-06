@@ -231,7 +231,16 @@ impl Catalog {
 
     /// Whether the catalog lists this family at all (`listed`).
     pub fn lists(&self, family: &Family, sees_pending: bool) -> bool {
-        listed(family.status, self.categories.get(&family.category_id).is_some_and(|c| c.active), sees_pending)
+        listed(family.status, self.category_active(family.category_id), sees_pending)
+    }
+
+    /// Whether this viewer is shown the family (`Viewer::sees_family`).
+    pub fn shows(&self, viewer: &super::viewer::Viewer, family: &Family) -> bool {
+        viewer.sees_family(family.status, self.category_active(family.category_id), family.category_id)
+    }
+
+    fn category_active(&self, id: i64) -> bool {
+        self.categories.get(&id).is_some_and(|c| c.active)
     }
 }
 
@@ -435,8 +444,9 @@ pub async fn part_by_id(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Part>
 pub struct Day(i64);
 
 impl Day {
+    /// The site's day (America/Detroit) at this unix time.
     pub fn from_unix(secs: i64) -> Day {
-        Day(secs.div_euclid(86_400))
+        Day((secs + crate::staff::time::offset_at(secs)).div_euclid(86_400))
     }
 
     pub fn minus_days(self, n: i64) -> Day {
@@ -495,8 +505,11 @@ mod tests {
     fn dates_and_lead_times() {
         assert_eq!(php_date("2024-05-01"), "2024/05/01");
         assert_eq!(php_date("0000-00-00"), "");
-        assert_eq!(Day::from_unix(1_714_521_600).slashed(), "2024/05/01");
-        assert_eq!(Day::from_unix(1_714_521_600).minus_days(31).dashed(), "2024-03-31");
+        assert_eq!(Day::from_unix(1_714_536_000).slashed(), "2024/05/01");
+        assert_eq!(Day::from_unix(1_714_535_999).slashed(), "2024/04/30", "midnight in Detroit, 04:00 UTC in summer");
+        assert_eq!(Day::from_unix(1_704_085_199).dashed(), "2023-12-31");
+        assert_eq!(Day::from_unix(1_704_085_200).dashed(), "2024-01-01", "05:00 UTC in winter");
+        assert_eq!(Day::from_unix(1_714_536_000).minus_days(31).dashed(), "2024-03-31");
         assert_eq!(leadtime("Weeks", "3", None), "3 Week(s)");
         assert_eq!(leadtime("In Stock", "", None), "In Stock");
         assert_eq!(leadtime("Weeks", "", None), "");

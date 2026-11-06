@@ -172,6 +172,9 @@ async fn prices_and_the_cart_columns_follow_the_account() {
     assert!(part.contains("Harcourt List Price: $12.50<br><font color=red><b><i>Your Discounted Price: $10.00</i></b></font>"));
     assert!(part.contains("<b>Specifications:</b><br>Diameter: <b>0.5</b><br>Mate: <b>"));
     assert!(part.contains("value='Add to Cart'"));
+
+    let (_, _, other) = send(&h.app, get(&page("action=sku&subcategory_id=9&sku=SEJMVC0y"), Some(&cookie))).await;
+    assert!(other.contains("<h1>Toggle Clamps (Metric)</h1>") && !other.contains("Part number: HBLT-2"), "a part shows on its own family's page only: {other}");
 }
 
 #[tokio::test]

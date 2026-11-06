@@ -177,6 +177,11 @@ impl Viewer {
         !matches!(self.kind, Kind::Anonymous) && self.active() && self.catalog
     }
 
+    /// May fetch CAD files: a catalog it may browse and the CAD grant.
+    pub fn uses_quick_cad(&self) -> bool {
+        self.may_browse() && self.cad
+    }
+
     /// Administrators also see Pending subcategories.
     pub fn sees_pending(&self) -> bool {
         self.role >= Role::Administrator
