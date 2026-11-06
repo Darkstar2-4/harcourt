@@ -513,11 +513,9 @@ async fn user_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<
 
 async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<Vec<Record>> {
     let mut rows = sqlx::query!(
-        r#"SELECT e.email AS "email!: String", e.first_day AS "first_day!: String", e.last_day AS "last_day!: String",
+        r#"SELECT e.email AS "email!: String", e.first_seen AS "first_seen!: i64", e.last_seen AS "last_seen!: i64",
                   u.company_name, u.address, u.city, u.state, u.zip, u.country_code
-           FROM (SELECT email, min(user_id) AS user_id,
-                        strftime('%Y/%m/%d', min(date_time), 'unixepoch', 'localtime') AS first_day,
-                        strftime('%Y/%m/%d', max(date_time), 'unixepoch', 'localtime') AS last_day
+           FROM (SELECT email, min(user_id) AS user_id, min(date_time) AS first_seen, max(date_time) AS last_seen
                  FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e
            JOIN "user" u ON u.id = e.user_id
            WHERE COALESCE(u.company_name, '') <> ''
@@ -526,12 +524,13 @@ async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result
     .fetch_all(pool)
     .await?;
     rows.retain(|r| {
-        let day = match o.source {
+        let seen = match o.source {
             EmailSource::All => return true,
-            EmailSource::First => &r.first_day,
-            EmailSource::Last => &r.last_day,
+            EmailSource::First => r.first_seen,
+            EmailSource::Last => r.last_seen,
         };
-        (o.from.is_empty() || day.as_str() >= o.from.as_str()) && (o.thru.is_empty() || day.as_str() <= o.thru.as_str())
+        let day = time::date("Y/m/d", seen);
+        (o.from.is_empty() || day >= o.from) && (o.thru.is_empty() || day <= o.thru)
     });
     filesort::sort(&mut rows, |a, b| filesort::ci(&a.email, &b.email));
     Ok(rows
