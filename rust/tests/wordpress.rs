@@ -447,4 +447,15 @@ async fn a_form_posted_to_a_page_is_answered_where_the_form_was() {
     let (status, html) = post_form(&app, "/product/alignment/", "s=anything").await;
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("<form id=stub-1"), "a post without a form shows the page");
+
+    let (status, html) = post_form(&app, "/product/alignment", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK, "a post to the bare path is answered at the page, not moved");
+    assert!(html.contains("<title>Alignment - Example</title>") && html.contains("Thanks, we will be in touch."));
+    let (status, html) = post_form(&app, "/product/alignment", "gform_submit=1&input_1=").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<title>Alignment - Example</title>") && !html.contains("Thanks, we will be in touch."));
+    let (status, html) = post_form(&app, "/product/alignment", "s=anything").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<form id=stub-1"));
+    assert_eq!(send(&app, Method::GET, "/product/alignment").await.0, StatusCode::MOVED_PERMANENTLY, "a GET still gets the slash");
 }

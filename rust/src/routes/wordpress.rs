@@ -830,7 +830,14 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    let shown = match route(&site, &path, &q, raw_query) {
+    let mut routed = route(&site, &path, &q, raw_query);
+    // redirect_canonical() moves a GET or HEAD only: any other request to a page's bare path gets the page.
+    if !get && !path.ends_with('/') && matches!(routed, Answer::Redirect(_)) {
+        if let page @ Answer::Render(_) = route(&site, &slashed(&path), &q, raw_query) {
+            routed = page;
+        }
+    }
+    let shown = match routed {
         Answer::Render(p) => Shown::Page(p),
         Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
