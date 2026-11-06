@@ -97,9 +97,8 @@ fn last_sidebar(site: &Site, last: &Page) -> Option<String> {
 
 /// The holes of the archive's head and header that differ from the 404 page's.
 fn holes(site: &Site, term: &Term, lang: Lang, posts: &[&Page], alternates: &[(Lang, &Term, String)]) -> Option<BTreeMap<&'static str, String>> {
-    let tax = term.taxonomy.as_str();
     let title = term_title(site, term, lang)?;
-    let noindex = yoast::setting(site, &format!("noindex-tax-{tax}")) == Some("1");
+    let noindex = yoast::taxonomy_noindex(site, term.taxonomy);
     // Yoast's indexable is the English term's: its address and name stand for every translation.
     let (english_term, url) = alternates.iter().find(|(l, _, _)| *l == Lang::En).map(|(_, t, u)| (*t, u.clone())).unwrap_or((term, format!("{ORIGIN}{}", term.path())));
     let home = yoast::home_crumb(site, lang)?;

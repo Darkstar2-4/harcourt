@@ -6,6 +6,7 @@ use std::fmt::Write;
 use super::{
     model::{Lang, Page, PostType, Site, Status, Taxonomy},
     theme::{ORIGIN, UPLOADS},
+    yoast,
 };
 
 const XSL_EN: &str = "//www.harcourt.co/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl";
@@ -63,19 +64,18 @@ fn indexed(p: &Page) -> bool {
     p.status == Status::Publish
 }
 
-fn noindex(site: &Site, p: &Page) -> bool {
-    site.meta(p.id).get("noindex").is_some_and(|v| v == "1")
-}
-
 /// The sitemaps the index lists, in Yoast's order, each with its lastmod.
 fn maps(site: &Site, lang: Lang) -> Vec<(Map, String)> {
     let mut out = Vec::new();
     for (map, t) in [(Map::Pages, PostType::Page), (Map::Faqs, PostType::Faq)] {
+        if yoast::type_noindex(site, t) {
+            continue;
+        }
         if let Some(m) = site.pages.iter().filter(|p| p.kind == t && indexed(p)).map(|p| p.modified_at.as_str()).max() {
             out.push((map, iso(m)));
         }
     }
-    if terms(site, Taxonomy::FaqType, lang).next().is_some() {
+    if !yoast::taxonomy_noindex(site, Taxonomy::FaqType) && terms(site, Taxonomy::FaqType, lang).next().is_some() {
         let m = site.pages.iter().filter(|p| p.kind == PostType::Faq && p.lang == lang && indexed(p)).map(|p| p.modified_at.as_str()).max().unwrap_or("");
         out.push((Map::FaqTypes, iso(m)));
     }
@@ -135,7 +135,7 @@ pub fn urlset(site: &Site, map: Map, lang: Lang) -> Option<String> {
 /// lists a French page under its English URL in English), with the front page first for pages.
 fn posts(site: &Site, t: PostType, lang: Lang) -> Vec<Url> {
     let front = site.find(lang, "/").filter(|_| t == PostType::Page);
-    let mut list: Vec<&Page> = site.pages.iter().filter(|p| p.kind == t && indexed(p) && !noindex(site, p) && Some(p.id) != front.map(|f| f.id)).collect();
+    let mut list: Vec<&Page> = site.pages.iter().filter(|p| p.kind == t && indexed(p) && !yoast::noindex(site, p) && Some(p.id) != front.map(|f| f.id)).collect();
     list.sort_by(|a, b| (a.modified_at.as_str(), a.id).cmp(&(b.modified_at.as_str(), b.id)));
     let url = |p: &Page| match site.translation(p, lang) {
         Some(t) => t.url(ORIGIN),

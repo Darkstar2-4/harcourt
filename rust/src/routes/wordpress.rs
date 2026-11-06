@@ -267,7 +267,8 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
     let listed = sitemap::Map::parse(map).and_then(|m| sitemap::urlset(&site, m, q.lang));
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
-        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml"))),
+        // home_url(), which WPML gives the request's language.
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml{}", q.lang.query()))),
         _ => None,
     }
 }
@@ -830,7 +831,14 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    let shown = match route(&site, &path, &q, raw_query) {
+    let mut routed = route(&site, &path, &q, raw_query);
+    // redirect_canonical() moves a GET or HEAD only: any other request to a page's bare path gets the page.
+    if !get && !path.ends_with('/') && matches!(routed, Answer::Redirect(_)) {
+        if let page @ Answer::Render(_) = route(&site, &slashed(&path), &q, raw_query) {
+            routed = page;
+        }
+    }
+    let shown = match routed {
         Answer::Render(p) => Shown::Page(p),
         Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),

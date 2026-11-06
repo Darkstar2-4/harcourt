@@ -180,6 +180,30 @@ async fn a_post_the_export_left_out_is_not_found() {
 }
 
 #[tokio::test]
+async fn an_faq_shows_its_featured_image_above_the_answer() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO cms_media (id, file, mime, width, height) VALUES (90, '2020/01/example.png', 'image/png', 400, 300)").execute(&pool).await.unwrap();
+    for (name, kind, value) in [("content", "html", "<p>An example answer.</p>"), ("@thumbnail", "media", "90")] {
+        sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (436, ?1, ?2, ?3)").bind(name).bind(kind).bind(value).execute(&pool).await.unwrap();
+    }
+    for (name, value) in [("title", "Example question? - Example"), ("islands", ISLANDS)] {
+        sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (436, ?1, ?2)").bind(name).bind(value).execute(&pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (436, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, html) = send(&app, Method::GET, "/faq/example-question/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("class=\"post-436 faq type-faq status-publish has-post-thumbnail hentry\""), "{html}");
+    assert!(html.contains(
+        "<main itemprop=\"articleBody\">\n\n      <img width=\"400\" height=\"300\" src=\"https://www.harcourt.co/wp-content/uploads/2020/01/example.png\" class=\"attachment-full size-full wp-post-image\" alt=\"\" itemprop=\"image\" decoding=\"async\""
+    ));
+    assert!(html.contains("<p>An example answer.</p>"));
+}
+
+#[tokio::test]
 async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
     let (app, pool) = harness().await;
     sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (437, 437, 'en', '/innovations/example-builder/', 'layouts/template-product-boxjoint.php', 'publish', 'Example', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00')")
@@ -203,6 +227,7 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml").await.1.as_deref(), Some("https://www.harcourt.co/sitemap_index.xml"));
     assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml"));
+    assert_eq!(send(&app, Method::GET, "/page-sitemap1.xml?lang=fr").await.1.as_deref(), Some("https://www.harcourt.co/page-sitemap.xml?lang=fr"));
     assert_eq!(send(&app, Method::GET, "/post-sitemap.xml").await.0, StatusCode::NOT_FOUND);
 
     let (status, _, xml) = send(&app, Method::GET, "/page-sitemap.xml/").await;
@@ -217,6 +242,22 @@ async fn sitemaps_list_the_pages_as_wpml_links_them() {
     assert_eq!(send(&app, Method::GET, "/index.php/?lang=en").await.1.as_deref(), Some("/index.php/"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml?lang=en").await.1.as_deref(), Some("/sitemap.xml/"));
     assert_eq!(send(&app, Method::GET, "/sitemap.xml?order=asc").await.0, StatusCode::NOT_FOUND, "any other query is a 404");
+}
+
+#[tokio::test]
+async fn sitemaps_leave_out_what_yoast_keeps_from_search_engines() {
+    let (app, pool) = harness().await;
+    sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (2010, 'noindex', '1')").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (2010, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml?lang=fr").await;
+    assert_eq!(xml.matches("<loc>https://www.harcourt.co/gamme-de-produits/centrage/?lang=fr</loc>").count(), 1, "the noindexed page is left out");
+
+    sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES ('en', '@wpseo:noindex-page', 'choice', '1')").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES ('en', 2, 0, 'import', '{}')").execute(&pool).await.unwrap();
+    let (status, _, xml) = send(&app, Method::GET, "/sitemap_index.xml").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!xml.contains("page-sitemap"), "a post type kept from search engines has no sitemap");
+    assert_eq!(send(&app, Method::GET, "/page-sitemap.xml").await.0, StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -293,6 +334,10 @@ async fn an_edit_shows_on_the_next_request_and_a_revision_restores_it() {
     edit::restore(&pool, rev, UserId(9), 103).await.unwrap();
     let (_, _, html) = send(&app, Method::GET, "/product/alignment/").await;
     assert!(html.contains("<h1 class=\"mt-5\">Edited title</h1>"));
+
+    edit::save_page(&pool, PageId(165), &[Change { name: "hero_title".into(), value: "Dated".into() }], UserId(7), "", 1_700_000_000).await.unwrap();
+    let (_, _, xml) = send(&app, Method::GET, "/page-sitemap.xml").await;
+    assert!(xml.contains("<loc>https://www.harcourt.co/product/alignment/</loc>\n\t\t<lastmod>2023-11-14T22:13:20+00:00</lastmod>"), "{xml}");
 }
 
 #[tokio::test]
@@ -423,4 +468,15 @@ async fn a_form_posted_to_a_page_is_answered_where_the_form_was() {
     let (status, html) = post_form(&app, "/product/alignment/", "s=anything").await;
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("<form id=stub-1"), "a post without a form shows the page");
+
+    let (status, html) = post_form(&app, "/product/alignment", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK, "a post to the bare path is answered at the page, not moved");
+    assert!(html.contains("<title>Alignment - Example</title>") && html.contains("Thanks, we will be in touch."));
+    let (status, html) = post_form(&app, "/product/alignment", "gform_submit=1&input_1=").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<title>Alignment - Example</title>") && !html.contains("Thanks, we will be in touch."));
+    let (status, html) = post_form(&app, "/product/alignment", "s=anything").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<form id=stub-1"));
+    assert_eq!(send(&app, Method::GET, "/product/alignment").await.0, StatusCode::MOVED_PERMANENTLY, "a GET still gets the slash");
 }
