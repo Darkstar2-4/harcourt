@@ -117,12 +117,12 @@ impl Query {
         self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
     }
 
-    /// fn_url_query: keys as given, values urlencoded, empty values left out. Empty when nothing is left.
+    /// fn_url_query: keys and values urlencoded, empty values left out. Empty when nothing is left.
     pub fn encoded(&self) -> String {
         let mut out = String::new();
         for (k, v) in self.0.iter().filter(|(_, v)| !v.is_empty()) {
             out.push(if out.is_empty() { '?' } else { '&' });
-            out.push_str(k);
+            out.push_str(&urlencode(k));
             out.push('=');
             out.push_str(&urlencode(v));
         }
@@ -230,6 +230,7 @@ mod tests {
         q.remove("lang");
         assert_eq!(q.to_string(), "?action=sku&scs_page=0");
         assert_eq!(Query::new().with("x", "").encoded(), "");
+        assert_eq!(Query::new().with("part no", "a&b").encoded(), "?part+no=a%26b");
     }
 
     #[test]
