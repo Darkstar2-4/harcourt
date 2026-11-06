@@ -155,10 +155,12 @@ fn resized(bytes: &[u8], width: u32, height: u32) -> Option<(Vec<u8>, &'static s
     limits.max_alloc = Some(256 << 20);
     reader.limits(limits);
     let img = reader.decode().ok()?;
-    let (dw, dh) = capped(display_size((img.width(), img.height()), width, height));
-    if (dw, dh) == (img.width(), img.height()) {
+    let native = (img.width(), img.height());
+    let shown = display_size(native, width, height);
+    if shown == native {
         return None;
     }
+    let (dw, dh) = capped(shown);
     let mut out = std::io::Cursor::new(Vec::new());
     img.resize_exact(dw, dh, image::imageops::FilterType::Triangle).write_to(&mut out, format).ok()?;
     Some((out.into_inner(), format.to_mime_type()))
@@ -369,6 +371,19 @@ mod tests {
         assert_eq!(size(image_response(png, "image/png".into(), "a.png", 0, 0, false).await).await, (300, 200));
         assert_eq!(capped((300, 200)), (300, 200));
         assert_eq!(capped((4000, 100)), (2000, 50));
+    }
+
+    #[tokio::test]
+    async fn a_large_image_at_or_above_its_size_is_sent_as_stored() {
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::GrayImage::new(2400, 10).write_to(&mut png, image::ImageFormat::Png).unwrap();
+        let png = png.into_inner();
+        for width in [2400, 3000] {
+            let resp = image_response(png.clone(), "image/png".into(), "a.png", width, 0, false).await;
+            let bytes = http_body_util::BodyExt::collect(resp.into_body()).await.unwrap().to_bytes();
+            assert_eq!(bytes, png, "width {width}");
+        }
+        assert_eq!(resized(&png, 2200, 0).map(|(b, _)| image::load_from_memory(&b).unwrap().width()), Some(2000), "a real downscale keeps the cap");
     }
 
     #[test]

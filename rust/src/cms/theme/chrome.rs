@@ -116,19 +116,19 @@ fn hole(c: &mut Ctx, name: &str) {
         "seo_description_canonical" => {
             let (d, canonical) = (meta("description"), meta("canonical"));
             if !d.is_empty() {
-                c.push(&format!("\t<meta name=\"description\" content=\"{d}\" />\n"));
+                c.push(&format!("\t<meta name=\"description\" content=\"{}\" />\n", esc(&d)));
             }
             if !canonical.is_empty() {
-                c.push(&format!("\t<link rel=\"canonical\" href=\"{canonical}\" />\n"));
+                c.push(&format!("\t<link rel=\"canonical\" href=\"{}\" />\n", esc(&canonical)));
             }
         }
         "seo_og_description_url" => {
             let (d, canonical) = (meta("og_description"), meta("og_url"));
             if !d.is_empty() {
-                c.push(&format!("\t<meta property=\"og:description\" content=\"{d}\" />\n"));
+                c.push(&format!("\t<meta property=\"og:description\" content=\"{}\" />\n", esc(&d)));
             }
             if !canonical.is_empty() {
-                c.push(&format!("\t<meta property=\"og:url\" content=\"{canonical}\" />\n"));
+                c.push(&format!("\t<meta property=\"og:url\" content=\"{}\" />\n", esc(&canonical)));
             }
         }
         "rest_link" => {
@@ -168,6 +168,10 @@ fn hole(c: &mut Ctx, name: &str) {
         "main_menu" => main_menu(c),
         "footer_menu" => footer_menu(c),
         "copyright" | "pdf1" | "pdf2" | "terms" | "privacy" | "legal" => c.option_html(name),
+        "title" => {
+            let v = meta("title");
+            c.text(&v);
+        }
         other => {
             let v = meta(other);
             c.push(&v);

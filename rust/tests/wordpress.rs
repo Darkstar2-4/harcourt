@@ -296,6 +296,23 @@ async fn an_edit_shows_on_the_next_request_and_a_revision_restores_it() {
 }
 
 #[tokio::test]
+async fn head_texts_print_as_wordpress_escapes_them() {
+    let (app, pool) = harness().await;
+    sqlx::query("UPDATE cms_page_meta SET value = 'Alignment &#8211; Example' WHERE page_id = 165 AND name = 'title'").execute(&pool).await.unwrap();
+    let (_, _, html) = send(&app, Method::GET, "/product/alignment/").await;
+    assert!(html.contains("<title>Alignment &#8211; Example</title>"), "imported text keeps its entities");
+    let changes = [
+        Change { name: "meta:title".into(), value: "Jigs & \"Fixtures\"".into() },
+        Change { name: "meta:description".into(), value: "Bushings 1/2\" & up".into() },
+    ];
+    edit::save_page(&pool, PageId(165), &changes, UserId(7), "", 100).await.unwrap();
+    let (_, _, html) = send(&app, Method::GET, "/product/alignment/").await;
+    assert!(html.contains("<title>Jigs &amp; &quot;Fixtures&quot;</title>"), "{html}");
+    assert!(html.contains("<meta property=\"og:title\" content=\"Jigs &amp; &quot;Fixtures&quot;\" />"));
+    assert!(html.contains("<meta name=\"description\" content=\"Bushings 1/2&quot; &amp; up\" />"));
+}
+
+#[tokio::test]
 async fn the_notice_banner_is_a_site_wide_option() {
     let (app, pool) = harness().await;
     edit::save_options(&pool, hxweb::cms::Lang::En, &[Change { name: "website_notification".into(), value: "Closed on Friday".into() }], UserId(7), "", 100).await.unwrap();

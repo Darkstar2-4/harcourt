@@ -4,6 +4,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use super::search::TYPO_CODE_CHARS;
+
 const TYPO_CHARACTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /// One `search` row as the keyword search reads it.
@@ -145,12 +147,12 @@ fn typo_variants(code: &str) -> Vec<String> {
 }
 
 /// keyword_correct(): each word of four letters or more found in no name becomes the commonest name word one typo
-/// away, when there is one.
+/// away, when there is one. Words longer than the search box corrects are left as typed.
 pub fn correct(terms: &[String], keywords: &HashMap<String, usize>) -> Vec<String> {
     terms
         .iter()
         .map(|term| {
-            if term.len() < 4 || !term.chars().all(|c| c.is_ascii_alphabetic()) {
+            if !TYPO_CODE_CHARS.contains(&term.len()) || !term.chars().all(|c| c.is_ascii_alphabetic()) {
                 return term.clone();
             }
             let s = stem(term);
@@ -207,5 +209,7 @@ mod tests {
         let kw = keywords(["Drill Bushings", "Drill Bushing Liners", "Toggle Clamps"].into_iter());
         assert_eq!(correct(&["drill".into(), "bushng".into()], &kw), ["drill", "bushing"]);
         assert_eq!(correct(&["zzzzz".into(), "ls10".into()], &kw), ["zzzzz", "ls10"]);
+        let long = "bushingx".repeat(4);
+        assert_eq!(correct(&[long.clone()], &keywords([long[1..].to_string().as_str()].into_iter())), [long], "past the box's typo length");
     }
 }

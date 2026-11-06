@@ -322,6 +322,30 @@ async fn search_results_open_the_pick_or_list_the_matches() {
     assert!(body.contains("<p class=center>No results for search term: <b>zzz</b></p>"));
 }
 
+#[tokio::test]
+async fn search_results_list_only_what_the_catalog_lists() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', 1, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1), (503, '', 1, 'inventory', 'HBLT-3', 1, 7, 3), (504, 'EN', 1, 'subcategory', 'Secret Pins', 1, 8, 0), (505, '', 1, 'inventory', 'SP-1', 1, 8, 4), (502, '', 1, 'subcategory', 'Clamp', 2, 9, 0)").await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains("HBLT-3"), "{body}");
+    for path in ["search_source=search&search_id=503&search_code=", "search_source=search&search_id=0&search_code=hblt-3"] {
+        let (_, _, body) = send(&h.app, get(&page(path), Some(&cookie))).await;
+        assert!(!body.contains("Part number: HBLT-3"), "an inactive part: {path}");
+    }
+    for term in ["secret", "sp-1"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&cookie))).await;
+        assert!(!body.contains("Secret Pins") && !body.contains("subcat8") && !body.contains("Part number: SP-1"), "a Pending family: {term}: {body}");
+    }
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code="), Some(&cookie))).await;
+    assert!(body.contains("subcat7") && body.contains("subcat9") && !body.contains("subcat8"), "{body}");
+    exec(&h.pool, "UPDATE category SET active = 0 WHERE id = 2").await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    assert!(!body.contains("subcat9") && !body.contains("Toggle Clamps"), "a family in an inactive category: {body}");
+}
+
 /// Pages the catalog dropped: alternative and beta catalogs, the staff maintenance pages and the endpoints with no
 /// traffic. The catalog no longer claims them, so they get the site's answer for a path nothing serves.
 #[tokio::test]

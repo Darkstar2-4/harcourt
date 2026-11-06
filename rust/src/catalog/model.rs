@@ -19,10 +19,11 @@ pub struct Category {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Status {
     Active,
     Pending,
+    #[default]
     Inactive,
 }
 
@@ -191,6 +192,7 @@ pub struct Part {
     pub prj: String,
     pub pricing: String,
     pub sort_order: i64,
+    pub active: bool,
     pub new_date: String,
     pub competitor_sku: Vec<String>,
     pub leadtime_option: String,
@@ -227,11 +229,16 @@ impl Catalog {
         self.categories.get(&id).map_or("", |c| c.name.as_str())
     }
 
-    /// Whether the catalog lists this family at all: Active (or Pending, to those who see Pending) in an active
-    /// category. A category blocked for one account is that account's overlay, asked separately.
+    /// Whether the catalog lists this family at all (`listed`).
     pub fn lists(&self, family: &Family, sees_pending: bool) -> bool {
-        family.status.visible(sees_pending) && self.categories.get(&family.category_id).is_some_and(|c| c.active)
+        listed(family.status, self.categories.get(&family.category_id).is_some_and(|c| c.active), sees_pending)
     }
+}
+
+/// Whether the catalog lists a family: Active (or Pending, to those who see Pending) in an active category. A
+/// category blocked for one account is that account's overlay, asked separately.
+pub fn listed(status: Status, category_active: bool, sees_pending: bool) -> bool {
+    status.visible(sees_pending) && category_active
 }
 
 fn carets(s: Option<&str>) -> Vec<String> {
@@ -361,7 +368,7 @@ macro_rules! parts_query {
     ($pool:expr, $sql_where:literal, $($arg:expr),*) => {
         sqlx::query!(
             r#"SELECT id AS "id!: i64", sku, category_id, subcategory_id, prj, pricing, sort_order AS "sort_order!: i64",
-                      new_date AS "new_date!", competitor_sku, leadtime_option AS "leadtime_option!", leadtime_text,
+                      coalesce(active, 0) AS "active!: i64", new_date AS "new_date!", competitor_sku, leadtime_option AS "leadtime_option!", leadtime_text,
                       parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8,
                       parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16,
                       parameter17, parameter18, parameter19,
@@ -384,6 +391,7 @@ macro_rules! parts_query {
                     prj: r.prj.unwrap_or_default(),
                     pricing: r.pricing.unwrap_or_default(),
                     sort_order: r.sort_order,
+                    active: r.active != 0,
                     new_date: php_date(&r.new_date),
                     competitor_sku: r
                         .competitor_sku

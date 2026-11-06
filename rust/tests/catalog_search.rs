@@ -51,6 +51,20 @@ async fn customers_get_suggestions_scoped_to_what_they_may_see() {
 }
 
 #[tokio::test]
+async fn suggestions_leave_out_what_the_catalog_does_not_list() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    for sql in ["UPDATE inventory SET active = 0 WHERE id = 2", "UPDATE subcategory SET status = 'Pending' WHERE id = 8"] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let cookie = signed_in(&h.pool, &Account::customer(41)).await;
+    let (_, _, body) = send(&h.app, suggest("hblt", Some(&cookie), "/catalog/")).await;
+    assert!(body.contains("\"label\":\"HBLT-1\"") && !body.contains("\"label\":\"HBLT-2\""), "an inactive part: {body}");
+    let (_, _, body) = send(&h.app, suggest("hx-9", Some(&cookie), "/catalog/")).await;
+    assert!(!body.contains("\"label\":\"HX-9\""), "a part of a Pending family: {body}");
+}
+
+#[tokio::test]
 async fn the_box_answers_any_visitor_but_only_its_own_scripts() {
     let h = harness().await;
     seed(&h.pool).await;

@@ -185,7 +185,7 @@ impl Viewer {
     /// Whether the catalog shows this viewer a family and its parts: a catalog it may browse, a family that is
     /// Active (or Pending, to Administrators), in an active category that is not blocked for it.
     pub fn sees_family(&self, status: FamilyStatus, category_active: bool, category_id: i64) -> bool {
-        self.may_browse() && status.visible(self.sees_pending()) && category_active && !self.blocked.contains(category_id)
+        self.may_browse() && super::model::listed(status, category_active, self.sees_pending()) && !self.blocked.contains(category_id)
     }
 
     pub fn at_least(&self, role: Role) -> bool {
