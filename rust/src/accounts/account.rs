@@ -179,14 +179,12 @@ pub async fn for_email(pool: &SqlitePool, email: &Email) -> sqlx::Result<Option<
     Ok(id.map(UserId))
 }
 
-/// The address the account signed up with: the one recorded at registration, or, for an account registered before
-/// that was recorded, the address of its latest sign-up log row (user.php's approval query).
+/// The address the account signed up with, recorded at registration (and, for accounts older than that column, by
+/// migration 0108 and the import from their latest sign-up log row). Log rows are never read here: their user id
+/// can belong to an account deleted before this one took the id.
 pub async fn signup_email(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<String>> {
     let email = sqlx::query_scalar!(
-        r#"SELECT coalesce(signup_email, (
-                  SELECT email FROM log WHERE user_id = "user".id AND type = 'User' AND subtype = 'Signup' AND COALESCE(email, '') <> ''
-                  ORDER BY date_time DESC LIMIT 1)) AS "email?: String"
-           FROM "user" WHERE id = ?1"#,
+        r#"SELECT signup_email AS "email?: String" FROM "user" WHERE id = ?1"#,
         id.0
     )
     .fetch_optional(pool)
