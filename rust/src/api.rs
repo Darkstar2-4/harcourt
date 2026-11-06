@@ -4,9 +4,8 @@
 use std::{convert::Infallible, marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
 
 use axum::{
-    extract::{connect_info::MockConnectInfo, ConnectInfo, DefaultBodyLimit, FromRequestParts, Request, State},
-    http::{header, request::Parts, HeaderMap, HeaderValue, Method, StatusCode},
-    middleware::{self, Next},
+    extract::{connect_info::MockConnectInfo, ConnectInfo, DefaultBodyLimit, FromRequestParts, State},
+    http::{header, request::Parts, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
     Json, Router,
@@ -36,7 +35,6 @@ pub fn router(auth: Arc<Auth>) -> Router {
     Router::new()
         .route("/remote/redeem", post(redeem))
         .layer(DefaultBodyLimit::max(4096))
-        .layer(middleware::from_fn_with_state(auth.clone(), same_origin))
         .with_state(auth)
 }
 
@@ -49,7 +47,6 @@ pub fn unavailable() -> Router {
 pub enum ApiError {
     Unauthenticated,
     Forbidden,
-    BadOrigin,
     Unavailable,
     Internal,
 }
@@ -59,7 +56,6 @@ impl IntoResponse for ApiError {
         let (status, error) = match self {
             ApiError::Unauthenticated => (StatusCode::UNAUTHORIZED, "unauthenticated"),
             ApiError::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
-            ApiError::BadOrigin => (StatusCode::FORBIDDEN, "bad_origin"),
             ApiError::Unavailable => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
             ApiError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         };
@@ -74,19 +70,6 @@ impl From<sqlx::Error> for ApiError {
         tracing::error!("database error: {e}");
         ApiError::Internal
     }
-}
-
-/// A browser POST from another site carries its own Origin. Refuse it; the SameSite cookie is the second wall.
-async fn same_origin(State(auth): State<Arc<Auth>>, req: Request, next: Next) -> Response {
-    let reads = matches!(*req.method(), Method::GET | Method::HEAD);
-    if !reads {
-        if let Some(origin) = req.headers().get(header::ORIGIN) {
-            if origin.as_bytes() != auth.public_origin.as_bytes() {
-                return ApiError::BadOrigin.into_response();
-            }
-        }
-    }
-    next.run(req).await
 }
 
 /// The visitor's address for the log. The socket peer, unless the peer is one of our own proxies, in which case the

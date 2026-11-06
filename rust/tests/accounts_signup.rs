@@ -85,7 +85,11 @@ impl Answer {
 
 /// A request from the /request-access page, as the browser sends it in the middle of a visit.
 async fn send(app: &Router, method: Method, uri: &str, cookie: &str, form: Option<&str>, xhr: bool) -> Answer {
+    let posts = method != Method::GET && method != Method::HEAD;
     let mut req = Request::builder().method(method).uri(uri).header(header::REFERER, format!("{ORIGIN}/request-access"));
+    if posts {
+        req = req.header(header::ORIGIN, ORIGIN);
+    }
     req = req.header(header::COOKIE, if cookie.is_empty() { "PHPSESSID=test".to_string() } else { format!("{cookie}; PHPSESSID=test") });
     if xhr {
         req = req.header("x-requested-with", "XMLHttpRequest");

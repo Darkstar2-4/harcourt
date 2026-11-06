@@ -83,6 +83,7 @@ fn request(method: Method, uri: &str, cookie: &str, form: &[(&str, &str)], ajax:
         .uri(uri)
         .header(header::COOKIE, cookie)
         .header(header::REFERER, "https://www.harcourt.co/catalog/")
+        .header(header::ORIGIN, "https://www.harcourt.co")
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if ajax {
         r = r.header("x-requested-with", "XMLHttpRequest");

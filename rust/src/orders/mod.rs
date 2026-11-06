@@ -6,13 +6,7 @@ use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
 
 use percent_encoding::percent_decode_str;
 
-use axum::{
-    extract::{FromRequestParts, Request, State},
-    http::{header, request::Parts, Method, StatusCode},
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-    Router,
-};
+use axum::{extract::FromRequestParts, http::request::Parts, Router};
 
 use crate::{
     api::{Auth, ClientIp},
@@ -52,19 +46,7 @@ pub fn router(state: Arc<Orders>) -> Router {
         .merge(shop::routes())
         .merge(pages::routes())
         .merge(forms::routes())
-        .layer(middleware::from_fn_with_state(state.clone(), same_origin))
         .with_state(state)
-}
-
-/// A form posted from another site carries that site's Origin. Refuse it; the SameSite session cookie is the second
-/// wall. Requests without an Origin (old clients, server-to-server punch-out) pass to the route's own checks.
-async fn same_origin(State(state): State<Arc<Orders>>, req: Request, next: Next) -> Response {
-    let reads = matches!(*req.method(), Method::GET | Method::HEAD);
-    let foreign = req.headers().get(header::ORIGIN).is_some_and(|o| o.as_bytes() != state.core.public_origin.as_bytes());
-    if !reads && foreign {
-        return (StatusCode::FORBIDDEN, "Forbidden").into_response();
-    }
-    next.run(req).await
 }
 
 impl FromRequestParts<Arc<Orders>> for Visitor {

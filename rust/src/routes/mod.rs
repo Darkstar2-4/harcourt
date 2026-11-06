@@ -4,7 +4,13 @@
 
 use std::sync::Arc;
 
-use axum::{middleware, Router};
+use axum::{
+    extract::{Request, State},
+    http::{header, HeaderMap, Method, StatusCode},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    Router,
+};
 
 use crate::{
     api::{self, Auth},
@@ -26,5 +32,57 @@ pub fn all(core: Arc<Auth>) -> Router {
         .merge(staff::router(core.clone()))
         .merge(wordpress.pages)
         .layer(middleware::from_fn_with_state(core.clone(), visitor::layer));
-    Router::new().nest_service("/api", api::router(core)).merge(pages).merge(wordpress.front)
+    Router::new()
+        .nest_service("/api", api::router(core.clone()))
+        .merge(pages)
+        .merge(wordpress.front)
+        .layer(middleware::from_fn_with_state(core, same_origin))
+}
+
+/// Paths that admit a caller by a token in the request alone, never by a cookie or the client's address. A
+/// server calling one sends no Origin and need not send a Referer.
+const TOKEN_ONLY: [&str; 1] = ["/api/remote/redeem"];
+
+/// Every request other than a GET or HEAD must come from a page of this site. Its Origin, when sent, must be the
+/// public origin. Without one, its Referer must be a page of the public origin. A visitor can be signed in by a
+/// cookie or by the company address they connect from, so this holds for every route, not only those behind a
+/// session.
+pub async fn same_origin(State(core): State<Arc<Auth>>, req: Request, next: Next) -> Response {
+    let reads = matches!(*req.method(), Method::GET | Method::HEAD);
+    if reads || from_this_site(req.headers(), req.uri().path(), &core.public_origin) {
+        next.run(req).await
+    } else {
+        (StatusCode::FORBIDDEN, "Forbidden").into_response()
+    }
+}
+
+fn from_this_site(headers: &HeaderMap, path: &str, origin: &str) -> bool {
+    match headers.get(header::ORIGIN) {
+        Some(sent) => sent.as_bytes() == origin.as_bytes(),
+        None => TOKEN_ONLY.contains(&path) || headers.get(header::REFERER).and_then(|r| r.to_str().ok()).is_some_and(|r| on_origin(r, origin)),
+    }
+}
+
+/// A URL on `origin` itself, not on a host that merely starts with the same text.
+fn on_origin(url: &str, origin: &str) -> bool {
+    url.strip_prefix(origin).is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '?', '#']))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SITE: &str = "https://www.harcourt.co";
+
+    fn headers(pairs: &[(header::HeaderName, &str)]) -> HeaderMap {
+        pairs.iter().map(|(k, v)| (k.clone(), v.parse().unwrap())).collect()
+    }
+
+    #[test]
+    fn a_page_of_this_site_may_post() {
+        assert!(from_this_site(&headers(&[(header::ORIGIN, SITE)]), "/cart.php", SITE));
+        assert!(from_this_site(&headers(&[(header::REFERER, "https://www.harcourt.co/cart.php?x=1")]), "/cart.php", SITE));
+        assert!(from_this_site(&headers(&[(header::REFERER, SITE)]), "/cart.php", SITE));
+        assert!(from_this_site(&headers(&[]), "/api/remote/redeem", SITE));
+    }
 }
