@@ -2,7 +2,7 @@
 //! number, or the keyword search over the `search` table.
 
 use super::{family, home, Ctx};
-use crate::catalog::{html::esc_text, keywords, model, model::Part};
+use crate::catalog::{html::esc_text, keywords, model, model::Part, search};
 
 /// A `search` row: what it points at.
 pub struct Hit {
@@ -12,31 +12,37 @@ pub struct Hit {
     pub part: Option<Part>,
 }
 
-/// search_class::normalize_code(): upper case without separators, so "hb-lt 1" finds HBLT1.
-pub fn normalize_code(s: &str) -> String {
-    s.chars().filter(|c| !c.is_whitespace() && !"-_./".contains(*c)).collect::<String>().to_uppercase()
-}
-
 /// lookup()'s first step: the part number as typed (`search::as_typed`) or without separators, matched against
-/// parts (by the number each has now) and competitor numbers. The first in the search box's order: a code as typed,
-/// then parts before competitor numbers, then ranking.
+/// parts (by the number each has now) and competitor numbers as the box matches them (`search::same_code`,
+/// `search::normalize_code`). The first in the search box's order: a code as typed, then parts before competitor
+/// numbers, then ranking. SQLite compares ASCII only, so it picks the candidates (those it can match, and every code
+/// with a character past ASCII) and the comparison is made here.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
-    let codes = crate::catalog::search::as_typed(code);
+    let codes = search::as_typed(code);
     let variant = |i: usize| codes.get(i).unwrap_or(&codes[0]).clone();
     let (a, b, c) = (variant(0), variant(1), variant(2));
-    let normalized = Some(normalize_code(&codes[0])).filter(|n| !n.is_empty());
-    let row = sqlx::query!(
-        r#"SELECT table_name AS "table_name!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64", inventory_id AS "inventory_id?: i64"
-           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND code <> '' AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
-           ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, coalesce(ranking, 0), code, id LIMIT 1"#,
+    let normalized = search::normalize_code(&codes[0]);
+    let candidates = sqlx::query!(
+        r#"SELECT id AS "id!: i64", table_name AS "table_name!: String", code AS "code!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64",
+                  inventory_id AS "inventory_id?: i64", coalesce(ranking, 0) AS "ranking!: i64"
+           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND code <> ''
+             AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR upper(code_normalized) = ?4 OR code GLOB '*[^ -~]*')"#,
         a,
         b,
         c,
         normalized
     )
-    .fetch_optional(ctx.pool)
+    .fetch_all(ctx.pool)
     .await?;
-    hit(ctx, row.map(|r| (r.table_name, r.category_id, r.subcategory_id, r.inventory_id))).await
+    let row = candidates
+        .into_iter()
+        .filter_map(|r| {
+            let typed = codes.iter().any(|c| search::same_code(c, &r.code));
+            (typed || (!normalized.is_empty() && search::normalize_code(&r.code) == normalized)).then_some((!typed, r))
+        })
+        .min_by(|(x, r), (y, s)| (x, r.table_name != "inventory", r.ranking, &r.code, r.id).cmp(&(y, s.table_name != "inventory", s.ranking, &s.code, s.id)))
+        .map(|(_, r)| (r.table_name, r.category_id, r.subcategory_id, r.inventory_id));
+    hit(ctx, row).await
 }
 
 /// A `search` row as read: table, category, family and part ids.
@@ -133,7 +139,7 @@ fn no_results(ctx: &Ctx) -> String {
 /// would have put first: PHP's search came up empty for about four searches in ten.
 async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
     let Some(cache) = ctx.search.clone().filter(|_| ctx.req.search_id == 0) else { return Ok(None) };
-    let Some(id) = crate::catalog::search::best(&cache, ctx.pool, ctx.viewer, ctx.req.raw_search_code.trim()).await? else { return Ok(None) };
+    let Some(id) = search::best(&cache, ctx.pool, ctx.viewer, ctx.req.raw_search_code.trim()).await? else { return Ok(None) };
     let id = i64::try_from(id).unwrap_or(0);
     let row = sqlx::query!(
         r#"SELECT table_name, category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64" FROM search WHERE id = ?1"#,
@@ -152,7 +158,7 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let lang = ctx.viewer.lang.code();
     let within = ctx.subcategory_id;
     let rows: Vec<keywords::Row> = sqlx::query!(
-        r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", coalesce(s.code_normalized, '') AS "normalized!: String", s.category_id AS "category_id!: i64",
+        r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", s.category_id AS "category_id!: i64",
                   s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
                   coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
            FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
@@ -168,7 +174,7 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
         let (category_id, subcategory_id) = place(ctx, &r.table, r.category_id, r.subcategory_id, r.part_family);
         let shown = (within == 0 || subcategory_id == within) && shows(ctx, &r.table, category_id, subcategory_id, r.part_active != 0);
         shown.then(|| keywords::Row {
-            code_normalized: if r.normalized.is_empty() { keywords::normalize(&r.code) } else { r.normalized },
+            code_normalized: search::normalize_code(&r.code),
             table: r.table,
             code: r.code,
             category_id, subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking })

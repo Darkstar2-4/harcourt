@@ -2,11 +2,6 @@
 //! attributes in groups (name, src, value, event, boolean, html5) and, inside a group, in the order they were set.
 //! Values are escaped here where the PHP wrote them raw.
 
-use std::{
-    path::{Path, PathBuf},
-    sync::OnceLock,
-};
-
 use super::html::{esc, esc_attr, esc_script};
 
 const NAME: &[&str] = &["name", "id", "class", "style"];
@@ -99,7 +94,7 @@ pub fn font(color: &str, inner_html: &str, after_html: &str) -> String {
 }
 
 /// forms_class::img(). A site path that is not on disk gives no element, as the PHP checked the document root;
-/// without HXWEB_DOCROOT every path counts as present.
+/// without HXWEB_DOCROOT set every path counts as present, so a checkout without the uploads renders what prod did.
 pub fn img(src: &str, attrs: &[(&str, &str)]) -> Option<String> {
     if src.is_empty() || !site_file_exists(src) {
         return None;
@@ -118,18 +113,13 @@ fn site_file_exists(src: &str) -> bool {
     if src.starts_with(|c: char| "htps|HTPS".contains(c)) {
         return true;
     }
-    match docroot() {
+    match crate::assets::configured() {
         Some(root) => {
             let path = if src.starts_with('/') { src.to_string() } else { format!("/{src}") };
             !path.split('/').any(|seg| seg == "..") && root.join(path.trim_start_matches('/')).is_file()
         }
         None => true,
     }
-}
-
-fn docroot() -> Option<&'static Path> {
-    static ROOT: OnceLock<Option<PathBuf>> = OnceLock::new();
-    ROOT.get_or_init(|| std::env::var_os("HXWEB_DOCROOT").map(PathBuf::from)).as_deref()
 }
 
 /// fn_escape() outside SQL: the value in single quotes with quotes and backslashes escaped, as the PHP put it into

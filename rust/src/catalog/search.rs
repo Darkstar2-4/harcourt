@@ -346,8 +346,8 @@ impl Index {
             let target = if sku.is_empty() {
                 fams.get(&sub).and_then(|f| f.rows[0].or(f.rows[1]))
             } else {
-                let b = if norm(sku).is_empty() { 0..0 } else { block(&norms, 0..entries.len(), &norm(sku)) };
-                b.into_iter().find(|&i| entries[i].kind == Kind::Part && entries[i].code.eq_ignore_ascii_case(sku)).map(|i| i as u32)
+                let b = if normalize_code(sku).is_empty() { 0..0 } else { block(&norms, 0..entries.len(), &normalize_code(sku)) };
+                b.into_iter().find(|&i| entries[i].kind == Kind::Part && same_code(&entries[i].code, sku)).map(|i| i as u32)
             };
             if let Some(e) = target {
                 by_term.entry(phrase(term)).or_default().push((picks, e));
@@ -414,7 +414,7 @@ fn entry(line: &str) -> Option<(String, Entry)> {
         inventory_id: number(inventory)?,
         ranking: number(ranking)?,
     };
-    Some((norm(code), e))
+    Some((normalize_code(code), e))
 }
 
 /// Empty is 0 (a NULL in the export).
@@ -513,7 +513,7 @@ fn fold(s: &str) -> String {
 }
 
 /// The part numbers a typed term names as typed, as catalog.php's lookup() tried them: in upper case, then without
-/// its spaces, then with them as underscores. A code is one of them when it equals one but for ASCII case.
+/// its spaces, then with them as underscores. A code is one of them when it is the same code (`same_code`).
 pub fn as_typed(term: &str) -> Vec<String> {
     let wanted = term.trim().to_uppercase();
     let mut codes = vec![wanted.clone()];
@@ -526,9 +526,21 @@ pub fn as_typed(term: &str) -> Vec<String> {
     codes
 }
 
-/// A code as matched: folded, uppercase, without the separators customers drop or swap ("ls1", "LS-1", "ls 1").
-fn norm(s: &str) -> String {
+/// search_class::normalize_code(), as every code is compared here, on the results page and in the box: folded as
+/// the search table's latin1 collation compares it, uppercase, without the separators customers drop or swap ("ls1",
+/// "LS-1", "ls 1", "É-7" and "e7").
+pub fn normalize_code(s: &str) -> String {
     fold(s).chars().filter(|&c| !matches!(c, '-' | '_' | '.' | '/') && !c.is_whitespace()).map(|c| c.to_ascii_uppercase()).collect()
+}
+
+/// Whether a code is the one typed, but for case and accents.
+pub fn same_code(a: &str, b: &str) -> bool {
+    fold(a) == fold(b)
+}
+
+/// Whether a code holds a term, but for case and accents (the keyword search's `code like '%term%'`).
+pub fn code_contains(code: &str, term: &str) -> bool {
+    fold(code).contains(&fold(term))
 }
 
 /// A typed term as learned terms are matched: folded, whitespace collapsed.
@@ -799,7 +811,7 @@ fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
     let term = term.trim();
     // The log has pasted XML and JSON blobs of 2 kB in it: past any part number or family name, cost without use.
     let term = term.char_indices().nth(MAX_TERM_CHARS).map_or(term, |(at, _)| &term[..at]);
-    let q = norm(term);
+    let q = normalize_code(term);
     if q.is_empty() {
         return Vec::new();
     }
@@ -846,7 +858,7 @@ fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
                     exact.clone().filter(|&e| ix.entries[e].kind != Kind::SearchWord).map(|e| {
                         let m = &ix.entries[e];
                         let (key, e) = code_key(e);
-                        let untyped = !typed.iter().any(|c| c.eq_ignore_ascii_case(&m.code));
+                        let untyped = !typed.iter().any(|c| same_code(c, &m.code));
                         ((u64::from(untyped) << 33) | (u64::from(m.kind == Kind::Competitor) << 32) | key, e)
                     }),
                 )
@@ -1368,6 +1380,10 @@ mod tests {
     fn accents() {
         let ix = ix();
         assert_eq!(run(&ix, "e7", &Ctx::default())[0], row("É-7", "exact"));
+        assert_eq!(normalize_code("é-7"), "E7");
+        assert_eq!(normalize_code("Ø 2/ß"), "O2SS");
+        assert!(same_code("É-7", "e-7") && !same_code("É-7", "E7"));
+        assert!(code_contains("Canons de Perçage", "PERCAGE"));
         for term in ["percage", "PERÇAGE", "perçage"] {
             assert_eq!(run(&ix, term, &fr()), [row("Canons de Perçage", "words"), lookup(term)], "{term}");
         }

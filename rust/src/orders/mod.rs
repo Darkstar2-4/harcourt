@@ -40,7 +40,7 @@ impl Orders {
         Orders {
             core,
             pricing: Arc::new(pricing::CatalogPrices),
-            docroot: PathBuf::from(get("HXWEB_DOCROOT").unwrap_or_else(|| "/home/harcou6/public_html".into())),
+            docroot: crate::assets::root().to_path_buf(),
             forms: forms::Services::from_env(get),
         }
     }
