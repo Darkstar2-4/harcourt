@@ -15,6 +15,7 @@ use super::{pricing::Price, Orders};
 use crate::{
     accounts::cookies,
     catalog::viewer::{self, Viewer},
+    db::unix_now,
     identity::{User, UserId},
     visitor::Visitor,
 };
@@ -43,10 +44,19 @@ pub struct Shopper {
 pub struct CartKey([u8; 32]);
 
 impl CartKey {
-    fn of(visitor: &Visitor, user: UserId, headers: &HeaderMap) -> Option<Self> {
-        if let Some(session) = &visitor.session {
-            return session.as_slice().try_into().ok().map(CartKey);
+    /// The cart, taking over what the same account put in the cart it kept by company address in this PHP session
+    /// before the session began, as PHP's one session cart held both.
+    async fn of(pool: &SqlitePool, visitor: &Visitor, user: UserId, headers: &HeaderMap) -> sqlx::Result<Option<Self>> {
+        let address = Self::address(user, headers);
+        let Some(session) = &visitor.session else { return Ok(address) };
+        let Some(key) = session.as_slice().try_into().ok().map(CartKey) else { return Ok(None) };
+        if let Some(address) = address {
+            cart::adopt(pool, &address, &key, unix_now()).await?;
         }
+        Ok(Some(key))
+    }
+
+    fn address(user: UserId, headers: &HeaderMap) -> Option<Self> {
         let php = cookies::get(headers, "PHPSESSID").filter(|id| !id.is_empty())?;
         let digest = Sha256::new().chain_update(b"hx cart\0").chain_update(user.0.to_be_bytes()).chain_update(php.as_bytes()).finalize();
         Some(CartKey(digest.into()))
@@ -90,7 +100,7 @@ pub async fn shopper(pool: &SqlitePool, visitor: &Visitor, headers: &HeaderMap) 
     Ok(Some(Shopper {
         user: account.user.clone(),
         email: signed_in.email.as_ref().map(|e| e.as_str().to_string()),
-        cart: CartKey::of(visitor, account.user.id, headers),
+        cart: CartKey::of(pool, visitor, account.user.id, headers).await?,
         currency,
         language: account.language_code.clone(),
         viewer,

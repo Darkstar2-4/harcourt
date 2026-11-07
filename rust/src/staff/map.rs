@@ -133,11 +133,11 @@ impl FileType {
         }
     }
 
-    fn delimiter(self) -> u8 {
+    fn delimiter(self) -> char {
         if self == FileType::Csv {
-            b','
+            ','
         } else {
-            b'\t'
+            '\t'
         }
     }
 }
@@ -232,39 +232,24 @@ fn date_ymd(value: &str) -> String {
     }
 }
 
-/// fputcsv(): a field is quoted when it holds the delimiter, a quote, a backslash or white space; quotes double,
-/// except after a backslash.
-pub fn csv_line(fields: &[String], delimiter: u8) -> Vec<u8> {
-    let mut out = Vec::new();
-    for (i, f) in fields.iter().enumerate() {
-        if i > 0 {
-            out.push(delimiter);
-        }
-        let b = f.as_bytes();
-        if b.iter().any(|&c| c == delimiter || matches!(c, b'"' | b'\\' | b'\n' | b'\r' | b'\t' | b' ')) {
-            out.push(b'"');
-            let mut escaped = false;
-            for &c in b {
-                if c == b'\\' {
-                    escaped = true;
-                } else if !escaped && c == b'"' {
-                    out.push(b'"');
-                } else {
-                    escaped = false;
-                }
-                out.push(c);
+/// fputcsv() with no escape character: a field is quoted when it holds the delimiter, a quote, a backslash or white
+/// space, and every quote inside it doubles, so each value reads back through parse_csv_line() unchanged.
+pub fn csv_line(fields: &[String], delimiter: char) -> String {
+    let cells: Vec<String> = fields
+        .iter()
+        .map(|f| {
+            if f.chars().any(|c| c == delimiter || matches!(c, '"' | '\\' | '\n' | '\r' | '\t' | ' ')) {
+                format!("\"{}\"", f.replace('"', "\"\""))
+            } else {
+                f.clone()
             }
-            out.push(b'"');
-        } else {
-            out.extend_from_slice(b);
-        }
-    }
-    out.push(b'\n');
-    out
+        })
+        .collect();
+    cells.join(&delimiter.to_string()) + "\n"
 }
 
-/// str_getcsv() of one line read by fgets(): fields split on the delimiter, quoted fields unquoted, the line end
-/// dropped.
+/// str_getcsv() with no escape character, of one line read by fgets(): fields split on the delimiter, quoted fields
+/// unquoted with doubled quotes read as one, the line end dropped.
 pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
     let line = line.strip_suffix('\n').unwrap_or(line);
     let line = line.strip_suffix('\r').unwrap_or(line);
@@ -278,14 +263,8 @@ pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
         if chars.peek() == Some(&'"') {
             field.clear();
             chars.next();
-            let mut escaped = false;
             while let Some(c) = chars.next() {
-                if c == '\\' {
-                    escaped = !escaped;
-                    field.push(c);
-                    continue;
-                }
-                if c == '"' && !escaped {
+                if c == '"' {
                     if chars.peek() == Some(&'"') {
                         chars.next();
                         field.push('"');
@@ -293,7 +272,6 @@ pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
                     }
                     break;
                 }
-                escaped = false;
                 field.push(c);
             }
         }
@@ -324,9 +302,9 @@ pub fn export_file(file: FileType, fields: &[&Field], rows: &[Record]) -> Result
         return book.save_to_buffer().map_err(|e| e.to_string());
     }
     let mut out = vec![0xEF, 0xBB, 0xBF];
-    out.extend(csv_line(&fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>(), file.delimiter()));
+    out.extend(csv_line(&fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>(), file.delimiter()).into_bytes());
     for r in rows {
-        out.extend(csv_line(&cells(r).iter().map(Cell::text).collect::<Vec<_>>(), file.delimiter()));
+        out.extend(csv_line(&cells(r).iter().map(Cell::text).collect::<Vec<_>>(), file.delimiter()).into_bytes());
     }
     Ok(out)
 }
@@ -387,7 +365,7 @@ pub fn read_upload(file_name: &str, bytes: &[u8], worksheet: Option<&str>) -> Re
         }),
         _ => {
             let text = String::from_utf8_lossy(bytes);
-            let delimiter = file_type.delimiter() as char;
+            let delimiter = file_type.delimiter();
             let rows = text.split_inclusive('\n').map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
             Ok(Sheet { file_type, rows, worksheet: None })
         }
@@ -609,10 +587,23 @@ mod tests {
 
     #[test]
     fn csv_lines_quote_like_fputcsv() {
-        let line = csv_line(&["A1".into(), "two words".into(), "say \"hi\"".into(), "".into()], b',');
-        assert_eq!(String::from_utf8(line).unwrap(), "A1,\"two words\",\"say \"\"hi\"\"\",\n");
-        assert_eq!(parse_csv_line("A1,\"two words\",\"say \"\"hi\"\"\",\n", ','), ["A1", "two words", "say \"hi\"", ""]);
+        let line = csv_line(&["A1".into(), "two words".into(), "say \"hi\"".into(), "x,y".into(), "".into()], ',');
+        assert_eq!(line, "A1,\"two words\",\"say \"\"hi\"\"\",\"x,y\",\n");
+        assert_eq!(csv_line(&["a b".into(), "c".into()], '\t'), "\"a b\"\tc\n");
+        assert_eq!(parse_csv_line(&line, ','), ["A1", "two words", "say \"hi\"", "x,y", ""]);
         assert_eq!(parse_csv_line("a\tb\r\n", '\t'), ["a", "b"]);
+    }
+
+    #[test]
+    fn backslashes_read_back_as_written() {
+        let fields: Vec<String> = ["C:\\parts\\", "a\\\"b", "\\", "12", "after"].map(String::from).to_vec();
+        for delimiter in [',', '\t'] {
+            let line = csv_line(&fields, delimiter);
+            assert_eq!(parse_csv_line(&line, delimiter), fields, "{line:?}");
+        }
+        assert_eq!(csv_line(&fields[..2], ','), "\"C:\\parts\\\",\"a\\\"\"b\"\n");
+        let sheet = read_upload("x.csv", "sku,folder,sort\nA-1,\"C:\\parts\\\",7\n".as_bytes(), None).ok().unwrap();
+        assert_eq!(sheet.rows[1], ["A-1", "C:\\parts\\", "7"]);
     }
 
     fn workbook(cells: &[(u32, u16, &str)]) -> Vec<u8> {

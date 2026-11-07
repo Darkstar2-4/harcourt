@@ -105,13 +105,12 @@ proptest! {
         read(if tab { "rows.txt" } else { "rows.csv" }, &bytes, None)?;
     }
 
-    /// fputcsv() then str_getcsv(): a line of fields reads back as the same fields, outside the corner PHP itself
-    /// gets wrong (a backslash before a quote).
+    /// csv_line() then parse_csv_line(): a line of fields reads back as the same fields.
     #[test]
-    fn csv_lines_round_trip(fields in proptest::collection::vec(gen::text_of("ab ,\t\"é;|", 0..8), 1..6), tab in any::<bool>()) {
-        let delimiter = if tab { b'\t' } else { b',' };
-        let line = String::from_utf8(csv_line(&fields, delimiter)).unwrap();
-        let back = parse_csv_line(&line, delimiter as char);
+    fn csv_lines_round_trip(fields in proptest::collection::vec(gen::text_of("ab ,\t\"\\\r\né;|", 0..8), 1..6), tab in any::<bool>()) {
+        let delimiter = if tab { '\t' } else { ',' };
+        let line = csv_line(&fields, delimiter);
+        let back = parse_csv_line(&line, delimiter);
         prop_assert_eq!(back, fields, "{:?}", line);
     }
 

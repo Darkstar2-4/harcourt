@@ -69,6 +69,34 @@ async fn touch(pool: &SqlitePool, key: &CartKey, now: i64) -> sqlx::Result<()> {
     Ok(())
 }
 
+/// Moves the lines of `from` into `into`, adding the quantities of a part both hold, whose comment is `into`'s
+/// unless it has none. A cart left unused longer than a PHP session lasted is not taken.
+pub(super) async fn adopt(pool: &SqlitePool, from: &CartKey, into: &CartKey, now: i64) -> sqlx::Result<()> {
+    let (from, into) = (from.as_slice(), into.as_slice());
+    let held = sqlx::query_scalar!(r#"SELECT EXISTS (SELECT 1 FROM cart_item WHERE session_hash = ?1) AS "held!: bool""#, from).fetch_one(pool).await?;
+    if !held {
+        return Ok(());
+    }
+    let stale = now - PHP_CART_SECS;
+    let most = i64::from(u32::MAX);
+    let mut tx = pool.begin().await?;
+    sqlx::query!(
+        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)
+         SELECT ?2, sku, quantity, comment, added_at, ?3 FROM cart_item WHERE session_hash = ?1 AND touched_at >= ?4
+         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = min(cart_item.quantity + excluded.quantity, ?5),
+             comment = CASE WHEN cart_item.comment = '' THEN excluded.comment ELSE cart_item.comment END",
+        from,
+        into,
+        now,
+        stale,
+        most
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", from).execute(&mut *tx).await?;
+    tx.commit().await
+}
+
 /// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
 async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
     touch(pool, key, now).await?;
