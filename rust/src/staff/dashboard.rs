@@ -145,7 +145,7 @@ async fn pending(pool: &SqlitePool, s: &Settings, here: &str, tabs: &mut Tabs) -
     .await?;
     let mut names: HashMap<i64, String> = HashMap::new();
     for row in signups {
-        names.insert(row.user_id, row.comment.unwrap_or_default());
+        names.entry(row.user_id).or_insert(row.comment.unwrap_or_default());
     }
     let tab = format!("Pending Access ({})", number(users.len() as i64));
     let rows = users

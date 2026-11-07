@@ -251,6 +251,12 @@ async fn a_lookup_opens_the_family_or_says_not_found() {
     assert!(body.contains("<input type=hidden name='category_id' id='category_id' value='1'>\n<input type=hidden name='subcategory_id' id='subcategory_id' value='7'>"), "the form carries the part's family: {body}");
     let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope"), Some(&cookie))).await;
     assert!(body.contains("<p class=center>Part# <b>NOPE</b> not found</p>"), "{body}");
+
+    exec(&h.pool, "INSERT INTO search (language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id) VALUES ('', 1, 'competitor_sku', '', '', 1, 7, 2)").await;
+    for code in ["nope", "--"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=lookup&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains("not found</p>") && !body.contains("<h1>Ball Lock Pins</h1>"), "a blank competitor number matches nothing: {code}: {body}");
+    }
 }
 
 #[tokio::test]

@@ -145,6 +145,7 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
         .execute(&h.pool)
         .await
         .unwrap();
+    event(&h.pool, 9, 20, "User", "Signup", "Pat Earlier").await;
     event(&h.pool, 9, 10, "User", "Signup", "Pat Example").await;
     sqlx::query("INSERT INTO orderhd (id, status, company_name, name, email, order_date) VALUES (41, 'Pending', 'Buyer Co', 'Sam', 'sam@example.com', 0)")
         .execute(&h.pool)
@@ -164,7 +165,7 @@ async fn the_dashboard_shows_reports_by_role_and_lands_on_the_asked_tab() {
 
     let (_, _, page) = send(&h.app, get("/dashboard.php?tab=Campaign", Some(&admin))).await;
     assert!(page.contains(">Pending Access (1)</a>"));
-    assert!(page.contains("<td>Pending &lt;Co></td>\n<td>Pat Example</td>"));
+    assert!(page.contains("<td>Pending &lt;Co></td>\n<td>Pat Example</td>"), "the newest sign-up, as the approval page shows");
     assert!(page.contains("href=\"/staff/access/9?return_url=%2Fdashboard.php%3Ftab%3DPending%2BAccess%2B%25281%2529\""));
     let tab_index = |title: &str| {
         let at = page.find(&format!(">{title}</a></li>")).unwrap();
@@ -256,7 +257,7 @@ async fn search_utility_rebuilds_the_search_table_and_converges() {
         "INSERT INTO category (id, name, sort_order, active) VALUES (2, 'Clamps', 5, 1), (3, 'Old', 1, 0)",
         "INSERT INTO subcategory (id, category_id, status, sort_order, search_words) VALUES (10, 2, 'Active', 7, 'toggle^tg^Toggle^riser'), (11, 2, 'Pending', 1, 'hidden')",
         "INSERT INTO content (record_type, record_id, record_item, language_code, name) VALUES ('category', 2, '', 'EN', 'Clamps &amp; Pins'), ('category', 3, '', 'EN', 'Old'), ('subcategory', 10, '', 'EN', 'Toggle'), ('subcategory', 11, '', 'EN', 'Hidden')",
-        "INSERT INTO inventory (id, sku, category_id, subcategory_id, active, sort_order, competitor_sku) VALUES (20, 'TC-1', 2, 10, 1, 4, 'X-1,X-1'), (21, 'TC-2', 2, 11, 1, 0, '')",
+        "INSERT INTO inventory (id, sku, category_id, subcategory_id, active, sort_order, competitor_sku) VALUES (20, 'TC-1', 2, 10, 1, 4, 'X-1,,X-1,'), (21, 'TC-2', 2, 11, 1, 0, '')",
     ] {
         sqlx::query(sql).execute(&h.pool).await.unwrap();
     }
@@ -274,9 +275,13 @@ async fn search_utility_rebuilds_the_search_table_and_converges() {
     let codes: Vec<(&str, &str)> = first.iter().map(|r| (r.1.as_str(), r.2.as_str())).collect();
     assert_eq!(codes, [("category", "Clamps Pins"), ("subcategory", "Toggle"), ("inventory", "TC-1"), ("search_words", "riser"), ("competitor_sku", "X-1")]);
     assert_eq!(first[4].3, "X1");
+    let ids = || async { sqlx::query_scalar::<_, i64>("SELECT id FROM search ORDER BY id").fetch_all(&h.pool).await.unwrap() };
+    let first_ids = ids().await;
     hxweb::staff::jobs::search_utility(&h.pool, db::unix_now()).await.unwrap();
     let again: Vec<_> = rows().await.into_iter().map(|r| (r.1, r.2)).collect();
     assert_eq!(again, first.iter().map(|r| (r.1.clone(), r.2.clone())).collect::<Vec<_>>());
+    let again_ids = ids().await;
+    assert!(again_ids[0] > *first_ids.last().unwrap(), "a rebuild gives every row a new id: {first_ids:?} then {again_ids:?}");
     let runs: i64 = sqlx::query_scalar("SELECT count(*) FROM log WHERE type = 'CRON' AND subtype = 'Search Utility'").fetch_one(&h.pool).await.unwrap();
     assert_eq!(runs, 2);
 }
