@@ -242,6 +242,10 @@ async fn a_part_link_the_configurator_cannot_open_keeps_the_family_project() {
     assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fball.prj&partFixed=false"), "{body}");
     let (_, _, body) = send(&h.app, get(&frame("HBLT-2"), Some(&cookie))).await;
     assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fhblt2.prj&partFixed=false"), "{body}");
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (502, '', 1, 'inventory', 'HBLT-2', 1, 7, 2)").await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=lt2"), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-2"), "a fragment only this part's number contains opens it: {body}");
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fhblt2.prj&partFixed=false"), "and with its own project: {body}");
 }
 
 #[tokio::test]
