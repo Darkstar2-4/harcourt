@@ -1210,7 +1210,9 @@ fn respond(status: StatusCode, v: &Value) -> Response {
     (status, [(header::CONTENT_TYPE, "application/json; charset=utf-8"), (header::CACHE_CONTROL, "no-store")], v.to_string()).into_response()
 }
 
-/// The search box's suggestions for `term`, for scs_ajax.php?table=search: what live hxweb answered, for the search box on the site's own pages, in the scope of whoever is searching.
+/// The search box's suggestions for `term`, for scs_ajax.php?table=search: what live hxweb answered, for the search
+/// box on the site's own pages, in the scope of whoever is searching. The box is on the catalog's pages only
+/// (scscpq_wp.php printed it for those who may browse the catalog), and answers those only.
 pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers: &HeaderMap, term: &str, limit: Option<&str>) -> Response {
     if !same_site(headers) {
         return respond(StatusCode::FORBIDDEN, &json!({"items": [], "error": "External access"}));
@@ -1219,14 +1221,18 @@ pub async fn suggestions(core: &Auth, cache: &Cache, visitor: &Visitor, headers:
     let viewer_lang = if lang == Lang::Fr { viewer::Lang::Fr } else { viewer::Lang::En };
     let result = async {
         let viewer = viewer::load(&core.pool, visitor, viewer_lang).await?;
-        Ok::<_, sqlx::Error>(cache.index(&core.pool).await?.map(|ix| (ix, scope(&viewer, lang))))
+        if !viewer.may_browse() {
+            return Ok(Err(()));
+        }
+        Ok::<_, sqlx::Error>(Ok(cache.index(&core.pool).await?.map(|ix| (ix, scope(&viewer, lang)))))
     }
     .await;
     let term = term.trim();
     let limit = limit.and_then(|l| l.parse::<usize>().ok()).filter(|&l| l > 0).map_or(DEFAULT_LIMIT, |l| l.min(MAX_LIMIT));
     match result {
-        Ok(Some((ix, ctx))) => respond(StatusCode::OK, &answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx)),
-        Ok(None) => respond(StatusCode::SERVICE_UNAVAILABLE, &json!({"items": [], "error": "No index"})),
+        Ok(Ok(Some((ix, ctx)))) => respond(StatusCode::OK, &answer_json(&ix, &search(&ix, term, &ctx, limit), term, &ctx)),
+        Ok(Ok(None)) => respond(StatusCode::SERVICE_UNAVAILABLE, &json!({"items": [], "error": "No index"})),
+        Ok(Err(())) => respond(StatusCode::FORBIDDEN, &json!({"items": [], "error": "Access denied"})),
         Err(e) => {
             tracing::error!("search: {e}");
             respond(StatusCode::INTERNAL_SERVER_ERROR, &json!({"items": [], "error": "Internal"}))
