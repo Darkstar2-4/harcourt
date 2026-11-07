@@ -603,27 +603,22 @@ fn sku_details(ctx: &Ctx, family: &Family, part: Option<&Part>) -> String {
     out.join("\n")
 }
 
-/// cad_class::prj_parse(): the configurator's own query from a stored prj.
-fn prj_query(prj: &str) -> Query {
+/// cad_class::prj_parse(): the configurator's own query from a stored prj, `info=…[&varset=…]` or
+/// `catalog=…&part=…` with the keys in any case. `None` when the prj names nothing the configurator opens.
+fn prj_query(prj: &str) -> Option<Query> {
     let mut q = Query::new();
     let lower = prj.to_ascii_lowercase();
-    if let Some(rest) = lower.strip_prefix("info=").map(|_| &prj[5..]) {
-        match rest.split_once("&varset=").or_else(|| rest.split_once("&VARSET=")) {
-            Some((info, varset)) => {
-                q.set("info", info);
-                q.set("varset", varset);
-            }
-            None => {
-                q.set("info", rest);
-            }
-        }
+    if lower.starts_with("info=") {
+        match lower.rfind("&varset=") {
+            Some(at) => q.set("info", &prj[5..at]).set("varset", &prj[at + 8..]),
+            None => q.set("info", &prj[5..]),
+        };
     } else if lower.starts_with("catalog=") {
-        if let Some((catalog, part)) = prj[8..].split_once("&part=") {
-            q.set("catalog", catalog);
-            q.set("part", part);
+        if let Some(at) = lower.rfind("&part=") {
+            q.set("catalog", &prj[8..at]).set("part", &prj[at + 6..]);
         }
     }
-    q
+    (!q.encoded().is_empty()).then_some(q)
 }
 
 /// output_cad(): the PARTsolutions configurator for viewers with CAD, a profile email and a family prj.
@@ -634,16 +629,11 @@ fn cad(ctx: &Ctx, family: &Family, tabs: &mut Tabs) {
     if !ctx.viewer.uses_quick_cad() || ctx.profile.email.is_empty() || family.prj.is_empty() {
         return;
     }
-    let mut prj = family.prj.clone();
-    if family.lookup && !ctx.req.sku.is_empty() {
-        if let Some(part) = ctx.part.as_ref().filter(|p| !p.prj.is_empty()) {
-            prj = part.prj.clone();
-        }
-    }
+    let part = ctx.part.as_ref().filter(|_| family.lookup && !ctx.req.sku.is_empty());
     if ctx.req.search_source == "lookup" || ctx.req.action == "sku" {
         tabs.land_next();
     }
-    let mut q = prj_query(&prj);
+    let mut q = part.and_then(|p| prj_query(&p.prj)).or_else(|| prj_query(&family.prj)).unwrap_or_default();
     q.set("partFixed", "false");
     q.set("languageIso", ctx.lang_param());
     let mut url = format!("{}{}", ctx.registry.get("cad", "configurator"), q.encoded());
@@ -702,8 +692,12 @@ mod tests {
 
     #[test]
     fn prj_values_become_the_configurator_query() {
-        assert_eq!(prj_query("info=harcourt/pins/a.prj&varset={LEN=20}").encoded(), "?info=harcourt%2Fpins%2Fa.prj&varset=%7BLEN%3D20%7D");
-        assert_eq!(prj_query("catalog=harcourt&part=HB-1").encoded(), "?catalog=harcourt&part=HB-1");
-        assert_eq!(prj_query("nonsense").encoded(), "");
+        let encoded = |prj: &str| prj_query(prj).map(|q| q.encoded());
+        assert_eq!(encoded("info=harcourt/pins/a.prj&varset={LEN=20}").as_deref(), Some("?info=harcourt%2Fpins%2Fa.prj&varset=%7BLEN%3D20%7D"));
+        assert_eq!(encoded("INFO=pins/b.prj&VarSet={D=1}").as_deref(), Some("?info=pins%2Fb.prj&varset=%7BD%3D1%7D"));
+        assert_eq!(encoded("catalog=harcourt&part=HB-1").as_deref(), Some("?catalog=harcourt&part=HB-1"));
+        assert_eq!(encoded("prjCatalog=harcourt&prjNode=n&prjName=HB&values=v"), None);
+        assert_eq!(encoded("info="), None);
+        assert_eq!(encoded("nonsense"), None);
     }
 }

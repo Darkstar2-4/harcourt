@@ -11,6 +11,7 @@ use crate::{
     accounts::{account::PriceType, bot::BotStatus},
     identity::{Role, Status, UserId},
     pricing::PriceTerms,
+    staff::filesort,
     visitor::{Identity, Visitor},
 };
 
@@ -251,11 +252,13 @@ async fn blocked(pool: &SqlitePool, user: UserId, company_name: Option<&str>) ->
         .fetch_all(pool)
         .await?;
     let by_company = match company_name {
-        Some(name) => {
-            sqlx::query_scalar!(r#"SELECT category_id AS "id!: i64" FROM company_category_block WHERE company_name = ?1 ORDER BY id"#, name)
-                .fetch_all(pool)
-                .await?
-        }
+        Some(name) => sqlx::query!(r#"SELECT company_name AS "company_name!", category_id AS "id!: i64" FROM company_category_block ORDER BY id"#)
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .filter(|r| filesort::ci_eq(&r.company_name, name))
+            .map(|r| r.id)
+            .collect(),
         None => Vec::new(),
     };
     Ok(Blocked { by_user, by_company })
