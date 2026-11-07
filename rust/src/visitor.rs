@@ -520,7 +520,8 @@ async fn scs_header(core: &Auth, parts: &Parts, php: &Php, visitor: &Visitor, no
     }
     let loads_profile = if php.first { php.initial() && visitor.bot().is_none() } else { php.page.reloads_pending() && visitor.pending_in_php() };
     if loads_profile {
-        out.extend(Profile::load(&core.pool, &parts.headers, visitor).await?.remember(&core.pool, visitor, now).await?);
+        let (profile, basis) = Profile::loaded(&core.pool, &parts.headers, visitor).await?;
+        out.extend(profile.remember(&core.pool, visitor, &basis, now).await?);
     }
     let landing = if php.first && php.page == Header::Page { landing(&core.pool, visitor, &visitor.php_self).await? } else { None };
     Ok((landing, out))

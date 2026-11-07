@@ -157,6 +157,7 @@ pub async fn profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<
     Ok(sqlx::query_scalar!("SELECT profile FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?.flatten())
 }
 
+/// Someone was admitted: the visit's profile is theirs, whatever it was.
 pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
@@ -170,6 +171,24 @@ pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) 
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// A profile built from the visit's profile as `read` (None: it had none) replaces it only while the visit still
+/// has that one; false when it changed in between and the write was dropped.
+pub async fn replace_profile(pool: &SqlitePool, id: &VisitId, read: Option<&str>, json: &str, now: i64) -> sqlx::Result<bool> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    let done = sqlx::query!(
+        "INSERT INTO visit (id, profile, seen_at) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, seen_at = excluded.seen_at WHERE profile IS ?4",
+        key,
+        json,
+        now,
+        read
+    )
+    .execute(pool)
+    .await?;
+    Ok(done.rows_affected() > 0)
 }
 
 /// What the visitor last typed into a sign-up form, as the JSON of a profile cookie.
@@ -255,5 +274,21 @@ mod tests {
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
         assert!(begins_again(&pool, &b).await.unwrap());
         assert!(!begins_again(&pool, &b).await.unwrap(), "only the first request after");
+    }
+
+    #[tokio::test]
+    async fn a_profile_built_from_one_since_replaced_is_dropped() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let v = VisitId::of("v");
+        let (pat, lee) = (r#"{"email":"pat@example.com"}"#, r#"{"email":"lee@example.com"}"#);
+        assert!(replace_profile(&pool, &v, None, pat, 1000).await.unwrap(), "a visit that had none");
+        set_profile(&pool, &v, lee, 1001).await.unwrap();
+        assert!(!replace_profile(&pool, &v, Some(pat), r#"{"email":"pat@example.com","name":"Pat Lee"}"#, 1002).await.unwrap());
+        assert!(!replace_profile(&pool, &v, None, pat, 1002).await.unwrap());
+        assert_eq!(profile(&pool, &v, 1002).await.unwrap().as_deref(), Some(lee));
+        assert!(replace_profile(&pool, &v, Some(lee), r#"{"email":"lee@example.com","name":"Lee "}"#, 1003).await.unwrap());
+        assert_eq!(profile(&pool, &v, 1003).await.unwrap().as_deref(), Some(r#"{"email":"lee@example.com","name":"Lee "}"#));
+        frame(&pool, &VisitId::of("w"), 1003).await.unwrap();
+        assert!(replace_profile(&pool, &VisitId::of("w"), None, pat, 1003).await.unwrap(), "a visit row without a profile");
     }
 }

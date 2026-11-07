@@ -25,7 +25,7 @@ use super::{
 use crate::{
     accounts::{
         cookies,
-        profile::{self as address, Layout, Profile as AddressProfile},
+        profile::{self as address, Basis, Layout, Profile as AddressProfile},
     },
     api::Auth,
     identity::Role,
@@ -80,7 +80,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         let viewer = viewer::load(&core.pool, &visitor, lang).await?;
         let reg = registry::load(&core.pool).await?;
         let strings = strings::load(&core.pool, lang).await?;
-        let remembered = AddressProfile::load(&core.pool, &headers, &visitor).await?;
+        let (remembered, basis) = AddressProfile::loaded(&core.pool, &headers, &visitor).await?;
         let profile = Profile::from(&remembered);
         let ctx = Api { pool: &core.pool, viewer: &viewer, reg: &reg, strings: &strings, profile };
         let mut out = Map::new();
@@ -94,7 +94,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
             "cad" => trace.push("json_cad"),
             "profile" => {
                 trace.push("json_profile");
-                cookies = ctx.profile(&p, remembered, &visitor, &mut out).await?;
+                cookies = ctx.profile(&p, remembered, &basis, &visitor, &mut out).await?;
             }
             "quick_cad" => {
                 trace.extend(["json_quick_cad", "json_quick_cad_process"]);
@@ -221,7 +221,7 @@ impl Api<'_> {
     /// json_profile(): check the form (address_class verify() over the posted fields, the ones the form left out at
     /// their values), then json_profile_update(): the account takes the company and address, and the profile is kept
     /// for the visit and in its cookie, where the next request loads it from.
-    async fn profile(&self, p: &HashMap<String, String>, remembered: AddressProfile, visitor: &Visitor, out: &mut Map<String, Value>) -> sqlx::Result<Vec<HeaderValue>> {
+    async fn profile(&self, p: &HashMap<String, String>, remembered: AddressProfile, basis: &Basis, visitor: &Visitor, out: &mut Map<String, Value>) -> sqlx::Result<Vec<HeaderValue>> {
         let get = |k: &str| p.get(k).map(|v| v.trim().to_string()).unwrap_or_default();
         let layout = Layout::load(self.pool).await?;
         let input = self.profile.posted_form(self.viewer.account_id().is_some(), &layout, p);
@@ -246,8 +246,11 @@ impl Api<'_> {
         if let Some(id) = self.viewer.account_id() {
             saved.save_address(self.pool, &layout, id).await?;
         }
-        let mut cookies: Vec<HeaderValue> = cookies::php_year(cookies::EMAIL, saved.email.as_deref().unwrap_or(""), now).into_iter().collect();
-        cookies.extend(saved.remember(self.pool, visitor, now).await?);
+        let mut cookies = Vec::new();
+        if let Some(kept) = saved.remember(self.pool, visitor, basis, now).await? {
+            cookies.extend(cookies::php_year(cookies::EMAIL, saved.email.as_deref().unwrap_or(""), now));
+            cookies.push(kept);
+        }
         let form = Profile::from(&saved);
         let mut html_out = Map::new();
         html_out.insert("quick_cad_status".into(), json!(form.quick_cad_message(self.viewer, self.strings)));
