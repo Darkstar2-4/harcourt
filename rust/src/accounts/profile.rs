@@ -17,7 +17,7 @@ use crate::{
         registry, visit,
     },
     db::unix_now,
-    identity::UserId,
+    identity::{Email, UserId},
     staff::check,
     visitor::{Identity, Visitor},
 };
@@ -174,6 +174,25 @@ impl Profile {
     pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<Option<HeaderValue>> {
         self.keep(pool, visitor, now).await?;
         Ok(self.cookie(now))
+    }
+
+    /// Someone was just admitted as `email`: the profile becomes theirs (their address, and each name they gave,
+    /// a blank one keeping what was remembered), kept for the visit, with its cookie. A profile the browser held for
+    /// someone else does not outlive the sign-in.
+    pub async fn admit(mut self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        let given = |s: &str, kept: &mut Option<String>| {
+            if s.is_empty() || kept.as_deref() == Some(s) {
+                return false;
+            }
+            *kept = Some(s.to_string());
+            true
+        };
+        let renamed = given(name_first, &mut self.name_first) | given(name_last, &mut self.name_last);
+        if renamed {
+            self.name = format!("{} {}", self.get("name_first"), self.get("name_last"));
+        }
+        self.email = Some(email.as_str().into());
+        self.remember(pool, visitor, now).await
     }
 
     /// Keep the profile for the visit without a cookie: the PHP changed the session's copy in place.

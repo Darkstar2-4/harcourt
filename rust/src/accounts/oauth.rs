@@ -561,23 +561,6 @@ fn repeated(visitor: &Visitor) -> Outcome {
     }
 }
 
-/// The profile of whoever signed in: the address the provider proved and the names it gave, with what the visitor
-/// had entered where the provider gave nothing.
-fn signed_in_profile(remembered: Profile, email: &Email, person: &Person) -> Profile {
-    let given = |s: &str, kept: Option<String>| if s.is_empty() { kept } else { Some(s.to_string()) };
-    let name_first = given(&person.name_first, remembered.name_first.clone());
-    let name_last = given(&person.name_last, remembered.name_last.clone());
-    let language_code = if remembered.language_code.is_empty() { "EN".to_string() } else { remembered.language_code.clone() };
-    Profile {
-        email: Some(email.as_str().into()),
-        name: format!("{} {}", name_first.as_deref().unwrap_or(""), name_last.as_deref().unwrap_or("")),
-        name_first,
-        name_last,
-        language_code,
-        ..remembered
-    }
-}
-
 /// newuser.php process_oauth() after the provider: the same decision as the sign-up form. The profile is kept for
 /// the visit and in its cookie, where the next request loads it from.
 async fn admit(
@@ -596,8 +579,8 @@ async fn admit(
         admission::log_blacklisted(pool, &email, ctx, &via).await;
         return Ok((Outcome::Blacklisted, Vec::new()));
     }
-    let profile = signed_in_profile(remembered, &email, person);
-    let mut set: Vec<HeaderValue> = profile.remember(pool, visitor, ctx.now).await?.into_iter().collect();
+    let remembered = if remembered.language_code.is_empty() { Profile { language_code: "EN".into(), ..remembered } } else { remembered };
+    let mut set: Vec<HeaderValue> = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().collect();
     match admission {
         Admission::Blacklisted => Ok((Outcome::Blacklisted, Vec::new())),
         Admission::Company { company, known } => {
