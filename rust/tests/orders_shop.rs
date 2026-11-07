@@ -135,6 +135,10 @@ async fn the_cart_call_adds_reprices_and_removes() {
     assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("NOPE invalid"), Some(3)));
     let a = add(&h, &c, "SKU-Q", "0").await;
     assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-Q removed from cart"), Some(2)));
+    let a = add(&h, &c, "SKU-1", "").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64(), a["cart_extended"].as_str()), (Some("SKU-1 cart unchanged"), Some(2), Some("$36.00")), "a blank box changes nothing");
+    let a = add(&h, &c, "SKU-Q", " ").await;
+    assert_eq!(a["cart_size"].as_i64(), Some(2));
 }
 
 #[tokio::test]
@@ -395,6 +399,25 @@ async fn a_placed_order_clears_the_cart_queues_its_mail_and_shows_its_confirmati
     assert_eq!(count(&h.pool, "SELECT count(*) FROM outbox_recipient WHERE kind = 'bcc' AND email = 'copy@example.com'").await, 2);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 0);
     assert_eq!(count(&h.pool, "SELECT count(*) FROM log WHERE type = 'User' AND subtype = 'PO'").await, 1);
+}
+
+#[tokio::test]
+async fn a_confirmation_shows_the_currency_the_order_was_placed_in() {
+    let h = harness().await;
+    sqlx::query("INSERT INTO currency (code, name, plural, exchange_rate, active) VALUES ('CAD', 'Canadian dollar', 'Canadian dollars', 1.25, 1)").execute(&h.pool).await.unwrap();
+    account(&h.pool, 1, "Customer", 1).await;
+    sqlx::query(r#"UPDATE "user" SET currency_code = 'CAD' WHERE id = 1"#).execute(&h.pool).await.unwrap();
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "3").await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &token));
+    let (_, headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    let location = headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    sqlx::query("UPDATE currency SET active = 0 WHERE code = 'CAD'").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, request(Method::GET, &location, &c, &[], false)).await;
+    assert!(page.contains("<span id=cart_extended>30.00 CAD</span>") && page.contains("Priced in <b>Canadian dollars</b>"), "{page}");
 }
 
 #[tokio::test]

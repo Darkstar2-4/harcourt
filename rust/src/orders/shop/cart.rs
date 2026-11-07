@@ -64,19 +64,17 @@ const PHP_CART_SECS: i64 = 86400;
 async fn touch(pool: &SqlitePool, key: &CartKey, now: i64) -> sqlx::Result<()> {
     let stale = now - PHP_CART_SECS;
     sqlx::query!("DELETE FROM cart_item WHERE touched_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
+    sqlx::query!("DELETE FROM cart_takeover WHERE taken_at < ?1", stale).execute(pool).await?;
     let hash = key.as_slice();
     sqlx::query!("UPDATE cart_item SET touched_at = ?2 WHERE session_hash = ?1", hash, now).execute(pool).await?;
     Ok(())
 }
 
 /// Moves the lines of `from` into `into`, adding the quantities of a part both hold, whose comment is `into`'s
-/// unless it has none. A cart left unused longer than a PHP session lasted is not taken.
-pub(super) async fn adopt(pool: &SqlitePool, from: &CartKey, into: &CartKey, now: i64) -> sqlx::Result<()> {
+/// unless it has none. A cart left unused longer than a PHP session lasted is not taken. Every takeover is counted,
+/// held lines or not, so that a request which found `from` before it adds nothing to it after.
+pub(super) async fn adopt(pool: &SqlitePool, from: &[u8; 32], into: &CartKey, now: i64) -> sqlx::Result<()> {
     let (from, into) = (from.as_slice(), into.as_slice());
-    let held = sqlx::query_scalar!(r#"SELECT EXISTS (SELECT 1 FROM cart_item WHERE session_hash = ?1) AS "held!: bool""#, from).fetch_one(pool).await?;
-    if !held {
-        return Ok(());
-    }
     let stale = now - PHP_CART_SECS;
     let most = i64::from(u32::MAX);
     let mut tx = pool.begin().await?;
@@ -94,18 +92,36 @@ pub(super) async fn adopt(pool: &SqlitePool, from: &CartKey, into: &CartKey, now
     .execute(&mut *tx)
     .await?;
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", from).execute(&mut *tx).await?;
+    sqlx::query!(
+        "INSERT INTO cart_takeover (session_hash, takeovers, taken_at) VALUES (?1, 1, ?2)
+         ON CONFLICT (session_hash) DO UPDATE SET takeovers = cart_takeover.takeovers + 1, taken_at = excluded.taken_at",
+        from,
+        now
+    )
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await
 }
 
-/// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
+/// How many times a session has taken over the cart kept by company address under `hash`.
+pub(super) async fn takeovers(pool: &SqlitePool, hash: &[u8; 32]) -> sqlx::Result<i64> {
+    let hash = hash.as_slice();
+    let n = sqlx::query_scalar!(r#"SELECT takeovers AS "n!: i64" FROM cart_takeover WHERE session_hash = ?1"#, hash).fetch_optional(pool).await?;
+    Ok(n.unwrap_or(0))
+}
+
+/// Sets the quantity, and the comment when one is given, keeping the line's place in the cart. Nothing is written
+/// to a cart a session has taken over since it was found.
 async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
     touch(pool, key, now).await?;
     let hash = key.as_slice();
     let quantity = i64::from(quantity);
     let initial = comment.unwrap_or("");
     let replace_comment = comment.is_some();
+    let takeovers = key.takeovers;
     sqlx::query!(
-        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)
+        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?5 WHERE coalesce((SELECT takeovers FROM cart_takeover WHERE session_hash = ?1), 0) = ?7
          ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
              comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
         hash,
@@ -113,7 +129,8 @@ async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment
         quantity,
         initial,
         now,
-        replace_comment
+        replace_comment,
+        takeovers
     )
     .execute(pool)
     .await?;
@@ -298,14 +315,28 @@ fn quantity(d: Decimal) -> Option<u32> {
     d.abs().to_u32().filter(|q| *q > 0)
 }
 
-/// The quantity a cart line is updated to, read as the add path reads one: None for a 0, which removes the line. A
-/// blank field, or a number too large for a quantity, leaves the line's quantity as it is.
-fn updated_quantity(typed: &str, current: u32) -> Option<u32> {
-    if typed.trim().is_empty() {
-        return Some(current);
+/// What a quantity box asks of a cart line, on Add to Cart and on the cart page alike.
+#[derive(Debug, PartialEq, Eq)]
+enum Typed {
+    /// A blank box changes nothing.
+    Blank,
+    /// A 0 removes the line.
+    Remove,
+    Set(u32),
+    /// A number too large for a quantity.
+    TooLarge,
+}
+
+fn typed(text: &str) -> Typed {
+    if text.trim().is_empty() {
+        return Typed::Blank;
     }
-    let n = fn_number(typed).abs();
-    (!n.is_zero()).then(|| quantity(n).unwrap_or(current))
+    let n = fn_number(text).abs();
+    if n.is_zero() {
+        Typed::Remove
+    } else {
+        quantity(n).map_or(Typed::TooLarge, Typed::Set)
+    }
 }
 
 #[derive(Serialize)]
@@ -338,16 +369,18 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
     let mut parts = decoded.split('\t').map(str::to_string);
     let constant = parts.next();
     let sku = parts.next();
-    let requested = fn_number(params.get("json_quantity").map_or("", String::as_str)).abs();
+    let text = params.get("json_quantity").map_or("", String::as_str);
+    let requested = fn_number(text).abs();
     let sku_text = sku.clone().unwrap_or_default();
-    let status = match (quantity(requested), &shopper.cart) {
-        (None, key) if requested.is_zero() => {
+    let status = match (typed(text), &shopper.cart) {
+        (Typed::Blank, _) => format!("{sku_text} cart unchanged"),
+        (Typed::Remove, key) => {
             if let Some(key) = key {
                 remove(pool, key, &sku_text).await?;
             }
             format!("{sku_text} removed from cart")
         }
-        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
+        (Typed::Set(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
             put(pool, key, &sku_text, q, None, unix_now()).await?;
             format!("{sku_text} cart updated")
         }
@@ -425,11 +458,12 @@ pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, headers:
         (Some("update"), key) => {
             if let Some(key) = key {
                 for item in items(pool, key).await? {
-                    let typed = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
+                    let text = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
                     let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
-                    match updated_quantity(typed, item.quantity) {
-                        Some(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
-                        None => remove(pool, key, &item.sku).await?,
+                    match typed(text) {
+                        Typed::Remove => remove(pool, key, &item.sku).await?,
+                        Typed::Set(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
+                        Typed::Blank | Typed::TooLarge => put(pool, key, &item.sku, item.quantity, comment.as_deref(), unix_now()).await?,
                     }
                 }
             }
@@ -468,14 +502,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_update_reads_quantities_as_an_add_does() {
-        assert_eq!(updated_quantity("4", 1), Some(4));
-        assert_eq!(updated_quantity("2.0", 1), Some(2));
-        assert_eq!(updated_quantity("2.5", 1), Some(3));
-        assert_eq!(updated_quantity("2 pcs", 1), Some(2));
-        assert_eq!(updated_quantity(" ", 5), Some(5));
-        assert_eq!(updated_quantity("0", 5), None);
-        assert_eq!(updated_quantity("99999999999", 5), Some(5));
+    fn quantity_boxes_read_one_way() {
+        assert_eq!(typed("4"), Typed::Set(4));
+        assert_eq!(typed("2.0"), Typed::Set(2));
+        assert_eq!(typed("2.5"), Typed::Set(3));
+        assert_eq!(typed("2 pcs"), Typed::Set(2));
+        assert_eq!(typed("-3"), Typed::Set(3));
+        assert_eq!(typed(""), Typed::Blank);
+        assert_eq!(typed(" "), Typed::Blank);
+        assert_eq!(typed("0"), Typed::Remove);
+        assert_eq!(typed("99999999999"), Typed::TooLarge);
+    }
+
+    #[tokio::test]
+    async fn a_cart_found_before_a_takeover_takes_no_lines_after_it() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let address = [7u8; 32];
+        let session = CartKey::session([8u8; 32]);
+        let found = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
+        put(&pool, &found, "SKU-1", 2, None, now).await.unwrap();
+        adopt(&pool, &address, &session, now).await.unwrap();
+        put(&pool, &found, "SKU-2", 1, None, now).await.unwrap();
+        assert!(items(&pool, &found).await.unwrap().is_empty());
+        assert_eq!(items(&pool, &session).await.unwrap().iter().map(|i| i.sku.as_str()).collect::<Vec<_>>(), ["SKU-1"]);
+        let again = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
+        put(&pool, &again, "SKU-2", 1, None, now).await.unwrap();
+        assert_eq!(items(&pool, &again).await.unwrap().len(), 1, "a request that finds the cart after the takeover uses it");
     }
 
     #[test]

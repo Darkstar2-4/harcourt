@@ -881,7 +881,7 @@ async fn confirmation(state: &Orders, shopper: &Shopper, framed: bool, id: i64) 
     let local = Registry::load(pool, "local").await?;
     let choices = Choices::names_for(pool, &[&order.ship, &order.billing]).await?;
     let labels = Labels::load(pool, &shopper.language).await?;
-    let currency = Currency::load(pool, &order.currency_code).await?;
+    let currency = Currency::stored(pool, &order.currency_code).await?;
     let money = shopper.money(&currency);
     let mut messages = vec!["Order Complete!".to_string()];
     if let Some(template) = mailform::load(pool, "checkout").await? {
