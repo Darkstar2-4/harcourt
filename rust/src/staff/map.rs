@@ -507,17 +507,24 @@ fn posted_number(s: &str) -> Option<f64> {
     is_numeric(&kept).then(|| floatval(&kept) * multiplier)
 }
 
-/// strtotime() for the date forms people type: `m/d/Y`, `Y-m-d`, `Y/m/d`, any time after the date ignored.
+/// strtotime() for the date forms people type, any time after the date ignored: a four-digit first field is the
+/// year (`Y/m/d`, `Y-m-d`); otherwise slashes read `m/d/y`, dashes `d-m-Y` when the last field has four digits and
+/// `y-m-d` when it does not. A year of one to three digits takes full_year()'s pivot.
 fn parse_any_date(s: &str) -> Option<chrono::NaiveDate> {
     let s = s.split_whitespace().next()?;
     let parts: Vec<&str> = s.split(['/', '-']).collect();
-    let [a, b, year] = parts[..] else { return None };
-    let (a, b, c): (i32, u32, u32) = (a.trim().parse().ok()?, b.trim().parse().ok()?, year.trim().parse().ok()?);
-    if s.contains('-') || a > 31 {
-        chrono::NaiveDate::from_ymd_opt(a, b, c)
-    } else {
-        chrono::NaiveDate::from_ymd_opt(i32::try_from(time::full_year(year)?).ok()?, a as u32, b)
+    let [a, b, c] = parts[..] else { return None };
+    if parts.iter().any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit())) {
+        return None;
     }
+    let (year, month, day) = match (a.len(), c.len(), s.contains('-')) {
+        (4, _, _) => (a, b, c),
+        (_, _, false) => (c, a, b),
+        (_, 4, true) => (c, b, a),
+        (_, _, true) => (a, b, c),
+    };
+    let year = i32::try_from(time::full_year(year)?).ok()?;
+    chrono::NaiveDate::from_ymd_opt(year, month.parse().ok()?, day.parse().ok()?)
 }
 
 /// The header check: which column of the file holds each field, and what is wrong with the header.
@@ -703,5 +710,23 @@ mod tests {
         let sheet = read_upload("parts.txt", format!("sku\tname\nA-1\t{long}\nA-2\tshort\n").as_bytes(), None).ok().unwrap();
         assert_eq!(sheet.rows.len(), 3);
         assert_eq!(sheet.rows[1], ["A-1".to_string(), long]);
+    }
+
+    #[test]
+    fn typed_dates_read_as_strtotime_reads_them() {
+        let date = |s| parse_any_date(s).map(|d| d.format("%Y/%m/%d").to_string());
+        assert_eq!(date("3/5/2024").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("3/5/24").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("12/31/99").as_deref(), Some("1999/12/31"));
+        assert_eq!(date("2024/3/5").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("2024-03-05").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("25-03-05").as_deref(), Some("2025/03/05"));
+        assert_eq!(date("1-2-24").as_deref(), Some("2001/02/24"));
+        assert_eq!(date("99-12-31").as_deref(), Some("1999/12/31"));
+        assert_eq!(date("05-03-2025").as_deref(), Some("2025/03/05"));
+        assert_eq!(date("0099-01-02").as_deref(), Some("0099/01/02"));
+        assert_eq!(date("13/1/2024"), None);
+        assert_eq!(date("3/5"), None);
+        assert_eq!(date("3/x/2024"), None);
     }
 }
