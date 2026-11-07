@@ -125,6 +125,35 @@ async fn a_renumbered_part_is_found_by_its_new_number_before_the_search_table_is
 }
 
 #[tokio::test]
+async fn a_renamed_family_is_found_by_its_new_name_before_the_search_table_is_rebuilt() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    for sql in [
+        "INSERT INTO language (code, name, active) VALUES ('EN', 'English', 1)",
+        "UPDATE content SET name = 'Quick Release Pins' WHERE record_type = 'subcategory' AND record_id = 7 AND language_code = 'EN'",
+    ] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let cookie = signed_in(&h.pool, &Account::customer(46)).await;
+    let (_, _, body) = send(&h.app, suggest("quick%20release", Some(&cookie), "/catalog/")).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!((&v["items"][0]["label"], &v["items"][0]["id"]), (&"Quick Release Pins".into(), &10.into()), "{body}");
+    let (_, _, body) = send(&h.app, suggest("ball%20lock", Some(&cookie), "/catalog/")).await;
+    assert!(!body.contains("\"id\":10"), "the old name: {body}");
+    let (_, _, body) = send(&h.app, suggest("goupilles", Some(&cookie), "/catalogue/?lang=fr")).await;
+    assert!(body.contains("Goupilles à billes"), "the French name was not changed: {body}");
+
+    let enter = |term: &str| {
+        let path = format!("/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code={term}");
+        request(Method::GET, &path, Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty())
+    };
+    let (_, _, body) = send(&h.app, enter("quick%20release")).await;
+    assert!(!body.contains("No results for search term"), "{body}");
+    let (_, _, body) = send(&h.app, enter("ball%20lock")).await;
+    assert!(body.contains("No results for search term"), "the old name: {body}");
+}
+
+#[tokio::test]
 async fn every_other_table_is_refused_even_to_staff() {
     let h = harness().await;
     seed(&h.pool).await;
