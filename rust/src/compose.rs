@@ -131,10 +131,24 @@ fn without_lang(query: &str) -> String {
     query.split('&').filter(|kv| !kv.is_empty() && !kv.starts_with("lang=")).collect::<Vec<_>>().join("&")
 }
 
-/// The same catalog view in the other language. hxlang marks a flag click, so the choice is saved to the account.
+/// The same catalog view in the other language. hxlang marks a flag click, so the page saves the choice to the account.
 fn flag_href(page: Page, query: &str) -> String {
     let uri = page_uri(page, &without_lang(query));
     format!("{}{}hxlang={}", uri, if uri.contains('?') { "&" } else { "?" }, page.lang)
+}
+
+/// The signed-in account's language, when the loader names one other than the page's.
+fn other_account_language(loader: &serde_json::Value, page: Page) -> Option<Page> {
+    loader.get("account_language").and_then(|v| v.as_str()).and_then(page_for).filter(|a| *a != page)
+}
+
+/// A flag click's page, once loaded, saves its language to the account, as the loader's request from the page
+/// script did (remember=1), and only from the page itself.
+fn remember_script(page: Page) -> String {
+    format!(
+        "<script>fetch('/scscpq_wp.php', {{ method: 'POST', credentials: 'same-origin', body: new URLSearchParams({{ action: 'language', language: '{}', remember: '1' }}) }});</script>\n",
+        page.lang
+    )
 }
 
 fn json_response(v: serde_json::Value, cookies: Vec<HeaderValue>) -> Response<Body> {
@@ -189,7 +203,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         ("token", ""),
         ("url", page_url.as_str()),
         ("language", page.lang),
-        ("remember", if flag_click { "1" } else { "0" }),
+        ("remember", "0"),
     ]
     .iter()
     .map(|(k, v)| format!("{k}={}", percent_encoding::utf8_percent_encode(v, percent_encoding::NON_ALPHANUMERIC)))
@@ -206,8 +220,8 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let loader_json: serde_json::Value = serde_json::from_slice(&loader_body).map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
     // account's language; only a flag click changes it.
-    let account = loader_json.get("account_language").and_then(|v| v.as_str()).and_then(page_for);
-    if let Some(account) = account.filter(|a| *a != page && !flag_click) {
+    let account = other_account_language(&loader_json, page);
+    if let Some(account) = account.filter(|_| !flag_click) {
         return redirect(nav, &page_uri(account, &without_lang(query)), "account-language", set_cookies);
     }
     let link = loader_json
@@ -249,6 +263,9 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let mut inline = format!("<script>window.hxweb_loader = {};</script>\n", loader_json.to_string().replace("</", "<\\/"));
     if flag_click {
         inline.push_str(&format!("<script>history.replaceState(null, '', {});</script>\n", serde_json::Value::from(uri.as_str())));
+        if account.is_some() {
+            inline.push_str(&remember_script(page));
+        }
     }
     let preload = if crate::on("preload") && app.re.header_bg.is_match(&markup) { HEADER_BG } else { "" };
     let shell = without_fa_kit(app, &shell);
@@ -474,6 +491,17 @@ mod tests {
         assert_eq!(flag_href(FR, "lang=en&action=subcategory&subcategory_id=658"), "/catalogue/?lang=fr&action=subcategory&subcategory_id=658&hxlang=fr");
         assert_eq!(flag_href(EN, "lang=fr&action=subcategory&subcategory_id=658"), "/catalog/?action=subcategory&subcategory_id=658&hxlang=en");
         assert_eq!(flag_href(EN, "lang=fr"), "/catalog/?hxlang=en");
+    }
+
+    #[test]
+    fn the_accounts_other_language() {
+        let loader = |code: &str| serde_json::json!({ "account_language": code });
+        assert!(other_account_language(&loader("FR"), EN) == Some(FR), "a plain link goes there, a flag click stays");
+        assert!(other_account_language(&loader("EN"), EN).is_none());
+        assert!(other_account_language(&loader(""), FR).is_none(), "not signed in");
+        assert!(other_account_language(&serde_json::json!({}), FR).is_none());
+        let script = remember_script(FR);
+        assert!(script.contains("fetch('/scscpq_wp.php'") && script.contains("action: 'language', language: 'fr', remember: '1'"));
     }
 
     #[test]
