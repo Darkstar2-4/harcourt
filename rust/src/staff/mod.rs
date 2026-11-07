@@ -43,6 +43,7 @@ pub mod filmstrip;
 pub mod jobs;
 pub mod log;
 pub mod orders;
+pub mod rules;
 pub mod tables;
 
 /// Where `user->access()` sent a visitor without the role: `$menu->page->home`, which is `/` inside WordPress.
