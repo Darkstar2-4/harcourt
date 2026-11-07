@@ -139,7 +139,7 @@ function scscpq_apply(response, inlined) {
         else {
             jQuery('.' + key).show();
             if (!scscpq_is_one(value))
-                jQuery('.' + key).html(String(value));
+                jQuery('.' + key).html(value === null || value === undefined ? '' : String(value));
         }
     }
 }

@@ -135,7 +135,7 @@ function scscpq_apply(response: Record<string, unknown>, inlined: boolean): void
       jQuery('.' + key).hide();
     } else {
       jQuery('.' + key).show();
-      if (!scscpq_is_one(value)) jQuery('.' + key).html(String(value));
+      if (!scscpq_is_one(value)) jQuery('.' + key).html(value === null || value === undefined ? '' : String(value));
     }
   }
 }

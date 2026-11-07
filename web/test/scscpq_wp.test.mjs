@@ -66,6 +66,13 @@ test('the loader answer shows, hides and fills blocks and keeps the token', () =
   assert.equal(window.sessionStorage.getItem('scscpq_token'), 't1');
 });
 
+test('a block the loader sends as null is left empty', () => {
+  const window = setup('<div class="scscpq_cart">c</div><div class="scscpq_search">s</div>');
+  window.scscpq_apply({ scscpq_cart: null, scscpq_search: null }, true);
+  assert.equal(window.document.querySelector('.scscpq_cart').innerHTML, '');
+  assert.equal(window.document.querySelector('.scscpq_search').innerHTML, '');
+});
+
 test('a link already loaded inline is not fetched again', () => {
   const window = setup('<div id="scscpq_page">kept</div>');
   const loads = [];
