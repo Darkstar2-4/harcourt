@@ -1,5 +1,6 @@
 //! The site's static files (styles, scripts, fonts, images, PDFs, videos), served by their URL path from one
-//! directory, `HXWEB_DOCROOT`: the repository's `public/` tree with the uploads beside it.
+//! directory, `HXWEB_DOCROOT` (by default `/home/harcou6/public_html`): the repository's `public/` tree with the
+//! uploads beside it.
 
 use std::{
     io::SeekFrom,
@@ -38,9 +39,17 @@ const TYPES: [(&str, &str); 19] = [
     ("pdf", "application/pdf"),
 ];
 
-pub fn root() -> Option<&'static Path> {
+const DEFAULT_ROOT: &str = "/home/harcou6/public_html";
+
+/// `HXWEB_DOCROOT` when it is set.
+pub fn configured() -> Option<&'static Path> {
     static ROOT: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
     ROOT.get_or_init(|| std::env::var_os("HXWEB_DOCROOT").map(PathBuf::from)).as_deref()
+}
+
+/// The asset directory everything reads its files from: `HXWEB_DOCROOT`, else the documented default.
+pub fn root() -> &'static Path {
+    configured().unwrap_or(Path::new(DEFAULT_ROOT))
 }
 
 /// The file for a decoded request path and its content type: a file of a served type under `root`, named by a path

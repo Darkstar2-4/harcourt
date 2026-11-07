@@ -85,7 +85,7 @@ async fn main() {
         site: env("HXWEB_SITE", "www.harcourt.co"),
         public_host: env("HXWEB_PUBLIC_HOST", &env("HXWEB_SITE", "www.harcourt.co")),
         pages: pages::Pages::new(PathBuf::from(env("HXWEB_EXPORT", "/home/harcou6/static_site"))),
-        vendor: vendor::Vendor::load(&PathBuf::from(env("HXWEB_DOCROOT", "/home/harcou6/public_html")), &env("HXWEB_SITE", "www.harcourt.co")),
+        vendor: vendor::Vendor::load(hxweb::assets::root(), &env("HXWEB_SITE", "www.harcourt.co")),
         re: Res {
             wrapper: Regex::new(r"(?is)<!DOCTYPE[^>]*>|</?(html|head|body)\b[^>]*>").unwrap(),
             current: Regex::new(r" current-menu-item active").unwrap(),
