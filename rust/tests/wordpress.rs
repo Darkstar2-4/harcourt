@@ -439,6 +439,13 @@ async fn seed_form(pool: &SqlitePool) {
     sqlx::query("INSERT INTO wp_gf_form_meta (form_id, display_meta, notifications, confirmations) VALUES (1, ?1, '{}', ?2)").bind(FORM).bind(CONFIRM).execute(pool).await.unwrap();
 }
 
+/// WordPress's 404 page, whose chrome and footer form the search results share.
+async fn seed_not_found(pool: &SqlitePool) {
+    for (name, value) in [("title", "Page not found - Example"), ("robots", "noindex, follow"), ("body_class", "error404"), ("islands", ISLANDS)] {
+        sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES ('en', ?1, 'html', ?2)").bind(format!("@404:{name}")).bind(value).execute(pool).await.unwrap();
+    }
+}
+
 async fn post_form(app: &Router, uri: &str, form: &str) -> (StatusCode, String) {
     let req = Request::builder().method(Method::POST).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(Body::from(form.to_string())).unwrap();
     let res = app.clone().oneshot(req).await.unwrap();
@@ -493,9 +500,7 @@ async fn the_footer_form_is_answered_on_every_page_that_prints_it() {
     for (name, value) in [("title", "Example question? - Example"), ("islands", ISLANDS)] {
         sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (436, ?1, ?2)").bind(name).bind(value).execute(&pool).await.unwrap();
     }
-    for (name, value) in [("title", "Page not found - Example"), ("robots", "noindex, follow"), ("body_class", "error404"), ("islands", ISLANDS)] {
-        sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES ('en', ?1, 'html', ?2)").bind(format!("@404:{name}")).bind(value).execute(&pool).await.unwrap();
-    }
+    seed_not_found(&pool).await;
     sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (436, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
 
     let (status, html) = post_form(&app, "/faq/example-question/", "gform_submit=1&input_1=Example+Name").await;
@@ -541,4 +546,76 @@ async fn a_large_multipart_post_is_read_whole() {
     assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
     let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
     assert_eq!(entries, 1);
+}
+
+async fn entries(pool: &SqlitePool) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(pool).await.unwrap()
+}
+
+/// The wrapper of a form drawn again with its errors.
+const INVALID: &str = "gform-theme--no-framework gform_validation_error'";
+
+#[tokio::test]
+async fn the_footer_form_is_answered_on_the_search_results() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    seed_not_found(&pool).await;
+    let (status, _, html) = send(&app, Method::GET, "/search/nothing+found/").await;
+    assert_eq!(status, StatusCode::OK);
+    // The search page draws its forms itself.
+    assert!(html.contains("id='gform_1'") && !html.contains(INVALID), "{html}");
+
+    let (status, html) = post_form(&app, "/search/nothing+found/", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Thanks, we will be in touch.") && !html.contains("id='gform_1'"), "{html}");
+    assert_eq!(entries(&pool).await, 1);
+
+    let (status, html) = post_form(&app, "/search/nothing+found/", "gform_submit=1&input_1=").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!html.contains("Thanks, we will be in touch.") && html.contains(INVALID), "the form again, with its error");
+    assert_eq!(entries(&pool).await, 1);
+
+    let boundary = "----hxtestboundary";
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/search/nothing+found/page/2/")
+        .header(header::CONTENT_TYPE, format!("multipart/form-data; boundary={boundary}"))
+        .body(Body::from(multipart(boundary, &[("gform_submit", "1"), ("input_1", "Example Name")])))
+        .unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::NOT_FOUND, "a page of results past the last is WordPress's 404, form answered all the same");
+    let html = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(html.contains("Thanks, we will be in touch."), "{html}");
+    assert_eq!(entries(&pool).await, 2);
+
+    let (status, html) = post_form(&app, "/?s=nothing+found", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Thanks, we will be in touch.") && !html.contains("id='gform_1'"), "the front page's search, too: {html}");
+    assert_eq!(entries(&pool).await, 3);
+
+    let (status, html) = post_form(&app, "/search/nothing+found/", "q=1").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("id='gform_1'") && !html.contains("Thanks, we will be in touch."), "a post without a form shows the results");
+}
+
+#[tokio::test]
+async fn a_redirect_confirmation_moves_the_visitor_after_an_ajax_post_too() {
+    let (app, pool) = harness().await;
+    let redirect = r#"{"c":{"name":"Default","isDefault":true,"type":"redirect","url":"https://example.com/thanks/","queryString":"name={Name:1}"}}"#;
+    sqlx::query("INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (1, 'Request access', '2020-01-01 00:00:00', 1, 0)").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO wp_gf_form_meta (form_id, display_meta, notifications, confirmations) VALUES (1, ?1, '{}', ?2)").bind(FORM).bind(redirect).execute(&pool).await.unwrap();
+
+    let req = Request::builder().method(Method::POST).uri("/product/alignment/").header(header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(Body::from("gform_submit=1&input_1=Example+Name")).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::FOUND);
+    assert_eq!(res.headers().get(header::LOCATION).unwrap(), "https://example.com/thanks/?name=Example+Name");
+
+    let ajax: String = form_urlencoded::byte_serialize(hxweb::orders::forms::render::gform_ajax(1, "legacy").as_bytes()).collect();
+    let (status, postback) = post_form(&app, "/product/alignment/", &format!("gform_submit=1&gform_ajax={ajax}&input_1=Example+Name")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        postback,
+        "<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body class='GF_AJAX_POSTBACK'><script type=\"text/javascript\"> function gformRedirect(){document.location.href=\"https:\\/\\/example.com\\/thanks\\/?name=Example+Name\";}</script></body></html>"
+    );
+    assert_eq!(entries(&pool).await, 2);
 }

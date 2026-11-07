@@ -42,10 +42,9 @@ pub fn composed_page(path: &str, query: &str) -> Option<viewer::Lang> {
     }
 }
 
-pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
+pub fn router() -> Router<Arc<Auth>> {
     Router::new()
         .merge(pages::router())
-        .merge(wp_search::router(core))
         .merge(search::router())
         .merge(loader::router())
         .merge(files::router())
