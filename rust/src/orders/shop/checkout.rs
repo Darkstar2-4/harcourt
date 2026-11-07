@@ -725,7 +725,7 @@ async fn place(state: &Orders, shopper: &Shopper, ip: &str, mut order: Order, it
     let host = state.core.public_origin.trim_start_matches("https://");
 
     let mut tx = pool.begin().await?;
-    if cart::take(&mut tx, key).await? != items {
+    if cart::take(&mut tx, key, order.order_date).await?.as_deref() != Some(items) {
         tx.rollback().await?;
         return Ok(placed_with(pool, token, shopper).await?.map_or(Placed::CartChanged, Placed::Order));
     }

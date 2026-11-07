@@ -225,6 +225,25 @@ async fn signing_in_takes_over_the_cart_kept_by_company_address() {
 }
 
 #[tokio::test]
+async fn a_cart_taken_over_a_day_ago_takes_new_lines() {
+    let h = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
+    let both = format!("PHPSESSID=visit-one; {}", cookie(&h.pool, 5).await);
+    send(&h.app, request(Method::GET, "/cart.php", &both, &[], false)).await;
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item WHERE quantity = 2").await, 1, "taken over");
+    sqlx::query("DELETE FROM session").execute(&h.pool).await.unwrap();
+    sqlx::query("UPDATE cart SET touched_at = touched_at - 25 * 3600").execute(&h.pool).await.unwrap();
+    let a = add(&h, "PHPSESSID=visit-one", "SKU-2", "1").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-2 cart updated"), Some(1)), "{a}");
+    let a = add(&h, "PHPSESSID=visit-one", "SKU-2", "3").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64(), a["cart_extended"].as_str()), (Some("SKU-2 cart updated"), Some(1), Some("$9.00")), "{a}");
+}
+
+#[tokio::test]
 async fn a_cart_without_a_session_lasts_a_day_from_its_last_use() {
     let h = harness().await;
     sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
@@ -232,13 +251,14 @@ async fn a_cart_without_a_session_lasts_a_day_from_its_last_use() {
         .await
         .unwrap();
     add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
-    sqlx::query("UPDATE cart_item SET added_at = added_at - 25 * 3600, touched_at = touched_at - 2 * 3600").execute(&h.pool).await.unwrap();
+    sqlx::query("UPDATE cart_item SET added_at = added_at - 25 * 3600").execute(&h.pool).await.unwrap();
+    sqlx::query("UPDATE cart SET touched_at = touched_at - 2 * 3600").execute(&h.pool).await.unwrap();
     let a = add(&h, "PHPSESSID=visit-one", "SKU-2", "1").await;
     assert_eq!(a["cart_size"].as_i64(), Some(2), "added a day ago, used since: {a}");
     let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
     let (first, second) = (page.find("<td class=nobr>SKU-1</td>"), page.find("<td class=nobr>SKU-2</td>"));
     assert!(first.is_some() && first < second, "lines keep their order: {page}");
-    sqlx::query("UPDATE cart_item SET touched_at = touched_at - 25 * 3600").execute(&h.pool).await.unwrap();
+    sqlx::query("UPDATE cart SET touched_at = touched_at - 25 * 3600").execute(&h.pool).await.unwrap();
     let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
     assert!(page.contains("<p>Your shopping cart is empty</p>"), "unused for a day");
     assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 0);
