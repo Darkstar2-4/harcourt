@@ -43,35 +43,38 @@ pub struct Shopper {
 /// names it, together with the account. A browser with neither has no cart to keep.
 pub struct CartKey {
     hash: [u8; 32],
-    /// How many times a session had taken this cart over when it was found; it takes lines only while that holds.
-    takeovers: i64,
+    /// How many times the cart had been written when this request found it; the request writes only while that
+    /// holds (`cart::write`, `cart::take`).
+    version: i64,
 }
 
 impl CartKey {
     /// The cart, taking over what the same account put in the cart it kept by company address in this PHP session
-    /// before the session began, as PHP's one session cart held both.
+    /// before the session began, as PHP's one session cart held both. Carts unused too long are gone first.
     async fn of(pool: &SqlitePool, visitor: &Visitor, user: UserId, headers: &HeaderMap) -> sqlx::Result<Option<Self>> {
         let address = Self::address(user, headers);
-        let Some(session) = &visitor.session else {
-            let Some(hash) = address else { return Ok(None) };
-            return Ok(Some(CartKey { takeovers: cart::takeovers(pool, &hash).await?, hash }));
+        let (hash, takes_over) = match &visitor.session {
+            Some(session) => match <[u8; 32]>::try_from(session.as_slice()) {
+                Ok(hash) => (hash, address),
+                Err(_) => return Ok(None),
+            },
+            None => match address {
+                Some(hash) => (hash, None),
+                None => return Ok(None),
+            },
         };
-        let Some(key) = session.as_slice().try_into().ok().map(CartKey::session) else { return Ok(None) };
-        if let Some(address) = address {
-            cart::adopt(pool, &address, &key, unix_now()).await?;
+        let now = unix_now();
+        cart::expire(pool, now).await?;
+        if let Some(address) = takes_over {
+            cart::adopt(pool, &address, &hash, now).await?;
         }
-        Ok(Some(key))
+        Ok(Some(CartKey { hash, version: cart::found(pool, &hash, now).await? }))
     }
 
     fn address(user: UserId, headers: &HeaderMap) -> Option<[u8; 32]> {
         let php = cookies::get(headers, "PHPSESSID").filter(|id| !id.is_empty())?;
         let digest = Sha256::new().chain_update(b"hx cart\0").chain_update(user.0.to_be_bytes()).chain_update(php.as_bytes()).finalize();
         Some(digest.into())
-    }
-
-    /// A session's cart, which nothing takes over.
-    fn session(hash: [u8; 32]) -> Self {
-        CartKey { hash, takeovers: 0 }
     }
 
     pub fn as_slice(&self) -> &[u8] {

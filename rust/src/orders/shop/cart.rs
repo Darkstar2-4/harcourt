@@ -11,7 +11,7 @@ use axum::{
 };
 use rust_decimal::Decimal;
 use serde::Serialize;
-use sqlx::{SqliteConnection, SqliteExecutor, SqlitePool};
+use sqlx::{SqliteConnection, SqlitePool};
 
 use super::{fn_base64, number_format, quoted, shopper, CartKey, Labels, MoneyFormat, Shopper};
 use crate::{
@@ -45,7 +45,6 @@ pub struct Line {
 }
 
 pub async fn items(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<Vec<Item>> {
-    touch(pool, key, unix_now()).await?;
     let hash = key.as_slice();
     let rows = sqlx::query!(
         r#"SELECT sku, quantity AS "quantity!: i64", comment FROM cart_item WHERE session_hash = ?1 ORDER BY added_at, rowid"#,
@@ -59,100 +58,125 @@ pub async fn items(pool: &SqlitePool, key: &CartKey) -> sqlx::Result<Vec<Item>> 
 /// How long a cart kept in a PHP session lasts after its last use; a session's cart goes with the session.
 const PHP_CART_SECS: i64 = 86400;
 
-/// The shopper uses the cart: carts without a session left unused longer than a PHP session lasted go, each as a
-/// whole, and this one is used now.
-async fn touch(pool: &SqlitePool, key: &CartKey, now: i64) -> sqlx::Result<()> {
+/// Carts without a session left unused longer than a PHP session lasted go, each as a whole.
+pub(super) async fn expire(pool: &SqlitePool, now: i64) -> sqlx::Result<()> {
     let stale = now - PHP_CART_SECS;
-    sqlx::query!("DELETE FROM cart_item WHERE touched_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
-    sqlx::query!("DELETE FROM cart_takeover WHERE taken_at < ?1", stale).execute(pool).await?;
-    let hash = key.as_slice();
-    sqlx::query!("UPDATE cart_item SET touched_at = ?2 WHERE session_hash = ?1", hash, now).execute(pool).await?;
+    sqlx::query!("DELETE FROM cart WHERE touched_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
     Ok(())
+}
+
+/// The shopper uses the cart under `hash` now: how many times it has been written.
+pub(super) async fn found(pool: &SqlitePool, hash: &[u8; 32], now: i64) -> sqlx::Result<i64> {
+    let hash = hash.as_slice();
+    sqlx::query_scalar!(
+        r#"INSERT INTO cart (session_hash, version, touched_at) VALUES (?1, 0, ?2)
+           ON CONFLICT (session_hash) DO UPDATE SET touched_at = excluded.touched_at RETURNING version AS "version!: i64""#,
+        hash,
+        now
+    )
+    .fetch_one(pool)
+    .await
+}
+
+/// Counts a write to the cart under `hash` while its count is still `expected` (any count with `None`, for a
+/// takeover), and says whether it did. A cart no request has found has no count, and nothing to stop.
+async fn bump(conn: &mut SqliteConnection, hash: &[u8], expected: Option<i64>, now: i64) -> sqlx::Result<bool> {
+    let done = sqlx::query!("UPDATE cart SET version = version + 1, touched_at = ?3 WHERE session_hash = ?1 AND (?2 IS NULL OR version = ?2)", hash, expected, now)
+        .execute(&mut *conn)
+        .await?;
+    Ok(done.rows_affected() == 1)
 }
 
 /// Moves the lines of `from` into `into`, adding the quantities of a part both hold, whose comment is `into`'s
-/// unless it has none. A cart left unused longer than a PHP session lasted is not taken. Every takeover is counted,
-/// held lines or not, so that a request which found `from` before it adds nothing to it after.
-pub(super) async fn adopt(pool: &SqlitePool, from: &[u8; 32], into: &CartKey, now: i64) -> sqlx::Result<()> {
+/// unless it has none. Every takeover is counted, held lines or not, so that a request which found `from` before
+/// it writes nothing to it after; so is a takeover that changes `into`. Expired carts are gone first (`expire`).
+pub(super) async fn adopt(pool: &SqlitePool, from: &[u8; 32], into: &[u8; 32], now: i64) -> sqlx::Result<()> {
     let (from, into) = (from.as_slice(), into.as_slice());
-    let stale = now - PHP_CART_SECS;
     let most = i64::from(u32::MAX);
     let mut tx = pool.begin().await?;
-    sqlx::query!(
-        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)
-         SELECT ?2, sku, quantity, comment, added_at, ?3 FROM cart_item WHERE session_hash = ?1 AND touched_at >= ?4
-         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = min(cart_item.quantity + excluded.quantity, ?5),
+    let moved = sqlx::query!(
+        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at)
+         SELECT ?2, sku, quantity, comment, added_at FROM cart_item WHERE session_hash = ?1
+         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = min(cart_item.quantity + excluded.quantity, ?3),
              comment = CASE WHEN cart_item.comment = '' THEN excluded.comment ELSE cart_item.comment END",
         from,
         into,
-        now,
-        stale,
         most
     )
     .execute(&mut *tx)
-    .await?;
+    .await?
+    .rows_affected();
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", from).execute(&mut *tx).await?;
-    sqlx::query!(
-        "INSERT INTO cart_takeover (session_hash, takeovers, taken_at) VALUES (?1, 1, ?2)
-         ON CONFLICT (session_hash) DO UPDATE SET takeovers = cart_takeover.takeovers + 1, taken_at = excluded.taken_at",
-        from,
-        now
-    )
-    .execute(&mut *tx)
-    .await?;
+    bump(&mut tx, from, None, now).await?;
+    if moved > 0 {
+        bump(&mut tx, into, None, now).await?;
+    }
     tx.commit().await
 }
 
-/// How many times a session has taken over the cart kept by company address under `hash`.
-pub(super) async fn takeovers(pool: &SqlitePool, hash: &[u8; 32]) -> sqlx::Result<i64> {
-    let hash = hash.as_slice();
-    let n = sqlx::query_scalar!(r#"SELECT takeovers AS "n!: i64" FROM cart_takeover WHERE session_hash = ?1"#, hash).fetch_optional(pool).await?;
-    Ok(n.unwrap_or(0))
+/// One change a request makes to its cart.
+pub(super) enum Edit<'a> {
+    /// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
+    Set { sku: &'a str, quantity: u32, comment: Option<&'a str> },
+    Remove(&'a str),
+    Clear,
 }
 
-/// Sets the quantity, and the comment when one is given, keeping the line's place in the cart. Nothing is written
-/// to a cart a session has taken over since it was found.
-async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
-    touch(pool, key, now).await?;
-    let hash = key.as_slice();
-    let quantity = i64::from(quantity);
-    let initial = comment.unwrap_or("");
-    let replace_comment = comment.is_some();
-    let takeovers = key.takeovers;
-    sqlx::query!(
-        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)
-         SELECT ?1, ?2, ?3, ?4, ?5, ?5 WHERE coalesce((SELECT takeovers FROM cart_takeover WHERE session_hash = ?1), 0) = ?7
-         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
-             comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
-        hash,
-        sku,
-        quantity,
-        initial,
-        now,
-        replace_comment,
-        takeovers
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
+/// What became of a request's write to its cart.
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Written {
+    Done,
+    /// The cart was written since the request found it; this request wrote nothing.
+    CartChanged,
 }
 
-async fn remove(pool: &SqlitePool, key: &CartKey, sku: &str) -> sqlx::Result<()> {
-    touch(pool, key, unix_now()).await?;
+/// Makes `edits` together, only to the cart as the request found it.
+async fn write(pool: &SqlitePool, key: &CartKey, edits: &[Edit<'_>], now: i64) -> sqlx::Result<Written> {
     let hash = key.as_slice();
-    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1 AND sku = ?2", hash, sku).execute(pool).await?;
-    Ok(())
+    let mut tx = pool.begin().await?;
+    if !bump(&mut tx, hash, Some(key.version), now).await? {
+        return Ok(Written::CartChanged);
+    }
+    for edit in edits {
+        match *edit {
+            Edit::Set { sku, quantity, comment } => {
+                let quantity = i64::from(quantity);
+                let initial = comment.unwrap_or("");
+                let replace_comment = comment.is_some();
+                sqlx::query!(
+                    "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at) VALUES (?1, ?2, ?3, ?4, ?5)
+                     ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
+                         comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
+                    hash,
+                    sku,
+                    quantity,
+                    initial,
+                    now,
+                    replace_comment
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+            Edit::Remove(sku) => {
+                sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1 AND sku = ?2", hash, sku).execute(&mut *tx).await?;
+            }
+            Edit::Clear => {
+                sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(&mut *tx).await?;
+            }
+        }
+    }
+    tx.commit().await?;
+    Ok(Written::Done)
 }
 
-pub async fn clear<'c>(db: impl SqliteExecutor<'c>, key: &CartKey) -> sqlx::Result<()> {
+/// Empties the cart and returns what it held, in the caller's transaction; `None`, emptying nothing, when the cart
+/// was written since the request found it.
+pub async fn take(conn: &mut SqliteConnection, key: &CartKey, now: i64) -> sqlx::Result<Option<Vec<Item>>> {
     let hash = key.as_slice();
-    sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", hash).execute(db).await?;
-    Ok(())
-}
-
-/// Empties the cart and returns what it held, in one statement, in the caller's transaction.
-pub async fn take(conn: &mut SqliteConnection, key: &CartKey) -> sqlx::Result<Vec<Item>> {
-    let hash = key.as_slice();
+    if !bump(conn, hash, Some(key.version), now).await? {
+        return Ok(None);
+    }
     let mut rows = sqlx::query!(
         r#"DELETE FROM cart_item WHERE session_hash = ?1
            RETURNING sku AS "sku!", quantity AS "quantity!: i64", comment AS "comment!", added_at AS "added_at!: i64", rowid AS "rowid!: i64""#,
@@ -161,7 +185,7 @@ pub async fn take(conn: &mut SqliteConnection, key: &CartKey) -> sqlx::Result<Ve
     .fetch_all(&mut *conn)
     .await?;
     rows.sort_by_key(|r| (r.added_at, r.rowid));
-    Ok(rows.into_iter().map(|r| Item { sku: r.sku, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment }).collect())
+    Ok(Some(rows.into_iter().map(|r| Item { sku: r.sku, quantity: u32::try_from(r.quantity).unwrap_or(0), comment: r.comment }).collect()))
 }
 
 /// The shopper's cart as stored, empty without a cart.
@@ -372,17 +396,16 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
     let text = params.get("json_quantity").map_or("", String::as_str);
     let requested = fn_number(text).abs();
     let sku_text = sku.clone().unwrap_or_default();
+    let written = |done: Written, status: &str| match done {
+        Written::Done => format!("{sku_text} {status}"),
+        Written::CartChanged => format!("{sku_text} {CART_CHANGED}"),
+    };
     let status = match (typed(text), &shopper.cart) {
         (Typed::Blank, _) => format!("{sku_text} cart unchanged"),
-        (Typed::Remove, key) => {
-            if let Some(key) = key {
-                remove(pool, key, &sku_text).await?;
-            }
-            format!("{sku_text} removed from cart")
-        }
+        (Typed::Remove, None) => format!("{sku_text} removed from cart"),
+        (Typed::Remove, Some(key)) => written(write(pool, key, &[Edit::Remove(&sku_text)], unix_now()).await?, "removed from cart"),
         (Typed::Set(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
-            put(pool, key, &sku_text, q, None, unix_now()).await?;
-            format!("{sku_text} cart updated")
+            written(write(pool, key, &[Edit::Set { sku: &sku_text, quantity: q, comment: None }], unix_now()).await?, "cart updated")
         }
         _ => format!("{sku_text} invalid"),
     };
@@ -422,6 +445,12 @@ pub fn php_json(json: &str) -> String {
     out
 }
 
+/// How the cart call answers a write it could not make, after the SKU; `scs_local.js` shows it.
+const CART_CHANGED: &str = "not saved, the cart changed";
+
+/// What the cart page says when its update or clear could not be made.
+const PAGE_CART_CHANGED: &str = "Your shopping cart has changed. Check it and try again.";
+
 const SCRIPT: &str = "<script>\nfunction fn_action(action) {\n    if (action=='clear') {\n        if (!confirm('Clear Shopping Cart?')) return;\n    }\n    document.scs_form.action.value=action;\n    document.scs_form.submit();\n}\n</script>\n";
 
 pub(super) fn home(visitor: &Visitor) -> Response {
@@ -432,6 +461,22 @@ pub(super) fn home(visitor: &Visitor) -> Response {
 pub async fn view(State(state): State<Arc<Orders>>, visitor: Visitor, headers: HeaderMap) -> Result<Response, ApiError> {
     let Some(shopper) = shopper(&state.core.pool, &visitor, &headers).await? else { return Ok(home(&visitor)) };
     page(&state, &shopper, visitor.framed, vec!["Shopping Cart".to_string()]).await
+}
+
+/// What the cart page's Update asks of each line it read: the quantity and comment boxes posted for it.
+fn updates<'a>(items: &'a [Item], params: &'a std::collections::HashMap<String, String>) -> Vec<Edit<'a>> {
+    items
+        .iter()
+        .map(|item| {
+            let text = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
+            let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim());
+            match typed(text) {
+                Typed::Remove => Edit::Remove(&item.sku),
+                Typed::Set(quantity) => Edit::Set { sku: &item.sku, quantity, comment },
+                Typed::Blank | Typed::TooLarge => Edit::Set { sku: &item.sku, quantity: item.quantity, comment },
+            }
+        })
+        .collect()
 }
 
 /// POST: the AJAX add and delete, and the form's update, clear and checkout, read from the body alone.
@@ -447,30 +492,24 @@ pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, headers:
     }
     let Some(shopper) = shopper else { return Ok(home(&visitor)) };
     let mut messages = vec!["Shopping Cart".to_string()];
-    match (params.get("action").map(String::as_str), &shopper.cart) {
+    let (written, done) = match (params.get("action").map(String::as_str), &shopper.cart) {
         (Some("checkout"), _) => return Ok(html::redirect("/checkout.php")),
-        (Some("clear"), key) => {
-            if let Some(key) = key {
-                clear(pool, key).await?;
-            }
-            messages.push("Shopping Cart Cleared".into());
+        (Some("clear"), Some(key)) => (write(pool, key, &[Edit::Clear], unix_now()).await?, "Shopping Cart Cleared"),
+        (Some("clear"), None) => (Written::Done, "Shopping Cart Cleared"),
+        (Some("update"), Some(key)) => {
+            let items = items(pool, key).await?;
+            let edits = updates(&items, &params);
+            let written = if edits.is_empty() { Written::Done } else { write(pool, key, &edits, unix_now()).await? };
+            (written, "Shopping Cart Updated")
         }
-        (Some("update"), key) => {
-            if let Some(key) = key {
-                for item in items(pool, key).await? {
-                    let text = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
-                    let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
-                    match typed(text) {
-                        Typed::Remove => remove(pool, key, &item.sku).await?,
-                        Typed::Set(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
-                        Typed::Blank | Typed::TooLarge => put(pool, key, &item.sku, item.quantity, comment.as_deref(), unix_now()).await?,
-                    }
-                }
-            }
-            messages.push("Shopping Cart Updated".into());
-        }
-        _ => {}
+        (Some("update"), None) => (Written::Done, "Shopping Cart Updated"),
+        _ => return page(&state, &shopper, visitor.framed, messages).await,
+    };
+    messages.push(match written {
+        Written::Done => done,
+        Written::CartChanged => PAGE_CART_CHANGED,
     }
+    .into());
     page(&state, &shopper, visitor.framed, messages).await
 }
 
@@ -514,21 +553,98 @@ mod tests {
         assert_eq!(typed("99999999999"), Typed::TooLarge);
     }
 
+    async fn find(pool: &SqlitePool, hash: [u8; 32], now: i64) -> CartKey {
+        expire(pool, now).await.unwrap();
+        CartKey { hash, version: found(pool, &hash, now).await.unwrap() }
+    }
+
+    fn set(sku: &str, quantity: u32) -> Edit<'_> {
+        Edit::Set { sku, quantity, comment: None }
+    }
+
+    fn skus(items: &[Item]) -> Vec<&str> {
+        items.iter().map(|i| i.sku.as_str()).collect()
+    }
+
     #[tokio::test]
     async fn a_cart_found_before_a_takeover_takes_no_lines_after_it() {
         let pool = crate::db::open_memory().await.unwrap();
         let now = unix_now();
-        let address = [7u8; 32];
-        let session = CartKey::session([8u8; 32]);
-        let found = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
-        put(&pool, &found, "SKU-1", 2, None, now).await.unwrap();
+        let (address, session) = ([7u8; 32], [8u8; 32]);
+        let found = find(&pool, address, now).await;
+        assert_eq!(write(&pool, &found, &[set("SKU-1", 2)], now).await.unwrap(), Written::Done);
+        let found = find(&pool, address, now).await;
         adopt(&pool, &address, &session, now).await.unwrap();
-        put(&pool, &found, "SKU-2", 1, None, now).await.unwrap();
+        assert_eq!(write(&pool, &found, &[set("SKU-2", 1)], now).await.unwrap(), Written::CartChanged);
+        assert_eq!(write(&pool, &found, &[Edit::Clear], now).await.unwrap(), Written::CartChanged);
         assert!(items(&pool, &found).await.unwrap().is_empty());
-        assert_eq!(items(&pool, &session).await.unwrap().iter().map(|i| i.sku.as_str()).collect::<Vec<_>>(), ["SKU-1"]);
-        let again = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
-        put(&pool, &again, "SKU-2", 1, None, now).await.unwrap();
-        assert_eq!(items(&pool, &again).await.unwrap().len(), 1, "a request that finds the cart after the takeover uses it");
+        assert_eq!(skus(&items(&pool, &find(&pool, session, now).await).await.unwrap()), ["SKU-1"]);
+        let again = find(&pool, address, now).await;
+        assert_eq!(write(&pool, &again, &[set("SKU-2", 1)], now).await.unwrap(), Written::Done, "a request that finds the cart after the takeover uses it");
+        assert_eq!(items(&pool, &again).await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_cart_taken_over_a_day_ago_takes_lines() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let (address, session) = ([7u8; 32], [8u8; 32]);
+        let found = find(&pool, address, now - 2 * PHP_CART_SECS).await;
+        adopt(&pool, &address, &session, now - 2 * PHP_CART_SECS).await.unwrap();
+        assert_eq!(write(&pool, &found, &[set("SKU-1", 1)], now).await.unwrap(), Written::CartChanged);
+        let later = find(&pool, address, now).await;
+        assert_eq!(write(&pool, &later, &[set("SKU-1", 1)], now).await.unwrap(), Written::Done);
+        assert_eq!(write(&pool, &find(&pool, address, now).await, &[set("SKU-2", 1)], now).await.unwrap(), Written::Done);
+        assert_eq!(skus(&items(&pool, &later).await.unwrap()), ["SKU-1", "SKU-2"]);
+    }
+
+    #[tokio::test]
+    async fn a_write_after_checkout_took_the_cart_puts_nothing_back() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let hash = [9u8; 32];
+        let first = find(&pool, hash, now).await;
+        assert_eq!(write(&pool, &first, &[set("SKU-1", 2), set("SKU-2", 1)], now).await.unwrap(), Written::Done);
+        let update = find(&pool, hash, now).await;
+        let read = items(&pool, &update).await.unwrap();
+        let checkout = find(&pool, hash, now).await;
+        let mut tx = pool.begin().await.unwrap();
+        assert_eq!(take(&mut tx, &checkout, now).await.unwrap().as_deref(), Some(&read[..]));
+        tx.commit().await.unwrap();
+        let back: Vec<Edit> = read.iter().map(|i| set(&i.sku, i.quantity)).collect();
+        assert_eq!(write(&pool, &update, &back, now).await.unwrap(), Written::CartChanged);
+        assert_eq!(write(&pool, &update, &[Edit::Remove("SKU-1")], now).await.unwrap(), Written::CartChanged);
+        assert!(items(&pool, &update).await.unwrap().is_empty());
+        let mut tx = pool.begin().await.unwrap();
+        assert_eq!(take(&mut tx, &checkout, now).await.unwrap(), None, "a second checkout of what it read");
+    }
+
+    #[tokio::test]
+    async fn one_request_writes_its_cart_once_and_every_write_counts() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let hash = [10u8; 32];
+        let (a, b) = (find(&pool, hash, now).await, find(&pool, hash, now).await);
+        assert_eq!(write(&pool, &a, &[set("SKU-1", 1)], now).await.unwrap(), Written::Done);
+        assert_eq!(write(&pool, &b, &[set("SKU-2", 1)], now).await.unwrap(), Written::CartChanged);
+        let c = find(&pool, hash, now).await;
+        assert_eq!(write(&pool, &c, &[Edit::Remove("SKU-1"), set("SKU-2", 3)], now).await.unwrap(), Written::Done);
+        let left = items(&pool, &c).await.unwrap();
+        assert_eq!(left, [Item { sku: "SKU-2".into(), quantity: 3, comment: String::new() }]);
+    }
+
+    #[tokio::test]
+    async fn an_unused_cart_goes_whole_with_its_count() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let hash = [11u8; 32];
+        let old = find(&pool, hash, now - PHP_CART_SECS - 1).await;
+        assert_eq!(write(&pool, &old, &[set("SKU-1", 1)], now - PHP_CART_SECS - 1).await.unwrap(), Written::Done);
+        let fresh = find(&pool, hash, now).await;
+        assert!(items(&pool, &fresh).await.unwrap().is_empty());
+        assert_eq!(fresh.version, 0);
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM cart_item").fetch_one(&pool).await.unwrap();
+        assert_eq!(rows, 0);
     }
 
     #[test]
