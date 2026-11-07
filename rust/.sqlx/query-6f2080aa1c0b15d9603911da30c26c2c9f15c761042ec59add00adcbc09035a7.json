@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT recipient AS \"recipient!\", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY domain = '' DESC LIMIT 1",
+  "query": "SELECT recipient AS \"recipient!\", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY coalesce(domain, '') = '' DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       true
     ]
   },
-  "hash": "a64dbbcbacc13a003c582b157973903b08d85c5ca875fbaa67d7014f691a6e8d"
+  "hash": "6f2080aa1c0b15d9603911da30c26c2c9f15c761042ec59add00adcbc09035a7"
 }
