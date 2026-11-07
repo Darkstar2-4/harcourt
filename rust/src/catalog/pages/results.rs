@@ -14,8 +14,8 @@ pub struct Hit {
 
 /// lookup()'s first step: the part number as typed (`search::as_typed`) or without separators, matched against
 /// parts (by the number each has now) and competitor numbers as the box matches them (`search::same_code`,
-/// `search::normalize_code`). The first in the search box's order: a code as typed, then parts before competitor
-/// numbers, then ranking. SQLite compares ASCII only, so it picks the candidates (those it can match, and every code
+/// `search::normalize_code`). The first the viewer is shown (`shown`), in the search box's order: a code as typed,
+/// then parts before competitor numbers, then ranking. SQLite compares ASCII only, so it picks the candidates (those it can match, and every code
 /// with a character past ASCII) and the comparison is made here.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     let codes = search::as_typed(code);
@@ -23,10 +23,12 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     let (a, b, c) = (variant(0), variant(1), variant(2));
     let normalized = search::normalize_code(&codes[0]);
     let candidates = sqlx::query!(
-        r#"SELECT id AS "id!: i64", table_name AS "table_name!: String", code AS "code!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64",
-                  inventory_id AS "inventory_id?: i64", coalesce(ranking, 0) AS "ranking!: i64"
-           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND code <> ''
-             AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR upper(code_normalized) = ?4 OR code GLOB '*[^ -~]*')"#,
+        r#"SELECT s.id AS "id!: i64", s.table_name AS "table_name!: String", s.code AS "code!: String", s.category_id AS "category_id?: i64",
+                  s.subcategory_id AS "subcategory_id?: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
+                  coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
+           FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
+           WHERE s.table_name IN ('inventory', 'competitor_sku') AND s.code <> ''
+             AND (s.code IN (?1, ?2, ?3) COLLATE NOCASE OR upper(s.code_normalized) = ?4 OR s.code GLOB '*[^ -~]*')"#,
         a,
         b,
         c,
@@ -38,7 +40,9 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
         .into_iter()
         .filter_map(|r| {
             let typed = codes.iter().any(|c| search::same_code(c, &r.code));
-            (typed || (!normalized.is_empty() && search::normalize_code(&r.code) == normalized)).then_some((!typed, r))
+            let matched = typed || (!normalized.is_empty() && search::normalize_code(&r.code) == normalized);
+            let visible = shown(ctx, &r.table_name, r.category_id.unwrap_or(0), r.subcategory_id.unwrap_or(0), r.part_family, r.part_active != 0).is_some();
+            (matched && visible).then_some((!typed, r))
         })
         .min_by(|(x, r), (y, s)| (x, r.table_name != "inventory", r.ranking, &r.code, r.id).cmp(&(y, s.table_name != "inventory", s.ranking, &s.code, s.id)))
         .map(|(_, r)| (r.table_name, r.category_id, r.subcategory_id, r.inventory_id));
@@ -54,10 +58,11 @@ async fn hit(ctx: &Ctx<'_>, row: Option<Row>) -> sqlx::Result<Option<Hit>> {
         Some(id) => model::part_by_id(ctx.pool, id).await?,
         None => None,
     };
-    let (category_id, subcategory_id) = place(ctx, &table, category_id.unwrap_or(0), subcategory_id.unwrap_or(0), part.as_ref().map(|p| p.subcategory_id));
-    if !shows(ctx, &table, category_id, subcategory_id, part.as_ref().is_some_and(|p| p.active)) {
+    let Some((category_id, subcategory_id)) =
+        shown(ctx, &table, category_id.unwrap_or(0), subcategory_id.unwrap_or(0), part.as_ref().map(|p| p.subcategory_id), part.as_ref().is_some_and(|p| p.active))
+    else {
         return Ok(None);
-    }
+    };
     Ok(Some(Hit { table, category_id, subcategory_id, part }))
 }
 
@@ -76,13 +81,17 @@ fn place(ctx: &Ctx, table: &str, category_id: i64, subcategory_id: i64, part_fam
     (ctx.catalog.family(subcategory_id).map_or(category_id, |f| f.category_id), subcategory_id)
 }
 
-/// Whether the catalog shows this viewer what a keyword row names: an active category, or a family the catalog lists
-/// (`Catalog::lists`) and, for a part, an active part. A blocked category still shows, as its overlay.
-fn shows(ctx: &Ctx, table: &str, category_id: i64, subcategory_id: i64, part_active: bool) -> bool {
-    if table == "category" {
-        return ctx.catalog.categories.get(&category_id).is_some_and(|c| c.active);
-    }
-    ctx.catalog.family(subcategory_id).is_some_and(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending())) && (part_active || !names_part(table))
+/// Where a `search` row points now (`place`), when the catalog shows this viewer what it names: an active category,
+/// or a family the catalog lists (`Catalog::lists`) and, for a part, an active part. A blocked category still shows,
+/// as its overlay.
+fn shown(ctx: &Ctx, table: &str, category_id: i64, subcategory_id: i64, part_family: Option<i64>, part_active: bool) -> Option<(i64, i64)> {
+    let (category_id, subcategory_id) = place(ctx, table, category_id, subcategory_id, part_family);
+    let shows = if table == "category" {
+        ctx.catalog.categories.get(&category_id).is_some_and(|c| c.active)
+    } else {
+        ctx.catalog.family(subcategory_id).is_some_and(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending())) && (part_active || !names_part(table))
+    };
+    shows.then_some((category_id, subcategory_id))
 }
 
 /// What catalog.php's constructor read for search_source=search and lookup, before anything is printed: the row
@@ -171,9 +180,8 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     .await?
     .into_iter()
     .filter_map(|r| {
-        let (category_id, subcategory_id) = place(ctx, &r.table, r.category_id, r.subcategory_id, r.part_family);
-        let shown = (within == 0 || subcategory_id == within) && shows(ctx, &r.table, category_id, subcategory_id, r.part_active != 0);
-        shown.then(|| keywords::Row {
+        let (category_id, subcategory_id) = shown(ctx, &r.table, r.category_id, r.subcategory_id, r.part_family, r.part_active != 0)?;
+        (within == 0 || subcategory_id == within).then(|| keywords::Row {
             code_normalized: search::normalize_code(&r.code),
             table: r.table,
             code: r.code,

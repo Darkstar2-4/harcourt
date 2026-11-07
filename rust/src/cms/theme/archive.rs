@@ -47,7 +47,7 @@ fn alternates<'a>(site: &'a Site, term: &'a Term, lang: Lang) -> Vec<(Lang, &'a 
     if translations.len() < 2 {
         return vec![(lang, term, format!("{ORIGIN}{}", term.path()))];
     }
-    translations.into_iter().filter_map(|t| t.lang.map(|l| (l, t, format!("{ORIGIN}{}{}", t.path(), l.query())))).collect()
+    translations.into_iter().filter_map(|t| t.lang.map(|l| (l, t, format!("{ORIGIN}{}", l.link(&t.path()))))).collect()
 }
 
 /// The archive of an FAQ type in `lang` at `uri`, with `{{gform:N}}` holes for the footer's form; None for another

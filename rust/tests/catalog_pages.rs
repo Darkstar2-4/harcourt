@@ -402,6 +402,22 @@ async fn search_results_list_only_what_the_catalog_lists() {
     assert!(!body.contains("subcat9") && !body.contains("Toggle Clamps"), "a family in an inactive category: {body}");
 }
 
+#[tokio::test]
+async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (503, '', 1, 'inventory', 'HBLT-3', 1, 7, 3, 1), (505, '', 1, 'inventory', 'SP-1', 1, 8, 4, 1)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'HBLT-3', 'HBLT3', 1, 7, 2, 9), (511, '', 1, 'competitor_sku', 'SP1', 'SP1', 1, 7, 1, 9)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(35)).await;
+    for (code, part) in [("hblt-3", "HBLT-2"), ("sp-1", "HBLT-1")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=lookup&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains("<h1>Ball Lock Pins</h1>") && !body.contains("not found</p>"), "a lookup of {code} opens the shown part's family: {body}");
+    }
+}
+
 /// Pages the catalog dropped: alternative and beta catalogs, the staff maintenance pages and the endpoints with no
 /// traffic. The catalog no longer claims them, so they get the site's answer for a path nothing serves.
 #[tokio::test]

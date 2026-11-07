@@ -78,7 +78,7 @@ fn between<'a>(s: &'a str, start: &str, end: &str) -> Option<&'a str> {
 
 /// The request URI WordPress rendered the page at.
 pub fn uri(page: &Page) -> String {
-    format!("{}{}", page.path, page.lang.query())
+    page.link()
 }
 
 #[derive(Debug, Default)]

@@ -34,11 +34,13 @@ impl Lang {
         }
     }
 
-    /// The query string WPML appends to a French URL. English URLs carry none.
-    pub fn query(self) -> &'static str {
+    /// `url` as WPML links it in this language: French adds `lang=fr` to its query (a draft's `/?page_id=N` already
+    /// has one); English adds nothing.
+    pub fn link(self, url: &str) -> String {
         match self {
-            Lang::En => "",
-            Lang::Fr => "?lang=fr",
+            Lang::En => url.to_string(),
+            Lang::Fr if url.contains('?') => format!("{url}&lang=fr"),
+            Lang::Fr => format!("{url}?lang=fr"),
         }
     }
 }
@@ -259,9 +261,14 @@ pub struct Page {
 }
 
 impl Page {
+    /// The path and query WordPress links this page by.
+    pub fn link(&self) -> String {
+        self.lang.link(&self.path)
+    }
+
     /// The URL WordPress links this page by.
     pub fn url(&self, origin: &str) -> String {
-        format!("{origin}{}{}", self.path, self.lang.query())
+        format!("{origin}{}", self.link())
     }
 }
 
@@ -629,6 +636,14 @@ mod tests {
         assert_eq!(Template::parse(""), Some(Template::Page));
         assert_eq!(Template::parse("default"), Some(Template::Page));
         assert_eq!(Template::parse("layouts/template-blog.php"), None);
+    }
+
+    #[test]
+    fn french_links_join_the_language_onto_a_query() {
+        assert_eq!(Lang::En.link("/?page_id=4"), "/?page_id=4");
+        assert_eq!(Lang::Fr.link("/legal/"), "/legal/?lang=fr");
+        assert_eq!(Lang::Fr.link("/?page_id=4"), "/?page_id=4&lang=fr");
+        assert_eq!(Lang::Fr.link("/sitemap_index.xml"), "/sitemap_index.xml?lang=fr");
     }
 
     #[test]
