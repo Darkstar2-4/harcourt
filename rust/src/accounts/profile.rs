@@ -271,11 +271,10 @@ impl Profile {
     pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, signin: &SignIn, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
         let email = &signin.email;
         let typed = match &visitor.visit {
-            Some(id) => visit::take_typed_profile(pool, id, now).await?,
+            Some(id) => visit::take_typed_profile(pool, id, now, |t| Profile::from_cookie(Some(t)).is_for(email)).await?,
             None => None,
         };
         let typed = Profile::from_cookie(typed.as_deref());
-        let typed = if typed.is_for(email) { typed } else { Profile::default() };
         let mut p = if self.is_for(email) { self } else { self.choices() };
         let pick = |given: Option<&str>, typed: Option<String>, kept: Option<String>| {
             given.filter(|s| !s.is_empty()).map(str::to_string).or(typed.filter(|s| !s.is_empty())).or(kept)

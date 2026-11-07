@@ -61,6 +61,14 @@ pub async fn frame(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<()
     Ok(())
 }
 
+/// The visit's language put back to what it was (`None`: none), when a request that set it is answered by a
+/// redirect elsewhere instead: the visit stays as the page it was sent to would find it.
+pub async fn restore_language(pool: &SqlitePool, id: &VisitId, code: Option<&str>) -> sqlx::Result<()> {
+    let key = id.0.as_slice();
+    sqlx::query!("UPDATE visit SET language_code = ?2 WHERE id = ?1", key, code).execute(pool).await?;
+    Ok(())
+}
+
 pub async fn set_language(pool: &SqlitePool, id: &VisitId, code: &str, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
@@ -223,7 +231,7 @@ pub async fn set_profile(pool: &SqlitePool, id: &VisitId, owner: UserId, json: &
 }
 
 /// A profile for `owner` built from the visit's profile as `read` (None: it had none) replaces it only while the
-/// visit still has that one; false when it changed in between and the write was dropped.
+/// visit still has that one and was not destroyed by a sign-out since; false when the write was dropped.
 pub async fn replace_profile(pool: &SqlitePool, id: &VisitId, read: Option<&KeptProfile>, owner: Option<UserId>, json: &str, now: i64) -> sqlx::Result<bool> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
@@ -232,7 +240,7 @@ pub async fn replace_profile(pool: &SqlitePool, id: &VisitId, read: Option<&Kept
     let done = sqlx::query!(
         "INSERT INTO visit (id, profile, profile_for, seen_at) VALUES (?1, ?2, ?3, ?4)
          ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, profile_for = excluded.profile_for, seen_at = excluded.seen_at
-         WHERE profile IS ?5 AND profile_for IS ?6",
+         WHERE profile IS ?5 AND profile_for IS ?6 AND NOT coalesce(destroyed, 0)",
         key,
         json,
         owner,
@@ -266,12 +274,13 @@ pub async fn set_typed_profile(pool: &SqlitePool, id: &VisitId, json: &str, now:
     Ok(())
 }
 
-/// What was typed, taken: someone was admitted and it has served. It is cleared only while it is still what was
-/// read, so a form typed in between is not lost.
-pub async fn take_typed_profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
+/// What was typed, taken when `serves` says it is for the person just admitted: it has served. Typed for someone
+/// else, it stays for their admission. It is cleared only while it is still what was read, so a form typed in
+/// between is not lost.
+pub async fn take_typed_profile(pool: &SqlitePool, id: &VisitId, now: i64, serves: impl Fn(&str) -> bool) -> sqlx::Result<Option<String>> {
     let key = id.0.as_slice();
     loop {
-        let Some(typed) = typed_profile(pool, id, now).await? else { return Ok(None) };
+        let Some(typed) = typed_profile(pool, id, now).await?.filter(|t| serves(t)) else { return Ok(None) };
         if sqlx::query!("UPDATE visit SET typed_profile = NULL WHERE id = ?1 AND typed_profile = ?2", key, typed).execute(pool).await?.rows_affected() > 0 {
             return Ok(Some(typed));
         }
@@ -323,9 +332,12 @@ mod tests {
         assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 1);
         set_typed_profile(&pool, &b, r#"{"email":"pat@example.com"}"#, 1003).await.unwrap();
         assert_eq!(typed_profile(&pool, &b, 1003).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#));
-        assert_eq!(take_typed_profile(&pool, &b, 1003).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#));
-        assert_eq!(take_typed_profile(&pool, &b, 1003).await.unwrap(), None, "taken once");
+        assert_eq!(take_typed_profile(&pool, &b, 1003, |t| t.contains("lee@")).await.unwrap(), None, "not Lee's");
+        assert_eq!(typed_profile(&pool, &b, 1003).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#), "kept for Pat");
+        assert_eq!(take_typed_profile(&pool, &b, 1003, |_| true).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#));
+        assert_eq!(take_typed_profile(&pool, &b, 1003, |_| true).await.unwrap(), None, "taken once");
         destroy(&pool, &b, 1003).await.unwrap();
+        assert!(!replace_profile(&pool, &b, None, None, r#"{"email":"pat@example.com"}"#, 1003).await.unwrap(), "not into a signed-out visit");
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
         assert!(begins_again(&pool, &b).await.unwrap());
         assert!(!begins_again(&pool, &b).await.unwrap(), "only the first request after");

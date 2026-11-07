@@ -231,6 +231,13 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     .map(|(k, v)| format!("{k}={}", percent_encoding::utf8_percent_encode(v, percent_encoding::NON_ALPHANUMERIC)))
     .collect::<Vec<_>>()
     .join("&");
+    // The loader stores the page's language on the visit; a plain link that is then sent to the visit's own
+    // language must leave the visit as it was, whether or not the redirect is followed.
+    let came_with = hxweb::visitor::visit_of(headers);
+    let language_before = match (&app.db, &came_with) {
+        (Some(db), Some(v)) => Some(visit::load(db, v, hxweb::db::unix_now()).await.map_err(|e| format!("visit: {e}"))?.language_code),
+        _ => None,
+    };
     let (status, loader_headers, loader_body) = internal(app, &from, Method::POST, "/scscpq_wp.php", &jar, form).await?;
     collect_cookies(&loader_headers, &mut jar, &mut set_cookies);
     if let Some(to) = sent_elsewhere(status, &loader_headers) {
@@ -248,6 +255,9 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         (Some(account), _) if !flag_click => {
             let to = visit_language(app, visit.as_ref(), account).await?;
             if to != page {
+                if let (Some(db), Some(v), Some(before)) = (&app.db, &came_with, &language_before) {
+                    visit::restore_language(db, v, before.as_deref()).await.map_err(|e| format!("visit: {e}"))?;
+                }
                 return redirect(nav, &page_uri(to, &without_lang(query)), "account-language", set_cookies);
             }
         }
@@ -608,7 +618,11 @@ mod tests {
             assert!(french(&clicked), "{status}: the flag click's page is in French: {clicked}");
             let next = nav(&app, fr, &cookie).await;
             assert!(french(&next), "{status}: so is the next link: {next}");
+            let language = || async { visit::load(&pool, &VisitId::of(&format!("visit{id}")), hxweb::db::unix_now()).await.unwrap().language_code };
+            let before = language().await;
             assert_eq!(nav(&app, en, &cookie).await, serde_json::json!({ "redirect": fr }), "{status}: a plain link to English goes back to French");
+            let after = language().await;
+            assert_eq!(after, before, "{status}: and the visit's language is as it was, whether or not the redirect is followed");
         }
     }
 
