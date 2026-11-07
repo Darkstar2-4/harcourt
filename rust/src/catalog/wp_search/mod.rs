@@ -379,7 +379,7 @@ fn json(s: &str) -> String {
 }
 
 fn permalink(p: &Page) -> String {
-    format!("{ORIGIN}{}{}", p.path, p.lang.query())
+    p.url(ORIGIN)
 }
 
 fn thumbnail(site: &Site, id: PageId) -> Option<i64> {
@@ -720,7 +720,7 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
         );
     }
     h.insert("seo_og_type", "\t<meta property=\"og:type\" content=\"article\" />\n".to_string());
-    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}/search/{shown}/{}\" />\n", lang.query()));
+    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}{}\" />\n", lang.link(&format!("/search/{shown}/"))));
     h.insert(
         "seo_article_twitter",
         format!("\t<meta name=\"twitter:card\" content=\"summary_large_image\" />\n\t<meta name=\"twitter:title\" content=\"{title}\" />\n\t<meta name=\"twitter:site\" content=\"@theharcourtco\" />\n"),

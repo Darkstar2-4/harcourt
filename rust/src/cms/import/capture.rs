@@ -49,7 +49,7 @@ pub async fn capture(import: &Import, export: &Export, origin: &str, host: &str,
     let mut problems = Vec::new();
     let mut entries: std::collections::BTreeMap<i64, Map<String, Json>> = std::collections::BTreeMap::new();
     for p in import.pages.iter().filter(|p| p.kind != PostType::Page && p.status == Status::Publish) {
-        let uri = format!("{}{}", p.path, p.lang.query());
+        let uri = p.link();
         let r = http
             .get(format!("{origin}{uri}"))
             .header(reqwest::header::HOST, host)

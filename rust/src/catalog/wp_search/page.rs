@@ -154,7 +154,7 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
         || get("name").is_some_and(|v| !v.is_empty())
         || other_type
         || page_var.is_some_and(|v| absint(v) > 1);
-    let permalink = format!("{}{}", page.path, page.lang.query());
+    let permalink = page.link();
     let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
     let moved = |to: String| if to == asked { None } else { Some(Vars::Moved(to)) };
     if not_found {
@@ -184,7 +184,7 @@ pub fn vars<'a>(site: &'a Site, path: &str, raw_query: &str) -> Option<Vars<'a>>
         return Some(if path == slashed { Vars::Show(page) } else { Vars::Moved(format!("{slashed}{}", if raw_query.is_empty() { String::new() } else { format!("?{raw_query}") })) });
     }
     let rest: Vec<(String, String)> = pairs.into_iter().filter(|(k, _)| !drops.contains(&k.as_str())).collect();
-    Some(match (moved(with_args(&format!("{base}{}", page.lang.query()), &rest)), feed) {
+    Some(match (moved(with_args(&page.lang.link(&base), &rest)), feed) {
         (Some(Vars::Moved(to)), Some((_, kind))) => Vars::FeedMoved(to, kind),
         (Some(v), _) => v,
         (None, _) => Vars::Show(page),

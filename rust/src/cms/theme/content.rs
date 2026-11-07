@@ -179,11 +179,11 @@ pub fn index_post(site: &Site, p: &Page, images: &mut Images) -> Option<String> 
         Lang::Fr => "Articles par",
     };
     Some(format!(
-        "\n  \n<article role=\"article\" id=\"post_{id}\" class=\"mb-5 {class}\" >\n  <header>\n    <h2>\n      <a href=\"{url}\">\n        {title}      </a>\n    </h2>\n    <p class=\"text-muted\">\n      <i class=\"far fa-calendar-alt\"></i>&nbsp;{date}&nbsp;|\n      <i class=\"far fa-user\"></i>&nbsp; By <a href=\"{ORIGIN}/author/{slug}/{q}\" title=\"{posts_by} {name}\" rel=\"author\">{name}</a>&nbsp;|\n      <i class=\"far fa-comment\"></i>&nbsp;<a href=\"{url}#respond\">0 Comments</a>\n    </p>\n  </header>\n  <div>\n    {thumb}\n    {content}  </div>\n</article>\n",
+        "\n  \n<article role=\"article\" id=\"post_{id}\" class=\"mb-5 {class}\" >\n  <header>\n    <h2>\n      <a href=\"{url}\">\n        {title}      </a>\n    </h2>\n    <p class=\"text-muted\">\n      <i class=\"far fa-calendar-alt\"></i>&nbsp;{date}&nbsp;|\n      <i class=\"far fa-user\"></i>&nbsp; By <a href=\"{ORIGIN}{author}\" title=\"{posts_by} {name}\" rel=\"author\">{name}</a>&nbsp;|\n      <i class=\"far fa-comment\"></i>&nbsp;<a href=\"{url}#respond\">0 Comments</a>\n    </p>\n  </header>\n  <div>\n    {thumb}\n    {content}  </div>\n</article>\n",
         id = p.id.0,
         class = post_class(site, p),
         title = texturize(&p.title, p.lang),
-        q = p.lang.query(),
+        author = p.lang.link(&format!("/author/{slug}/")),
         name = esc(&name),
     ))
 }

@@ -99,7 +99,7 @@ pub fn index(site: &Site, lang: Lang) -> String {
     let mut out = head(lang);
     out.push_str("<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
     for (map, lastmod) in maps(site, lang) {
-        let _ = write!(out, "\t<sitemap>\n\t\t<loc>{ORIGIN}/{}-sitemap.xml{}</loc>\n\t\t<lastmod>{lastmod}</lastmod>\n\t</sitemap>\n", map.name(), lang.query());
+        let _ = write!(out, "\t<sitemap>\n\t\t<loc>{ORIGIN}{}</loc>\n\t\t<lastmod>{lastmod}</lastmod>\n\t</sitemap>\n", lang.link(&format!("/{}-sitemap.xml", map.name())));
     }
     out.push_str("</sitemapindex>\n");
     out.push_str(SIGNATURE);
@@ -115,7 +115,7 @@ pub fn urlset(site: &Site, map: Map, lang: Lang) -> Option<String> {
         Map::Pages => posts(site, PostType::Page, lang),
         Map::Faqs => posts(site, PostType::Faq, lang),
         Map::FaqTypes => terms(site, Taxonomy::FaqType, lang)
-            .map(|t| Url { loc: format!("{ORIGIN}{}{}", t.path(), t.lang.map_or("", Lang::query)), lastmod: iso(&t.modified_at), images: Vec::new() })
+            .map(|t| Url { loc: format!("{ORIGIN}{}", t.lang.map_or_else(|| t.path(), |l| l.link(&t.path()))), lastmod: iso(&t.modified_at), images: Vec::new() })
             .collect(),
     };
     let mut out = head(lang);
@@ -214,5 +214,30 @@ mod tests {
         for dropped in ["post", "case_study", "category", "author", "nosuch"] {
             assert_eq!(Map::parse(dropped), None, "{dropped}");
         }
+    }
+
+    #[test]
+    fn a_draft_translation_is_listed_at_its_page_id_link() {
+        let page = |id: i64, lang: Lang, path: &str, status: Status| Page {
+            id: super::super::model::PageId(id),
+            kind: PostType::Page,
+            name: String::new(),
+            group_id: 10,
+            lang,
+            path: path.into(),
+            template: super::super::model::Template::Page,
+            status,
+            title: String::new(),
+            parent_id: None,
+            menu_order: 0,
+            published_at: "2020-01-01 00:00:00".into(),
+            modified_at: "2020-01-01 00:00:00".into(),
+            author_id: None,
+        };
+        let site = Site::new(vec![page(10, Lang::En, "/tooling/", Status::Publish), page(11, Lang::Fr, "/?page_id=11", Status::Draft)]);
+        let fr = urlset(&site, Map::Pages, Lang::Fr).unwrap();
+        assert!(fr.contains("<loc>https://www.harcourt.co/?page_id=11&amp;lang=fr</loc>"), "{fr}");
+        let en = urlset(&site, Map::Pages, Lang::En).unwrap();
+        assert!(en.contains("<loc>https://www.harcourt.co/tooling/</loc>"), "{en}");
     }
 }

@@ -251,7 +251,7 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
         // WPML's 302 away from lang=en comes first; Yoast moves the bare address only, keeping WPML's lang.
         return match (q.without_lang.is_empty(), q.lang_en) {
             (true, true) => Some(found(&wp.core.public_origin, "/sitemap.xml/")),
-            (true, false) => Some(redirect(&wp.core.public_origin, &format!("/sitemap_index.xml{}", q.lang.query()))),
+            (true, false) => Some(redirect(&wp.core.public_origin, &q.lang.link("/sitemap_index.xml"))),
             (false, _) => None,
         };
     }
@@ -274,7 +274,7 @@ async fn sitemap(wp: &Arc<Wp>, path: &str, q: &Query) -> Option<Response<Body>> 
     match (page, listed) {
         ("", Some(body)) => Some(xml(body)),
         // home_url(), which WPML gives the request's language.
-        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &format!("/{map}-sitemap.xml{}", q.lang.query()))),
+        ("1", Some(_)) => Some(redirect(&wp.core.public_origin, &q.lang.link(&format!("/{map}-sitemap.xml")))),
         _ => None,
     }
 }
@@ -363,13 +363,13 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     };
     if let Some(p) = published(lang) {
         // A post type's rewrite rule takes the path in any case, but redirect_canonical() sends the visitor on.
-        return if p.kind == PostType::Page || p.path == path { Answer::Render(p) } else { Answer::Redirect(format!("{}{}", p.path, p.lang.query())) };
+        return if p.kind == PostType::Page || p.path == path { Answer::Render(p) } else { Answer::Redirect(p.link()) };
     }
     // A post of a type with its own base, asked for in the other language: WPML's move to the translation.
     let other = if lang == Lang::En { Lang::Fr } else { Lang::En };
     if let Some(p) = published(other).filter(|p| p.kind != PostType::Page && p.kind != PostType::Post) {
         return match site.translation(p, lang).filter(|t| t.status == Status::Publish) {
-            Some(t) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+            Some(t) => Answer::Redirect(t.link()),
             None => Answer::NotFound,
         };
     }
@@ -384,7 +384,7 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     if let Some(rest) = path.strip_prefix('/').filter(|r| r.starts_with('/')) {
         let p = format!("/{}", rest.trim_start_matches('/'));
         return match site.find(lang, &p).filter(|p| p.status == Status::Publish) {
-            Some(page) => Answer::Redirect(format!("{}{}", page.path, page.lang.query())),
+            Some(page) => Answer::Redirect(page.link()),
             None => Answer::NotFound,
         };
     }
@@ -411,9 +411,9 @@ pub fn resolve<'a>(site: &'a Site, path: &str, lang: Lang) -> Answer<'a> {
     match (lang, site.translation(p, lang)) {
         // WPML sends a French slug asked for in English to the English page, even an unpublished one (whose
         // permalink, and so its stored path, is /?page_id=N).
-        (Lang::En, Some(t)) => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
-        (Lang::En, None) => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
-        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        (Lang::En, Some(t)) => Answer::Redirect(t.link()),
+        (Lang::En, None) => Answer::Redirect(p.link()),
+        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(t.link()),
         (Lang::Fr, _) => Answer::NotFound,
     }
 }
@@ -431,7 +431,7 @@ fn term_archive<'a>(site: &'a Site, path: &str, lang: Lang) -> Option<Answer<'a>
     if t.lang.is_some_and(|l| l != lang) {
         let translation = site.terms.iter().find(|o| o.taxonomy == taxonomy && o.group_id.is_some() && o.group_id == t.group_id && o.lang == Some(lang));
         if let Some(o) = translation {
-            return Some(Answer::TranslationFound(format!("{}{}", o.path(), lang.query())));
+            return Some(Answer::TranslationFound(lang.link(&o.path())));
         }
     }
     Some(Answer::Archive(t))
@@ -460,7 +460,7 @@ fn by_name<'a>(site: &'a Site, name: &str, lang: Lang) -> Answer<'a> {
     let attachment = site.media.values().any(|m| m.name.eq_ignore_ascii_case(name));
     match exact {
         _ if attachment && exact.is_none_or(|p| p.kind == PostType::Page) => Answer::NotFound,
-        Some(p) if p.lang == lang => Answer::Redirect(format!("{}{}", p.path, p.lang.query())),
+        Some(p) if p.lang == lang => Answer::Redirect(p.link()),
         Some(p) => guess(site, name, lang, Some(p.kind)),
         None => guess(site, name, lang, None),
     }
@@ -487,12 +487,12 @@ fn guess<'a>(site: &'a Site, name: &str, lang: Lang, of: Option<PostType>) -> An
     match (lang, site.translation(g, lang)) {
         (Lang::En, t) => {
             let t = t.unwrap_or(g);
-            Answer::Redirect(format!("{}{}", t.path, t.lang.query()))
+            Answer::Redirect(t.link())
         }
-        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(format!("{}{}", t.path, t.lang.query())),
+        (Lang::Fr, Some(t)) if t.status == Status::Publish => Answer::Redirect(t.link()),
         // WPML links an untranslated page at its own path with ?lang=fr; asked for there, redirect_canonical()
         // leaves the 404 alone (see route).
-        (Lang::Fr, _) => Answer::Redirect(format!("{}?lang=fr", g.path)),
+        (Lang::Fr, _) => Answer::Redirect(Lang::Fr.link(&g.path)),
     }
 }
 
@@ -562,7 +562,7 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
                 .map(|t| Answer::Found(with_id(key, t.id.0)));
         }
         if p.lang == lang {
-            return Some(moved(format!("{}{}", p.path, p.lang.query())));
+            return Some(moved(p.link()));
         }
         if unknown_lang {
             return site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).map(|t| Answer::Found(with_id(key, t.id.0)));
@@ -590,14 +590,14 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
         let t = site.terms.iter().find(|t| t.id == id && t.taxonomy == crate::cms::Taxonomy::Category)?;
         return match t.lang {
             Some(l) if l != lang => if rest.is_empty() { other_language("cat", id, l) } else { None },
-            _ => Some(moved(format!("{}{}", t.path(), lang.query()))),
+            _ => Some(moved(lang.link(&t.path()))),
         };
     }
     if let Some(m) = one("m") {
         // A date archive with no post 404s; the canonical URL exists only for one that lists something.
         let (prefix, to) = match m.len() {
-            4 if numeric(m).is_some() => (m.to_string(), format!("/{m}/{}", lang.query())),
-            6 if numeric(m).is_some() => (format!("{}-{}", &m[..4], &m[4..]), format!("/{}/{}/{}", &m[..4], &m[4..], lang.query())),
+            4 if numeric(m).is_some() => (m.to_string(), lang.link(&format!("/{m}/"))),
+            6 if numeric(m).is_some() => (format!("{}-{}", &m[..4], &m[4..]), lang.link(&format!("/{}/{}/", &m[..4], &m[4..]))),
             _ => return None,
         };
         let any = site.pages.iter().any(|p| p.kind == PostType::Post && p.status == Status::Publish && p.published_at.starts_with(&prefix));
@@ -615,7 +615,7 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
         return Some(Answer::FeedRedirect(with_query(to, &raw_query.split('&').filter(|kv| !kv.starts_with("feed=")).collect::<Vec<_>>().join("&")), kind));
     }
     match one("page") {
-        Some(v) if numeric(v).is_some() => Some(moved(format!("/{}", lang.query()))),
+        Some(v) if numeric(v).is_some() => Some(moved(lang.link("/"))),
         _ => None,
     }
 }
@@ -715,7 +715,7 @@ pub fn route<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str) -> Answ
         // redirect_canonical() points the static front page at home_url('/') with the query rebuilt, and moves the
         // visitor when that differs from what was asked (?a= becomes ?a, a repeated key collapses).
         (Answer::Render(p), None) if p.path == "/" => {
-            let canonical = with_query(&format!("/{}", p.lang.query()), raw_query);
+            let canonical = with_query(&p.lang.link("/"), raw_query);
             let asked = if raw_query.is_empty() { path.to_string() } else { format!("{path}?{raw_query}") };
             if canonical == asked {
                 Answer::Render(p)
