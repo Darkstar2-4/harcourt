@@ -89,6 +89,23 @@ impl Currency {
         .await?;
         Ok(row.map_or_else(Currency::usd, |r| Currency { code: r.code, plural: r.plural }))
     }
+
+    /// The currency an order was placed in, by the code stored with it, whether or not the catalog still prices in
+    /// it. A blank code is US dollars; a code the currency table has lost names itself.
+    pub async fn stored(pool: &SqlitePool, code: &str) -> sqlx::Result<Self> {
+        let code = code.trim();
+        if code.is_empty() {
+            return Ok(Currency::usd());
+        }
+        let plural = sqlx::query_scalar!(r#"SELECT plural AS "plural!: String" FROM currency WHERE code = ?1 AND plural IS NOT NULL AND plural <> '' ORDER BY active DESC, id"#, code)
+            .fetch_optional(pool)
+            .await?;
+        Ok(match plural {
+            Some(plural) => Currency { code: code.to_string(), plural },
+            None if code == "USD" => Currency::usd(),
+            None => Currency { code: code.to_string(), plural: code.to_string() },
+        })
+    }
 }
 
 /// The visitor, when signed in to an Active account that may shop.

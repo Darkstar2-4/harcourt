@@ -398,6 +398,25 @@ async fn a_placed_order_clears_the_cart_queues_its_mail_and_shows_its_confirmati
 }
 
 #[tokio::test]
+async fn a_confirmation_shows_the_currency_the_order_was_placed_in() {
+    let h = harness().await;
+    sqlx::query("INSERT INTO currency (code, name, plural, exchange_rate, active) VALUES ('CAD', 'Canadian dollar', 'Canadian dollars', 1.25, 1)").execute(&h.pool).await.unwrap();
+    account(&h.pool, 1, "Customer", 1).await;
+    sqlx::query(r#"UPDATE "user" SET currency_code = 'CAD' WHERE id = 1"#).execute(&h.pool).await.unwrap();
+    checkout_fixtures(&h.pool).await;
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "3").await;
+    let token = checkout_token(&h, &c).await;
+    let mut form = order_form(true);
+    form.push(("checkout_token", &token));
+    let (_, headers, _) = send(&h.app, request(Method::POST, "/checkout.php", &c, &form, false)).await;
+    let location = headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    sqlx::query("UPDATE currency SET active = 0 WHERE code = 'CAD'").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, request(Method::GET, &location, &c, &[], false)).await;
+    assert!(page.contains("<span id=cart_extended>30.00 CAD</span>") && page.contains("Priced in <b>Canadian dollars</b>"), "{page}");
+}
+
+#[tokio::test]
 async fn one_form_submitted_twice_places_one_order() {
     let h = harness().await;
     account(&h.pool, 1, "Customer", 1).await;
