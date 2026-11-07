@@ -1,4 +1,4 @@
-var scs_local_version=20261106;
+var scs_local_version=20261107;
 var cart_url=window.location.origin + "/cart.php";
 jQuery(document).ready(function() {
 	if (window.self !== window.top) scscpq_ipc("scscpq_wp_iframe", "resize", 0);
@@ -44,10 +44,7 @@ function cart_update(obj,code,code2) {
 	    data: {action: 'json', json_code: code, json_quantity: quantity },
 	    dataType: 'json',
 	    success:function(data){
-			if (/ invalid$/.test(data.status)) {
-				alert(data.status);
-				return;
-			}
+			if (cart_refused(data)) return;
 			jQuery("#" + code).val('');
 			if ( jQuery("#menu_cart_size" ).length ) {
             	if (quantity) cart_flying(code);
@@ -58,6 +55,11 @@ function cart_update(obj,code,code2) {
 			}
 	   }
 	});
+}
+function cart_refused(data) {
+	if (!/ (invalid|the cart changed)$/.test(data.status)) return false;
+	alert(data.status);
+	return true;
 }
 function cart_flying(position) {
     var cart = jQuery('#menu_cart_img');
@@ -97,6 +99,10 @@ function cart_delete(sku,code) {
 	    data: {action: 'json', json_code: code, json_quantity: '0' },
 	    dataType: 'json',
 	    success:function(data){
+			if (cart_refused(data)) {
+				window.location.reload();
+				return;
+			}
 			scscpq_ipc("","cart_size",data.cart_size);
         	jQuery("#menu_cart_size").html(data.cart_size);
         	jQuery("#cart_extended").html(data.cart_extended);
