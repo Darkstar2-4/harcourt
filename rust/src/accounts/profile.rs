@@ -307,15 +307,24 @@ impl Profile {
         Ok(Basis::read(pool, visitor).await?.profile(headers, visitor))
     }
 
-    /// loaded(), for a request that does not keep it.
+    /// loaded(), as a form shows it, for a request that does not keep it.
     pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
-        Ok(Profile::loaded(pool, headers, visitor).await?.0)
+        Ok(Profile::loaded(pool, headers, visitor).await?.0.shown(headers))
+    }
+
+    /// The profile as a form shows it: with no email of its own, the address the browser last gave (the `harcourt`
+    /// cookie), as load() filled it in. That address only fills in the form; the profile kept is not made that
+    /// person's by it.
+    pub fn shown(self, headers: &HeaderMap) -> Profile {
+        let email = self.email.filter(|e| !e.is_empty()).or_else(|| cookies::get(headers, cookies::EMAIL));
+        Profile { email, ..self }
     }
 
     /// classes/profile.php load(): what the visit or the browser remembered, with the remembered address when it has
     /// none, the CAD format only when it still exists, the visitor's language when it has none, and the company and
     /// address of whoever the visitor is signed in as (a bot's name for a bot). The title, phone and fax the profile
     /// form saved are kept too (the PHP dropped them here, so a profile layout requiring one could never be met).
+    /// The email is the profile's own; shown() adds the remembered address for a form (the PHP kept that too).
     /// With it, the visit's profile it was built from, for remember().
     pub async fn loaded(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<(Profile, Basis)> {
         let basis = Basis::read(pool, visitor).await?;
@@ -338,7 +347,7 @@ impl Profile {
             Identity::Anonymous => (obj.company_name, obj.address, obj.city, obj.state, obj.zip, obj.country_code),
         };
         let profile = Profile {
-            email: non_empty(obj.email).or_else(|| cookies::get(headers, cookies::EMAIL)),
+            email: non_empty(obj.email),
             name: format!("{} {}", obj.name_first.as_deref().unwrap_or(""), obj.name_last.as_deref().unwrap_or("")),
             name_first: obj.name_first,
             name_last: obj.name_last,
@@ -924,6 +933,35 @@ mod tests {
         let (after, basis) = Profile::loaded(&pool, &headers, &lee).await.unwrap();
         assert!(after.remember(&pool, &lee, &basis, t + 3).await.unwrap().is_some());
         assert_eq!(Profile::remembered(&pool, &headers, &lee).await.unwrap(), after);
+    }
+
+    #[tokio::test]
+    async fn the_remembered_address_fills_the_form_but_does_not_make_the_profile_that_persons() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, pat_in), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let earlier = r#"{"email":"","name_first":"Kim","name_last":"Day","title":"Buyer","phone":"555-0100","fax":"555-0101"}"#;
+        let mut headers = HeaderMap::new();
+        let cookie = format!("harcourt=pat%40example.com; harcourt_profile={}", utf8_percent_encode(earlier, NON_ALPHANUMERIC));
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(&cookie).unwrap());
+
+        let shown = Profile::load(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((shown.email.as_deref(), shown.phone.as_deref()), (Some("pat@example.com"), Some("555-0100")), "the form is filled in");
+        let (loaded, basis) = Profile::loaded(&pool, &headers, &anonymous).await.unwrap();
+        let kept = loaded.remember(&pool, &anonymous, &basis, t).await.unwrap().unwrap();
+        assert!(!kept.to_str().unwrap().contains("example.com"), "{kept:?}");
+        let remembered = Profile::remembered(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((remembered.email, remembered.phone.as_deref()), (None, Some("555-0100")));
+
+        Profile::remembered(&pool, &headers, &anonymous).await.unwrap().admit(&pool, &anonymous, &pat_in, "", "", t + 1).await.unwrap();
+        let admitted = Profile::remembered(&pool, &HeaderMap::new(), &pat).await.unwrap();
+        assert_eq!(admitted.email.as_deref(), Some("pat@example.com"));
+        assert_eq!((admitted.name_first, admitted.title, admitted.phone, admitted.fax), (None, None, None, None), "nothing of the earlier visitor's");
+
+        let own = Profile { email: Some("lee@example.com".into()), phone: Some("555-0199".into()), ..Profile::default() };
+        own.admit(&pool, &lee, &lee_in, "Lee", "Ray", t + 2).await.unwrap();
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &lee).await.unwrap().phone.as_deref(), Some("555-0199"), "a profile stored with the address keeps its fields");
     }
 
     #[tokio::test]
