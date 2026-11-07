@@ -116,7 +116,8 @@ pub(super) async fn adopt(pool: &SqlitePool, from: &[u8; 32], into: &[u8; 32], n
 
 /// One change a request makes to its cart.
 pub(super) enum Edit<'a> {
-    /// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
+    /// Sets the quantity, and the comment when one is given, of the line for the part in any case, keeping its place
+    /// in the cart and taking this spelling.
     Set { sku: &'a str, quantity: u32, comment: Option<&'a str> },
     Remove(&'a str),
     Clear,
@@ -146,7 +147,7 @@ async fn write(pool: &SqlitePool, key: &CartKey, edits: &[Edit<'_>], now: i64) -
                 let replace_comment = comment.is_some();
                 sqlx::query!(
                     "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at) VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
+                     ON CONFLICT (session_hash, sku) DO UPDATE SET sku = excluded.sku, quantity = excluded.quantity,
                          comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
                     hash,
                     sku,
@@ -631,6 +632,62 @@ mod tests {
         assert_eq!(write(&pool, &c, &[Edit::Remove("SKU-1"), set("SKU-2", 3)], now).await.unwrap(), Written::Done);
         let left = items(&pool, &c).await.unwrap();
         assert_eq!(left, [Item { sku: "SKU-2".into(), quantity: 3, comment: String::new() }]);
+    }
+
+    #[tokio::test]
+    async fn a_part_number_is_one_line_in_any_case() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let hash = [12u8; 32];
+        let cart = find(&pool, hash, now).await;
+        assert_eq!(write(&pool, &cart, &[set("blp-3", 3), set("SKU-2", 1)], now).await.unwrap(), Written::Done);
+        let cart = find(&pool, hash, now).await;
+        assert_eq!(write(&pool, &cart, &[set("BLP-3", 5)], now + 1).await.unwrap(), Written::Done);
+        let cart = find(&pool, hash, now).await;
+        let held = items(&pool, &cart).await.unwrap();
+        assert_eq!(held, [Item { sku: "BLP-3".into(), quantity: 5, comment: String::new() }, Item { sku: "SKU-2".into(), quantity: 1, comment: String::new() }]);
+        assert_eq!(write(&pool, &cart, &[Edit::Remove("blp-3")], now).await.unwrap(), Written::Done);
+        assert_eq!(skus(&items(&pool, &cart).await.unwrap()), ["SKU-2"]);
+    }
+
+    #[tokio::test]
+    async fn a_takeover_adds_a_part_held_in_another_case_to_one_line() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let (address, session) = ([13u8; 32], [14u8; 32]);
+        let into = find(&pool, session, now).await;
+        assert_eq!(write(&pool, &into, &[Edit::Set { sku: "BLP-3", quantity: 2, comment: Some("bench") }], now).await.unwrap(), Written::Done);
+        let from = find(&pool, address, now).await;
+        assert_eq!(write(&pool, &from, &[set("blp-3", 3)], now).await.unwrap(), Written::Done);
+        adopt(&pool, &address, &session, now).await.unwrap();
+        let held = items(&pool, &find(&pool, session, now).await).await.unwrap();
+        assert_eq!(held, [Item { sku: "BLP-3".into(), quantity: 5, comment: "bench".into() }]);
+    }
+
+    #[tokio::test]
+    async fn lines_differing_only_in_case_merge_into_one() {
+        use std::borrow::Cow;
+        use sqlx::{migrate::Migrator, sqlite::SqlitePoolOptions};
+        let pool = SqlitePoolOptions::new().max_connections(1).idle_timeout(None).max_lifetime(None).connect("sqlite::memory:").await.unwrap();
+        let earlier = Migrator { migrations: Cow::Owned(crate::db::MIGRATOR.iter().filter(|m| m.version < 380).cloned().collect()), ..Migrator::DEFAULT };
+        earlier.run(&pool).await.unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO cart (session_hash, version, touched_at) VALUES (zeroblob(32), 4, 100), (randomblob(32), 1, 100);
+             INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at) VALUES
+                 (zeroblob(32), 'blp-3', 3, '', 10), (zeroblob(32), 'SKU-2', 1, 'second', 20), (zeroblob(32), 'BLP-3', 2, 'rush', 30);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        crate::db::MIGRATOR.run(&pool).await.unwrap();
+        let key = CartKey { hash: [0u8; 32], version: 5 };
+        let held = items(&pool, &key).await.unwrap();
+        assert_eq!(held, [Item { sku: "BLP-3".into(), quantity: 5, comment: "rush".into() }, Item { sku: "SKU-2".into(), quantity: 1, comment: "second".into() }]);
+        let versions: Vec<i64> = sqlx::query_scalar("SELECT version FROM cart ORDER BY version").fetch_all(&pool).await.unwrap();
+        assert_eq!(versions, [1, 5]);
+        sqlx::query("DELETE FROM cart WHERE session_hash = zeroblob(32)").execute(&pool).await.unwrap();
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM cart_item").fetch_one(&pool).await.unwrap();
+        assert_eq!(rows, 0, "a cart's lines still go with it");
     }
 
     #[tokio::test]
