@@ -3,7 +3,7 @@
 //! the values as inserted equals the checksum of the values read back from the finished file, and a table that never
 //! reuses an id goes on from MySQL's AUTO_INCREMENT. Last, the columns the
 //! PHP stored with serialize() become JSON (`SERIALIZED`), each value written only once its JSON reads back as the
-//! same data, and an account domain that names a free-mail provider is cleared, as migration 0105 did.
+//! same data and a value that cannot be read stored empty and named, and an account domain that names a free-mail provider is cleared, as migration 0105 did.
 //!
 //!     HX_IMPORT_MYSQL_URL=mysql://user:pass@127.0.0.1/db hx-import --out hx.db [--only user,log]
 //!     hx-import --convert hx.db
@@ -648,22 +648,23 @@ async fn clear_free_mail(lite: &SqlitePool) -> Result<(), Failure> {
     Ok(())
 }
 
-/// What becomes of one stored value, and its JSON when it changes. Empty values, JSON, and text PHP could not read
-/// stay as they are.
+/// What becomes of one stored value, and its new text when it changes. Empty values and JSON stay as they are; a
+/// value that cannot be read becomes empty, as PHP's failed unserialize() left the page nothing.
 fn converted(old: Option<&str>, list: bool) -> (&'static str, Option<String>) {
     let Some(s) = old.filter(|s| !s.is_empty()) else { return ("empty", None) };
     let Ok(v) = serialized::unserialize(s).map(|v| if list { v.renumbered() } else { v }) else {
-        return (if serde_json::from_str::<serde_json::Value>(s).is_ok() { "json" } else { "unreadable" }, None);
+        return if serde_json::from_str::<serde_json::Value>(s).is_ok() { ("json", None) } else { ("unreadable", Some(String::new())) };
     };
-    let Some(json) = v.to_json().map(|j| j.to_string()) else { return ("unreadable", None) };
+    let Some(json) = v.to_json().map(|j| j.to_string()) else { return ("unreadable", Some(String::new())) };
     match serde_json::from_str(&json) {
         Ok(back) if v.same(&back) => ("converted", Some(json)),
         _ => ("MISMATCH", None),
     }
 }
 
-/// Rewrites one column's serialized values as JSON, then reads the column back. Ok(false) when a value's JSON does
-/// not read back as the same data (it is left as it was) or the column does not hold what was written.
+/// Rewrites one column's serialized values as JSON, then reads the column back, and names each row whose value was
+/// unreadable. Ok(false) when a value's JSON does not read back as the same data (it is left as it was) or the column
+/// does not hold what was written.
 async fn convert_column(lite: &SqlitePool, table: &str, column: &str, list: bool) -> Result<bool, Failure> {
     let started = Instant::now();
     let select = format!("SELECT rowid, {} FROM {}", ident(column)?, ident(table)?);
@@ -672,10 +673,14 @@ async fn convert_column(lite: &SqlitePool, table: &str, column: &str, list: bool
     let rows: Vec<(i64, Option<String>)> = sqlx::query_as(&select).fetch_all(&mut *conn).await?;
     let mut outcomes: BTreeMap<&str, u64> = BTreeMap::new();
     let mut written = Checksum::default();
+    let mut emptied = Vec::new();
     sqlx::query("BEGIN").execute(&mut *conn).await?;
     for (rowid, old) in &rows {
         let (outcome, new) = converted(old.as_deref(), list);
         *outcomes.entry(outcome).or_default() += 1;
+        if outcome == "unreadable" {
+            emptied.push(*rowid);
+        }
         if let Some(json) = &new {
             sqlx::query(&update).bind(json.as_str()).bind(*rowid).execute(&mut *conn).await?;
         }
@@ -694,6 +699,9 @@ async fn convert_column(lite: &SqlitePool, table: &str, column: &str, list: bool
         if stored == written { "ok" } else { "MISMATCH" },
         started.elapsed().as_secs_f64()
     );
+    for id in emptied {
+        println!("{:<24} id {id}: unreadable, stored empty", format!("{table}.{column}"));
+    }
     Ok(!outcomes.contains_key("MISMATCH") && stored == written)
 }
 
@@ -827,8 +835,9 @@ mod tests {
         assert_eq!(converted(Some(r#"[{"price":12.5,"qty_break":0}]"#), true), ("json", None));
         assert_eq!(converted(Some(""), true), ("empty", None));
         assert_eq!(converted(None, false), ("empty", None));
-        assert_eq!(converted(Some(r#"a:1:{i:0;s:3:"ab"#), true), ("unreadable", None));
-        assert_eq!(converted(Some("d:INF;"), false), ("unreadable", None));
+        assert_eq!(converted(Some(r#"a:1:{i:0;s:3:"ab"#), true), ("unreadable", Some(String::new())));
+        assert_eq!(converted(Some(r#"O:8:"stdClass":1:{s:1:"a";"#), false), ("unreadable", Some(String::new())));
+        assert_eq!(converted(Some("d:INF;"), false), ("unreadable", Some(String::new())));
         assert_eq!(converted(Some(r#"a:2:{s:1:"k";i:1;s:1:"k";i:2;}"#), false), ("MISMATCH", None));
     }
 
@@ -838,7 +847,8 @@ mod tests {
         sqlx::raw_sql(
             r#"INSERT INTO subcategory (id, name, parameters, options, download) VALUES
                  (1, 'Pins', 'a:1:{i:0;O:27:"subcategory_parameter_class":2:{s:2:"id";i:0;s:4:"name";s:8:"Diameter";}}', 'a:1:{s:3:"sku";s:5:"Part#";}', 'a:0:{}'),
-                 (2, 'Clamps', NULL, '', 'not a value');
+                 (2, 'Clamps', NULL, '', 'not a value'),
+                 (3, 'Vises', 'a:1:{i:0;s:3:"ab', 'O:8:"stdClass":1:{', NULL);
                INSERT INTO campaign (id, code, divs) VALUES (1, 'OPEN', 'a:1:{s:7:"content";s:9:"guest_div";}');"#,
         )
         .execute(&pool)
@@ -857,7 +867,8 @@ mod tests {
             }
             let (rows, divs) = read().await;
             assert_eq!(rows[0], (Some(r#"[{"id":0,"name":"Diameter"}]"#.into()), Some(r#"{"sku":"Part#"}"#.into()), Some("[]".into())));
-            assert_eq!(rows[1], (None, Some(String::new()), Some("not a value".into())));
+            assert_eq!(rows[1], (None, Some(String::new()), Some(String::new())));
+            assert_eq!(rows[2], (Some(String::new()), Some(String::new()), None));
             assert_eq!(divs.as_deref(), Some(r#"{"content":"guest_div"}"#));
         }
         assert!(!hxweb::catalog::stored::unconverted(&pool).await.unwrap());

@@ -131,7 +131,7 @@ The PHP stored eleven columns with `serialize()`. As its last step `hx-import` r
 
 A PHP array keyed 0, 1, 2 and so on becomes a JSON array; any other array, and every object, becomes a JSON object, without the class name. In `parameters` and `pricing` the keys are numbered afresh, because every reader takes the values in order and none reads the keys.
 
-Each value is written only after its JSON, parsed again, holds the same data as the PHP value: the same types, equal integers, floats equal to the bit, equal strings, lists in the same order, maps with the same keys. Then the whole column is read back from the file and compared by checksum with what was written. Empty values, values already in JSON, and text PHP could not read stay as they are, and each kind is counted. A price an old PHP wrote with 17 digits (`284.92000000000002`) is the same float as its shortest form (`284.92`); JSON keeps the shortest form, and the staff exports print it.
+Each value is written only after its JSON, parsed again, holds the same data as the PHP value: the same types, equal integers, floats equal to the bit, equal strings, lists in the same order, maps with the same keys. Then the whole column is read back from the file and compared by checksum with what was written. Empty values and values already in JSON stay as they are; a value that cannot be read becomes empty, as PHP's failed `unserialize()` gave the page nothing, and the import names each one (column and id). Each kind is counted. A price an old PHP wrote with 17 digits (`284.92000000000002`) is the same float as its shortest form (`284.92`); JSON keeps the shortest form, and the staff exports print it.
 
 A file an older `hx-import` wrote is converted once, in place, with the server stopped:
 
@@ -140,7 +140,7 @@ cargo build --release --features import --bin hx-import
 target/release/hx-import --convert /var/lib/hxweb/hx.db
 ```
 
-It prints one line per column (rows, then how many were converted, empty, already JSON or unreadable, and whether the column read back) and exits 1 if a value or a column does not check; values that did not check stay as they were. A second run changes nothing. hxweb, its commands and `hxweb-cms` refuse to open a file whose read columns still hold PHP's format, and say to run this step.
+It prints one line per column (rows, then how many were converted, empty, already JSON or unreadable, and whether the column read back) and names each unreadable value it emptied, and exits 1 if a value or a column does not check; values that did not check stay as they were. A second run changes nothing. hxweb, its commands and `hxweb-cms` refuse to open a file whose read columns still hold PHP's format, and say to run this step.
 
 ## Deploy notes
 
