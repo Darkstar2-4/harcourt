@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE visit SET typed_profile = NULL WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "10abbc28c07caafc2e214f60c79b2f921a3c19c4f1b2986772213a4f2887723c"
+}
