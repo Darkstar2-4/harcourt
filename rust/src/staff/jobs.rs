@@ -303,7 +303,7 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     let rivals = rivals
         .iter()
         .flat_map(|i| {
-            i.competitor_sku.split(',').map(move |code| Term {
+            i.competitor_sku.split(',').filter(|code| !code.trim().is_empty()).map(move |code| Term {
                 code: code.to_string(),
                 category_id: i.category_id,
                 subcategory_id: i.subcategory_id,

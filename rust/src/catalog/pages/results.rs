@@ -28,11 +28,12 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
             codes.push(c);
         }
     }
-    let (a, b, c) = (codes[0].clone(), codes.get(1).cloned().unwrap_or_default(), codes.get(2).cloned().unwrap_or_default());
-    let normalized = normalize_code(&wanted);
+    let variant = |i: usize| codes.get(i).unwrap_or(&codes[0]).clone();
+    let (a, b, c) = (variant(0), variant(1), variant(2));
+    let normalized = Some(normalize_code(&wanted)).filter(|n| !n.is_empty());
     let row = sqlx::query!(
         r#"SELECT table_name AS "table_name!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64", inventory_id AS "inventory_id?: i64"
-           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
+           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND code <> '' AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
            ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
         a,
         b,
