@@ -395,7 +395,7 @@ impl Index {
     }
 
     /// Whether this viewer is shown the entry: the catalog lists its family (`model::listed`), its part is active,
-    /// and its category is not blocked: what Enter opens (`pages::results`). The row's stored `active` (0 for a
+    /// and its category is not blocked (Enter opens such a part or family as its category's overlay, `pages::results`). The row's stored `active` (0 for a
     /// Pending family when the table was built) is not read; the family's status now decides.
     fn shows(&self, e: &Entry, ctx: &Ctx) -> bool {
         let family = self.families.get(&e.subcategory_id).is_some_and(|f| model::listed(f.status, f.category_active, ctx.pending));
@@ -855,6 +855,14 @@ pub(super) fn shown_row<R>(kind: Option<Kind>, row: Option<Lang>, lang: Lang, ow
     }
 }
 
+/// The order of the exact tier (a part, competitor or family-name row whose normalized code is the term's), in the
+/// search box and on Enter (`results::exact`, which opens the first the viewer is shown): a code as typed
+/// (`as_typed`) before one that is the same only without separators, competitor numbers after the rest, then ranking
+/// (a family's sort order, a part's 2000000 above its own) and code. Equal keys go by row id.
+pub(super) fn exact_order<'a>(typed: &[String], kind: Kind, ranking: i64, code: &'a str) -> (bool, bool, i64, &'a str) {
+    (!typed.iter().any(|c| same_code(c, code)), kind == Kind::Competitor, ranking, code)
+}
+
 fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
     let term = term.trim();
     // The log has pasted XML and JSON blobs of 2 kB in it: past any part number or family name, cost without use.
@@ -898,18 +906,13 @@ fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
         }
         match tier {
             Tier::Exact => {
-                // The results page's exact lookup (`results::exact`) opens the first of these: as typed before only
-                // the same without separators, parts before competitor numbers.
                 let typed = as_typed(term);
-                out.take(
-                    tier,
-                    exact.clone().filter(|&e| ix.entries[e].kind != Kind::SearchWord).map(|e| {
-                        let m = &ix.entries[e];
-                        let (key, e) = code_key(e);
-                        let untyped = !typed.iter().any(|c| same_code(c, &m.code));
-                        ((u64::from(untyped) << 33) | (u64::from(m.kind == Kind::Competitor) << 32) | key, e)
-                    }),
-                )
+                let mut rows: Vec<usize> = exact.clone().filter(|&e| ix.entries[e].kind != Kind::SearchWord).collect();
+                rows.sort_by_key(|&e| {
+                    let m = &ix.entries[e];
+                    exact_order(&typed, m.kind, m.ranking, &m.code)
+                });
+                out.take(tier, rows.into_iter().enumerate().map(|(place, e)| (place as u64, e as u32)))
             }
             Tier::Learned => {
                 if let Some(picks) = ix.learned.get(&phrase(term)).or_else(|| ix.learned_stems.get(&stemmed(term))) {

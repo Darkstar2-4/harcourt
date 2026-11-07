@@ -391,6 +391,37 @@ async fn an_entered_part_number_opens_the_code_as_typed_first() {
 }
 
 #[tokio::test]
+async fn an_entered_code_opens_the_first_exact_match_the_search_box_shows() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, pricing, active, sort_order) VALUES (5, 'BALL-LOCK-PINS', 2, 9, '[]', 1, 5)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'HBLT-1', 'HBLT1', 1, 7, 1, 2000001), (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 'BallLockPins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 'Goupillesàbilles', 1, 7, 0, 1), (603, '', 1, 'inventory', 'BALL-LOCK-PINS', 'BALLLOCKPINS', 2, 9, 5, 2000005)").await;
+    let english = signed_in(&h.pool, &Account::customer(36)).await;
+    let french = signed_in(&h.pool, &Account::customer(37)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 37").await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    let first_suggestion = |term: &str, cookie: &str| {
+        let path = format!("/scs_ajax.php?table=search&limit=20&term={term}");
+        let headers = [("host", "www.harcourt.co"), ("referer", "https://www.harcourt.co/catalog/"), ("x-requested-with", "XMLHttpRequest")];
+        catalog_support::request(Method::GET, &path, Some(cookie), &headers, Body::empty())
+    };
+    let family = |body: &str| ["HBLT-1", "HBLT-2", "HBLT-3"].iter().all(|p| body.contains(&format!(">{p}</a>"))) && !body.contains("Part number:");
+    for (cookie, who) in [(&english, "English"), (&french, "French")] {
+        for term in ["ball%20lock%20pins", "balllockpins", "BALL.LOCK.PINS"] {
+            let (_, _, body) = send(&h.app, get(&enter(term), Some(cookie))).await;
+            assert!(family(&body), "{who}, {term}: the family before the part with the same code: {body}");
+            let (_, _, body) = send(&h.app, first_suggestion(term, cookie)).await;
+            let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+            assert_eq!(v["items"][0]["subcategory_id"], 7, "{who}, {term}: the box shows the family first: {body}");
+        }
+        let (_, _, body) = send(&h.app, get(&enter("ball-lock-pins"), Some(cookie))).await;
+        assert!(body.contains("Part number: BALL-LOCK-PINS"), "{who}: the part number as typed: {body}");
+        let (_, _, body) = send(&h.app, get(&enter("hblt1"), Some(cookie))).await;
+        assert!(body.contains("Part number: HBLT-1"), "{who}: a part alone: {body}");
+    }
+}
+
+#[tokio::test]
 async fn an_entered_part_number_matches_as_the_search_box_does() {
     let h = harness().await;
     seed(&h.pool).await;
@@ -441,8 +472,10 @@ async fn search_results_place_rows_indexed_before_their_family_had_a_category() 
     let cookie = signed_in(&h.pool, &Account::customer(34)).await;
     let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
     assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains("Part number:"), "{body}");
-    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clam"), Some(&cookie))).await;
     assert!(body.contains("<h2>Clamps</h2>") && body.contains("subcat9"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    assert!(body.contains("<h1>Toggle Clamps (Metric)</h1>"), "an exact family name opens the family: {body}");
     let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=nowhere"), Some(&cookie))).await;
     assert!(body.contains("<p class=center>No results for search term: <b>nowhere</b></p>"), "{body}");
 }

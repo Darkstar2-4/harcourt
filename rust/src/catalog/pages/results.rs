@@ -14,23 +14,27 @@ pub struct Hit {
     pub part: Option<Part>,
 }
 
-/// lookup()'s first step: the part number as typed (`search::as_typed`) or without separators, matched against
-/// parts (by the number each has now) and competitor numbers as the box matches them (`search::same_code`,
-/// `search::normalize_code`). The first the viewer is shown (`shown`), in the search box's order: a code as typed,
-/// then parts before competitor numbers, then ranking. SQLite compares ASCII only, so it picks the candidates (those it can match, and every code
-/// with a character past ASCII) and the comparison is made here.
+/// lookup()'s first step, as the search box's exact tier has it: the part numbers (by the number each has now),
+/// competitor numbers and family names whose code is the term without separators (`search::normalize_code`), each
+/// in the visitor's language (`search::shown_row`), and the first of them the viewer is shown (`shown`) in the box's
+/// order (`search::exact_order`). SQLite compares ASCII only, so it picks the candidates (those it can match, and
+/// every code with a character past ASCII) and the comparison is made here.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     let codes = search::as_typed(code);
     let variant = |i: usize| codes.get(i).unwrap_or(&codes[0]).clone();
     let (a, b, c) = (variant(0), variant(1), variant(2));
     let normalized = search::normalize_code(&codes[0]);
+    if normalized.is_empty() {
+        return Ok(None);
+    }
     let candidates = sqlx::query!(
         r#"SELECT s.id AS "id!: i64", s.table_name AS "table_name!: String", s.code AS "code!: String", s.category_id AS "category_id?: i64",
                   s.subcategory_id AS "subcategory_id?: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
-                  coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
+                  coalesce(s.language_code, '') AS "lang!: String", coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
            FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
-           WHERE s.table_name IN ('inventory', 'competitor_sku') AND s.code <> ''
-             AND (s.code IN (?1, ?2, ?3) COLLATE NOCASE OR upper(s.code_normalized) = ?4 OR s.code GLOB '*[^ -~]*')"#,
+           WHERE s.table_name IN ('inventory', 'competitor_sku', 'subcategory') AND s.code <> ''
+             AND (s.code COLLATE NOCASE IN (?1, ?2, ?3) OR upper(s.code_normalized) = ?4 OR s.code GLOB '*[^ -~]*')
+           ORDER BY s.id"#,
         a,
         b,
         c,
@@ -38,17 +42,39 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     )
     .fetch_all(ctx.pool)
     .await?;
-    let row = candidates
+    let mut matched: Vec<_> = candidates
         .into_iter()
         .filter_map(|r| {
-            let typed = codes.iter().any(|c| search::same_code(c, &r.code));
-            let matched = typed || (!normalized.is_empty() && search::normalize_code(&r.code) == normalized);
+            let (kind, row_lang) = (search::Kind::parse(&r.table_name)?, search::Lang::of_row(&r.lang)?);
             let visible = shown(ctx, &r.table_name, r.category_id.unwrap_or(0), r.subcategory_id.unwrap_or(0), r.part_family, r.part_active != 0).is_some();
-            (matched && visible).then_some((!typed, r))
+            (visible && search::normalize_code(&r.code) == normalized).then_some((kind, row_lang, r))
         })
-        .min_by(|(x, r), (y, s)| (x, r.table_name != "inventory", r.ranking, &r.code, r.id).cmp(&(y, s.table_name != "inventory", s.ranking, &s.code, s.id)))
-        .map(|(_, r)| (r.table_name, r.category_id, r.subcategory_id, r.inventory_id));
-    hit(ctx, row).await
+        .collect();
+    matched.sort_by(|(k, _, r), (l, _, s)| search::exact_order(&codes, *k, r.ranking, &r.code).cmp(&search::exact_order(&codes, *l, s.ranking, &s.code)));
+    let lang = search::Lang::from(ctx.viewer.lang);
+    for (kind, row_lang, r) in matched {
+        let named = match (row_lang, r.subcategory_id) {
+            (Some(l), Some(family)) if l != lang && kind == search::Kind::Family => family_named(ctx, family).await?,
+            _ => false,
+        };
+        if search::shown_row(Some(kind), row_lang, lang, (), || named.then_some(())).is_some() {
+            return hit(ctx, Some((r.table_name, r.category_id, r.subcategory_id, r.inventory_id))).await;
+        }
+    }
+    Ok(None)
+}
+
+/// Whether a family has a family-name row in the visitor's language: what a name matched in the other language is
+/// shown as (`search::shown_row`).
+async fn family_named(ctx: &Ctx<'_>, family: i64) -> sqlx::Result<bool> {
+    let lang = ctx.viewer.lang.code();
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM search_named WHERE table_name = 'subcategory' AND subcategory_id = ?1 AND upper(language_code) = ?2) AS "named!: bool""#,
+        family,
+        lang
+    )
+    .fetch_one(ctx.pool)
+    .await
 }
 
 /// A `search` row as read: table, category, family and part ids.
