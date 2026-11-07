@@ -599,7 +599,6 @@ async fn admit(
                 state: person.state.clone(),
                 zip: person.zip.clone(),
                 country_code: String::new(),
-                domain: email.company_domain().map(str::to_string),
                 recaptcha_score: 1.0,
             };
             let Some((id, signin)) = admission::register(pool, services, &registration, &email, true, ctx).await? else {

@@ -152,15 +152,15 @@ pub async fn at_address(pool: &SqlitePool, ip: &str) -> sqlx::Result<Option<User
 }
 
 /// The account an address belongs to (classes/remote.php access()): one that owns its company domain (never a
-/// free-mail one), or the one that address signed up as (`signup_email`), so a request not yet approved, which has no
-/// domain, is found again. Denied accounts belong to no one. Of several, an Active one, then a Pending one; then the
-/// domain's owner; then the lowest id.
+/// free-mail one; only staff assign domains), or the one that address signed up as (`signup_email`), so a request not
+/// yet approved, which has no domain, is found again. Denied accounts belong to no one. Of several, an Active one,
+/// then a Pending one; then the one the address signed up as, ahead of the domain's owner; then the lowest id.
 pub async fn for_email(db: impl SqliteExecutor<'_>, email: &Email) -> sqlx::Result<Option<UserId>> {
     let (domain, address) = (email.company_domain(), email.as_str());
     let id = sqlx::query_scalar!(
         r#"SELECT id AS "id!: i64" FROM "user"
            WHERE (lower(domain) = lower(?1) OR signup_email = ?2) AND status IN ('Active', 'Pending')
-           ORDER BY status <> 'Active', coalesce(lower(domain) = lower(?1), 0) DESC, id LIMIT 1"#,
+           ORDER BY status <> 'Active', coalesce(signup_email = ?2, 0) DESC, id LIMIT 1"#,
         domain,
         address
     )

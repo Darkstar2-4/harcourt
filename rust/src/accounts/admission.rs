@@ -162,17 +162,14 @@ pub struct Registration {
     pub state: String,
     pub zip: String,
     pub country_code: String,
-    /// Set from the mail domain for OAuth sign-ups, so approving the account lets the domain in. Never a free-mail
-    /// domain (`Email::company_domain`).
-    pub domain: Option<String>,
     pub recaptcha_score: f64,
 }
 
 /// A Pending account for staff to approve, signed in as itself so the visitor sees "pending" (newuser.php
 /// json_register_update and process_oauth_register). `remembered` keeps the sign-in like an OAuth grant.
 /// The visitor's address is kept as `signup_ip` for staff reviewing the request, never as `ip`: the company address
-/// that signs visitors in is for staff alone to set. With IPStack on, the location and currency are looked up
-/// afterwards, as user->update() did for every new user, without holding up the sign-up.
+/// that signs visitors in is for staff alone to set, and so is the company domain. With IPStack on, the location and
+/// currency are looked up afterwards, as user->update() did for every new user, without holding up the sign-up.
 /// None when the address has an account after all (`account::for_email`), as when two requests for it overlap: it
 /// is looked for again under the write lock, so only the first adds one.
 pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration, email: &Email, remembered: bool, ctx: &Context<'_>) -> sqlx::Result<Option<(UserId, SignIn)>> {
@@ -185,8 +182,8 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
         return Ok(None);
     }
     let id = sqlx::query_scalar!(
-        r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, domain, signup_email)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) RETURNING id AS "id!: i64""#,
+        r#"INSERT INTO "user" (signup_ip, company_name, address, city, state, zip, country_code, last_login, recaptcha_score, signup_email)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id AS "id!: i64""#,
         ctx.ip,
         reg.company_name,
         address,
@@ -196,7 +193,6 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
         country,
         ctx.now,
         reg.recaptcha_score,
-        reg.domain,
         signup_email
     )
     .fetch_one(&mut *tx)
@@ -231,7 +227,7 @@ pub async fn log_signup(pool: &SqlitePool, id: UserId, email: &Email, ctx: &Cont
 /// A notice to the staff address of the `register` mail form (scsmail_class("register")), queued in `outbox`.
 /// `lines` are already HTML; build them with `escape` around anything a visitor or a provider supplied.
 pub async fn notify_staff(pool: &SqlitePool, subject: Option<&str>, lines: &[String], now: i64) -> sqlx::Result<()> {
-    let form = sqlx::query!(r#"SELECT recipient AS "recipient!", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY domain = '' DESC LIMIT 1"#)
+    let form = sqlx::query!(r#"SELECT recipient AS "recipient!", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY coalesce(domain, '') = '' DESC LIMIT 1"#)
         .fetch_optional(pool)
         .await?;
     let Some(form) = form.filter(|f| !f.recipient.trim().is_empty()) else {

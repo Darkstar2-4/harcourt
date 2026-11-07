@@ -326,6 +326,10 @@ async fn prj_links_import_from_a_partsolutions_export_and_missing_ones_export() 
     let missing = Scratch::new("missing.txt", b"");
     printed(run_on(&pool, &["export", "prj-missing", "--out", missing.path()]).await);
     assert_eq!(missing.text(), "\"Category Name\"\t\"Subcategory Name\"\t\"Harcourt SKU\"\nPins\t\"Ball Lock Pins\"\tBL-1\n");
+
+    exec(&pool, "UPDATE inventory SET prj = NULL WHERE sku = 'TC-200'").await;
+    printed(run_on(&pool, &["export", "prj-missing", "--out", missing.path()]).await);
+    assert_eq!(missing.text(), "\"Category Name\"\t\"Subcategory Name\"\t\"Harcourt SKU\"\nClamps\t\"Toggle Clamps\"\tTC-200\nPins\t\"Ball Lock Pins\"\tBL-1\n", "a cleared link is missing too");
 }
 
 #[tokio::test]

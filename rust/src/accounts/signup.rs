@@ -259,7 +259,6 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         state: p.get("state").into(),
         zip: p.get("zip").into(),
         country_code: p.get("country_code").into(),
-        domain: None,
         recaptcha_score: score.value,
     };
     let ctx = req.context();

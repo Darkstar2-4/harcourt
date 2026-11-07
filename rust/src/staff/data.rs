@@ -580,7 +580,7 @@ async fn prj_missing(pool: &SqlitePool, map: &Map) -> sqlx::Result<Vec<Record>> 
                   CASE WHEN c.id IS NULL THEN 'Missing Category #' || s.category_id ELSE c.name END AS "category?: String",
                   s.name AS "subcategory?: String"
            FROM inventory i LEFT JOIN subcategory s ON s.id = i.subcategory_id LEFT JOIN category c ON c.id = s.category_id
-           WHERE i.prj = ''
+           WHERE coalesce(i.prj, '') = ''
            ORDER BY c.sort_order, s.sort_order, i.sku"#
     )
     .fetch_all(pool)
