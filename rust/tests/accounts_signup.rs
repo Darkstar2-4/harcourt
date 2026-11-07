@@ -504,6 +504,18 @@ async fn a_domain_belongs_to_its_active_company_ahead_of_older_requests() {
 }
 
 #[tokio::test]
+async fn staff_notices_go_to_the_register_form_of_no_domain_whether_blank_or_cleared() {
+    let pool = pool().await;
+    sqlx::query("UPDATE mailform SET domain = NULL WHERE code = 'register'").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO mailform (domain, code, name, recipient, subject) VALUES ('other.example', 'register', 'Other', 'other@example.net', 'Other')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    admission::notify_staff(&pool, None, &["Hello".into()], 1_700_000_000).await.unwrap();
+    assert_eq!(mails(&pool).await.iter().map(|m| m.0.as_str()).collect::<Vec<_>>(), ["staff@example.net"]);
+}
+
+#[tokio::test]
 async fn an_address_signs_in_to_the_account_it_signed_up_as_ahead_of_the_domain_owner() {
     let pool = pool().await;
     sqlx::query(

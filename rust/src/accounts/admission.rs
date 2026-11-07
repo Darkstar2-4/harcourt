@@ -227,7 +227,7 @@ pub async fn log_signup(pool: &SqlitePool, id: UserId, email: &Email, ctx: &Cont
 /// A notice to the staff address of the `register` mail form (scsmail_class("register")), queued in `outbox`.
 /// `lines` are already HTML; build them with `escape` around anything a visitor or a provider supplied.
 pub async fn notify_staff(pool: &SqlitePool, subject: Option<&str>, lines: &[String], now: i64) -> sqlx::Result<()> {
-    let form = sqlx::query!(r#"SELECT recipient AS "recipient!", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY domain = '' DESC LIMIT 1"#)
+    let form = sqlx::query!(r#"SELECT recipient AS "recipient!", subject FROM mailform WHERE code = 'register' AND active = 1 ORDER BY coalesce(domain, '') = '' DESC LIMIT 1"#)
         .fetch_optional(pool)
         .await?;
     let Some(form) = form.filter(|f| !f.recipient.trim().is_empty()) else {
