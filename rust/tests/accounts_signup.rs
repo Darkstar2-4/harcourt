@@ -369,6 +369,25 @@ async fn microsoft_sign_in_at_a_tenant_verified_company_domain_grants_access() {
 }
 
 #[tokio::test]
+async fn a_sign_in_replaces_the_profile_the_visit_kept() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let ms = stand_in(Kind::Microsoft, serde_json::json!({"mail": "pat@example.com", "userPrincipalName": "pat@example.com", "givenName": "Pat", "surname": "Doe"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: Some(ms), google: None });
+    let visit = "PHPSESSID=r5visit0123456789abcdef";
+    let before = format!("{visit}; harcourt_profile=%7B%22email%22%3A%22lee%40old.example%22%2C%22name_first%22%3A%22Lee%22%7D");
+    page(&app, &before).await;
+    assert_eq!(scalar(&pool, "SELECT count(*) FROM visit WHERE profile LIKE '%lee@old.example%'").await, 1, "the visit kept the typed profile");
+    let start = send(&app, Method::GET, "/oauth/init.php", visit, None, false).await;
+    let location = start.headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    *nonce.lock().unwrap() = param(&location, "nonce");
+    let jar = [visit.to_string(), start.jar()].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join("; ");
+    send(&app, Method::GET, &format!("/oauth/callback.php?code=c1&state={}", param(&location, "state")), &jar, None, false).await;
+    let kept: String = sqlx::query_scalar("SELECT profile FROM visit WHERE profile IS NOT NULL").fetch_one(&pool).await.unwrap();
+    assert!(kept.contains(r#""email":"pat@example.com""#) && kept.contains(r#""name":"Pat Doe""#), "{kept}");
+}
+
+#[tokio::test]
 async fn microsoft_mail_at_a_domain_the_tenant_did_not_prove_is_refused() {
     let pool = pool().await;
     let nonce = Arc::new(Mutex::new(String::new()));

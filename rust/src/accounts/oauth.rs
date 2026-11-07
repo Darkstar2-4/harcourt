@@ -538,7 +538,11 @@ async fn callback(core: &Auth, kind: Kind, visitor: Visitor, headers: &HeaderMap
     };
     let ip = visitor.client.map_or_else(String::new, |ip| ip.to_string());
     let ctx = Context { ip: &ip, user_agent: headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or(""), dns_name: None, now };
-    let (outcome, set) = match admit(pool, &core.accounts, kind, &person, &ctx).await {
+    let admitted = match Profile::remembered(pool, headers, &visitor).await {
+        Ok(remembered) => admit(pool, &core.accounts, kind, &person, remembered, &visitor, &ctx).await,
+        Err(e) => Err(e),
+    };
+    let (outcome, set) = match admitted {
         Ok(done) => done,
         Err(e) => {
             tracing::error!("oauth admission: {e}");
@@ -557,24 +561,45 @@ fn repeated(visitor: &Visitor) -> Outcome {
     }
 }
 
-/// newuser.php process_oauth() after the provider: the same decision as the sign-up form.
-async fn admit(pool: &SqlitePool, services: &Services, kind: Kind, person: &Person, ctx: &Context<'_>) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
+/// The profile of whoever signed in: the address the provider proved and the names it gave, with what the visitor
+/// had entered where the provider gave nothing.
+fn signed_in_profile(remembered: Profile, email: &Email, person: &Person) -> Profile {
+    let given = |s: &str, kept: Option<String>| if s.is_empty() { kept } else { Some(s.to_string()) };
+    let name_first = given(&person.name_first, remembered.name_first.clone());
+    let name_last = given(&person.name_last, remembered.name_last.clone());
+    let language_code = if remembered.language_code.is_empty() { "EN".to_string() } else { remembered.language_code.clone() };
+    Profile {
+        email: Some(email.as_str().into()),
+        name: format!("{} {}", name_first.as_deref().unwrap_or(""), name_last.as_deref().unwrap_or("")),
+        name_first,
+        name_last,
+        language_code,
+        ..remembered
+    }
+}
+
+/// newuser.php process_oauth() after the provider: the same decision as the sign-up form. The profile is kept for
+/// the visit and in its cookie, where the next request loads it from.
+async fn admit(
+    pool: &SqlitePool,
+    services: &Services,
+    kind: Kind,
+    person: &Person,
+    remembered: Profile,
+    visitor: &Visitor,
+    ctx: &Context<'_>,
+) -> sqlx::Result<(Outcome, Vec<HeaderValue>)> {
     let Some(email) = Email::parse(&person.email) else { return Ok((Outcome::NoEmail(kind), Vec::new())) };
     let via = format!("{} OAuth", kind.name());
-    let profile = Profile {
-        email: Some(email.as_str().into()),
-        name: format!("{} {}", person.name_first, person.name_last),
-        name_first: Some(person.name_first.clone()),
-        name_last: Some(person.name_last.clone()),
-        language_code: "EN".into(),
-        ..Profile::default()
-    };
-    let mut set: Vec<HeaderValue> = profile.cookie(ctx.now).into_iter().collect();
-    match admission::classify(pool, &email).await? {
-        Admission::Blacklisted => {
-            admission::log_blacklisted(pool, &email, ctx, &via).await;
-            Ok((Outcome::Blacklisted, Vec::new()))
-        }
+    let admission = admission::classify(pool, &email).await?;
+    if matches!(admission, Admission::Blacklisted) {
+        admission::log_blacklisted(pool, &email, ctx, &via).await;
+        return Ok((Outcome::Blacklisted, Vec::new()));
+    }
+    let profile = signed_in_profile(remembered, &email, person);
+    let mut set: Vec<HeaderValue> = profile.remember(pool, visitor, ctx.now).await?.into_iter().collect();
+    match admission {
+        Admission::Blacklisted => Ok((Outcome::Blacklisted, Vec::new())),
         Admission::Company { company, known } => {
             if !known {
                 admission::notify_auto_approved(pool, &company, &email, &via, ctx).await?;
