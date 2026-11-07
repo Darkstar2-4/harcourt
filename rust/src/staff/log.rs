@@ -15,6 +15,7 @@ use sqlx::SqlitePool;
 use super::{
     csrf::{Fields, Posted},
     html::{button, close, hidden, open, page_break, Blank, Form, Notes, Opts, Tabs, PAGE_ROWS, text},
+    map::csv_line,
     shell, time, Staff,
 };
 use crate::{
@@ -213,21 +214,6 @@ async fn rows(pool: &SqlitePool, input: &Input, limit: i64, offset: i64) -> sqlx
         })
         .collect();
     Ok((rows, found))
-}
-
-/// PHP fputcsv(): a field is quoted when it holds the delimiter, a quote, a backslash or white space.
-fn csv_line(fields: &[String], delimiter: char) -> String {
-    let cells: Vec<String> = fields
-        .iter()
-        .map(|f| {
-            if f.chars().any(|c| c == delimiter || matches!(c, '"' | '\\' | '\n' | '\r' | '\t' | ' ')) {
-                format!("\"{}\"", f.replace('"', "\"\""))
-            } else {
-                f.clone()
-            }
-        })
-        .collect();
-    cells.join(&delimiter.to_string()) + "\n"
 }
 
 fn export(rows: &[Row], output: Output) -> Response {
@@ -440,10 +426,4 @@ mod tests {
         assert_eq!((input.kind.as_str(), input.subtype.as_str(), input.output), ("Search", "SKU", Output::Csv));
     }
 
-    #[test]
-    fn csv_quotes_like_fputcsv() {
-        let line = csv_line(&["a".into(), "b c".into(), "say \"hi\"".into(), "x,y".into(), String::new()], ',');
-        assert_eq!(line, "a,\"b c\",\"say \"\"hi\"\"\",\"x,y\",\n");
-        assert_eq!(csv_line(&["a b".into(), "c".into()], '\t'), "\"a b\"\tc\n");
-    }
 }
