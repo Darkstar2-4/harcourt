@@ -177,17 +177,36 @@ async fn a_campaign_sign_up_makes_the_profile_the_new_persons() {
     let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=New+Co&email=pat%40example.com";
     let (status, headers, _) = send(&app, Method::POST, "/campaign.php", &held, Some(form)).await;
     assert_eq!(status, StatusCode::OK);
-    let profile = headers
-        .get_all(header::SET_COOKIE)
-        .iter()
-        .filter_map(|v| v.to_str().ok()?.strip_prefix("harcourt_profile="))
-        .map(|v| percent_encoding::percent_decode_str(v.split(';').next().unwrap_or("")).decode_utf8_lossy().into_owned())
-        .next_back()
-        .expect("the profile cookie the browser keeps");
-    let profile: serde_json::Value = serde_json::from_str(&profile).unwrap();
+    let (profile, _) = profile_set(&headers).expect("the profile cookie the browser keeps");
     assert_eq!(profile["email"], "pat@example.com");
     assert_eq!((profile["name_first"].as_str(), profile["name_last"].as_str(), profile["name"].as_str()), (Some("Pat"), Some("Lee"), Some("Pat Lee")));
     assert_eq!(profile["generate"], 1);
+}
+
+/// The last `harcourt_profile` cookie an answer sets, decoded, and as the browser sends it back.
+fn profile_set(headers: &HeaderMap) -> Option<(serde_json::Value, String)> {
+    let pair = headers.get_all(header::SET_COOKIE).iter().filter_map(|v| v.to_str().ok()?.split(';').next()).rfind(|p| p.starts_with("harcourt_profile="))?;
+    let value = percent_encoding::percent_decode_str(pair.trim_start_matches("harcourt_profile=")).decode_utf8_lossy().into_owned();
+    Some((serde_json::from_str(&value).ok()?, pair.to_string()))
+}
+
+#[tokio::test]
+async fn sign_out_leaves_the_browser_its_choices_and_no_ones_details() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let held = format!("{VISIT}; harcourt_profile={}", percent_encoding::utf8_percent_encode(r#"{"language_code":"FR","generate":1}"#, percent_encoding::NON_ALPHANUMERIC));
+    let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=New+Co&email=pat%40example.com";
+    let (_, headers, _) = send(&app, Method::POST, "/campaign.php", &held, Some(form)).await;
+    let (_, pats) = profile_set(&headers).expect("the admitted person's profile");
+
+    let (status, headers, _) = send(&app, Method::GET, "/cookie_reset.php", &format!("{VISIT}; {pats}"), None).await;
+    assert_eq!(status, StatusCode::OK);
+    let (left, _) = profile_set(&headers).expect("the profile cookie is rewritten");
+    assert_eq!((left["email"].is_null(), left["name_first"].is_null(), left["company_name"].is_null()), (true, true, true), "{left}");
+    assert_eq!((left["language_code"].as_str(), left["generate"].as_i64()), (Some("FR"), Some(1)), "{left}");
+
+    let (_, headers, _) = send(&app, Method::GET, "/cookie_reset.php", VISIT, None).await;
+    assert!(!set_cookie_names(&headers).contains(&"harcourt_profile".to_string()), "a browser with no profile gets none");
 }
 
 #[tokio::test]

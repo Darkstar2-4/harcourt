@@ -11,6 +11,7 @@ use axum::{
 use crate::{
     accounts::{
         cookies,
+        profile::Profile,
         visit::{self, VisitId},
     },
     api::{self, Auth},
@@ -47,11 +48,13 @@ if (!sessionStorage['scscpq_cookie']) {
 </html>
 "#;
 
-/// The PHP always cleared `harcourt` and destroyed the session.
+/// The PHP always cleared `harcourt` and destroyed the session. The profile cookie keeps only the browser's choices,
+/// so no one's name or address outlives the sign-out.
 pub async fn cookie_reset(State(core): State<Arc<Auth>>, headers: HeaderMap) -> Response {
-    let mut gone = vec![cookies::set(cookies::EMAIL, "", cookies::Life::Gone)];
+    let now = unix_now();
+    let mut gone = vec![cookies::set(cookies::EMAIL, "", cookies::Life::Gone), Profile::signed_out(&headers, now)];
     if let Some(sid) = cookies::get(&headers, "PHPSESSID") {
-        if let Err(e) = visit::destroy(&core.pool, &VisitId::of(&sid), unix_now()).await {
+        if let Err(e) = visit::destroy(&core.pool, &VisitId::of(&sid), now).await {
             tracing::error!("cookie_reset: {e}");
         }
     }

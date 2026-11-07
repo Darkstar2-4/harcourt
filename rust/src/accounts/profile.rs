@@ -129,16 +129,37 @@ impl Basis {
     }
 
     /// The remembered profile: the visit's copy when it was kept for the account the request comes as (or for
-    /// none), else the cookie, which reached the browser with its sign-in.
+    /// none), else the cookie's (`Profile::from_browser`).
     fn profile(&self, headers: &HeaderMap, visitor: &Visitor) -> Profile {
-        let own = self.0.as_ref().filter(|kept| kept.owner == owner(visitor)).map(|kept| kept.json.clone());
-        Profile::from_cookie(own.or_else(|| cookies::get(headers, COOKIE)).as_deref())
+        let owner = owner(visitor);
+        match self.0.as_ref().filter(|kept| kept.owner == owner) {
+            Some(kept) => Profile::from_cookie(Some(&kept.json)),
+            None => Profile::from_browser(headers, owner),
+        }
     }
 }
 
-/// Whom a profile this request keeps for the visit is for: the account it comes as.
+/// Whom a profile this request keeps is for: the account it comes as, by session or by company address alike.
 fn owner(visitor: &Visitor) -> Option<UserId> {
     visitor.account().map(Account::id)
+}
+
+/// The `harcourt_profile` cookie's value: the profile, and the account it was written for (none: no account, and
+/// no key, as a cookie the PHP wrote).
+#[derive(Serialize)]
+struct Written<'a> {
+    #[serde(flatten)]
+    profile: &'a Profile,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    profile_for: Option<i64>,
+}
+
+/// The account a `harcourt_profile` cookie was written for; none for no account or a cookie without the key.
+fn written_for(value: &str) -> Option<UserId> {
+    match serde_json::from_str::<Value>(value).ok()?.get("profile_for")? {
+        Value::Number(n) => n.as_i64().map(UserId),
+        _ => None,
+    }
 }
 
 /// A JSON value as PHP read it into a string property: scalars become their text, anything else is unset.
@@ -197,9 +218,27 @@ impl Profile {
         html::json_encode(self)
     }
 
-    /// The `harcourt_profile` cookie header, as profile->cookie() set it.
-    pub fn cookie(&self, now: i64) -> Option<HeaderValue> {
-        cookies::php_year(COOKIE, &self.to_cookie(), now)
+    /// The `harcourt_profile` cookie header, as profile->cookie() set it, written for `owner`.
+    fn cookie(&self, owner: Option<UserId>, now: i64) -> Option<HeaderValue> {
+        cookies::php_year(COOKIE, &html::json_encode(&Written { profile: self, profile_for: owner.map(|o| o.0) }), now)
+    }
+
+    /// The browser's cookie as the profile of `owner`: whole when it was written for them, else only the browser's
+    /// choices. A company signed in by address reads a cookie written for its account.
+    fn from_browser(headers: &HeaderMap, owner: Option<UserId>) -> Profile {
+        let value = cookies::get(headers, COOKIE);
+        let profile = Profile::from_cookie(value.as_deref());
+        if value.as_deref().and_then(written_for) == owner {
+            profile
+        } else {
+            profile.choices()
+        }
+    }
+
+    /// The cookie a sign-out leaves: the browser's choices, for no one. None when the browser had no profile.
+    pub fn signed_out(headers: &HeaderMap, now: i64) -> Option<HeaderValue> {
+        let value = cookies::get(headers, COOKIE)?;
+        Profile::from_cookie(Some(&value)).choices().cookie(None, now)
     }
 
     /// profile->cookie() after loaded(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return
@@ -211,7 +250,7 @@ impl Profile {
                 return Ok(None);
             }
         }
-        Ok(self.cookie(now))
+        Ok(self.cookie(owner(visitor), now))
     }
 
     /// Whether the profile is the one of the person at `email`.
@@ -254,7 +293,7 @@ impl Profile {
         if let Some(id) = &visitor.visit {
             visit::set_profile(pool, id, signin.user, &p.to_cookie(), now).await?;
         }
-        Ok(p.cookie(now))
+        Ok(p.cookie(Some(signin.user), now))
     }
 
     /// Keep what was typed into a sign-up form for the visit, for the form and for the admission it may lead to.
@@ -970,21 +1009,96 @@ mod tests {
         let t = unix_now();
         let ((pat, _), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
         let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
-        let cookie = r#"{"email":"pat@example.com","name_first":"Pat","name_last":"Lee","phone":"555-0100"}"#;
-        let mut pats = HeaderMap::new();
-        pats.insert(axum::http::header::COOKIE, HeaderValue::from_str(&format!("harcourt_profile={}", utf8_percent_encode(cookie, NON_ALPHANUMERIC))).unwrap());
+        let pats = sent_profile(r#"{"email":"pat@example.com","name_first":"Pat","name_last":"Lee","phone":"555-0100","profile_for":3}"#);
         Profile { email: Some("lee@example.com".into()), phone: Some("555-0199".into()), ..Profile::default() }.admit(&pool, &lee, &lee_in, "Lee", "Ray", t).await.unwrap();
 
         let seen = |p: Profile| (p.email, p.phone);
         let pat_sees = seen(Profile::remembered(&pool, &pats, &pat).await.unwrap());
         assert_eq!(pat_sees, (Some("pat@example.com".into()), Some("555-0100".into())), "the cookie, not the profile admitted for another account");
-        assert_eq!(seen(Profile::remembered(&pool, &pats, &anonymous).await.unwrap()), pat_sees, "nor for a visitor not signed in");
+        assert_eq!(seen(Profile::remembered(&pool, &pats, &anonymous).await.unwrap()), (None, None), "nor Pat's cookie for a visitor not signed in");
         assert_eq!(seen(Profile::remembered(&pool, &pats, &lee).await.unwrap()), (Some("lee@example.com".into()), Some("555-0199".into())));
 
         let (kept, basis) = Profile::loaded(&pool, &pats, &pat).await.unwrap();
         assert!(kept.remember(&pool, &pat, &basis, t + 1).await.unwrap().is_some(), "the request's own profile replaces the other account's");
         assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &pat).await.unwrap(), kept);
         assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &lee).await.unwrap(), Profile::default());
+    }
+
+    /// A request that sends the `harcourt_profile` cookie with this JSON.
+    fn sent_profile(json: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(&format!("{COOKIE}={}", utf8_percent_encode(json, NON_ALPHANUMERIC))).unwrap());
+        headers
+    }
+
+    /// The next request of a browser that was sent this `harcourt_profile` cookie.
+    fn sent_back(set: &HeaderValue) -> HeaderMap {
+        let pair = set.to_str().unwrap().split(';').next().unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(pair).unwrap());
+        headers
+    }
+
+    /// Visit `visit` of the company at account `id`, signed in by its address.
+    async fn by_address(pool: &SqlitePool, id: i64, visit: &str) -> Visitor {
+        let account = crate::accounts::account::load(pool, UserId(id)).await.unwrap().unwrap();
+        let identity = Identity::Account(Box::new(crate::visitor::SignedIn { account, email: None, via: crate::visitor::Via::CompanyAddress }));
+        Visitor { identity, visit: Some(visit::VisitId::of(visit)), ..Visitor::anonymous() }
+    }
+
+    #[tokio::test]
+    async fn a_cookie_written_for_one_account_is_not_another_accounts_profile() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, pat_in), (lee, _)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let typed = Profile { email: Some("pat@example.com".into()), phone: Some("555-0100".into()), language_code: "FR".into(), generate: 1, ..Profile::default() };
+        let set = typed.admit(&pool, &pat, &pat_in, "Pat", "Lee", t).await.unwrap().unwrap();
+        let browser = sent_back(&set);
+        let elsewhere = Visitor { visit: Some(visit::VisitId::of("w")), ..pat.clone() };
+
+        let own = Profile::remembered(&pool, &browser, &elsewhere).await.unwrap();
+        assert_eq!((own.email.as_deref(), own.phone.as_deref()), (Some("pat@example.com"), Some("555-0100")), "the account it was written for reads it");
+        let other = Profile::remembered(&pool, &browser, &lee).await.unwrap();
+        assert_eq!(other, Profile { language_code: "FR".into(), generate: 1, ..Profile::default() }, "another account has only the browser's choices");
+        let (loaded, basis) = Profile::loaded(&pool, &browser, &lee).await.unwrap();
+        let kept = loaded.remember(&pool, &lee, &basis, t + 1).await.unwrap().unwrap();
+        let kept = cookies::get(&sent_back(&kept), COOKIE).unwrap();
+        let lees = Profile::from_cookie(Some(&kept));
+        assert_eq!((lees.email, lees.phone, lees.company_name.as_deref()), (None, None, Some("Works")), "{kept}");
+        assert_eq!(written_for(&kept), Some(UserId(4)), "kept for the account it is now");
+
+        let unowned = sent_profile(r#"{"email":"pat@example.com","name_first":"Pat","generate":1}"#);
+        let before = Profile::remembered(&pool, &unowned, &elsewhere).await.unwrap();
+        assert_eq!((before.email, before.name_first, before.generate), (None, None, 1), "a cookie written for no account is no account's profile");
+    }
+
+    #[tokio::test]
+    async fn after_sign_out_the_next_visit_has_no_ones_name_or_address() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        sqlx::query("INSERT INTO cad (code, name) VALUES ('STEP', 'STEP AP214')").execute(&pool).await.unwrap();
+        let (pat, pat_in) = signed_in(&pool, 3, "pat@example.com").await;
+        let typed = Profile {
+            email: Some("pat@example.com".into()),
+            title: Some("Buyer".into()),
+            cad_code: Some("STEP".into()),
+            language_code: "FR".into(),
+            generate: 1,
+            consent: 1,
+            ..Profile::default()
+        };
+        let set = typed.admit(&pool, &pat, &pat_in, "Pat", "Lee", t).await.unwrap().unwrap();
+        let left = Profile::signed_out(&sent_back(&set), t + 1).unwrap();
+        assert_eq!(Profile::signed_out(&HeaderMap::new(), t + 1), None, "no cookie, none written");
+
+        let browser = sent_back(&left);
+        let company = by_address(&pool, 3, "w").await;
+        let next = Profile::load(&pool, &browser, &company).await.unwrap();
+        assert_eq!((next.email, next.name_first, next.name_last, next.title), (None, None, None, None));
+        assert_eq!((next.cad_code.as_deref(), next.language_code.as_str(), next.generate, next.consent), (Some("STEP"), "FR", 1, 1), "the browser's choices stay");
+        assert_eq!(next.company_name.as_deref(), Some("Works"), "the company's own address");
+        let anonymous = Profile::load(&pool, &browser, &Visitor::anonymous()).await.unwrap();
+        assert_eq!((anonymous.email, anonymous.name_first, anonymous.generate), (None, None, 1));
     }
 
     #[tokio::test]
