@@ -64,19 +64,17 @@ const PHP_CART_SECS: i64 = 86400;
 async fn touch(pool: &SqlitePool, key: &CartKey, now: i64) -> sqlx::Result<()> {
     let stale = now - PHP_CART_SECS;
     sqlx::query!("DELETE FROM cart_item WHERE touched_at < ?1 AND session_hash NOT IN (SELECT token_hash FROM session)", stale).execute(pool).await?;
+    sqlx::query!("DELETE FROM cart_takeover WHERE taken_at < ?1", stale).execute(pool).await?;
     let hash = key.as_slice();
     sqlx::query!("UPDATE cart_item SET touched_at = ?2 WHERE session_hash = ?1", hash, now).execute(pool).await?;
     Ok(())
 }
 
 /// Moves the lines of `from` into `into`, adding the quantities of a part both hold, whose comment is `into`'s
-/// unless it has none. A cart left unused longer than a PHP session lasted is not taken.
-pub(super) async fn adopt(pool: &SqlitePool, from: &CartKey, into: &CartKey, now: i64) -> sqlx::Result<()> {
+/// unless it has none. A cart left unused longer than a PHP session lasted is not taken. Every takeover is counted,
+/// held lines or not, so that a request which found `from` before it adds nothing to it after.
+pub(super) async fn adopt(pool: &SqlitePool, from: &[u8; 32], into: &CartKey, now: i64) -> sqlx::Result<()> {
     let (from, into) = (from.as_slice(), into.as_slice());
-    let held = sqlx::query_scalar!(r#"SELECT EXISTS (SELECT 1 FROM cart_item WHERE session_hash = ?1) AS "held!: bool""#, from).fetch_one(pool).await?;
-    if !held {
-        return Ok(());
-    }
     let stale = now - PHP_CART_SECS;
     let most = i64::from(u32::MAX);
     let mut tx = pool.begin().await?;
@@ -94,18 +92,36 @@ pub(super) async fn adopt(pool: &SqlitePool, from: &CartKey, into: &CartKey, now
     .execute(&mut *tx)
     .await?;
     sqlx::query!("DELETE FROM cart_item WHERE session_hash = ?1", from).execute(&mut *tx).await?;
+    sqlx::query!(
+        "INSERT INTO cart_takeover (session_hash, takeovers, taken_at) VALUES (?1, 1, ?2)
+         ON CONFLICT (session_hash) DO UPDATE SET takeovers = cart_takeover.takeovers + 1, taken_at = excluded.taken_at",
+        from,
+        now
+    )
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await
 }
 
-/// Sets the quantity, and the comment when one is given, keeping the line's place in the cart.
+/// How many times a session has taken over the cart kept by company address under `hash`.
+pub(super) async fn takeovers(pool: &SqlitePool, hash: &[u8; 32]) -> sqlx::Result<i64> {
+    let hash = hash.as_slice();
+    let n = sqlx::query_scalar!(r#"SELECT takeovers AS "n!: i64" FROM cart_takeover WHERE session_hash = ?1"#, hash).fetch_optional(pool).await?;
+    Ok(n.unwrap_or(0))
+}
+
+/// Sets the quantity, and the comment when one is given, keeping the line's place in the cart. Nothing is written
+/// to a cart a session has taken over since it was found.
 async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment: Option<&str>, now: i64) -> sqlx::Result<()> {
     touch(pool, key, now).await?;
     let hash = key.as_slice();
     let quantity = i64::from(quantity);
     let initial = comment.unwrap_or("");
     let replace_comment = comment.is_some();
+    let takeovers = key.takeovers;
     sqlx::query!(
-        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)
+        "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?5 WHERE coalesce((SELECT takeovers FROM cart_takeover WHERE session_hash = ?1), 0) = ?7
          ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,
              comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
         hash,
@@ -113,7 +129,8 @@ async fn put(pool: &SqlitePool, key: &CartKey, sku: &str, quantity: u32, comment
         quantity,
         initial,
         now,
-        replace_comment
+        replace_comment,
+        takeovers
     )
     .execute(pool)
     .await?;
@@ -495,6 +512,23 @@ mod tests {
         assert_eq!(typed(" "), Typed::Blank);
         assert_eq!(typed("0"), Typed::Remove);
         assert_eq!(typed("99999999999"), Typed::TooLarge);
+    }
+
+    #[tokio::test]
+    async fn a_cart_found_before_a_takeover_takes_no_lines_after_it() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let now = unix_now();
+        let address = [7u8; 32];
+        let session = CartKey::session([8u8; 32]);
+        let found = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
+        put(&pool, &found, "SKU-1", 2, None, now).await.unwrap();
+        adopt(&pool, &address, &session, now).await.unwrap();
+        put(&pool, &found, "SKU-2", 1, None, now).await.unwrap();
+        assert!(items(&pool, &found).await.unwrap().is_empty());
+        assert_eq!(items(&pool, &session).await.unwrap().iter().map(|i| i.sku.as_str()).collect::<Vec<_>>(), ["SKU-1"]);
+        let again = CartKey { hash: address, takeovers: takeovers(&pool, &address).await.unwrap() };
+        put(&pool, &again, "SKU-2", 1, None, now).await.unwrap();
+        assert_eq!(items(&pool, &again).await.unwrap().len(), 1, "a request that finds the cart after the takeover uses it");
     }
 
     #[test]

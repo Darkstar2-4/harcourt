@@ -41,29 +41,41 @@ pub struct Shopper {
 /// Which cart is the shopper's. With a session it is the session's, and goes with it. An account signed in by
 /// company address has no session; PHP kept its cart in the PHP session, so the PHP session id the browser carries
 /// names it, together with the account. A browser with neither has no cart to keep.
-pub struct CartKey([u8; 32]);
+pub struct CartKey {
+    hash: [u8; 32],
+    /// How many times a session had taken this cart over when it was found; it takes lines only while that holds.
+    takeovers: i64,
+}
 
 impl CartKey {
     /// The cart, taking over what the same account put in the cart it kept by company address in this PHP session
     /// before the session began, as PHP's one session cart held both.
     async fn of(pool: &SqlitePool, visitor: &Visitor, user: UserId, headers: &HeaderMap) -> sqlx::Result<Option<Self>> {
         let address = Self::address(user, headers);
-        let Some(session) = &visitor.session else { return Ok(address) };
-        let Some(key) = session.as_slice().try_into().ok().map(CartKey) else { return Ok(None) };
+        let Some(session) = &visitor.session else {
+            let Some(hash) = address else { return Ok(None) };
+            return Ok(Some(CartKey { takeovers: cart::takeovers(pool, &hash).await?, hash }));
+        };
+        let Some(key) = session.as_slice().try_into().ok().map(CartKey::session) else { return Ok(None) };
         if let Some(address) = address {
             cart::adopt(pool, &address, &key, unix_now()).await?;
         }
         Ok(Some(key))
     }
 
-    fn address(user: UserId, headers: &HeaderMap) -> Option<Self> {
+    fn address(user: UserId, headers: &HeaderMap) -> Option<[u8; 32]> {
         let php = cookies::get(headers, "PHPSESSID").filter(|id| !id.is_empty())?;
         let digest = Sha256::new().chain_update(b"hx cart\0").chain_update(user.0.to_be_bytes()).chain_update(php.as_bytes()).finalize();
-        Some(CartKey(digest.into()))
+        Some(digest.into())
+    }
+
+    /// A session's cart, which nothing takes over.
+    fn session(hash: [u8; 32]) -> Self {
+        CartKey { hash, takeovers: 0 }
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        &self.0
+        &self.hash
     }
 }
 
