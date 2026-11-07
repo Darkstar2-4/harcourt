@@ -487,10 +487,11 @@ async fn an_entered_search_word_opens_its_family_and_a_family_name_counts_as_one
             ["HBLT-1", "HBLT-2", "HBLT-3"].iter().all(|p| body.contains(&format!(">{p}</a>"))) && !body.contains("<span class='subcat7'></span>"),
             "{who}: an English search word opens the family page with its parts: {body}"
         );
-        let (_, _, own) = send(&h.app, get(&enter(if who == "French" { "goupilles" } else { "lock" }), Some(cookie))).await;
-        let (_, _, other) = send(&h.app, get(&enter(if who == "French" { "lock" } else { "goupilles" }), Some(cookie))).await;
+        let (own_term, other_term) = if who == "French" { ("goupilles", "lock") } else { ("lock", "goupilles") };
+        let (_, _, own) = send(&h.app, get(&enter(own_term), Some(cookie))).await;
+        let (_, _, other) = send(&h.app, get(&enter(other_term), Some(cookie))).await;
         assert!(own.contains("<span class='subcat7'></span>"), "{who}: {own}");
-        assert_eq!(other, own, "{who}: a family name in the other language counts as the visitor's own");
+        assert_eq!(other.replace(&format!("search_code={other_term}"), &format!("search_code={own_term}")), own, "{who}: a family name in the other language counts as the visitor's own");
     }
 }
 
