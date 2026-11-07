@@ -57,6 +57,8 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
     let keep: Vec<i64> = import.pages.iter().map(|p| p.id.0).collect();
     let keep = serde_json::to_string(&keep).unwrap_or_else(|_| "[]".into());
     sqlx::query!("DELETE FROM cms_page WHERE id NOT IN (SELECT value FROM json_each(?1))", keep).execute(&mut *tx).await?;
+    // Kept pages may trade paths; each first takes a placeholder no page path can be (every one starts with '/').
+    sqlx::query!("UPDATE cms_page SET path = '#' || id").execute(&mut *tx).await?;
     for p in &import.pages {
         let (lang, template, status) = (p.lang.code(), p.template.file(), p.status.as_str());
         let parent = p.parent_id.map(|id| id.0);
@@ -204,7 +206,7 @@ fn parents_first(items: &[MenuItem]) -> Vec<(&MenuItem, Option<i64>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cms::model::Menu;
+    use crate::cms::model::{Menu, PostType, Status, Template};
 
     fn item(id: i64, parent_id: Option<i64>, position: i64) -> MenuItem {
         MenuItem {
@@ -229,6 +231,33 @@ mod tests {
         let site = Site::load(&pool).await.unwrap();
         let parents: Vec<(i64, Option<i64>)> = site.menus.iter().map(|m| (m.id, m.parent_id)).collect();
         assert_eq!(parents, [(10, None), (15, Some(20)), (20, Some(10)), (30, None)]);
+    }
+
+    #[tokio::test]
+    async fn a_reimport_where_two_pages_trade_paths_is_stored() {
+        let page = |id: i64, path: &str| Page {
+            id: PageId(id),
+            kind: PostType::Page,
+            name: path.trim_matches('/').into(),
+            group_id: id,
+            lang: Lang::En,
+            path: path.into(),
+            template: Template::Page,
+            status: Status::Publish,
+            title: format!("Page {id}"),
+            parent_id: None,
+            menu_order: 0,
+            published_at: "2024-01-01 00:00:00".into(),
+            modified_at: "2024-01-01 00:00:00".into(),
+            author_id: None,
+        };
+        let pool = crate::db::open_memory().await.unwrap();
+        write(&pool, &Import { pages: vec![page(1, "/pins/"), page(2, "/clamps/")], ..Default::default() }, 1).await.unwrap();
+        write(&pool, &Import { pages: vec![page(1, "/clamps/"), page(2, "/pins/"), page(3, "/vises/")], ..Default::default() }, 2).await.unwrap();
+        let site = Site::load(&pool).await.unwrap();
+        let mut paths: Vec<(i64, &str)> = site.pages.iter().map(|p| (p.id.0, p.path.as_str())).collect();
+        paths.sort();
+        assert_eq!(paths, [(1, "/clamps/"), (2, "/pins/"), (3, "/vises/")]);
     }
 
     #[test]

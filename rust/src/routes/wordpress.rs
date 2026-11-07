@@ -562,7 +562,9 @@ fn front_query<'a>(site: &'a Site, raw_query: &str, lang: Lang) -> Option<Answer
                 .map(|t| Answer::Found(with_id(key, t.id.0)));
         }
         if p.lang == lang {
-            return Some(moved(p.link()));
+            // A post kept at its ?p= link because a page took its name: redirect_canonical() still sends it to the name.
+            let link = if p.path.starts_with("/?") { lang.link(&format!("{}/{}/", p.kind.base(), p.name)) } else { p.link() };
+            return Some(moved(link));
         }
         if unknown_lang {
             return site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).map(|t| Answer::Found(with_id(key, t.id.0)));
@@ -1172,6 +1174,14 @@ mod tests {
             other => format!("{other:?}"),
         };
         assert_eq!(found("page_id=6"), "/?page_id=5", "even to a draft");
+        let post = |id: i64, lang: Lang| Page { kind: PostType::Post, name: "tooling".into(), ..page(id, id, lang, &format!("/?p={id}"), Status::Publish) };
+        let shared = Site::new(vec![page(1, 1, Lang::En, "/tooling/", Status::Publish), post(3, Lang::En), post(4, Lang::Fr)]);
+        let moved = |q: &str| match route(&shared, "/", &query(q), q) {
+            Answer::Redirect(to) => to,
+            other => format!("{other:?}"),
+        };
+        assert_eq!(moved("p=3"), "/tooling/", "a post whose name a page took goes to that name");
+        assert_eq!(moved("p=4&lang=fr"), "/tooling/?lang=fr");
     }
 
     #[test]

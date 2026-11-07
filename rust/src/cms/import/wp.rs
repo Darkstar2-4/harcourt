@@ -2,7 +2,7 @@
 //! model. Field values come out as WordPress stores them; `export` then replaces the text of every field a
 //! ported template prints with what the page actually showed.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     dump::{Table, Tables, Value},
@@ -156,6 +156,12 @@ pub fn read(tables: &Tables) -> Result<Import, String> {
         }
     }
     out.pages.sort_by_key(|p| p.id);
+    // With /%postname%/ WordPress tries the page rules before the post rule, so a top-level page takes /{slug}/
+    // from a post of the same name and language; the post keeps its ?p= link.
+    let pages_at: HashSet<(Lang, String)> = out.pages.iter().filter(|p| p.kind == PostType::Page).map(|p| (p.lang, p.path.clone())).collect();
+    for p in out.pages.iter_mut().filter(|p| p.kind == PostType::Post && pages_at.contains(&(p.lang, p.path.clone()))) {
+        p.path = format!("/?p={}", p.id.0);
+    }
 
     let option_rows: Vec<(String, String)> = options.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
     out.options.insert(Lang::En, acf_fields(&option_rows, &acf_types, "options_"));
@@ -466,6 +472,23 @@ mod tests {
         let link = field(Some("link"), r#"a:3:{s:5:"title";s:2:"Go";s:3:"url";s:2:"/x";s:6:"target";s:0:"";}"#).unwrap();
         assert_eq!(link.kind, Kind::Link);
         assert_eq!(serde_json::from_str::<serde_json::Value>(&link.value).unwrap()["url"], "/x");
+    }
+
+    #[test]
+    fn a_page_takes_the_address_of_a_post_of_the_same_name_and_language() {
+        let post = |id: i64, kind: &str| format!("({id},'{kind}','publish','tooling',0,'Tooling {id}','','2024-01-01 00:00:00','2024-01-01 00:00:00',0,'',0)");
+        let dump = format!(
+            "INSERT INTO `wp_posts` (`ID`, `post_type`, `post_status`, `post_name`, `post_parent`, `post_title`, `post_content`, `post_date_gmt`, `post_modified_gmt`, `menu_order`, `post_mime_type`, `post_author`) VALUES {},{},{};\n\
+             INSERT INTO `wp_postmeta` (`meta_id`, `post_id`, `meta_key`, `meta_value`) VALUES (1,2,'_wp_page_template','default');\n\
+             INSERT INTO `wp_options` (`option_id`, `option_name`, `option_value`) VALUES (1,'page_on_front','0');\n\
+             INSERT INTO `wp_icl_translations` (`translation_id`, `element_type`, `element_id`, `trid`, `language_code`) VALUES (1,'post_page',2,1,'en'),(2,'post_post',3,2,'en'),(3,'post_post',4,3,'fr');\n",
+            post(2, "page"),
+            post(3, "post"),
+            post(4, "post")
+        );
+        let import = read(&super::super::dump::parse(&dump).unwrap()).unwrap();
+        let paths: Vec<(i64, Lang, &str)> = import.pages.iter().map(|p| (p.id.0, p.lang, p.path.as_str())).collect();
+        assert_eq!(paths, [(2, Lang::En, "/tooling/"), (3, Lang::En, "/?p=3"), (4, Lang::Fr, "/tooling/")]);
     }
 
     #[test]
