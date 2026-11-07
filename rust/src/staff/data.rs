@@ -515,15 +515,17 @@ async fn user_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<
         .collect())
 }
 
-/// Every address seen signed in, dated by its own first and last sighting, with the company of the account it
-/// belongs to now (`account::for_email`), or else of the account it was last seen under.
+/// Every address seen signed in, once in whatever case it was written, dated by its own first and last sighting,
+/// with the company of the account it belongs to now (`account::for_email`), or else of the account its latest
+/// sighting was under.
 async fn email_export(pool: &SqlitePool, map: &Map, o: &Options) -> sqlx::Result<Vec<Record>> {
     let mut seen = sqlx::query!(
-        r#"SELECT e.email AS "email!: String", e.first_seen AS "first_seen!: i64", e.last_seen AS "last_seen!: i64",
-                  l.user_id AS "last_user_id!: i64"
-           FROM (SELECT email, min(date_time) AS first_seen, max(date_time) AS last_seen, max(id) AS last_id
-                 FROM log WHERE email <> '' AND user_id <> 0 GROUP BY email) e
-           JOIN log l ON l.id = e.last_id"#
+        r#"SELECT email AS "email!: String", first_seen AS "first_seen!: i64", last_seen AS "last_seen!: i64", user_id AS "last_user_id!: i64"
+           FROM (SELECT lower(trim(email)) AS email, user_id, min(date_time) OVER address AS first_seen, max(date_time) OVER address AS last_seen,
+                        row_number() OVER (address ORDER BY date_time DESC, id DESC) AS latest
+                 FROM log WHERE trim(email) <> '' AND user_id <> 0
+                 WINDOW address AS (PARTITION BY lower(trim(email))))
+           WHERE latest = 1"#
     )
     .fetch_all(pool)
     .await?;

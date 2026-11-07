@@ -265,6 +265,27 @@ async fn the_email_export_names_the_company_an_address_belongs_to_now() {
 }
 
 #[tokio::test]
+async fn the_email_export_lists_an_address_once_under_its_latest_sighting() {
+    let pool = seeded().await;
+    exec(&pool, r#"INSERT INTO "user" (id, status, "type", company_name) VALUES (5, 'Active', 'Customer', 'Early Works'), (6, 'Active', 'Customer', 'Late Works')"#).await;
+    exec(
+        &pool,
+        "INSERT INTO log (id, date_time, user_id, email, type) VALUES
+           (10, 1712000000, 6, 'Pat@Mail.example', 'Login'), (11, 1709604000, 5, 'pat@mail.example ', 'Login')",
+    )
+    .await;
+    let out = Scratch::new("once.csv", b"");
+    printed(run_on(&pool, &["export", "email", "--out", out.path()]).await);
+    let text = out.text();
+    let rows: Vec<&str> = text.lines().filter(|l| l.to_ascii_lowercase().contains("pat@mail.example")).collect();
+    assert_eq!(rows.len(), 1, "{text}");
+    assert!(rows[0].contains("pat@mail.example") && rows[0].contains("Late Works"), "{text}");
+    let on = |d| ["export", "email", "--source", "first", "--from", d, "--thru", d, "--out", out.path()];
+    printed(run_on(&pool, &on("2024-03-04")).await);
+    assert!(out.text().contains("Late Works"), "dated by the first sighting of any case: {}", out.text());
+}
+
+#[tokio::test]
 async fn the_subcategory_sheet_exports_the_status_and_its_import_leaves_it() {
     let pool = seeded().await;
     let out = Scratch::new("families.csv", b"");
