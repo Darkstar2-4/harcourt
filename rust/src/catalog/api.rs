@@ -98,7 +98,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
             }
             "quick_cad" => {
                 trace.extend(["json_quick_cad", "json_quick_cad_process"]);
-                let status = ctx.quick_cad(get("sku"), &mut out).await;
+                let status = ctx.quick_cad(&p, &visitor, &mut out).await;
                 out.insert("html".into(), json!({}));
                 out.insert("quick_cad_status".into(), json!(status));
             }
@@ -156,13 +156,23 @@ impl Api<'_> {
         catalog.family(part.subcategory_id).is_some_and(|f| catalog.shows(self.viewer, f))
     }
 
-    /// Whether this number is an inventory part the catalog hides from this viewer. A configured number the inventory
-    /// does not hold is the configurator's to answer for; a failed lookup counts as hidden.
-    async fn hides(&self, sku: &str) -> bool {
-        match self.find_part(sku.trim()).await {
-            Ok(None) => false,
-            Ok(Some(part)) => self.catalog().await.map_or(true, |c| !self.shows(&c, &part)),
-            Err(_) => true,
+    /// The family quick CAD's number belongs to (the one the configurator's `info` names, else the inventory part's),
+    /// unless the catalog hides the part or that family from this viewer. A configured number the inventory does
+    /// not hold is the configurator's to answer for; a failed lookup counts as hidden.
+    async fn cad_family(&self, sku: &str, configured: Option<&Configured>) -> Result<Option<(String, i64)>, ()> {
+        let catalog = self.catalog().await.map_err(drop)?;
+        let part = self.find_part(sku.trim()).await.map_err(drop)?;
+        if part.as_ref().is_some_and(|p| !self.shows(&catalog, p)) {
+            return Err(());
+        }
+        let family = match configured {
+            Some(c) => catalog.families.values().find(|f| c.names(&f.prj)),
+            None => part.as_ref().and_then(|p| catalog.family(p.subcategory_id)),
+        };
+        match family {
+            Some(f) if !catalog.shows(self.viewer, f) => Err(()),
+            Some(f) => Ok(Some((format!("{}: {}", catalog.category_name(f.category_id), f.name), f.id))),
+            None => Ok(None),
         }
     }
 
@@ -268,74 +278,179 @@ impl Api<'_> {
         Ok(cookies)
     }
 
-    /// json_quick_cad_process(): ask PARTsolutions for the part's CAD in the profile's format; a download is polled
-    /// until ready and handed over through action=download.
-    async fn quick_cad(&self, sku: &str, out: &mut Map<String, Value>) -> String {
+    /// json_quick_cad_process(): ask PARTsolutions for the CAD of the part's number, or of the configurator's part
+    /// (`lina`) when its answer is posted as `configurator`, in the profile's format; a download is polled until
+    /// ready and handed over through action=download. Each request is logged under PARTSolutions.
+    async fn quick_cad(&self, p: &HashMap<String, String>, visitor: &Visitor, out: &mut Map<String, Value>) -> String {
         let s = self.strings;
+        let profile = &self.profile;
+        if profile.cad_name.is_empty() {
+            return s.label("catalog_cad_invalid_code", "Invalid CAD code: {code}", &[("code", &html::esc_text(&profile.cad_code))]);
+        }
+        let configured = p.get("configurator").map(|json| Configured::parse(json));
+        let sku = match &configured {
+            Some(c) => c.lina.as_str(),
+            None => p.get("sku").map_or("", String::as_str),
+        };
+        let unavailable = || s.label("catalog_cad_quick_unavailable", "Quick CAD not available for {sku}", &[("sku", &html::esc_text(sku))]);
+        if !self.viewer.uses_quick_cad() || (configured.is_none() && sku.trim().is_empty()) {
+            return unavailable();
+        }
+        let Ok(family) = self.cad_family(sku, configured.as_ref()).await else { return unavailable() };
+        let result = self.generate(sku).await;
+        let mut comment: Vec<String> = family.iter().map(|(name, _)| name.clone()).collect();
+        comment.push(format!("CAD Format: {}", profile.cad_name));
+        let (subtype, status) = match &result {
+            Err(e) => {
+                comment.push(e.clone());
+                ("Quick CAD Error", s.label("catalog_cad_generator_error", "CAD Generator Error", &[]))
+            }
+            Ok(Generated::Emailed) => {
+                comment.extend(["Emailed to user".to_string(), "Transaction ID: ".to_string()]);
+                ("Quick CAD", format!("SKU: {} Format: {} Emailed to: {}", html::esc_text(sku), html::esc_text(&profile.cad_name), html::esc_text(&profile.email)))
+            }
+            Ok(Generated::File { link, order }) => {
+                let label = format!("Download File ({})", html::esc_text(sku));
+                comment.push(html::href_with(&label, link, &[("target", "_blank"), ("title", "Download CAD")]));
+                comment.push(format!("Transaction ID: {order}"));
+                out.insert("url".into(), json!(html::url("/scscpq_api.php", &html::Query::new().with("action", "download").with("url", link.as_str()))));
+                ("Quick CAD", "CAD File Downloaded Successfully".into())
+            }
+        };
+        self.log_quick_cad(visitor, subtype, sku, family.map_or(0, |(_, id)| id), &comment.join("\n")).await;
+        status
+    }
+
+    /// cad_generate_class: the request for this number, then, for a download, the polls until the file is named.
+    /// The error is the text the log keeps.
+    async fn generate(&self, sku: &str) -> Result<Generated, String> {
         let p = &self.profile;
-        if p.cad_name.is_empty() {
-            return s.label("catalog_cad_invalid_code", "Invalid CAD code: {code}", &[("code", &html::esc_text(&p.cad_code))]);
+        if sku.is_empty() {
+            return Err("SKU cannot blank".into());
         }
-        if !self.viewer.uses_quick_cad() || sku.trim().is_empty() || self.hides(sku).await {
-            return s.label("catalog_cad_quick_unavailable", "Quick CAD not available for {sku}", &[("sku", &html::esc_text(sku))]);
-        }
-        let server = self.reg.get("cad", "partserver_production");
+        let Some(server) = cad_url(self.reg.get("cad", "partserver_production")) else { return Err("PARTserver URL Missing".into()) };
         let catalog = self.reg.get("cad", "catalog");
-        let failed = s.label("catalog_cad_generator_error", "CAD Generator Error", &[]);
-        let Some(server) = cad_url(server).filter(|_| !catalog.is_empty()) else { return failed };
-        let name = format!("{} {}", p.name_first, p.name_last);
-        let mut fields = vec![
-            ("cgiaction", if p.generate { "generate" } else { "download" }.to_string()),
-            ("part", format!("{{PNO={catalog},{sku}}}")),
-            ("format", p.cad_code.clone()),
-            ("firm", catalog.to_string()),
-            ("server_type", format!("SUPPLIER_EXTERNAL_{catalog}")),
-            ("language", "english".into()),
-            ("country", p.country_code.clone()),
-            ("user", name),
-            ("userfirm", p.company_name.clone()),
-            ("street", p.address.clone()),
-            ("zip", p.zip.clone()),
-            ("city", p.city.clone()),
-            ("state", p.state.clone()),
-            ("email", p.email.clone()),
-            ("downloadflags", if p.cad_code == "PDFDATASHEET" { "XML" } else { "zip" }.into()),
-            ("zipfilename", format!("{catalog}_{sku}.zip")),
-            ("ok_url", if p.generate { "" } else { "<%download_xml%>" }.into()),
-            ("ok_url_type", if p.generate { "" } else { "text" }.into()),
-        ];
-        let key = self.reg.get("cad", "apikey");
-        if !key.is_empty() {
-            fields.push(("apikey", key.to_string()));
+        if catalog.is_empty() {
+            return Err("PARTserver Catalog Missing".into());
         }
-        let Ok(client) = reqwest::Client::builder().timeout(Duration::from_secs(30)).redirect(reqwest::redirect::Policy::none()).build() else { return failed };
-        let Ok(resp) = client.post(server).form(&fields).send().await else { return failed };
+        let fields = cad_request(p, catalog, self.reg.get("cad", "apikey"), sku);
+        let curl = |e: reqwest::Error| format!("CURL error: {e}");
+        let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).redirect(reqwest::redirect::Policy::none()).build().map_err(curl)?;
+        let resp = client.post(server).form(&fields).send().await.map_err(curl)?;
         if resp.status() != reqwest::StatusCode::OK {
-            return failed;
+            return Err(format!("HTTP error: {}", resp.status().as_u16()));
         }
         if p.generate {
-            return format!("SKU: {} Format: {} Emailed to: {}", html::esc_text(sku), html::esc_text(&p.cad_name), html::esc_text(&p.email));
+            return Ok(Generated::Emailed);
         }
-        let Some(poll_url) = cad_url(resp.text().await.unwrap_or_default().trim()) else { return failed };
+        let Some(poll_url) = cad_url(resp.text().await.unwrap_or_default().trim()) else { return Err("No response from server".into()) };
         for _ in 0..POLLS {
             tokio::time::sleep(Duration::from_secs(2)).await;
-            let Ok(r) = client.get(poll_url.clone()).send().await else { return failed };
+            let Ok(r) = client.get(poll_url.clone()).send().await else { return Err(format!("Cannot connect to {poll_url}")) };
             if r.status().as_u16() >= 400 {
                 continue;
             }
             let xml = r.text().await.unwrap_or_default();
-            if tag(&xml, "MESSAGE").is_some() {
-                return failed;
+            if let Some(message) = tag(&xml, "MESSAGE") {
+                return Err(message);
             }
-            if let Some(file) = tag(&xml, "ZIPFILE").or_else(|| tag(&xml, "FILENAME")) {
-                let link = poll_url.as_str().replace("download.xml", &file);
-                out.insert("url".into(), json!(html::url("/scscpq_api.php", &html::Query::new().with("action", "download").with("url", link))));
-                return "CAD File Downloaded Successfully".into();
-            }
-            return failed;
+            return match tag(&xml, "ZIPFILE").or_else(|| tag(&xml, "FILENAME")) {
+                Some(file) => Ok(Generated::File { link: poll_url.as_str().replace("download.xml", &file), order: tag(&xml, "ORDERNO").unwrap_or_default() }),
+                None => Err("Unknown CURL error".into()),
+            };
         }
-        failed
+        Err("Unknown CURL error".into())
     }
+
+    /// log->update(['PARTSolutions', subtype]): the profile's address is the row's email, as the PHP's log kept it.
+    async fn log_quick_cad(&self, visitor: &Visitor, subtype: &str, sku: &str, family_id: i64, comment: &str) {
+        let ip = visitor.client.map(|ip| ip.to_string()).unwrap_or_default();
+        let (now, user_id) = (crate::db::unix_now(), visitor.user().map_or(0, |u| u.id.0));
+        let email = &self.profile.email;
+        let result = sqlx::query!(
+            "INSERT INTO log (ip, date_time, user_id, bot_id, email, type, subtype, sku, subcategory_id, comment) VALUES (?1, ?2, ?3, 0, ?4, 'PARTSolutions', ?5, ?6, ?7, ?8)",
+            ip,
+            now,
+            user_id,
+            email,
+            subtype,
+            sku,
+            family_id,
+            comment
+        )
+        .execute(self.pool)
+        .await;
+        if let Err(e) = result {
+            tracing::warn!("quick CAD log write failed: {e}");
+        }
+    }
+}
+
+/// What PARTsolutions answered quick CAD: the file is being mailed, or a link to it and the order number.
+enum Generated {
+    Emailed,
+    File { link: String, order: String },
+}
+
+/// The configurator's PCOM_INFO answer, as quick CAD posts it from the Configure tab: the number it shows (`lina`)
+/// and the project its part id names (`partId`, `(info)(varset)`).
+#[derive(Debug, Default, PartialEq)]
+struct Configured {
+    lina: String,
+    info: String,
+}
+
+impl Configured {
+    fn parse(json: &str) -> Configured {
+        let v: Value = serde_json::from_str(json).unwrap_or_default();
+        let field = |k: &str| match v.get(k) {
+            Some(Value::String(s)) => s.clone(),
+            Some(n @ Value::Number(_)) => n.to_string(),
+            _ => String::new(),
+        };
+        Configured { lina: field("lina"), info: mident_info(&field("partId")).unwrap_or("").to_string() }
+    }
+
+    /// Whether a family's project (subcategory.prj) is this part's, `info={info}`, compared as MariaDB compared it.
+    fn names(&self, prj: &str) -> bool {
+        !self.info.is_empty() && crate::staff::filesort::ci_eq(prj, &format!("info={}", self.info))
+    }
+}
+
+/// parse_mident: the `info` of a part id `(info)(varset)`.
+fn mident_info(mident: &str) -> Option<&str> {
+    mident.strip_prefix('(')?.strip_suffix(')')?.rsplit_once(")(").map(|(info, _)| info)
+}
+
+/// The fields cad_generate_class posts for a number (`generate_sku`: the part named by catalog and number).
+fn cad_request(p: &Profile, catalog: &str, apikey: &str, sku: &str) -> Vec<(&'static str, String)> {
+    let mut fields = vec![
+        ("cgiaction", if p.generate { "generate" } else { "download" }.to_string()),
+        ("part", format!("{{PNO={catalog},{sku}}}")),
+        ("format", p.cad_code.clone()),
+        ("firm", catalog.to_string()),
+        ("server_type", format!("SUPPLIER_EXTERNAL_{catalog}")),
+    ];
+    if !apikey.is_empty() {
+        fields.push(("apikey", apikey.to_string()));
+    }
+    fields.extend([
+        ("language", "english".into()),
+        ("country", p.country_code.clone()),
+        ("user", format!("{} {}", p.name_first, p.name_last)),
+        ("userfirm", p.company_name.clone()),
+        ("street", p.address.clone()),
+        ("zip", p.zip.clone()),
+        ("city", p.city.clone()),
+        ("state", p.state.clone()),
+        ("phone", p.phone.clone()),
+        ("email", p.email.clone()),
+        ("downloadflags", if p.cad_code == "PDFDATASHEET" { "XML" } else { "zip" }.into()),
+        ("zipfilename", format!("{catalog}_{sku}.zip")),
+        ("ok_url", if p.generate { "" } else { "<%download_xml%>" }.into()),
+        ("ok_url_type", if p.generate { "" } else { "text" }.into()),
+    ]);
+    fields
 }
 
 /// The text of the first `<NAME>` element, enough for PARTsolutions' download.xml.
@@ -403,6 +518,33 @@ mod tests {
         for other in ["http://webassistants.partcommunity.com/x", "https://partcommunity.com.example/x", "https://example.com/x.partcommunity.com", "https://partcommunity.com/x", ""] {
             assert_eq!(fetched(other), None, "{other}");
         }
+    }
+
+    #[test]
+    fn the_configurator_answer_names_its_number_and_project() {
+        let posted = r#"{"standardName":"Ball Lock Pin","lina":"PIN_10","partId":"(harcourt/pins/pin.prj)({LEN=10},{D=6})"}"#;
+        assert_eq!(Configured::parse(posted), Configured { lina: "PIN_10".into(), info: "harcourt/pins/pin.prj".into() });
+        assert_eq!(mident_info("(a/(b).prj)({X=1})"), Some("a/(b).prj"));
+        assert_eq!(mident_info("harcourt/pins/pin.prj"), None);
+        assert_eq!(Configured::parse("not json"), Configured::default());
+        let pin = Configured::parse(posted);
+        assert!(pin.names("INFO=harcourt/pins/pin.prj"));
+        assert!(!pin.names("info=harcourt/pins/pin.prj&varset={LEN=20}"));
+        assert!(!Configured::default().names("info="));
+    }
+
+    #[test]
+    fn quick_cad_asks_for_the_number_in_the_catalog() {
+        let p = Profile { email: "buyer@example.com".into(), name_first: "Pat".into(), name_last: "Lee".into(), cad_code: "STEP".into(), phone: "555-0100".into(), ..Default::default() };
+        let fields: HashMap<_, _> = cad_request(&p, "harcourt", "", "PIN_10").into_iter().collect();
+        assert_eq!(fields["part"], "{PNO=harcourt,PIN_10}");
+        assert_eq!(fields["zipfilename"], "harcourt_PIN_10.zip");
+        assert_eq!((fields["cgiaction"].as_str(), fields["ok_url"].as_str(), fields["ok_url_type"].as_str()), ("download", "<%download_xml%>", "text"));
+        assert_eq!((fields["user"].as_str(), fields["phone"].as_str(), fields["email"].as_str()), ("Pat Lee", "555-0100", "buyer@example.com"));
+        assert!(!fields.contains_key("apikey"));
+        let emailed = Profile { generate: true, ..p };
+        let fields: HashMap<_, _> = cad_request(&emailed, "harcourt", "k1", "PIN_10").into_iter().collect();
+        assert_eq!((fields["cgiaction"].as_str(), fields["ok_url"].as_str(), fields["apikey"].as_str()), ("generate", "", "k1"));
     }
 
     #[test]
