@@ -1,6 +1,8 @@
 //! What the search box opens (catalog.php search_source=search): the row the visitor picked, an exact part
 //! number, or the keyword search over the `search` table.
 
+use std::collections::HashMap;
+
 use super::{family, home, Ctx};
 use crate::catalog::{html::esc_text, keywords, model, model::Part, search};
 
@@ -160,33 +162,45 @@ async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
 }
 
 /// search_code() as prod has it: the keyword search (keywords.rs), corrected for a typo when it finds nothing,
-/// grouped by family and listed best-ranked first.
+/// grouped by family and listed best-ranked first. A matched row counts as the row the search box shows for it
+/// (`search::shown_row`): a family name or search word in the other language as the family's row in the visitor's.
 async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let raw = ctx.req.raw_search_code.trim().to_string();
     let terms: Vec<String> = if raw.is_empty() { vec![String::new()] } else { raw.split_whitespace().map(str::to_string).collect() };
     let lang = ctx.viewer.lang.code();
+    let row_lang = search::Lang::from(ctx.viewer.lang);
     let within = ctx.subcategory_id;
-    let rows: Vec<keywords::Row> = sqlx::query!(
+    let rows: Vec<(Option<search::Lang>, keywords::Row)> = sqlx::query!(
         r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", s.category_id AS "category_id?: i64",
                   s.subcategory_id AS "subcategory_id?: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
-                  coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
+                  coalesce(s.language_code, '') AS "lang!: String", coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
            FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
-           WHERE coalesce(s.language_code, '') IN ('', ?1) AND s.table_name IS NOT NULL AND s.code IS NOT NULL
-           ORDER BY s.id"#,
-        lang
+           WHERE s.table_name IS NOT NULL AND s.code IS NOT NULL
+           ORDER BY s.id"#
     )
     .fetch_all(ctx.pool)
     .await?
     .into_iter()
     .filter_map(|r| {
+        let lang = search::Lang::of_row(&r.lang)?;
         let (category_id, subcategory_id) = shown(ctx, &r.table, r.category_id.unwrap_or(0), r.subcategory_id.unwrap_or(0), r.part_family, r.part_active != 0)?;
-        (within == 0 || subcategory_id == within).then(|| keywords::Row {
+        (within == 0 || subcategory_id == within).then(|| (lang, keywords::Row {
             code_normalized: search::normalize_code(&r.code),
             table: r.table,
             code: r.code,
-            category_id, subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking })
+            category_id, subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking }))
     })
     .collect();
+    let mut family_rows: HashMap<i64, &keywords::Row> = HashMap::new();
+    for (_, r) in rows.iter().filter(|(l, r)| *l == Some(row_lang) && r.table == "subcategory") {
+        family_rows.entry(r.subcategory_id).or_insert(r);
+    }
+    let matching = |filter: &keywords::Filter| -> Vec<&keywords::Row> {
+        rows.iter()
+            .filter(|(_, r)| filter.matches(r))
+            .filter_map(|(l, r)| search::shown_row(search::Kind::parse(&r.table), *l, row_lang, r, || family_rows.get(&r.subcategory_id).copied()))
+            .collect()
+    };
     let names: Vec<(i64, String)> = sqlx::query!(
         r#"SELECT record_id AS "id!: i64", name AS "name!" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', ?1)"#,
         lang
@@ -198,14 +212,15 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     .collect();
     let categories = keywords::category_words(&names);
     let mut filter = keywords::Filter::new(&terms, &categories);
-    let mut matched: Vec<&keywords::Row> = rows.iter().filter(|r| filter.matches(r)).collect();
+    let mut matched = matching(&filter);
     let mut corrected = String::new();
     if matched.is_empty() {
-        let kw = keywords::keywords(rows.iter().filter(|r| matches!(r.table.as_str(), "category" | "subcategory" | "search_words")).map(|r| r.code.as_str()));
+        let vocabulary = rows.iter().filter(|(l, r)| l.is_none_or(|l| l == row_lang) && matches!(r.table.as_str(), "category" | "subcategory" | "search_words"));
+        let kw = keywords::keywords(vocabulary.map(|(_, r)| r.code.as_str()));
         let fixed = keywords::correct(&terms, &kw);
         if fixed != terms {
             filter = keywords::Filter::new(&fixed, &categories);
-            matched = rows.iter().filter(|r| filter.matches(r)).collect();
+            matched = matching(&filter);
             if !matched.is_empty() {
                 corrected = fixed.join(" ");
             }

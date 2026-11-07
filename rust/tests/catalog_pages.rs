@@ -448,6 +448,31 @@ async fn search_results_place_rows_indexed_before_their_family_had_a_category() 
 }
 
 #[tokio::test]
+async fn an_entered_term_finds_a_family_by_its_name_in_the_other_language_as_the_search_box_does() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, pricing, active, sort_order) VALUES (5, 'LOCK-9', 2, 9, '[]', 1, 5), (6, 'DETENT-9', 2, 9, '[]', 1, 6)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 1, 7, 0, 1), (602, 'EN', 1, 'search_words', 'detent', 1, 7, 0, 1000001), (603, '', 1, 'inventory', 'LOCK-9', 2, 9, 5, 2000005), (604, '', 1, 'inventory', 'DETENT-9', 2, 9, 6, 2000006), (605, 'EN', 1, 'subcategory', 'Toggle Clamps (Metric)', 2, 9, 0, 2)").await;
+    let french = signed_in(&h.pool, &Account::customer(36)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 36").await;
+    let english = signed_in(&h.pool, &Account::customer(37)).await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    let listed = |body: &str, family: u32| body.matches(&format!("<span class='subcat{family}'></span>")).count();
+    for (cookie, who) in [(&french, "French"), (&english, "English")] {
+        for term in ["lock", "detent"] {
+            let (_, _, body) = send(&h.app, get(&enter(term), Some(cookie))).await;
+            assert!(listed(&body, 7) == 1 && listed(&body, 9) == 1 && !body.contains("Part number:"), "{who}, {term}: the family and the part's family: {body}");
+        }
+        let (_, _, body) = send(&h.app, get(&enter("ll"), Some(cookie))).await;
+        assert_eq!(listed(&body, 7), 1, "{who}: a family matched in both languages is listed once: {body}");
+    }
+    let (_, _, body) = send(&h.app, get(&enter("toggle"), Some(&french))).await;
+    assert_eq!(listed(&body, 9), 0, "a family with no French name row is not listed in French: {body}");
+    let (_, _, body) = send(&h.app, get(&enter("toggle"), Some(&english))).await;
+    assert_eq!(listed(&body, 9), 1, "{body}");
+}
+
+#[tokio::test]
 async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;

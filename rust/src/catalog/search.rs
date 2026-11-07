@@ -47,7 +47,7 @@ const CODE_ALPHABET: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const WORD_ALPHABET: &str = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Lang {
+pub(super) enum Lang {
     En,
     Fr,
 }
@@ -60,10 +60,24 @@ impl Lang {
             _ => None,
         }
     }
+
+    /// A `search` row's language_code: `Some(None)` for every language (''), none for a code not understood.
+    pub(super) fn of_row(code: &str) -> Option<Option<Lang>> {
+        if code.is_empty() { Some(None) } else { Lang::parse(code).map(Some) }
+    }
+}
+
+impl From<viewer::Lang> for Lang {
+    fn from(lang: viewer::Lang) -> Lang {
+        match lang {
+            viewer::Lang::En => Lang::En,
+            viewer::Lang::Fr => Lang::Fr,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind {
+pub(super) enum Kind {
     Part,
     Competitor,
     Family,
@@ -71,7 +85,7 @@ enum Kind {
 }
 
 impl Kind {
-    fn parse(table: &str) -> Option<Kind> {
+    pub(super) fn parse(table: &str) -> Option<Kind> {
         match table {
             "inventory" => Some(Kind::Part),
             "competitor_sku" => Some(Kind::Competitor),
@@ -405,7 +419,7 @@ fn entry(line: &str) -> Option<(String, Entry)> {
     let e = Entry {
         row_id: id.parse().ok()?,
         kind: Kind::parse(table)?,
-        lang: if lang.is_empty() { None } else { Some(Lang::parse(lang)?) },
+        lang: Lang::of_row(lang)?,
         code: code.into(),
         category_id: number(category)?,
         subcategory_id: number(subcategory)?,
@@ -761,14 +775,11 @@ impl Answer<'_> {
         self.cap - self.hits.len()
     }
 
-    /// The entry shown for a matched one: itself, or for a family name or search word in the other language, the
-    /// family's own entry in the visitor's language (none when it has no row in that language).
+    /// The entry shown for a matched one (`shown_row`), when this viewer is shown it.
     fn shown(&self, e: u32) -> Option<u32> {
         let m = &self.ix.entries[e as usize];
-        let s = match m.lang {
-            Some(l) if l != self.ctx.lang => self.ix.families.get(&m.subcategory_id)?.rows[self.ctx.lang as usize]?,
-            _ => e,
-        };
+        let lang = self.ctx.lang;
+        let s = shown_row(Some(m.kind), m.lang, lang, e, || self.ix.families.get(&m.subcategory_id)?.rows[lang as usize])?;
         self.ix.shows(&self.ix.entries[s as usize], self.ctx).then_some(s)
     }
 
@@ -822,6 +833,17 @@ impl Answer<'_> {
             }
             n *= 4;
         }
+    }
+}
+
+/// The row shown for a matched one, in the search box and on Enter (`pages::results`): itself when it is in every
+/// language or the visitor's; for a family name or search word in the other language, its family's own family-name
+/// row in the visitor's language (`family_row`, none when the family has none); for any other row in the other
+/// language, none.
+pub(super) fn shown_row<R>(kind: Option<Kind>, row: Option<Lang>, lang: Lang, own: R, family_row: impl FnOnce() -> Option<R>) -> Option<R> {
+    match row {
+        Some(l) if l != lang => kind.is_some_and(Kind::is_family).then(family_row).flatten(),
+        _ => Some(own),
     }
 }
 
@@ -1187,11 +1209,7 @@ fn learned_files(dir: &Path) -> Option<[String; 2]> {
 /// The search row the search box would put first for `term`: what the results page opens when its own keyword
 /// search finds nothing.
 pub async fn best(cache: &Cache, pool: &SqlitePool, viewer: &Viewer, term: &str) -> sqlx::Result<Option<u64>> {
-    let lang = match viewer.lang {
-        viewer::Lang::En => Lang::En,
-        viewer::Lang::Fr => Lang::Fr,
-    };
-    Ok(cache.index(pool).await?.and_then(|ix| first_row(&ix, term, &scope(viewer, lang))))
+    Ok(cache.index(pool).await?.and_then(|ix| first_row(&ix, term, &scope(viewer, viewer.lang.into()))))
 }
 
 /// Limit 2, not 1: a Lookup item takes one place, and the first row does not depend on the limit.
