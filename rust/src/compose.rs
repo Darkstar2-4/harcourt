@@ -255,7 +255,14 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
         (Some(account), _) if !flag_click => {
             let to = visit_language(app, visit.as_ref(), account).await?;
             if to != page {
-                if let (Some(db), Some(v), Some(before)) = (&app.db, &came_with, &language_before) {
+                // The visit the browser came with goes back to its language; one the loader began for this request
+                // had none.
+                let restore = match (&came_with, &visit) {
+                    (Some(v), _) => language_before.clone().map(|before| (v, before)),
+                    (None, Some(begun)) => Some((begun, None)),
+                    (None, None) => None,
+                };
+                if let (Some(db), Some((v, before))) = (&app.db, restore) {
                     visit::restore_language(db, v, before.as_deref()).await.map_err(|e| format!("visit: {e}"))?;
                 }
                 return redirect(nav, &page_uri(to, &without_lang(query)), "account-language", set_cookies);
@@ -602,6 +609,31 @@ mod tests {
         let req = Request::builder().uri(uri).header("x-hx-nav", "1").header(header::COOKIE, cookie).body(Body::empty()).unwrap();
         let body = axum::body::to_bytes(handle(app, req).await.into_body(), 1 << 22).await.unwrap();
         serde_json::from_slice(&body).unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_visit_begun_by_a_link_sent_to_the_accounts_language_keeps_no_language() {
+        let (app, pool) = composer().await;
+        let cookie = signed_in(&pool, 63, "Active").await;
+        let session_only = cookie.split("; PHPSESSID").next().unwrap().to_string();
+        let req = Request::builder()
+            .uri("/catalogue/?lang=fr&action=subcategory&subcategory_id=7")
+            .header("x-hx-nav", "1")
+            .header(header::COOKIE, &session_only)
+            .body(Body::empty())
+            .unwrap();
+        let resp = handle(&app, req).await;
+        let sid = resp
+            .headers()
+            .get_all(header::SET_COOKIE)
+            .iter()
+            .filter_map(|v| v.to_str().ok())
+            .find_map(|c| c.strip_prefix("PHPSESSID=").map(|c| c.split(';').next().unwrap_or("").to_string()))
+            .expect("the page began a visit");
+        let body: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), 1 << 22).await.unwrap()).unwrap();
+        assert_eq!(body, serde_json::json!({ "redirect": "/catalog/?action=subcategory&subcategory_id=7" }));
+        let stored = visit::load(&pool, &VisitId::of(&sid), hxweb::db::unix_now()).await.unwrap();
+        assert_eq!(stored.language_code, None, "the account's language stands for the visit, whether or not the redirect is followed");
     }
 
     #[tokio::test]
