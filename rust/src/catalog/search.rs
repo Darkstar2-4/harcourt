@@ -108,7 +108,8 @@ struct Entry {
     category_id: u32,
     subcategory_id: u32,
     inventory_id: u32,
-    ranking: u64,
+    /// A family's sort order as staff set it, which may be below zero.
+    ranking: i64,
 }
 
 #[derive(Default)]
@@ -1871,5 +1872,13 @@ ghost\t10\tNOPE-1\t4
         assert_eq!(first("HB-LT1"), Some(2));
         assert_eq!(first("HB.LT.1"), Some(1), "nothing as typed: parts first, by ranking");
         assert_eq!(as_typed(" hb lt 1 "), vec!["HB LT 1", "HBLT1", "HB_LT_1"]);
+    }
+
+    #[test]
+    fn a_family_sorted_below_zero_is_suggested_first() {
+        let rows = "1\tsubcategory\tEN\t1\tToggle Clamp\t1\t10\t0\t3\n2\tsubcategory\tEN\t1\tToggle Plate\t1\t11\t0\t-5\n";
+        let ix = Index::build(rows, "10\t1\tActive\tToggle Clamp\t\n11\t1\tActive\tToggle Plate\t\n", "1\tClamps\t\n", "", "", "").unwrap();
+        let found: Vec<String> = run(&ix, "toggle", &Ctx::default()).into_iter().map(|(l, _)| l).collect();
+        assert!(found.len() >= 2 && found[0].contains("Plate") && found[1].contains("Clamp"), "{found:?}");
     }
 }
