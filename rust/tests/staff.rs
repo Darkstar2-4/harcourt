@@ -519,6 +519,23 @@ async fn count(pool: &SqlitePool, sql: &str) -> i64 {
     sqlx::query_scalar(sql).fetch_one(pool).await.unwrap()
 }
 
+/// The codes and ids an account, a family or a part may name.
+async fn lookups(pool: &SqlitePool) {
+    sqlx::raw_sql(
+        r#"INSERT INTO currency (code, name, exchange_rate) VALUES ('USD', 'US Dollar', 1), ('CAD', 'Canadian Dollar', 1.4);
+           INSERT INTO language (code, name, local_name, priority) VALUES ('EN', 'English', 'English', 1), ('FR', 'French', 'Français', 2);
+           INSERT INTO country (country, state, name, alias) VALUES ('US', '', 'United States', '^usa^'), ('CA', '', 'Canada', NULL), ('CA', 'ON', 'Ontario', NULL);
+           INSERT INTO portal (id, name, legacy) VALUES (4, 'Integrators', 0);
+           INSERT INTO document (id, parent_id, active) VALUES (9, 1, 1);
+           INSERT INTO industry (id, name) VALUES (3, 'Aerospace');
+           INSERT INTO category (id, name) VALUES (2, 'Pins');
+           INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (8, 2, 'Ball lock pins', 'Active', 'Call');"#,
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
 #[tokio::test]
 async fn the_table_admin_lists_creates_edits_and_deletes_a_row() {
     let h = harness().await;
@@ -663,6 +680,7 @@ async fn an_administrator_edits_accounts_up_to_their_own_role() {
     let admin = person(&h.pool, 1, "Administrator").await;
     person(&h.pool, 6, "Super User").await;
     person(&h.pool, 7, "Customer").await;
+    lookups(&h.pool).await;
     sqlx::query(r#"UPDATE "user" SET language_code = 'FR', comment = '' WHERE id = 7"#).execute(&h.pool).await.unwrap();
     let (_, _, list) = send(&h.app, get("/staff/admin/user?q=test+company", Some(&admin))).await;
     assert!(list.contains("<td class=center>6</td><td>Test company 6</td>"), "{list}");
@@ -692,6 +710,7 @@ async fn an_account_domain_is_never_a_free_mail_domain() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
     person(&h.pool, 7, "Customer").await;
+    lookups(&h.pool).await;
     let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
     let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("domain", "GMail.com")])).await;
     assert_eq!(status, StatusCode::OK);
@@ -707,6 +726,7 @@ async fn account_price_terms_saved_in_the_table_admin_follow_the_import_rule() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
     person(&h.pool, 7, "Customer").await;
+    lookups(&h.pool).await;
     let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
     for (kind, pct, error) in [("discount", "10", "Must be &gt; 0% and &lt; 100%"), ("discount", "", "Must be &gt; 0% and &lt; 100%"), ("plus", "5", "Must be &gt; 0% and &lt; 500%"), ("base", "0.1", "Must be 0%")] {
         let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", kind), ("price_pct", pct)])).await;
@@ -715,7 +735,10 @@ async fn account_price_terms_saved_in_the_table_admin_follow_the_import_rule() {
     }
     let terms: (String, f64) = sqlx::query_as(r#"SELECT price_type, price_pct FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(terms, (String::new(), 0.0), "nothing refused was stored");
-    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", "discount"), ("price_pct", "0.15")])).await;
+    let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", "discount"), ("price_pct", "0.15")])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Pricing requires catalog access"), "{again}");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", "discount"), ("price_pct", "0.15"), ("catalog", "1")])).await;
     assert_eq!(status, StatusCode::FOUND);
     let terms: (String, f64) = sqlx::query_as(r#"SELECT price_type, price_pct FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(terms, ("discount".into(), 0.15));
@@ -725,7 +748,8 @@ async fn account_price_terms_saved_in_the_table_admin_follow_the_import_rule() {
 async fn a_family_lead_time_saved_in_the_table_admin_follows_the_import_rule() {
     let h = harness().await;
     let admin = person(&h.pool, 1, "Administrator").await;
-    sqlx::query("INSERT INTO subcategory (id, name, status, leadtime_option) VALUES (3, 'Toggle clamps', 'Active', 'Call')").execute(&h.pool).await.unwrap();
+    lookups(&h.pool).await;
+    sqlx::query("INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (3, 2, 'Toggle clamps', 'Active', 'Call')").execute(&h.pool).await.unwrap();
     let (_, _, page) = send(&h.app, get("/staff/admin/subcategory/3", Some(&admin))).await;
     let select = page[page.find("<select name='leadtime_option'").unwrap()..].split("</select>").next().unwrap();
     assert!(select.contains("<option value='Call' selected") && !select.contains("<option></option>"), "no blank lead time is offered: {select}");
@@ -793,17 +817,151 @@ async fn inventory_is_searched_by_part_number_and_edited_one_row_at_a_time() {
 
     let (_, _, page) = send(&h.app, get("/staff/admin/inventory/100", Some(&admin))).await;
     assert!(page.contains("<td width='30%'>Part#</td><td width='70%'>CD-1</td>"), "the part number is shown, not edited");
-    let (status, _, _) = post_form(&h.app, "/staff/admin/inventory/100", &admin, &changed(&page, &[("sort_order", "7"), ("active", "1"), ("leadtime_option", "Call")])).await;
+    let edit = [("sort_order", "7"), ("active", "1"), ("leadtime_option", "Call")];
+    let (status, _, again) = post_form(&h.app, "/staff/admin/inventory/100", &admin, &changed(&page, &edit)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(again.contains("Subcategory: Required"), "a part is in a family: {again}");
+    lookups(&h.pool).await;
+    let (status, _, _) = post_form(&h.app, "/staff/admin/inventory/100", &admin, &changed(&page, &[edit.as_slice(), &[("subcategory_id", "8")]].concat())).await;
     assert_eq!(status, StatusCode::FOUND);
-    let row: (String, i64, i64, String, String) =
-        sqlx::query_as("SELECT sku, sort_order, active, leadtime_option, new_date FROM inventory WHERE id = 100").fetch_one(&h.pool).await.unwrap();
-    assert_eq!(row, ("CD-1".into(), 7, 1, "Call".into(), "0000-00-00".into()));
+    let row: (String, i64, i64, String, String, i64) =
+        sqlx::query_as("SELECT sku, sort_order, active, leadtime_option, new_date, category_id FROM inventory WHERE id = 100").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(row, ("CD-1".into(), 7, 1, "Call".into(), "0000-00-00".into(), 2), "the part takes its family's category");
     for (path, method) in [("/staff/admin/inventory/new", Method::GET), ("/staff/admin/inventory/new", Method::POST), ("/staff/admin/inventory/100/delete", Method::POST)] {
         let req = if method == Method::GET { get(path, Some(&admin)) } else { post(path, &admin, &[("csrf", csrf_of(&page).as_str())]) };
         let (status, _, _) = send(&h.app, req).await;
         assert_eq!(status, StatusCode::NOT_FOUND, "{method} {path}");
     }
     assert_eq!(count(&h.pool, "SELECT count(*) FROM inventory").await, 56);
+}
+
+/// One rule of the import, as the table admin's form posts it and as an import line gives it.
+struct Rule {
+    table: &'static str,
+    id: i64,
+    admin: &'static [(&'static str, &'static str)],
+    import: &'static [(&'static str, &'static str)],
+    /// What both store, or None when both refuse the row.
+    stored: Option<&'static [(&'static str, &'static str)]>,
+}
+
+const RULES: &[Rule] = &[
+    Rule { table: "user", id: 7, admin: &[("country_code", "canada"), ("state", "ontario")], import: &[("Country Code", "canada"), ("State/Province", "ontario")], stored: Some(&[("country_code", "CA"), ("state", "ON")]) },
+    Rule { table: "user", id: 7, admin: &[("country_code", "Atlantis")], import: &[("Country Code", "Atlantis")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("currency_code", "cad")], import: &[("currency_code", "cad")], stored: Some(&[("currency_code", "CAD")]) },
+    Rule { table: "user", id: 7, admin: &[("currency_code", "EUR")], import: &[("currency_code", "EUR")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("language_code", "fr")], import: &[("language_code", "fr")], stored: Some(&[("language_code", "FR")]) },
+    Rule { table: "user", id: 7, admin: &[("zip", "k1a 0b1"), ("customer_code", "ab1")], import: &[("ZIP/Postal Cost", "k1a 0b1"), ("customer_code", "ab1")], stored: Some(&[("zip", "K1A 0B1"), ("customer_code", "AB1")]) },
+    Rule { table: "user", id: 7, admin: &[("ip", "010.0.0.7")], import: &[("ip", "010.0.0.7")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("company_name", "")], import: &[("Company Name", "")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("login_document_id", "5")], import: &[("login_document_id", "5")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("portal_id", "4"), ("landing_document_id", "9")], import: &[("portal_id", "4"), ("landing_document_id", "9")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("portal_id", "4")], import: &[("portal_id", "4")], stored: Some(&[("portal_id", "4")]) },
+    Rule { table: "user", id: 7, admin: &[("industry_id", "3")], import: &[("industry_name", "aerospace")], stored: Some(&[("industry_id", "3")]) },
+    Rule { table: "user", id: 7, admin: &[("price_type", "base"), ("price_pct", "0")], import: &[("price_type", "base"), ("price_pct", "0"), ("catalog", "0")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("cad", "1")], import: &[("cad", "1"), ("catalog", "0")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("catalog", "1"), ("price_type", "discount"), ("price_pct", "10")], import: &[("catalog", "1"), ("price_type", "discount"), ("price_pct", "10")], stored: None },
+    Rule { table: "user", id: 7, admin: &[("catalog", "1"), ("price_type", "plus"), ("price_pct", "0.25")], import: &[("catalog", "1"), ("price_type", "plus"), ("price_pct", "0.25")], stored: Some(&[("price_type", "plus"), ("price_pct", "0.25")]) },
+    Rule { table: "subcategory", id: 8, admin: &[("prj", "x=1")], import: &[("PRJ", "x=1")], stored: None },
+    Rule {
+        table: "subcategory",
+        id: 8,
+        admin: &[("prj", "info=pins/a.prj"), ("leadtime_option", "Weeks"), ("leadtime_text", "4"), ("sort_order", "-3")],
+        import: &[("PRJ", "info=pins/a.prj"), ("Leadtime Option", "weeks"), ("Leadtime Weeks", "4"), ("Sort Order", "-3")],
+        stored: Some(&[("prj", "info=pins/a.prj"), ("leadtime_option", "Weeks"), ("leadtime_text", "4"), ("sort_order", "-3")]),
+    },
+    Rule { table: "subcategory", id: 8, admin: &[("leadtime_option", "Weeks"), ("leadtime_text", "")], import: &[("Leadtime Option", "Weeks"), ("Leadtime Weeks", "")], stored: None },
+    Rule { table: "subcategory", id: 8, admin: &[("leadtime_option", "Call"), ("leadtime_text", "4")], import: &[("Leadtime Option", "Call"), ("Leadtime Weeks", "4")], stored: None },
+    Rule { table: "inventory", id: 100, admin: &[("competitor_sku", "b-200, a-100,A-100")], import: &[("Competitor SKU", "b-200, a-100,A-100")], stored: Some(&[("competitor_sku", "A-100,B-200")]) },
+    Rule { table: "inventory", id: 100, admin: &[("competitor_sku", "ab")], import: &[("Competitor SKU", "ab")], stored: None },
+    Rule {
+        table: "inventory",
+        id: 100,
+        admin: &[("subcategory_id", "12")],
+        import: &[("Category Name", "Clamps"), ("Subcategory Name", "Toggle clamps")],
+        stored: Some(&[("subcategory_id", "12"), ("category_id", "5")]),
+    },
+    Rule { table: "inventory", id: 100, admin: &[("leadtime_option", "Weeks"), ("leadtime_text", "")], import: &[("Leadtime Option", "Weeks"), ("Leadtime Weeks", "")], stored: None },
+    Rule { table: "inventory", id: 100, admin: &[("sort_order", "-2")], import: &[("Sort Order", "-2")], stored: Some(&[("sort_order", "-2")]) },
+];
+
+/// An account, a family and a part that every rule leaves valid but for what it changes.
+async fn ruled() -> (Harness, String) {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 7, "Customer").await;
+    lookups(&h.pool).await;
+    sqlx::raw_sql(
+        r#"UPDATE "user" SET ip = '192.0.2.7', country_code = 'US' WHERE id = 7;
+           INSERT INTO category (id, name) VALUES (5, 'Clamps');
+           INSERT INTO subcategory (id, category_id, name, status, leadtime_option) VALUES (12, 5, 'Toggle clamps', 'Active', 'Call');
+           INSERT INTO inventory (id, sku, category_id, subcategory_id, leadtime_option) VALUES (100, 'CD-1', 2, 8, 'Call');"#,
+    )
+    .execute(&h.pool)
+    .await
+    .unwrap();
+    (h, admin)
+}
+
+async fn stored_text(pool: &SqlitePool, table: &str, id: i64, cols: &[(&str, &str)]) -> Vec<String> {
+    let mut out = Vec::new();
+    for (col, _) in cols {
+        let sql = format!(r#"SELECT COALESCE(CAST("{col}" AS TEXT), 'NULL') FROM "{table}" WHERE id = ?1"#);
+        out.push(sqlx::query_scalar::<_, String>(&sql).bind(id).fetch_one(pool).await.unwrap());
+    }
+    out
+}
+
+#[tokio::test]
+async fn the_table_admin_stores_what_the_import_stores_and_refuses_what_it_refuses() {
+    use hxweb::staff::{
+        data::{self, Options, Table},
+        map::{FileType, Sheet},
+    };
+    for rule in RULES {
+        let what = format!("{} {:?}", rule.table, rule.admin);
+        let (h, admin) = ruled().await;
+        let path = format!("/staff/admin/{}/{}", rule.table, rule.id);
+        let (_, _, page) = send(&h.app, get(&path, Some(&admin))).await;
+        let (status, _, answer) = post_form(&h.app, &path, &admin, &changed(&page, rule.admin)).await;
+        assert_eq!(status == StatusCode::FOUND, rule.stored.is_some(), "admin {what}: {answer}");
+
+        let (imported, _) = ruled().await;
+        let (table, key) = match rule.table {
+            "user" => (Table::User, vec![("id", "7"), ("ip", "192.0.2.7")]),
+            "subcategory" => (Table::Subcategory, vec![("Subcategory ID", "8"), ("Leadtime Option", "Call"), ("Leadtime Weeks", "")]),
+            _ => (Table::Inventory, vec![("Harcourt SKU", "CD-1")]),
+        };
+        let mut cells: Vec<(&str, &str)> = key.into_iter().filter(|(k, _)| !rule.import.iter().any(|(n, _)| n == k)).collect();
+        cells.extend(rule.import);
+        let rows = vec![cells.iter().map(|(k, _)| k.to_string()).collect(), cells.iter().map(|(_, v)| v.to_string()).collect()];
+        let report = data::import(&imported.pool, table, &Options::default(), Sheet { file_type: FileType::Txt, rows, worksheet: None }, true).await.unwrap();
+        assert_eq!(report.rejected.is_empty(), rule.stored.is_some(), "import {what}: {:?}", report.rejected);
+
+        if let Some(stored) = rule.stored {
+            let want: Vec<String> = stored.iter().map(|(_, v)| v.to_string()).collect();
+            assert_eq!(stored_text(&h.pool, rule.table, rule.id, stored).await, want, "admin {what}");
+            assert_eq!(stored_text(&imported.pool, rule.table, rule.id, stored).await, want, "import {what}");
+        }
+    }
+}
+
+#[tokio::test]
+async fn search_utility_takes_families_and_parts_with_no_category_or_sort_order() {
+    let h = harness().await;
+    for sql in [
+        "INSERT INTO subcategory (id, category_id, status, sort_order, search_words) VALUES (10, NULL, 'Active', NULL, 'riser'), (11, 2, 'Active', -4, '')",
+        "INSERT INTO content (record_type, record_id, record_item, language_code, name) VALUES ('subcategory', 10, '', 'EN', 'Toggle'), ('subcategory', 11, '', 'EN', 'Pins')",
+        "INSERT INTO inventory (id, sku, category_id, subcategory_id, active, sort_order, competitor_sku) VALUES (20, 'TC-1', NULL, 10, 1, 4, 'X-100')",
+    ] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    hxweb::staff::jobs::search_utility(&h.pool, db::unix_now()).await.unwrap();
+    let rows: Vec<(String, String, Option<i64>, i64)> =
+        sqlx::query_as("SELECT table_name, code, category_id, ranking FROM search WHERE table_name IN ('search_words', 'competitor_sku', 'subcategory') ORDER BY id").fetch_all(&h.pool).await.unwrap();
+    assert!(rows.contains(&("search_words".into(), "riser".into(), None, 1_000_000)), "{rows:?}");
+    assert!(rows.contains(&("competitor_sku".into(), "X-100".into(), None, 3_000_004)), "{rows:?}");
+    assert!(rows.contains(&("subcategory".into(), "Pins".into(), Some(2), -4)), "{rows:?}");
 }
 
 async fn order(pool: &SqlitePool, id: i64, po: &str, company: &str, day: u32) {

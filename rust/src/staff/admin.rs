@@ -19,14 +19,14 @@ use sqlx::{error::ErrorKind, sqlite::SqliteArguments, query::Query, Row, Sqlite,
 use super::{
     csrf::{Fields, Posted},
     html::{close, esc, number, open, submit, url_query, Blank, Form, Notes, Opts},
-    data, shell, tables, time, Staff,
+    rules, shell, tables, time, Staff,
 };
 use crate::{
     api::{Auth, Executive},
     audit::{self, Entry},
     db::unix_now,
     identity::{is_free_mail, Role, UserId},
-    pricing, session,
+    session,
 };
 
 pub const PATH: &str = "/staff/admin";
@@ -295,36 +295,59 @@ fn read_form(spec: &'static Spec, f: &Fields, role: Role, stored: Option<&[Optio
             Err(e) => notes.error(col.name, Some(&e)),
         }
     }
-    if let Some((name, e)) = conflict(spec, &out) {
-        let label = spec.columns.iter().find(|c| c.name == name).map_or(name, |c| c.label);
-        notes.error(name, Some(&format!("{label}: {e}")));
-    }
     out
 }
 
-/// What the edited columns may not hold together: the rules the import holds the same tables to. A column whose
-/// own value was refused is not checked again here.
-fn conflict(spec: &Spec, w: &Writes) -> Option<(&'static str, String)> {
-    let value = |name: &str| w.iter().find(|(n, _)| *n == name).map(|(_, v)| v);
-    let text = |name: &str| match value(name) {
-        Some(Value::Text(s)) => s.as_str(),
-        _ => "",
-    };
-    let leadtime = |allowed: &[&str]| value("leadtime_option").and_then(|_| data::leadtime_error(text("leadtime_option"), text("leadtime_text"), allowed));
-    match spec.table {
-        "user" => {
-            let pct = match value("price_pct")? {
-                Value::Real(f) => *f,
-                Value::Int(i) => *i as f64,
-                Value::Text(s) => s.parse().unwrap_or(0.0),
-                Value::Null => 0.0,
-            };
-            value("price_type").and_then(|_| pricing::terms_error(text("price_type"), pct)).map(|e| ("price_pct", e.into()))
-        }
-        "subcategory" => leadtime(&data::SUBCATEGORY_LEADTIME),
-        "inventory" => leadtime(&data::INVENTORY_LEADTIME),
-        _ => None,
+fn text_of(v: &Value) -> Option<String> {
+    match v {
+        Value::Null => None,
+        Value::Int(i) => Some(i.to_string()),
+        Value::Real(f) => Some(f.to_string()),
+        Value::Text(s) => Some(s.clone()),
     }
+}
+
+fn value_of(kind: Kind, v: Option<&str>) -> Value {
+    let Some(t) = v else { return Value::Null };
+    let text = || Value::Text(t.to_string());
+    match kind {
+        Kind::Integer | Kind::Flag | Kind::Time(_) => t.parse().map_or_else(|_| text(), Value::Int),
+        Kind::Decimal => t.parse().map_or_else(|_| text(), Value::Real),
+        _ => text(),
+    }
+}
+
+/// Holds the edited columns to the check the import holds the same table to (`rules::check`), and saves what the
+/// import would save: the values it normalizes, and the columns it fills in. A column whose own value was refused is
+/// not checked again; a rule over several columns that names none of them is told on the page.
+async fn follow_rules(pool: &SqlitePool, spec: &'static Spec, w: &mut Writes, notes: &mut Notes) -> sqlx::Result<()> {
+    if !rules::checks(spec.table) {
+        return Ok(());
+    }
+    let lookups = rules::Lookups::load(pool, spec.table).await?;
+    let mut row = rules::Row::default();
+    for (name, v) in w.iter() {
+        row.give(name, text_of(v));
+    }
+    for (name, e) in rules::check(spec.table, &mut row, &lookups) {
+        match spec.columns.iter().find(|c| c.name == name) {
+            Some(_) if notes.is_error(name) => {}
+            Some(c) => notes.error(name, Some(&format!("{}: {e}", c.label))),
+            None => {
+                notes.error(name, None);
+                notes.say(&e);
+            }
+        }
+    }
+    for (name, v) in row.sets() {
+        let Some(col) = spec.columns.iter().find(|c| c.name == name) else { continue };
+        let value = value_of(col.kind, v);
+        match w.iter_mut().find(|(n, _)| *n == col.name) {
+            Some(slot) => slot.1 = value,
+            None => w.push((col.name, value)),
+        }
+    }
+    Ok(())
 }
 
 /// A stored value as a list cell or a read-only field: HTML.
@@ -630,7 +653,8 @@ async fn changed(auth: &Auth, spec: &Spec) {
 async fn create(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(table): Path<String>, posted: Posted) -> Page {
     let spec = gate(&staff, &table, |s| s.create)?;
     let mut notes = Notes::new(&title(spec, None), "");
-    let edited = read_form(spec, &posted.fields, staff.who.user.role, None, &mut notes);
+    let mut edited = read_form(spec, &posted.fields, staff.who.user.role, None, &mut notes);
+    follow_rules(&auth.pool, spec, &mut edited, &mut notes).await.map_err(shell::internal)?;
     if !notes.has_errors() {
         match insert(&auth.pool, spec, &writes(spec, edited, true)).await {
             Ok(id) => {
@@ -653,7 +677,8 @@ async fn save(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path((tabl
     let role = staff.who.user.role;
     let before = stored(&auth.pool, spec, id, role).await?;
     let mut notes = Notes::new(&title(spec, Some(id)), "");
-    let edited = read_form(spec, &posted.fields, role, Some(&before), &mut notes);
+    let mut edited = read_form(spec, &posted.fields, role, Some(&before), &mut notes);
+    follow_rules(&auth.pool, spec, &mut edited, &mut notes).await.map_err(shell::internal)?;
     if !notes.has_errors() {
         match update(&auth.pool, spec, id, &writes(spec, edited, false)).await {
             Ok(()) => {
@@ -913,31 +938,35 @@ mod tests {
     }
 
     #[test]
-    fn saved_rows_follow_the_imports_price_and_lead_time_rules() {
-        let w = |pairs: &[(&'static str, Value)]| pairs.to_vec();
-        let t = |s: &str| Value::Text(s.into());
-        let user = tables::find("user").unwrap();
-        assert_eq!(conflict(user, &w(&[("price_type", t("discount")), ("price_pct", Value::Real(0.1))])), None);
-        assert_eq!(conflict(user, &w(&[("price_type", t("discount")), ("price_pct", Value::Real(10.0))])), Some(("price_pct", "Must be > 0% and < 100%".into())));
-        assert_eq!(conflict(user, &w(&[("price_type", t("plus")), ("price_pct", Value::Real(0.0))])), Some(("price_pct", "Must be > 0% and < 500%".into())));
-        assert_eq!(conflict(user, &w(&[("price_type", t("base")), ("price_pct", Value::Real(0.0))])), None);
-        assert_eq!(conflict(user, &w(&[("price_pct", Value::Real(10.0))])), None, "a refused type is reported on its own");
-
-        let family = tables::find("subcategory").unwrap();
-        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Weeks")), ("leadtime_text", t("4"))])), None);
-        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Call")), ("leadtime_text", Value::Null)])), None);
-        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Weeks")), ("leadtime_text", Value::Null)])), Some(("leadtime_text", "Cannot be blank".into())));
-        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Call")), ("leadtime_text", t("4"))])), Some(("leadtime_text", "Must be blank".into())));
-        assert!(conflict(family, &w(&[("leadtime_option", t("Subcategory")), ("leadtime_text", Value::Null)])).is_some_and(|(c, _)| c == "leadtime_option"));
-        let part = tables::find("inventory").unwrap();
-        assert_eq!(conflict(part, &w(&[("leadtime_option", t("Subcategory")), ("leadtime_text", Value::Null)])), None);
-
-        for (spec, allowed) in [(family, &data::SUBCATEGORY_LEADTIME[..]), (part, &data::INVENTORY_LEADTIME[..])] {
-            let col = spec.columns.iter().find(|c| c.name == "leadtime_option").unwrap();
-            let Kind::Choice(list) = col.kind else { panic!("{}", spec.table) };
-            assert_eq!(list.iter().map(|(v, _)| *v).collect::<Vec<_>>(), allowed, "{}", spec.table);
-            assert!(col.required, "{}", spec.table);
+    fn the_lead_time_choices_are_the_checks_lists() {
+        for (table, allowed) in [("subcategory", &rules::SUBCATEGORY_LEADTIME[..]), ("inventory", &rules::INVENTORY_LEADTIME[..])] {
+            let col = tables::find(table).unwrap().columns.iter().find(|c| c.name == "leadtime_option").unwrap();
+            let Kind::Choice(list) = col.kind else { panic!("{table}") };
+            assert_eq!(list.iter().map(|(v, _)| *v).collect::<Vec<_>>(), allowed, "{table}");
+            assert!(col.required, "{table}");
         }
+    }
+
+    #[test]
+    fn every_value_reads_back_as_it_was_written() {
+        for (kind, v) in [(Kind::Integer, Value::Int(-4)), (Kind::Decimal, Value::Real(0.1)), (Kind::Text, Value::Text("a".into())), (Kind::Integer, Value::Text(String::new())), (Kind::Date, Value::Null)] {
+            assert_eq!(value_of(kind, text_of(&v).as_deref()), v);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_saved_part_takes_its_familys_category() {
+        let pool = db::open_memory().await.unwrap();
+        sqlx::raw_sql("INSERT INTO category (id, name) VALUES (2, 'Pins'); INSERT INTO subcategory (id, category_id, name) VALUES (8, 2, 'Ball lock pins');").execute(&pool).await.unwrap();
+        let spec = tables::find("inventory").unwrap();
+        let mut notes = Notes::new("", "");
+        let mut w: Writes = vec![("subcategory_id", Value::Int(8)), ("competitor_sku", Value::Text("b-200,a-100".into())), ("leadtime_option", Value::Text("Call".into())), ("leadtime_text", Value::Null)];
+        follow_rules(&pool, spec, &mut w, &mut notes).await.unwrap();
+        assert!(!notes.has_errors());
+        assert!(w.contains(&("category_id", Value::Int(2))) && w.contains(&("competitor_sku", Value::Text("A-100,B-200".into()))), "{w:?}");
+        let mut w: Writes = vec![("subcategory_id", Value::Int(9)), ("leadtime_option", Value::Text("Call".into()))];
+        follow_rules(&pool, spec, &mut w, &mut notes).await.unwrap();
+        assert_eq!(notes.error_text("subcategory_id"), Some("Subcategory: Invalid subcategory: 9"));
     }
 
     #[test]

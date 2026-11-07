@@ -16,6 +16,7 @@ use super::{
     csrf::php_intval,
     filesort,
     map::{self, Field, FileType, Kind, Map, Record, Sheet},
+    rules::{self, Lookups, Row, STATUSES},
     smart::{self, Module, RecordType},
     time,
 };
@@ -29,9 +30,6 @@ use crate::{
 const PARAMETERS: usize = 20;
 const BREAKS: usize = 10;
 const PRICES: usize = 5;
-pub(super) const INVENTORY_LEADTIME: [&str; 4] = ["Subcategory", "In Stock", "Weeks", "Call"];
-pub(super) const SUBCATEGORY_LEADTIME: [&str; 3] = ["In Stock", "Weeks", "Call"];
-pub const STATUSES: [&str; 3] = ["Pending", "Active", "Denied"];
 
 /// A table the commands move.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -671,33 +669,23 @@ fn val<'a>(line: &'a Line, key: &str) -> &'a str {
     line.get(key).map_or("", String::as_str)
 }
 
-/// import_match(): the list's spelling of a value, ignoring case; "" when it is not in the list.
-fn import_match<'a>(value: &str, list: &[&'a str]) -> &'a str {
-    list.iter().find(|l| l.eq_ignore_ascii_case(value)).copied().unwrap_or("")
-}
-
-/// prj_verify(): empty, or a query string with `info`.
-fn prj_ok(prj: &str) -> bool {
-    prj.is_empty() || form_urlencoded::parse(prj.as_bytes()).any(|(k, _)| k == "info")
-}
-
 /// The table an import writes, with what it looked up once for every line.
 enum Target {
-    /// `names`: each family by its lower-cased `category:name`, None when the name fits more than one.
-    Inventory { subcategory_id: i64, subcategory: Option<(i64, i64)>, names: HashMap<String, Option<(i64, i64)>> },
+    Inventory(Box<Families>),
     Erp,
-    Subcategory { ids: Vec<i64> },
+    Subcategory { ids: Vec<i64>, lookups: Lookups },
     Xref { stamp: i64 },
-    User(Box<UserLookups>),
+    User(Box<Lookups>),
     Pricing { module: &'static Module, subcategory_id: String, only: Option<&'static RecordType> },
 }
 
-struct UserLookups {
-    currencies: Vec<String>,
-    languages: Vec<String>,
-    portals: Vec<i64>,
-    documents: Vec<i64>,
-    industries: Vec<(i64, String)>,
+/// The families an inventory line may name: the one the import is narrowed to, each by its lower-cased
+/// `category:name` (None when the name fits more than one), and the lookups of the part check.
+struct Families {
+    subcategory_id: i64,
+    subcategory: Option<(i64, i64)>,
+    names: HashMap<String, Option<(i64, i64)>>,
+    lookups: Lookups,
 }
 
 impl Target {
@@ -708,10 +696,11 @@ impl Target {
             Table::Erp => Target::Erp,
             Table::Subcategory => {
                 let ids = subcategory_export(pool, &subcategory_map(), o.category_id).await.map_err(fail)?;
-                Target::Subcategory { ids: ids.iter().map(|r| php_intval(&r[0])).collect() }
+                let lookups = Lookups::load(pool, "subcategory").await.map_err(fail)?;
+                Target::Subcategory { ids: ids.iter().map(|r| php_intval(&r[0])).collect(), lookups }
             }
             Table::Xref => Target::Xref { stamp: if o.replace { unix_now() } else { 0 } },
-            Table::User => Target::User(Box::new(user_lookups(pool).await.map_err(fail)?)),
+            Table::User => Target::User(Box::new(Lookups::load(pool, "user").await.map_err(fail)?)),
             Table::Pricing => {
                 let module = smart_module(o)?;
                 Target::Pricing { module, subcategory_id: o.subcategory_id.to_string(), only: record_type(module, &o.record_type)? }
@@ -722,7 +711,7 @@ impl Target {
 
     fn map(&self) -> Map {
         match self {
-            Target::Inventory { .. } => inventory_map(),
+            Target::Inventory(_) => inventory_map(),
             Target::Erp => erp_map(),
             Target::Subcategory { .. } => subcategory_map(),
             Target::Xref { .. } => xref_map(),
@@ -739,9 +728,9 @@ impl Target {
     /// import_update() for one line. `complete`: the file has every column of the map, so a new record may be added.
     async fn line(&self, tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, complete: bool) -> sqlx::Result<Errors> {
         match self {
-            Target::Inventory { subcategory_id, subcategory, names } => inventory_line(tx, line, update, *subcategory_id, *subcategory, names, complete).await,
+            Target::Inventory(families) => inventory_line(tx, line, update, families, complete).await,
             Target::Erp => erp_line(tx, line, update).await,
-            Target::Subcategory { ids } => subcategory_line(tx, line, update, ids).await,
+            Target::Subcategory { ids, lookups } => subcategory_line(tx, line, update, ids, lookups).await,
             Target::Xref { stamp } => xref_line(tx, line, update, *stamp).await,
             Target::User(lookups) => user_line(tx, line, update, lookups).await,
             Target::Pricing { module, subcategory_id, only } => pricing_line(tx, line, update, module, subcategory_id, *only).await,
@@ -842,43 +831,7 @@ async fn inventory_target(pool: &SqlitePool, subcategory_id: i64) -> sqlx::Resul
         }
         names.entry(format!("{}:{}", opt(r.category), opt(r.name)).to_lowercase()).and_modify(|found| *found = None).or_insert(Some(ids));
     }
-    Ok(Target::Inventory { subcategory_id, subcategory, names })
-}
-
-/// competitor_sku(…, TRUE): the comma list as sorted, unique part numbers, and what is wrong with it.
-fn competitor_list(input: &str) -> (Vec<String>, Option<&'static str>) {
-    let mut out: Vec<String> = Vec::new();
-    let mut short = false;
-    for item in input.split(',') {
-        let item = item.trim().to_uppercase();
-        if item.is_empty() {
-            continue;
-        }
-        short |= item.len() < 3;
-        if !out.contains(&item) {
-            out.push(item);
-        }
-    }
-    out.sort();
-    (out, short.then_some("Must be at least 3 characters"))
-}
-
-/// What is wrong with a lead time, and the column it is on: the option must be one of `allowed` (never blank),
-/// Weeks needs a text and the other options none. The table admin and the import both hold lead times to this.
-pub(super) fn leadtime_error(option: &str, text: &str, allowed: &[&str]) -> Option<(&'static str, String)> {
-    if !allowed.contains(&option) {
-        Some(("leadtime_option", format!("Allowed values: {}", allowed.join(", "))))
-    } else if option == "Weeks" && text.is_empty() {
-        Some(("leadtime_text", "Cannot be blank".into()))
-    } else if option != "Weeks" && !text.is_empty() {
-        Some(("leadtime_text", "Must be blank".into()))
-    } else {
-        None
-    }
-}
-
-fn leadtime_errors(option: &str, text: &str, allowed: &[&str], errors: &mut Errors) {
-    errors.extend(leadtime_error(option, text, allowed).map(|(k, m)| (k.to_string(), m)));
+    Ok(Target::Inventory(Box::new(Families { subcategory_id, subcategory, names, lookups: Lookups::load(pool, "inventory").await? })))
 }
 
 fn decimal(v: f64) -> Decimal {
@@ -889,11 +842,10 @@ async fn inventory_line(
     tx: &mut sqlx::SqliteConnection,
     line: &Line,
     update: bool,
-    subcategory_id: i64,
-    subcategory: Option<(i64, i64)>,
-    names: &HashMap<String, Option<(i64, i64)>>,
+    families: &Families,
     complete: bool,
 ) -> sqlx::Result<Errors> {
+    let Families { subcategory_id, subcategory, names, lookups } = families;
     let sku = val(line, "sku");
     let found = sqlx::query!(r#"SELECT id AS "id!: i64", category_id, subcategory_id FROM inventory WHERE sku = ?1"#, sku).fetch_optional(&mut *tx).await?;
     let mut errors: Errors = Vec::new();
@@ -901,6 +853,7 @@ async fn inventory_line(
         errors.push(("sku".into(), format!("Invalid SKU: {sku}")));
     }
     let (mut category_id, mut sub_id) = found.as_ref().map_or((0, 0), |f| (f.category_id.unwrap_or(0), f.subcategory_id.unwrap_or(0)));
+    let mut r = Row::default();
     if has(line, "category_name") {
         let (category, name) = (val(line, "category_name"), val(line, "subcategory_name"));
         let mut ambiguous = false;
@@ -908,22 +861,26 @@ async fn inventory_line(
             let family = names.get(&format!("{category}:{name}").to_lowercase());
             ambiguous = matches!(family, Some(None));
             (category_id, sub_id) = family.copied().flatten().unwrap_or((0, 0));
-        } else if subcategory_id != 0 {
+        } else if *subcategory_id != 0 {
             (category_id, sub_id) = subcategory.unwrap_or((0, 0));
         }
         if ambiguous {
             errors.push(("subcategory_name".into(), format!("More than one subcategory is named {category}:{name}")));
         } else if sub_id == 0 {
             errors.push(("subcategory_name".into(), format!("Invalid subcategory: {category}:{name}")));
+        } else {
+            r.give("subcategory_id", Some(sub_id.to_string()));
         }
     }
-    let competitor = has(line, "temp_competitor_sku").then(|| competitor_list(val(line, "temp_competitor_sku")));
-    if let Some((_, Some(e))) = &competitor {
-        errors.push(("temp_competitor_sku".into(), e.to_string()));
+    for (key, col) in [("temp_competitor_sku", "competitor_sku"), ("leadtime_option", "leadtime_option"), ("leadtime_text", "leadtime_text"), ("sort_order", "sort_order")] {
+        if has(line, key) {
+            r.give(col, Some(val(line, key).to_string()));
+        }
     }
-    let leadtime = has(line, "leadtime_option").then(|| (import_match(val(line, "leadtime_option"), &INVENTORY_LEADTIME), val(line, "leadtime_text")));
-    if let Some((option, text)) = leadtime {
-        leadtime_errors(option, text, &INVENTORY_LEADTIME, &mut errors);
+    let checked = owned(rules::part(&mut r, lookups));
+    errors.extend(checked.into_iter().map(|(k, m)| (if k == "competitor_sku" { "temp_competitor_sku".into() } else { k }, m)));
+    if r.given("category_id") {
+        (category_id, sub_id) = (r.int("category_id"), r.int("subcategory_id"));
     }
     if has(line, "price0") && val(line, "price0").is_empty() {
         errors.push(("price0".into(), "Cannot be blank".into()));
@@ -958,20 +915,21 @@ async fn inventory_line(
         None => sqlx::query_scalar!(r#"INSERT INTO inventory (sku) VALUES (?1) RETURNING id AS "id!: i64""#, sku).fetch_one(&mut *tx).await?,
     };
     sqlx::query!("UPDATE inventory SET category_id = ?2, subcategory_id = ?3 WHERE id = ?1", id, category_id, sub_id).execute(&mut *tx).await?;
-    if has(line, "sort_order") {
-        let n = php_intval(val(line, "sort_order"));
+    if r.given("sort_order") {
+        let n = r.int("sort_order");
         sqlx::query!("UPDATE inventory SET sort_order = ?2 WHERE id = ?1", id, n).execute(&mut *tx).await?;
     }
     if has(line, "new_date") {
         let d = val(line, "new_date").replace('/', "-");
         sqlx::query!("UPDATE inventory SET new_date = ?2 WHERE id = ?1", id, d).execute(&mut *tx).await?;
     }
-    if let Some((option, text)) = leadtime {
+    if has(line, "leadtime_option") {
+        let (option, text) = (r.get("leadtime_option"), r.get("leadtime_text"));
         sqlx::query!("UPDATE inventory SET leadtime_option = ?2, leadtime_text = ?3 WHERE id = ?1", id, option, text).execute(&mut *tx).await?;
     }
-    if let Some((list, _)) = &competitor {
-        let joined = list.join(",");
-        sqlx::query!("UPDATE inventory SET competitor_sku = ?2 WHERE id = ?1", id, joined).execute(&mut *tx).await?;
+    if r.given("competitor_sku") {
+        let list = r.get("competitor_sku");
+        sqlx::query!("UPDATE inventory SET competitor_sku = ?2 WHERE id = ?1", id, list).execute(&mut *tx).await?;
     }
     if has(line, "active") {
         let active = i64::from(map::truthy(val(line, "active")));
@@ -1048,29 +1006,32 @@ fn erp_breaks(line: &Line) -> Vec<Break> {
     steps.into_iter().map(|(q, p)| Break { qty: decimal(if q == 0.0 { 0.0 } else { q + 1.0 }), price: decimal(p) }).collect()
 }
 
-async fn subcategory_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, ids: &[i64]) -> sqlx::Result<Errors> {
+async fn subcategory_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, ids: &[i64], lookups: &Lookups) -> sqlx::Result<Errors> {
     let id = php_intval(val(line, "id"));
     if !ids.contains(&id) {
         return Ok(vec![("id".into(), format!("Not found: {}", val(line, "id")))]);
     }
-    let mut errors: Errors = Vec::new();
-    let option = import_match(val(line, "leadtime_option"), &SUBCATEGORY_LEADTIME);
-    let text = val(line, "leadtime_text");
-    let prj = has(line, "prj").then(|| val(line, "prj"));
-    if let Some(p) = prj.filter(|p| !prj_ok(p)) {
-        errors.push(("prj".into(), format!("Malformed PRJ {p}")));
+    let mut r = Row::default();
+    for col in ["leadtime_option", "leadtime_text"] {
+        r.give(col, Some(val(line, col).to_string()));
     }
-    leadtime_errors(option, text, &SUBCATEGORY_LEADTIME, &mut errors);
+    for col in ["prj", "sort_order"] {
+        if has(line, col) {
+            r.give(col, Some(val(line, col).to_string()));
+        }
+    }
+    let mut errors = owned(rules::family(&mut r, lookups));
     if update && errors.is_empty() {
+        let (option, text) = (r.get("leadtime_option"), r.get("leadtime_text"));
         sqlx::query!("UPDATE subcategory SET leadtime_option = ?2, leadtime_text = ?3 WHERE id = ?1", id, option, text).execute(&mut *tx).await?;
-        if let Some(p) = prj {
-            let p = (!p.is_empty()).then_some(p);
+        if r.given("prj") {
+            let p = r.value("prj");
             if sqlx::query!("UPDATE subcategory SET prj = ?2 WHERE id = ?1", id, p).execute(&mut *tx).await.is_err() {
                 errors.push(("prj".into(), "Duplicate PRJ".into()));
             }
         }
-        if has(line, "sort_order") {
-            let n = php_intval(val(line, "sort_order"));
+        if r.given("sort_order") {
+            let n = r.int("sort_order");
             sqlx::query!("UPDATE subcategory SET sort_order = ?2 WHERE id = ?1", id, n).execute(&mut *tx).await?;
         }
     }
@@ -1126,20 +1087,12 @@ pub fn xr_rows(sheet: Sheet) -> Sheet {
     Sheet { file_type: sheet.file_type, rows: out, worksheet: sheet.worksheet }
 }
 
-async fn user_lookups(pool: &SqlitePool) -> sqlx::Result<UserLookups> {
-    Ok(UserLookups {
-        currencies: sqlx::query_scalar!(r#"SELECT code AS "code!: String" FROM currency"#).fetch_all(pool).await?,
-        languages: sqlx::query_scalar!(r#"SELECT code AS "code!: String" FROM language"#).fetch_all(pool).await?,
-        portals: std::iter::once(0).chain(sqlx::query_scalar!(r#"SELECT id AS "id!: i64" FROM portal"#).fetch_all(pool).await?).collect(),
-        documents: std::iter::once(0)
-            .chain(sqlx::query_scalar!(r#"SELECT id AS "id!: i64" FROM document WHERE parent_id <> 0 AND active = 1"#).fetch_all(pool).await?)
-            .collect(),
-        industries: sqlx::query!(r#"SELECT id AS "id!: i64", name FROM industry"#).fetch_all(pool).await?.into_iter().map(|r| (r.id, r.name)).collect(),
-    })
-}
+/// The columns of an account the import does not name, as a new account has them.
+const NEW_ACCOUNT: [(&str, &str); 5] = [("status", "Pending"), ("type", "Customer"), ("leadscore", "1"), ("language_code", "EN"), ("currency_code", "USD")];
 
-/// user->import_update(): an account line checked against the lookups, then written whole.
-async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l: &UserLookups) -> sqlx::Result<Errors> {
+/// user->import_update(): the stored account (or a new one) with the line over it, held to `rules::account`, then
+/// written whole.
+async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l: &Lookups) -> sqlx::Result<Errors> {
     let id = php_intval(val(line, "id"));
     let found = sqlx::query!(
         r#"SELECT company_name, address, city, state, zip, country_code, status, "type" AS kind, customer_code, catalog, cad, leadscore, ecommerce,
@@ -1154,309 +1107,115 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
     if id != 0 && found.is_none() {
         e.push(("id".into(), format!("Not found: {}", val(line, "id"))));
     }
-    let mut u = found.map_or_else(UserRow::new, |r| UserRow {
-        company_name: opt(r.company_name),
-        address: opt(r.address),
-        city: opt(r.city),
-        state: opt(r.state),
-        zip: opt(r.zip),
-        country_code: opt(r.country_code),
-        status: r.status,
-        kind: r.kind,
-        customer_code: opt(r.customer_code),
-        catalog: r.catalog != 0,
-        cad: r.cad != 0,
-        leadscore: r.leadscore != 0,
-        ecommerce: r.ecommerce != 0,
-        price_type: r.price_type,
-        price_pct: r.price_pct,
-        comment: opt(r.comment),
-        login_document_id: r.login_document_id,
-        landing_document_id: r.landing_document_id,
-        portal_id: r.portal_id,
-        language_code: r.language_code,
-        currency_code: r.currency_code,
-        industry_id: r.industry_id,
-        revenue: r.revenue,
-        employees: r.employees,
-    });
-    let ip = val(line, "ip");
-    if !ip.is_empty() && !ip.parse::<std::net::Ipv4Addr>().is_ok_and(|a| !a.is_unspecified() && a.to_string() == ip) {
-        e.push(("ip".into(), format!("Invalid: {ip}")));
-    }
-    let text = |k: &str| val(line, k).to_string();
-    let invalid = |k: &str| (k.to_string(), format!("Invalid: {}", val(line, k)));
-    if has(line, "company_name") {
-        u.company_name = text("company_name");
-        if u.company_name.is_empty() {
-            e.push(("company_name".into(), "Required".into()));
+    let mut r = Row::default();
+    match found {
+        Some(s) => {
+            let stored = [
+                ("company_name", s.company_name),
+                ("address", s.address),
+                ("city", s.city),
+                ("state", s.state),
+                ("zip", s.zip),
+                ("country_code", s.country_code),
+                ("status", Some(s.status)),
+                ("type", Some(s.kind)),
+                ("customer_code", s.customer_code),
+                ("catalog", Some(s.catalog.to_string())),
+                ("cad", Some(s.cad.to_string())),
+                ("leadscore", Some(s.leadscore.to_string())),
+                ("ecommerce", Some(s.ecommerce.to_string())),
+                ("price_type", Some(s.price_type)),
+                ("price_pct", Some(s.price_pct.to_string())),
+                ("comment", s.comment),
+                ("login_document_id", Some(s.login_document_id.to_string())),
+                ("landing_document_id", Some(s.landing_document_id.to_string())),
+                ("portal_id", Some(s.portal_id.to_string())),
+                ("language_code", Some(s.language_code)),
+                ("currency_code", Some(s.currency_code)),
+                ("industry_id", Some(s.industry_id.to_string())),
+                ("revenue", Some(s.revenue)),
+                ("employees", Some(s.employees)),
+            ];
+            for (col, value) in stored {
+                r.keep(col, value);
+            }
         }
-    }
-    if has(line, "address") {
-        u.address = text("address");
-    }
-    if has(line, "city") {
-        u.city = text("city");
-    }
-    let mut unknown_country = false;
-    if has(line, "country_code") {
-        u.country_code = find_country(tx, val(line, "country_code")).await?;
-        unknown_country = !val(line, "country_code").is_empty() && u.country_code.is_empty();
-        if unknown_country {
-            e.push(invalid("country_code"));
-        }
-    }
-    if has(line, "state") {
-        u.state = find_state(tx, &u.country_code, val(line, "state")).await?;
-        if !val(line, "state").is_empty() && (u.state.is_empty() || unknown_country) {
-            e.push(invalid("state"));
-        }
-    }
-    if has(line, "zip") {
-        u.zip = text("zip");
-    }
-    if has(line, "status") {
-        u.status = import_match(val(line, "status"), &STATUSES).to_string();
-        if u.status.is_empty() {
-            e.push(invalid("status"));
-        }
-    }
-    if has(line, "type") {
-        let roles: Vec<&str> = Role::ALL.iter().map(|r| r.as_str()).collect();
-        u.kind = import_match(val(line, "type"), &roles).to_string();
-        if u.kind.is_empty() {
-            e.push(invalid("type"));
-        }
-    }
-    if has(line, "customer_code") {
-        u.customer_code = text("customer_code");
-    }
-    for (key, slot) in [("catalog", &mut u.catalog), ("cad", &mut u.cad), ("ecommerce", &mut u.ecommerce), ("leadscore", &mut u.leadscore)] {
-        if has(line, key) {
-            *slot = map::truthy(val(line, key));
-        }
-    }
-    if has(line, "price_type") {
-        u.price_type = text("price_type");
-        if !["", "base", "discount", "plus"].contains(&u.price_type.as_str()) {
-            e.push(invalid("price_type"));
-        }
-    }
-    if has(line, "price_pct") {
-        u.price_pct = map::floatval(val(line, "price_pct"));
-    }
-    if has(line, "comment") {
-        u.comment = text("comment");
-    }
-    for (key, slot, allowed) in [
-        ("login_document_id", &mut u.login_document_id, &l.documents),
-        ("landing_document_id", &mut u.landing_document_id, &l.documents),
-        ("portal_id", &mut u.portal_id, &l.portals),
-    ] {
-        if has(line, key) {
-            *slot = php_intval(val(line, key));
-            if !allowed.contains(slot) {
-                e.push(invalid(key));
+        None => {
+            for (col, value) in NEW_ACCOUNT {
+                r.keep(col, Some(value.to_string()));
             }
         }
     }
-    if has(line, "language_code") {
-        let langs: Vec<&str> = l.languages.iter().map(String::as_str).collect();
-        u.language_code = import_match(val(line, "language_code"), &langs).to_string();
-        if u.language_code.is_empty() {
-            e.push(invalid("language_code"));
-        }
+    for (key, value) in line {
+        r.give(key, Some(value.clone()));
     }
-    if has(line, "currency_code") {
-        u.currency_code = text("currency_code");
-        if !l.currencies.contains(&u.currency_code) {
-            e.push(invalid("currency_code"));
-        }
-    }
-    if has(line, "industry_name") {
-        let name = val(line, "industry_name");
-        u.industry_id = l.industries.iter().find(|(_, n)| n.eq_ignore_ascii_case(name)).map_or(0, |(id, _)| *id);
-        if !name.is_empty() && u.industry_id == 0 {
-            e.push(invalid("industry_name"));
-        }
-    }
-    if (has(line, "catalog") || has(line, "price_type")) && !u.catalog && !u.price_type.is_empty() {
-        e.push(("pricing".into(), "Pricing requires catalog access".into()));
-    }
-    if (has(line, "catalog") || has(line, "cad")) && !u.catalog && u.cad {
-        e.push(("cad".into(), "CAD requires catalog access".into()));
-    }
-    if (has(line, "portal_id") || has(line, "login_document_id") || has(line, "landing_document_id"))
-        && u.portal_id != 0
-        && (u.login_document_id != 0 || u.landing_document_id != 0)
-    {
-        e.push(("portal_id".into(), "Landing documents not allowed when portal is selected".into()));
-    }
-    let (has_type, has_pct) = (has(line, "price_type"), has(line, "price_pct"));
-    let pct_error = match () {
-        _ if !has_type && !has_pct => None,
-        _ if !has_type => Some(("price_type", "Required field")),
-        _ if !has_pct => Some(("price_pct", "Required field")),
-        _ => crate::pricing::terms_error(&u.price_type, u.price_pct).map(|m| ("price_pct", m)),
-    };
-    if let Some((k, m)) = pct_error {
-        e.push((k.into(), m.into()));
-    }
-    if has(line, "revenue") {
-        u.revenue = text("revenue");
-    }
-    if has(line, "employees") {
-        u.employees = text("employees");
-    }
+    e.extend(owned(rules::account(&mut r, l)));
     if update && e.is_empty() {
-        u.save(tx, id, ip).await?;
+        save_account(tx, id, &r).await?;
     }
     Ok(e)
 }
 
-struct UserRow {
-    company_name: String,
-    address: String,
-    city: String,
-    state: String,
-    zip: String,
-    country_code: String,
-    status: String,
-    kind: String,
-    customer_code: String,
-    catalog: bool,
-    cad: bool,
-    leadscore: bool,
-    ecommerce: bool,
-    price_type: String,
-    price_pct: f64,
-    comment: String,
-    login_document_id: i64,
-    landing_document_id: i64,
-    portal_id: i64,
-    language_code: String,
-    currency_code: String,
-    industry_id: i64,
-    revenue: String,
-    employees: String,
-}
-
-impl UserRow {
-    fn new() -> UserRow {
-        UserRow {
-            company_name: String::new(),
-            address: String::new(),
-            city: String::new(),
-            state: String::new(),
-            zip: String::new(),
-            country_code: String::new(),
-            status: "Pending".into(),
-            kind: "Customer".into(),
-            customer_code: String::new(),
-            catalog: false,
-            cad: false,
-            leadscore: true,
-            ecommerce: false,
-            price_type: String::new(),
-            price_pct: 0.0,
-            comment: String::new(),
-            login_document_id: 0,
-            landing_document_id: 0,
-            portal_id: 0,
-            language_code: "EN".into(),
-            currency_code: "USD".into(),
-            industry_id: 0,
-            revenue: String::new(),
-            employees: String::new(),
-        }
-    }
-
-    /// An empty `ip` is an account with no company address: self-registered accounts have none until staff set one.
-    async fn save(&self, tx: &mut sqlx::SqliteConnection, id: i64, ip: &str) -> sqlx::Result<()> {
-        let ip = Some(ip).filter(|ip| !ip.is_empty());
-        let (catalog, cad, leadscore, ecommerce) = (i64::from(self.catalog), i64::from(self.cad), i64::from(self.leadscore), i64::from(self.ecommerce));
-        let id = if id == 0 {
-            let now = unix_now();
-            sqlx::query_scalar!(r#"INSERT INTO "user" (ip, last_login) VALUES (?1, ?2) RETURNING id AS "id!: i64""#, ip, now).fetch_one(&mut *tx).await?
-        } else {
-            id
-        };
-        sqlx::query!(
-            r#"UPDATE "user" SET ip = ?2, company_name = ?3, address = ?4, city = ?5, state = ?6, zip = ?7, country_code = ?8, status = ?9, "type" = ?10,
-                      customer_code = ?11, catalog = ?12, cad = ?13, leadscore = ?14, ecommerce = ?15, price_type = ?16, price_pct = ?17,
-                      comment = ?18, login_document_id = ?19, landing_document_id = ?20, portal_id = ?21, language_code = ?22,
-                      currency_code = ?23, industry_id = ?24, revenue = ?25, employees = ?26
-               WHERE id = ?1"#,
-            id,
-            ip,
-            self.company_name,
-            self.address,
-            self.city,
-            self.state,
-            self.zip,
-            self.country_code,
-            self.status,
-            self.kind,
-            self.customer_code,
-            catalog,
-            cad,
-            leadscore,
-            ecommerce,
-            self.price_type,
-            self.price_pct,
-            self.comment,
-            self.login_document_id,
-            self.landing_document_id,
-            self.portal_id,
-            self.language_code,
-            self.currency_code,
-            self.industry_id,
-            self.revenue,
-            self.employees
-        )
-        .execute(&mut *tx)
-        .await?;
-        Ok(())
-    }
-}
-
-/// country->find_country(): the country by code, name or one of its aliases (stored `^alias^alias^`), in any case;
-/// "" for none.
-async fn find_country(tx: &mut sqlx::SqliteConnection, code: &str) -> sqlx::Result<String> {
-    if code.is_empty() || code.contains('^') {
-        return Ok(String::new());
-    }
-    let alias = format!("^{}^", code.to_lowercase());
-    let found = sqlx::query_scalar!(
-        r#"SELECT country AS "country!: String" FROM country
-           WHERE state = '' AND (country = ?1 COLLATE NOCASE OR name = ?1 COLLATE NOCASE OR instr(lower(COALESCE(alias, '')), ?2) > 0)
-           ORDER BY CASE WHEN country = ?1 COLLATE NOCASE THEN 1 WHEN name = ?1 COLLATE NOCASE THEN 2 ELSE 3 END LIMIT 1"#,
-        code,
-        alias
+/// Writes the account whole, adding it when `id` is 0. An empty `ip` is an account with no company address:
+/// self-registered accounts have none until staff set one.
+async fn save_account(tx: &mut sqlx::SqliteConnection, id: i64, r: &Row) -> sqlx::Result<()> {
+    let ip = r.value("ip").filter(|ip| !ip.is_empty());
+    let id = if id == 0 {
+        let now = unix_now();
+        sqlx::query_scalar!(r#"INSERT INTO "user" (ip, last_login) VALUES (?1, ?2) RETURNING id AS "id!: i64""#, ip, now).fetch_one(&mut *tx).await?
+    } else {
+        id
+    };
+    let [company_name, address, city, state, zip, country_code, status, kind, customer_code, price_type, comment, language_code, currency_code, revenue, employees] = [
+        "company_name", "address", "city", "state", "zip", "country_code", "status", "type", "customer_code", "price_type", "comment", "language_code",
+        "currency_code", "revenue", "employees",
+    ]
+    .map(|col| r.get(col));
+    let flag = |col: &str| i64::from(r.flag(col));
+    let (catalog, cad, leadscore, ecommerce) = (flag("catalog"), flag("cad"), flag("leadscore"), flag("ecommerce"));
+    let (price_pct, login_document_id, landing_document_id, portal_id, industry_id) =
+        (r.real("price_pct"), r.int("login_document_id"), r.int("landing_document_id"), r.int("portal_id"), r.int("industry_id"));
+    sqlx::query!(
+        r#"UPDATE "user" SET ip = ?2, company_name = ?3, address = ?4, city = ?5, state = ?6, zip = ?7, country_code = ?8, status = ?9, "type" = ?10,
+                  customer_code = ?11, catalog = ?12, cad = ?13, leadscore = ?14, ecommerce = ?15, price_type = ?16, price_pct = ?17,
+                  comment = ?18, login_document_id = ?19, landing_document_id = ?20, portal_id = ?21, language_code = ?22,
+                  currency_code = ?23, industry_id = ?24, revenue = ?25, employees = ?26
+           WHERE id = ?1"#,
+        id,
+        ip,
+        company_name,
+        address,
+        city,
+        state,
+        zip,
+        country_code,
+        status,
+        kind,
+        customer_code,
+        catalog,
+        cad,
+        leadscore,
+        ecommerce,
+        price_type,
+        price_pct,
+        comment,
+        login_document_id,
+        landing_document_id,
+        portal_id,
+        language_code,
+        currency_code,
+        industry_id,
+        revenue,
+        employees
     )
-    .fetch_optional(&mut *tx)
+    .execute(&mut *tx)
     .await?;
-    Ok(found.unwrap_or_default())
+    Ok(())
 }
 
-/// country->find_state(): a US or Canadian state by code or name in any case, "" for none; elsewhere the text as
-/// given.
-async fn find_state(tx: &mut sqlx::SqliteConnection, country: &str, code: &str) -> sqlx::Result<String> {
-    if code.is_empty() {
-        return Ok(String::new());
-    }
-    if !["US", "CA"].contains(&country) {
-        return Ok(code.to_string());
-    }
-    let found = sqlx::query_scalar!(
-        r#"SELECT state AS "state!: String" FROM country WHERE country = ?1 AND state <> '' AND (state = ?2 COLLATE NOCASE OR name = ?2 COLLATE NOCASE)
-           ORDER BY CASE WHEN state = ?2 COLLATE NOCASE THEN 1 ELSE 2 END LIMIT 1"#,
-        country,
-        code
-    )
-    .fetch_optional(&mut *tx)
-    .await?;
-    Ok(found.unwrap_or_default())
+/// A check's errors as the import reports them.
+fn owned(errors: rules::Errors) -> Errors {
+    errors.into_iter().map(|(k, m)| (k.to_string(), m)).collect()
 }
 
 /// import_update() for one line of a pricing file: the subcategory and record type must be the ones asked for, and
@@ -1602,12 +1361,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn competitor_lists_sort_and_flag_short_numbers() {
-        assert_eq!(competitor_list("b-200, a-100,,A-100"), (vec!["A-100".to_string(), "B-200".to_string()], None));
-        assert_eq!(competitor_list("ab").1, Some("Must be at least 3 characters"));
-    }
-
-    #[test]
     fn erp_breaks_start_one_above_the_quantity_before() {
         let line: Line = [("_break1", "10"), ("_price1", "5"), ("_break2", "50"), ("_price2", "4"), ("_break3", "999999"), ("_price3", "3")]
             .iter()
@@ -1625,13 +1378,6 @@ mod tests {
         assert!(erp_breaks(&line(&[("_price0", "0"), ("_break1", "0"), ("_price1", "0")])).is_empty());
         let b = erp_breaks(&line(&[("_price0", "9"), ("_break1", "10"), ("_price1", "8")]));
         assert_eq!(b, [Break { qty: Decimal::ZERO, price: Decimal::new(8, 0) }], "the breaks, when there are any");
-    }
-
-    #[test]
-    fn prj_needs_info() {
-        assert!(prj_ok(""));
-        assert!(prj_ok("info=harcourt/x.prj&x=1"));
-        assert!(!prj_ok("x=1"));
     }
 
     #[test]

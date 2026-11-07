@@ -265,7 +265,7 @@ pub static SPECS: &[Spec] = &[
         title: "Inventory",
         columns: &[
             col("sku", "Part#", Text).list().fixed().not_null(),
-            col("category_id", "Category", Integer).list(),
+            col("category_id", "Category", Integer).list().fixed(),
             col("subcategory_id", "Subcategory", Integer).list(),
             col("active", "Active", Flag).list(),
             col("leadtime_option", "Lead time", Choice(PART_LEADTIME)).list().req().not_null(),
