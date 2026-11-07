@@ -384,6 +384,29 @@ async fn a_denied_request_gets_no_bypass_and_no_one_decides_above_their_role() {
     assert_eq!(status_of(&h.pool, 6).await, "Pending");
 }
 
+#[tokio::test]
+async fn the_access_page_shows_the_address_an_approval_acts_on() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    pending(&h.pool, 9, "Pending Co", "buyer@example.com").await;
+    sqlx::query("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('192.0.2.9', 1, 9, 'earlier@example.net', 'User', 'Signup', 'Earlier Name')")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/access/9", Some(&admin))).await;
+    assert!(page.contains("<td width='30%'>Email</td><td width='70%'>buyer@example.com</td>"), "{page}");
+    assert!(page.contains("<td width='30%'>Name</td><td width='70%'>Pat Example</td>"), "the latest sign-up names the request: {page}");
+
+    pending(&h.pool, 10, "Unrecorded Co", "someone@example.org").await;
+    sqlx::query(r#"UPDATE "user" SET signup_email = NULL WHERE id = 10"#).execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/access/10", Some(&admin))).await;
+    assert!(page.contains("<td width='70%'>someone@example.org <i>(from the sign-up log; not recorded on the account"), "{page}");
+    let (status, _, _) = send(&h.app, post("/staff/access/10", &admin, &[("action", "approve"), ("csrf", csrf_of(&page).as_str())])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(status_of(&h.pool, 10).await, "Active");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM captcha_bypass").await, 0);
+}
+
 const DROPPED: [&str; 27] = [
     "/campaign_manager.php",
     "/hero_preview.php",

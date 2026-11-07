@@ -51,6 +51,8 @@ struct Request {
     last_login: i64,
     name: String,
     email: String,
+    /// The account records no sign-up address, so `email` is the latest sign-up log row's.
+    email_from_log: bool,
 }
 
 async fn load(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Request>> {
@@ -65,11 +67,14 @@ async fn load(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Request>> {
         return Ok(None);
     };
     let signup = sqlx::query!(
-        r#"SELECT comment, email FROM log WHERE user_id = ?1 AND lower(type) = 'user' AND lower(subtype) = 'signup' ORDER BY id DESC LIMIT 1"#,
+        r#"SELECT comment, email FROM log WHERE user_id = ?1 AND lower(type) = 'user' AND lower(subtype) = 'signup' ORDER BY date_time DESC, id DESC LIMIT 1"#,
         id
     )
     .fetch_optional(pool)
     .await?;
+    let recorded = account::signup_email(pool, UserId(id)).await?;
+    let email_from_log = recorded.is_none();
+    let email = recorded.or_else(|| signup.as_ref().and_then(|s| s.email.clone())).unwrap_or_default();
     let place: Vec<String> = [u.address, u.city, u.state, u.zip, u.country_code].into_iter().flatten().filter(|s| !s.is_empty()).collect();
     Ok(Some(Request {
         id: u.id,
@@ -81,7 +86,8 @@ async fn load(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Request>> {
         recaptcha_score: u.recaptcha_score,
         last_login: u.last_login,
         name: signup.as_ref().and_then(|s| s.comment.clone()).unwrap_or_default(),
-        email: signup.and_then(|s| s.email).unwrap_or_default(),
+        email,
+        email_from_log,
     }))
 }
 
@@ -90,6 +96,15 @@ fn status_name(s: Status) -> &'static str {
         Status::Pending => "Pending",
         Status::Active => "Active",
         Status::Denied => "Denied",
+    }
+}
+
+/// The address approval acts on, or, when the account records none, the sign-up log's, marked as such.
+fn email_cell(r: &Request) -> String {
+    match () {
+        _ if !r.email_from_log => text(&r.email),
+        _ if r.email.is_empty() => "<i>No sign-up address</i>".into(),
+        _ => format!("{} <i>(from the sign-up log; not recorded on the account, so approving adds no reCAPTCHA bypass)</i>", text(&r.email)),
     }
 }
 
@@ -104,7 +119,7 @@ async fn render(pool: &SqlitePool, staff: &Staff<Administrator>, r: &Request, ba
         "<table class='standard noborder'>".into(),
         row("Company", text(&r.company_name)),
         row("Name", text(&r.name).replace("&lt;br>", "<br>")),
-        row("Email", text(&r.email)),
+        row("Email", email_cell(r)),
         row("IP Address", text(&r.ip)),
         row("Address", text(&r.address)),
         row("Score", number_dp(r.recaptcha_score, 1)),

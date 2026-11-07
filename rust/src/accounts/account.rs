@@ -169,8 +169,8 @@ pub async fn for_email(db: impl SqliteExecutor<'_>, email: &Email) -> sqlx::Resu
     Ok(id.map(UserId))
 }
 
-/// The address the account signed up with, recorded at registration (and, for accounts older than that column, by
-/// migration 0108 and the import from their latest sign-up log row). Log rows are never read here: their user id
+/// The address the account signed up with (none when blank), recorded at registration (and, for accounts older
+/// than that column, by migration 0108 and the import from their latest sign-up log row). Log rows are never read here: their user id
 /// can belong to an account deleted before this one took the id.
 pub async fn signup_email(db: impl SqliteExecutor<'_>, id: UserId) -> sqlx::Result<Option<String>> {
     let email = sqlx::query_scalar!(
@@ -179,7 +179,7 @@ pub async fn signup_email(db: impl SqliteExecutor<'_>, id: UserId) -> sqlx::Resu
     )
     .fetch_optional(db)
     .await?;
-    Ok(email.flatten())
+    Ok(email.flatten().filter(|e| !e.trim().is_empty()))
 }
 
 /// Record on each account without one the address of its latest sign-up log row, as migration 0108 did for the
