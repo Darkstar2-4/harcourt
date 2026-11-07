@@ -229,6 +229,22 @@ async fn a_company_block_holds_whatever_the_case_or_accents_of_the_name() {
 }
 
 #[tokio::test]
+async fn a_part_link_the_configurator_cannot_open_keeps_the_family_project() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE subcategory SET prj = 'info=pins/ball.prj', lookup = 1 WHERE id = 7").await;
+    exec(&h.pool, "UPDATE inventory SET prj = 'prjCatalog=h&prjNode=n&prjName=HBLT-1&values=v' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET prj = 'info=pins/hblt2.prj' WHERE id = 2").await;
+    let account = signed_in(&h.pool, &Account { cad: true, ..Account::customer(25) }).await;
+    let cookie = format!("{account}; harcourt_profile=%7B%22email%22%3A%22lee%40example.com%22%7D");
+    let frame = |sku: &str| page(&format!("action=subcategory&subcategory_id=7&sku={sku}"));
+    let (_, _, body) = send(&h.app, get(&frame("HBLT-1"), Some(&cookie))).await;
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fball.prj&partFixed=false"), "{body}");
+    let (_, _, body) = send(&h.app, get(&frame("HBLT-2"), Some(&cookie))).await;
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fhblt2.prj&partFixed=false"), "{body}");
+}
+
+#[tokio::test]
 async fn french_pages_use_french_names_and_links() {
     let h = harness().await;
     seed(&h.pool).await;
