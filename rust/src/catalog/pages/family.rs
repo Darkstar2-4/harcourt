@@ -168,6 +168,9 @@ fn heading_page(family: &Family, after: String) -> Page {
 /// output_sku(): a part found by search on its own page, without the family's parts list.
 pub async fn part_page(ctx: &mut Ctx<'_>, part: Part) -> sqlx::Result<Page> {
     ctx.subcategory_id = part.subcategory_id;
+    // The page is that part's, as if its number was asked for: the Configure tab and the downloads read it.
+    ctx.req.action = "sku".into();
+    ctx.req.sku = part.sku.clone();
     ctx.part = Some(part);
     let shown = ctx.family().filter(|f| ctx.catalog.lists(f, ctx.viewer.sees_pending())).cloned();
     let Some(family) = shown else {

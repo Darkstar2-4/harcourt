@@ -268,9 +268,7 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     }
     parts.sort_by_key(|p| (p.sort_order, p.sku.to_lowercase()));
     if parts.len() == 1 {
-        ctx.req.action = "sku".into();
-        let part = parts.remove(0);
-        family::part_page(ctx, part).await?.write_to(&mut out);
+        family::part_page(ctx, parts.remove(0)).await?.write_to(&mut out);
     } else {
         family::page_listing(ctx, Some(parts)).await?.write_to(&mut out);
     }
