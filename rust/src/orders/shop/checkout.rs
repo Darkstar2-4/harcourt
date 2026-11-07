@@ -237,7 +237,8 @@ pub async fn read_form(pool: &SqlitePool, p: &HashMap<String, String>, order: &m
     Ok(errors)
 }
 
-/// The prefill: this account's last order placed with the same signed-in address. Without one, as ecommerce_class
+/// The prefill: this account's last order placed with the same signed-in address, the stored one folded as
+/// `Email::parse` folds it (imported orders keep the case they were typed in). Without one, as ecommerce_class
 /// did without its cookie: the address the browser remembers (`harcourt`) and the account's company.
 async fn prefill(pool: &SqlitePool, shopper: &Shopper, remembered: &str) -> sqlx::Result<Order> {
     let email = shopper.email.clone().unwrap_or_default();
@@ -248,7 +249,7 @@ async fn prefill(pool: &SqlitePool, shopper: &Shopper, remembered: &str) -> sqlx
                   coalesce(city, '') AS "city!: String", coalesce(state, '') AS "state!: String", coalesce(zip, '') AS "zip!: String",
                   coalesce(country_code, '') AS "country_code!: String", coalesce(carrier_name, '') AS "carrier_name!: String",
                   coalesce(carrier_account, '') AS "carrier_account!: String"
-           FROM orderhd WHERE user_id = ?1 AND email = ?2 AND ?2 <> '' ORDER BY id DESC LIMIT 1"#,
+           FROM orderhd WHERE user_id = ?1 AND lower(trim(email)) = ?2 AND ?2 <> '' ORDER BY id DESC LIMIT 1"#,
         shopper.user.id.0,
         email
     )
