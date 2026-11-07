@@ -125,6 +125,9 @@ pub async fn save_page(pool: &SqlitePool, id: PageId, changes: &[Change], by: Us
             if done.rows_affected() == 0 {
                 return Err(EditError::NotEditable(ch.name.clone()));
             }
+            if ch.name == "content" {
+                sqlx::query!("UPDATE cms_field SET value = ?2 WHERE page_id = ?1 AND name = '@post_content'", id.0, ch.value).execute(&mut *tx).await?;
+            }
         }
     }
     sqlx::query!("UPDATE cms_page SET modified_at = strftime('%Y-%m-%d %H:%M:%S', ?2, 'unixepoch') WHERE id = ?1", id.0, now).execute(&mut *tx).await?;
