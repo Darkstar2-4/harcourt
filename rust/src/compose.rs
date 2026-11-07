@@ -149,6 +149,29 @@ fn json_response(v: serde_json::Value, cookies: Vec<HeaderValue>) -> Response<Bo
     resp.body(Body::from(v.to_string())).unwrap()
 }
 
+/// Where an in-process answer sends the browser instead (a Denied bot to the home page, a landing page), so the
+/// page answers with that.
+fn sent_elsewhere(status: StatusCode, headers: &HeaderMap) -> Option<&str> {
+    status.is_redirection().then(|| headers.get(header::LOCATION)?.to_str().ok()).flatten()
+}
+
+/// The page answers by sending the browser to `to`, with the cookies the internal calls set: hx-nav.js gets it as
+/// JSON and follows it itself.
+fn redirect(nav: bool, to: &str, why: &'static str, cookies: Vec<HeaderValue>) -> Result<Response<Body>, String> {
+    if nav {
+        return Ok(json_response(serde_json::json!({ "redirect": to }), cookies));
+    }
+    let mut resp = Response::builder()
+        .status(StatusCode::FOUND)
+        .header(header::LOCATION, to)
+        .header(header::CACHE_CONTROL, "no-store")
+        .header("x-hxweb", why);
+    for c in cookies {
+        resp = resp.header(header::SET_COOKIE, c);
+    }
+    resp.body(Body::empty()).map_err(|e| e.to_string())
+}
+
 /// `nav`: the request comes from hx-nav.js (in-page navigation) and gets only the catalog markup and the flag links
 /// as JSON; the browser keeps the page around it.
 async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool, headers: &HeaderMap, peer: Option<ConnectInfo<SocketAddr>>) -> Result<Response<Body>, String> {
@@ -173,27 +196,19 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     .collect::<Vec<_>>()
     .join("&");
     let (status, loader_headers, loader_body) = internal(app, &from, Method::POST, "/scscpq_wp.php", &jar, form).await?;
+    collect_cookies(&loader_headers, &mut jar, &mut set_cookies);
+    if let Some(to) = sent_elsewhere(status, &loader_headers) {
+        return redirect(nav, to, "redirect", set_cookies);
+    }
     if !status.is_success() {
         return Err(format!("loader status {status}"));
     }
-    collect_cookies(&loader_headers, &mut jar, &mut set_cookies);
     let loader_json: serde_json::Value = serde_json::from_slice(&loader_body).map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
     // account's language; only a flag click changes it.
     let account = loader_json.get("account_language").and_then(|v| v.as_str()).and_then(page_for);
     if let Some(account) = account.filter(|a| *a != page && !flag_click) {
-        if nav {
-            return Ok(json_response(serde_json::json!({ "redirect": page_uri(account, &without_lang(query)) }), set_cookies));
-        }
-        let mut resp = Response::builder()
-            .status(StatusCode::FOUND)
-            .header(header::LOCATION, page_uri(account, &without_lang(query)))
-            .header(header::CACHE_CONTROL, "no-store")
-            .header("x-hxweb", "account-language");
-        for c in set_cookies {
-            resp = resp.header(header::SET_COOKIE, c);
-        }
-        return resp.body(Body::empty()).map_err(|e| e.to_string());
+        return redirect(nav, &page_uri(account, &without_lang(query)), "account-language", set_cookies);
     }
     let link = loader_json
         .get("scscpq_link")
@@ -205,10 +220,13 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     // The loader recorded the page's language in the visit, which the fragment request reads through the same session
     // cookie the jar carries, and the browser's own language choice is left alone.
     let (status, frag_headers, frag_body) = internal(app, &from, Method::GET, link_path, &jar, String::new()).await?;
+    collect_cookies(&frag_headers, &mut jar, &mut set_cookies);
+    if let Some(to) = sent_elsewhere(status, &frag_headers) {
+        return redirect(nav, to, "redirect", set_cookies);
+    }
     if status != StatusCode::OK {
         return Err(format!("fragment status {status}"));
     }
-    collect_cookies(&frag_headers, &mut jar, &mut set_cookies);
     let frag_html = String::from_utf8_lossy(&frag_body).into_owned();
 
     // Keep the catalog's scripts where they are: its CAD iframe's onload calls scscpq_initial() from scscpq.js,
@@ -463,5 +481,27 @@ mod tests {
         assert_eq!(request_target("/catalog.php?action=sku&sku=A%2FB&scscpq_wp=1"), "/catalog.php?action=sku&sku=A%2FB&scscpq_wp=1");
         assert_eq!(request_target("/catalog.php?a\"b{c}=1&é=2"), "/catalog.php?a%22b%7Bc%7D=1&%C3%A9=2");
         assert!(axum::http::Uri::try_from(request_target("/catalog.php?a b|c^=1")).is_ok());
+    }
+
+    #[tokio::test]
+    async fn an_inner_redirect_becomes_the_pages_answer_with_its_cookies() {
+        let mut inner = HeaderMap::new();
+        inner.insert(header::LOCATION, HeaderValue::from_static("/index.php"));
+        inner.insert(header::SET_COOKIE, HeaderValue::from_static("PHPSESSID=abc; path=/"));
+        assert_eq!(sent_elsewhere(StatusCode::FOUND, &inner), Some("/index.php"));
+        assert_eq!(sent_elsewhere(StatusCode::INTERNAL_SERVER_ERROR, &inner), None, "a failure is not a redirect");
+        assert_eq!(sent_elsewhere(StatusCode::NOT_MODIFIED, &HeaderMap::new()), None);
+
+        let (mut jar, mut cookies) = (CookieJar::from_request(&HeaderMap::new()), Vec::new());
+        collect_cookies(&inner, &mut jar, &mut cookies);
+        let page = redirect(false, "/index.php", "redirect", cookies.clone()).unwrap();
+        assert_eq!(page.status(), StatusCode::FOUND);
+        assert_eq!(page.headers()[header::LOCATION], "/index.php");
+        assert_eq!(page.headers()[header::SET_COOKIE], "PHPSESSID=abc; path=/");
+
+        let nav = redirect(true, "/index.php", "redirect", cookies).unwrap();
+        assert_eq!((nav.status(), &nav.headers()[header::SET_COOKIE]), (StatusCode::OK, &HeaderValue::from_static("PHPSESSID=abc; path=/")));
+        let body = axum::body::to_bytes(nav.into_body(), 1 << 10).await.unwrap();
+        assert_eq!(serde_json::from_slice::<serde_json::Value>(&body).unwrap(), serde_json::json!({ "redirect": "/index.php" }));
     }
 }
