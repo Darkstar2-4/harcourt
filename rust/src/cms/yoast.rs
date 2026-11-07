@@ -2,10 +2,15 @@
 //! record (a post the export left out, an archive), built from Yoast's settings in the dump and from what the
 //! exported pages show of the site-wide parts (the social lines, the author, the breadcrumb's first crumb).
 
+use std::sync::LazyLock;
+
+use regex::Regex;
+
 use super::{
     model::{Lang, Page, PostType, Site, Taxonomy},
     theme::ORIGIN,
 };
+use crate::catalog::wp_search::texturize::texturize;
 
 /// Yoast's robots line for an indexed view.
 pub const INDEXED: &str = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
@@ -75,24 +80,113 @@ pub fn iso(gmt: &str) -> String {
     format!("{}+00:00", gmt.replacen(' ', "T", 1))
 }
 
-/// A JSON string as wp_json_encode() writes it: slashes escaped, other characters as they are.
+/// A JSON string as Yoast's schema graph writes it (wp_json_encode() with JSON_UNESCAPED_UNICODE): slashes
+/// escaped, other characters as they are.
 pub fn json(s: &str) -> String {
+    json_string(s, false)
+}
+
+/// A JSON string as GTM4WP writes its data layer: json()'s escapes, and `<`, `>`, `&`, `'` and `"` as `\u` escapes
+/// (JSON_HEX_TAG, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT).
+pub fn data_layer_json(s: &str) -> String {
+    json_string(s, true)
+}
+
+fn json_string(s: &str, hex: bool) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
     for c in s.chars() {
         match c {
+            '"' if hex => out.push_str("\\u0022"),
+            '<' if hex => out.push_str("\\u003C"),
+            '>' if hex => out.push_str("\\u003E"),
+            '&' if hex => out.push_str("\\u0026"),
+            '\'' if hex => out.push_str("\\u0027"),
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
             '/' => out.push_str("\\/"),
+            '\u{8}' => out.push_str("\\b"),
+            '\u{c}' => out.push_str("\\f"),
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
+            '\u{2028}' => out.push_str("\\u2028"),
+            '\u{2029}' => out.push_str("\\u2029"),
             c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
             c => out.push(c),
         }
     }
     out.push('"');
     out
+}
+
+/// A name or caption in Yoast's schema graph: smart_strip_tags() of the text (line breaks and `<br>` as spaces, a
+/// space after a closing paragraph, div or heading, a bullet after a list item, tags stripped, whitespace collapsed),
+/// as json().
+pub fn schema_text(s: &str) -> String {
+    static SPACED: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
+        [(r"(?i)<br[ \t\n\x0B\x0C\r]*/?>", " "), (r"(?i)</(p|div|h[0-9])>", "</$1> "), (r"(?i)(<li[^>]*>)", "${1}• ")]
+            .into_iter()
+            .filter_map(|(pattern, with)| Regex::new(pattern).ok().map(|re| (re, with)))
+            .collect()
+    });
+    let mut text = s.replace(['\r', '\n'], " ");
+    for (re, with) in SPACED.iter() {
+        text = re.replace_all(&text, *with).into_owned();
+    }
+    json(&fold_spaces(&strip_all_tags(&text), &[' ', '\t', '\n', '\u{b}', '\u{c}', '\r']))
+}
+
+/// wp_strip_all_tags(): script and style elements dropped with their text, other tags removed, then trimmed.
+pub fn strip_all_tags(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(lt) = rest.find('<') {
+        out.push_str(&rest[..lt]);
+        let tail = &rest[lt..];
+        if tail[1..].starts_with(|c: char| c.is_ascii_whitespace()) {
+            out.push('<');
+            rest = &tail[1..];
+            continue;
+        }
+        let end = tail.find('>').map_or(tail.len(), |e| e + 1);
+        let name: String = tail[1..end].chars().take_while(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_lowercase();
+        rest = &tail[end..];
+        if name == "script" || name == "style" {
+            let close = format!("</{name}");
+            if let Some(after) = rest.to_ascii_lowercase().find(&close).map(|e| &rest[e..]) {
+                rest = after.find('>').map_or("", |g| &after[g + 1..]);
+            }
+        }
+    }
+    out.push_str(rest);
+    php_trim(&out).to_string()
+}
+
+/// The breadcrumb text of a post (its indexable's breadcrumb title): wp_strip_all_tags() of get_the_title() with
+/// line breaks removed. Yoast texturizes it with the English marks on every page.
+pub fn breadcrumb_title(title: &str) -> String {
+    fold_spaces(&strip_all_tags(&texturize(title, Lang::En)), &[' ', '\t', '\n', '\r'])
+}
+
+/// Each run of `spaces` as one space, then PHP's trim().
+fn fold_spaces(s: &str, spaces: &[char]) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut in_run = false;
+    for c in s.chars() {
+        let space = spaces.contains(&c);
+        if !space {
+            out.push(c);
+        } else if !in_run {
+            out.push(' ');
+        }
+        in_run = space;
+    }
+    php_trim(&out).to_string()
+}
+
+fn php_trim(s: &str) -> &str {
+    s.trim_matches([' ', '\t', '\n', '\r', '\0', '\u{b}'])
 }
 
 /// The `inLanguage` of Yoast's graph.
@@ -205,5 +299,32 @@ mod tests {
         assert_eq!(post_title(&site, &page), None, "a variable not replaced leaves the view to WordPress");
         assert_eq!(iso(&page.published_at), "2020-01-02T03:04:05+00:00");
         assert_eq!(json("a/b \"c\" é"), "\"a\\/b \\\"c\\\" é\"");
+    }
+
+    #[test]
+    fn breadcrumbs_and_schema_names_are_plain_text() {
+        assert_eq!(breadcrumb_title("Lunch & Learns"), "Lunch &#038; Learns");
+        assert_eq!(breadcrumb_title("Clearance < 0.5 mm"), "Clearance < 0.5 mm");
+        assert_eq!(breadcrumb_title(" Two\n\tlines "), "Two lines");
+        assert_eq!(schema_text("Hoisting & Rigging - Harcourt"), "\"Hoisting & Rigging - Harcourt\"");
+        assert_eq!(schema_text("Clearance < 0.5 mm"), "\"Clearance < 0.5 mm\"");
+        assert_eq!(schema_text("Lunch &#038; Learns"), "\"Lunch &#038; Learns\"");
+        assert_eq!(schema_text(" Two\r\n  lines"), "\"Two lines\"");
+    }
+
+    #[test]
+    fn the_data_layer_writes_markup_characters_as_escapes() {
+        assert_eq!(data_layer_json("courtney"), "\"courtney\"");
+        assert_eq!(data_layer_json("A & B"), "\"A \\u0026 B\"");
+        assert_eq!(data_layer_json("Clearance < 0.5 mm > 0.2"), "\"Clearance \\u003C 0.5 mm \\u003E 0.2\"");
+        assert_eq!(data_layer_json("O'Neil \"Jr\" a/b é"), "\"O\\u0027Neil \\u0022Jr\\u0022 a\\/b é\"");
+        assert_eq!(json("A & B < C"), "\"A & B < C\"", "Yoast's graph keeps them as they are");
+    }
+
+    #[test]
+    fn tags_go_with_the_text_of_scripts() {
+        assert_eq!(strip_all_tags(" <p>One <b>two</b></p><script>x()</script>\n<style>p{}</style>three&hellip; "), "One two\nthree&hellip;");
+        assert_eq!(strip_all_tags("a\u{a0}"), "a\u{a0}", "PHP's trim keeps a no-break space");
+        assert_eq!(strip_all_tags("1 < 2"), "1 < 2");
     }
 }
