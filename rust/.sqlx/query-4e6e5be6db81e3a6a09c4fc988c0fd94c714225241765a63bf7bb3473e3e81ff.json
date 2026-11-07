@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT s.table_name AS \"table!: String\", s.code AS \"code!: String\", s.category_id AS \"category_id!: i64\",\n                  s.subcategory_id AS \"subcategory_id!: i64\", s.inventory_id AS \"inventory_id?: i64\", coalesce(s.ranking, 0) AS \"ranking!: i64\",\n                  coalesce(i.active, 0) AS \"part_active!: i64\", i.subcategory_id AS \"part_family?: i64\"\n           FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id\n           WHERE coalesce(s.language_code, '') IN ('', ?1)\n             AND s.table_name IS NOT NULL AND s.code IS NOT NULL AND s.category_id IS NOT NULL AND s.subcategory_id IS NOT NULL\n           ORDER BY s.id",
+  "query": "SELECT s.table_name AS \"table!: String\", s.code AS \"code!: String\", s.category_id AS \"category_id?: i64\",\n                  s.subcategory_id AS \"subcategory_id?: i64\", s.inventory_id AS \"inventory_id?: i64\", coalesce(s.ranking, 0) AS \"ranking!: i64\",\n                  coalesce(i.active, 0) AS \"part_active!: i64\", i.subcategory_id AS \"part_family?: i64\"\n           FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id\n           WHERE coalesce(s.language_code, '') IN ('', ?1) AND s.table_name IS NOT NULL AND s.code IS NOT NULL\n           ORDER BY s.id",
   "describe": {
     "columns": [
       {
@@ -14,12 +14,12 @@
         "type_info": "Text"
       },
       {
-        "name": "category_id!: i64",
+        "name": "category_id?: i64",
         "ordinal": 2,
         "type_info": "Integer"
       },
       {
-        "name": "subcategory_id!: i64",
+        "name": "subcategory_id?: i64",
         "ordinal": 3,
         "type_info": "Integer"
       },
@@ -58,5 +58,5 @@
       true
     ]
   },
-  "hash": "da7cb29685dea7cca4c02bd6f7571ac40b79b95446385cfbba1d6096d59f0392"
+  "hash": "4e6e5be6db81e3a6a09c4fc988c0fd94c714225241765a63bf7bb3473e3e81ff"
 }
