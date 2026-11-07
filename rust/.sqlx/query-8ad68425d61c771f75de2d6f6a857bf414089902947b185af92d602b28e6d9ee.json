@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cart SET version = version + 1, touched_at = ?3 WHERE session_hash = ?1 AND (?2 IS NULL OR version = ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "8ad68425d61c771f75de2d6f6a857bf414089902947b185af92d602b28e6d9ee"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT i.id AS \"id!: i64\", i.category_id AS \"category_id!: i64\", i.subcategory_id AS \"subcategory_id!: i64\",\n                  i.sort_order AS \"sort_order!: i64\", i.competitor_sku AS \"competitor_sku!: String\"\n           FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id\n           WHERE i.active = 1 AND lower(s.status) = 'active' AND i.competitor_sku <> '' ORDER BY i.id",
+  "query": "SELECT i.id AS \"id!: i64\", i.category_id AS \"category_id?: i64\", i.subcategory_id AS \"subcategory_id!: i64\",\n                  i.sort_order AS \"sort_order!: i64\", i.competitor_sku AS \"competitor_sku!: String\"\n           FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id\n           WHERE i.active = 1 AND lower(s.status) = 'active' AND i.competitor_sku <> '' ORDER BY i.id",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Integer"
       },
       {
-        "name": "category_id!: i64",
+        "name": "category_id?: i64",
         "ordinal": 1,
         "type_info": "Integer"
       },
@@ -40,5 +40,5 @@
       true
     ]
   },
-  "hash": "10bbdf30a1c29b38ab4ee6eaedb7249d98be52ea3b4748d7f3806f828d087329"
+  "hash": "c658a808a4f608724bd95c2377ac6e834d9623238b32553eb4cb090889701832"
 }

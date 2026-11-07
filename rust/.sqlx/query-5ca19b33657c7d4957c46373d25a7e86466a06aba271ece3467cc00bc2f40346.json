@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cart (session_hash, version, touched_at) VALUES (?1, 0, ?2)\n           ON CONFLICT (session_hash) DO UPDATE SET touched_at = excluded.touched_at RETURNING version AS \"version!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "version!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5ca19b33657c7d4957c46373d25a7e86466a06aba271ece3467cc00bc2f40346"
+}
