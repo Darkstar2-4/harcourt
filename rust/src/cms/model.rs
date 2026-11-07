@@ -466,15 +466,17 @@ impl Site {
         self.menus.iter().filter(move |m| m.menu == menu && m.lang == lang)
     }
 
-    /// Reads every cms table. Rows that do not parse are logged and left out.
+    /// Reads every cms table, and the version they are at, in one read transaction: a save that lands meanwhile is
+    /// either all in the snapshot or not in it. Rows that do not parse are logged and left out.
     pub async fn load(pool: &SqlitePool) -> sqlx::Result<Site> {
-        let version = version(pool).await?;
+        let mut tx = pool.begin().await?;
+        let version = version(&mut *tx).await?;
         let mut pages = Vec::new();
         for r in sqlx::query!(
             r#"SELECT id AS "id!", post_type, name, group_id, lang, path, template, status, title, parent_id, menu_order, published_at, modified_at, author_id
                FROM cms_page ORDER BY id"#
         )
-        .fetch_all(pool)
+        .fetch_all(&mut *tx)
         .await?
         {
             let (Some(kind), Some(lang), Some(template), Some(status)) =
@@ -502,15 +504,15 @@ impl Site {
         }
         let mut site = Site::new(pages);
         site.version = version;
-        for r in sqlx::query!("SELECT page_id, name, kind, value FROM cms_field").fetch_all(pool).await? {
+        for r in sqlx::query!("SELECT page_id, name, kind, value FROM cms_field").fetch_all(&mut *tx).await? {
             if let Some(kind) = Kind::parse(&r.kind) {
                 site.fields.entry(PageId(r.page_id)).or_default().insert(r.name, Field { kind, value: r.value });
             }
         }
-        for r in sqlx::query!("SELECT page_id, name, value FROM cms_page_meta").fetch_all(pool).await? {
+        for r in sqlx::query!("SELECT page_id, name, value FROM cms_page_meta").fetch_all(&mut *tx).await? {
             site.meta.entry(PageId(r.page_id)).or_default().insert(r.name, r.value);
         }
-        for r in sqlx::query!("SELECT lang, name, kind, value FROM cms_option").fetch_all(pool).await? {
+        for r in sqlx::query!("SELECT lang, name, kind, value FROM cms_option").fetch_all(&mut *tx).await? {
             if let (Some(lang), Some(kind)) = (Lang::parse(&r.lang), Kind::parse(&r.kind)) {
                 site.options.entry(lang).or_default().insert(r.name, Field { kind, value: r.value });
             }
@@ -519,7 +521,7 @@ impl Site {
             r#"SELECT id AS "id!", menu, lang, parent_id, position, label, url, page_id, classes, target
                FROM cms_menu_item ORDER BY menu, lang, position, id"#
         )
-        .fetch_all(pool)
+        .fetch_all(&mut *tx)
         .await?
         {
             let (Some(menu), Some(lang)) = (Menu::parse(&r.menu), Lang::parse(&r.lang)) else { continue };
@@ -537,7 +539,7 @@ impl Site {
             });
         }
         for r in sqlx::query!(r#"SELECT id AS "id!", file, mime, width, height, alt, sizes, name, parent_id, lang, group_id FROM cms_media"#)
-            .fetch_all(pool)
+            .fetch_all(&mut *tx)
             .await?
         {
             let sizes = serde_json::from_str(&r.sizes).unwrap_or_else(|e| {
@@ -561,26 +563,27 @@ impl Site {
                 },
             );
         }
-        for r in sqlx::query!(r#"SELECT id AS "id!", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id"#).fetch_all(pool).await? {
+        for r in sqlx::query!(r#"SELECT id AS "id!", taxonomy, slug, name, lang, group_id, modified_at FROM cms_term ORDER BY taxonomy, name, id"#).fetch_all(&mut *tx).await? {
             let Some(taxonomy) = Taxonomy::parse(&r.taxonomy) else { continue };
             let lang = r.lang.as_deref().and_then(Lang::parse);
             site.terms.push(Term { id: r.id, taxonomy, slug: r.slug, name: r.name, lang, group_id: r.group_id, modified_at: r.modified_at, pages: Vec::new() });
         }
-        for r in sqlx::query!("SELECT term_id, page_id FROM cms_term_page ORDER BY term_id, page_id").fetch_all(pool).await? {
+        for r in sqlx::query!("SELECT term_id, page_id FROM cms_term_page ORDER BY term_id, page_id").fetch_all(&mut *tx).await? {
             if let Some(t) = site.terms.iter_mut().find(|t| t.id == r.term_id) {
                 t.pages.push(PageId(r.page_id));
             }
         }
-        for r in sqlx::query!(r#"SELECT id AS "id!", nicename, display_name, profile_updated FROM cms_author"#).fetch_all(pool).await? {
+        for r in sqlx::query!(r#"SELECT id AS "id!", nicename, display_name, profile_updated FROM cms_author"#).fetch_all(&mut *tx).await? {
             site.authors.insert(r.id, Author { id: r.id, nicename: r.nicename, display_name: r.display_name, profile_updated: r.profile_updated });
         }
+        tx.commit().await?;
         Ok(site)
     }
 }
 
 /// The content version: the newest revision id. Every import and every save adds a revision.
-pub async fn version(pool: &SqlitePool) -> sqlx::Result<i64> {
-    sqlx::query_scalar!(r#"SELECT coalesce(max(id), 0) AS "v!: i64" FROM cms_revision"#).fetch_one(pool).await
+pub async fn version(db: impl sqlx::SqliteExecutor<'_>) -> sqlx::Result<i64> {
+    sqlx::query_scalar!(r#"SELECT coalesce(max(id), 0) AS "v!: i64" FROM cms_revision"#).fetch_one(db).await
 }
 
 /// The snapshot pages render from, reloaded when the content version moves.
