@@ -439,9 +439,18 @@ pub async fn family_parts(pool: &SqlitePool, family_id: i64) -> sqlx::Result<Vec
     parts_query!(pool, "WHERE subcategory_id = ?1 AND active = 1 ORDER BY sort_order, sku COLLATE NOCASE", family_id)
 }
 
+/// The id of the part with this number, active or not, written in any case (the legacy tables compared part
+/// numbers case-insensitively, and the unique key on `inventory.sku` does too).
+pub async fn part_id(db: impl sqlx::SqliteExecutor<'_>, sku: &str) -> sqlx::Result<Option<i64>> {
+    sqlx::query_scalar!(r#"SELECT id AS "id!: i64" FROM inventory WHERE sku = ?1 COLLATE NOCASE"#, sku).fetch_optional(db).await
+}
+
 /// The part with this number, active or not.
 pub async fn part_by_sku(pool: &SqlitePool, sku: &str) -> sqlx::Result<Option<Part>> {
-    Ok(parts_query!(pool, "WHERE sku = ?1 COLLATE NOCASE ORDER BY id LIMIT 1", sku)?.into_iter().next())
+    match part_id(pool, sku).await? {
+        Some(id) => part_by_id(pool, id).await,
+        None => Ok(None),
+    }
 }
 
 pub async fn part_by_id(pool: &SqlitePool, id: i64) -> sqlx::Result<Option<Part>> {
