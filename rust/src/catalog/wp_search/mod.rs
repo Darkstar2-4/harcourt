@@ -753,7 +753,7 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
 
 /// sidebar.php after the loop, where `$post` is the last result shown: a FAQ shows the FAQ widget area, the
 /// `[location]` widget (custom_html-3); any other post its own `sidebar_select` area, which the export recorded as
-/// the page's `sidebar`; no result shows none. custom_html-2 is the same widget, and the export holds its output.
+/// the page's `sidebar` (none where it recorded none); no result shows none. custom_html-2 is the same widget, and the export holds its output.
 /// The export recorded a page's area on that page, where its own menu item was the current one; a search has no
 /// current item.
 fn sidebar(site: &Site, lang: Lang, last: Option<&Page>) -> String {
@@ -774,15 +774,6 @@ fn sidebar(site: &Site, lang: Lang, last: Option<&Page>) -> String {
         Some(p) => own(p).unwrap_or_default(),
         None => String::new(),
     }
-}
-
-/// Whether the cms holds all a page of results prints: Gravity Forms puts the styles and scripts of a form in the
-/// head when a result's content embeds one, and sidebar.php prints the last result's `sidebar_select` area, which
-/// only the export of that page recorded.
-fn drawable(site: &Site, shown: &[&Page]) -> bool {
-    let embeds = |p: &Page| post_content(site, p.id).contains("gravityform");
-    let area_known = |p: &Page| p.kind == PostType::Faq || field(site, p.id, "sidebar_select").is_empty() || site.meta(p.id).contains_key("sidebar");
-    !shown.iter().any(|p| embeds(p)) && shown.last().is_none_or(|p| area_known(p))
 }
 
 /// Yoast's graph for a search: the results page, the first result's featured image, the breadcrumb, then the
@@ -904,9 +895,6 @@ pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page:
         (StatusCode::NOT_FOUND, theme::not_found(&site, lang, request_uri))
     } else {
         let shown: Vec<&Page> = found.iter().skip((paged - 1) * PER_PAGE).take(PER_PAGE).copied().collect();
-        if !drawable(&site, &shown) {
-            return legacy();
-        }
         let ajax = headers.get("x-requested-with").and_then(|v| v.to_str().ok()).is_some_and(|v| v.eq_ignore_ascii_case("xmlhttprequest"));
         let holes = holes(&site, &Shown { s, lang, paged, pages, page, ajax }, &shown);
         let html = theme::without_post(&site, lang, request_uri, &holes, &main_html(&site, &esc(s), &shown));
