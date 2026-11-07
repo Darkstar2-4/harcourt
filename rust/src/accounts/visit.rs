@@ -61,6 +61,14 @@ pub async fn frame(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<()
     Ok(())
 }
 
+/// The visit's language put back to what it was (`None`: none), when a request that set it is answered by a
+/// redirect elsewhere instead: the visit stays as the page it was sent to would find it.
+pub async fn restore_language(pool: &SqlitePool, id: &VisitId, code: Option<&str>) -> sqlx::Result<()> {
+    let key = id.0.as_slice();
+    sqlx::query!("UPDATE visit SET language_code = ?2 WHERE id = ?1", key, code).execute(pool).await?;
+    Ok(())
+}
+
 pub async fn set_language(pool: &SqlitePool, id: &VisitId, code: &str, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
