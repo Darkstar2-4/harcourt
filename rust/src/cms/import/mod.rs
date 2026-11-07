@@ -9,7 +9,7 @@ pub mod export;
 pub mod heads;
 pub mod wp;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use sqlx::SqlitePool;
 
@@ -106,12 +106,8 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             sqlx::query!("INSERT INTO cms_option (lang, name, kind, value) VALUES (?1, ?2, ?3, ?4)", code, name, kind, f.value).execute(&mut *tx).await?;
         }
     }
-    let ids: std::collections::HashSet<i64> = import.menus.iter().map(|m| m.id).collect();
-    let mut menus: Vec<&MenuItem> = import.menus.iter().collect();
-    menus.sort_by_key(|m| m.parent_id.is_some());
-    for m in menus {
+    for (m, parent) in parents_first(&import.menus) {
         let (menu, lang) = (m.menu.as_str(), m.lang.code());
-        let parent = m.parent_id.filter(|p| ids.contains(p));
         let page = m.page_id.map(|p| p.0);
         sqlx::query!(
             "INSERT INTO cms_menu_item (id, menu, lang, parent_id, position, label, url, page_id, classes, target) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
@@ -186,4 +182,59 @@ pub async fn write(pool: &SqlitePool, import: &Import, now: i64) -> sqlx::Result
             .await?;
     }
     tx.commit().await
+}
+
+/// The menu items in an order that stores every parent before its children, each with the parent it is stored
+/// under. A parent that is not among the items is stored as none, and so is the first item of a loop of parents.
+fn parents_first(items: &[MenuItem]) -> Vec<(&MenuItem, Option<i64>)> {
+    let ids: HashSet<i64> = items.iter().map(|m| m.id).collect();
+    let mut out: Vec<(&MenuItem, Option<i64>)> = items.iter().filter(|m| !m.parent_id.is_some_and(|p| ids.contains(&p))).map(|m| (m, None)).collect();
+    let mut placed: HashSet<i64> = out.iter().map(|(m, _)| m.id).collect();
+    let mut next = 0;
+    loop {
+        while let Some(&(parent, _)) = out.get(next) {
+            out.extend(items.iter().filter(|m| m.parent_id == Some(parent.id) && placed.insert(m.id)).map(|m| (m, Some(parent.id))));
+            next += 1;
+        }
+        let Some(root) = items.iter().find(|m| placed.insert(m.id)) else { return out };
+        out.push((root, None));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cms::model::Menu;
+
+    fn item(id: i64, parent_id: Option<i64>, position: i64) -> MenuItem {
+        MenuItem {
+            id,
+            menu: Menu::Main,
+            lang: Lang::En,
+            parent_id,
+            position,
+            label: format!("Item {id}"),
+            url: format!("https://example.com/{id}/"),
+            page_id: None,
+            classes: String::new(),
+            target: String::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_three_level_menu_is_stored_whatever_order_its_items_sort_in() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let import = Import { menus: vec![item(10, None, 1), item(15, Some(20), 2), item(20, Some(10), 3), item(30, Some(99), 4)], ..Default::default() };
+        write(&pool, &import, 1).await.unwrap();
+        let site = Site::load(&pool).await.unwrap();
+        let parents: Vec<(i64, Option<i64>)> = site.menus.iter().map(|m| (m.id, m.parent_id)).collect();
+        assert_eq!(parents, [(10, None), (15, Some(20)), (20, Some(10)), (30, None)]);
+    }
+
+    #[test]
+    fn a_loop_of_parents_is_broken_at_its_first_item() {
+        let items = [item(1, Some(2), 1), item(2, Some(1), 2), item(3, Some(1), 3), item(4, None, 4)];
+        let order: Vec<(i64, Option<i64>)> = parents_first(&items).iter().map(|(m, p)| (m.id, *p)).collect();
+        assert_eq!(order, [(4, None), (1, None), (2, Some(1)), (3, Some(1))]);
+    }
 }
