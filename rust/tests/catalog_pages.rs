@@ -430,6 +430,20 @@ async fn search_results_list_only_what_the_catalog_lists() {
 }
 
 #[tokio::test]
+async fn search_results_place_rows_indexed_before_their_family_had_a_category() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', NULL, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', NULL, 7, 1), (502, '', 1, 'subcategory', 'Clamp', NULL, 9, 0), (503, 'EN', 1, 'category', 'Nowhere', NULL, NULL, 0)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains("Part number:"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    assert!(body.contains("<h2>Clamps</h2>") && body.contains("subcat9"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=nowhere"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>No results for search term: <b>nowhere</b></p>"), "{body}");
+}
+
+#[tokio::test]
 async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;

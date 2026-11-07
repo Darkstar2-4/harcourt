@@ -167,12 +167,11 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let lang = ctx.viewer.lang.code();
     let within = ctx.subcategory_id;
     let rows: Vec<keywords::Row> = sqlx::query!(
-        r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", s.category_id AS "category_id!: i64",
-                  s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
+        r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", s.category_id AS "category_id?: i64",
+                  s.subcategory_id AS "subcategory_id?: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
                   coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
            FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
-           WHERE coalesce(s.language_code, '') IN ('', ?1)
-             AND s.table_name IS NOT NULL AND s.code IS NOT NULL AND s.category_id IS NOT NULL AND s.subcategory_id IS NOT NULL
+           WHERE coalesce(s.language_code, '') IN ('', ?1) AND s.table_name IS NOT NULL AND s.code IS NOT NULL
            ORDER BY s.id"#,
         lang
     )
@@ -180,7 +179,7 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     .await?
     .into_iter()
     .filter_map(|r| {
-        let (category_id, subcategory_id) = shown(ctx, &r.table, r.category_id, r.subcategory_id, r.part_family, r.part_active != 0)?;
+        let (category_id, subcategory_id) = shown(ctx, &r.table, r.category_id.unwrap_or(0), r.subcategory_id.unwrap_or(0), r.part_family, r.part_active != 0)?;
         (within == 0 || subcategory_id == within).then(|| keywords::Row {
             code_normalized: search::normalize_code(&r.code),
             table: r.table,
