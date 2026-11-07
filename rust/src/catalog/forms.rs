@@ -7,7 +7,7 @@ use std::{
     sync::OnceLock,
 };
 
-use super::html::{esc, esc_attr};
+use super::html::{esc, esc_attr, esc_script};
 
 const NAME: &[&str] = &["name", "id", "class", "style"];
 const BOOLEAN: &[&str] = &["checked", "selected", "disabled", "readonly"];
@@ -34,7 +34,7 @@ pub fn options(field: &str, attrs: &[(&str, &str)]) -> String {
             k if NAME.contains(&k) => name.push_str(&quoted),
             k if BOOLEAN.contains(&k) => boolean.push_str(&format!(" {k}")),
             k if HTML5.contains(&k) => html5.push_str(&quoted),
-            k if k.starts_with("on") => event.push_str(&format!(" {k}=\"javascript:{}\"", v.replace('"', "&quot;"))),
+            k if k.starts_with("on") => event.push_str(&format!(" {k}=\"javascript:{}\"", esc_script(v))),
             "src" => src.push_str(&quoted),
             _ => value.push_str(&quoted),
         }

@@ -345,7 +345,7 @@ fn inventory(ctx: &Ctx, family: &Family, all: &[Part], shown: &[&Part], found: u
             out.push(format!("<td class=center>{}</td>", forms::text(&field_list, "", "6", "6", &[("class", "products_quantity")])));
             let add = ctx.strings.label("catalog_cart_add", "Add to Cart", &[]);
             let icon = forms::img("/scs_images/addtocart.png", &[("class", "products_cart"), ("title", &add)]).map(|i| i.replacen("<img", "<img id=''", 1)).unwrap_or_default();
-            out.push(format!("<td class=center>{}</td>", href(&icon, &format!("javascript:cart_update(this,{},{})", forms::js_quote(&field_list), forms::js_quote(&field_sku)))));
+            out.push(format!("<td class=center>{}</td>", html::script_href(&icon, &format!("cart_update(this,{},{})",forms::js_quote(&field_list), forms::js_quote(&field_sku)))));
             if !family.prj.is_empty() {
                 let field = html::base64_fields(&["inventory", &part.sku]);
                 let onclick = format!("quick_cad(this.id, {}, 0);", forms::js_quote(&part.sku));
