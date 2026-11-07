@@ -627,3 +627,74 @@ async fn an_address_is_registered_once_however_many_requests_ask() {
     assert_eq!(scalar(&pool, r#"SELECT count(*) FROM "user" WHERE signup_email = 'lee@newco.example'"#).await, 1);
     assert_eq!(account::for_email(&pool, &email).await.unwrap(), Some(made[0]));
 }
+
+/// The harcourt_profile cookie an answer leaves the browser with, decoded.
+fn profile_cookie(a: &Answer) -> Option<serde_json::Value> {
+    let raw = a.cookies().into_iter().filter_map(|c| c.strip_prefix("harcourt_profile=").map(|v| v.split(';').next().unwrap_or("").to_string())).next_back()?;
+    serde_json::from_str(&percent_encoding::percent_decode_str(&raw).decode_utf8_lossy()).ok()
+}
+
+async fn visit_profile(pool: &SqlitePool) -> String {
+    sqlx::query_scalar("SELECT coalesce(profile, '') FROM visit").fetch_one(pool).await.unwrap()
+}
+
+const HELD: &str = "harcourt_profile=%7B%22email%22%3A%22old%40elsewhere.example%22%2C%22name_first%22%3A%22Old%22%2C%22name_last%22%3A%22Name%22%2C%22company_name%22%3A%22Old%20Co%22%2C%22generate%22%3A1%7D";
+
+#[tokio::test]
+async fn the_emailed_code_makes_the_profile_the_person_who_typed_it() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let form = "action=register&profile_email=pat%40example.com&profile_name_first=Pat&profile_name_last=Lee&profile_company_name=Example+Tools";
+    let a = ajax(&app, HELD, form).await;
+    assert!(a.json()["html"]["scscpq_content"].as_str().unwrap().contains("Welcome Example Tools Employee"));
+    assert!(profile_cookie(&a).is_none_or(|p| p["email"] == "old@elsewhere.example"), "no one is admitted yet");
+    assert!(!visit_profile(&pool).await.contains("pat@example.com"));
+    let code = code_in(&mails(&pool).await[1].2);
+
+    let a = ajax(&app, &format!("{HELD}; {}", a.jar()), &format!("action=remote&unlock_code={code}")).await;
+    assert_eq!(a.json()["menu"]["scscpq_newuser"], 0);
+    let profile = profile_cookie(&a).expect("the admitted person's profile");
+    assert_eq!((profile["email"].as_str(), profile["name"].as_str()), (Some("pat@example.com"), Some("Pat Lee")));
+    assert_eq!(profile["generate"], 1, "the browser's choices stay");
+    assert!(!profile.to_string().contains("Old"), "{profile}");
+    assert!(visit_profile(&pool).await.contains(r#""name":"Pat Lee""#));
+}
+
+#[tokio::test]
+async fn a_campaign_sign_up_at_an_active_company_carries_its_names_to_the_code() {
+    let pool = pool().await;
+    sqlx::query(r#"INSERT INTO campaign (id, code, name, description, "type", active, from_date, thru_date, title_omit, divs) VALUES (1, 'OPEN', 'Open House', '', 'Public', 1, '0000-00-00', '0000-00-00', 0, '[]')"#)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app = app(&pool);
+    let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=Example+Tools&email=pat%40example.com";
+    let a = send(&app, Method::POST, "/campaign.php", HELD, Some(form), false).await;
+    assert_eq!(a.status, StatusCode::FOUND);
+    assert!(profile_cookie(&a).is_none_or(|p| p["email"] == "old@elsewhere.example"), "no one is admitted yet");
+    let jar = format!("{HELD}; {}", a.jar());
+    assert!(page(&app, &jar).await.body.contains("Welcome Example Tools Employee"));
+    let code = code_in(&mails(&pool).await.last().unwrap().2);
+    let a = ajax(&app, &jar, &format!("action=remote&unlock_code={code}")).await;
+    let profile = profile_cookie(&a).expect("the admitted person's profile");
+    assert_eq!((profile["email"].as_str(), profile["name_first"].as_str(), profile["name_last"].as_str()), (Some("pat@example.com"), Some("Pat"), Some("Lee")));
+}
+
+#[tokio::test]
+async fn a_sign_in_that_admits_no_one_leaves_the_profile_alone() {
+    let pool = pool().await;
+    let nonce = Arc::new(Mutex::new(String::new()));
+    let ms = stand_in(Kind::Microsoft, serde_json::json!({"mail": "pat@waiting.example", "userPrincipalName": "pat@waiting.example", "givenName": "Pat"}), nonce.clone(), serde_json::json!({})).await;
+    let app = app_with(&pool, Providers { microsoft: Some(ms), google: None });
+    let visit = "PHPSESSID=r7visit0123456789abcdef";
+    page(&app, &format!("{visit}; {HELD}")).await;
+    let start = send(&app, Method::GET, "/oauth/init.php", visit, None, false).await;
+    let location = start.headers.get(header::LOCATION).unwrap().to_str().unwrap().to_string();
+    *nonce.lock().unwrap() = param(&location, "nonce");
+    let jar = format!("{visit}; {}", start.jar());
+    let back = send(&app, Method::GET, &format!("/oauth/callback.php?code=c1&state={}", param(&location, "state")), &jar, None, false).await;
+    assert!(profile_cookie(&back).is_none());
+    assert!(!back.cookies().iter().any(|c| c.starts_with("__Host-hx_session=")));
+    let kept: String = sqlx::query_scalar("SELECT profile FROM visit WHERE profile IS NOT NULL").fetch_one(&pool).await.unwrap();
+    assert!(kept.contains("old@elsewhere.example") && !kept.contains("waiting.example"), "{kept}");
+}

@@ -151,7 +151,7 @@ pub async fn reset_code_tries(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<(
     Ok(())
 }
 
-/// The profile the visit last loaded or typed, as the JSON of its cookie.
+/// The profile the visit last loaded or admitted someone with, as the JSON of its cookie.
 pub async fn profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
     let key = id.0.as_slice();
     Ok(sqlx::query_scalar!("SELECT profile FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?.flatten())
@@ -170,6 +170,37 @@ pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) 
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// What the visitor last typed into a sign-up form, as the JSON of a profile cookie.
+pub async fn typed_profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
+    let key = id.0.as_slice();
+    Ok(sqlx::query_scalar!("SELECT typed_profile FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?.flatten())
+}
+
+pub async fn set_typed_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) -> sqlx::Result<()> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    sqlx::query!(
+        "INSERT INTO visit (id, typed_profile, seen_at) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET typed_profile = excluded.typed_profile, seen_at = excluded.seen_at",
+        key,
+        json,
+        now
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// What was typed, taken: someone was admitted and it has served.
+pub async fn take_typed_profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
+    let typed = typed_profile(pool, id, now).await?;
+    if typed.is_some() {
+        let key = id.0.as_slice();
+        sqlx::query!("UPDATE visit SET typed_profile = NULL WHERE id = ?1", key).execute(pool).await?;
+    }
+    Ok(typed)
 }
 
 /// session_destroy(): everything the visit held is gone, and the next request with its id begins a visit again.
@@ -216,6 +247,10 @@ mod tests {
         assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 2);
         reset_code_tries(&pool, &b).await.unwrap();
         assert_eq!(count_code_try(&pool, &b, 1003).await.unwrap(), 1);
+        set_typed_profile(&pool, &b, r#"{"email":"pat@example.com"}"#, 1003).await.unwrap();
+        assert_eq!(typed_profile(&pool, &b, 1003).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#));
+        assert_eq!(take_typed_profile(&pool, &b, 1003).await.unwrap().as_deref(), Some(r#"{"email":"pat@example.com"}"#));
+        assert_eq!(take_typed_profile(&pool, &b, 1003).await.unwrap(), None, "taken once");
         destroy(&pool, &b, 1003).await.unwrap();
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
         assert!(begins_again(&pool, &b).await.unwrap());

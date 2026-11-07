@@ -215,9 +215,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
     let score = score(core, req, rc.as_ref(), token).await;
     let layout = Layout::load(pool).await?;
     let (p, errors) = profile::verify(&layout, posted, req.profile(pool).await?);
-    if req.visitor.pending_in_php() {
-        p.keep(pool, &req.visitor, req.now).await?;
-    }
+    p.keep_typed(pool, &req.visitor, req.now).await?;
     if spam(core, req, rc.as_ref(), &score, "registration form", p.get("email")).await? {
         reply.html.set("profile_register", UNABLE.into());
         return Ok(reply);
@@ -447,7 +445,7 @@ async fn register_form(core: &Auth, req: &Request, rc: Option<&Recaptcha>) -> sq
         OAUTH_BUTTONS.into(),
         "<hr style='margin: 20px 0; border: 0; border-top: 1px solid #ccc;'>".into(),
         "<p style='font-weight:bold;'>Or complete the form below:</p>".into(),
-        profile::form(pool, &layout, &Profile::load(pool, &req.headers, &req.visitor).await?, &Labels::load(pool, &req.visitor.language).await?).await?,
+        profile::form(pool, &layout, &Profile::for_form(pool, &req.headers, &req.visitor).await?, &Labels::load(pool, &req.visitor.language).await?).await?,
         recaptcha::button(rc, "Submit", "red-button", None, None),
         "<div id=recaptcha_status></div>".into(),
         "</div>".into(),

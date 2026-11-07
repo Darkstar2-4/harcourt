@@ -172,35 +172,64 @@ impl Profile {
 
     /// profile->cookie(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return the cookie.
     pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<Option<HeaderValue>> {
-        self.keep(pool, visitor, now).await?;
-        Ok(self.cookie(now))
-    }
-
-    /// Someone was just admitted as `email`: the profile becomes theirs (their address, and each name they gave,
-    /// a blank one keeping what was remembered), kept for the visit, with its cookie. A profile the browser held for
-    /// someone else does not outlive the sign-in.
-    pub async fn admit(mut self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
-        let given = |s: &str, kept: &mut Option<String>| {
-            if s.is_empty() || kept.as_deref() == Some(s) {
-                return false;
-            }
-            *kept = Some(s.to_string());
-            true
-        };
-        let renamed = given(name_first, &mut self.name_first) | given(name_last, &mut self.name_last);
-        if renamed {
-            self.name = format!("{} {}", self.get("name_first"), self.get("name_last"));
-        }
-        self.email = Some(email.as_str().into());
-        self.remember(pool, visitor, now).await
-    }
-
-    /// Keep the profile for the visit without a cookie: the PHP changed the session's copy in place.
-    pub async fn keep(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<()> {
         if let Some(id) = &visitor.visit {
             visit::set_profile(pool, id, &self.to_cookie(), now).await?;
         }
+        Ok(self.cookie(now))
+    }
+
+    /// Whether the profile is the one of the person at `email`.
+    fn is_for(&self, email: &Email) -> bool {
+        self.email.as_deref().and_then(Email::parse).as_ref() == Some(email)
+    }
+
+    /// The browser's choices (language, CAD format and delivery, consent) without anyone's name or address.
+    fn choices(self) -> Profile {
+        Profile { cad_code: self.cad_code, cad_name: self.cad_name, language_code: self.language_code, generate: self.generate, consent: self.consent, ..Profile::default() }
+    }
+
+    /// Someone was just admitted as `email`, and this is the only way the visit's profile and its cookie change to
+    /// a person. The profile becomes theirs: a profile of someone else keeps only the browser's choices; each name
+    /// is the one given, else the one typed for this address this visit, else the one this person had.
+    pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        let typed = match &visitor.visit {
+            Some(id) => visit::take_typed_profile(pool, id, now).await?,
+            None => None,
+        };
+        let typed = Profile::from_cookie(typed.as_deref());
+        let typed = if typed.is_for(email) { typed } else { Profile::default() };
+        let mut p = if self.is_for(email) { self } else { self.choices() };
+        let name = |given: &str, typed: Option<String>, kept: &Option<String>| {
+            Some(given.to_string()).filter(|s| !s.is_empty()).or(typed.filter(|s| !s.is_empty())).or_else(|| kept.clone())
+        };
+        let (first, last) = (name(name_first, typed.name_first, &p.name_first), name(name_last, typed.name_last, &p.name_last));
+        if (&first, &last) != (&p.name_first, &p.name_last) {
+            (p.name_first, p.name_last) = (first, last);
+            p.name = format!("{} {}", p.get("name_first"), p.get("name_last"));
+        }
+        p.email = Some(email.as_str().into());
+        p.remember(pool, visitor, now).await
+    }
+
+    /// Keep what was typed into a sign-up form for the visit, for the form and for the admission it may lead to.
+    /// The visit's profile does not change: no one has been admitted.
+    pub async fn keep_typed(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<()> {
+        if let Some(id) = &visitor.visit {
+            visit::set_typed_profile(pool, id, &self.to_cookie(), now).await?;
+        }
         Ok(())
+    }
+
+    /// What the sign-up form shows: what was typed into it this visit, else load().
+    pub async fn for_form(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        let typed = match &visitor.visit {
+            Some(id) => visit::typed_profile(pool, id, unix_now()).await?,
+            None => None,
+        };
+        match typed {
+            Some(json) => Ok(Profile::from_cookie(Some(&json))),
+            None => Profile::load(pool, headers, visitor).await,
+        }
     }
 
     /// scscpq_api.php json_profile_update(): the profile's company and address become the account's. A field the
