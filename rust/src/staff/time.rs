@@ -89,6 +89,18 @@ pub fn from_local(year: i64, month: u32, day: u32, hour: u32, minute: u32, secon
     }
 }
 
+/// The year of a typed `m/d/y` date as strtotime() reads it: under 100 with fewer than four digits, 70 to 99 are
+/// in the 1900s and the rest in the 2000s.
+pub fn full_year(digits: &str) -> Option<i64> {
+    let y: i64 = digits.trim().parse().ok()?;
+    Some(match y {
+        _ if digits.trim().len() >= 4 => y,
+        0..=69 => y + 2000,
+        70..=99 => y + 1900,
+        _ => y,
+    })
+}
+
 /// `Y/m/d`, `Y-m-d` or `m/d/Y` (the date fields of the staff forms), as (year, month, day).
 pub fn parse_date(s: &str) -> Option<(i64, u32, u32)> {
     let s = s.trim();
@@ -97,8 +109,7 @@ pub fn parse_date(s: &str) -> Option<(i64, u32, u32)> {
         return None;
     }
     let n = |i: usize| parts[i].parse::<i64>().ok();
-    let (y, m, d) = if parts[0].len() == 4 { (n(0)?, n(1)?, n(2)?) } else { (n(2)?, n(0)?, n(1)?) };
-    let y = if parts[0].len() != 4 && parts[2].len() == 2 { 2000 + y } else { y };
+    let (y, m, d) = if parts[0].len() == 4 { (n(0)?, n(1)?, n(2)?) } else { (full_year(parts[2])?, n(0)?, n(1)?) };
     let (m, d) = (u32::try_from(m).ok()?, u32::try_from(d).ok()?);
     let valid = (0..=9999).contains(&y) && (1..=12).contains(&m) && d >= 1 && civil_from_days(days_from_civil(y, m, d)) == (y, m, d);
     valid.then_some((y, m, d))
@@ -195,6 +206,11 @@ mod tests {
         assert_eq!(parse_date("2025-02-29"), None);
         assert_eq!(parse_date("nope"), None);
         assert_eq!(parse_date("1/1/20255"), None, "a year past four digits is a typing slip");
+        assert_eq!(parse_date("09/25/25"), Some((2025, 9, 25)));
+        assert_eq!(parse_date("12/31/69"), Some((2069, 12, 31)));
+        assert_eq!(parse_date("1/1/70"), Some((1970, 1, 1)));
+        assert_eq!(parse_date("7/4/99"), Some((1999, 7, 4)));
+        assert_eq!(parse_date("7/4/0099"), Some((99, 7, 4)), "four digits are the year as written");
         assert_eq!(add_days((2025, 3, 1), -1), (2025, 2, 28));
     }
 }

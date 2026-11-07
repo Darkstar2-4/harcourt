@@ -249,7 +249,9 @@ pub fn csv_line(fields: &[String], delimiter: char) -> String {
 }
 
 /// str_getcsv() with no escape character, of one line read by fgets(): fields split on the delimiter, quoted fields
-/// unquoted with doubled quotes read as one, the line end dropped.
+/// unquoted with doubled quotes read as one, the line end dropped. Files written with fputcsv()'s `\` escape left a
+/// quote after a backslash single; inside a quoted field such a quote is part of the value unless the delimiter or
+/// the line end follows it, a place csv_line() only ever puts a closing quote.
 pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
     let line = line.strip_suffix('\n').unwrap_or(line);
     let line = line.strip_suffix('\r').unwrap_or(line);
@@ -270,7 +272,10 @@ pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
                         field.push('"');
                         continue;
                     }
-                    break;
+                    let escaped = field.ends_with('\\') && chars.peek().is_some_and(|&n| n != delimiter);
+                    if !escaped {
+                        break;
+                    }
                 }
                 field.push(c);
             }
@@ -506,14 +511,12 @@ fn posted_number(s: &str) -> Option<f64> {
 fn parse_any_date(s: &str) -> Option<chrono::NaiveDate> {
     let s = s.split_whitespace().next()?;
     let parts: Vec<&str> = s.split(['/', '-']).collect();
-    let [a, b, c] = parts[..] else { return None };
-    let (a, b, c): (i32, u32, u32) = (a.trim().parse().ok()?, b.trim().parse().ok()?, c.trim().parse().ok()?);
+    let [a, b, year] = parts[..] else { return None };
+    let (a, b, c): (i32, u32, u32) = (a.trim().parse().ok()?, b.trim().parse().ok()?, year.trim().parse().ok()?);
     if s.contains('-') || a > 31 {
         chrono::NaiveDate::from_ymd_opt(a, b, c)
     } else {
-        let year = c as i32;
-        let year = if year < 70 { year + 2000 } else if year < 100 { year + 1900 } else { year };
-        chrono::NaiveDate::from_ymd_opt(year, a as u32, b)
+        chrono::NaiveDate::from_ymd_opt(i32::try_from(time::full_year(year)?).ok()?, a as u32, b)
     }
 }
 
@@ -602,6 +605,8 @@ mod tests {
             assert_eq!(parse_csv_line(&line, delimiter), fields, "{line:?}");
         }
         assert_eq!(csv_line(&fields[..2], ','), "\"C:\\parts\\\",\"a\\\"\"b\"\n");
+        assert_eq!(parse_csv_line("A-1,\"a\\\"b, c\",\"C:\\parts\\\",7\n", ','), ["A-1", "a\\\"b, c", "C:\\parts\\", "7"], "the escaped form of older files");
+        assert_eq!(parse_csv_line("\"say \\\"hi\\\" \"\t\"x\\\"\"\n", '\t'), ["say \\\"hi\\\" ", "x\\\""]);
         let sheet = read_upload("x.csv", "sku,folder,sort\nA-1,\"C:\\parts\\\",7\n".as_bytes(), None).ok().unwrap();
         assert_eq!(sheet.rows[1], ["A-1", "C:\\parts\\", "7"]);
     }

@@ -193,8 +193,9 @@ impl Profile {
     }
 
     /// Someone was just admitted as `email`, and this is the only way the visit's profile and its cookie change to
-    /// a person. The profile becomes theirs: a profile of someone else keeps only the browser's choices; each name
-    /// is the one given, else the one typed for this address this visit, else the one this person had.
+    /// a person. The profile becomes theirs: a profile of someone else keeps only the browser's choices; each of the
+    /// person's own fields (name, title, phone, fax) is the one given, else the one typed for this address this
+    /// visit, else the one this person had. The company and address are the account's, which load() takes.
     pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
         let typed = match &visitor.visit {
             Some(id) => visit::take_typed_profile(pool, id, now).await?,
@@ -203,14 +204,18 @@ impl Profile {
         let typed = Profile::from_cookie(typed.as_deref());
         let typed = if typed.is_for(email) { typed } else { Profile::default() };
         let mut p = if self.is_for(email) { self } else { self.choices() };
-        let name = |given: &str, typed: Option<String>, kept: &Option<String>| {
-            Some(given.to_string()).filter(|s| !s.is_empty()).or(typed.filter(|s| !s.is_empty())).or_else(|| kept.clone())
+        let pick = |given: Option<&str>, typed: Option<String>, kept: Option<String>| {
+            given.filter(|s| !s.is_empty()).map(str::to_string).or(typed.filter(|s| !s.is_empty())).or(kept)
         };
-        let (first, last) = (name(name_first, typed.name_first, &p.name_first), name(name_last, typed.name_last, &p.name_last));
+        let first = pick(Some(name_first), typed.name_first, p.name_first.clone());
+        let last = pick(Some(name_last), typed.name_last, p.name_last.clone());
         if (&first, &last) != (&p.name_first, &p.name_last) {
             (p.name_first, p.name_last) = (first, last);
             p.name = format!("{} {}", p.get("name_first"), p.get("name_last"));
         }
+        p.title = pick(None, typed.title, p.title.take());
+        p.phone = pick(None, typed.phone, p.phone.take());
+        p.fax = pick(None, typed.fax, p.fax.take());
         p.email = Some(email.as_str().into());
         p.remember(pool, visitor, now).await
     }
