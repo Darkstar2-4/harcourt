@@ -706,7 +706,7 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
         );
     }
     h.insert("seo_og_type", "\t<meta property=\"og:type\" content=\"article\" />\n".to_string());
-    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}{}\" />\n", lang.link(&search_path(&shown))));
+    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}{}\" />\n", lang.link(&search_link(s))));
     h.insert(
         "seo_article_twitter",
         format!("\t<meta name=\"twitter:card\" content=\"summary_large_image\" />\n\t<meta name=\"twitter:title\" content=\"{title}\" />\n\t<meta name=\"twitter:site\" content=\"@theharcourtco\" />\n"),
@@ -793,19 +793,19 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
     }
 }
 
-/// get_search_link()'s path for terms as given: the search permastruct, `/search/` alone for none.
-fn search_path(terms: &str) -> String {
-    if terms.is_empty() {
+/// get_search_link()'s path for a search: the search permastruct with the terms urlencode()d and their slashes put
+/// back, `/search/` alone for none.
+fn search_link(s: &str) -> String {
+    if s.is_empty() {
         "/search/".to_string()
     } else {
-        format!("/search/{terms}/")
+        format!("/search/{}/", urlencode(s, false).replace("%2F", "/"))
     }
 }
 
 /// feed_links_extra(): the search's own feed, after the site's comments feed (the chrome has no hole there).
 fn with_feed_link(html: String, lang: Lang, s: &str) -> String {
-    // get_search_link() puts the slashes back after urlencode().
-    let (shown, link) = (esc(s), search_path(&urlencode(s, false).replace("%2F", "/")));
+    let (shown, link) = (esc(s), search_link(s));
     let line = match lang {
         Lang::En => format!("<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Search Results for &#8220;{shown}&#8221; Feed\" href=\"{ORIGIN}{link}feed/rss2/\" />\n"),
         Lang::Fr => format!(
