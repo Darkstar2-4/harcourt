@@ -766,6 +766,18 @@ fn handback(to: &'static str) -> Response<Body> {
     r
 }
 
+/// Any other request to a page from the static export, which main.rs answers with the export's page as WordPress
+/// printed it at `uri`: the forms drawn for that address, `answer` (a submitted form's markup) in place of the
+/// first island of its form. Carried in the `export` handback's extensions.
+#[derive(Debug, Clone)]
+pub struct ExportRequest {
+    /// The page's path in the export.
+    pub path: String,
+    pub lang: &'static str,
+    pub uri: String,
+    pub answer: Option<render::Answer>,
+}
+
 /// The page a post to `path` reaches: redirect_canonical() adds a missing slash only to a GET, so WordPress answers
 /// a post to the bare path at the page itself, and Gravity Forms points the form back at the bare path.
 fn slashed(path: &str) -> String {
@@ -935,11 +947,14 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
     // Only pages were in the static export; WordPress printed every other post as it is.
     let finished = q.neutral && get && exact && page.is_some_and(|p| p.kind == PostType::Page);
     let agent = if finished { "" } else { agent };
+    let page_uri = |page: &Page| {
+        let asked = if exact { page.path.as_str() } else { uri.path() };
+        format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query })
+    };
     let rendered = match shown {
         Shown::Archive(term) => theme::archive::term(site, term, q.lang, &request_uri).map(|html| (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri.clone())),
         Shown::Page(page) => {
-            let asked = if exact { page.path.as_str() } else { uri.path() };
-            let wp_uri = format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query });
+            let wp_uri = page_uri(page);
             // The head (Yoast's title and graph, the forms, the data layer) is what the export recorded.
             let recorded = site.meta(page.id).contains_key("title");
             recorded.then(|| theme::render(site, page, &wp_uri)).flatten().map(|html| (StatusCode::OK, html, islands(site, page), page.lang, wp_uri))
@@ -947,8 +962,12 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
         Shown::NotFound => None,
     };
     // A page whose template the cms does not render yet (a builder part not ported) is served from the static export.
-    if rendered.is_none() && get && page.is_some_and(|p| p.kind == PostType::Page) {
-        return handback("export");
+    if let Some(page) = page.filter(|p| rendered.is_none() && p.kind == PostType::Page) {
+        let mut r = handback("export");
+        if !get {
+            r.extensions_mut().insert(ExportRequest { path: page.path.clone(), lang: page.lang.code(), uri: page_uri(page), answer });
+        }
+        return r;
     }
     let (status, html, islands, lang, wp_uri) = match rendered {
         Some(r) => r,

@@ -14,6 +14,7 @@ use axum::{
     body::Body,
     http::{header, Response, StatusCode},
 };
+use hxweb::{orders::forms::render::Answer, routes::wordpress::ExportRequest};
 use regex::Regex;
 use tokio::sync::RwLock;
 
@@ -84,17 +85,8 @@ impl Pages {
             }
         }
         let uri = request_uri(path, query, lang);
-        match self.assemble(app, path, lang, &uri).await {
-            Ok(Some(html)) => Some(
-                Response::builder()
-                    .status(StatusCode::OK)
-                    .header(header::CONTENT_TYPE, "text/html; charset=UTF-8")
-                    .header(header::CACHE_CONTROL, "no-cache")
-                    .header("strict-transport-security", "max-age=31536000; includeSubDomains")
-                    .header("x-hxweb", "static")
-                    .body(Body::from(finish(app, html)))
-                    .unwrap(),
-            ),
+        match self.assemble(app, path, lang, &uri, None).await {
+            Ok(Some(html)) => Some(page_response(app, html)),
             Ok(None) => None,
             Err(e) => {
                 tracing::warn!("{uri} static page failed: {e}");
@@ -103,8 +95,22 @@ impl Pages {
         }
     }
 
-    /// Full HTML for (path, lang) as WordPress would render it at `uri`. Ok(None) when the export has no such page.
-    pub async fn assemble(&self, app: &App, path: &str, lang: &str, uri: &str) -> Result<Option<String>, String> {
+    /// The page for a request other than a neutral GET (a form post), which WordPress printed at `asked.uri` with
+    /// the form's answer in its place.
+    pub async fn answer(&self, app: &App, asked: &ExportRequest) -> Response<Body> {
+        match self.assemble(app, &asked.path, asked.lang, &asked.uri, asked.answer.as_ref()).await {
+            Ok(Some(html)) => page_response(app, html),
+            Ok(None) => Response::builder().status(StatusCode::NOT_FOUND).body(Body::from("Not found")).unwrap(),
+            Err(e) => {
+                tracing::error!("{} static page failed: {e}", asked.uri);
+                Response::builder().status(StatusCode::BAD_GATEWAY).body(Body::from("Bad gateway")).unwrap()
+            }
+        }
+    }
+
+    /// Full HTML for (path, lang) as WordPress would render it at `uri`, `answer` in place of the first island of
+    /// its form. Ok(None) when the export has no such page.
+    pub async fn assemble(&self, app: &App, path: &str, lang: &str, uri: &str, answer: Option<&Answer>) -> Result<Option<String>, String> {
         let Some(export) = self.export.read().await.clone() else { return Ok(None) };
         let Some(entry) = export.pages.get(&(path.to_string(), lang.to_string())) else { return Ok(None) };
         let mut page = String::new();
@@ -115,15 +121,25 @@ impl Pages {
         page.push_str(&self.fill(&export, lang, "footer", entry)?);
         let mut out = String::with_capacity(page.len() + 32_000);
         let mut last = 0;
-        for c in self.island.captures_iter(&page) {
+        let mut answered = None;
+        for (index, c) in self.island.captures_iter(&page).enumerate() {
             let m = c.get(0).unwrap();
             out.push_str(&page[last..m.start()]);
             let form: u32 = c[1].parse().map_err(|_| "bad island id")?;
-            out.push_str(&self.island(app, form, lang, uri).await?);
+            match answer.filter(|a| a.form == form && answered.is_none()) {
+                Some(a) => {
+                    out.push_str(&a.html);
+                    answered = Some(index + 1);
+                }
+                None => out.push_str(&self.island(app, form, lang, uri).await?),
+            }
             last = m.end();
         }
         out.push_str(&page[last..]);
-        Ok(Some(out))
+        Ok(Some(match (answer, answered) {
+            (Some(a), Some(position)) => a.page(&out, position),
+            _ => out,
+        }))
     }
 
     fn fill(&self, export: &Export, lang: &str, part: &str, entry: &Entry) -> Result<String, String> {
@@ -160,6 +176,17 @@ impl Pages {
         cache.insert(key, (Instant::now(), html.clone()));
         Ok(html)
     }
+}
+
+fn page_response(app: &App, html: String) -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "text/html; charset=UTF-8")
+        .header(header::CACHE_CONTROL, "no-cache")
+        .header("strict-transport-security", "max-age=31536000; includeSubDomains")
+        .header("x-hxweb", "static")
+        .body(Body::from(finish(app, html)))
+        .unwrap()
 }
 
 const ISLAND_AGENT: &str = "hxweb/0.1 island";

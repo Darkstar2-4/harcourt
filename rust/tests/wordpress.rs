@@ -212,7 +212,27 @@ async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
         .unwrap();
     let res = app.clone().oneshot(Request::builder().uri("/innovations/example-builder/").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "main.rs serves it from the export");
-    assert_eq!(send(&app, Method::POST, "/innovations/example-builder/").await.0, StatusCode::NOT_FOUND, "only a GET is handed over");
+    assert!(res.extensions().get::<wordpress::ExportRequest>().is_none(), "a GET is the export's own page");
+
+    seed_form(&pool).await;
+    let posted = |uri: &'static str, form: &'static str| {
+        let app = app.clone();
+        async move {
+            let req = Request::builder().method(Method::POST).uri(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(Body::from(form)).unwrap();
+            let res = app.oneshot(req).await.unwrap();
+            assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "{uri} {form}");
+            res.extensions().get::<wordpress::ExportRequest>().cloned().expect("what the export page shows for the post")
+        }
+    };
+    let asked = posted("/innovations/example-builder/", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!((asked.path.as_str(), asked.lang, asked.uri.as_str()), ("/innovations/example-builder/", "en", "/innovations/example-builder/"));
+    let answer = asked.answer.expect("the form's answer");
+    assert!(answer.form == 1 && answer.confirmed && answer.html.contains("Thanks, we will be in touch."));
+    let answer = posted("/innovations/example-builder", "gform_submit=1&input_1=").await.answer.expect("the form again");
+    assert!(!answer.confirmed && !answer.html.contains("Thanks, we will be in touch."), "a post to the bare path is answered at the page");
+    assert!(posted("/innovations/example-builder/", "s=anything").await.answer.is_none(), "a post without a form shows the page");
+    let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
+    assert_eq!(entries, 1);
 }
 
 #[tokio::test]

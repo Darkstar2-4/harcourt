@@ -146,12 +146,15 @@ async fn open_auth() -> Option<Arc<hxweb::api::Auth>> {
 /// Pages the cms routes render (marked `x-hxweb: cms`) get the same finishing as the exported ones in pages.rs. A
 /// GET a route hands back goes to `dispatch`: the catalog page (`x-hxweb: compose`) to the composer, a page the cms
 /// does not render (`export`) to the static export, a shape the route does not answer (`legacy`) to what an
-/// unclaimed path gets.
+/// unclaimed path gets. Any other request handed back for the export carries what the export page shows for it.
 async fn finish_cms_pages(State(app): State<Arc<App>>, req: Request, next: axum::middleware::Next) -> Response<Body> {
     let again = (req.method() == Method::GET || req.method() == Method::HEAD).then(|| {
         (req.method().clone(), req.uri().clone(), req.headers().clone(), req.extensions().get::<ConnectInfo<SocketAddr>>().cloned())
     });
     let resp = next.run(req).await;
+    if let Some(asked) = resp.extensions().get::<hxweb::routes::wordpress::ExportRequest>() {
+        return app.pages.answer(&app, asked).await;
+    }
     let handed_back = resp.headers().get("x-hxweb").is_some_and(|v| v == "compose" || v == "export" || v == "legacy");
     if let Some((method, uri, headers, peer)) = again.filter(|_| handed_back) {
         let mut req = Request::new(Body::empty());
