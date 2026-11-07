@@ -569,7 +569,7 @@ fn sku_details(ctx: &Ctx, family: &Family, part: Option<&Part>) -> String {
         let field_sku = html::base64_fields(&["sku", sku]);
         let field_list = html::base64_fields(&["list", sku]);
         let onclick = format!("cart_update(this,{},{});", forms::js_quote(&field_sku), forms::js_quote(&field_list));
-        if part.is_none_or(Part::orderable) {
+        if part.is_some_and(Part::orderable) {
             out.push(format!(
                 "<p>{} {}</p>",
                 forms::text(&field_sku, "", "6", "6", &[("class", "products_sku_quantity")]),

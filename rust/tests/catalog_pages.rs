@@ -425,3 +425,15 @@ async fn a_discontinued_part_keeps_its_page_without_add_to_cart() {
     assert!(part.contains("Part number: HBLT-3<br>"), "{part}");
     assert!(!part.contains("value='Add to Cart'"), "{part}");
 }
+
+#[tokio::test]
+async fn a_part_of_another_family_offers_nothing_to_add_to_the_cart() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let mut a = Account::customer(27);
+    a.ecommerce = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=U1AtMQ%3D%3D"), Some(&cookie))).await;
+    assert!(part.contains("Part number: <br>"), "{part}");
+    assert!(!part.contains("value='Add to Cart'"), "{part}");
+}
