@@ -8,7 +8,7 @@ use crate::cms::{
     html::esc,
     media::{Images, Phase},
     model::{Lang, MediaId, Page, Site, Status, Taxonomy, Term},
-    yoast::{self, json},
+    yoast::{self, data_layer_json, json, schema_text},
 };
 
 /// posts_per_page.
@@ -118,7 +118,7 @@ fn holes(site: &Site, term: &Term, lang: Lang, posts: &[&Page], alternates: &[(L
     let (image_refs, image_node) = match image {
         Some(m) => {
             let src = json(&format!("{UPLOADS}{}", m.file));
-            let caption = if m.alt.is_empty() { String::new() } else { format!(",\"caption\":{}", json(&m.alt)) };
+            let caption = if m.alt.is_empty() { String::new() } else { format!(",\"caption\":{}", schema_text(&m.alt)) };
             (
                 format!("\"primaryImageOfPage\":{{\"@id\":{primary}}},\"image\":{{\"@id\":{primary}}},\"thumbnailUrl\":{src},"),
                 format!("{{\"@type\":\"ImageObject\",\"inLanguage\":\"{in_lang}\",\"@id\":{primary},\"url\":{src},\"contentUrl\":{src},\"width\":{},\"height\":{}{caption}}},", m.width, m.height),
@@ -130,14 +130,14 @@ fn holes(site: &Site, term: &Term, lang: Lang, posts: &[&Page], alternates: &[(L
         "yoast_schema",
         format!(
             "{{\"@context\":\"https:\\/\\/schema.org\",\"@graph\":[{{\"@type\":\"CollectionPage\",\"@id\":{u},\"url\":{u},\"name\":{},\"isPartOf\":{{\"@id\":\"https:\\/\\/www.harcourt.co\\/#website\"}},{image_refs}\"breadcrumb\":{{\"@id\":{crumbs}}},\"inLanguage\":\"{in_lang}\"}},{image_node}{{\"@type\":\"BreadcrumbList\",\"@id\":{crumbs},\"itemListElement\":[{{\"@type\":\"ListItem\",\"position\":1,\"name\":{},\"item\":\"https:\\/\\/www.harcourt.co\\/\"}},{{\"@type\":\"ListItem\",\"position\":2,\"name\":{}}}]}},{}",
-            json(&title),
-            json(&home),
-            json(&english_term.name),
+            schema_text(&title),
+            schema_text(&home),
+            schema_text(&english_term.name),
             yoast::site_graph(site, lang)?
         ),
     );
     let kind = first.kind.as_str();
-    let categories: Vec<String> = site.terms.iter().filter(|t| t.taxonomy == Taxonomy::Category && t.pages.contains(&first.id)).map(|t| json(&t.slug)).collect();
+    let categories: Vec<String> = site.terms.iter().filter(|t| t.taxonomy == Taxonomy::Category && t.pages.contains(&first.id)).map(|t| data_layer_json(&t.slug)).collect();
     let class = format!("archive tax-faq_type term-{} term-{}", term.slug, term.id);
     h.insert("datalayer", format!("{{\"pagePostType\":\"{kind}\",\"pagePostType2\":\"tax-{kind}\",\"pageCategory\":[{}]}}", categories.join(",")));
     h.insert("body_class", not_found("body_class")?.replacen("error404", &class, 1));

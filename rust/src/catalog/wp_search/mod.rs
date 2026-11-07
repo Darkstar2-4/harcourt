@@ -23,7 +23,9 @@ use crate::{
     api::Auth,
     cms::{
         forms::{FormSource, OrdersForms},
-        theme, Content, FormEmbed, Lang, MediaId, Page, PageId, PostType, Site, Status, Taxonomy,
+        theme,
+        yoast::{json, schema_text},
+        Content, FormEmbed, Lang, MediaId, Page, PageId, PostType, Site, Status, Taxonomy,
     },
     orders::{forms::render::Answer, Orders},
 };
@@ -355,26 +357,6 @@ fn urlencode(s: &str, raw: bool) -> String {
             _ => out.push_str(&format!("%{b:02X}")),
         }
     }
-    out
-}
-
-/// A JSON string as wp_json_encode() wrote Yoast's schema: slashes escaped, other characters as they are.
-fn json(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 2);
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '/' => out.push_str("\\/"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
     out
 }
 
@@ -782,7 +764,7 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
     let in_lang = if lang == Lang::Fr { "fr-FR" } else { "en-US" };
     let id = json(&format!("{ORIGIN}/?s={}", urlencode(shown, true)));
     let image = first.and_then(|p| thumbnail(site, p.id)).and_then(|t| site.media.get(&MediaId(t)));
-    let mut graph = format!("{{\"@type\":[\"CollectionPage\",\"SearchResultsPage\"],\"@id\":{id},\"url\":{id},\"name\":{},\"isPartOf\":{{\"@id\":\"https:\\/\\/www.harcourt.co\\/#website\"}},", json(title));
+    let mut graph = format!("{{\"@type\":[\"CollectionPage\",\"SearchResultsPage\"],\"@id\":{id},\"url\":{id},\"name\":{},\"isPartOf\":{{\"@id\":\"https:\\/\\/www.harcourt.co\\/#website\"}},", schema_text(title));
     if let Some(m) = image {
         let url = json(&format!("{}{}", theme::UPLOADS, m.file));
         graph.push_str(&format!("\"primaryImageOfPage\":{{\"@id\":\"#primaryimage\"}},\"image\":{{\"@id\":\"#primaryimage\"}},\"thumbnailUrl\":{url},"));
@@ -792,14 +774,14 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
         let url = json(&format!("{}{}", theme::UPLOADS, m.file));
         graph.push_str(&format!("{{\"@type\":\"ImageObject\",\"inLanguage\":\"{in_lang}\",\"@id\":\"#primaryimage\",\"url\":{url},\"contentUrl\":{url},\"width\":{},\"height\":{}", m.width, m.height));
         if !m.alt.is_empty() {
-            graph.push_str(&format!(",\"caption\":{}", json(&m.alt)));
+            graph.push_str(&format!(",\"caption\":{}", schema_text(&m.alt)));
         }
         graph.push_str("},");
     }
     let (home, searched) = if lang == Lang::Fr { ("Accueil", "Vous avez recherché") } else { ("Home", "You searched for") };
     graph.push_str(&format!(
         "{{\"@type\":\"BreadcrumbList\",\"@id\":\"#breadcrumb\",\"itemListElement\":[{{\"@type\":\"ListItem\",\"position\":1,\"name\":\"{home}\",\"item\":\"https:\\/\\/www.harcourt.co\\/\"}},{{\"@type\":\"ListItem\",\"position\":2,\"name\":{}}}]}},",
-        json(&format!("{searched} {shown}"))
+        schema_text(&format!("{searched} {shown}"))
     ));
     match not_found.split_once("\"@graph\":[") {
         Some((head, tail)) => format!("{head}\"@graph\":[{graph}{tail}"),
@@ -1031,7 +1013,6 @@ mod tests {
         assert_eq!(esc("pin's & \"x\" &amp;"), "pin&#039;s &amp; &quot;x&quot; &amp;");
         assert_eq!(urlencode("pin's & \"x\"", false), "pin%27s+%26+%22x%22");
         assert_eq!(urlencode("a&#039;b c", true), "a%26%23039%3Bb%20c");
-        assert_eq!(json("a/b \"c\" é"), "\"a\\/b \\\"c\\\" é\"");
     }
 
     #[test]

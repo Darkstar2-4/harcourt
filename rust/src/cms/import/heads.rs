@@ -13,7 +13,7 @@ use crate::{
         html::esc,
         model::{Field, Kind, Lang, Page, PostType, Site, Status},
         theme::{content, NOT_FOUND_OPTION, ORIGIN},
-        yoast::{self, json},
+        yoast::{self, data_layer_json, json, schema_text, strip_all_tags},
     },
 };
 
@@ -39,30 +39,6 @@ pub fn apply(import: &mut Import) {
     }
 }
 
-/// wp_strip_all_tags(): script and style elements dropped with their text, other tags removed, then trimmed.
-fn strip_all_tags(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut rest = s;
-    while let Some(lt) = rest.find('<') {
-        out.push_str(&rest[..lt]);
-        let tail = &rest[lt..];
-        if tail[1..].starts_with(|c: char| c.is_ascii_whitespace()) {
-            out.push('<');
-            rest = &tail[1..];
-            continue;
-        }
-        let end = tail.find('>').map_or(tail.len(), |e| e + 1);
-        let name: String = tail[1..end].chars().take_while(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_lowercase();
-        rest = &tail[end..];
-        if name == "script" || name == "style" {
-            let close = format!("</{name}");
-            rest = rest.to_ascii_lowercase().find(&close).and_then(|e| rest[e..].find('>').map(|g| &rest[e + g + 1..])).unwrap_or("");
-        }
-    }
-    out.push_str(rest);
-    out.trim_matches([' ', '\t', '\n', '\r', '\0', '\u{b}']).to_string()
-}
-
 fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
     let lang = p.lang;
     let mut m: BTreeMap<String, String> = BTreeMap::new();
@@ -78,9 +54,7 @@ fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
     // Yoast links a translation by the post its indexable was built from: the English one.
     let url = site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).unwrap_or(p).url(ORIGIN);
     let noindex = yoast::noindex(site, p);
-    // Yoast texturizes its breadcrumb with the English marks on every page; the theme prints the title with the
-    // page's own.
-    let crumb = texturize(&p.title, Lang::En);
+    let crumb = yoast::breadcrumb_title(&p.title);
     let the_title = texturize(&p.title, lang);
     let kind = p.kind.as_str();
     let in_lang = yoast::in_language(lang);
@@ -108,12 +82,12 @@ fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
         "yoast_schema".into(),
         format!(
             "{{\"@context\":\"https:\\/\\/schema.org\",\"@graph\":[{{\"@type\":\"WebPage\",\"@id\":{u},\"url\":{u},\"name\":{},\"isPartOf\":{{\"@id\":\"https:\\/\\/www.harcourt.co\\/#website\"}},\"datePublished\":\"{published}\",\"dateModified\":\"{modified}\",\"breadcrumb\":{{\"@id\":{crumbs}}},\"inLanguage\":\"{in_lang}\",\"potentialAction\":[{{\"@type\":\"ReadAction\",\"target\":[{u}]}}]}},{{\"@type\":\"BreadcrumbList\",\"@id\":{crumbs},\"itemListElement\":[{{\"@type\":\"ListItem\",\"position\":1,\"name\":{},\"item\":\"https:\\/\\/www.harcourt.co\\/\"}},{{\"@type\":\"ListItem\",\"position\":2,\"name\":{}}}]}},{site_graph}",
-            json(&title),
-            json(&home),
-            json(&crumb),
+            schema_text(&title),
+            schema_text(&home),
+            schema_text(&crumb),
         ),
     );
-    m.insert("datalayer".into(), format!("{{\"pagePostType\":\"{kind}\",\"pagePostType2\":\"single-{kind}\",\"pagePostAuthor\":{}}}", json(&author)));
+    m.insert("datalayer".into(), format!("{{\"pagePostType\":\"{kind}\",\"pagePostType2\":\"single-{kind}\",\"pagePostAuthor\":{}}}", data_layer_json(&author)));
     m.insert("the_title".into(), the_title);
     m.insert(
         "breadcrumbs".into(),
@@ -121,16 +95,4 @@ fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
     );
     m.insert("sidebar".into(), sidebar);
     Some(m)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tags_go_with_the_text_of_scripts() {
-        assert_eq!(strip_all_tags(" <p>One <b>two</b></p><script>x()</script>\n<style>p{}</style>three&hellip; "), "One two\nthree&hellip;");
-        assert_eq!(strip_all_tags("a\u{a0}"), "a\u{a0}", "PHP's trim keeps a no-break space");
-        assert_eq!(strip_all_tags("1 < 2"), "1 < 2");
-    }
 }

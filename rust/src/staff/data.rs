@@ -884,6 +884,8 @@ async fn inventory_line(
     }
     if has(line, "price0") && val(line, "price0").is_empty() {
         errors.push(("price0".into(), "Cannot be blank".into()));
+    } else if has(line, "price0") && breaks_without_base_price(line) {
+        errors.push(("price0".into(), "Cannot be 0 when a later price is given".into()));
     }
     let breaks = has(line, "price0").then(|| {
         let mut out: Vec<Break> = Vec::new();
@@ -961,6 +963,13 @@ async fn inventory_line(
         sqlx::query!("UPDATE inventory SET pricing = ?2 WHERE id = ?1", id, text).execute(&mut *tx).await?;
     }
     Ok(errors)
+}
+
+/// Whether an inventory line prices a break but not the base: the first priced tier is stored from quantity 0, so
+/// that break's price would apply from the first unit.
+fn breaks_without_base_price(line: &Line) -> bool {
+    let priced = |i: usize| map::floatval(val(line, &format!("price{i}"))) != 0.0;
+    !priced(0) && (1..BREAKS).any(priced)
 }
 
 /// import_update_erp(): the ERP's breaks replace the part's prices.
