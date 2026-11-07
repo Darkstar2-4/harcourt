@@ -99,6 +99,18 @@ async fn a_flag_click_saves_the_page_language_to_the_account() {
 }
 
 #[tokio::test]
+async fn a_flag_click_page_saves_its_language_to_the_account() {
+    let h = harness().await;
+    let cookie = signed_in(&h.pool, &Account::customer(52)).await;
+    let (status, _, v) = load(&h, Some(&cookie), "action=language&language=fr&remember=1").await;
+    assert_eq!((status, &v["error"]), (StatusCode::OK, &Value::from("")));
+    let saved: String = sqlx::query_scalar(r#"SELECT language_code FROM "user" WHERE id = 52"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(saved, "FR");
+    let (_, _, v) = load(&h, Some(&cookie), FORM).await;
+    assert_eq!(v["account_language"], "FR", "a plain link to the English page then finds the account in French");
+}
+
+#[tokio::test]
 async fn an_unknown_action_is_a_401_json_error_with_the_php_content_type() {
     let h = harness().await;
     let (status, headers, body) = send(&h.app, get("/scscpq_wp.php?action=nope", None)).await;

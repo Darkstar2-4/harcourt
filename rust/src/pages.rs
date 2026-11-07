@@ -51,11 +51,14 @@ struct Entry {
     values: HashMap<String, String>,
 }
 
+/// Rendered Gravity Forms islands by (form, language, page), with when each was drawn.
+type Islands = HashMap<(u32, String, String), (Instant, String)>;
+
 pub struct Pages {
     root: PathBuf,
     export: RwLock<Option<Arc<Export>>>,
     seen: Mutex<Seen>,
-    islands: RwLock<HashMap<(u32, String, String), (Instant, String)>>,
+    islands: RwLock<Islands>,
     placeholder: Regex,
     island: Regex,
 }
