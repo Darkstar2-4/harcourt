@@ -19,14 +19,14 @@ use sqlx::{error::ErrorKind, sqlite::SqliteArguments, query::Query, Row, Sqlite,
 use super::{
     csrf::{Fields, Posted},
     html::{close, esc, number, open, submit, url_query, Blank, Form, Notes, Opts},
-    shell, tables, time, Staff,
+    data, shell, tables, time, Staff,
 };
 use crate::{
     api::{Auth, Executive},
     audit::{self, Entry},
     db::unix_now,
     identity::{is_free_mail, Role, UserId},
-    session,
+    pricing, session,
 };
 
 pub const PATH: &str = "/staff/admin";
@@ -295,7 +295,36 @@ fn read_form(spec: &'static Spec, f: &Fields, role: Role, stored: Option<&[Optio
             Err(e) => notes.error(col.name, Some(&e)),
         }
     }
+    if let Some((name, e)) = conflict(spec, &out) {
+        let label = spec.columns.iter().find(|c| c.name == name).map_or(name, |c| c.label);
+        notes.error(name, Some(&format!("{label}: {e}")));
+    }
     out
+}
+
+/// What the edited columns may not hold together: the rules the import holds the same tables to. A column whose
+/// own value was refused is not checked again here.
+fn conflict(spec: &Spec, w: &Writes) -> Option<(&'static str, String)> {
+    let value = |name: &str| w.iter().find(|(n, _)| *n == name).map(|(_, v)| v);
+    let text = |name: &str| match value(name) {
+        Some(Value::Text(s)) => s.as_str(),
+        _ => "",
+    };
+    let leadtime = |allowed: &[&str]| value("leadtime_option").and_then(|_| data::leadtime_error(text("leadtime_option"), text("leadtime_text"), allowed));
+    match spec.table {
+        "user" => {
+            let pct = match value("price_pct")? {
+                Value::Real(f) => *f,
+                Value::Int(i) => *i as f64,
+                Value::Text(s) => s.parse().unwrap_or(0.0),
+                Value::Null => 0.0,
+            };
+            value("price_type").and_then(|_| pricing::terms_error(text("price_type"), pct)).map(|e| ("price_pct", e.into()))
+        }
+        "subcategory" => leadtime(&data::SUBCATEGORY_LEADTIME),
+        "inventory" => leadtime(&data::INVENTORY_LEADTIME),
+        _ => None,
+    }
 }
 
 /// A stored value as a list cell or a read-only field: HTML.
@@ -881,6 +910,34 @@ mod tests {
         assert!(spec.outranks(names, &[Some("Someone".into())], Role::SuperUser), "a role that does not read is above everyone");
         let status = spec.columns.iter().find(|c| c.name == "status").unwrap();
         assert_eq!(options(spec, status, Role::Administrator, Some("Archived")).last().map(|o| o.0.as_str()), Some("Archived"), "a stored value stays choosable");
+    }
+
+    #[test]
+    fn saved_rows_follow_the_imports_price_and_lead_time_rules() {
+        let w = |pairs: &[(&'static str, Value)]| pairs.to_vec();
+        let t = |s: &str| Value::Text(s.into());
+        let user = tables::find("user").unwrap();
+        assert_eq!(conflict(user, &w(&[("price_type", t("discount")), ("price_pct", Value::Real(0.1))])), None);
+        assert_eq!(conflict(user, &w(&[("price_type", t("discount")), ("price_pct", Value::Real(10.0))])), Some(("price_pct", "Must be > 0% and < 100%".into())));
+        assert_eq!(conflict(user, &w(&[("price_type", t("plus")), ("price_pct", Value::Real(0.0))])), Some(("price_pct", "Must be > 0% and < 500%".into())));
+        assert_eq!(conflict(user, &w(&[("price_type", t("base")), ("price_pct", Value::Real(0.0))])), None);
+        assert_eq!(conflict(user, &w(&[("price_pct", Value::Real(10.0))])), None, "a refused type is reported on its own");
+
+        let family = tables::find("subcategory").unwrap();
+        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Weeks")), ("leadtime_text", t("4"))])), None);
+        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Call")), ("leadtime_text", Value::Null)])), None);
+        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Weeks")), ("leadtime_text", Value::Null)])), Some(("leadtime_text", "Cannot be blank".into())));
+        assert_eq!(conflict(family, &w(&[("leadtime_option", t("Call")), ("leadtime_text", t("4"))])), Some(("leadtime_text", "Must be blank".into())));
+        assert!(conflict(family, &w(&[("leadtime_option", t("Subcategory")), ("leadtime_text", Value::Null)])).is_some_and(|(c, _)| c == "leadtime_option"));
+        let part = tables::find("inventory").unwrap();
+        assert_eq!(conflict(part, &w(&[("leadtime_option", t("Subcategory")), ("leadtime_text", Value::Null)])), None);
+
+        for (spec, allowed) in [(family, &data::SUBCATEGORY_LEADTIME[..]), (part, &data::INVENTORY_LEADTIME[..])] {
+            let col = spec.columns.iter().find(|c| c.name == "leadtime_option").unwrap();
+            let Kind::Choice(list) = col.kind else { panic!("{}", spec.table) };
+            assert_eq!(list.iter().map(|(v, _)| *v).collect::<Vec<_>>(), allowed, "{}", spec.table);
+            assert!(col.required, "{}", spec.table);
+        }
     }
 
     #[test]

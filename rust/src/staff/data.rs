@@ -29,8 +29,8 @@ use crate::{
 const PARAMETERS: usize = 20;
 const BREAKS: usize = 10;
 const PRICES: usize = 5;
-const INVENTORY_LEADTIME: [&str; 4] = ["Subcategory", "In Stock", "Weeks", "Call"];
-const SUBCATEGORY_LEADTIME: [&str; 3] = ["In Stock", "Weeks", "Call"];
+pub(super) const INVENTORY_LEADTIME: [&str; 4] = ["Subcategory", "In Stock", "Weeks", "Call"];
+pub(super) const SUBCATEGORY_LEADTIME: [&str; 3] = ["In Stock", "Weeks", "Call"];
 pub const STATUSES: [&str; 3] = ["Pending", "Active", "Denied"];
 
 /// A table the commands move.
@@ -863,15 +863,22 @@ fn competitor_list(input: &str) -> (Vec<String>, Option<&'static str>) {
     (out, short.then_some("Must be at least 3 characters"))
 }
 
-/// A lead time and what is wrong with it: Weeks needs a text, the other options none.
-fn leadtime_errors(option: &str, text: &str, allowed: &[&str], errors: &mut Errors) {
-    if option.is_empty() {
-        errors.push(("leadtime_option".into(), format!("Allowed values: {}", allowed.join(", "))));
+/// What is wrong with a lead time, and the column it is on: the option must be one of `allowed` (never blank),
+/// Weeks needs a text and the other options none. The table admin and the import both hold lead times to this.
+pub(super) fn leadtime_error(option: &str, text: &str, allowed: &[&str]) -> Option<(&'static str, String)> {
+    if !allowed.contains(&option) {
+        Some(("leadtime_option", format!("Allowed values: {}", allowed.join(", "))))
     } else if option == "Weeks" && text.is_empty() {
-        errors.push(("leadtime_text".into(), "Cannot be blank".into()));
+        Some(("leadtime_text", "Cannot be blank".into()))
     } else if option != "Weeks" && !text.is_empty() {
-        errors.push(("leadtime_text".into(), "Must be blank".into()));
+        Some(("leadtime_text", "Must be blank".into()))
+    } else {
+        None
     }
+}
+
+fn leadtime_errors(option: &str, text: &str, allowed: &[&str], errors: &mut Errors) {
+    errors.extend(leadtime_error(option, text, allowed).map(|(k, m)| (k.to_string(), m)));
 }
 
 fn decimal(v: f64) -> Decimal {
@@ -1290,11 +1297,7 @@ async fn user_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool, l
         _ if !has_type && !has_pct => None,
         _ if !has_type => Some(("price_type", "Required field")),
         _ if !has_pct => Some(("price_pct", "Required field")),
-        _ if u.price_pct < 0.0 => Some(("price_pct", "Less than 0%")),
-        _ if ["", "base"].contains(&u.price_type.as_str()) && u.price_pct != 0.0 => Some(("price_pct", "Must be 0%")),
-        _ if u.price_type == "discount" && (u.price_pct == 0.0 || u.price_pct >= 1.0) => Some(("price_pct", "Must be > 0% and < 100%")),
-        _ if u.price_type == "plus" && (u.price_pct == 0.0 || u.price_pct >= 5.0) => Some(("price_pct", "Must be > 0% and < 500%")),
-        _ => None,
+        _ => crate::pricing::terms_error(&u.price_type, u.price_pct).map(|m| ("price_pct", m)),
     };
     if let Some((k, m)) = pct_error {
         e.push((k.into(), m.into()));

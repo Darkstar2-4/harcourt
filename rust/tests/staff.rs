@@ -384,6 +384,29 @@ async fn a_denied_request_gets_no_bypass_and_no_one_decides_above_their_role() {
     assert_eq!(status_of(&h.pool, 6).await, "Pending");
 }
 
+#[tokio::test]
+async fn the_access_page_shows_the_address_an_approval_acts_on() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    pending(&h.pool, 9, "Pending Co", "buyer@example.com").await;
+    sqlx::query("INSERT INTO log (ip, date_time, user_id, email, type, subtype, comment) VALUES ('192.0.2.9', 1, 9, 'earlier@example.net', 'User', 'Signup', 'Earlier Name')")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/access/9", Some(&admin))).await;
+    assert!(page.contains("<td width='30%'>Email</td><td width='70%'>buyer@example.com</td>"), "{page}");
+    assert!(page.contains("<td width='30%'>Name</td><td width='70%'>Pat Example</td>"), "the latest sign-up names the request: {page}");
+
+    pending(&h.pool, 10, "Unrecorded Co", "someone@example.org").await;
+    sqlx::query(r#"UPDATE "user" SET signup_email = NULL WHERE id = 10"#).execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/access/10", Some(&admin))).await;
+    assert!(page.contains("<td width='70%'>someone@example.org <i>(from the sign-up log; not recorded on the account"), "{page}");
+    let (status, _, _) = send(&h.app, post("/staff/access/10", &admin, &[("action", "approve"), ("csrf", csrf_of(&page).as_str())])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(status_of(&h.pool, 10).await, "Active");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM captcha_bypass").await, 0);
+}
+
 const DROPPED: [&str; 27] = [
     "/campaign_manager.php",
     "/hero_preview.php",
@@ -677,6 +700,44 @@ async fn an_account_domain_is_never_a_free_mail_domain() {
     assert_eq!(status, StatusCode::FOUND);
     let domain: Option<String> = sqlx::query_scalar(r#"SELECT domain FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
     assert_eq!(domain.as_deref(), Some("works.example"));
+}
+
+#[tokio::test]
+async fn account_price_terms_saved_in_the_table_admin_follow_the_import_rule() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    person(&h.pool, 7, "Customer").await;
+    let (_, _, page) = send(&h.app, get("/staff/admin/user/7", Some(&admin))).await;
+    for (kind, pct, error) in [("discount", "10", "Must be &gt; 0% and &lt; 100%"), ("discount", "", "Must be &gt; 0% and &lt; 100%"), ("plus", "5", "Must be &gt; 0% and &lt; 500%"), ("base", "0.1", "Must be 0%")] {
+        let (status, _, again) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", kind), ("price_pct", pct)])).await;
+        assert_eq!(status, StatusCode::OK, "{kind} {pct}");
+        assert!(again.contains(&format!("Price adjustment (0.10 is 10%): {error}")), "{kind} {pct}: {again}");
+    }
+    let terms: (String, f64) = sqlx::query_as(r#"SELECT price_type, price_pct FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(terms, (String::new(), 0.0), "nothing refused was stored");
+    let (status, _, _) = post_form(&h.app, "/staff/admin/user/7", &admin, &changed(&page, &[("price_type", "discount"), ("price_pct", "0.15")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let terms: (String, f64) = sqlx::query_as(r#"SELECT price_type, price_pct FROM "user" WHERE id = 7"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(terms, ("discount".into(), 0.15));
+}
+
+#[tokio::test]
+async fn a_family_lead_time_saved_in_the_table_admin_follows_the_import_rule() {
+    let h = harness().await;
+    let admin = person(&h.pool, 1, "Administrator").await;
+    sqlx::query("INSERT INTO subcategory (id, name, status, leadtime_option) VALUES (3, 'Toggle clamps', 'Active', 'Call')").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/admin/subcategory/3", Some(&admin))).await;
+    let select = page[page.find("<select name='leadtime_option'").unwrap()..].split("</select>").next().unwrap();
+    assert!(select.contains("<option value='Call' selected") && !select.contains("<option></option>"), "no blank lead time is offered: {select}");
+    for (option, text, error) in [("", "", "Lead time is required"), ("Weeks", "", "Lead time text: Cannot be blank"), ("Call", "4", "Lead time text: Must be blank")] {
+        let (status, _, again) = post_form(&h.app, "/staff/admin/subcategory/3", &admin, &changed(&page, &[("leadtime_option", option), ("leadtime_text", text)])).await;
+        assert_eq!(status, StatusCode::OK, "{option} {text}");
+        assert!(again.contains(error), "{option} {text}: {again}");
+    }
+    let (status, _, _) = post_form(&h.app, "/staff/admin/subcategory/3", &admin, &changed(&page, &[("leadtime_option", "Weeks"), ("leadtime_text", "4")])).await;
+    assert_eq!(status, StatusCode::FOUND);
+    let lead: (String, Option<String>) = sqlx::query_as("SELECT leadtime_option, leadtime_text FROM subcategory WHERE id = 3").fetch_one(&h.pool).await.unwrap();
+    assert_eq!(lead, ("Weeks".into(), Some("4".into())));
 }
 
 #[tokio::test]
