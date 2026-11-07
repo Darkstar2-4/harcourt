@@ -224,7 +224,9 @@ async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
     assert_eq!(got(Method::GET, "/innovations/example-builder/").await, (page.clone(), "en", page.clone()));
     assert_eq!(got(Method::HEAD, "/innovations/example-builder/?utm_source=x&hxlang=en").await, (page.clone(), "en", format!("{page}?utm_source=x")));
     assert_eq!(got(Method::GET, "/innovations/example-builder/?gbraid=x").await, (page.clone(), "en", format!("{page}?gbraid=x")), "any query the page ignores");
-    assert_eq!(got(Method::GET, "/Innovations/Example-Builder/").await, (page.clone(), "en", "/Innovations/Example-Builder/".to_string()), "a page asked for in other case");
+    assert_eq!(got(Method::GET, "/Innovations/Example-Builder/").await, (page.clone(), "en", page.clone()), "a page asked for in other case shows as at its path");
+    assert_eq!(got(Method::GET, "/INNOVATIONS/example-builder/?utm_source=x&hxlang=en").await, (page.clone(), "en", format!("{page}?utm_source=x")), "as the page's own URL with that query");
+    assert_eq!(got(Method::GET, "/Innovations/Example-Builder/?gbraid=x").await, (page.clone(), "en", format!("{page}?gbraid=x")));
 
     seed_form(&pool).await;
     let posted = |uri: &'static str, form: &'static str| {
@@ -242,6 +244,9 @@ async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
     assert!(answer.form == 1 && answer.confirmed && answer.html.contains("Thanks, we will be in touch."));
     let answer = posted("/innovations/example-builder", "gform_submit=1&input_1=").await.answer.expect("the form again");
     assert!(!answer.confirmed && !answer.html.contains("Thanks, we will be in touch."), "a post to the bare path is answered at the page");
+    let asked = posted("/Innovations/Example-Builder/", "gform_submit=1&input_1=").await;
+    assert_eq!(asked.uri, "/innovations/example-builder/", "a post in other case is answered at the page's path");
+    assert!(asked.answer.is_some_and(|a| a.form == 1 && !a.confirmed));
     assert!(posted("/innovations/example-builder/", "s=anything").await.answer.is_none(), "a post without a form shows the page");
     let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
     assert_eq!(entries, 1);
