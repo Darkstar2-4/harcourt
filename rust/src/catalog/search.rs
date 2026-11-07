@@ -294,7 +294,7 @@ impl Index {
                     if active.first().is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0)) {
                         active_categories.insert(id);
                     }
-                    for s in tokens(&strip_entities(en)).into_iter().chain(tokens(&strip_entities(fr))) {
+                    for s in category_name_words(en).into_iter().chain(category_name_words(fr)) {
                         let cats = category_words.entry(stem(&s)).or_default();
                         if !cats.contains(&id) {
                             cats.push(id);
@@ -503,7 +503,7 @@ fn exactly<'a>(list: &'a [(Box<str>, Vec<u32>)], k: &str) -> &'a [u32] {
 }
 
 /// Lowercase with Latin-1 accents folded, so "Perçage" and "percage" meet.
-fn fold(s: &str) -> String {
+pub(super) fn fold(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars().flat_map(char::to_lowercase) {
         match c {
@@ -584,8 +584,15 @@ fn stemmed(s: &str) -> String {
     fold(s).split_whitespace().map(stem).collect::<Vec<_>>().join(" ")
 }
 
-fn tokens(s: &str) -> Vec<String> {
+/// The words of a name or a typed term, in the box and on Enter (`keywords`): folded (`fold`), split at anything not
+/// a letter or digit, so "Perçage" and "percage" are one word.
+pub(super) fn tokens(s: &str) -> Vec<String> {
     fold(s).split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).map(str::to_string).collect()
+}
+
+/// The words of a category's name (`tokens` of it without HTML entities), as the box and Enter match them.
+pub(super) fn category_name_words(name: &str) -> Vec<String> {
+    tokens(&strip_entities(name))
 }
 
 /// English and French plurals onto a stem the singular shares (bushings/bushing, boxes/box, broches/broche,
@@ -839,7 +846,8 @@ impl Answer<'_> {
 /// The row shown for a matched one, in the search box and on Enter (`pages::results`): itself when it is in every
 /// language or the visitor's; for a family name or search word in the other language, its family's own family-name
 /// row in the visitor's language (`family_row`, none when the family has none); for any other row in the other
-/// language, none.
+/// language, none. What it changes is the language of the row standing for the family, not the kind of hit: Enter
+/// keeps a matched search word a search word (the family page) and a family name a family name.
 pub(super) fn shown_row<R>(kind: Option<Kind>, row: Option<Lang>, lang: Lang, own: R, family_row: impl FnOnce() -> Option<R>) -> Option<R> {
     match row {
         Some(l) if l != lang => kind.is_some_and(Kind::is_family).then(family_row).flatten(),

@@ -473,6 +473,43 @@ async fn an_entered_term_finds_a_family_by_its_name_in_the_other_language_as_the
 }
 
 #[tokio::test]
+async fn an_entered_search_word_opens_its_family_and_a_family_name_counts_as_one_in_either_language() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 1, 7, 0, 1), (602, 'EN', 1, 'search_words', 'detent', 1, 7, 0, 1000001)").await;
+    let french = signed_in(&h.pool, &Account::customer(38)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 38").await;
+    let english = signed_in(&h.pool, &Account::customer(39)).await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    for (cookie, who) in [(&french, "French"), (&english, "English")] {
+        let (_, _, body) = send(&h.app, get(&enter("detent"), Some(cookie))).await;
+        assert!(
+            ["HBLT-1", "HBLT-2", "HBLT-3"].iter().all(|p| body.contains(&format!(">{p}</a>"))) && !body.contains("<span class='subcat7'></span>"),
+            "{who}: an English search word opens the family page with its parts: {body}"
+        );
+        let (own_term, other_term) = if who == "French" { ("goupilles", "lock") } else { ("lock", "goupilles") };
+        let (_, _, own) = send(&h.app, get(&enter(own_term), Some(cookie))).await;
+        let (_, _, other) = send(&h.app, get(&enter(other_term), Some(cookie))).await;
+        assert!(own.contains("<span class='subcat7'></span>"), "{who}: {own}");
+        assert_eq!(other.replace(&format!("search_code={other_term}"), &format!("search_code={own_term}")), own, "{who}: a family name in the other language counts as the visitor's own");
+    }
+}
+
+#[tokio::test]
+async fn an_entered_term_finds_a_french_category_name_with_or_without_its_accent() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('category', 2, '', 'FR', 'Gabarits de perçage', '', NULL, NULL)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (700, 'FR', 1, 'subcategory', 'Sauterelles', 2, 9, 0, 2)").await;
+    let french = signed_in(&h.pool, &Account::customer(40)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 40").await;
+    for term in ["per%C3%A7age", "percage", "PER%C3%87AGES"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&french))).await;
+        assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "{term}: {body}");
+    }
+}
+
+#[tokio::test]
 async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;
