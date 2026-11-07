@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cart_takeover (session_hash, takeovers, taken_at) VALUES (?1, 1, ?2)\n         ON CONFLICT (session_hash) DO UPDATE SET takeovers = cart_takeover.takeovers + 1, taken_at = excluded.taken_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "bedc17a13dba8027dc7b58547f1a56c582a98f7b7f15e7e9fd8d7b5d9f28525f"
+}

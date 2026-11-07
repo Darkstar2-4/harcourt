@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT EXISTS (SELECT 1 FROM cart_item WHERE session_hash = ?1) AS \"held!: bool\"",
+  "query": "SELECT takeovers AS \"n!: i64\" FROM cart_takeover WHERE session_hash = ?1",
   "describe": {
     "columns": [
       {
-        "name": "held!: bool",
+        "name": "n!: i64",
         "ordinal": 0,
         "type_info": "Integer"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "6b315b5efa06282e20c68fa02cd5fa0f6910f965616ed3d5a57e7c1d9063e189"
+  "hash": "504357340263ecfa28817e41dce01547192a82a11b03c0d3be9f3ccfe04e6c40"
 }

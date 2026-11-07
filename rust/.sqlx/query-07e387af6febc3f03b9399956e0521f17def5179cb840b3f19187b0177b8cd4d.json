@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)\n         SELECT ?1, ?2, ?3, ?4, ?5, ?5 WHERE coalesce((SELECT takeovers FROM cart_takeover WHERE session_hash = ?1), 0) = ?7\n         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = excluded.quantity,\n             comment = CASE WHEN ?6 THEN excluded.comment ELSE cart_item.comment END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "07e387af6febc3f03b9399956e0521f17def5179cb840b3f19187b0177b8cd4d"
+}
