@@ -686,6 +686,9 @@ async fn a_search_feed_is_not_found_and_an_empty_search_lists_every_post() {
     }
     let (_, _, html) = send(&app, Method::GET, "/search/nothing+found/").await;
     assert!(html.contains("You searched for nothing found - Harcourt") && html.contains("href=\"https://www.harcourt.co/search/nothing+found/feed/rss2/\""), "{html}");
+    assert!(html.contains("<meta property=\"og:url\" content=\"https://www.harcourt.co/search/nothing+found/\" />"), "og:url is get_search_link(): {html}");
+    let (_, _, html) = send(&app, Method::GET, "/search/a%26b/").await;
+    assert!(html.contains("<meta property=\"og:url\" content=\"https://www.harcourt.co/search/a%26b/\" />"), "{html}");
 }
 
 #[tokio::test]
