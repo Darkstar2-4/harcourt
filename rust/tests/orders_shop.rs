@@ -193,6 +193,34 @@ async fn an_account_signed_in_by_company_address_keeps_its_cart_in_the_php_sessi
 }
 
 #[tokio::test]
+async fn signing_in_takes_over_the_cart_kept_by_company_address() {
+    let h = harness().await;
+    sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    account(&h.pool, 6, "Customer", 1).await;
+    sqlx::query(r#"UPDATE "user" SET domain = 'example.org' WHERE id = 6"#).execute(&h.pool).await.unwrap();
+    let session = cookie(&h.pool, 5).await;
+    add(&h, &session, "SKU-1", "1").await;
+    add(&h, "PHPSESSID=visit-one", "SKU-1", "2").await;
+    add(&h, "PHPSESSID=visit-one", "SKU-2", "1").await;
+    let other = format!("PHPSESSID=visit-one; {}", cookie(&h.pool, 6).await);
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &other, &[], false)).await;
+    assert!(page.contains("<p>Your shopping cart is empty</p>"), "another account's sign-in");
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 3);
+    let both = format!("PHPSESSID=visit-one; {session}");
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", &both, &[], false)).await;
+    assert!(page.contains("<span id=cart_extended>$33.00</span>"), "{page}");
+    let (first, second) = (page.find("<td class=nobr>SKU-1</td>"), page.find("<td class=nobr>SKU-2</td>"));
+    assert!(first.is_some() && first < second);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM cart_item").await, 2, "the address cart is gone");
+    assert_eq!(count(&h.pool, "SELECT quantity FROM cart_item WHERE sku = 'SKU-1'").await, 3);
+    let (_, _, page) = send(&h.app, request(Method::GET, "/cart.php", "PHPSESSID=visit-one", &[], false)).await;
+    assert!(page.contains("<p>Your shopping cart is empty</p>"));
+}
+
+#[tokio::test]
 async fn a_cart_without_a_session_lasts_a_day_from_its_last_use() {
     let h = harness().await;
     sqlx::query(r#"INSERT INTO "user" (id, status, "type", company_name, ecommerce, domain, ip) VALUES (5, 'Active', 'Customer', 'Test company 5', 1, 'example.com', '192.0.2.10')"#)
