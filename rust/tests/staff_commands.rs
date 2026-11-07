@@ -224,6 +224,45 @@ async fn replacing_the_xref_list_keeps_the_stored_lines_of_rejected_lines() {
 }
 
 #[tokio::test]
+async fn imports_find_a_stored_part_number_in_any_case() {
+    let pool = seeded().await;
+    exec(&pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, sort_order, active, leadtime_option, pricing) VALUES (4, 'blp-3', 2, 11, 0, 1, 'Call', '[]')").await;
+    assert!(sqlx::query("INSERT INTO inventory (sku) VALUES ('BLP-3')").execute(&pool).await.is_err(), "one row per part number");
+
+    let file = Scratch::new("parts.txt", b"Harcourt SKU\tSort Order\nBLP-3\t5\n");
+    let text = printed(run_on(&pool, &["import", "inventory", file.path(), "--update"]).await);
+    assert!(text.contains("Updated records: 1\n"), "{text}");
+    let row: (i64, String, i64) = sqlx::query_as("SELECT id, sku, sort_order FROM inventory WHERE sku = 'BLP-3' COLLATE NOCASE").fetch_one(&pool).await.unwrap();
+    assert_eq!(row, (4, "BLP-3".into(), 5), "the stored row takes the file's number");
+    assert_eq!(count(&pool, "SELECT count(*) FROM inventory").await, 4);
+
+    exec(&pool, "UPDATE inventory SET sku = 'blp-3' WHERE id = 4").await;
+    let mut header = vec!["Harcourt Part # in Inxsql".to_string(), "Price Code".into(), "List Price".into()];
+    for i in 1..=10 {
+        header.push(format!("iqty_quantity{i}"));
+        header.push(format!("iprc{i}"));
+    }
+    let mut line = vec!["BLP-3".to_string(), "A".into(), "7".into()];
+    line.resize(header.len(), "0".into());
+    let erp = Scratch::new("erp.txt", format!("{}\n{}\n", header.join("\t"), line.join("\t")).as_bytes());
+    let text = printed(run_on(&pool, &["import", "erp-price", erp.path(), "--update"]).await);
+    assert!(!text.contains("Invalid SKU"), "{text}");
+    let pricing: String = sqlx::query_scalar("SELECT pricing FROM inventory WHERE id = 4").fetch_one(&pool).await.unwrap();
+    assert_eq!(hxweb::staff::data::pricing(&pricing).iter().map(|b| b.price.to_string()).collect::<Vec<_>>(), ["7"]);
+
+    let export = Scratch::new("export.csv", b"Name;a;b;Part;URL\n;;;BLP-3_1;https://example.com/p?prjCatalog=h&prjNode=n&prjName=BLP&values=v\n");
+    let text = printed(run_on(&pool, &["import", "prj", export.path(), "--update"]).await);
+    assert!(text.contains("\nChanged: 1\n  BLP-3\n"), "{text}");
+    assert_eq!(count(&pool, "SELECT count(*) FROM inventory WHERE id = 4 AND prj = 'prjCatalog=h&prjNode=n&prjName=BLP&values=v'").await, 1);
+
+    exec(&pool, "INSERT INTO inventory_xref (sku, competitor, competitor_sku, update_timestamp) VALUES ('blp-3', '', 'r-7', 1), ('TC-100', '', 'R-100', 1)").await;
+    let xref = Scratch::new("xref.txt", b"Item #\tXref\nBLP-3\tR-7\n");
+    printed(run_on(&pool, &["import", "xref", xref.path(), "--update"]).await);
+    let rows: Vec<(String, String)> = sqlx::query_as("SELECT sku, competitor_sku FROM inventory_xref ORDER BY sku").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows, [("BLP-3".to_string(), "R-7".to_string()), ("TC-100".into(), "R-100".into())], "the line replaces the stored spelling");
+}
+
+#[tokio::test]
 async fn account_imports_check_every_column_against_the_lookups() {
     let pool = seeded().await;
     exec(&pool, "INSERT INTO currency (code, name, exchange_rate) VALUES ('USD', 'US Dollar', 1)").await;

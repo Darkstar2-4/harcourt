@@ -218,7 +218,7 @@ pub async fn lines(state: &Orders, shopper: &Shopper) -> sqlx::Result<Vec<Line>>
 pub(super) async fn thumbnail(state: &Orders, sku: &str) -> sqlx::Result<Option<String>> {
     let url = sqlx::query_scalar!(
         r#"SELECT s.thumbnail_url AS "url!: String" FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id
-           WHERE i.sku = ?1 AND s.thumbnail_url IS NOT NULL AND s.thumbnail_url <> ''"#,
+           WHERE i.sku = ?1 COLLATE NOCASE AND s.thumbnail_url IS NOT NULL AND s.thumbnail_url <> ''"#,
         sku
     )
     .fetch_optional(&state.core.pool)

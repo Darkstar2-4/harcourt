@@ -807,7 +807,9 @@ async fn inventory_is_searched_by_part_number_and_edited_one_row_at_a_time() {
             .await
             .unwrap();
     }
-    sqlx::query("INSERT INTO inventory (id, sku, leadtime_option) VALUES (100, 'CD-1', 'Weeks')").execute(&h.pool).await.unwrap();
+    sqlx::query("INSERT INTO inventory (id, sku, leadtime_option) VALUES (100, 'CD-1', 'Weeks'), (101, 'blp-3', 'Call')").execute(&h.pool).await.unwrap();
+    let (_, _, page) = send(&h.app, get("/staff/admin/inventory?q=BLP", Some(&admin))).await;
+    assert!(page.contains("<td>blp-3</td>") && !page.contains("<td>CD-1</td>"), "a part number is found in any case: {page}");
     let (_, _, page) = send(&h.app, get("/staff/admin/inventory?q=ab-0", Some(&admin))).await;
     assert!(page.contains("<td>AB-000</td>") && page.contains("<td>AB-049</td>") && !page.contains("<td>AB-050</td>") && !page.contains("CD-1"), "{page}");
     assert!(page.contains("Part# starts with") && !page.contains("Add new"));
@@ -832,7 +834,7 @@ async fn inventory_is_searched_by_part_number_and_edited_one_row_at_a_time() {
         let (status, _, _) = send(&h.app, req).await;
         assert_eq!(status, StatusCode::NOT_FOUND, "{method} {path}");
     }
-    assert_eq!(count(&h.pool, "SELECT count(*) FROM inventory").await, 56);
+    assert_eq!(count(&h.pool, "SELECT count(*) FROM inventory").await, 57);
 }
 
 /// One rule of the import, as the table admin's form posts it and as an import line gives it.

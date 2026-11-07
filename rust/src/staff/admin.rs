@@ -104,8 +104,8 @@ impl Col {
 pub enum Search {
     /// A small table: any of these columns contains the text.
     Contains(&'static [&'static str]),
-    /// A large table: the column, which leads an index, starts with the text in capitals, and pages follow that
-    /// index, so no request reads the whole table.
+    /// A large table: the column, which leads a case-insensitive index, starts with the text in any case, and pages
+    /// follow that index, so no request reads the whole table.
     Code(&'static str),
 }
 
@@ -174,10 +174,14 @@ fn list_sql(spec: &'static Spec, sort: &'static str, desc: bool, searching: bool
     let filter = match spec.search {
         _ if !searching => String::new(),
         Search::Contains(cols) => format!(" WHERE {}", cols.iter().map(|&c| format!("{} LIKE ?1 ESCAPE '\\'", cast(c))).collect::<Vec<_>>().join(" OR ")),
-        Search::Code(c) => format!(" WHERE {0} >= ?1 AND {0} < ?1 || char(1114111)", q(c)),
+        Search::Code(c) => format!(" WHERE {0} COLLATE NOCASE >= ?1 AND {0} COLLATE NOCASE < ?1 || char(1114111)", q(c)),
+    };
+    let order = match spec.search {
+        Search::Code(_) => format!("{} COLLATE NOCASE", q(sort)),
+        Search::Contains(_) => q(sort),
     };
     let dir = if desc { "DESC" } else { "ASC" };
-    format!("SELECT \"id\", {} FROM {}{filter} ORDER BY {} {dir}, \"id\" {dir} LIMIT ?2 OFFSET ?3", columns.join(", "), q(spec.table), q(sort))
+    format!("SELECT \"id\", {} FROM {}{filter} ORDER BY {order} {dir}, \"id\" {dir} LIMIT ?2 OFFSET ?3", columns.join(", "), q(spec.table))
 }
 
 fn row_sql(spec: &'static Spec) -> String {
@@ -516,7 +520,7 @@ pub(super) fn pager(path: &str, keep: &[(&str, &str)], page: i64, more: bool) ->
 fn search_value(spec: &Spec, text: &str) -> String {
     match spec.search {
         Search::Contains(_) => contains(text),
-        Search::Code(_) => text.to_uppercase(),
+        Search::Code(_) => text.to_string(),
     }
 }
 

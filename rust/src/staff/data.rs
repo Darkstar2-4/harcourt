@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
     accounts::account,
-    catalog::stored,
+    catalog::{model, stored},
     db::unix_now,
     identity::{Email, Role},
 };
@@ -847,7 +847,10 @@ async fn inventory_line(
 ) -> sqlx::Result<Errors> {
     let Families { subcategory_id, subcategory, names, lookups } = families;
     let sku = val(line, "sku");
-    let found = sqlx::query!(r#"SELECT id AS "id!: i64", category_id, subcategory_id FROM inventory WHERE sku = ?1"#, sku).fetch_optional(&mut *tx).await?;
+    let found = match model::part_id(&mut *tx, sku).await? {
+        Some(id) => Some(sqlx::query!(r#"SELECT id AS "id!: i64", category_id, subcategory_id FROM inventory WHERE id = ?1"#, id).fetch_one(&mut *tx).await?),
+        None => None,
+    };
     let mut errors: Errors = Vec::new();
     if sku.is_empty() || (found.is_none() && !complete) {
         errors.push(("sku".into(), format!("Invalid SKU: {sku}")));
@@ -916,7 +919,7 @@ async fn inventory_line(
         Some(f) => f.id,
         None => sqlx::query_scalar!(r#"INSERT INTO inventory (sku) VALUES (?1) RETURNING id AS "id!: i64""#, sku).fetch_one(&mut *tx).await?,
     };
-    sqlx::query!("UPDATE inventory SET category_id = ?2, subcategory_id = ?3 WHERE id = ?1", id, category_id, sub_id).execute(&mut *tx).await?;
+    sqlx::query!("UPDATE inventory SET sku = ?2, category_id = ?3, subcategory_id = ?4 WHERE id = ?1", id, sku, category_id, sub_id).execute(&mut *tx).await?;
     if r.given("sort_order") {
         let n = r.int("sort_order");
         sqlx::query!("UPDATE inventory SET sort_order = ?2 WHERE id = ?1", id, n).execute(&mut *tx).await?;
@@ -975,7 +978,7 @@ fn breaks_without_base_price(line: &Line) -> bool {
 /// import_update_erp(): the ERP's breaks replace the part's prices.
 async fn erp_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool) -> sqlx::Result<Errors> {
     let sku = val(line, "sku");
-    let Some(id) = sqlx::query_scalar!(r#"SELECT id AS "id!: i64" FROM inventory WHERE sku = ?1"#, sku).fetch_optional(&mut *tx).await? else {
+    let Some(id) = model::part_id(&mut *tx, sku).await? else {
         return Ok(vec![("sku".into(), format!("Invalid SKU: {sku}"))]);
     };
     if update {
@@ -1343,15 +1346,17 @@ pub async fn prj_import(pool: &SqlitePool, rows: &[(String, String)], update: bo
     let mut tx = pool.begin().await?;
     for (sku, query) in rows {
         let Some(prj) = prj_link(query) else { continue };
-        let stored = sqlx::query_scalar!(r#"SELECT COALESCE(prj, '') AS "prj!: String" FROM inventory WHERE sku = ?1"#, sku).fetch_all(&mut *tx).await?;
-        if stored.is_empty() {
+        let Some(id) = model::part_id(&mut *tx, sku).await? else {
             if !out.missing.contains(sku) {
                 out.missing.push(sku.clone());
             }
-        } else if stored.iter().all(|s| *s == prj) {
+            continue;
+        };
+        let stored = sqlx::query_scalar!(r#"SELECT COALESCE(prj, '') AS "prj!: String" FROM inventory WHERE id = ?1"#, id).fetch_one(&mut *tx).await?;
+        if stored == prj {
             out.not_changed.push(sku.clone());
         } else {
-            sqlx::query!("UPDATE inventory SET prj = ?1 WHERE sku = ?2", prj, sku).execute(&mut *tx).await?;
+            sqlx::query!("UPDATE inventory SET prj = ?1 WHERE id = ?2", prj, id).execute(&mut *tx).await?;
             out.changed.push(sku.clone());
         }
     }

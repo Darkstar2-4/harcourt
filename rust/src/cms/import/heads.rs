@@ -21,36 +21,43 @@ use crate::{
 const SHARED: [&str; 10] =
     ["after_html", "doctype_prefix", "footer_menu_id_suffix", "footer_scripts", "gform_head_css", "gform_head_js", "owl_css", "recaptcha_prefetch", "yoast_extra", "islands"];
 
-pub fn apply(import: &mut Import) {
+/// Gives each published FAQ without a recorded head its head and content. Returns one problem per FAQ it could
+/// not build them for, naming what was missing: such a page would print an empty title and heading.
+pub fn apply(import: &mut Import) -> Vec<String> {
     let site = import.site();
-    let heads: Vec<_> = site
-        .pages
-        .iter()
-        .filter(|p| p.kind == PostType::Faq && p.status == Status::Publish && !site.meta(p.id).contains_key("title"))
-        .filter_map(|p| {
-            let raw = site.fields(p.id).get("@post_content")?;
-            let content = content::paragraphs(&raw.value, p.lang)?;
-            faq(&site, p).map(|h| (p.id, h, content))
-        })
-        .collect();
+    let mut problems = Vec::new();
+    let mut heads = Vec::new();
+    for p in site.pages.iter().filter(|p| p.kind == PostType::Faq && p.status == Status::Publish && !site.meta(p.id).contains_key("title")) {
+        let built = site
+            .fields(p.id)
+            .get("@post_content")
+            .ok_or("no post_content")
+            .and_then(|raw| content::paragraphs(&raw.value, p.lang).ok_or("content that is not plain paragraphs"))
+            .and_then(|content| faq(&site, p).map(|h| (h, content)));
+        match built {
+            Ok((head, content)) => heads.push((p.id, head, content)),
+            Err(missing) => problems.push(format!("faq {} ({}) {}: no head, {missing}", p.id.0, p.lang.code(), p.path)),
+        }
+    }
     for (id, head, content) in heads {
         import.meta.entry(id).or_default().extend(head);
         import.fields.entry(id).or_default().insert("content".into(), Field { kind: Kind::Html, value: content });
     }
+    problems
 }
 
-fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
+fn faq(site: &Site, p: &Page) -> Result<BTreeMap<String, String>, &'static str> {
     let lang = p.lang;
     let mut m: BTreeMap<String, String> = BTreeMap::new();
     for name in SHARED {
-        let v = site.options(lang).get(&format!("{NOT_FOUND_OPTION}{name}"))?;
+        let v = site.options(lang).get(&format!("{NOT_FOUND_OPTION}{name}")).ok_or("the 404 page's shared values missing (the export's 404 page)")?;
         m.insert(name.to_string(), v.value.clone());
     }
-    let site_graph = yoast::site_graph(site, lang)?;
-    let title = yoast::post_title(site, p)?;
-    let author = yoast::author_name(site, p.author_id)?;
-    let home = yoast::home_crumb(site, lang)?;
-    let sidebar = yoast::faq_widgets(site, lang)?;
+    let site_graph = yoast::site_graph(site, lang).ok_or("Yoast's site graph missing (the export's 404 page schema)")?;
+    let title = yoast::post_title(site, p).ok_or("Yoast's FAQ title missing (wp_options blogname and wpseo_titles)")?;
+    let author = yoast::author_name(site, p.author_id).ok_or("the author's display name missing (wp_users)")?;
+    let home = yoast::home_crumb(site, lang).ok_or("the breadcrumb's home link missing (an exported page's breadcrumbs)")?;
+    let sidebar = yoast::faq_widgets(site, lang).ok_or("the FAQ widget area missing (an exported page's sidebar)")?;
     // Yoast links a translation by the post its indexable was built from: the English one.
     let url = site.translation(p, Lang::En).filter(|t| t.status == Status::Publish).unwrap_or(p).url(ORIGIN);
     let noindex = yoast::noindex(site, p);
@@ -94,5 +101,37 @@ fn faq(site: &Site, p: &Page) -> Option<BTreeMap<String, String>> {
         format!("\n<span><span><a href=\"{ORIGIN}/\">{home}</a></span> » <span class=\"breadcrumb_last\" aria-current=\"page\">{crumb}</span></span>\n"),
     );
     m.insert("sidebar".into(), sidebar);
-    Some(m)
+    Ok(m)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cms::model::{PageId, Template};
+
+    #[test]
+    fn an_faq_whose_head_cannot_be_built_is_reported() {
+        let faq = Page {
+            id: PageId(9),
+            kind: PostType::Faq,
+            name: "lead-times".into(),
+            group_id: 9,
+            lang: Lang::En,
+            path: "/faq/lead-times/".into(),
+            template: Template::Page,
+            status: Status::Publish,
+            title: "Lead times".into(),
+            parent_id: None,
+            menu_order: 0,
+            published_at: "2024-01-01 00:00:00".into(),
+            modified_at: "2024-01-01 00:00:00".into(),
+            author_id: None,
+        };
+        let mut import = Import { pages: vec![faq], ..Default::default() };
+        import.fields.entry(PageId(9)).or_default().insert("@post_content".into(), Field { kind: Kind::Html, value: "Two weeks.".into() });
+        let problems = apply(&mut import);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].starts_with("faq 9 (en) /faq/lead-times/: no head, "), "{problems:?}");
+        assert!(!import.meta.contains_key(&PageId(9)), "nothing half built is stored");
+    }
 }
