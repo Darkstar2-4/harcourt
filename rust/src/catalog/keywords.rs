@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use super::search::TYPO_CODE_CHARS;
+use super::search::{code_contains, normalize_code, TYPO_CODE_CHARS};
 
 const TYPO_CHARACTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -13,16 +13,12 @@ const TYPO_CHARACTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 pub struct Row {
     pub table: String,
     pub code: String,
+    /// `search::normalize_code` of the code.
     pub code_normalized: String,
     pub category_id: i64,
     pub subcategory_id: i64,
     pub inventory_id: Option<i64>,
     pub ranking: i64,
-}
-
-/// search_class::normalize_code().
-pub fn normalize(s: &str) -> String {
-    s.chars().filter(|c| !c.is_whitespace() && !"-_./".contains(*c)).collect::<String>().to_uppercase()
 }
 
 /// keyword_stem(): "hinges" and "hinge" both "hinge"; anything not four letters or more passes through.
@@ -66,11 +62,11 @@ fn category_matches(categories: &BTreeMap<i64, Vec<String>>, term: &str, min_len
 
 /// keyword_like(): the term in the row's code, separator-free when it has letters or digits.
 fn like(row: &Row, term: &str) -> bool {
-    let n = normalize(&stem(term));
+    let n = normalize_code(&stem(term));
     if n.chars().any(|c| c.is_ascii_alphanumeric()) {
-        row.code_normalized.to_uppercase().contains(&n)
+        row.code_normalized.contains(&n)
     } else {
-        row.code.to_lowercase().contains(&term.to_lowercase())
+        code_contains(&row.code, term)
     }
 }
 
@@ -178,7 +174,7 @@ mod tests {
     use super::*;
 
     fn row(table: &str, code: &str, category_id: i64) -> Row {
-        Row { table: table.into(), code: code.into(), code_normalized: normalize(code), category_id, subcategory_id: 1, inventory_id: None, ranking: 0 }
+        Row { table: table.into(), code: code.into(), code_normalized: normalize_code(code), category_id, subcategory_id: 1, inventory_id: None, ranking: 0 }
     }
 
     #[test]
@@ -188,7 +184,7 @@ mod tests {
         assert_eq!(stem("bushes"), "bush");
         assert_eq!(stem("glass"), "glass");
         assert_eq!(stem("LS-10"), "LS-10");
-        assert_eq!(normalize("hb-lt 1.5/x"), "HBLT15X");
+        assert_eq!(normalize_code("hb-lt 1.5/x"), "HBLT15X");
     }
 
     #[test]
@@ -202,6 +198,12 @@ mod tests {
         assert!(f.matches(&row("inventory", "LS-1A", 9)));
         let f = Filter::new(&["pin".into()], &cats);
         assert!(!f.matches(&row("category", "Shipping", 2)), "pin does not start a word of Shipping");
+        let f = Filter::new(&["e7".into()], &cats);
+        assert!(f.matches(&row("inventory", "É-7", 9)), "codes compare as the search box compares them");
+        let f = Filter::new(&["é-7".into()], &cats);
+        assert!(f.matches(&row("inventory", "E-7", 9)));
+        let f = Filter::new(&["ø".into()], &cats);
+        assert!(f.matches(&row("subcategory", "Ring O", 9)));
     }
 
     #[test]

@@ -360,6 +360,21 @@ async fn an_entered_part_number_opens_the_code_as_typed_first() {
 }
 
 #[tokio::test]
+async fn an_entered_part_number_matches_as_the_search_box_does() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'É-7' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'E-8' WHERE id = 2").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'É-7', 1, 7, 1, 2000001), (502, '', 1, 'inventory', 'E-8', 1, 7, 2, 2000002)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'é7', 'é7', 1, 7, 2, 3000002)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (code, part) in [("e7", "E-8"), ("e-7", "É-7"), ("%C3%A9-7", "É-7"), ("E.7", "É-7"), ("%C3%A98", "E-8"), ("%C3%89-8", "E-8")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+    }
+}
+
+#[tokio::test]
 async fn search_results_list_only_what_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;
