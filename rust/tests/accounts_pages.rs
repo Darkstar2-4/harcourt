@@ -170,6 +170,27 @@ async fn the_campaign_sign_up_records_a_pending_company() {
 }
 
 #[tokio::test]
+async fn a_campaign_sign_up_makes_the_profile_the_new_persons() {
+    let pool = pool().await;
+    let app = app(&pool);
+    let held = format!("{VISIT}; harcourt_profile={}", percent_encoding::utf8_percent_encode(r#"{"email":"old@elsewhere.example","name_first":"Old","name_last":"Name","generate":1}"#, percent_encoding::NON_ALPHANUMERIC));
+    let form = "campaign=OPEN&action=register&first_name=Pat&last_name=Lee&company_name=New+Co&email=pat%40example.com";
+    let (status, headers, _) = send(&app, Method::POST, "/campaign.php", &held, Some(form)).await;
+    assert_eq!(status, StatusCode::OK);
+    let profile = headers
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|v| v.to_str().ok()?.strip_prefix("harcourt_profile="))
+        .map(|v| percent_encoding::percent_decode_str(v.split(';').next().unwrap_or("")).decode_utf8_lossy().into_owned())
+        .next_back()
+        .expect("the profile cookie the browser keeps");
+    let profile: serde_json::Value = serde_json::from_str(&profile).unwrap();
+    assert_eq!(profile["email"], "pat@example.com");
+    assert_eq!((profile["name_first"].as_str(), profile["name_last"].as_str(), profile["name"].as_str()), (Some("Pat"), Some("Lee"), Some("Pat Lee")));
+    assert_eq!(profile["generate"], 1);
+}
+
+#[tokio::test]
 async fn a_campaign_sign_up_at_an_active_company_goes_on_to_the_emailed_code() {
     let pool = pool().await;
     sqlx::query(r#"UPDATE "user" SET domain = 'active.example' WHERE id = 2"#).execute(&pool).await.unwrap();

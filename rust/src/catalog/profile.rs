@@ -41,9 +41,11 @@ impl Profile {
         }
     }
 
-    /// profile_class::forced(): every field the registry marks required for profiles has a value.
+    /// profile_class::forced(): every field the registry marks required for profiles has a value, as the profile
+    /// form requires it.
     pub fn forced(&self, registry: &Registry) -> bool {
-        registry.items("address", "profile").iter().all(|(field, value)| value != "required" || !self.field(field).is_empty())
+        let p = self.address();
+        registry.items("address", "profile").iter().all(|(field, value)| value != "required" || p.filled(field))
     }
 
     /// profile_class::quick_cad_message().
@@ -287,6 +289,17 @@ mod tests {
         let phone = Registry::from_rows([("", "address", "profile", "phone", Some("required"))]);
         assert!(!p.forced(&phone));
         assert!(p.forced(&Registry::default()));
+    }
+
+    #[test]
+    fn the_gate_asks_for_a_required_name_as_the_profile_form_does() {
+        let reg = Registry::from_rows([("", "address", "profile", "name", Some("required"))]);
+        let mut p = Profile::default();
+        assert!(!p.forced(&reg));
+        p.name_first = "Pat".into();
+        assert!(!p.forced(&reg));
+        p.name_last = "Lee".into();
+        assert!(p.forced(&reg));
     }
 
     #[test]

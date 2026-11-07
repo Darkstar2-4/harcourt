@@ -23,8 +23,9 @@ use crate::{
         cookies,
         locale::Labels,
         log::{self, Kind, Subject},
-        oauth, registry,
-        visit,
+        oauth,
+        profile::Profile,
+        registry, visit,
     },
     api::Auth,
     catalog::stored,
@@ -214,6 +215,8 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                             Some((id, sign_in)) => {
                                 set_cookies.extend(cookies::session(&sign_in.token, false));
                                 set_cookies.extend(cookies::php_year(cookies::EMAIL, email.as_str(), now));
+                                let remembered = Profile::remembered(pool, headers, visitor).await?;
+                                set_cookies.extend(remembered.admit(pool, visitor, &email, &typed.first_name, &typed.last_name, now).await?);
                                 let comment = format!("Company name: {}<br>Name: {} {}", typed.company_name, typed.first_name, typed.last_name);
                                 admission::log_signup(pool, id, &email, &ctx, &comment).await;
                                 reader.signed_in = Some((id.0, Status::Pending, typed.company_name.clone()));

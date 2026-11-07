@@ -17,7 +17,7 @@ use crate::{
         registry, visit,
     },
     db::unix_now,
-    identity::UserId,
+    identity::{Email, UserId},
     staff::check,
     visitor::{Identity, Visitor},
 };
@@ -176,6 +176,25 @@ impl Profile {
         Ok(self.cookie(now))
     }
 
+    /// Someone was just admitted as `email`: the profile becomes theirs (their address, and each name they gave,
+    /// a blank one keeping what was remembered), kept for the visit, with its cookie. A profile the browser held for
+    /// someone else does not outlive the sign-in.
+    pub async fn admit(mut self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        let given = |s: &str, kept: &mut Option<String>| {
+            if s.is_empty() || kept.as_deref() == Some(s) {
+                return false;
+            }
+            *kept = Some(s.to_string());
+            true
+        };
+        let renamed = given(name_first, &mut self.name_first) | given(name_last, &mut self.name_last);
+        if renamed {
+            self.name = format!("{} {}", self.get("name_first"), self.get("name_last"));
+        }
+        self.email = Some(email.as_str().into());
+        self.remember(pool, visitor, now).await
+    }
+
     /// Keep the profile for the visit without a cookie: the PHP changed the session's copy in place.
     pub async fn keep(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<()> {
         if let Some(id) = &visitor.visit {
@@ -257,6 +276,14 @@ impl Profile {
             country_code,
             ..Profile::default()
         })
+    }
+
+    /// Whether a field has a value, as a required one must: a name is its first and its last name.
+    pub fn filled(&self, key: &str) -> bool {
+        match key {
+            "name" => self.filled("name_first") && self.filled("name_last"),
+            _ => !self.get(key).trim().is_empty(),
+        }
     }
 
     pub fn get(&self, key: &str) -> &str {
@@ -499,7 +526,8 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
             },
             _ => fn_text(&raw),
         };
-        if need == Need::Required && value.is_empty() {
+        p.set(data_key, value);
+        if need == Need::Required && !p.filled(data_key) {
             let label = match (f, input_key) {
                 (Field::Name, "name_first") => "First Name",
                 (Field::Name, _) => "Last Name",
@@ -507,7 +535,6 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
             };
             errors.push((field_name(input_key), format!("{label} cannot be blank")));
         }
-        p.set(data_key, value);
     };
     check(Field::CompanyName, "company_name", "company_name", &mut p);
     check(Field::Name, "name_first", "name_first", &mut p);
@@ -705,6 +732,18 @@ mod tests {
         let (p, errors) = verify(&l, &posted("a'b@example.com"), Profile::default());
         assert_eq!(p.get("email"), "a'b@example.com");
         assert_eq!(errors, [("profile_email".to_string(), "Email format error".to_string())]);
+    }
+
+    #[test]
+    fn a_name_is_filled_by_both_its_parts() {
+        let mut p = Profile { name: " ".into(), ..Profile::default() };
+        assert!(!p.filled("name"));
+        p.name_first = Some("Pat".into());
+        p.name_last = Some("  ".into());
+        assert!(!p.filled("name") && p.filled("name_first") && !p.filled("name_last"));
+        p.name_last = Some("Lee".into());
+        assert!(p.filled("name"));
+        assert!(!p.filled("city"));
     }
 
     #[test]

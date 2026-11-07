@@ -972,10 +972,13 @@ fn opt<T: ToString>(v: Option<T>) -> String {
 }
 
 /// The four inputs search_export.php wrote, as tab-separated text, with an active column on categories and parts.
+/// A part row carries the part's number now (`search_named`).
 async fn export(pool: &SqlitePool) -> sqlx::Result<[String; 4]> {
     let mut rows = String::new();
     for r in sqlx::query!(
-        r#"SELECT id AS "id!: i64", table_name, coalesce(language_code, '') AS "lang!: String", active, code, category_id, subcategory_id, inventory_id, ranking FROM search"#
+        r#"SELECT id AS "id!: i64", table_name AS "table_name?: String", coalesce(language_code, '') AS "lang!: String", active AS "active?: i64", code AS "code?: String",
+                  category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64", inventory_id AS "inventory_id?: i64", ranking AS "ranking?: i64"
+           FROM search_named"#
     )
     .fetch_all(pool)
     .await?
@@ -1658,6 +1661,26 @@ ghost\t10\tNOPE-1\t4
         assert!(empty.entries.is_empty());
         assert_eq!(first_row(&empty, "HBLT-1", &Ctx::default()), None);
         assert!(matches!(search(&empty, "HBLT-1", &Ctx::default(), 10)[..], [Hit::Lookup]));
+    }
+
+    #[tokio::test]
+    async fn a_renumbered_part_is_suggested_by_its_new_number() {
+        let pool = crate::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+            "INSERT INTO subcategory (id, category_id, name, status) VALUES (7, 1, 'Ball Lock Pins', 'Active')",
+            "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'HBLT-1', 1, 7, 1)",
+            "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (20, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)",
+            "UPDATE inventory SET sku = 'HBLT-9' WHERE id = 1",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let ix = Cache::new().index(&pool).await.unwrap().unwrap();
+        assert_eq!(first_row(&ix, "HBLT-9", &Ctx::default()), Some(20));
+        assert_eq!(hits(&ix, "HBLT-9", &Ctx::default(), 1), vec![row("HBLT-9", "exact")]);
+        assert!(hits(&ix, "HBLT-1", &Ctx::default(), 10).iter().all(|(_, tier)| *tier != "exact"));
+        let json = answer_json(&ix, &search(&ix, "HBLT-9", &Ctx::default(), 1), "HBLT-9", &Ctx::default());
+        assert_eq!(json["items"][0]["sku"], "HBLT-9");
     }
 
     #[test]

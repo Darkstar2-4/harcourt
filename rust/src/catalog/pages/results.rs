@@ -18,7 +18,7 @@ pub fn normalize_code(s: &str) -> String {
 }
 
 /// lookup()'s first step: the part number as typed, without its spaces, or with them as underscores, matched
-/// exactly against parts first and competitor numbers second.
+/// exactly against parts (by the number each has now) first and competitor numbers second.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     let wanted = code.trim().to_uppercase();
     let mut codes = vec![wanted.clone()];
@@ -31,8 +31,8 @@ pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
     let (a, b, c) = (codes[0].clone(), codes.get(1).cloned().unwrap_or_default(), codes.get(2).cloned().unwrap_or_default());
     let normalized = normalize_code(&wanted);
     let row = sqlx::query!(
-        r#"SELECT table_name AS "table_name!", category_id AS "category_id: i64", subcategory_id AS "subcategory_id: i64", inventory_id AS "inventory_id: i64"
-           FROM search WHERE table_name IN ('inventory', 'competitor_sku') AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
+        r#"SELECT table_name AS "table_name!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64", inventory_id AS "inventory_id?: i64"
+           FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
            ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
         a,
         b,
@@ -153,10 +153,10 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let lang = ctx.viewer.lang.code();
     let within = ctx.subcategory_id;
     let rows: Vec<keywords::Row> = sqlx::query!(
-        r#"SELECT s.table_name AS "table!", s.code AS "code!", coalesce(s.code_normalized, '') AS "normalized!: String", s.category_id AS "category_id!: i64",
-                  s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
+        r#"SELECT s.table_name AS "table!: String", s.code AS "code!: String", coalesce(s.code_normalized, '') AS "normalized!: String", s.category_id AS "category_id!: i64",
+                  s.subcategory_id AS "subcategory_id!: i64", s.inventory_id AS "inventory_id?: i64", coalesce(s.ranking, 0) AS "ranking!: i64",
                   coalesce(i.active, 0) AS "part_active!: i64", i.subcategory_id AS "part_family?: i64"
-           FROM search s LEFT JOIN inventory i ON i.id = s.inventory_id
+           FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id
            WHERE coalesce(s.language_code, '') IN ('', ?1)
              AND s.table_name IS NOT NULL AND s.code IS NOT NULL AND s.category_id IS NOT NULL AND s.subcategory_id IS NOT NULL
            ORDER BY s.id"#,

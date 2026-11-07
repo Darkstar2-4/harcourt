@@ -270,7 +270,7 @@ async fn register(core: &Auth, req: &Request, posted: &[(String, String)], token
         return Ok(reply);
     };
     reply.cookies.extend(signin.cookies());
-    reply.cookies.extend(p.remember(pool, &req.visitor, req.now).await?);
+    reply.cookies.extend(p.clone().admit(pool, &req.visitor, &email, "", "", req.now).await?);
     let mut lines = profile::summary(pool, &layout, &p).await?;
     lines.push(format!("reCAPTCHA Score: {}", score.text));
     admission::log_signup(pool, id, &email, &ctx, &lines.join("<br>")).await;
@@ -333,6 +333,7 @@ async fn verify(core: &Auth, req: &Request, typed: &str, token: &str) -> sqlx::R
     };
     let signin = admission::grant(pool, &company, &email, &req.context()).await?;
     reply.cookies.extend(signin.cookies());
+    reply.cookies.extend(Profile::remembered(pool, &req.headers, &req.visitor).await?.admit(pool, &req.visitor, &email, "", "", req.now).await?);
     reply.html.set("scscpq_content", access_message(&company));
     reply.menu.set("scscpq_newuser", 0);
     if company.catalog() {

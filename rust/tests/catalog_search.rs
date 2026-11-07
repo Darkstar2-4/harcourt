@@ -108,6 +108,22 @@ async fn a_part_moved_to_another_family_opens_there_before_the_search_table_is_r
 }
 
 #[tokio::test]
+async fn a_renumbered_part_is_found_by_its_new_number_before_the_search_table_is_rebuilt() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    for sql in ["INSERT INTO language (code, name, active) VALUES ('EN', 'English', 1)", "UPDATE inventory SET sku = 'HBLT-7' WHERE id = 2"] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let cookie = signed_in(&h.pool, &Account::customer(44)).await;
+    let (_, _, body) = send(&h.app, suggest("hblt-7", Some(&cookie), "/catalog/")).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!((&v["items"][0]["label"], &v["items"][0]["sku"], &v["items"][0]["id"]), (&"HBLT-7".into(), &"HBLT-7".into(), &21.into()), "{body}");
+    let req = request(Method::GET, "/catalog.php?scscpq_wp=1&search_source=search&search_id=0&search_code=hblt%207", Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::empty());
+    let (_, _, body) = send(&h.app, req).await;
+    assert!(body.contains("Part number: HBLT-7"), "{body}");
+}
+
+#[tokio::test]
 async fn every_other_table_is_refused_even_to_staff() {
     let h = harness().await;
     seed(&h.pool).await;
