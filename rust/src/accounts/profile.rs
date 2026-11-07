@@ -18,6 +18,7 @@ use crate::{
     },
     db::unix_now,
     identity::UserId,
+    staff::check,
     visitor::{Identity, Visitor},
 };
 
@@ -460,34 +461,6 @@ fn fn_text(s: &str) -> String {
     cleaned.trim().to_string()
 }
 
-/// includes/functions.php email_class: the address lower-cased, or the PHP's message for what is wrong with it.
-pub fn check_email(raw: &str, required: bool) -> Result<String, &'static str> {
-    let address = raw.trim().to_lowercase();
-    if address.is_empty() {
-        return if required { Err("Email address cannot be blank") } else { Ok(address) };
-    }
-    if address.chars().any(|c| " /\\,?!:;".contains(c)) {
-        return Err("Address contains invalid characters");
-    }
-    let parts: Vec<&str> = address.split('@').collect();
-    let [account, domain] = parts[..] else { return Err("Invalid email format") };
-    if account.is_empty() {
-        return Err("Account missing");
-    }
-    let labels: Vec<&str> = domain.split('.').collect();
-    if domain.is_empty() || labels[0].is_empty() || labels.last().map_or(0, |l| l.len()) < 2 {
-        return Err("Invalid domain");
-    }
-    let word = |s: &str, extra: &[u8]| !s.is_empty() && s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || extra.contains(&c));
-    let account_ok = account.split('.').all(|w| word(w, b"_"));
-    let (host, tld) = domain.rsplit_once('.').unwrap_or((domain, ""));
-    let domain_ok = host.split('.').all(|w| word(w, b"")) && tld.len() >= 2 && tld.bytes().all(|c| c.is_ascii_alphabetic());
-    if !(account_ok && domain_ok) {
-        return Err("Email format error");
-    }
-    Ok(address)
-}
-
 /// The input the state is read from, by country: the US and Canada pick from a list, others type it.
 pub fn state_input(country_code: &str) -> &'static str {
     match country_code {
@@ -511,10 +484,10 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
         let raw = input(input_key);
         let value = match f {
             Field::Zip => fn_text(&raw).to_uppercase(),
-            Field::Email => match check_email(&raw, need == Need::Required) {
-                Ok(a) => a,
-                Err(e) => {
-                    p.set(data_key, raw.trim().to_lowercase());
+            Field::Email => match check::email(&raw, need == Need::Required) {
+                (address, None) => address,
+                (address, Some(e)) => {
+                    p.set(data_key, address);
                     errors.push((field_name(input_key), e.to_string()));
                     return;
                 }
@@ -719,17 +692,14 @@ mod tests {
     }
 
     #[test]
-    fn email_messages_match_email_class() {
-        assert_eq!(check_email(" Pat@Example.COM ", true), Ok("pat@example.com".into()));
-        assert_eq!(check_email("", true), Err("Email address cannot be blank"));
-        assert_eq!(check_email("", false), Ok(String::new()));
-        assert_eq!(check_email("a b@example.com", true), Err("Address contains invalid characters"));
-        assert_eq!(check_email("a@b@example.com", true), Err("Invalid email format"));
-        assert_eq!(check_email("@example.com", true), Err("Account missing"));
-        assert_eq!(check_email("a@example.c", true), Err("Invalid domain"));
-        assert_eq!(check_email("a@.example.com", true), Err("Invalid domain"));
-        assert_eq!(check_email("a'b@example.com", true), Err("Email format error"));
-        assert_eq!(check_email("first.last_x@sub.example.co", true), Ok("first.last_x@sub.example.co".into()));
+    fn the_form_takes_any_address_sign_in_takes() {
+        let l = layout(&[]);
+        let posted = |email: &str| vec![("profile_email".to_string(), email.to_string())];
+        let (p, errors) = verify(&l, &posted(" Pat+CAD@Example.com "), Profile::default());
+        assert_eq!((p.get("email"), errors.len()), ("pat+cad@example.com", 0));
+        let (p, errors) = verify(&l, &posted("a'b@example.com"), Profile::default());
+        assert_eq!(p.get("email"), "a'b@example.com");
+        assert_eq!(errors, [("profile_email".to_string(), "Email format error".to_string())]);
     }
 
     #[test]
