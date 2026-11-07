@@ -9,7 +9,7 @@ use sqlx::SqlitePool;
 use crate::catalog::stored;
 
 /// The `user.price_type` / `user.price_pct` pair, parsed once. No value means the visitor sees no prices; text this
-/// code does not know parses to no value as well.
+/// code does not know, and a pair `terms_error` refuses, parse to no value as well.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PriceTerms {
     Base,
@@ -17,9 +17,27 @@ pub enum PriceTerms {
     Plus(f64),
 }
 
+/// What is wrong with a stored price type and adjustment (a fraction), as classes/user.php import_update() words
+/// it: no pricing and base take 0, a discount more than 0 and less than 1, a mark-up more than 0 and less than 5.
+/// The account admin, the import and `PriceTerms::parse` all hold the pair to this.
+pub fn terms_error(price_type: &str, price_pct: f64) -> Option<&'static str> {
+    let between = |max: f64| price_pct > 0.0 && price_pct < max;
+    match price_type {
+        _ if price_pct < 0.0 => Some("Less than 0%"),
+        "" | "base" if price_pct != 0.0 => Some("Must be 0%"),
+        "discount" if !between(1.0) => Some("Must be > 0% and < 100%"),
+        "plus" if !between(5.0) => Some("Must be > 0% and < 500%"),
+        _ => None,
+    }
+}
+
 impl PriceTerms {
     pub fn parse(price_type: &str, price_pct: f64) -> Option<PriceTerms> {
-        match price_type.trim() {
+        let price_type = price_type.trim();
+        if terms_error(price_type, price_pct).is_some() {
+            return None;
+        }
+        match price_type {
             "base" => Some(PriceTerms::Base),
             "discount" => Some(PriceTerms::Discount(price_pct)),
             "plus" => Some(PriceTerms::Plus(price_pct)),
@@ -290,9 +308,24 @@ mod tests {
     fn terms_parse_from_the_user_row() {
         assert_eq!(PriceTerms::parse("", 0.2), None);
         assert_eq!(PriceTerms::parse("wholesale", 0.2), None);
-        assert_eq!(PriceTerms::parse("base", 0.2), Some(PriceTerms::Base));
+        assert_eq!(PriceTerms::parse("base", 0.0), Some(PriceTerms::Base));
+        assert_eq!(PriceTerms::parse(" base ", 0.0), Some(PriceTerms::Base));
         assert_eq!(PriceTerms::parse("discount", 0.25).map(PriceTerms::multiplier), Some(0.75));
         assert_eq!(PriceTerms::parse("plus", 0.1).map(PriceTerms::multiplier), Some(1.1));
+        assert_eq!(PriceTerms::parse("plus", 4.5).map(PriceTerms::multiplier), Some(5.5));
+    }
+
+    #[test]
+    fn terms_outside_the_rule_give_no_price() {
+        for (kind, pct) in [("base", 0.2), ("discount", 0.0), ("discount", 1.0), ("discount", 10.0), ("discount", -0.1), ("plus", 0.0), ("plus", 5.0), ("plus", f64::NAN)] {
+            assert_eq!(PriceTerms::parse(kind, pct), None, "{kind} {pct}");
+        }
+        assert_eq!(terms_error("", 0.0), None);
+        assert_eq!(terms_error("", 0.1), Some("Must be 0%"));
+        assert_eq!(terms_error("base", -1.0), Some("Less than 0%"));
+        assert_eq!(terms_error("discount", 0.999), None);
+        assert_eq!(terms_error("discount", 10.0), Some("Must be > 0% and < 100%"));
+        assert_eq!(terms_error("plus", 0.0), Some("Must be > 0% and < 500%"));
     }
 
     #[test]
