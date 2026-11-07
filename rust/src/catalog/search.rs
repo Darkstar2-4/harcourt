@@ -280,7 +280,7 @@ impl Index {
                     if active.first().is_none_or(|a| a.parse::<i64>().is_ok_and(|a| a != 0)) {
                         active_categories.insert(id);
                     }
-                    for s in tokens(en).into_iter().chain(tokens(fr)) {
+                    for s in tokens(&strip_entities(en)).into_iter().chain(tokens(&strip_entities(fr))) {
                         let cats = category_words.entry(stem(&s)).or_default();
                         if !cats.contains(&id) {
                             cats.push(id);
@@ -539,6 +539,26 @@ pub fn same_code(a: &str, b: &str) -> bool {
 /// Whether a code holds a term, but for case and accents (the keyword search's `code like '%term%'`).
 pub fn code_contains(code: &str, term: &str) -> bool {
     fold(code).contains(&fold(term))
+}
+
+/// A category's name as search reads it, in the box, on Enter and in the search table: `regexp_replace(name,
+/// ' *&[a-zA-Z0-9#]+;', '')`, HTML entities dropped with the spaces before them.
+pub fn strip_entities(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    let mut rest = name;
+    while let Some(at) = rest.find('&') {
+        let tail = &rest[at + 1..];
+        let len = tail.bytes().take_while(|b| b.is_ascii_alphanumeric() || *b == b'#').count();
+        if len > 0 && tail.as_bytes().get(len) == Some(&b';') {
+            out.push_str(rest[..at].trim_end_matches(' '));
+            rest = &tail[len + 1..];
+        } else {
+            out.push_str(&rest[..=at]);
+            rest = tail;
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// A typed term as learned terms are matched: folded, whitespace collapsed.
@@ -1390,6 +1410,20 @@ mod tests {
         for term in ["percage", "PERÇAGE", "perçage"] {
             assert_eq!(run(&ix, term, &fr()), [row("Canons de Perçage", "words"), lookup(term)], "{term}");
         }
+    }
+
+    #[test]
+    fn category_names_are_read_without_their_entities() {
+        assert_eq!(strip_entities("Clamps &amp; Pins"), "Clamps Pins");
+        assert_eq!(strip_entities("Tools&reg;"), "Tools");
+        assert_eq!(strip_entities("A & B &#8482;"), "A & B");
+        let categories = CATEGORIES.replace("14\tClamping\tBridage", "14\tClamping &amp; Fixtures\tBridage &amp; Montage");
+        let ix = Index::build(ROWS, FAMILIES, &categories, PARTS, "", "").unwrap();
+        let en = Ctx::default();
+        for term in ["fixtures", "montage"] {
+            assert_eq!(run(&ix, term, &en), [row("Swing Clamps", "category"), row("Toggle Pads", "category"), lookup(term)]);
+        }
+        assert!(!run(&ix, "amp", &en).iter().any(|(_, t)| *t == "category"), "{:?}", run(&ix, "amp", &en));
     }
 
     #[test]

@@ -13,6 +13,8 @@ use std::{
 use rust_decimal::{Decimal, RoundingStrategy};
 use sqlx::SqlitePool;
 
+use crate::catalog::search::strip_entities;
+
 use super::{
     data::{pricing, pricing_text},
     html::number,
@@ -152,25 +154,6 @@ struct Term {
     subcategory_id: i64,
     inventory_id: i64,
     ranking: i64,
-}
-
-/// `regexp_replace(name, ' *&[a-zA-Z0-9#]+;', '')`: category names lose their HTML entities and the spaces before.
-fn strip_entities(name: &str) -> String {
-    let mut out = String::with_capacity(name.len());
-    let mut rest = name;
-    while let Some(at) = rest.find('&') {
-        let tail = &rest[at + 1..];
-        let len = tail.bytes().take_while(|b| b.is_ascii_alphanumeric() || *b == b'#').count();
-        if len > 0 && tail.as_bytes().get(len) == Some(&b';') {
-            out.push_str(rest[..at].trim_end_matches(' '));
-            rest = &tail[len + 1..];
-        } else {
-            out.push_str(&rest[..=at]);
-            rest = tail;
-        }
-    }
-    out.push_str(rest);
-    out
 }
 
 /// The terms of a list field, in the order and with the filtering search_utility.php applied.
@@ -607,9 +590,6 @@ mod tests {
 
     #[test]
     fn category_names_lose_entities_and_words_are_filtered() {
-        assert_eq!(strip_entities("Clamps &amp; Pins"), "Clamps Pins");
-        assert_eq!(strip_entities("Tools&reg;"), "Tools");
-        assert_eq!(strip_entities("A & B &#8482;"), "A & B");
         assert_eq!(search_words(" hbox ^ab^riser^hbox^"), ["hbox", "riser"]);
         assert_eq!(ci_key("Abc  "), "abc");
     }

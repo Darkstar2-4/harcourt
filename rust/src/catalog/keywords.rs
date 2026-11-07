@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use super::search::{code_contains, normalize_code, TYPO_CODE_CHARS};
+use super::search::{code_contains, normalize_code, strip_entities, TYPO_CODE_CHARS};
 
 const TYPO_CHARACTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -42,10 +42,9 @@ pub fn stem(term: &str) -> String {
 
 /// Words of category names (English and the page language), entities dropped, by category id.
 pub fn category_words(names: &[(i64, String)]) -> BTreeMap<i64, Vec<String>> {
-    let entity = regex::Regex::new(r"(?i)&[a-z0-9#]+;").expect("static pattern");
     let mut out: BTreeMap<i64, Vec<String>> = BTreeMap::new();
     for (id, name) in names {
-        let clean = entity.replace_all(name, "").to_lowercase();
+        let clean = strip_entities(name).to_lowercase();
         out.entry(*id).or_default().extend(clean.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()).map(str::to_string));
     }
     out
@@ -190,6 +189,7 @@ mod tests {
     #[test]
     fn terms_match_codes_or_the_category_they_are_filed_under() {
         let cats = category_words(&[(1, "Clamping &amp; Fixtures".into()), (2, "Shipping".into())]);
+        assert_eq!(cats[&1], ["clamping", "fixtures"]);
         let f = Filter::new(&["clamp".into()], &cats);
         assert!(f.matches(&row("subcategory", "Toggle Pads", 1)), "filed under Clamping");
         assert!(!f.matches(&row("subcategory", "Toggle Pads", 2)));
