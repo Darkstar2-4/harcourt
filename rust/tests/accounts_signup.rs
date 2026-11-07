@@ -661,6 +661,27 @@ async fn the_emailed_code_makes_the_profile_the_person_who_typed_it() {
 }
 
 #[tokio::test]
+async fn the_emailed_code_keeps_the_title_phone_and_fax_typed_for_the_address() {
+    let pool = pool().await;
+    sqlx::query("INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'address', 'profile', 'title', 'required'), ('', 'address', 'profile', 'phone', 'allowed'), ('', 'address', 'profile', 'fax', 'allowed')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let app = app(&pool);
+    let held = "harcourt_profile=%7B%22email%22%3A%22pat%40example.com%22%2C%22name_first%22%3A%22Pat%22%2C%22name_last%22%3A%22Lee%22%2C%22title%22%3A%22Old%20Title%22%2C%22fax%22%3A%22555%200199%22%7D";
+    let form = "action=register&profile_email=pat%40example.com&profile_name_first=Pat&profile_name_last=Lee&profile_company_name=Example+Tools&profile_title=Buyer&profile_phone=555+0100&profile_fax=";
+    let a = ajax(&app, held, form).await;
+    let code = code_in(&mails(&pool).await[1].2);
+    let a = ajax(&app, &format!("{held}; {}", a.jar()), &format!("action=remote&unlock_code={code}")).await;
+    let profile = profile_cookie(&a).expect("the admitted person's profile");
+    assert_eq!(
+        (profile["title"].as_str(), profile["phone"].as_str(), profile["fax"].as_str()),
+        (Some("Buyer"), Some("555 0100"), Some("555 0199")),
+        "typed first, else the person's own: {profile}"
+    );
+}
+
+#[tokio::test]
 async fn a_campaign_sign_up_at_an_active_company_carries_its_names_to_the_code() {
     let pool = pool().await;
     sqlx::query(r#"INSERT INTO campaign (id, code, name, description, "type", active, from_date, thru_date, title_omit, divs) VALUES (1, 'OPEN', 'Open House', '', 'Public', 1, '0000-00-00', '0000-00-00', 0, '[]')"#)
