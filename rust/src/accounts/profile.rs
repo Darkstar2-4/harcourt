@@ -113,6 +113,25 @@ pub struct Profile {
 
 pub const COOKIE: &str = "harcourt_profile";
 
+/// The visit's profile as a request read it (None: it had none), which a profile built from it must still find
+/// there to replace it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Basis(Option<String>);
+
+impl Basis {
+    async fn read(pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<Basis> {
+        Ok(Basis(match &visitor.visit {
+            Some(id) => visit::profile(pool, id, unix_now()).await?,
+            None => None,
+        }))
+    }
+
+    /// The remembered profile: the visit's copy, else the cookie.
+    fn profile(&self, headers: &HeaderMap) -> Profile {
+        Profile::from_cookie(self.0.clone().or_else(|| cookies::get(headers, COOKIE)).as_deref())
+    }
+}
+
 /// A JSON value as PHP read it into a string property: scalars become their text, anything else is unset.
 fn php_text(v: &Value) -> Option<String> {
     match v {
@@ -174,10 +193,14 @@ impl Profile {
         cookies::php_year(COOKIE, &self.to_cookie(), now)
     }
 
-    /// profile->cookie(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return the cookie.
-    pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+    /// profile->cookie() after loaded(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return
+    /// the cookie. When the visit's profile is no longer the one `basis` read (someone was admitted in between), the
+    /// admitted profile stands: nothing is kept and no cookie is set.
+    pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, basis: &Basis, now: i64) -> sqlx::Result<Option<HeaderValue>> {
         if let Some(id) = &visitor.visit {
-            visit::set_profile(pool, id, &self.to_cookie(), now).await?;
+            if !visit::replace_profile(pool, id, basis.0.as_deref(), &self.to_cookie(), now).await? {
+                return Ok(None);
+            }
         }
         Ok(self.cookie(now))
     }
@@ -217,7 +240,10 @@ impl Profile {
         p.phone = pick(None, typed.phone, p.phone.take());
         p.fax = pick(None, typed.fax, p.fax.take());
         p.email = Some(email.as_str().into());
-        p.remember(pool, visitor, now).await
+        if let Some(id) = &visitor.visit {
+            visit::set_profile(pool, id, &p.to_cookie(), now).await?;
+        }
+        Ok(p.cookie(now))
     }
 
     /// Keep what was typed into a sign-up form for the visit, for the form and for the admission it may lead to.
@@ -267,19 +293,22 @@ impl Profile {
 
     /// What load() started from: the visit's copy, else the cookie.
     pub async fn remembered(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
-        let kept = match &visitor.visit {
-            Some(id) => visit::profile(pool, id, unix_now()).await?,
-            None => None,
-        };
-        Ok(Profile::from_cookie(kept.or_else(|| cookies::get(headers, COOKIE)).as_deref()))
+        Ok(Basis::read(pool, visitor).await?.profile(headers))
+    }
+
+    /// loaded(), for a request that does not keep it.
+    pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        Ok(Profile::loaded(pool, headers, visitor).await?.0)
     }
 
     /// classes/profile.php load(): what the visit or the browser remembered, with the remembered address when it has
     /// none, the CAD format only when it still exists, the visitor's language when it has none, and the company and
     /// address of whoever the visitor is signed in as (a bot's name for a bot). The title, phone and fax the profile
     /// form saved are kept too (the PHP dropped them here, so a profile layout requiring one could never be met).
-    pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
-        let obj = Profile::remembered(pool, headers, visitor).await?;
+    /// With it, the visit's profile it was built from, for remember().
+    pub async fn loaded(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<(Profile, Basis)> {
+        let basis = Basis::read(pool, visitor).await?;
+        let obj = basis.profile(headers);
         let cad_name = match obj.cad_code.as_deref() {
             Some(code) => sqlx::query_scalar!("SELECT name FROM cad WHERE code = ?1", code).fetch_optional(pool).await?,
             None => None,
@@ -297,7 +326,7 @@ impl Profile {
             Identity::Bot(b) => (Some(b.name.clone()), None, None, None, None, None),
             Identity::Anonymous => (obj.company_name, obj.address, obj.city, obj.state, obj.zip, obj.country_code),
         };
-        Ok(Profile {
+        let profile = Profile {
             email: non_empty(obj.email).or_else(|| cookies::get(headers, cookies::EMAIL)),
             name: format!("{} {}", obj.name_first.as_deref().unwrap_or(""), obj.name_last.as_deref().unwrap_or("")),
             name_first: obj.name_first,
@@ -316,7 +345,8 @@ impl Profile {
             title: obj.title,
             phone: obj.phone,
             fax: obj.fax,
-        })
+        };
+        Ok((profile, basis))
     }
 
     /// Whether a field has a value, as a required one must: a name is its first and its last name.
@@ -851,6 +881,28 @@ mod tests {
         sqlx::query("DELETE FROM cad").execute(&pool).await.unwrap();
         let p = Profile::load(&pool, &headers, &anonymous).await.unwrap();
         assert_eq!((p.cad_code, p.cad_name), (None, None));
+    }
+
+    #[tokio::test]
+    async fn a_loaded_profile_is_kept_only_while_no_one_was_admitted_since() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let (headers, t) = (HeaderMap::new(), unix_now());
+        let visitor = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let (pat, lee) = (Email::parse("pat@example.com").unwrap(), Email::parse("lee@example.com").unwrap());
+        let (fresh, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
+        assert!(fresh.remember(&pool, &visitor, &basis, t).await.unwrap().is_some(), "a visit with no profile yet");
+        Profile::remembered(&pool, &headers, &visitor).await.unwrap().admit(&pool, &visitor, &pat, "Pat", "Lee", t).await.unwrap();
+
+        let (before, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
+        assert_eq!(before.email.as_deref(), Some("pat@example.com"));
+        Profile::remembered(&pool, &headers, &visitor).await.unwrap().admit(&pool, &visitor, &lee, "Lee", "Ray", t + 1).await.unwrap();
+        assert_eq!(before.remember(&pool, &visitor, &basis, t + 2).await.unwrap(), None, "built from Pat's profile, which is gone");
+        let admitted = Profile::load(&pool, &headers, &visitor).await.unwrap();
+        assert_eq!((admitted.email.as_deref(), admitted.name.as_str()), (Some("lee@example.com"), "Lee Ray"));
+
+        let (after, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
+        assert!(after.remember(&pool, &visitor, &basis, t + 3).await.unwrap().is_some());
+        assert_eq!(Profile::remembered(&pool, &headers, &visitor).await.unwrap(), after);
     }
 
     #[tokio::test]

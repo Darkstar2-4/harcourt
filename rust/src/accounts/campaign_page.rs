@@ -163,10 +163,10 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
     let asked = if fields.has("campaign") { fields.get("campaign").to_string() } else { kept.clone().unwrap_or_default() };
     let Some(campaign) = read(pool, &asked).await? else { return Ok(home(visitor)) };
     if campaign.kind == "Invite" && kept.is_none() {
-        if let Some(id) = &visitor.visit {
-            visit::set_campaign(pool, id, Some(&campaign.code), now).await?;
-        }
-        kept = Some(campaign.code.clone());
+        kept = match &visitor.visit {
+            Some(id) => visit::adopt_campaign(pool, id, &campaign.code, now).await?,
+            None => Some(campaign.code.clone()),
+        };
     }
     if campaign.kind == "Remote" || (campaign.kind == "Invite" && kept.as_deref() != Some(campaign.code.as_str())) {
         return Ok(home(visitor));
