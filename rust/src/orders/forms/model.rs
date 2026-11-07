@@ -222,13 +222,33 @@ pub fn parse(display_meta: &str, notifications: &str, confirmations: &str) -> Op
     let all = members(&c);
     let chosen = all.iter().find(|v| flag(v, "isDefault")).or(all.first());
     let confirmation = match chosen {
-        Some(v) if text(v, "type") == "redirect" => Confirmation::Redirect(text(v, "url")),
+        Some(v) if text(v, "type") == "redirect" => Confirmation::Redirect(redirect_url(&text(v, "url"), &text(v, "queryString"))),
         Some(v) => Confirmation::Message(text(v, "message")),
         None => Confirmation::Message("Thanks for contacting us! We will get in touch with you shortly.".into()),
     };
     let button = d.get("button").map(|b| text(b, "text")).filter(|t| !t.is_empty()).unwrap_or_else(|| "Submit".into());
     let gravity_theme = text(&d, "markupVersion") == "2";
     Some(Form { id: id(&d)?, title: text(&d, "title"), button, css_class: text(&d, "cssClass"), gravity_theme, french: false, honeypot, fields, notifications, confirmation })
+}
+
+/// A redirect confirmation's address: its URL with the confirmation's query string after the URL's own query and
+/// before its fragment, as handle_confirmation() joined them.
+fn redirect_url(url: &str, query: &str) -> String {
+    let query = query.trim().replace(['\r', '\n'], "");
+    if query.is_empty() {
+        return url.to_string();
+    }
+    let (rest, fragment) = url.split_once('#').map_or((url, ""), |(r, f)| (r, f));
+    let joined = match rest.split_once('?') {
+        Some((_, own)) if !own.is_empty() => format!("{rest}&{query}"),
+        Some((base, _)) => format!("{base}?{query}"),
+        None => format!("{rest}?{query}"),
+    };
+    if fragment.is_empty() {
+        joined
+    } else {
+        format!("{joined}#{fragment}")
+    }
 }
 
 /// An active, untrashed form by id.
@@ -318,5 +338,16 @@ pub mod tests {
         assert_eq!((f.button.as_str(), f.fields[0].label.as_str(), f.fields[2].label.as_str()), ("Envoyer", "Nom", "Téléphone"));
         assert_eq!(f.fields[2].kind, Kind::Phone(PhoneFormat::International));
         assert!(matches!(&f.fields[4].kind, Kind::Html(c) if c.starts_with("Ce site est protégé")));
+    }
+
+    #[test]
+    fn a_redirect_confirmation_carries_its_query_string() {
+        let redirect = |url: &str, query: &str| {
+            let c = format!(r#"{{"c1":{{"isDefault":true,"type":"redirect","url":"{url}","queryString":"{query}"}}}}"#);
+            parse(META, NOTIFICATIONS, &c).unwrap().confirmation
+        };
+        assert_eq!(redirect("https://example.com/lead?encoding=UTF-8", "name={Name:1}&ref=site"), Confirmation::Redirect("https://example.com/lead?encoding=UTF-8&name={Name:1}&ref=site".into()));
+        assert_eq!(redirect("https://example.com/thanks/#top", " name={Name:1} "), Confirmation::Redirect("https://example.com/thanks/?name={Name:1}#top".into()));
+        assert_eq!(redirect("https://example.com/thanks/", ""), Confirmation::Redirect("https://example.com/thanks/".into()));
     }
 }

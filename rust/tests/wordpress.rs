@@ -542,3 +542,29 @@ async fn a_large_multipart_post_is_read_whole() {
     let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
     assert_eq!(entries, 1);
 }
+
+async fn entries(pool: &SqlitePool) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(pool).await.unwrap()
+}
+
+#[tokio::test]
+async fn a_redirect_confirmation_moves_the_visitor_after_an_ajax_post_too() {
+    let (app, pool) = harness().await;
+    let redirect = r#"{"c":{"name":"Default","isDefault":true,"type":"redirect","url":"https://example.com/thanks/","queryString":"name={Name:1}"}}"#;
+    sqlx::query("INSERT INTO wp_gf_form (id, title, date_created, is_active, is_trash) VALUES (1, 'Request access', '2020-01-01 00:00:00', 1, 0)").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO wp_gf_form_meta (form_id, display_meta, notifications, confirmations) VALUES (1, ?1, '{}', ?2)").bind(FORM).bind(redirect).execute(&pool).await.unwrap();
+
+    let req = Request::builder().method(Method::POST).uri("/product/alignment/").header(header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(Body::from("gform_submit=1&input_1=Example+Name")).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::FOUND);
+    assert_eq!(res.headers().get(header::LOCATION).unwrap(), "https://example.com/thanks/?name=Example+Name");
+
+    let ajax: String = form_urlencoded::byte_serialize(hxweb::orders::forms::render::gform_ajax(1, "legacy").as_bytes()).collect();
+    let (status, postback) = post_form(&app, "/product/alignment/", &format!("gform_submit=1&gform_ajax={ajax}&input_1=Example+Name")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        postback,
+        "<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body class='GF_AJAX_POSTBACK'><script type=\"text/javascript\"> function gformRedirect(){document.location.href=\"https:\\/\\/example.com\\/thanks\\/?name=Example+Name\";}</script></body></html>"
+    );
+    assert_eq!(entries(&pool).await, 2);
+}

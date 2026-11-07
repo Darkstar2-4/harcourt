@@ -533,6 +533,13 @@ pub fn ajax_postback(inner: &str, in_page: bool) -> String {
     format!("<!DOCTYPE html><html><head><meta charset='UTF-8' /></head><body{cmplz} class='GF_AJAX_POSTBACK'>{inner}</body></html>")
 }
 
+/// get_js_redirect_confirmation() for an ajax post: the script the iframe's parent runs to move the visitor to
+/// `url`, written with json_encode(JSON_HEX_TAG) so nothing in it ends the script.
+pub fn js_redirect(url: &str) -> String {
+    let url = crate::accounts::html::json_encode(&url).replace('<', "\\u003C").replace('>', "\\u003E");
+    format!("<script type=\"text/javascript\"> function gformRedirect(){{document.location.href={url};}}</script>")
+}
+
 /// Gravity Forms' own ajax post sends back the `gform_ajax` value the form was drawn with; anything else was
 /// tampered with.
 pub fn ajax_args_valid(posted: &str, form: &Form) -> bool {
@@ -566,6 +573,11 @@ pub fn phone_ok(format: PhoneFormat, value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::orders::forms::model::{parse, tests::*};
+
+    #[test]
+    fn a_script_redirect_keeps_the_address_inside_its_string() {
+        assert_eq!(js_redirect("https://example.com/a?b=<c>&d=é"), "<script type=\"text/javascript\"> function gformRedirect(){document.location.href=\"https:\\/\\/example.com\\/a?b=\\u003Cc\\u003E&d=\\u00e9\";}</script>");
+    }
 
     #[test]
     fn the_form_carries_the_gravity_forms_names() {

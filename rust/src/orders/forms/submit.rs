@@ -356,8 +356,8 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
         return Ok(Outcome::Invalid(render_invalid(&errors, Summary::Problem)));
     }
     // Gravity Forms showed spam, and a post the honeypot stopped, its default confirmation instead of the form's.
-    let anchor = params.contains_key("gform_ajax");
-    let thanks = || render::confirmation(form, wording(form).thanks, anchor);
+    let ajax_post = params.contains_key("gform_ajax");
+    let thanks = || render::confirmation(form, wording(form).thanks, ajax_post);
     let honeypot_filled = params.get(&format!("input_{}", render::honeypot_id(form))).is_some_and(|v| !v.is_empty());
     if honeypot_filled && form.honeypot == Honeypot::Abort {
         return Ok(Outcome::Confirmed { html: thanks(), entry: None, spam: true });
@@ -388,8 +388,16 @@ pub async fn submit(pool: &SqlitePool, services: &Services, form: &Form, params:
     }
     let admin = services.admin_email.as_ref().map_or("", Email::as_str);
     Ok(match &form.confirmation {
-        Confirmation::Redirect(url) => Outcome::Redirect(merge(url, Escape::Url, form, &values, ctx, entry, admin)),
-        Confirmation::Message(m) => Outcome::Confirmed { html: render::confirmation(form, &merge(m, Escape::Html, form, &values, ctx, entry, admin), anchor), entry: Some(entry), spam },
+        Confirmation::Redirect(url) => {
+            let url = merge(url, Escape::Url, form, &values, ctx, entry, admin);
+            // Gravity Forms' own ajax post is answered in its iframe, whose parent page runs the redirect.
+            if ajax_post {
+                Outcome::Confirmed { html: render::js_redirect(&url), entry: Some(entry), spam }
+            } else {
+                Outcome::Redirect(url)
+            }
+        }
+        Confirmation::Message(m) => Outcome::Confirmed { html: render::confirmation(form, &merge(m, Escape::Html, form, &values, ctx, entry, admin), ajax_post), entry: Some(entry), spam },
     })
 }
 
