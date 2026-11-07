@@ -839,7 +839,8 @@ impl Answer<'_> {
 /// The row shown for a matched one, in the search box and on Enter (`pages::results`): itself when it is in every
 /// language or the visitor's; for a family name or search word in the other language, its family's own family-name
 /// row in the visitor's language (`family_row`, none when the family has none); for any other row in the other
-/// language, none.
+/// language, none. What it changes is the language of the row standing for the family, not the kind of hit: Enter
+/// keeps a matched search word a search word (the family page) and a family name a family name.
 pub(super) fn shown_row<R>(kind: Option<Kind>, row: Option<Lang>, lang: Lang, own: R, family_row: impl FnOnce() -> Option<R>) -> Option<R> {
     match row {
         Some(l) if l != lang => kind.is_some_and(Kind::is_family).then(family_row).flatten(),

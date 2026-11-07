@@ -1,7 +1,7 @@
 //! What the search box opens (catalog.php search_source=search): the row the visitor picked, an exact part
 //! number, or the keyword search over the `search` table.
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use super::{family, home, Ctx};
 use crate::catalog::{html::esc_text, keywords, model, model::Part, search};
@@ -162,8 +162,8 @@ async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
 }
 
 /// search_code() as prod has it: the keyword search (keywords.rs), corrected for a typo when it finds nothing,
-/// grouped by family and listed best-ranked first. A matched row counts as the row the search box shows for it
-/// (`search::shown_row`): a family name or search word in the other language as the family's row in the visitor's.
+/// grouped by family and listed best-ranked first. A matched row counts when the search box shows a row for it
+/// (`search::shown_row`), and counts as itself: a search word still opens its family's page, in either language.
 async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let raw = ctx.req.raw_search_code.trim().to_string();
     let terms: Vec<String> = if raw.is_empty() { vec![String::new()] } else { raw.split_whitespace().map(str::to_string).collect() };
@@ -191,14 +191,11 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
             category_id, subcategory_id, inventory_id: r.inventory_id, ranking: r.ranking }))
     })
     .collect();
-    let mut family_rows: HashMap<i64, &keywords::Row> = HashMap::new();
-    for (_, r) in rows.iter().filter(|(l, r)| *l == Some(row_lang) && r.table == "subcategory") {
-        family_rows.entry(r.subcategory_id).or_insert(r);
-    }
+    let named: HashSet<i64> = rows.iter().filter(|(l, r)| *l == Some(row_lang) && r.table == "subcategory").map(|(_, r)| r.subcategory_id).collect();
     let matching = |filter: &keywords::Filter| -> Vec<&keywords::Row> {
         rows.iter()
-            .filter(|(_, r)| filter.matches(r))
-            .filter_map(|(l, r)| search::shown_row(search::Kind::parse(&r.table), *l, row_lang, r, || family_rows.get(&r.subcategory_id).copied()))
+            .filter(|(l, r)| filter.matches(r) && search::shown_row(search::Kind::parse(&r.table), *l, row_lang, (), || named.contains(&r.subcategory_id).then_some(())).is_some())
+            .map(|(_, r)| r)
             .collect()
     };
     let names: Vec<(i64, String)> = sqlx::query!(
