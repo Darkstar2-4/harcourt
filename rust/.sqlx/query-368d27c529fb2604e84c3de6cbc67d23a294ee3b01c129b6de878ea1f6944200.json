@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!: i64\", table_name, coalesce(language_code, '') AS \"lang!: String\", active, code, category_id, subcategory_id, inventory_id, ranking FROM search",
+  "query": "SELECT id AS \"id!: i64\", table_name AS \"table_name?: String\", coalesce(language_code, '') AS \"lang!: String\", active AS \"active?: i64\", code AS \"code?: String\",\n                  category_id AS \"category_id?: i64\", subcategory_id AS \"subcategory_id?: i64\", inventory_id AS \"inventory_id?: i64\", ranking AS \"ranking?: i64\"\n           FROM search_named",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Integer"
       },
       {
-        "name": "table_name",
+        "name": "table_name?: String",
         "ordinal": 1,
         "type_info": "Text"
       },
@@ -19,32 +19,32 @@
         "type_info": "Text"
       },
       {
-        "name": "active",
+        "name": "active?: i64",
         "ordinal": 3,
         "type_info": "Integer"
       },
       {
-        "name": "code",
+        "name": "code?: String",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "category_id",
+        "name": "category_id?: i64",
         "ordinal": 5,
         "type_info": "Integer"
       },
       {
-        "name": "subcategory_id",
+        "name": "subcategory_id?: i64",
         "ordinal": 6,
         "type_info": "Integer"
       },
       {
-        "name": "inventory_id",
+        "name": "inventory_id?: i64",
         "ordinal": 7,
         "type_info": "Integer"
       },
       {
-        "name": "ranking",
+        "name": "ranking?: i64",
         "ordinal": 8,
         "type_info": "Integer"
       }
@@ -64,5 +64,5 @@
       true
     ]
   },
-  "hash": "07a5be44819977b4b0dcee475be834b0d22380e6d5a9bfc4c9981b20a34447e4"
+  "hash": "368d27c529fb2604e84c3de6cbc67d23a294ee3b01c129b6de878ea1f6944200"
 }
