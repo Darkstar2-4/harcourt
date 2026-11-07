@@ -39,6 +39,13 @@ struct Stamp {
     unreadable: Vec<(PathBuf, String)>,
 }
 
+/// The stamp of the export last loaded, and of the last one that did not load, which was warned about once.
+#[derive(Default)]
+struct Seen {
+    loaded: Option<Stamp>,
+    failed: Option<Stamp>,
+}
+
 struct Entry {
     body: String,
     values: HashMap<String, String>,
@@ -47,7 +54,7 @@ struct Entry {
 pub struct Pages {
     root: PathBuf,
     export: RwLock<Option<Arc<Export>>>,
-    seen: Mutex<Option<Stamp>>,
+    seen: Mutex<Seen>,
     islands: RwLock<HashMap<(u32, String, String), (Instant, String)>>,
     placeholder: Regex,
     island: Regex,
@@ -58,7 +65,7 @@ impl Pages {
         Pages {
             root,
             export: RwLock::new(None),
-            seen: Mutex::new(None),
+            seen: Mutex::new(Seen::default()),
             islands: RwLock::new(HashMap::new()),
             placeholder: Regex::new(r"\{\{([A-Za-z0-9_]+)\}\}").unwrap(),
             island: Regex::new(r"\{\{gform:(\d+)\}\}").unwrap(),
@@ -66,24 +73,32 @@ impl Pages {
     }
 
     /// Reload the export when a file under it changed. Keeps the previous export if the new one does not load, and
-    /// tries again once the files change again.
+    /// tries again on every call until it does, since a file can become readable without changing its stamp.
     pub async fn refresh(&self) {
         let stamp = stamp(&self.root);
         let mut seen = self.seen.lock().await;
-        if seen.as_ref() == Some(&stamp) {
+        if seen.loaded.as_ref() == Some(&stamp) {
             return;
         }
-        for (dir, e) in &stamp.unreadable {
-            tracing::warn!("export: {} skipped: {e}", dir.display());
+        let first_try = seen.failed.as_ref() != Some(&stamp);
+        if first_try {
+            for (dir, e) in &stamp.unreadable {
+                tracing::warn!("export: {} skipped: {e}", dir.display());
+            }
         }
         match load(&self.root) {
             Ok(e) => {
                 tracing::info!("export loaded: {} pages", e.pages.len());
                 *self.export.write().await = Some(Arc::new(e));
+                *seen = Seen { loaded: Some(stamp), failed: None };
             }
-            Err(e) => tracing::error!("export not loaded, keeping the previous one: {e}"),
+            Err(e) => {
+                if first_try {
+                    tracing::error!("export not loaded, keeping the previous one until it loads: {e}");
+                }
+                seen.failed = Some(stamp);
+            }
         }
-        *seen = Some(stamp);
     }
 
     /// The page for a GET the search pages hand back (a shape the search does not answer), or None when the export
@@ -381,9 +396,21 @@ mod tests {
             std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
             assert_eq!(body().await, "third");
             // root can read anything, so only assert when the test runs unprivileged
-            if std::fs::metadata("/root/.").is_err() {
+            let unprivileged = std::fs::metadata("/root/.").is_err();
+            if unprivileged {
                 assert_eq!(unreadable, 1);
             }
+
+            let file = root.join("pages/a.html");
+            publish("fourth, readable later", 40);
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o000)).unwrap();
+            pages.refresh().await;
+            if unprivileged {
+                assert_eq!(body().await, "third");
+            }
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o644)).unwrap();
+            pages.refresh().await;
+            assert_eq!(body().await, "fourth, readable later");
         }
         let _ = std::fs::remove_dir_all(&root);
     }
