@@ -17,24 +17,18 @@ pub fn normalize_code(s: &str) -> String {
     s.chars().filter(|c| !c.is_whitespace() && !"-_./".contains(*c)).collect::<String>().to_uppercase()
 }
 
-/// lookup()'s first step: the part number as typed, without its spaces, or with them as underscores, matched
-/// exactly against parts (by the number each has now) first and competitor numbers second.
+/// lookup()'s first step: the part number as typed (`search::as_typed`) or without separators, matched against
+/// parts (by the number each has now) and competitor numbers. The first in the search box's order: a code as typed,
+/// then parts before competitor numbers, then ranking.
 pub async fn exact(ctx: &Ctx<'_>, code: &str) -> sqlx::Result<Option<Hit>> {
-    let wanted = code.trim().to_uppercase();
-    let mut codes = vec![wanted.clone()];
-    for joiner in ["", "_"] {
-        let c = wanted.replace(' ', joiner);
-        if !codes.contains(&c) {
-            codes.push(c);
-        }
-    }
+    let codes = crate::catalog::search::as_typed(code);
     let variant = |i: usize| codes.get(i).unwrap_or(&codes[0]).clone();
     let (a, b, c) = (variant(0), variant(1), variant(2));
-    let normalized = Some(normalize_code(&wanted)).filter(|n| !n.is_empty());
+    let normalized = Some(normalize_code(&codes[0])).filter(|n| !n.is_empty());
     let row = sqlx::query!(
         r#"SELECT table_name AS "table_name!: String", category_id AS "category_id?: i64", subcategory_id AS "subcategory_id?: i64", inventory_id AS "inventory_id?: i64"
            FROM search_named WHERE table_name IN ('inventory', 'competitor_sku') AND code <> '' AND (code IN (?1, ?2, ?3) COLLATE NOCASE OR code_normalized = ?4)
-           ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, id LIMIT 1"#,
+           ORDER BY CASE WHEN code IN (?1, ?2, ?3) COLLATE NOCASE THEN 0 ELSE 1 END, CASE WHEN table_name = 'inventory' THEN 0 ELSE 1 END, coalesce(ranking, 0), code, id LIMIT 1"#,
         a,
         b,
         c,

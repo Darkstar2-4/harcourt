@@ -945,11 +945,13 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
     // Prod's hxweb served the export for its exact paths only; WordPress printed a page asked for in other case.
     let exact = page.is_some_and(|p| p.path == path || p.path.strip_suffix('/') == Some(path.as_str()));
     // Only pages were in the static export; WordPress printed every other post as it is.
-    let finished = q.neutral && get && exact && page.is_some_and(|p| p.kind == PostType::Page);
+    let exported = |p: &Page| q.neutral && get && p.kind == PostType::Page;
+    let finished = exact && page.is_some_and(exported);
     let agent = if finished { "" } else { agent };
+    let form_query = |finished: bool| if finished { &q.form_uri_query } else { &q.wordpress_form_query };
     let page_uri = |page: &Page| {
         let asked = if exact { page.path.as_str() } else { uri.path() };
-        format!("{asked}{}", if finished { &q.form_uri_query } else { &q.wordpress_form_query })
+        format!("{asked}{}", form_query(finished))
     };
     let rendered = match shown {
         Shown::Archive(term) => theme::archive::term(site, term, q.lang, &request_uri).map(|html| (StatusCode::OK, html, not_found_islands(site, q.lang), q.lang, request_uri.clone())),
@@ -961,10 +963,12 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
         }
         Shown::NotFound => None,
     };
-    // A page whose template the cms does not render yet (a builder part not ported) is served from the static export.
+    // A page whose template the cms does not render yet (a builder part not ported) is served from the static export,
+    // which has it, and its forms, at its own path only: in any case it is asked for, it shows as at that path.
     if let Some(page) = page.filter(|p| rendered.is_none() && p.kind == PostType::Page) {
         let mut r = handback("export");
-        r.extensions_mut().insert(ExportRequest { path: page.path.clone(), lang: page.lang.code(), uri: page_uri(page), answer });
+        let uri = format!("{}{}", page.path, form_query(exported(page)));
+        r.extensions_mut().insert(ExportRequest { path: page.path.clone(), lang: page.lang.code(), uri, answer });
         return r;
     }
     let (status, html, islands, lang, wp_uri) = match rendered {
