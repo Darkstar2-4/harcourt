@@ -72,6 +72,12 @@ impl Fields {
         php_intval(self.get(name))
     }
 
+    /// A pager's page number from 0, for pages of `rows` rows: `int()`, kept where its first row's offset and the
+    /// page after it are still numbers.
+    pub fn page(&self, name: &str, rows: i64) -> i64 {
+        self.int(name).clamp(0, i64::MAX / rows - 1)
+    }
+
     /// A checkbox: PHP stored whatever was posted, and the boxes post "1".
     pub fn checked(&self, name: &str) -> bool {
         !matches!(self.get(name).trim(), "" | "0")
@@ -237,6 +243,14 @@ mod tests {
         assert_eq!((f.get("campaign"), f.get("x"), f.get("y")), ("KIT", "1", ""));
         let posted = Fields::of(&[("visible", "0"), ("visible", "1")]).with_query(&Fields::from_query(Some("visible=2&page=3")));
         assert_eq!((posted.get("visible"), posted.get("page")), ("1", "3"));
+    }
+
+    #[test]
+    fn a_page_number_is_one_a_pager_can_count_from() {
+        let f = Fields::from_query(Some("a=3&b=-2&c=99999999999999999999&d=x"));
+        assert_eq!((f.page("a", 50), f.page("b", 50), f.page("d", 50)), (3, 0, 0));
+        let last = f.page("c", 50);
+        assert!(last.checked_mul(50).is_some() && (last + 1).checked_mul(50).is_some(), "{last}");
     }
 
     #[test]

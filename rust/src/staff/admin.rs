@@ -473,7 +473,7 @@ async fn list(State(auth): State<Arc<Auth>>, staff: Staff<Executive>, Path(table
     let role = staff.who.user.role;
     let f = Fields::from_query(raw.as_deref());
     let text = f.get("q").trim();
-    let page = f.int("page").clamp(0, i64::MAX / ROWS - 1);
+    let page = f.page("page", ROWS);
     let sort = spec.sort_column(f.get("sort"));
     let desc = f.get("dir") == "desc";
     let sql = list_sql(spec, sort, desc, !text.is_empty());

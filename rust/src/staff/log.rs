@@ -108,7 +108,7 @@ fn parse(fields: &Fields, now: i64, notes: &mut Notes) -> Input {
     let week_ago = time::add_days(today, -7);
     let mut input = Input {
         action: action.clone(),
-        page: fields.int("scscpq_page").max(0),
+        page: fields.page("scscpq_page", PAGE_ROWS),
         from: Some(week_ago),
         thru: Some(today),
         type_subtype: String::new(),

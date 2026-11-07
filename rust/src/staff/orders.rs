@@ -39,7 +39,7 @@ struct Filter {
 impl Filter {
     fn read(f: &Fields) -> Filter {
         let get = |k: &str| f.get(k).trim().to_string();
-        Filter { po: get("po"), company: get("company"), from: get("from"), thru: get("thru"), page: f.int("page").clamp(0, i64::MAX / ROWS - 1) }
+        Filter { po: get("po"), company: get("company"), from: get("from"), thru: get("thru"), page: f.page("page", ROWS) }
     }
 
     /// The order date bounds in unix seconds: from the start of the first Detroit day to the start of the day after
