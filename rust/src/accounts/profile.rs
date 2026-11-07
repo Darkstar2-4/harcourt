@@ -185,11 +185,13 @@ impl Profile {
     }
 
     /// scscpq_api.php json_profile_update(): the profile's company and address become the account's. A field the
-    /// form does not have is left as the account has it (the PHP blanked it).
+    /// form does not have is left as the account has it (the PHP blanked it), and so is the country when none was
+    /// picked: an account has one.
     pub async fn save_address(&self, pool: &SqlitePool, layout: &Layout, id: UserId) -> sqlx::Result<()> {
         let asked = |f: Field, v: &Option<String>| if layout.need(f).is_some() { v.clone() } else { None };
         let (company_name, address, city) = (asked(Field::CompanyName, &self.company_name), asked(Field::Address, &self.address), asked(Field::City, &self.city));
-        let (state, zip, country_code) = (asked(Field::State, &self.state), asked(Field::Zip, &self.zip), asked(Field::CountryCode, &self.country_code));
+        let country_code = asked(Field::CountryCode, &self.country_code).filter(|c| !c.is_empty());
+        let (state, zip) = (asked(Field::State, &self.state), asked(Field::Zip, &self.zip));
         sqlx::query!(
             r#"UPDATE "user" SET company_name = coalesce(?2, company_name), address = coalesce(?3, address), city = coalesce(?4, city),
                    state = coalesce(?5, state), zip = coalesce(?6, zip), country_code = coalesce(?7, country_code) WHERE id = ?1"#,
@@ -475,6 +477,9 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
     let input = |key: &str| posted.iter().find(|(k, _)| *k == field_name(key)).map_or("", |(_, v)| v.as_str()).to_string();
     let mut errors = Vec::new();
     p.country_code = Some(fn_text(&input("country_code")));
+    if layout.need(Field::CountryCode) == Some(Need::Required) && p.get("country_code").is_empty() {
+        errors.push((field_name("country_code"), format!("{} cannot be blank", Field::CountryCode.label())));
+    }
     let state_field = state_input(p.get("country_code"));
     let mut check = |f: Field, data_key: &str, input_key: &str, p: &mut Profile| {
         let Some(need) = layout.need(f) else {
@@ -724,6 +729,9 @@ mod tests {
                 ("profile_name_last".to_string(), "Last Name cannot be blank".to_string()),
             ]
         );
+        let unpicked: Vec<(String, String)> = posted.iter().map(|(k, v)| (k.clone(), if k == "profile_country_code" { String::new() } else { v.clone() })).collect();
+        let (_, errors) = verify(&l, &unpicked, Profile::default());
+        assert_eq!(errors[0], ("profile_country_code".to_string(), "Country cannot be blank".to_string()));
     }
 
     #[test]

@@ -70,6 +70,11 @@ async fn a_saved_profile_is_what_the_next_request_reads() {
     let (_, _, body) = send(&h.app, quick_cad()).await;
     assert!(body.contains("Invalid CAD code"), "{body}");
     let form = "action=profile&profile_email=Buyer%40Example.com&profile_name_first=Pat&profile_name_last=Lee&profile_address=1+Main+St&profile_country_code=US&cad_code=STEP&profile_generate=1";
+    let (_, _, body) = send(&h.app, xhr(&form.replace("profile_country_code=US", "profile_country_code="), Some(&cookie))).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!((v["html"]["profile_message"].as_str(), v["error"]["profile_country_code"].as_i64()), (Some("Correct 1 error(s)"), Some(1)), "{body}");
+    let country: Option<String> = sqlx::query_scalar(r#"SELECT country_code FROM "user" WHERE id = 72"#).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(country.as_deref(), Some("US"));
     let (_, headers, body) = send(&h.app, xhr(form, Some(&cookie))).await;
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["html"]["profile_message"], "Profile Updated", "{body}");
