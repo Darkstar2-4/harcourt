@@ -81,7 +81,7 @@ async fn scscpq_api(State(core): State<Arc<Auth>>, visitor: Visitor, headers: He
         let reg = registry::load(&core.pool).await?;
         let strings = strings::load(&core.pool, lang).await?;
         let (remembered, basis) = AddressProfile::loaded(&core.pool, &headers, &visitor).await?;
-        let profile = Profile::from(&remembered);
+        let profile = Profile::from(&remembered.clone().shown(&headers));
         let ctx = Api { pool: &core.pool, viewer: &viewer, reg: &reg, strings: &strings, profile };
         let mut out = Map::new();
         let mut trace = vec!["json"];

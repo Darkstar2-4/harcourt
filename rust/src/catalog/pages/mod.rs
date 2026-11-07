@@ -512,7 +512,7 @@ async fn catalog_view(core: &Auth, cache: Arc<super::search::Cache>, models: &Mo
         let req = Request { uri: uri.to_string(), script: visitor.php_self.clone(), framed: visitor.framed, ..Request::parse(q) };
         let (loaded, basis) = AddressProfile::loaded(&core.pool, headers, visitor).await?;
         let cookie = loaded.remember(&core.pool, visitor, &basis, unix_now()).await?;
-        let mut ctx = load_ctx(&core.pool, models, &viewer, req, Profile::from(&loaded)).await?;
+        let mut ctx = load_ctx(&core.pool, models, &viewer, req, Profile::from(&loaded.shown(headers))).await?;
         ctx.search = Some(cache);
         Ok::<_, sqlx::Error>((render(&mut ctx).await?, cookie))
     }
