@@ -794,13 +794,10 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
 }
 
 /// get_search_link()'s path for a search: the search permastruct with the terms urlencode()d and their slashes put
-/// back, `/search/` alone for none.
+/// back, then user_trailingslashit(): trailing slashes trimmed and one added (`/search/` for none).
 fn search_link(s: &str) -> String {
-    if s.is_empty() {
-        "/search/".to_string()
-    } else {
-        format!("/search/{}/", urlencode(s, false).replace("%2F", "/"))
-    }
+    let path = format!("/search/{}", urlencode(s, false).replace("%2F", "/"));
+    format!("{}/", path.trim_end_matches('/'))
 }
 
 /// feed_links_extra(): the search's own feed, after the site's comments feed (the chrome has no hole there).
@@ -948,6 +945,16 @@ fn search_posts<'a>(site: &'a Site, s: &str, lang: Lang) -> Vec<&'a Page> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_search_link_is_get_search_link() {
+        assert_eq!(search_link(""), "/search/");
+        assert_eq!(search_link("ball lock"), "/search/ball+lock/");
+        assert_eq!(search_link("a&b"), "/search/a%26b/");
+        assert_eq!(search_link("a/b"), "/search/a/b/");
+        assert_eq!(search_link("a/"), "/search/a/", "user_trailingslashit() trims the slashes put back");
+        assert_eq!(search_link("/"), "/search/");
+    }
 
     #[test]
     fn the_rewrite_rules_and_wpml_read_the_request() {
