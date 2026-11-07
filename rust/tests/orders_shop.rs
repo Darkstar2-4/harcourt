@@ -135,6 +135,10 @@ async fn the_cart_call_adds_reprices_and_removes() {
     assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("NOPE invalid"), Some(3)));
     let a = add(&h, &c, "SKU-Q", "0").await;
     assert_eq!((a["status"].as_str(), a["cart_size"].as_i64()), (Some("SKU-Q removed from cart"), Some(2)));
+    let a = add(&h, &c, "SKU-1", "").await;
+    assert_eq!((a["status"].as_str(), a["cart_size"].as_i64(), a["cart_extended"].as_str()), (Some("SKU-1 cart unchanged"), Some(2), Some("$36.00")), "a blank box changes nothing");
+    let a = add(&h, &c, "SKU-Q", " ").await;
+    assert_eq!(a["cart_size"].as_i64(), Some(2));
 }
 
 #[tokio::test]

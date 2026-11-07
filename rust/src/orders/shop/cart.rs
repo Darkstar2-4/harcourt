@@ -298,14 +298,28 @@ fn quantity(d: Decimal) -> Option<u32> {
     d.abs().to_u32().filter(|q| *q > 0)
 }
 
-/// The quantity a cart line is updated to, read as the add path reads one: None for a 0, which removes the line. A
-/// blank field, or a number too large for a quantity, leaves the line's quantity as it is.
-fn updated_quantity(typed: &str, current: u32) -> Option<u32> {
-    if typed.trim().is_empty() {
-        return Some(current);
+/// What a quantity box asks of a cart line, on Add to Cart and on the cart page alike.
+#[derive(Debug, PartialEq, Eq)]
+enum Typed {
+    /// A blank box changes nothing.
+    Blank,
+    /// A 0 removes the line.
+    Remove,
+    Set(u32),
+    /// A number too large for a quantity.
+    TooLarge,
+}
+
+fn typed(text: &str) -> Typed {
+    if text.trim().is_empty() {
+        return Typed::Blank;
     }
-    let n = fn_number(typed).abs();
-    (!n.is_zero()).then(|| quantity(n).unwrap_or(current))
+    let n = fn_number(text).abs();
+    if n.is_zero() {
+        Typed::Remove
+    } else {
+        quantity(n).map_or(Typed::TooLarge, Typed::Set)
+    }
 }
 
 #[derive(Serialize)]
@@ -338,16 +352,18 @@ async fn ajax(state: &Orders, shopper: &Shopper, params: &std::collections::Hash
     let mut parts = decoded.split('\t').map(str::to_string);
     let constant = parts.next();
     let sku = parts.next();
-    let requested = fn_number(params.get("json_quantity").map_or("", String::as_str)).abs();
+    let text = params.get("json_quantity").map_or("", String::as_str);
+    let requested = fn_number(text).abs();
     let sku_text = sku.clone().unwrap_or_default();
-    let status = match (quantity(requested), &shopper.cart) {
-        (None, key) if requested.is_zero() => {
+    let status = match (typed(text), &shopper.cart) {
+        (Typed::Blank, _) => format!("{sku_text} cart unchanged"),
+        (Typed::Remove, key) => {
             if let Some(key) = key {
                 remove(pool, key, &sku_text).await?;
             }
             format!("{sku_text} removed from cart")
         }
-        (Some(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
+        (Typed::Set(q), Some(key)) if !sku_text.is_empty() && state.pricing.price(pool, &shopper.viewer, &sku_text, q).await?.is_some() => {
             put(pool, key, &sku_text, q, None, unix_now()).await?;
             format!("{sku_text} cart updated")
         }
@@ -425,11 +441,12 @@ pub async fn action(State(state): State<Arc<Orders>>, visitor: Visitor, headers:
         (Some("update"), key) => {
             if let Some(key) = key {
                 for item in items(pool, key).await? {
-                    let typed = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
+                    let text = params.get(&fn_base64(&["quantity", &item.sku])).map_or("", String::as_str);
                     let comment = params.get(&fn_base64(&["comment", &item.sku])).map(|c| c.trim().to_string());
-                    match updated_quantity(typed, item.quantity) {
-                        Some(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
-                        None => remove(pool, key, &item.sku).await?,
+                    match typed(text) {
+                        Typed::Remove => remove(pool, key, &item.sku).await?,
+                        Typed::Set(q) => put(pool, key, &item.sku, q, comment.as_deref(), unix_now()).await?,
+                        Typed::Blank | Typed::TooLarge => put(pool, key, &item.sku, item.quantity, comment.as_deref(), unix_now()).await?,
                     }
                 }
             }
@@ -468,14 +485,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_update_reads_quantities_as_an_add_does() {
-        assert_eq!(updated_quantity("4", 1), Some(4));
-        assert_eq!(updated_quantity("2.0", 1), Some(2));
-        assert_eq!(updated_quantity("2.5", 1), Some(3));
-        assert_eq!(updated_quantity("2 pcs", 1), Some(2));
-        assert_eq!(updated_quantity(" ", 5), Some(5));
-        assert_eq!(updated_quantity("0", 5), None);
-        assert_eq!(updated_quantity("99999999999", 5), Some(5));
+    fn quantity_boxes_read_one_way() {
+        assert_eq!(typed("4"), Typed::Set(4));
+        assert_eq!(typed("2.0"), Typed::Set(2));
+        assert_eq!(typed("2.5"), Typed::Set(3));
+        assert_eq!(typed("2 pcs"), Typed::Set(2));
+        assert_eq!(typed("-3"), Typed::Set(3));
+        assert_eq!(typed(""), Typed::Blank);
+        assert_eq!(typed(" "), Typed::Blank);
+        assert_eq!(typed("0"), Typed::Remove);
+        assert_eq!(typed("99999999999"), Typed::TooLarge);
     }
 
     #[test]
