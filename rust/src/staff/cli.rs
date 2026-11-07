@@ -84,16 +84,12 @@ impl Args {
     }
 }
 
-/// A date as typed (`2025-03-05`, `2025/03/05` or `3/5/2025`), as `Y/m/d`.
+/// A date as the staff forms read it (`2025-03-05`, `2025/03/05`, `3/5/2025` or `3/5/25`), as `Y/m/d`.
 fn day(s: &str) -> Result<String, String> {
     if s.is_empty() {
         return Ok(String::new());
     }
-    ["%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y"]
-        .iter()
-        .find_map(|f| chrono::NaiveDate::parse_from_str(s, f).ok())
-        .map(|d| d.format("%Y/%m/%d").to_string())
-        .ok_or_else(|| format!("not a date: {s}"))
+    time::parse_date(s).map(|(y, m, d)| format!("{y:04}/{m:02}/{d:02}")).ok_or_else(|| format!("not a date: {s}"))
 }
 
 fn options(a: &Args) -> Result<Options, String> {
@@ -406,6 +402,8 @@ mod tests {
     fn dates_are_read_in_the_forms_people_type() {
         assert_eq!(day("2025-03-05").as_deref(), Ok("2025/03/05"));
         assert_eq!(day("3/5/2025").as_deref(), Ok("2025/03/05"));
+        assert_eq!(day("3/5/25").as_deref(), Ok("2025/03/05"));
+        assert_eq!(day("12/31/99").as_deref(), Ok("1999/12/31"));
         assert_eq!(day("").as_deref(), Ok(""));
         assert!(day("soon").is_err());
         assert!(options(&args(&["--from", "2025-03-05", "--thru", "2025-03-01"])).is_err());
