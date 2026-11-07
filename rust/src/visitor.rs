@@ -188,7 +188,7 @@ impl Php {
     /// `start`: give a browser that has no PHP session one, as session_start() did for the PHP pages.
     fn of(parts: &Parts, start: bool) -> Php {
         let page = Header::of(parts.uri.path(), parts.uri.query());
-        let sent = cookies::get(&parts.headers, PHP_SESSION).filter(|s| php_session_id(s));
+        let sent = php_session_sent(&parts.headers);
         let first = sent.is_none();
         let issue = start && page != Header::None;
         let sid = sent.or_else(|| (first && issue).then(new_php_session_id));
@@ -437,6 +437,16 @@ const SCRIPT_PATH: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'#').add(b'%')
 
 /// The PHP session cookie. A browser that sends one is inside a visit PHP, or this server, has already begun.
 const PHP_SESSION: &str = "PHPSESSID";
+
+/// The PHP session id a request's cookies carry, when PHP would have adopted it.
+fn php_session_sent(headers: &HeaderMap) -> Option<String> {
+    cookies::get(headers, PHP_SESSION).filter(|s| php_session_id(s))
+}
+
+/// The visit a request's cookies name.
+pub fn visit_of(headers: &HeaderMap) -> Option<VisitId> {
+    php_session_sent(headers).as_deref().map(VisitId::of)
+}
 
 /// An id PHP would have adopted: up to 256 characters of `[A-Za-z0-9,-]`. PHP started a new session for any
 /// other.

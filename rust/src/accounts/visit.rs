@@ -25,6 +25,8 @@ pub struct Visit {
     pub framed: bool,
     pub language_code: Option<String>,
     pub campaign_code: Option<String>,
+    /// The language a flag click chose this visit.
+    pub flag_language: Option<String>,
 }
 
 /// The visit as stored, or a new one. Reading it keeps it alive, at most one write a minute.
@@ -32,14 +34,16 @@ pub async fn load(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Vis
     let key = id.0.as_slice();
     let row = sqlx::query!(
         r#"UPDATE visit SET seen_at = ?2 WHERE id = ?1 AND seen_at >= ?2 - ?3
-           RETURNING framed AS "framed!: i64", language_code, campaign_code"#,
+           RETURNING framed AS "framed!: i64", language_code, campaign_code, flag_language"#,
         key,
         now,
         IDLE_SECS
     )
     .fetch_optional(pool)
     .await?;
-    Ok(row.map_or_else(Visit::default, |r| Visit { framed: r.framed != 0, language_code: r.language_code, campaign_code: r.campaign_code }))
+    Ok(row.map_or_else(Visit::default, |r| {
+        Visit { framed: r.framed != 0, language_code: r.language_code, campaign_code: r.campaign_code, flag_language: r.flag_language }
+    }))
 }
 
 /// Make the visit framed: a page was asked for with `scscpq_wp`.
@@ -63,6 +67,23 @@ pub async fn set_language(pool: &SqlitePool, id: &VisitId, code: &str, now: i64)
     sqlx::query!(
         "INSERT INTO visit (id, language_code, seen_at) VALUES (?1, ?2, ?3)
          ON CONFLICT (id) DO UPDATE SET language_code = excluded.language_code, seen_at = excluded.seen_at",
+        key,
+        code,
+        now
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// A flag click chose `code`: it is the visit's language and stays its flag language until another flag click.
+pub async fn choose_flag_language(pool: &SqlitePool, id: &VisitId, code: &str, now: i64) -> sqlx::Result<()> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    sqlx::query!(
+        "INSERT INTO visit (id, language_code, flag_language, seen_at) VALUES (?1, ?2, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET language_code = excluded.language_code, flag_language = excluded.flag_language,
+         seen_at = excluded.seen_at",
         key,
         code,
         now
@@ -288,7 +309,7 @@ mod tests {
         frame(&pool, &a, 1000).await.unwrap();
         set_language(&pool, &a, "FR", 1001).await.unwrap();
         set_campaign(&pool, &b, Some("SPRING"), 1002).await.unwrap();
-        assert_eq!(load(&pool, &a, 1000 + IDLE_SECS).await.unwrap(), Visit { framed: true, language_code: Some("FR".into()), campaign_code: None });
+        assert_eq!(load(&pool, &a, 1000 + IDLE_SECS).await.unwrap(), Visit { framed: true, language_code: Some("FR".into()), campaign_code: None, flag_language: None });
         assert_eq!(load(&pool, &b, 1002).await.unwrap().campaign_code.as_deref(), Some("SPRING"));
         assert!(load(&pool, &a, 1001 + 3 * IDLE_SECS).await.unwrap() == Visit::default(), "idle too long");
         leave_oauth_error(&pool, &b, true, "Invalid OAuth state. Please try again.", 1002).await.unwrap();
@@ -308,6 +329,20 @@ mod tests {
         assert_eq!(load(&pool, &b, 1003).await.unwrap(), Visit::default());
         assert!(begins_again(&pool, &b).await.unwrap());
         assert!(!begins_again(&pool, &b).await.unwrap(), "only the first request after");
+    }
+
+    #[tokio::test]
+    async fn a_flag_click_sets_the_visits_language_and_its_flag_language() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let a = VisitId::of("a");
+        set_language(&pool, &a, "EN", 1000).await.unwrap();
+        choose_flag_language(&pool, &a, "FR", 1001).await.unwrap();
+        let v = load(&pool, &a, 1002).await.unwrap();
+        assert_eq!((v.language_code.as_deref(), v.flag_language.as_deref()), (Some("FR"), Some("FR")));
+        set_language(&pool, &a, "EN", 1003).await.unwrap();
+        assert_eq!(load(&pool, &a, 1004).await.unwrap().flag_language.as_deref(), Some("FR"), "a page's language is not a flag click");
+        choose_flag_language(&pool, &a, "EN", 1005).await.unwrap();
+        assert_eq!(load(&pool, &a, 1006).await.unwrap().flag_language.as_deref(), Some("EN"));
     }
 
     #[tokio::test]
