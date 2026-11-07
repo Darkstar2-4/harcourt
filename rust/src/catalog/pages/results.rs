@@ -104,10 +104,14 @@ pub async fn resolve(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
     }
 }
 
-/// search_source=search: the resolved row's page, else the keyword results.
+/// search_source=search: the resolved row's page, else the keyword results for the typed term. A picked suggestion
+/// the catalog no longer shows, with no term typed, has nothing to search for.
 pub async fn search(ctx: &mut Ctx<'_>, found: Option<Hit>) -> sqlx::Result<String> {
-    let Some(hit) = found else { return search_code(ctx).await };
-    open(ctx, hit).await
+    match found {
+        Some(hit) => open(ctx, hit).await,
+        None if ctx.req.search_id != 0 && ctx.req.raw_search_code.trim().is_empty() => Ok(no_results(ctx)),
+        None => search_code(ctx).await,
+    }
 }
 
 async fn open(ctx: &mut Ctx<'_>, hit: Hit) -> sqlx::Result<String> {
