@@ -21,6 +21,8 @@ use regex::Regex;
 pub struct App {
     /// The library's routes, called in-process by the composer (the catalog fragment and the loader JSON).
     lib: Option<Router>,
+    /// The library's database, for the visit state the composer keeps (a flag click's language).
+    db: Option<sqlx::SqlitePool>,
     /// The catalog pages' shell from the cms tables.
     cms: Option<compose::Cms>,
     site: String,
@@ -42,6 +44,21 @@ struct Res {
     fa_kit: Regex,
     fa_icon: Regex,
     header_bg: Regex,
+}
+
+impl Res {
+    fn new() -> Res {
+        Res {
+            wrapper: Regex::new(r"(?is)<!DOCTYPE[^>]*>|</?(html|head|body)\b[^>]*>").unwrap(),
+            current: Regex::new(r" current-menu-item active").unwrap(),
+            placeholder: Regex::new(r"(<div\b[^>]*\bid=scscpq_page>)catalog</div>").unwrap(),
+            flag: Regex::new(r"(<li\b[^>]*\bwpml-ls-item-(en|fr)\b[^>]*>\s*)(<a\b[^>]*>)").unwrap(),
+            href: Regex::new(r#"\bhref="[^"]*""#).unwrap(),
+            fa_kit: Regex::new(r"<script\b[^>]*kit\.fontawesome\.com/[^>]*>\s*</script>\n?").unwrap(),
+            fa_icon: Regex::new(r#"<i\b(?P<a>[^>]*\bclass=["'][^"']*\bfa[a-z]?\b[^>]*)>"#).unwrap(),
+            header_bg: Regex::new(r#"<div\b[^>]*\bid=["']?products_header\b"#).unwrap(),
+        }
+    }
 }
 
 impl App {
@@ -80,22 +97,14 @@ async fn main() {
     let lib = hxweb::routes::all(core.clone());
     let app = Arc::new(App {
         lib: Some(lib.clone()),
+        db: Some(core.pool.clone()),
         public_origin: core.public_origin.clone(),
         cms: Some(compose::Cms::new(core)),
         site: env("HXWEB_SITE", "www.harcourt.co"),
         public_host: env("HXWEB_PUBLIC_HOST", &env("HXWEB_SITE", "www.harcourt.co")),
         pages: pages::Pages::new(PathBuf::from(env("HXWEB_EXPORT", "/home/harcou6/static_site"))),
         vendor: vendor::Vendor::load(hxweb::assets::root(), &env("HXWEB_SITE", "www.harcourt.co")),
-        re: Res {
-            wrapper: Regex::new(r"(?is)<!DOCTYPE[^>]*>|</?(html|head|body)\b[^>]*>").unwrap(),
-            current: Regex::new(r" current-menu-item active").unwrap(),
-            placeholder: Regex::new(r"(<div\b[^>]*\bid=scscpq_page>)catalog</div>").unwrap(),
-            flag: Regex::new(r"(<li\b[^>]*\bwpml-ls-item-(en|fr)\b[^>]*>\s*)(<a\b[^>]*>)").unwrap(),
-            href: Regex::new(r#"\bhref="[^"]*""#).unwrap(),
-            fa_kit: Regex::new(r"<script\b[^>]*kit\.fontawesome\.com/[^>]*>\s*</script>\n?").unwrap(),
-            fa_icon: Regex::new(r#"<i\b(?P<a>[^>]*\bclass=["'][^"']*\bfa[a-z]?\b[^>]*)>"#).unwrap(),
-            header_bg: Regex::new(r#"<div\b[^>]*\bid=["']?products_header\b"#).unwrap(),
-        },
+        re: Res::new(),
     });
     tracing::info!("rewrites off: {}", std::env::var("HXWEB_OFF").unwrap_or_default());
     app.pages.refresh().await;
