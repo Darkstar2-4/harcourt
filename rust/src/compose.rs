@@ -362,7 +362,7 @@ async fn shell_for(app: &App, page: Page, uri: &str) -> Result<String, String> {
             Err(e) => tracing::warn!("{uri}: the cms page failed, trying the export: {e}"),
         }
     }
-    app.pages.assemble(app, page.path, page.lang, uri).await?.map(current).ok_or_else(|| format!("no page for {}", page.path))
+    app.pages.assemble(app, page.path, page.lang, uri, None).await?.map(current).ok_or_else(|| format!("no page for {}", page.path))
 }
 
 /// The browser request a composed page answers: what the internal calls carry over from it.
