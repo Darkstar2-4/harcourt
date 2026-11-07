@@ -32,8 +32,11 @@ async fn seeded() -> SqlitePool {
 struct Scratch(PathBuf);
 
 impl Scratch {
+    /// A file of its own: tests run in parallel and may use the same name.
     fn new(name: &str, body: &[u8]) -> Scratch {
-        let path = std::env::temp_dir().join(format!("hx_staff_cmd_{}_{name}", std::process::id()));
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("hx_staff_cmd_{}_{n}_{name}", std::process::id()));
         std::fs::write(&path, body).unwrap();
         Scratch(path)
     }

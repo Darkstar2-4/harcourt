@@ -1278,7 +1278,8 @@ async fn pricing_line(tx: &mut sqlx::SqliteConnection, line: &Line, update: bool
 // ---------------------------------------------------------------------------------------------------------------
 
 /// A PARTsolutions export: `;`-separated, a header line, the SKU (before any `_`) in the fourth column and the part's
-/// URL in the fifth. Each SKU keeps the query of its first URL that has one.
+/// URL in the fifth. Each SKU keeps the query of its first URL that has one, the SKU read in any case as `part_id`
+/// reads it.
 pub fn prj_export_rows(file: &str) -> Vec<(String, String)> {
     let mut out: Vec<(String, String)> = Vec::new();
     for line in file.split('\n').skip(1) {
@@ -1286,7 +1287,7 @@ pub fn prj_export_rows(file: &str) -> Vec<(String, String)> {
         let sku = cells.get(3).map_or("", |c| c.trim()).split('_').next().unwrap_or("").to_string();
         let url = cells.get(4).map_or("", |c| c.trim());
         let query = url.split_once('?').map_or("", |(_, q)| q.split('#').next().unwrap_or(""));
-        if !sku.is_empty() && !query.is_empty() && !out.iter().any(|(s, _)| *s == sku) {
+        if !sku.is_empty() && !query.is_empty() && !out.iter().any(|(s, _)| s.eq_ignore_ascii_case(&sku)) {
             out.push((sku, query.to_string()));
         }
     }
@@ -1406,7 +1407,7 @@ mod tests {
 
     #[test]
     fn exports_give_each_sku_its_first_query() {
-        let file = "Name;x;y;Part;URL\r\na;b;c;\"BLP-3_1\";https://example.com/p?prjCatalog=harcourt&prjNode=n&prjName=BLP-3&values={A=1}#top\n;;;BLP-3_2;https://example.com/p?other=1\n;;;NOURL;https://example.com/p\n";
+        let file = "Name;x;y;Part;URL\r\na;b;c;\"BLP-3_1\";https://example.com/p?prjCatalog=harcourt&prjNode=n&prjName=BLP-3&values={A=1}#top\n;;;BLP-3_2;https://example.com/p?other=1\n;;;blp-3_3;https://example.com/p?lower=1\n;;;NOURL;https://example.com/p\n";
         assert_eq!(prj_export_rows(file), [("BLP-3".to_string(), "prjCatalog=harcourt&prjNode=n&prjName=BLP-3&values={A=1}".to_string())]);
         assert_eq!(split_csv("a;\"b;c\";\"d\"\"e\"", ';'), ["a", "b;c", "d\"e"]);
     }
