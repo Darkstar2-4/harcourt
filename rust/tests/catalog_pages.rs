@@ -110,12 +110,13 @@ async fn the_catalog_version_moves_only_with_rows_the_model_reads() {
     seed(&h.pool).await;
     let version = || async { sqlx::query_scalar::<_, i64>("SELECT n FROM catalog_version").fetch_one(&h.pool).await.unwrap() };
     let before = version().await;
-    exec(&h.pool, "UPDATE inventory SET pricing = '' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET pricing = '', prj = 'x.prj' WHERE id = 1").await;
     exec(&h.pool, "UPDATE content SET name = 'Sign up' WHERE record_type = 'document'").await;
-    assert_eq!(version().await, before, "prices and documents are not part of the model");
+    assert_eq!(version().await, before, "prices, CAD links and documents are read live");
     exec(&h.pool, "UPDATE inventory SET new_date = '2026-10-30' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'HBLT-1A' WHERE id = 1").await;
     exec(&h.pool, "DELETE FROM content WHERE record_type = 'subcategory' AND record_item = ''").await;
-    assert_eq!(version().await, before + 2);
+    assert_eq!(version().await, before + 3);
 }
 
 #[tokio::test]

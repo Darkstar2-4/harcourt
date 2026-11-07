@@ -1556,6 +1556,7 @@ ghost\t10\tNOPE-1\t4
             "UPDATE category SET active = 0 WHERE id = 2",
             "UPDATE inventory SET active = 0 WHERE id = 1",
             "UPDATE inventory SET subcategory_id = 8 WHERE id = 1",
+            "UPDATE inventory SET sku = 'HBLT-2' WHERE id = 1",
             "UPDATE content SET name = 'Quick Release Pins' WHERE record_type = 'subcategory' AND record_id = 7",
             "UPDATE category SET name = 'Fasteners' WHERE id = 1",
         ] {
