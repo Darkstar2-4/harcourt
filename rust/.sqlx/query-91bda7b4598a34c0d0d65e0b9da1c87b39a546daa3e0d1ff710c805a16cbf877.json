@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT coalesce(name_first, '') AS \"name_first!: String\", coalesce(name_last, '') AS \"name_last!: String\",\n                  coalesce(name, '') AS \"name!: String\", coalesce(company_name, '') AS \"company_name!: String\",\n                  coalesce(phone, '') AS \"phone!: String\", coalesce(address, '') AS \"address!: String\",\n                  coalesce(city, '') AS \"city!: String\", coalesce(state, '') AS \"state!: String\", coalesce(zip, '') AS \"zip!: String\",\n                  coalesce(country_code, '') AS \"country_code!: String\", coalesce(carrier_name, '') AS \"carrier_name!: String\",\n                  coalesce(carrier_account, '') AS \"carrier_account!: String\"\n           FROM orderhd WHERE user_id = ?1 AND email = ?2 AND ?2 <> '' ORDER BY id DESC LIMIT 1",
+  "query": "SELECT coalesce(name_first, '') AS \"name_first!: String\", coalesce(name_last, '') AS \"name_last!: String\",\n                  coalesce(name, '') AS \"name!: String\", coalesce(company_name, '') AS \"company_name!: String\",\n                  coalesce(phone, '') AS \"phone!: String\", coalesce(address, '') AS \"address!: String\",\n                  coalesce(city, '') AS \"city!: String\", coalesce(state, '') AS \"state!: String\", coalesce(zip, '') AS \"zip!: String\",\n                  coalesce(country_code, '') AS \"country_code!: String\", coalesce(carrier_name, '') AS \"carrier_name!: String\",\n                  coalesce(carrier_account, '') AS \"carrier_account!: String\"\n           FROM orderhd WHERE user_id = ?1 AND lower(trim(email)) = ?2 AND ?2 <> '' ORDER BY id DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "87fe21d5b1c9a289753c81f1d3681a334bcc9e7436e1c9325b8ea06dd6d1f1fc"
+  "hash": "91bda7b4598a34c0d0d65e0b9da1c87b39a546daa3e0d1ff710c805a16cbf877"
 }

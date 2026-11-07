@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO visit (id, profile, profile_for, seen_at) VALUES (?1, ?2, ?3, ?4)\n         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, profile_for = excluded.profile_for, seen_at = excluded.seen_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "bdb2dffebaf145370d52ff308b502e1e3dee9b798b6be0cce5b1744b172a7923"
+}
