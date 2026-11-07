@@ -202,6 +202,15 @@ async fn run(core: &Auth, visitor: &Visitor, headers: &HeaderMap, fields: &Field
                             admission::notify_auto_approved(pool, &company, &email, "Campaign registration (access token emailed for verification)", &ctx).await?;
                         }
                         admission::remember_address(pool, &email, now).await?;
+                        let given = Profile {
+                            email: Some(email.as_str().into()),
+                            name_first: Some(typed.first_name.clone()),
+                            name_last: Some(typed.last_name.clone()),
+                            name: format!("{} {}", typed.first_name, typed.last_name),
+                            company_name: Some(typed.company_name.clone()),
+                            ..Profile::default()
+                        };
+                        given.keep_typed(pool, visitor, now).await?;
                         let mut to_code = (StatusCode::FOUND, [(header::LOCATION, oauth::LANDING), (header::CONTENT_TYPE, visitor::PHP_CONTENT_TYPE)]).into_response();
                         if let Some(c) = cookies::php_year(cookies::EMAIL, email.as_str(), now) {
                             to_code.headers_mut().append(header::SET_COOKIE, c);

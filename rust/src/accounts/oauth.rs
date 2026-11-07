@@ -561,8 +561,8 @@ fn repeated(visitor: &Visitor) -> Outcome {
     }
 }
 
-/// newuser.php process_oauth() after the provider: the same decision as the sign-up form. The profile is kept for
-/// the visit and in its cookie, where the next request loads it from.
+/// newuser.php process_oauth() after the provider: the same decision as the sign-up form. A person signed in
+/// is the visit's profile and its cookie, where the next request loads it from.
 async fn admit(
     pool: &SqlitePool,
     services: &Services,
@@ -580,17 +580,17 @@ async fn admit(
         return Ok((Outcome::Blacklisted, Vec::new()));
     }
     let remembered = if remembered.language_code.is_empty() { Profile { language_code: "EN".into(), ..remembered } } else { remembered };
-    let mut set: Vec<HeaderValue> = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().collect();
     match admission {
         Admission::Blacklisted => Ok((Outcome::Blacklisted, Vec::new())),
         Admission::Company { company, known } => {
             if !known {
                 admission::notify_auto_approved(pool, &company, &email, &via, ctx).await?;
             }
-            set.extend(admission::grant(pool, &company, &email, ctx).await?.cookies());
+            let signin = admission::grant(pool, &company, &email, ctx).await?;
+            let set = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
             Ok((Outcome::Granted, set))
         }
-        Admission::Pending => Ok((Outcome::Pending, set)),
+        Admission::Pending => Ok((Outcome::Pending, Vec::new())),
         Admission::Unknown => {
             let registration = Registration {
                 company_name: if person.company_name.is_empty() { person.display_name.clone() } else { person.company_name.clone() },
@@ -603,9 +603,9 @@ async fn admit(
                 recaptcha_score: 1.0,
             };
             let Some((id, signin)) = admission::register(pool, services, &registration, &email, true, ctx).await? else {
-                return Ok((Outcome::Pending, set));
+                return Ok((Outcome::Pending, Vec::new()));
             };
-            set.extend(signin.cookies());
+            let set = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
             let mut lines = vec![format!("Email: {}", escape(email.as_str())), format!("Name: {}", escape(&person.display_name)), format!("{} OAuth registration", kind.name())];
             admission::log_signup(pool, id, &email, ctx, &lines.join("<br>")).await;
             lines.push(String::new());
