@@ -147,7 +147,8 @@ pub async fn search_log(pool: &SqlitePool, file: &Path, now: i64) -> Result<Stri
 /// One row of the `search` table the catalog search reads.
 struct Term {
     code: String,
-    category_id: i64,
+    /// NULL, as the family or part has it, when it has no category.
+    category_id: Option<i64>,
     subcategory_id: i64,
     inventory_id: i64,
     ranking: i64,
@@ -271,7 +272,7 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
     .rows_affected();
 
     let subs = sqlx::query!(
-        r#"SELECT id AS "id!: i64", category_id AS "category_id!: i64", sort_order AS "sort_order!: i64", search_words
+        r#"SELECT id AS "id!: i64", category_id AS "category_id?: i64", sort_order AS "sort_order?: i64", search_words
            FROM subcategory WHERE lower(status) = 'active' ORDER BY id"#
     )
     .fetch_all(&mut *tx)
@@ -285,14 +286,14 @@ pub async fn search_utility(pool: &SqlitePool, now: i64) -> Result<String, Strin
                 category_id: s.category_id,
                 subcategory_id: s.id,
                 inventory_id: 0,
-                ranking: s.sort_order + 1_000_000,
+                ranking: s.sort_order.unwrap_or(0) + 1_000_000,
             })
         })
         .collect();
     let words = insert_terms(&mut tx, "EN", "search_words", words).await.map_err(fail)?;
 
     let rivals = sqlx::query!(
-        r#"SELECT i.id AS "id!: i64", i.category_id AS "category_id!: i64", i.subcategory_id AS "subcategory_id!: i64",
+        r#"SELECT i.id AS "id!: i64", i.category_id AS "category_id?: i64", i.subcategory_id AS "subcategory_id!: i64",
                   i.sort_order AS "sort_order!: i64", i.competitor_sku AS "competitor_sku!: String"
            FROM inventory i JOIN subcategory s ON s.id = i.subcategory_id
            WHERE i.active = 1 AND lower(s.status) = 'active' AND i.competitor_sku <> '' ORDER BY i.id"#
