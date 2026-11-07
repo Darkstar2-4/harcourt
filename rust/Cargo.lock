@@ -898,6 +898,7 @@ dependencies = [
  "httpdate",
  "image",
  "lettre",
+ "multer",
  "percent-encoding",
  "rand 0.8.8",
  "regex",

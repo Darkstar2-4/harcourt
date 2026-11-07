@@ -8,7 +8,7 @@ use percent_encoding::percent_decode_str;
 
 use axum::{
     body::Bytes,
-    extract::{FromRequest, FromRequestParts, Multipart},
+    extract::FromRequestParts,
     http::{header, request::Parts, HeaderMap},
     Router,
 };
@@ -74,19 +74,20 @@ pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> 
     out
 }
 
+/// The largest post body a page reads (PHP's post_max_size).
+pub const POST_LIMIT: usize = 8 << 20;
+
 /// `$_REQUEST` for a post, urlencoded or `multipart/form-data` (Gravity Forms posts its forms that way): query fields,
-/// then body fields over them. An uploaded file is not kept. None for a multipart body that cannot be read, or one
-/// over axum's default body limit.
+/// then body fields over them. An uploaded file is not kept. None for a multipart body that cannot be read. The body
+/// is read whole, so the caller bounds its size (`POST_LIMIT` for a page).
 pub async fn posted_params(query: Option<&str>, headers: &HeaderMap, body: Bytes) -> Option<HashMap<String, String>> {
-    let content_type = headers.get(header::CONTENT_TYPE);
-    let multipart = content_type.and_then(|v| v.to_str().ok()).is_some_and(|v| v.trim_start().to_ascii_lowercase().starts_with("multipart/form-data"));
-    if !multipart {
+    let content_type = headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok());
+    let Some(content_type) = content_type.filter(|v| v.trim_start().to_ascii_lowercase().starts_with("multipart/form-data")) else {
         return Some(form_params(query, &body));
-    }
+    };
     let mut out = form_params(query, &[]);
-    let mut req = axum::extract::Request::new(axum::body::Body::from(body));
-    req.headers_mut().extend(content_type.map(|v| (header::CONTENT_TYPE, v.clone())));
-    let mut parts = Multipart::from_request(req, &()).await.ok()?;
+    let boundary = multer::parse_boundary(content_type).ok()?;
+    let mut parts = multer::Multipart::new(axum::body::Body::from(body).into_data_stream(), boundary);
     while let Some(field) = parts.next_field().await.ok()? {
         if field.file_name().is_some() {
             continue;

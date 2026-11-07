@@ -28,6 +28,7 @@ import = ["sqlx/mysql", "dep:futures-util"]
 
 [dependencies]
 axum = { version = "0.8", features = ["multipart"] }
+multer = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util"] }
 tokio-util = { version = "0.7", features = ["io"] }
 httpdate = "1"
