@@ -233,7 +233,7 @@ fn date_ymd(value: &str) -> String {
 }
 
 /// fputcsv() with no escape character: a field is quoted when it holds the delimiter, a quote, a backslash or white
-/// space, and every quote inside it doubles, so each value reads back through parse_csv_line() unchanged.
+/// space, and every quote inside it doubles, so each value reads back through csv_record() unchanged.
 pub fn csv_line(fields: &[String], delimiter: char) -> String {
     let cells: Vec<String> = fields
         .iter()
@@ -248,51 +248,59 @@ pub fn csv_line(fields: &[String], delimiter: char) -> String {
     cells.join(&delimiter.to_string()) + "\n"
 }
 
-/// str_getcsv() with no escape character, of one line read by fgets(): fields split on the delimiter, quoted fields
-/// unquoted with doubled quotes read as one, the line end dropped. Files written with fputcsv()'s `\` escape left a
-/// quote after a backslash single; inside a quoted field such a quote is part of the value unless the delimiter or
-/// the line end follows it, a place csv_line() only ever puts a closing quote.
-pub fn parse_csv_line(line: &str, delimiter: char) -> Vec<String> {
-    let line = line.strip_suffix('\n').unwrap_or(line);
-    let line = line.strip_suffix('\r').unwrap_or(line);
+/// fgetcsv() with no escape character: the fields of the text's first record and the text after it. Fields split
+/// on the delimiter and the record ends at a line end outside quotes; quoted fields are unquoted with doubled quotes
+/// read as one, and a line end inside one belongs to the field. A quote left open at the end of the text takes the
+/// rest of it, less the last line end. Files written with fputcsv()'s `\` escape left a quote after a backslash
+/// single; inside a quoted field such a quote is part of the value unless the delimiter or a line end follows it, a
+/// place csv_line() only ever puts a closing quote.
+pub fn csv_record(text: &str, delimiter: char) -> (Vec<String>, &str) {
+    let line_end = |r: &str| r.is_empty() || r.starts_with('\n') || r.starts_with("\r\n");
+    let mut rest = text;
     let mut out = Vec::new();
-    let mut chars = line.chars().peekable();
     loop {
         let mut field = String::new();
-        while chars.peek().is_some_and(|c| *c == ' ' || *c == '\t') && Some(delimiter) != chars.peek().copied() {
-            field.push(chars.next().unwrap_or(' '));
+        while let Some(c) = rest.chars().next().filter(|&c| matches!(c, ' ' | '\t') && c != delimiter) {
+            field.push(c);
+            rest = &rest[c.len_utf8()..];
         }
-        if chars.peek() == Some(&'"') {
+        if let Some(quoted) = rest.strip_prefix('"') {
             field.clear();
-            chars.next();
-            while let Some(c) = chars.next() {
+            rest = quoted;
+            let mut closed = false;
+            while let Some(c) = rest.chars().next() {
+                rest = &rest[c.len_utf8()..];
                 if c == '"' {
-                    if chars.peek() == Some(&'"') {
-                        chars.next();
+                    if let Some(r) = rest.strip_prefix('"') {
+                        rest = r;
                         field.push('"');
                         continue;
                     }
-                    let escaped = field.ends_with('\\') && chars.peek().is_some_and(|&n| n != delimiter);
-                    if !escaped {
+                    closed = !field.ends_with('\\') || rest.starts_with(delimiter) || line_end(rest);
+                    if closed {
                         break;
                     }
                 }
                 field.push(c);
             }
-        }
-        while let Some(c) = chars.peek().copied() {
-            if c == delimiter {
-                break;
+            if !closed {
+                let kept = field.strip_suffix('\n').map_or(field.len(), |f| f.strip_suffix('\r').unwrap_or(f).len());
+                field.truncate(kept);
             }
-            field.push(c);
-            chars.next();
         }
+        let end = rest.find([delimiter, '\n']).unwrap_or(rest.len());
+        let tail = &rest[..end];
+        rest = &rest[end..];
+        if let Some(r) = rest.strip_prefix(delimiter) {
+            field.push_str(tail);
+            out.push(field);
+            rest = r;
+            continue;
+        }
+        field.push_str(tail.strip_suffix('\r').unwrap_or(tail));
         out.push(field);
-        if chars.next().is_none() {
-            break;
-        }
+        return (out, rest.strip_prefix('\n').unwrap_or(rest));
     }
-    out
 }
 
 /// The rows of a table as a file of the given type: the column names, then one line (or worksheet row) each.
@@ -371,7 +379,13 @@ pub fn read_upload(file_name: &str, bytes: &[u8], worksheet: Option<&str>) -> Re
         _ => {
             let text = String::from_utf8_lossy(bytes);
             let delimiter = file_type.delimiter();
-            let rows = text.split_inclusive('\n').map(|l| parse_csv_line(l.strip_prefix('\u{feff}').unwrap_or(l), delimiter)).collect();
+            let mut rest: &str = &text;
+            let mut rows = Vec::new();
+            while !rest.is_empty() {
+                let (row, after) = csv_record(rest.strip_prefix('\u{feff}').unwrap_or(rest), delimiter);
+                rows.push(row);
+                rest = after;
+            }
             Ok(Sheet { file_type, rows, worksheet: None })
         }
     }
@@ -507,17 +521,24 @@ fn posted_number(s: &str) -> Option<f64> {
     is_numeric(&kept).then(|| floatval(&kept) * multiplier)
 }
 
-/// strtotime() for the date forms people type: `m/d/Y`, `Y-m-d`, `Y/m/d`, any time after the date ignored.
+/// strtotime() for the date forms people type, any time after the date ignored: a four-digit first field is the
+/// year (`Y/m/d`, `Y-m-d`); otherwise slashes read `m/d/y`, dashes `d-m-Y` when the last field has four digits and
+/// `y-m-d` when it does not. A year of one to three digits takes full_year()'s pivot.
 fn parse_any_date(s: &str) -> Option<chrono::NaiveDate> {
     let s = s.split_whitespace().next()?;
     let parts: Vec<&str> = s.split(['/', '-']).collect();
-    let [a, b, year] = parts[..] else { return None };
-    let (a, b, c): (i32, u32, u32) = (a.trim().parse().ok()?, b.trim().parse().ok()?, year.trim().parse().ok()?);
-    if s.contains('-') || a > 31 {
-        chrono::NaiveDate::from_ymd_opt(a, b, c)
-    } else {
-        chrono::NaiveDate::from_ymd_opt(i32::try_from(time::full_year(year)?).ok()?, a as u32, b)
+    let [a, b, c] = parts[..] else { return None };
+    if parts.iter().any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit())) {
+        return None;
     }
+    let (year, month, day) = match (a.len(), c.len(), s.contains('-')) {
+        (4, _, _) => (a, b, c),
+        (_, _, false) => (c, a, b),
+        (_, 4, true) => (c, b, a),
+        (_, _, true) => (a, b, c),
+    };
+    let year = i32::try_from(time::full_year(year)?).ok()?;
+    chrono::NaiveDate::from_ymd_opt(year, month.parse().ok()?, day.parse().ok()?)
 }
 
 /// The header check: which column of the file holds each field, and what is wrong with the header.
@@ -593,8 +614,8 @@ mod tests {
         let line = csv_line(&["A1".into(), "two words".into(), "say \"hi\"".into(), "x,y".into(), "".into()], ',');
         assert_eq!(line, "A1,\"two words\",\"say \"\"hi\"\"\",\"x,y\",\n");
         assert_eq!(csv_line(&["a b".into(), "c".into()], '\t'), "\"a b\"\tc\n");
-        assert_eq!(parse_csv_line(&line, ','), ["A1", "two words", "say \"hi\"", "x,y", ""]);
-        assert_eq!(parse_csv_line("a\tb\r\n", '\t'), ["a", "b"]);
+        assert_eq!(csv_record(&line, ',').0, ["A1", "two words", "say \"hi\"", "x,y", ""]);
+        assert_eq!(csv_record("a\tb\r\n", '\t').0, ["a", "b"]);
     }
 
     #[test]
@@ -602,11 +623,11 @@ mod tests {
         let fields: Vec<String> = ["C:\\parts\\", "a\\\"b", "\\", "12", "after"].map(String::from).to_vec();
         for delimiter in [',', '\t'] {
             let line = csv_line(&fields, delimiter);
-            assert_eq!(parse_csv_line(&line, delimiter), fields, "{line:?}");
+            assert_eq!(csv_record(&line, delimiter).0, fields, "{line:?}");
         }
         assert_eq!(csv_line(&fields[..2], ','), "\"C:\\parts\\\",\"a\\\"\"b\"\n");
-        assert_eq!(parse_csv_line("A-1,\"a\\\"b, c\",\"C:\\parts\\\",7\n", ','), ["A-1", "a\\\"b, c", "C:\\parts\\", "7"], "the escaped form of older files");
-        assert_eq!(parse_csv_line("\"say \\\"hi\\\" \"\t\"x\\\"\"\n", '\t'), ["say \\\"hi\\\" ", "x\\\""]);
+        assert_eq!(csv_record("A-1,\"a\\\"b, c\",\"C:\\parts\\\",7\n", ',').0, ["A-1", "a\\\"b, c", "C:\\parts\\", "7"], "the escaped form of older files");
+        assert_eq!(csv_record("\"say \\\"hi\\\" \"\t\"x\\\"\"\n", '\t').0, ["say \\\"hi\\\" ", "x\\\""]);
         let sheet = read_upload("x.csv", "sku,folder,sort\nA-1,\"C:\\parts\\\",7\n".as_bytes(), None).ok().unwrap();
         assert_eq!(sheet.rows[1], ["A-1", "C:\\parts\\", "7"]);
     }
@@ -703,5 +724,37 @@ mod tests {
         let sheet = read_upload("parts.txt", format!("sku\tname\nA-1\t{long}\nA-2\tshort\n").as_bytes(), None).ok().unwrap();
         assert_eq!(sheet.rows.len(), 3);
         assert_eq!(sheet.rows[1], ["A-1".to_string(), long]);
+    }
+
+    #[test]
+    fn line_ends_inside_quotes_stay_in_the_field() {
+        let rows: Vec<Record> = [["A-1", "12 Main St\nSuite 4", "first"], ["A-2", "line one\r\nline two\n", "second"]].map(|r| r.map(String::from).to_vec()).to_vec();
+        for (name, delimiter) in [("x.txt", '\t'), ("x.csv", ',')] {
+            let bytes: String = rows.iter().map(|r| csv_line(r, delimiter)).collect();
+            let sheet = read_upload(name, bytes.as_bytes(), None).ok().unwrap();
+            assert_eq!(sheet.rows, rows, "{name}");
+        }
+        let sheet = read_upload("x.csv", b"sku,note\r\nA-1,\"two\r\nlines\"\r\nA-2,\r\n", None).ok().unwrap();
+        assert_eq!(sheet.rows, [vec!["sku", "note"], vec!["A-1", "two\r\nlines"], vec!["A-2", ""]]);
+        assert_eq!(csv_record("a,\"open\nstill\n", ','), (vec!["a".to_string(), "open\nstill".to_string()], ""));
+        assert_eq!(csv_record("a,b\nc", ','), (vec!["a".to_string(), "b".to_string()], "c"));
+    }
+
+    #[test]
+    fn typed_dates_read_as_strtotime_reads_them() {
+        let date = |s| parse_any_date(s).map(|d| d.format("%Y/%m/%d").to_string());
+        assert_eq!(date("3/5/2024").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("3/5/24").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("12/31/99").as_deref(), Some("1999/12/31"));
+        assert_eq!(date("2024/3/5").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("2024-03-05").as_deref(), Some("2024/03/05"));
+        assert_eq!(date("25-03-05").as_deref(), Some("2025/03/05"));
+        assert_eq!(date("1-2-24").as_deref(), Some("2001/02/24"));
+        assert_eq!(date("99-12-31").as_deref(), Some("1999/12/31"));
+        assert_eq!(date("05-03-2025").as_deref(), Some("2025/03/05"));
+        assert_eq!(date("0099-01-02").as_deref(), Some("0099/01/02"));
+        assert_eq!(date("13/1/2024"), None);
+        assert_eq!(date("3/5"), None);
+        assert_eq!(date("3/x/2024"), None);
     }
 }

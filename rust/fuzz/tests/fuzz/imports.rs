@@ -2,7 +2,7 @@
 
 use std::{io::Write, time::Duration};
 
-use hxweb::staff::map::{self, csv_line, parse_csv_line, FileType};
+use hxweb::staff::map::{self, csv_line, csv_record, FileType};
 use hxweb_fuzz::{alloc::bounded, config, gen, heavy, within, PURE};
 use proptest::prelude::*;
 
@@ -105,18 +105,19 @@ proptest! {
         read(if tab { "rows.txt" } else { "rows.csv" }, &bytes, None)?;
     }
 
-    /// csv_line() then parse_csv_line(): a line of fields reads back as the same fields.
+    /// csv_line() then csv_record(): a record of fields reads back as the same fields, the whole of it.
     #[test]
     fn csv_lines_round_trip(fields in proptest::collection::vec(gen::text_of("ab ,\t\"\\\r\né;|", 0..8), 1..6), tab in any::<bool>()) {
         let delimiter = if tab { '\t' } else { ',' };
         let line = csv_line(&fields, delimiter);
-        let back = parse_csv_line(&line, delimiter);
+        let (back, rest) = csv_record(&line, delimiter);
         prop_assert_eq!(back, fields, "{:?}", line);
+        prop_assert_eq!(rest, "", "{:?}", line);
     }
 
     #[test]
-    fn csv_line_reading_is_total(line in gen::text(300), delimiter in prop_oneof![Just(','), Just('\t'), any::<char>()]) {
-        within(PURE, "parse_csv_line", || parse_csv_line(&line, delimiter));
+    fn csv_record_reading_is_total(line in gen::text(300), delimiter in prop_oneof![Just(','), Just('\t'), any::<char>()]) {
+        within(PURE, "csv_record", || csv_record(&line, delimiter));
     }
 
     #[test]
