@@ -396,8 +396,8 @@ async fn microsoft_mail_at_a_domain_the_tenant_did_not_prove_is_refused() {
     let (_, shown) = round_trip(&app, &nonce, "/oauth/init.php", "/oauth/callback.php", false).await;
     assert!(shown.body.contains("Congratulations, your access request has been submitted!"), "signed in as other-tenant.example, not example.com");
     assert_eq!(scalar(&pool, "SELECT count(*) FROM session WHERE user_id = 5").await, 0);
-    let (domain, status): (String, String) = sqlx::query_as(r#"SELECT domain, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
-    assert_eq!((domain.as_str(), status.as_str()), ("other-tenant.example", "Pending"));
+    let (domain, status): (Option<String>, String) = sqlx::query_as(r#"SELECT domain, status FROM "user" WHERE id > 6"#).fetch_one(&pool).await.unwrap();
+    assert_eq!((domain, status.as_str()), (None, "Pending"), "a domain is for staff to assign");
 }
 
 #[tokio::test]
@@ -501,6 +501,24 @@ async fn a_domain_belongs_to_its_active_company_ahead_of_older_requests() {
 
     sqlx::query(r#"UPDATE "user" SET status = 'Denied' WHERE id IN (22, 23)"#).execute(&pool).await.unwrap();
     assert_eq!(admission::classify(&pool, &email).await.unwrap(), Admission::Pending, "a pending request ahead of a denied one");
+}
+
+#[tokio::test]
+async fn an_address_signs_in_to_the_account_it_signed_up_as_ahead_of_the_domain_owner() {
+    let pool = pool().await;
+    sqlx::query(
+        r#"INSERT INTO "user" (id, status, "type", domain, signup_email, company_name, catalog) VALUES
+             (24, 'Active', 'Customer', NULL, 'lee@team.example', 'Lee Team', 1), (25, 'Active', 'Customer', 'team.example', 'kim@team.example', 'Team Co', 1),
+             (26, 'Pending', 'Customer', NULL, 'sam@team.example', 'Sam Team', 0)"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let at = |a: &str| Email::parse(a).unwrap();
+    assert_eq!(account::for_email(&pool, &at("lee@team.example")).await.unwrap(), Some(UserId(24)));
+    assert_eq!(account::for_email(&pool, &at("kim@team.example")).await.unwrap(), Some(UserId(25)));
+    assert_eq!(account::for_email(&pool, &at("pat@team.example")).await.unwrap(), Some(UserId(25)));
+    assert_eq!(account::for_email(&pool, &at("sam@team.example")).await.unwrap(), Some(UserId(25)), "an Active account ahead of a Pending one");
 }
 
 #[tokio::test]
