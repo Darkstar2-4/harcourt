@@ -254,7 +254,7 @@ pub(super) fn account(r: &mut Row, l: &Lookups) -> Errors {
         }
         r.set("country_code", code);
     }
-    if r.given("state") {
+    if r.given("country_code") || r.given("state") {
         let raw = r.get("state").to_string();
         let state = l.state(r.get("country_code"), &raw);
         if !raw.is_empty() && (state.is_empty() || unknown_country) {
@@ -501,6 +501,17 @@ mod tests {
         r.keep("country_code", Some("CA".into()));
         assert_eq!(account(&mut r, &l), []);
         assert_eq!(r.get("state"), "ON");
+        let mut r = row(&[("country_code", "usa")]);
+        r.keep("state", Some("ON".into()));
+        assert_eq!(account(&mut r, &l), [("state", "Invalid: ON".to_string())]);
+        let mut r = row(&[("country_code", "canada")]);
+        r.keep("state", Some("on".into()));
+        assert_eq!(account(&mut r, &l), []);
+        assert_eq!((r.get("country_code"), r.get("state")), ("CA", "ON"));
+        let mut r = row(&[("country_code", "CA")]);
+        r.keep("state", None);
+        assert_eq!(account(&mut r, &l), []);
+        assert_eq!(r.value("state"), None);
     }
 
     #[test]
