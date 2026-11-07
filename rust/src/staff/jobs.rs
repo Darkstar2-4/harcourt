@@ -479,9 +479,11 @@ pub enum Increase {
 }
 
 impl Increase {
-    /// A fixed amount above $0.00, or a percentage above 0 and below 100.
+    /// A fixed amount above $0.00, or a percentage above 0 and below 100, each read to two places.
     pub fn parse(kind: &str, value: &str) -> Result<Increase, String> {
-        let amount = Decimal::from_str(value.trim().trim_start_matches('$').trim_end_matches('%')).map_err(|_| format!("not an amount: {value}"))?;
+        let amount = Decimal::from_str(value.trim().trim_start_matches('$').trim_end_matches('%'))
+            .map_err(|_| format!("not an amount: {value}"))?
+            .round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
         match kind {
             "fixed" if amount > Decimal::ZERO => Ok(Increase::Fixed(amount)),
             "percent" if amount > Decimal::ZERO && amount < Decimal::ONE_HUNDRED => Ok(Increase::Percent(amount)),
@@ -580,6 +582,11 @@ mod tests {
         assert_eq!(Increase::parse("fixed", "$1.50"), Ok(Increase::Fixed(d("1.50"))));
         assert!(Increase::parse("percent", "100").is_err());
         assert!(Increase::parse("fixed", "0").is_err());
+        assert_eq!(Increase::parse("fixed", "1.005"), Ok(Increase::Fixed(d("1.01"))));
+        assert_eq!(Increase::parse("fixed", "0.333").map(|i| i.apply(d("12.30"))), Ok(d("12.63")));
+        assert!(Increase::parse("fixed", "0.004").is_err());
+        assert_eq!(Increase::parse("percent", "2.499"), Ok(Increase::Percent(d("2.50"))));
+        assert!(Increase::parse("percent", "99.996").is_err());
     }
 
     #[test]
