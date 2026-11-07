@@ -115,19 +115,28 @@ impl Email {
     }
 }
 
-/// Mail providers anyone can sign up to. An address at one says nothing about a company, so none of these is ever
-/// an account's domain.
-pub const FREE_MAIL: [&str; 26] = [
-    "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "live.com", "msn.com", "aol.com", "icloud.com", "me.com", "mac.com",
-    "protonmail.com", "proton.me", "gmx.com", "gmx.de", "web.de", "mail.com", "zoho.com", "yandex.com", "qq.com", "163.com", "comcast.net", "verizon.net",
+/// Mail providers anyone can sign up to, by domain. An address at one says nothing about a company, so none of these
+/// is ever an account's domain.
+pub const FREE_MAIL: [&str; 14] = [
+    "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me", "web.de", "mail.com", "zoho.com", "qq.com", "163.com", "comcast.net", "verizon.net",
     "att.net", "sbcglobal.net",
 ];
 
-/// Whether a domain is one of `FREE_MAIL`, in any case, with or without the root's trailing dot.
+/// Free-mail providers by name, which run the same service under country domains: `yahoo.co.uk`, `hotmail.fr`,
+/// `live.ca` and `gmx.net` are what `yahoo.com` is.
+pub const FREE_MAIL_PROVIDERS: [&str; 11] = ["gmail", "googlemail", "yahoo", "ymail", "hotmail", "outlook", "live", "msn", "aol", "gmx", "yandex"];
+
+/// Whether a domain is a free-mail provider's (`FREE_MAIL`, or a `FREE_MAIL_PROVIDERS` name under `com`, `net`, a
+/// country code or a country's `co.`/`com.`), in any case, with or without the root's trailing dot.
 pub fn is_free_mail(domain: &str) -> bool {
     let domain = domain.trim();
-    let domain = domain.strip_suffix('.').unwrap_or(domain);
-    FREE_MAIL.iter().any(|d| d.eq_ignore_ascii_case(domain))
+    let domain = domain.strip_suffix('.').unwrap_or(domain).to_ascii_lowercase();
+    let country = |s: &str| s.len() == 2 && s.bytes().all(|b| b.is_ascii_lowercase());
+    let provider_suffix = |s: &str| match s.split_once('.') {
+        None => s == "com" || s == "net" || country(s),
+        Some((second, top)) => matches!(second, "co" | "com") && country(top),
+    };
+    FREE_MAIL.contains(&domain.as_str()) || domain.split_once('.').is_some_and(|(name, suffix)| FREE_MAIL_PROVIDERS.contains(&name) && provider_suffix(suffix))
 }
 
 pub async fn load_user(pool: &SqlitePool, id: UserId) -> sqlx::Result<Option<User>> {
@@ -176,5 +185,16 @@ mod tests {
         assert!(is_free_mail("gmail.com."));
         assert!(!is_free_mail("gmail.com.."));
         assert!(!is_free_mail("mail.example.com"));
+    }
+
+    #[test]
+    fn free_mail_providers_count_under_their_country_domains() {
+        for free in ["hotmail.co.uk", "Yahoo.CA", "yahoo.com.au", "hotmail.fr", "live.ca", "outlook.com.br", "gmx.net", "aol.de", "yandex.ru", "yahoo.co.jp", "gmail.com", "msn.com"] {
+            assert!(is_free_mail(free), "{free}");
+        }
+        for company in ["hotmail.example.com", "yahoo.co.uk.example", "liveworks.ca", "live-tooling.com", "outlook.com.br.example", "gmx.industries", "web.fr", "yahoo"] {
+            assert!(!is_free_mail(company), "{company}");
+        }
+        assert_eq!(Email::parse("pat@hotmail.co.uk").unwrap().company_domain(), None);
     }
 }
