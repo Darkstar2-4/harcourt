@@ -16,6 +16,7 @@ use axum::{
     http::{header, HeaderMap, HeaderValue, Method, Response, StatusCode},
 };
 use hxweb::{
+    accounts::visit::{self, VisitId},
     api::Auth,
     catalog::viewer::Lang,
     cms::{
@@ -137,9 +138,30 @@ fn flag_href(page: Page, query: &str) -> String {
     format!("{}{}hxlang={}", uri, if uri.contains('?') { "&" } else { "?" }, page.lang)
 }
 
+/// The signed-in account's language as the loader names it; None for a visitor not signed in.
+fn account_language(loader: &serde_json::Value) -> Option<Page> {
+    loader.get("account_language").and_then(|v| v.as_str()).and_then(page_for)
+}
+
 /// The signed-in account's language, when the loader names one other than the page's.
 fn other_account_language(loader: &serde_json::Value, page: Page) -> Option<Page> {
-    loader.get("account_language").and_then(|v| v.as_str()).and_then(page_for).filter(|a| *a != page)
+    account_language(loader).filter(|a| *a != page)
+}
+
+/// The language a signed-in visit's catalog pages are in: the one a flag click chose this visit, else the
+/// account's. The flag click's page saves its language to the account only once loaded, and the visit's next
+/// requests (a link fetched ahead of a click among them) must not be sent back to the old one meanwhile.
+async fn visit_language(app: &App, visit: Option<&VisitId>, account: Page) -> Result<Page, String> {
+    let (Some(db), Some(visit)) = (&app.db, visit) else { return Ok(account) };
+    let stored = visit::load(db, visit, hxweb::db::unix_now()).await.map_err(|e| format!("visit: {e}"))?;
+    Ok(stored.flag_language.as_deref().and_then(page_for).unwrap_or(account))
+}
+
+/// A signed-in visitor's flag click: the visit takes the page's language, so the catalog fragment is rendered in it
+/// and the visit keeps to it (`visit_language`). Only this browser's visit changes; the account is the page's to save.
+async fn choose_flag_language(app: &App, visit: &VisitId, page: Page) -> Result<(), String> {
+    let Some(db) = &app.db else { return Ok(()) };
+    visit::choose_flag_language(db, visit, &page.lang.to_ascii_uppercase(), hxweb::db::unix_now()).await.map_err(|e| format!("visit: {e}"))
 }
 
 /// A flag click's page, once loaded, saves its language to the account, as the loader's request from the page
@@ -219,10 +241,17 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     }
     let loader_json: serde_json::Value = serde_json::from_slice(&loader_body).map_err(|e| format!("loader json: {e}"))?;
     // A signed-in customer who reached the other language by a plain link (an email, a bookmark) stays in the
-    // account's language; only a flag click changes it.
-    let account = other_account_language(&loader_json, page);
-    if let Some(account) = account.filter(|_| !flag_click) {
-        return redirect(nav, &page_uri(account, &without_lang(query)), "account-language", set_cookies);
+    // visit's language; only a flag click changes it.
+    let visit = jar.header().and_then(|c| hxweb::visitor::visit_of(&HeaderMap::from_iter([(header::COOKIE, c)])));
+    match (account_language(&loader_json), &visit) {
+        (Some(_), Some(visit)) if flag_click => choose_flag_language(app, visit, page).await?,
+        (Some(account), _) if !flag_click => {
+            let to = visit_language(app, visit.as_ref(), account).await?;
+            if to != page {
+                return redirect(nav, &page_uri(to, &without_lang(query)), "account-language", set_cookies);
+            }
+        }
+        _ => {}
     }
     let link = loader_json
         .get("scscpq_link")
@@ -231,8 +260,9 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let link_path = link.split_once("://").and_then(|(_, rest)| rest.find('/').map(|i| &rest[i..])).ok_or_else(|| format!("unexpected link {link}"))?;
     let link_path = &request_target(link_path);
 
-    // The loader recorded the page's language in the visit, which the fragment request reads through the same session
-    // cookie the jar carries, and the browser's own language choice is left alone.
+    // The loader, or a signed-in visitor's flag click, recorded the page's language in the visit, which the fragment
+    // request reads through the same session cookie the jar carries, and the browser's own language choice is left
+    // alone.
     let (status, frag_headers, frag_body) = internal(app, &from, Method::GET, link_path, &jar, String::new()).await?;
     collect_cookies(&frag_headers, &mut jar, &mut set_cookies);
     if let Some(to) = sent_elsewhere(status, &frag_headers) {
@@ -263,7 +293,7 @@ async fn compose(app: &App, page: Page, query: &str, flag_click: bool, nav: bool
     let mut inline = format!("<script>window.hxweb_loader = {};</script>\n", loader_json.to_string().replace("</", "<\\/"));
     if flag_click {
         inline.push_str(&format!("<script>history.replaceState(null, '', {});</script>\n", serde_json::Value::from(uri.as_str())));
-        if account.is_some() {
+        if other_account_language(&loader_json, page).is_some() {
             inline.push_str(&remember_script(page));
         }
     }
@@ -502,6 +532,84 @@ mod tests {
         assert!(other_account_language(&serde_json::json!({}), FR).is_none());
         let script = remember_script(FR);
         assert!(script.contains("fetch('/scscpq_wp.php'") && script.contains("action: 'language', language: 'fr', remember: '1'"));
+    }
+
+    /// The composer over the library's routes and a private in-memory database with one French-named family.
+    async fn composer() -> (App, sqlx::SqlitePool) {
+        use axum::extract::connect_info::MockConnectInfo;
+        let pool = hxweb::db::open_memory().await.unwrap();
+        for sql in [
+            "INSERT INTO language (code, name, local_name, active, menu) VALUES ('EN', 'English', 'English', 1, NULL), ('FR', 'French', 'Français', 1, NULL)",
+            "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)",
+            "INSERT INTO category (id, name, sort_order, active) VALUES (1, 'Pins', 1, 1)",
+            r#"INSERT INTO subcategory (id, category_id, name, parameters, parameter_search, status, page_break, output, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', '[{"hyperlink":0,"id":0,"name":"Diameter","type":"Decimal:2"}]', '', 'Active', 1, '', 'In Stock')"#,
+            r#"INSERT INTO inventory (id, sku, category_id, subcategory_id, parameter0, nparameter0, pricing, active, sort_order, leadtime_option) VALUES (1, 'HBLT-1', 1, 7, '0.25', 0.25, '[{"price":10.0,"qty_break":1}]', 1, 1, 'Subcategory')"#,
+            "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('subcategory', 7, '', 'FR', 'Goupilles à billes', '', NULL, NULL)",
+            r#"INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('document', 157, '', 'EN', 'Register', 'html', '{"mime":"text/html"}', '<p>Please request access</p>'), ('document', 157, '', 'FR', 'Inscription', 'html', '{"mime":"text/html"}', '<p>Veuillez demander un accès</p>')"#,
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+        let core = Arc::new(Auth {
+            pool: pool.clone(),
+            secret: Some(hxweb::config::Secret::from_bytes(vec![7; 32])),
+            public_origin: "https://www.harcourt.co".into(),
+            trusted_proxies: Vec::new(),
+            accounts: hxweb::accounts::Services::offline(hxweb::accounts::bot::Dns::fixed(&[], &[])),
+        });
+        let app = App {
+            lib: Some(hxweb::routes::all(core).layer(MockConnectInfo(SocketAddr::from(([192, 0, 2, 1], 40000))))),
+            db: Some(pool.clone()),
+            cms: None,
+            site: "www.harcourt.co".into(),
+            public_host: "www.harcourt.co".into(),
+            public_origin: "https://www.harcourt.co".into(),
+            pages: crate::pages::Pages::new(std::path::PathBuf::new()),
+            vendor: crate::vendor::Vendor::load(std::path::Path::new(""), "www.harcourt.co"),
+            re: crate::Res::new(),
+        };
+        (app, pool)
+    }
+
+    /// A signed-in English account's cookies, inside a visit of its own.
+    async fn signed_in(pool: &sqlx::SqlitePool, id: i64, status: &str) -> String {
+        sqlx::query(
+            r#"INSERT INTO "user" (id, status, "type", company_name, catalog, cad, ecommerce, price_type, price_pct, currency_code,
+                                   country_code, language_code, industry_id, portal_id, landing_document_id, login_document_id)
+               VALUES (?1, ?2, 'Customer', 'Test company', 1, 0, 0, '', 0, 'USD', 'US', 'EN', 0, 0, 0, 0)"#,
+        )
+        .bind(id)
+        .bind(status)
+        .execute(pool)
+        .await
+        .unwrap();
+        let basis = hxweb::session::Basis::Registration(hxweb::identity::Email::parse("tester@example.com").unwrap());
+        let token = hxweb::session::create(pool, hxweb::identity::UserId(id), &basis, hxweb::db::unix_now()).await.unwrap();
+        format!("{}={}; PHPSESSID=visit{id}", hxweb::session::COOKIE, token.as_str())
+    }
+
+    /// An in-page navigation from hx-nav.js.
+    async fn nav(app: &App, uri: &str, cookie: &str) -> serde_json::Value {
+        let req = Request::builder().uri(uri).header("x-hx-nav", "1").header(header::COOKIE, cookie).body(Body::empty()).unwrap();
+        let body = axum::body::to_bytes(handle(app, req).await.into_body(), 1 << 22).await.unwrap();
+        serde_json::from_slice(&body).unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_flag_click_keeps_the_visit_in_the_clicked_language() {
+        let (app, pool) = composer().await;
+        let fr = "/catalogue/?lang=fr&action=subcategory&subcategory_id=7";
+        let en = "/catalog/?action=subcategory&subcategory_id=7";
+        // A Pending account is shown the access document, an Active one the family.
+        for (id, status, french) in [(61, "Pending", "Veuillez demander un accès"), (62, "Active", "<h1>Goupilles à billes</h1>")] {
+            let french = |v: &serde_json::Value| v["html"].as_str().is_some_and(|h| h.contains(french));
+            let cookie = signed_in(&pool, id, status).await;
+            assert_eq!(nav(&app, fr, &cookie).await, serde_json::json!({ "redirect": en }), "{status}: a plain link goes to the account's language");
+            let clicked = nav(&app, &format!("{fr}&hxlang=fr"), &cookie).await;
+            assert!(french(&clicked), "{status}: the flag click's page is in French: {clicked}");
+            let next = nav(&app, fr, &cookie).await;
+            assert!(french(&next), "{status}: so is the next link: {next}");
+            assert_eq!(nav(&app, en, &cookie).await, serde_json::json!({ "redirect": fr }), "{status}: a plain link to English goes back to French");
+        }
     }
 
     #[test]
