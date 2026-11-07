@@ -218,6 +218,17 @@ async fn a_blocked_category_shows_the_agreement_overlay() {
 }
 
 #[tokio::test]
+async fn a_company_block_holds_whatever_the_case_or_accents_of_the_name() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account { company_name: Some("Société Test".into()), ..Account::customer(25) }).await;
+    exec(&h.pool, "INSERT INTO company_category_block (company_name, category_id) VALUES ('SOCIETE TEST ', 1), ('Other Co', 2)").await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<div class='catalog_category_overlay_message'>Design Partner Agreement Required for Access."), "{body}");
+    assert!(!body.contains("products_table"));
+}
+
+#[tokio::test]
 async fn french_pages_use_french_names_and_links() {
     let h = harness().await;
     seed(&h.pool).await;

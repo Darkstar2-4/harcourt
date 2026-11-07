@@ -152,6 +152,11 @@ pub fn ci(a: &str, b: &str) -> Ordering {
     }
 }
 
+/// Whether two strings are the same text to latin1_swedish_ci (a MariaDB `=` on such a column).
+pub fn ci_eq(a: &str, b: &str) -> bool {
+    ci(a, b) == Ordering::Equal
+}
+
 /// The rest of the longer string against the padding: equal if it is all spaces, else ordered by its first other
 /// character against a space (`longer` is how the longer string ranks when that character is above a space).
 fn continue_pad(rest: impl Iterator<Item = u8>, longer: Ordering) -> Ordering {
@@ -183,6 +188,14 @@ mod tests {
         assert_eq!(ci("ab", "ab\t"), Ordering::Greater);
         assert_eq!(ci("Öl", "Zz"), Ordering::Greater);
         assert_eq!(ci_opt(None, Some("")), Ordering::Less);
+    }
+
+    #[test]
+    fn equal_text_ignores_case_accents_and_trailing_spaces() {
+        assert!(ci_eq("Société Générale", "SOCIETE GENERALE "));
+        assert!(ci_eq("Müller", "MYLLER"));
+        assert!(!ci_eq("Ångström", "Angstrom"));
+        assert!(!ci_eq("Acme", " Acme"));
     }
 
     #[test]
