@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_menu_item (id, menu, lang, parent_id, position, label, url, page_id, classes, target) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "5189a38bac73f370794a8b7196d0ecb51c7e150640ffa99157cd1c1acbf7a9a2"
+}

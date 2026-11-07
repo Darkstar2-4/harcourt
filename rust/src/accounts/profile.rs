@@ -1,0 +1,1123 @@
+//! The sign-up form's address block: includes/functions.php address_class for the "profile" table, as
+//! classes/profile.php enter() draws it and newuser.php checks it. Which fields appear, and which are required,
+//! comes from the registry (`address.profile`), as in the PHP; the email is always required.
+
+use std::collections::HashMap;
+
+use axum::http::{HeaderMap, HeaderValue};
+use serde::Serialize;
+use serde_json::Value;
+use sqlx::SqlitePool;
+
+use crate::{
+    accounts::{
+        account::Account,
+        admission::SignIn,
+        cookies,
+        html::{self, escape, Opts},
+        locale::Labels,
+        registry, visit,
+    },
+    db::unix_now,
+    identity::{Email, UserId},
+    staff::check,
+    visitor::{Identity, Visitor},
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Field {
+    CompanyName,
+    Name,
+    Title,
+    Address,
+    City,
+    State,
+    Zip,
+    CountryCode,
+    Phone,
+    Fax,
+    Email,
+}
+
+/// address_class's field list, in its declaration order.
+const FIELDS: [Field; 11] =
+    [Field::CompanyName, Field::Name, Field::Title, Field::Address, Field::City, Field::State, Field::Zip, Field::CountryCode, Field::Phone, Field::Fax, Field::Email];
+
+impl Field {
+    fn key(self) -> &'static str {
+        match self {
+            Field::CompanyName => "company_name",
+            Field::Name => "name",
+            Field::Title => "title",
+            Field::Address => "address",
+            Field::City => "city",
+            Field::State => "state",
+            Field::Zip => "zip",
+            Field::CountryCode => "country_code",
+            Field::Phone => "phone",
+            Field::Fax => "fax",
+            Field::Email => "email",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Field::CompanyName => "Company Name",
+            Field::Name => "Name",
+            Field::Title => "Title",
+            Field::Address => "Address",
+            Field::City => "City",
+            Field::State => "State/Province",
+            Field::Zip => "Zip/Postal Code",
+            Field::CountryCode => "Country",
+            Field::Phone => "Phone",
+            Field::Fax => "Fax",
+            Field::Email => "Email",
+        }
+    }
+
+    /// The fields in `first`, then the rest in declaration order (address_class options_order()).
+    fn order(first: &[Field]) -> Vec<Field> {
+        let mut out = first.to_vec();
+        out.extend(FIELDS.iter().copied().filter(|f| !first.contains(f)));
+        out
+    }
+}
+
+/// What the person typed or what the browser remembered (classes/profile.php profile_data_class). It is also the
+/// `harcourt_profile` cookie the PHP pages read, so the names, their order and the nulls match theirs.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct Profile {
+    pub email: Option<String>,
+    pub name_first: Option<String>,
+    pub name_last: Option<String>,
+    pub name: String,
+    pub cad_code: Option<String>,
+    pub cad_name: Option<String>,
+    pub language_code: String,
+    pub generate: i64,
+    pub consent: i64,
+    pub company_name: Option<String>,
+    pub address: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub zip: Option<String>,
+    pub country_code: Option<String>,
+    /// The fields address_class verify() adds to the PHP object after the declared ones; a profile that has not
+    /// been through it has none of them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fax: Option<String>,
+}
+
+pub const COOKIE: &str = "harcourt_profile";
+
+/// The visit's profile as a request read it (None: it had none), which a profile built from it must still find
+/// there to replace it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Basis(Option<visit::KeptProfile>);
+
+impl Basis {
+    async fn read(pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<Basis> {
+        Ok(Basis(match &visitor.visit {
+            Some(id) => visit::profile(pool, id, unix_now()).await?,
+            None => None,
+        }))
+    }
+
+    /// The remembered profile: the visit's copy when it was kept for the account the request comes as (or for
+    /// none), else the cookie's (`Profile::from_browser`).
+    fn profile(&self, headers: &HeaderMap, visitor: &Visitor) -> Profile {
+        let owner = owner(visitor);
+        match self.0.as_ref().filter(|kept| kept.owner == owner) {
+            Some(kept) => Profile::from_cookie(Some(&kept.json)),
+            None => Profile::from_browser(headers, owner),
+        }
+    }
+}
+
+/// Whom a profile this request keeps is for: the account it comes as, by session or by company address alike.
+fn owner(visitor: &Visitor) -> Option<UserId> {
+    visitor.account().map(Account::id)
+}
+
+/// The `harcourt_profile` cookie's value: the profile, and the account it was written for (none: no account, and
+/// no key, as a cookie the PHP wrote).
+#[derive(Serialize)]
+struct Written<'a> {
+    #[serde(flatten)]
+    profile: &'a Profile,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    profile_for: Option<i64>,
+}
+
+/// The account a `harcourt_profile` cookie was written for; none for no account or a cookie without the key.
+fn written_for(value: &str) -> Option<UserId> {
+    match serde_json::from_str::<Value>(value).ok()?.get("profile_for")? {
+        Value::Number(n) => n.as_i64().map(UserId),
+        _ => None,
+    }
+}
+
+/// A JSON value as PHP read it into a string property: scalars become their text, anything else is unset.
+fn php_text(v: &Value) -> Option<String> {
+    match v {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => Some(n.to_string()),
+        Value::Bool(b) => Some(if *b { "1" } else { "" }.into()),
+        _ => None,
+    }
+}
+
+/// PHP intval() of a JSON value.
+fn php_int(v: &Value) -> i64 {
+    match v {
+        Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)).unwrap_or(0),
+        Value::String(s) => {
+            let t = s.trim_start();
+            let end = t.char_indices().find(|&(i, c)| !(c.is_ascii_digit() || (i == 0 && (c == '-' || c == '+')))).map_or(t.len(), |(i, _)| i);
+            t[..end].parse().unwrap_or(0)
+        }
+        Value::Bool(b) => i64::from(*b),
+        _ => 0,
+    }
+}
+
+impl Profile {
+    /// The remembered profile, or an empty one. The cookie is the browser's to change; it only fills in a form.
+    pub fn from_cookie(value: Option<&str>) -> Profile {
+        let Some(Value::Object(obj)) = value.and_then(|v| serde_json::from_str::<Value>(v).ok()) else { return Profile::default() };
+        let text = |k: &str| obj.get(k).and_then(php_text);
+        Profile {
+            email: text("email"),
+            name_first: text("name_first"),
+            name_last: text("name_last"),
+            name: text("name").unwrap_or_default(),
+            cad_code: text("cad_code"),
+            cad_name: text("cad_name"),
+            language_code: text("language_code").unwrap_or_default(),
+            generate: obj.get("generate").map_or(0, php_int),
+            consent: obj.get("consent").map_or(0, php_int),
+            company_name: text("company_name"),
+            address: text("address"),
+            city: text("city"),
+            state: text("state"),
+            zip: text("zip"),
+            country_code: text("country_code"),
+            title: text("title"),
+            phone: text("phone"),
+            fax: text("fax"),
+        }
+    }
+
+    /// The cookie's value: json_encode() of profile_data_class.
+    pub fn to_cookie(&self) -> String {
+        html::json_encode(self)
+    }
+
+    /// The `harcourt_profile` cookie header, as profile->cookie() set it, written for `owner`.
+    fn cookie(&self, owner: Option<UserId>, now: i64) -> Option<HeaderValue> {
+        cookies::php_year(COOKIE, &html::json_encode(&Written { profile: self, profile_for: owner.map(|o| o.0) }), now)
+    }
+
+    /// The browser's cookie as the profile of `owner`: whole when it was written for them, else only the browser's
+    /// choices. A company signed in by address reads a cookie written for its account.
+    fn from_browser(headers: &HeaderMap, owner: Option<UserId>) -> Profile {
+        let value = cookies::get(headers, COOKIE);
+        let profile = Profile::from_cookie(value.as_deref());
+        if value.as_deref().and_then(written_for) == owner {
+            profile
+        } else {
+            profile.choices()
+        }
+    }
+
+    /// The cookie a sign-out leaves: the browser's choices, for no one. None when the browser had no profile.
+    pub fn signed_out(headers: &HeaderMap, now: i64) -> Option<HeaderValue> {
+        let value = cookies::get(headers, COOKIE)?;
+        Profile::from_cookie(Some(&value)).choices().cookie(None, now)
+    }
+
+    /// profile->cookie() after loaded(): keep the profile for the visit, as $_SESSION['harcourt_profile'], and return
+    /// the cookie. When the visit's profile is no longer the one `basis` read (someone was admitted in between), the
+    /// admitted profile stands: nothing is kept and no cookie is set.
+    pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, basis: &Basis, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        if let Some(id) = &visitor.visit {
+            if !visit::replace_profile(pool, id, basis.0.as_ref(), owner(visitor), &self.to_cookie(), now).await? {
+                return Ok(None);
+            }
+        }
+        Ok(self.cookie(owner(visitor), now))
+    }
+
+    /// Whether the profile is the one of the person at `email`.
+    fn is_for(&self, email: &Email) -> bool {
+        self.email.as_deref().and_then(Email::parse).as_ref() == Some(email)
+    }
+
+    /// The browser's choices (language, CAD format and delivery, consent) without anyone's name or address.
+    fn choices(self) -> Profile {
+        Profile { cad_code: self.cad_code, cad_name: self.cad_name, language_code: self.language_code, generate: self.generate, consent: self.consent, ..Profile::default() }
+    }
+
+    /// Someone was just admitted (`signin`, which the same response hands to the browser), and this is the only way
+    /// the visit's profile and its cookie change to a person. The profile becomes theirs, kept for the account they
+    /// were admitted to: a profile of someone else keeps only the browser's choices; each of the person's own fields
+    /// (name, title, phone, fax) is the one given, else the one typed for this address this visit, else the one
+    /// this person had. The company and address are the account's, which load() takes.
+    pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, signin: &SignIn, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        let email = &signin.email;
+        let typed = match &visitor.visit {
+            Some(id) => visit::take_typed_profile(pool, id, now, |t| Profile::from_cookie(Some(t)).is_for(email)).await?,
+            None => None,
+        };
+        let typed = Profile::from_cookie(typed.as_deref());
+        let mut p = if self.is_for(email) { self } else { self.choices() };
+        let pick = |given: Option<&str>, typed: Option<String>, kept: Option<String>| {
+            given.filter(|s| !s.is_empty()).map(str::to_string).or(typed.filter(|s| !s.is_empty())).or(kept)
+        };
+        let first = pick(Some(name_first), typed.name_first, p.name_first.clone());
+        let last = pick(Some(name_last), typed.name_last, p.name_last.clone());
+        if (&first, &last) != (&p.name_first, &p.name_last) {
+            (p.name_first, p.name_last) = (first, last);
+            p.name = format!("{} {}", p.get("name_first"), p.get("name_last"));
+        }
+        p.title = pick(None, typed.title, p.title.take());
+        p.phone = pick(None, typed.phone, p.phone.take());
+        p.fax = pick(None, typed.fax, p.fax.take());
+        p.email = Some(email.as_str().into());
+        if let Some(id) = &visitor.visit {
+            visit::set_profile(pool, id, signin.user, &p.to_cookie(), now).await?;
+        }
+        Ok(p.cookie(Some(signin.user), now))
+    }
+
+    /// Keep what was typed into a sign-up form for the visit, for the form and for the admission it may lead to.
+    /// The visit's profile does not change: no one has been admitted.
+    pub async fn keep_typed(&self, pool: &SqlitePool, visitor: &Visitor, now: i64) -> sqlx::Result<()> {
+        if let Some(id) = &visitor.visit {
+            visit::set_typed_profile(pool, id, &self.to_cookie(), now).await?;
+        }
+        Ok(())
+    }
+
+    /// What the sign-up form shows: what was typed into it this visit, else load().
+    pub async fn for_form(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        let typed = match &visitor.visit {
+            Some(id) => visit::typed_profile(pool, id, unix_now()).await?,
+            None => None,
+        };
+        match typed {
+            Some(json) => Ok(Profile::from_cookie(Some(&json))),
+            None => Profile::load(pool, headers, visitor).await,
+        }
+    }
+
+    /// scscpq_api.php json_profile_update(): the profile's company and address become the account's. A field the
+    /// form does not have is left as the account has it (the PHP blanked it), and so is the country when none was
+    /// picked: an account has one.
+    pub async fn save_address(&self, pool: &SqlitePool, layout: &Layout, id: UserId) -> sqlx::Result<()> {
+        let asked = |f: Field, v: &Option<String>| if layout.need(f).is_some() { v.clone() } else { None };
+        let (company_name, address, city) = (asked(Field::CompanyName, &self.company_name), asked(Field::Address, &self.address), asked(Field::City, &self.city));
+        let country_code = asked(Field::CountryCode, &self.country_code).filter(|c| !c.is_empty());
+        let (state, zip) = (asked(Field::State, &self.state), asked(Field::Zip, &self.zip));
+        sqlx::query!(
+            r#"UPDATE "user" SET company_name = coalesce(?2, company_name), address = coalesce(?3, address), city = coalesce(?4, city),
+                   state = coalesce(?5, state), zip = coalesce(?6, zip), country_code = coalesce(?7, country_code) WHERE id = ?1"#,
+            id.0,
+            company_name,
+            address,
+            city,
+            state,
+            zip,
+            country_code
+        )
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// What load() started from: the visit's copy, else the cookie.
+    pub async fn remembered(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        Ok(Basis::read(pool, visitor).await?.profile(headers, visitor))
+    }
+
+    /// loaded(), as a form shows it, for a request that does not keep it.
+    pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
+        Ok(Profile::loaded(pool, headers, visitor).await?.0.shown(headers))
+    }
+
+    /// The profile as a form shows it: with no email of its own, the address the browser last gave (the `harcourt`
+    /// cookie), as load() filled it in. That address only fills in the form; the profile kept is not made that
+    /// person's by it.
+    pub fn shown(self, headers: &HeaderMap) -> Profile {
+        let email = self.email.filter(|e| !e.is_empty()).or_else(|| cookies::get(headers, cookies::EMAIL));
+        Profile { email, ..self }
+    }
+
+    /// classes/profile.php load(): what the visit or the browser remembered, with the remembered address when it has
+    /// none, the CAD format only when it still exists, the visitor's language when it has none, and the company and
+    /// address of whoever the visitor is signed in as (a bot's name for a bot). The title, phone and fax the profile
+    /// form saved are kept too (the PHP dropped them here, so a profile layout requiring one could never be met).
+    /// The email is the profile's own; shown() adds the remembered address for a form (the PHP kept that too).
+    /// With it, the visit's profile it was built from, for remember().
+    pub async fn loaded(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<(Profile, Basis)> {
+        let basis = Basis::read(pool, visitor).await?;
+        let obj = basis.profile(headers, visitor);
+        let cad_name = match obj.cad_code.as_deref() {
+            Some(code) => sqlx::query_scalar!("SELECT name FROM cad WHERE code = ?1", code).fetch_optional(pool).await?,
+            None => None,
+        };
+        let (cad_code, cad_name) = match cad_name {
+            Some(name) => (obj.cad_code.clone(), name),
+            None => (None, None),
+        };
+        let non_empty = |s: Option<String>| s.filter(|s| !s.is_empty());
+        let (company_name, address, city, state, zip, country_code) = match &visitor.identity {
+            Identity::Account(s) => {
+                let a = &s.account;
+                (a.user.company_name.clone(), a.address.clone(), a.city.clone(), a.state.clone(), a.zip.clone(), a.country_code.clone())
+            }
+            Identity::Bot(b) => (Some(b.name.clone()), None, None, None, None, None),
+            Identity::Anonymous => (obj.company_name, obj.address, obj.city, obj.state, obj.zip, obj.country_code),
+        };
+        let profile = Profile {
+            email: non_empty(obj.email),
+            name: format!("{} {}", obj.name_first.as_deref().unwrap_or(""), obj.name_last.as_deref().unwrap_or("")),
+            name_first: obj.name_first,
+            name_last: obj.name_last,
+            cad_code,
+            cad_name,
+            language_code: Some(obj.language_code).filter(|l| !l.is_empty()).unwrap_or_else(|| visitor.language.as_str().to_string()),
+            generate: obj.generate,
+            consent: obj.consent,
+            company_name,
+            address,
+            city,
+            state,
+            zip,
+            country_code,
+            title: obj.title,
+            phone: obj.phone,
+            fax: obj.fax,
+        };
+        Ok((profile, basis))
+    }
+
+    /// Whether a field has a value, as a required one must: a name is its first and its last name.
+    pub fn filled(&self, key: &str) -> bool {
+        match key {
+            "name" => self.filled("name_first") && self.filled("name_last"),
+            _ => !self.get(key).trim().is_empty(),
+        }
+    }
+
+    pub fn get(&self, key: &str) -> &str {
+        let slot = match key {
+            "company_name" => &self.company_name,
+            "name_first" => &self.name_first,
+            "name_last" => &self.name_last,
+            "name" => return &self.name,
+            "title" => &self.title,
+            "address" => &self.address,
+            "city" => &self.city,
+            "state" | "state_us" | "state_ca" | "state_other" => &self.state,
+            "zip" => &self.zip,
+            "country_code" => &self.country_code,
+            "phone" => &self.phone,
+            "fax" => &self.fax,
+            "email" => &self.email,
+            _ => return "",
+        };
+        slot.as_deref().unwrap_or("")
+    }
+
+    fn set(&mut self, key: &str, value: String) {
+        let slot = match key {
+            "company_name" => &mut self.company_name,
+            "name_first" => &mut self.name_first,
+            "name_last" => &mut self.name_last,
+            "title" => &mut self.title,
+            "address" => &mut self.address,
+            "city" => &mut self.city,
+            "state" => &mut self.state,
+            "zip" => &mut self.zip,
+            "phone" => &mut self.phone,
+            "fax" => &mut self.fax,
+            "email" => &mut self.email,
+            _ => return,
+        };
+        *slot = Some(value);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Need {
+    Required,
+    Allowed,
+}
+
+/// The registry's `address.profile` settings: which fields the form has and which must be filled.
+pub struct Layout {
+    fields: HashMap<&'static str, Need>,
+    jquery: bool,
+}
+
+impl Layout {
+    pub async fn load(pool: &SqlitePool) -> sqlx::Result<Layout> {
+        let mut fields = HashMap::new();
+        for (item, data) in registry::items(pool, "address", "profile").await? {
+            if let Some(f) = FIELDS.iter().find(|f| f.key() == item) {
+                fields.insert(f.key(), if data == "required" { Need::Required } else { Need::Allowed });
+            }
+        }
+        fields.insert("email", Need::Required);
+        let jquery = registry::get(pool, "www", "jquery").await?.is_some();
+        Ok(Layout { fields, jquery })
+    }
+
+    fn need(&self, f: Field) -> Option<Need> {
+        self.fields.get(f.key()).copied()
+    }
+
+    pub fn required(&self, key: &str) -> bool {
+        self.fields.get(key) == Some(&Need::Required)
+    }
+}
+
+/// A row of the country table, as country->select() lists it.
+struct Place {
+    code: String,
+    name: String,
+}
+
+async fn states(pool: &SqlitePool, country: &str) -> sqlx::Result<Vec<Place>> {
+    let rows = sqlx::query!(r#"SELECT state AS "code!", name FROM country WHERE country = ?1 AND state <> '' ORDER BY name"#, country)
+        .fetch_all(pool)
+        .await?;
+    Ok(rows.into_iter().map(|r| Place { code: r.code, name: r.name.unwrap_or_default() }).collect())
+}
+
+async fn countries(pool: &SqlitePool) -> sqlx::Result<Vec<Place>> {
+    let rows = sqlx::query!(
+        r#"SELECT country AS "code!", name FROM country WHERE state = '' AND active = 1
+           ORDER BY CASE country WHEN 'US' THEN 1 WHEN 'CA' THEN 2 ELSE 3 END, name"#
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|r| Place { code: r.code, name: r.name.unwrap_or_default() }).collect())
+}
+
+fn pairs(places: &[Place]) -> Vec<(String, String)> {
+    places.iter().map(|p| (p.code.clone(), p.name.clone())).collect()
+}
+
+fn field_name(key: &str) -> String {
+    format!("profile_{key}")
+}
+
+fn opts(placeholder: &str) -> Opts {
+    let o = Opts::new().attr("class", "scscpq_input");
+    if placeholder.is_empty() {
+        o
+    } else {
+        o.attr("placeholder", placeholder)
+    }
+}
+
+/// address_class input_field(): one table row, with the red star when the field is required.
+fn row(layout: &Layout, f: Field, title: &str, content: &str) -> String {
+    let Some(need) = layout.need(f) else { return String::new() };
+    let star = if need == Need::Required { html::font("red", "<b>*</b>", "") } else { "&nbsp;".into() };
+    format!("<tr ><td width='20%'>{star}{title}</td><td width='80%'>{content}</td></tr>")
+}
+
+/// classes/profile.php enter(array("register"=>TRUE)): the address block of the sign-up form, with prod's
+/// translated welcome and note.
+pub async fn form(pool: &SqlitePool, layout: &Layout, p: &Profile, labels: &Labels) -> sqlx::Result<String> {
+    let mut out = vec![ENTER_CSS.to_string(), ENTER_JS.to_string()];
+    out.push(html::hidden("success_url", "", "scscpq_input"));
+    out.push(html::hidden("profile_tab", "", "scscpq_input"));
+    if !p.get("company_name").is_empty() {
+        let welcome = labels.get("catalog_profile_welcome", "Welcome {company}!").replace("{company}", &escape(p.get("company_name")));
+        out.push(format!("<p class=profile_welcome>{welcome}</p>"));
+    }
+    out.push("<div id=profile_message></div>".into());
+    out.push("<table class=noborder>".into());
+    out.push(address_rows(pool, layout, p, &[]).await?);
+    out.push(legend());
+    out.push("</table>".into());
+    let note = labels.get(
+        "catalog_profile_note",
+        "Note: This should be a one-time verification only. Your email address will be kept strictly confidential and will not be disclosed to a third party. We respect your privacy and trust in Harcourt - <b>we will not spam you.</b>",
+    );
+    out.push(format!("<p>{note}</p>"));
+    Ok(out.concat())
+}
+
+/// address_class legend().
+pub fn legend() -> String {
+    format!("<tr ><td colspan=2>{}</td></tr>", html::font("red", "<b>*</b>", "Indicates mandatory fields"))
+}
+
+/// address_class input() for the profile, without its legend: a row per field the registry lists, email and name
+/// first, except the fields in `omit`, then the country script.
+pub async fn address_rows(pool: &SqlitePool, layout: &Layout, p: &Profile, omit: &[&str]) -> sqlx::Result<String> {
+    let mut out = Vec::new();
+    let text = |key: &str, size: u32, max: u32, placeholder: &str| html::text(&field_name(key), p.get(key), size, Some(max), opts(placeholder));
+    for f in Field::order(&[Field::Email, Field::Name]) {
+        if omit.contains(&f.key()) {
+            if f == Field::CountryCode && layout.need(f).is_none() {
+                out.push(html::hidden("country_code", "US", ""));
+            }
+            continue;
+        }
+        let cell = match f {
+            Field::CompanyName => row(layout, f, "Company Name", &text("company_name", 40, 40, "Company Name")),
+            Field::Name => {
+                row(layout, f, "First Name", &text("name_first", 40, 40, "First Name")) + &row(layout, f, "Last Name", &text("name_last", 40, 40, "Last Name"))
+            }
+            Field::Title => row(layout, f, "Title", &text("title", 40, 40, "Title")),
+            Field::Address => row(layout, f, "Address", &text("address", 40, 100, "Address")),
+            Field::City => row(layout, f, "City", &text("city", 40, 40, "City")),
+            Field::State => {
+                let us = html::select(&field_name("state_us"), &pairs(&states(pool, "US").await?), p.get("state"), "Select State", opts(""));
+                let ca = html::select(&field_name("state_ca"), &pairs(&states(pool, "CA").await?), p.get("state"), "Select Province", opts(""));
+                let other = text("state_other", 40, 40, "Province/State");
+                row(layout, f, "<span id=profile_state_text></span>", &[us, ca, other].join(" "))
+            }
+            Field::Zip => row(layout, f, "<span id=profile_zip_text></span>", &html::text(&field_name("zip"), p.get("zip"), 25, Some(40), opts("Zip/Postal Code/Zip Code"))),
+            Field::CountryCode => {
+                let o = opts("").event("onchange", "fn_country_address('profile');");
+                let select = html::select(&field_name("country_code"), &pairs(&countries(pool).await?), p.get("country_code"), "Select Country", o);
+                let mut cell = row(layout, f, "Country", &select);
+                if layout.need(f).is_none() {
+                    cell.push_str(&html::hidden("country_code", "US", ""));
+                }
+                cell
+            }
+            Field::Phone => row(layout, f, "Phone", &text("phone", 40, 40, "Phone")),
+            Field::Fax => row(layout, f, "Fax", &text("fax", 40, 40, "Fax")),
+            Field::Email => row(layout, f, "Email", &html::input("email", &field_name("email"), p.get("email"), 40, Some(60), opts("Email"))),
+        };
+        out.push(cell);
+    }
+    out.push(format!("\n<script>\n\nfn_country_address('profile');\n{}\n\n</script>\n", country_js(layout.jquery)));
+    Ok(out.concat())
+}
+
+/// includes/functions.php fn_text(): trimmed, with a `<script ...>` run removed.
+fn fn_text(s: &str) -> String {
+    let lower = s.to_ascii_lowercase();
+    let cleaned = match (lower.find("<script"), lower.rfind('>')) {
+        (Some(start), Some(end)) if end > start => format!("{}{}", &s[..start], &s[end + 1..]),
+        _ => s.to_string(),
+    };
+    cleaned.trim().to_string()
+}
+
+/// The input the state is read from, by country: the US and Canada pick from a list, others type it.
+pub fn state_input(country_code: &str) -> &'static str {
+    match country_code {
+        "US" => "state_us",
+        "CA" => "state_ca",
+        _ => "state_other",
+    }
+}
+
+/// address_class verify() over the posted form: the profile it describes and the errors, keyed by input name.
+pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (Profile, Vec<(String, String)>) {
+    let input = |key: &str| posted.iter().find(|(k, _)| *k == field_name(key)).map_or("", |(_, v)| v.as_str()).to_string();
+    let mut errors = Vec::new();
+    p.country_code = Some(fn_text(&input("country_code")));
+    if layout.need(Field::CountryCode) == Some(Need::Required) && p.get("country_code").is_empty() {
+        errors.push((field_name("country_code"), format!("{} cannot be blank", Field::CountryCode.label())));
+    }
+    let state_field = state_input(p.get("country_code"));
+    let mut check = |f: Field, data_key: &str, input_key: &str, p: &mut Profile| {
+        let Some(need) = layout.need(f) else {
+            p.set(data_key, String::new());
+            return;
+        };
+        let raw = input(input_key);
+        let value = match f {
+            Field::Zip => fn_text(&raw).to_uppercase(),
+            Field::Email => match check::email(&raw, need == Need::Required) {
+                (address, None) => address,
+                (address, Some(e)) => {
+                    p.set(data_key, address);
+                    errors.push((field_name(input_key), e.to_string()));
+                    return;
+                }
+            },
+            _ => fn_text(&raw),
+        };
+        p.set(data_key, value);
+        if need == Need::Required && !p.filled(data_key) {
+            let label = match (f, input_key) {
+                (Field::Name, "name_first") => "First Name",
+                (Field::Name, _) => "Last Name",
+                _ => f.label(),
+            };
+            errors.push((field_name(input_key), format!("{label} cannot be blank")));
+        }
+    };
+    check(Field::CompanyName, "company_name", "company_name", &mut p);
+    check(Field::Name, "name_first", "name_first", &mut p);
+    check(Field::Name, "name_last", "name_last", &mut p);
+    p.name = format!("{} {}", p.get("name_first"), p.get("name_last")).trim().to_string();
+    check(Field::Title, "title", "title", &mut p);
+    check(Field::Address, "address", "address", &mut p);
+    check(Field::City, "city", "city", &mut p);
+    check(Field::State, "state", state_field, &mut p);
+    check(Field::Zip, "zip", "zip", &mut p);
+    check(Field::Phone, "phone", "phone", &mut p);
+    check(Field::Fax, "fax", "fax", &mut p);
+    check(Field::Email, "email", "email", &mut p);
+    (p, errors)
+}
+
+/// address_class output("html:array") with the order `email` first: "Label: value" for each filled field, with
+/// the state and country spelled out. Values are escaped; these lines go into a staff mail.
+pub async fn summary(pool: &SqlitePool, layout: &Layout, p: &Profile) -> sqlx::Result<Vec<String>> {
+    let state_name = sqlx::query_scalar!("SELECT name FROM country WHERE country = ?1 AND state = ?2 AND state <> ''", p.country_code, p.state)
+        .fetch_optional(pool)
+        .await?
+        .flatten();
+    let country_name = sqlx::query_scalar!("SELECT name FROM country WHERE country = ?1 AND state = ''", p.country_code).fetch_optional(pool).await?.flatten();
+    let mut lines = Vec::new();
+    for f in Field::order(&[Field::Email]) {
+        if layout.need(f).is_none() {
+            continue;
+        }
+        let text = match f {
+            Field::State => state_name.clone().unwrap_or_else(|| p.get("state").to_string()),
+            Field::CountryCode => country_name.clone().unwrap_or_else(|| p.get("country_code").to_string()),
+            _ => p.get(f.key()).to_string(),
+        };
+        if !text.is_empty() {
+            lines.push(format!("{}: {}", f.label(), escape(&text)));
+        }
+    }
+    Ok(lines)
+}
+
+fn country_js(jquery: bool) -> &'static str {
+    if jquery {
+        COUNTRY_JS
+    } else {
+        COUNTRY_JS_PLAIN
+    }
+}
+
+/// address_class::js() where the site loads jQuery; the checkout's address blocks use it too.
+pub const COUNTRY_JS: &str = "function fn_country_address(table) {
+jQuery('#' + table + '_state_us').hide();
+jQuery('#' + table + '_state_ca').hide();
+jQuery('#' + table + '_state_other').hide();
+jQuery('#' + table + '_state_us_div').hide();
+jQuery('#' + table + '_state_ca_div').hide();
+jQuery('#' + table + '_state_other_div').hide();
+var state;
+var zip='Postal Code';
+country_code=jQuery('#' + table + '_country_code').val();
+switch (true) {
+case (country_code == 'US'):
+jQuery('#' + table + '_state_us').show();
+jQuery('#' + table + '_state_us_div').show();
+state='State';
+zip='ZIP Code';
+break;
+case (country_code == 'CA'):
+jQuery('#' + table + '_state_ca').show();
+jQuery('#' + table + '_state_ca_div').show();
+state='Province';
+break;
+default:
+jQuery('#' + table + '_state_other').show();
+jQuery('#' + table + '_state_other_div').show();
+state='Province/State';
+}
+jQuery('#' + table + '_state_text').html(state);
+jQuery('#' + table + '_zip_text').html(zip);
+}";
+
+const COUNTRY_JS_PLAIN: &str = "function fn_country_address(table) {
+ country_obj=document.getElementById(table + 'country_code');
+ switch (true) {
+   case (!country_obj):
+   return;
+  case (country_obj.value == 'US'):
+   state='State';
+   zip='ZIP Code';
+   div_show(table + '_state_us',1);
+   div_show(table + 'state_ca',0);
+   div_show(table + 'state_other',0);
+   break;
+  case (country_obj.value == 'CA'):
+   state='Province';
+   zip='Postal Code';
+   div_show(table + 'state_us',0);
+   div_show(table + 'state_ca',1);
+   div_show(table + 'state_other',0);
+   break;
+  default:
+   state='Province/State';
+   zip='Postal Code';
+   div_show(table + 'state_us',0);
+   div_show(table + 'state_ca',0);
+   div_show(table + 'state_other',1);
+ }
+ state_obj=document.getElementById(table + 'state_text');
+ if (state_obj) state_obj.innerHTML=state;
+ zip_obj=document.getElementById(table + 'zip_text');
+ if (zip_obj) zip_obj.innerHTML=zip;
+}";
+
+const ENTER_JS: &str = r##"<script>
+function profile_ajax(action) {
+    data=scscpq_class_data('scscpq_input');
+    data.action=action;
+	jQuery.ajax({
+		url: "/scscpq_api.php",
+        type: "post",
+	    dataType: "json",
+		data: data,
+        error: jQuery("#profile_message").html("Internal Error Detected"),
+	    success: function(response) {
+            if (response['profile_tab'].length) jQuery('#products_jquery_div').tabs({ active: response['profile_tab'] });
+            if (response['success_url'].length) window.location.href=response['success_url'];
+            scscpq_fill(response['html']);
+            error=response['error'];
+            for (var field in error) {
+                if (error[field] == 1) {
+                    jQuery("#" + field).removeClass('profile_error').addClass('profile_error');
+                } else {
+                    jQuery("#" + field).removeClass('profile_error');
+                }
+            }
+            jQuery("#profile_email").focus();
+        }
+    })
+}
+</script>"##;
+
+const ENTER_CSS: &str = "<style>
+.profile_error {
+    border: 1px solid red !important;
+}
+.profile_welcome {
+    color: #000;
+    font-family: 'Rajdhani';
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 2em;
+}
+#profile_message {
+    color: #000;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+.profile_box {
+    max-width: 1000px;
+    border: 1px solid black;
+    padding: 1em;
+    margin: 1em;
+}
+.small_button {
+    color: #FFF;
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: 'Rajdhani';
+    font-size: 1.25rem;
+    font-weight: 600;
+    background: linear-gradient(0deg, rgba(115,14,28,1) 0%, rgba(229,28,56,1) 150%);
+    border-radius: 4px;
+    padding: 0 1em;
+}
+</style>";
+
+#[cfg(test)]
+mod tests {
+    use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+
+    use super::*;
+
+    fn layout(fields: &[(&'static str, Need)]) -> Layout {
+        let mut map: HashMap<&'static str, Need> = fields.iter().copied().collect();
+        map.insert("email", Need::Required);
+        Layout { fields: map, jquery: true }
+    }
+
+    #[test]
+    fn the_form_takes_any_address_sign_in_takes() {
+        let l = layout(&[]);
+        let posted = |email: &str| vec![("profile_email".to_string(), email.to_string())];
+        let (p, errors) = verify(&l, &posted(" Pat+CAD@Example.com "), Profile::default());
+        assert_eq!((p.get("email"), errors.len()), ("pat+cad@example.com", 0));
+        let (p, errors) = verify(&l, &posted("a'b@example.com"), Profile::default());
+        assert_eq!(p.get("email"), "a'b@example.com");
+        assert_eq!(errors, [("profile_email".to_string(), "Email format error".to_string())]);
+    }
+
+    #[test]
+    fn a_name_is_filled_by_both_its_parts() {
+        let mut p = Profile { name: " ".into(), ..Profile::default() };
+        assert!(!p.filled("name"));
+        p.name_first = Some("Pat".into());
+        p.name_last = Some("  ".into());
+        assert!(!p.filled("name") && p.filled("name_first") && !p.filled("name_last"));
+        p.name_last = Some("Lee".into());
+        assert!(p.filled("name"));
+        assert!(!p.filled("city"));
+    }
+
+    #[test]
+    fn verify_reports_blank_required_fields_by_input_name() {
+        let l = layout(&[("company_name", Need::Required), ("name", Need::Required), ("city", Need::Allowed), ("state", Need::Required), ("country_code", Need::Required)]);
+        let posted = vec![
+            ("action".to_string(), "register".to_string()),
+            ("profile_email".to_string(), "Pat@Example.com".to_string()),
+            ("profile_name_first".to_string(), " Pat <script>x</script> ".to_string()),
+            ("profile_country_code".to_string(), "CA".to_string()),
+            ("profile_state_ca".to_string(), "ON".to_string()),
+            ("profile_title".to_string(), "ignored".to_string()),
+        ];
+        let (p, errors) = verify(&l, &posted, Profile::default());
+        assert_eq!(p.get("email"), "pat@example.com");
+        assert_eq!(p.get("name_first"), "Pat");
+        assert_eq!((p.get("state"), p.get("title")), ("ON", ""));
+        assert_eq!(
+            errors,
+            vec![
+                ("profile_company_name".to_string(), "Company Name cannot be blank".to_string()),
+                ("profile_name_last".to_string(), "Last Name cannot be blank".to_string()),
+            ]
+        );
+        let unpicked: Vec<(String, String)> = posted.iter().map(|(k, v)| (k.clone(), if k == "profile_country_code" { String::new() } else { v.clone() })).collect();
+        let (_, errors) = verify(&l, &unpicked, Profile::default());
+        assert_eq!(errors[0], ("profile_country_code".to_string(), "Country cannot be blank".to_string()));
+    }
+
+    #[test]
+    fn the_profile_cookie_is_the_php_shape_and_tolerates_junk() {
+        let p = Profile { email: Some("pat@example.com".into()), name_first: Some("Pat".into()), name: "Pat ".into(), language_code: "EN".into(), ..Default::default() };
+        assert_eq!(
+            p.to_cookie(),
+            r#"{"email":"pat@example.com","name_first":"Pat","name_last":null,"name":"Pat ","cad_code":null,"cad_name":null,"language_code":"EN","generate":0,"consent":0,"company_name":null,"address":null,"city":null,"state":null,"zip":null,"country_code":null}"#
+        );
+        assert_eq!(Profile::from_cookie(Some(&p.to_cookie())), p);
+        let verified = Profile { title: Some(String::new()), phone: Some("555 0100".into()), fax: Some(String::new()), ..p };
+        assert!(verified.to_cookie().ends_with(r#""country_code":null,"title":"","phone":"555 0100","fax":""}"#), "{}", verified.to_cookie());
+        assert_eq!(Profile::from_cookie(Some(&verified.to_cookie())), verified);
+        assert_eq!(Profile::from_cookie(Some("not json")), Profile::default());
+        let loose = Profile::from_cookie(Some(r#"{"email":7,"generate":"2x","consent":true,"zip":["x"]}"#));
+        assert_eq!((loose.email.as_deref(), loose.generate, loose.consent, loose.zip), (Some("7"), 2, 1, None));
+    }
+
+    #[test]
+    fn the_cookie_escapes_as_json_encode_does() {
+        let p = Profile { company_name: Some("Él/Ça 😀".into()), ..Default::default() };
+        assert!(p.to_cookie().contains(r#""company_name":"\u00c9l\/\u00c7a \ud83d\ude00""#), "{}", p.to_cookie());
+    }
+
+    #[tokio::test]
+    async fn load_keeps_the_cad_format_only_while_it_exists_and_takes_the_account_address() {
+        let pool = crate::db::open_memory().await.unwrap();
+        sqlx::query("INSERT INTO cad (code, name) VALUES ('STEP', 'STEP AP214')").execute(&pool).await.unwrap();
+        let mut headers = HeaderMap::new();
+        let remembered = r#"{"email":"","name_first":"Pat","cad_code":"STEP","company_name":"Typed Co","language_code":""}"#;
+        let cookie = format!("harcourt=pat%40example.com; harcourt_profile={}", utf8_percent_encode(remembered, NON_ALPHANUMERIC));
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(&cookie).unwrap());
+        let anonymous = Visitor::anonymous();
+        let p = Profile::load(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((p.email.as_deref(), p.name.as_str(), p.cad_name.as_deref(), p.language_code.as_str()), (Some("pat@example.com"), "Pat ", Some("STEP AP214"), "EN"));
+        assert_eq!(p.company_name.as_deref(), Some("Typed Co"));
+        sqlx::query("DELETE FROM cad").execute(&pool).await.unwrap();
+        let p = Profile::load(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((p.cad_code, p.cad_name), (None, None));
+    }
+
+    /// Visit "v" signed in to a new account `id`, and the sign-in that admitted `email` to it.
+    async fn signed_in(pool: &SqlitePool, id: i64, email: &str) -> (Visitor, SignIn) {
+        sqlx::query(r#"INSERT INTO "user" (id, company_name, status) VALUES (?1, 'Works', 'Active')"#).bind(id).execute(pool).await.unwrap();
+        let account = crate::accounts::account::load(pool, UserId(id)).await.unwrap().unwrap();
+        let identity = Identity::Account(Box::new(crate::visitor::SignedIn { account, email: None, via: crate::visitor::Via::Session }));
+        let visitor = Visitor { identity, visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let signin = SignIn { user: UserId(id), token: crate::token::Token::generate(), remembered: false, email: Email::parse(email).unwrap() };
+        (visitor, signin)
+    }
+
+    #[tokio::test]
+    async fn a_loaded_profile_is_kept_only_while_no_one_was_admitted_since() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let (headers, t) = (HeaderMap::new(), unix_now());
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let ((pat, pat_in), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let (fresh, basis) = Profile::loaded(&pool, &headers, &anonymous).await.unwrap();
+        assert!(fresh.remember(&pool, &anonymous, &basis, t).await.unwrap().is_some(), "a visit with no profile yet");
+        Profile::remembered(&pool, &headers, &anonymous).await.unwrap().admit(&pool, &anonymous, &pat_in, "Pat", "Lee", t).await.unwrap();
+
+        let (before, basis) = Profile::loaded(&pool, &headers, &pat).await.unwrap();
+        assert_eq!(before.email.as_deref(), Some("pat@example.com"));
+        Profile::remembered(&pool, &headers, &pat).await.unwrap().admit(&pool, &pat, &lee_in, "Lee", "Ray", t + 1).await.unwrap();
+        assert_eq!(before.remember(&pool, &pat, &basis, t + 2).await.unwrap(), None, "built from Pat's profile, which is gone");
+        let admitted = Profile::load(&pool, &headers, &lee).await.unwrap();
+        assert_eq!((admitted.email.as_deref(), admitted.name.as_str()), (Some("lee@example.com"), "Lee Ray"));
+
+        let (after, basis) = Profile::loaded(&pool, &headers, &lee).await.unwrap();
+        assert!(after.remember(&pool, &lee, &basis, t + 3).await.unwrap().is_some());
+        assert_eq!(Profile::remembered(&pool, &headers, &lee).await.unwrap(), after);
+    }
+
+    #[tokio::test]
+    async fn the_remembered_address_fills_the_form_but_does_not_make_the_profile_that_persons() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, pat_in), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let earlier = r#"{"email":"","name_first":"Kim","name_last":"Day","title":"Buyer","phone":"555-0100","fax":"555-0101"}"#;
+        let mut headers = HeaderMap::new();
+        let cookie = format!("harcourt=pat%40example.com; harcourt_profile={}", utf8_percent_encode(earlier, NON_ALPHANUMERIC));
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(&cookie).unwrap());
+
+        let shown = Profile::load(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((shown.email.as_deref(), shown.phone.as_deref()), (Some("pat@example.com"), Some("555-0100")), "the form is filled in");
+        let (loaded, basis) = Profile::loaded(&pool, &headers, &anonymous).await.unwrap();
+        let kept = loaded.remember(&pool, &anonymous, &basis, t).await.unwrap().unwrap();
+        assert!(!kept.to_str().unwrap().contains("example.com"), "{kept:?}");
+        let remembered = Profile::remembered(&pool, &headers, &anonymous).await.unwrap();
+        assert_eq!((remembered.email, remembered.phone.as_deref()), (None, Some("555-0100")));
+
+        Profile::remembered(&pool, &headers, &anonymous).await.unwrap().admit(&pool, &anonymous, &pat_in, "", "", t + 1).await.unwrap();
+        let admitted = Profile::remembered(&pool, &HeaderMap::new(), &pat).await.unwrap();
+        assert_eq!(admitted.email.as_deref(), Some("pat@example.com"));
+        assert_eq!((admitted.name_first, admitted.title, admitted.phone, admitted.fax), (None, None, None, None), "nothing of the earlier visitor's");
+
+        let own = Profile { email: Some("lee@example.com".into()), phone: Some("555-0199".into()), ..Profile::default() };
+        own.admit(&pool, &lee, &lee_in, "Lee", "Ray", t + 2).await.unwrap();
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &lee).await.unwrap().phone.as_deref(), Some("555-0199"), "a profile stored with the address keeps its fields");
+    }
+
+    #[tokio::test]
+    async fn the_visit_profile_serves_only_the_account_it_was_admitted_for() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, _), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let pats = sent_profile(r#"{"email":"pat@example.com","name_first":"Pat","name_last":"Lee","phone":"555-0100","profile_for":3}"#);
+        Profile { email: Some("lee@example.com".into()), phone: Some("555-0199".into()), ..Profile::default() }.admit(&pool, &lee, &lee_in, "Lee", "Ray", t).await.unwrap();
+
+        let seen = |p: Profile| (p.email, p.phone);
+        let pat_sees = seen(Profile::remembered(&pool, &pats, &pat).await.unwrap());
+        assert_eq!(pat_sees, (Some("pat@example.com".into()), Some("555-0100".into())), "the cookie, not the profile admitted for another account");
+        assert_eq!(seen(Profile::remembered(&pool, &pats, &anonymous).await.unwrap()), (None, None), "nor Pat's cookie for a visitor not signed in");
+        assert_eq!(seen(Profile::remembered(&pool, &pats, &lee).await.unwrap()), (Some("lee@example.com".into()), Some("555-0199".into())));
+
+        let (kept, basis) = Profile::loaded(&pool, &pats, &pat).await.unwrap();
+        assert!(kept.remember(&pool, &pat, &basis, t + 1).await.unwrap().is_some(), "the request's own profile replaces the other account's");
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &pat).await.unwrap(), kept);
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &lee).await.unwrap(), Profile::default());
+    }
+
+    /// A request that sends the `harcourt_profile` cookie with this JSON.
+    fn sent_profile(json: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(&format!("{COOKIE}={}", utf8_percent_encode(json, NON_ALPHANUMERIC))).unwrap());
+        headers
+    }
+
+    /// The next request of a browser that was sent this `harcourt_profile` cookie.
+    fn sent_back(set: &HeaderValue) -> HeaderMap {
+        let pair = set.to_str().unwrap().split(';').next().unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(axum::http::header::COOKIE, HeaderValue::from_str(pair).unwrap());
+        headers
+    }
+
+    /// Visit `visit` of the company at account `id`, signed in by its address.
+    async fn by_address(pool: &SqlitePool, id: i64, visit: &str) -> Visitor {
+        let account = crate::accounts::account::load(pool, UserId(id)).await.unwrap().unwrap();
+        let identity = Identity::Account(Box::new(crate::visitor::SignedIn { account, email: None, via: crate::visitor::Via::CompanyAddress }));
+        Visitor { identity, visit: Some(visit::VisitId::of(visit)), ..Visitor::anonymous() }
+    }
+
+    #[tokio::test]
+    async fn a_cookie_written_for_one_account_is_not_another_accounts_profile() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, pat_in), (lee, _)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let typed = Profile { email: Some("pat@example.com".into()), phone: Some("555-0100".into()), language_code: "FR".into(), generate: 1, ..Profile::default() };
+        let set = typed.admit(&pool, &pat, &pat_in, "Pat", "Lee", t).await.unwrap().unwrap();
+        let browser = sent_back(&set);
+        let elsewhere = Visitor { visit: Some(visit::VisitId::of("w")), ..pat.clone() };
+
+        let own = Profile::remembered(&pool, &browser, &elsewhere).await.unwrap();
+        assert_eq!((own.email.as_deref(), own.phone.as_deref()), (Some("pat@example.com"), Some("555-0100")), "the account it was written for reads it");
+        let other = Profile::remembered(&pool, &browser, &lee).await.unwrap();
+        assert_eq!(other, Profile { language_code: "FR".into(), generate: 1, ..Profile::default() }, "another account has only the browser's choices");
+        let (loaded, basis) = Profile::loaded(&pool, &browser, &lee).await.unwrap();
+        let kept = loaded.remember(&pool, &lee, &basis, t + 1).await.unwrap().unwrap();
+        let kept = cookies::get(&sent_back(&kept), COOKIE).unwrap();
+        let lees = Profile::from_cookie(Some(&kept));
+        assert_eq!((lees.email, lees.phone, lees.company_name.as_deref()), (None, None, Some("Works")), "{kept}");
+        assert_eq!(written_for(&kept), Some(UserId(4)), "kept for the account it is now");
+
+        let unowned = sent_profile(r#"{"email":"pat@example.com","name_first":"Pat","generate":1}"#);
+        let before = Profile::remembered(&pool, &unowned, &elsewhere).await.unwrap();
+        assert_eq!((before.email, before.name_first, before.generate), (None, None, 1), "a cookie written for no account is no account's profile");
+    }
+
+    #[tokio::test]
+    async fn after_sign_out_the_next_visit_has_no_ones_name_or_address() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        sqlx::query("INSERT INTO cad (code, name) VALUES ('STEP', 'STEP AP214')").execute(&pool).await.unwrap();
+        let (pat, pat_in) = signed_in(&pool, 3, "pat@example.com").await;
+        let typed = Profile {
+            email: Some("pat@example.com".into()),
+            title: Some("Buyer".into()),
+            cad_code: Some("STEP".into()),
+            language_code: "FR".into(),
+            generate: 1,
+            consent: 1,
+            ..Profile::default()
+        };
+        let set = typed.admit(&pool, &pat, &pat_in, "Pat", "Lee", t).await.unwrap().unwrap();
+        let left = Profile::signed_out(&sent_back(&set), t + 1).unwrap();
+        assert_eq!(Profile::signed_out(&HeaderMap::new(), t + 1), None, "no cookie, none written");
+
+        let browser = sent_back(&left);
+        let company = by_address(&pool, 3, "w").await;
+        let next = Profile::load(&pool, &browser, &company).await.unwrap();
+        assert_eq!((next.email, next.name_first, next.name_last, next.title), (None, None, None, None));
+        assert_eq!((next.cad_code.as_deref(), next.language_code.as_str(), next.generate, next.consent), (Some("STEP"), "FR", 1, 1), "the browser's choices stay");
+        assert_eq!(next.company_name.as_deref(), Some("Works"), "the company's own address");
+        let anonymous = Profile::load(&pool, &browser, &Visitor::anonymous()).await.unwrap();
+        assert_eq!((anonymous.email, anonymous.name_first, anonymous.generate), (None, None, 1));
+    }
+
+    #[tokio::test]
+    async fn the_form_draws_only_the_registry_fields_with_escaped_values() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let l = layout(&[("company_name", Need::Required), ("name", Need::Allowed)]);
+        let p = Profile { email: Some("x'@example.com".into()), ..Default::default() };
+        sqlx::query(r#"INSERT INTO language (code, country_code, name, active, menu) VALUES ('FR', 'CA', 'Français', 1, '{"catalog_profile_welcome":"Bienvenue {company} !"}')"#)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let fr = crate::accounts::locale::Languages::load(&pool).await.unwrap().get("fr").unwrap();
+        let labels = Labels::load(&pool, &fr).await.unwrap();
+        let named = Profile { company_name: Some("A&B".into()), ..p.clone() };
+        let out = form(&pool, &l, &named, &labels).await.unwrap();
+        assert!(out.contains("<p class=profile_welcome>Bienvenue A&amp;B !</p>"), "a translated label, with the value escaped");
+        assert!(out.contains("<p>Note: This should be a one-time verification only."), "no translation: the English default");
+        assert!(out.contains("<tr ><td width='20%'><font color=red><b>*</b></font>Email</td><td width='80%'><input type=email class='scscpq_input' name='profile_email' id='profile_email' size='40' maxlength='60' value='x&#039;@example.com' placeholder='Email'>\n</td></tr>"), "{out}");
+        assert!(out.contains("<td width='20%'>&nbsp;First Name</td>"));
+        assert!(!out.contains("profile_city"));
+        assert!(out.contains("<input type=hidden name='country_code' id='country_code' value='US'>"));
+    }
+}

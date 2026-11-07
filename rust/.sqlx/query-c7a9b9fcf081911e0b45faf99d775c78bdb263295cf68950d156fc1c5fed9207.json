@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO visit (id, code_tries, seen_at) VALUES (?1, 1, ?2)\n           ON CONFLICT (id) DO UPDATE SET code_tries = code_tries + 1, seen_at = excluded.seen_at\n           RETURNING code_tries AS \"code_tries!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "code_tries!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c7a9b9fcf081911e0b45faf99d775c78bdb263295cf68950d156fc1c5fed9207"
+}

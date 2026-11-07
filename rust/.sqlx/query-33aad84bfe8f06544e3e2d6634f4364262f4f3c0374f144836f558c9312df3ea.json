@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT email AS \"email!: String\", first_seen AS \"first_seen!: i64\", last_seen AS \"last_seen!: i64\", user_id AS \"last_user_id!: i64\"\n           FROM (SELECT lower(trim(email)) AS email, user_id, min(date_time) OVER address AS first_seen, max(date_time) OVER address AS last_seen,\n                        row_number() OVER (address ORDER BY date_time DESC, id DESC) AS latest\n                 FROM log WHERE trim(email) <> '' AND user_id <> 0\n                 WINDOW address AS (PARTITION BY lower(trim(email))))\n           WHERE latest = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "email!: String",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "first_seen!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "last_seen!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "last_user_id!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "33aad84bfe8f06544e3e2d6634f4364262f4f3c0374f144836f558c9312df3ea"
+}

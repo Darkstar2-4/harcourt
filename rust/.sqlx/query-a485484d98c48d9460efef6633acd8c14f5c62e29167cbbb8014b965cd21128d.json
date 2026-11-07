@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country, state, COALESCE(name, '') AS \"name!: String\", COALESCE(alias, '') AS \"alias!: String\" FROM country",
+  "describe": {
+    "columns": [
+      {
+        "name": "country",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "alias!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a485484d98c48d9460efef6633acd8c14f5c62e29167cbbb8014b965cd21128d"
+}

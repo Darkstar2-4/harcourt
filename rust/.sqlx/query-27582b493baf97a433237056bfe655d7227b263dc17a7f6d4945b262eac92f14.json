@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT code AS \"code!\" FROM language WHERE active = 1 AND code <> '' ORDER BY code = 'EN' DESC, priority, name",
+  "describe": {
+    "columns": [
+      {
+        "name": "code!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "27582b493baf97a433237056bfe655d7227b263dc17a7f6d4945b262eac92f14"
+}

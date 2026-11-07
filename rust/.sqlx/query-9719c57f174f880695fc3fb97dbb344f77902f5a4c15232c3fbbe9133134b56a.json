@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT company_name AS \"company_name!\", category_id AS \"id!: i64\" FROM company_category_block ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "company_name!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9719c57f174f880695fc3fb97dbb344f77902f5a4c15232c3fbbe9133134b56a"
+}

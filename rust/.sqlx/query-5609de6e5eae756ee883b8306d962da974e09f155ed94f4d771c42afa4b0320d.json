@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", file, mime, width, height, alt, sizes, name, parent_id, lang, group_id FROM cms_media",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "file",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "width",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "alt",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "sizes",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lang",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 10,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5609de6e5eae756ee883b8306d962da974e09f155ed94f4d771c42afa4b0320d"
+}

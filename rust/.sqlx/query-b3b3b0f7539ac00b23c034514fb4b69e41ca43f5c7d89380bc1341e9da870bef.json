@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT field AS \"field!\", item AS \"item!\", coalesce(data, '') AS \"data!: String\" FROM registry\n               WHERE module = 'www' AND domain IN ('', 'global')\n               ORDER BY domain = 'global', field, CASE WHEN item GLOB '[0-9]*' THEN printf('%04d', item) ELSE item END",
+  "describe": {
+    "columns": [
+      {
+        "name": "field!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "item!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "data!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b3b3b0f7539ac00b23c034514fb4b69e41ca43f5c7d89380bc1341e9da870bef"
+}

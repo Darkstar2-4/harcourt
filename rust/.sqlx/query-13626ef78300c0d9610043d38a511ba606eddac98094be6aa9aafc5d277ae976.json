@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT field AS \"field!\", coalesce(data, '') AS \"data!: String\" FROM registry WHERE domain = '' AND module = ?1 AND item = ''",
+  "describe": {
+    "columns": [
+      {
+        "name": "field!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "data!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "13626ef78300c0d9610043d38a511ba606eddac98094be6aa9aafc5d277ae976"
+}

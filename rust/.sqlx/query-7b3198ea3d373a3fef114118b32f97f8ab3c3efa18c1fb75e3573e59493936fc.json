@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO log (date_time, type, subtype, comment) VALUES (?1, 'CRON', 'Filmstrip', ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7b3198ea3d373a3fef114118b32f97f8ab3c3efa18c1fb75e3573e59493936fc"
+}

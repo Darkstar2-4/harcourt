@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE visit SET google_error = NULL WHERE id = ?1 AND google_error = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4ed6e16d90dc705738c645d99d37990d4d7ce7b66f635adc794abb2bfd694313"
+}

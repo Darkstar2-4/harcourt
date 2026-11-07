@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE outbox SET next_attempt_at = ?1\n           WHERE id = (SELECT id FROM outbox WHERE sent_at IS NULL AND failed_at IS NULL AND next_attempt_at <= ?2\n                       ORDER BY next_attempt_at, id LIMIT 1)\n           RETURNING id AS \"id!: i64\", to_email AS \"to_email!\", to_name AS \"to_name!\", reply_to, from_name, subject AS \"subject!\",\n                     body AS \"body!\", content_type AS \"content_type!\", attempts AS \"attempts!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "to_email!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "to_name!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "reply_to",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "from_name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject!",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "body!",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type!",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "attempts!: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5e9741c13fbdf78c6840246ede1ead1521768a87e872e87084cb6be9fd459ade"
+}

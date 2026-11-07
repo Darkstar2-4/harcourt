@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT recipient, bcc, coalesce(css, '') AS \"css!: String\", coalesce(subject, '') AS \"subject!: String\",\n                  coalesce(header_html, '') AS \"header_html!: String\", coalesce(footer_html, '') AS \"footer_html!: String\"\n           FROM mailform WHERE code = ?1 ORDER BY id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "recipient",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "bcc",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "css!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "header_html!: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "footer_html!: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f7ccd1965b81be2fb1a25f89a7e130acbb51d2e22ad2a109ba8634321ec7f68a"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM session WHERE user_id = ?1 AND email = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "bd8ba9a22c8cd9391c43eda2aaf07d872b98a3fc626a27f04550d04afcb67989"
+}

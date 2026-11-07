@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'search_timestamp', '', ?1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "42fd28c5be770654bd32952f66b27d31e473f5b0b8f825b0bb2c125ac3f8ccf0"
+}

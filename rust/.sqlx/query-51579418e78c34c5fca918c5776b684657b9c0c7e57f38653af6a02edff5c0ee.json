@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM oauth_login WHERE token_hash = ?1 AND outcome IS NOT NULL AND created_at > ?2\n           RETURNING provider AS \"provider!\", outcome AS \"outcome!\", message",
+  "describe": {
+    "columns": [
+      {
+        "name": "provider!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "outcome!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "message",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "51579418e78c34c5fca918c5776b684657b9c0c7e57f38653af6a02edff5c0ee"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT comment, email FROM log WHERE user_id = ?1 AND lower(type) = 'user' AND lower(subtype) = 'signup' ORDER BY date_time DESC, id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "comment",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "641a5f14b8a6781f684e0a4626290da1e0cfe3e8837ae42e2ffb382e2b963759"
+}

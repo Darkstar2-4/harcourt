@@ -1,0 +1,29 @@
+# Staff routes against the oracle. Run with --rust-session: staff pages read the persona's session.
+# Signed-in personas are compared on /dashboard.php only; see staff.expected.md.
+{"name":"dashboard-executive","path":"/dashboard.php","persona":"executive-active"}
+{"name":"dashboard-administrator","path":"/dashboard.php","persona":"administrator-active"}
+{"name":"dashboard-superuser","path":"/dashboard.php","persona":"superuser-active"}
+{"name":"dashboard-tab-campaign","path":"/dashboard.php?tab=Campaign","persona":"administrator-active"}
+{"name":"dashboard-tab-access","path":"/dashboard.php?tab=7+Day+Access","persona":"executive-active"}
+{"name":"dashboard-anonymous","path":"/dashboard.php","persona":"anonymous"}
+{"name":"dashboard-anonymous-fr","path":"/dashboard.php","persona":"anonymous","language":"fr"}
+{"name":"scs_log-anonymous","path":"/scs_log.php","persona":"anonymous"}
+{"name":"scs_log-login-anonymous","path":"/scs_log.php?action=login&user_id=990001","persona":"anonymous"}
+{"name":"company-anonymous","path":"/company.php","persona":"anonymous"}
+{"name":"company-anonymous-fr","path":"/company.php","persona":"anonymous","language":"fr"}
+{"name":"dashboard-wp-executive","path":"/dashboard.php?scscpq_wp=1","persona":"executive-active"}
+{"name":"dashboard-wp-administrator","path":"/dashboard.php?scscpq_wp=1","persona":"administrator-active"}
+{"name":"dashboard-wp-anonymous","path":"/dashboard.php?scscpq_wp=1","persona":"anonymous"}
+{"name":"dashboard-tab-pending-access","path":"/dashboard.php?tab=Pending+Access+%281%29","persona":"administrator-active"}
+{"name":"dashboard-tab-pending-po","path":"/dashboard.php?tab=Pending+PO+%281%29","persona":"executive-active"}
+# The WordPress dashboard page's shell (from p3-staff), as an executive.
+{"name":"d-slash","path":"/dashboard/","persona":"executive-active"}
+{"name":"d-bare","path":"/dashboard","persona":"executive-active"}
+{"name":"d-fr-bare","path":"/tableau-de-bord","persona":"executive-active"}
+{"name":"d-fr-slash","path":"/tableau-de-bord/","persona":"executive-active"}
+{"name":"d-fr-lang","path":"/tableau-de-bord/?lang=fr","persona":"executive-active"}
+{"name":"d-en-lang","path":"/dashboard/?lang=fr","persona":"executive-active"}
+{"name":"d-tab","path":"/dashboard/?tab=Pending","persona":"executive-active"}
+{"name":"d-warm","path":"/dashboard/","session":"warm","persona":"executive-active"}
+{"name":"d-warm-fr","path":"/tableau-de-bord/?lang=fr","session":"warm","language":"fr","persona":"executive-active"}
+{"name":"d-wp","path":"/dashboard/?scscpq_wp=1","persona":"executive-active"}

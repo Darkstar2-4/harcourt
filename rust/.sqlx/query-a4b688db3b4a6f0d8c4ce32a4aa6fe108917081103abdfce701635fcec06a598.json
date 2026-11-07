@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT sku, quantity AS \"quantity!: i64\", comment FROM cart_item WHERE session_hash = ?1 ORDER BY added_at, rowid",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "quantity!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "comment",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a4b688db3b4a6f0d8c4ce32a4aa6fe108917081103abdfce701635fcec06a598"
+}

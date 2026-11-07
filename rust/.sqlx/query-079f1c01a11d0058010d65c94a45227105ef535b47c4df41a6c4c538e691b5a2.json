@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE subcategory SET prj = ?2 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "079f1c01a11d0058010d65c94a45227105ef535b47c4df41a6c4c538e691b5a2"
+}

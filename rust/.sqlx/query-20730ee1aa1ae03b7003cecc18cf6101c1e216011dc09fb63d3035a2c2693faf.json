@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE inventory_xref SET update_timestamp = ?3 WHERE (?1 <> '' AND sku = ?1) OR (?1 = '' AND ?2 <> '' AND competitor_sku = ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "20730ee1aa1ae03b7003cecc18cf6101c1e216011dc09fb63d3035a2c2693faf"
+}

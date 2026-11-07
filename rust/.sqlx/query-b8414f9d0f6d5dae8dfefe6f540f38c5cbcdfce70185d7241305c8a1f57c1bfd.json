@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cms_field",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "b8414f9d0f6d5dae8dfefe6f540f38c5cbcdfce70185d7241305c8a1f57c1bfd"
+}

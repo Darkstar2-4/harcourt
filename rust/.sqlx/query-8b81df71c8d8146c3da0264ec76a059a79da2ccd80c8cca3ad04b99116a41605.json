@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE remote_grant SET used_at = ?2\n           WHERE token_hash = ?1 AND used_at IS NULL AND expires_at > ?2\n           RETURNING user_id AS \"user_id!: i64\", granted_by AS \"granted_by!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "granted_by!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "8b81df71c8d8146c3da0264ec76a059a79da2ccd80c8cca3ad04b99116a41605"
+}

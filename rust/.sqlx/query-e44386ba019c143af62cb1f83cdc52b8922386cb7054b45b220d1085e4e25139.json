@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cms_option SET value = ?3 WHERE lang = ?1 AND name = ?2 AND kind = 'html'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e44386ba019c143af62cb1f83cdc52b8922386cb7054b45b220d1085e4e25139"
+}

@@ -1,1 +1,0 @@
-window.gtm4wp_media_sdk_allowed=!0;

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", sku, subcategory_id, coalesce(active, 0) AS \"active!: i64\" FROM inventory",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sku",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subcategory_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "active!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c4b7ccce4dbdf2c2378ebde3f3ce1ec1457f0b5184da51a5d97aa1e7a320fc60"
+}

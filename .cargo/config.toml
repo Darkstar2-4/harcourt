@@ -1,0 +1,5 @@
+[env]
+# The bundled SQLite (libsqlite3-sys) is built with SQLITE_ENABLE_MEMORY_MANAGEMENT, which puts every connection's page
+# cache behind one global mutex, and with memory statistics on, which takes another on every allocation. Concurrent
+# requests then spent most of their time in futex calls. Each connection keeps its own cache instead.
+LIBSQLITE3_FLAGS = "-USQLITE_ENABLE_MEMORY_MANAGEMENT -DSQLITE_DEFAULT_MEMSTATUS=0"

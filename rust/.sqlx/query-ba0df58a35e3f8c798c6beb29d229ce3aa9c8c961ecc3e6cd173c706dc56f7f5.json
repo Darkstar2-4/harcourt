@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT coalesce(i.pricing, '') AS \"pricing!: String\", coalesce(c.name, '') AS \"category!: String\",\n                          coalesce(s.name, '') AS \"family!: String\", s.status AS \"status!: String\", s.currency,\n                          coalesce(s.category_id, 0) AS \"family_category!: i64\", coalesce(fc.active, 0) AS \"category_active!: i64\",\n                          coalesce(i.active, 0) AS \"active!: i64\"\n                   FROM inventory i\n                   JOIN subcategory s ON s.id = i.subcategory_id\n                   LEFT JOIN category c ON c.id = i.category_id\n                   LEFT JOIN category fc ON fc.id = s.category_id\n                   WHERE i.sku = ?1 COLLATE NOCASE",
+  "describe": {
+    "columns": [
+      {
+        "name": "pricing!: String",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "category!: String",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "family!: String",
+        "ordinal": 2,
+        "type_info": "Null"
+      },
+      {
+        "name": "status!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "family_category!: i64",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "category_active!: i64",
+        "ordinal": 6,
+        "type_info": "Null"
+      },
+      {
+        "name": "active!: i64",
+        "ordinal": 7,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "ba0df58a35e3f8c798c6beb29d229ce3aa9c8c961ecc3e6cd173c706dc56f7f5"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT data FROM registry WHERE domain IN ('', 'global') AND module = ?1 AND field = ?2 AND item = ''\n           ORDER BY domain = 'global' LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "7fbc46e4af730f3ff02537565918f1e53fffbe84feb7b75d6d19dccc4c260b89"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name, description, filetype, html_content, CAST(content AS TEXT) AS \"body: String\"\n           FROM content WHERE record_type = 'campaign' AND record_id = ?1 AND record_item LIKE ?2 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "filetype",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "body: String",
+        "ordinal": 4,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "7e17516270926b69a187742323a3f8c84c74a980c213e12c5252ad5e25b39bd6"
+}

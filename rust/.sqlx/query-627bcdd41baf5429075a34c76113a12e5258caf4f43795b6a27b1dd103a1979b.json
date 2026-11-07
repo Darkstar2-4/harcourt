@@ -1,0 +1,158 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT company_name, address, city, state, zip, country_code, status, \"type\" AS kind, customer_code, catalog, cad, leadscore, ecommerce,\n                  price_type, price_pct, comment, login_document_id, landing_document_id, portal_id, language_code, currency_code, industry_id,\n                  revenue, employees\n           FROM \"user\" WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "company_name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "address",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "city",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "state",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "zip",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "country_code",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "customer_code",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "catalog",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cad",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "leadscore",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ecommerce",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price_type",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "price_pct",
+        "ordinal": 14,
+        "type_info": "Float"
+      },
+      {
+        "name": "comment",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "login_document_id",
+        "ordinal": 16,
+        "type_info": "Integer"
+      },
+      {
+        "name": "landing_document_id",
+        "ordinal": 17,
+        "type_info": "Integer"
+      },
+      {
+        "name": "portal_id",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "language_code",
+        "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency_code",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry_id",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "revenue",
+        "ordinal": 22,
+        "type_info": "Text"
+      },
+      {
+        "name": "employees",
+        "ordinal": 23,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "627bcdd41baf5429075a34c76113a12e5258caf4f43795b6a27b1dd103a1979b"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT meta, html_content, content FROM content\n           WHERE record_type = 'document' AND record_id = ?1 AND language_code IN ('EN', ?2)\n           ORDER BY CASE WHEN language_code = 'EN' THEN 2 ELSE 1 END, id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "meta",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "content",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d72b973eb29ea34639e544971d9e1e55961fc1ad92b0a54d64b5bfb656f0a5e6"
+}

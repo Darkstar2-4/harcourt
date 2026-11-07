@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cad (code, name, qualifier, version, \"type\", instructions, \"macro\", native, direct, active) VALUES (?1, ?2, ?3, ?4, ?5, '', ?6, ?7, ?8, 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "a59b67860a06f3011a6ca55eed1be19cc80479f65e182a3b2573613e26a87af0"
+}

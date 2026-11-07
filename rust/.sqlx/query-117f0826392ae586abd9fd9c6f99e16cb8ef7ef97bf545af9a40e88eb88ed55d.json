@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"user\" SET ipstack_json = ?2, currency_code = CASE WHEN ?3 = '' THEN currency_code ELSE ?3 END WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "117f0826392ae586abd9fd9c6f99e16cb8ef7ef97bf545af9a40e88eb88ed55d"
+}

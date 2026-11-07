@@ -1,0 +1,639 @@
+//! catalog.php's views through the router, on synthetic catalog rows.
+
+mod catalog_support;
+
+use axum::{
+    body::Body,
+    http::{Method, Request, StatusCode},
+};
+use catalog_support::{harness, send, signed_in, Account};
+use sqlx::SqlitePool;
+
+/// What the catalog page's script fetched, inside a visit.
+fn get(path: &str, cookie: Option<&str>) -> Request<Body> {
+    catalog_support::request(Method::GET, path, cookie, &[("x-requested-with", "XMLHttpRequest")], Body::empty())
+}
+
+const PARAMS: &str = r#"[{"hyperlink":0,"id":0,"name":"Diameter","type":"Decimal:2"},{"hyperlink":1,"id":1,"name":"Mate","type":"Uppercase"}]"#;
+
+fn price(list: f64) -> String {
+    format!(r#"[{{"price":{list:?},"qty_break":1}}]"#)
+}
+
+async fn exec(pool: &SqlitePool, sql: &str) {
+    sqlx::query(sql).execute(pool).await.unwrap();
+}
+
+/// Two categories, a family of three parts in category 1, a Pending family, French names, document 157.
+async fn seed(pool: &SqlitePool) {
+    exec(pool, "INSERT INTO language (code, name, local_name, active, menu) VALUES ('EN', 'English', 'English', 1, NULL), ('FR', 'French', 'Français', 1, '{\"catalog_products\":\"Détails du produit\"}')").await;
+    exec(pool, "INSERT INTO currency (code, name, plural, exchange_rate, adder_pct, active) VALUES ('USD', 'US Dollar', 'US Dollars', 1, 0, 1)").await;
+    exec(pool, "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'configure_contact', '', 'Contact us for pricing'), ('', 'cad', 'configurator', '', 'https://cad.example.com/frame')").await;
+    exec(pool, "INSERT INTO category (id, name, sort_order, active) VALUES (1, 'Pins', 1, 1), (2, 'Clamps', 2, 1)").await;
+    sqlx::query("INSERT INTO subcategory (id, category_id, name, parameters, parameter_search, status, page_break, output, leadtime_option) VALUES (7, 1, 'Ball Lock Pins', ?1, '0^1', 'Active', 1, '', 'In Stock'), (8, 1, 'Secret Pins', ?1, '', 'Pending', 1, '', ''), (9, 2, 'Toggle Clamps (Metric)', NULL, '', 'Active', 1, '', '')")
+        .bind(PARAMS)
+        .execute(pool)
+        .await
+        .unwrap();
+    for (id, sku, sub, d, mate, list) in [(1, "HBLT-1", 7, 0.25, "HB-A", 10.0), (2, "HBLT-2", 7, 0.5, "HB-B", 12.5), (3, "HBLT-3", 7, 0.5, "", 15.0), (4, "SP-1", 8, 1.0, "", 9.0)] {
+        sqlx::query("INSERT INTO inventory (id, sku, category_id, subcategory_id, parameter0, nparameter0, parameter1, pricing, active, sort_order, leadtime_option) VALUES (?1, ?2, 1, ?3, ?4, ?5, ?6, ?7, 1, ?1, 'Subcategory')")
+            .bind(id)
+            .bind(sku)
+            .bind(sub)
+            .bind(format!("{d}"))
+            .bind(d)
+            .bind(mate)
+            .bind(price(list))
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    exec(pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('subcategory', 7, '', 'FR', 'Goupilles à billes', '', NULL, NULL), ('subcategory', 7, 'overview:1', 'EN', 'Features', 'html', NULL, '<ul><li>Quick release</li></ul>'), ('document', 157, '', 'EN', 'Register', 'html', '{\"mime\":\"text/html\"}', '<p>Please request access</p>')").await;
+}
+
+fn page(path: &str) -> String {
+    format!("/catalog.php?scscpq_wp=1&{path}")
+}
+
+#[tokio::test]
+async fn anonymous_visitors_see_the_access_document() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let (status, headers, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), None)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers["content-type"].to_str().unwrap().starts_with("text/html"));
+    assert!(headers.get("access-control-allow-origin").is_none());
+    assert!(body.contains("<p>Please request access</p>"), "{body}");
+    assert!(!body.contains("products_table"));
+    assert!(body.contains("<div id='scs_body' >") && body.contains("<form name='scs_form' id='scs_form' method=post action='/catalog.php'"));
+}
+
+#[tokio::test]
+async fn any_method_gets_the_page_a_get_gets() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(21)).await;
+    let path = page("action=subcategory&subcategory_id=7");
+    let (_, _, want) = send(&h.app, get(&path, Some(&cookie))).await;
+    for method in [Method::PUT, Method::OPTIONS, Method::DELETE] {
+        let req = catalog_support::request(method.clone(), &path, Some(&cookie), &[("x-requested-with", "XMLHttpRequest")], Body::from("a=1"));
+        let (status, _, body) = send(&h.app, req).await;
+        assert_eq!(status, StatusCode::OK, "{method}");
+        assert_eq!(body, want, "{method}");
+    }
+}
+
+#[tokio::test]
+async fn edits_to_families_names_and_parts_show_on_the_next_page() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(20)).await;
+    let family = |lang: &'static str| page(&format!("lang={lang}&action=subcategory&subcategory_id=7"));
+    assert!(send(&h.app, get(&family("en"), Some(&cookie))).await.2.contains("<h1>Ball Lock Pins</h1>"));
+    exec(&h.pool, "UPDATE subcategory SET name = 'Ball Lock Pins II' WHERE id = 7").await;
+    assert!(send(&h.app, get(&family("en"), Some(&cookie))).await.2.contains("<h1>Ball Lock Pins II</h1>"));
+    exec(&h.pool, "UPDATE content SET name = 'Goupilles II' WHERE record_type = 'subcategory' AND record_id = 7 AND record_item = ''").await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 20").await;
+    assert!(send(&h.app, get(&family("fr"), Some(&cookie))).await.2.contains("<h1>Goupilles II</h1>"));
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'EN' WHERE id = 20").await;
+    let (_, _, body) = send(&h.app, get(&family("en"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>"));
+    exec(&h.pool, "UPDATE subcategory SET category_id = 2 WHERE id = 7").await;
+    exec(&h.pool, "UPDATE category SET active = 0 WHERE id = 2").await;
+    let (_, _, body) = send(&h.app, get(&family("en"), Some(&cookie))).await;
+    assert!(!body.contains(">HBLT-1</a>"), "a family in an inactive category shows no parts");
+}
+
+#[tokio::test]
+async fn the_catalog_version_moves_only_with_rows_the_model_reads() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let version = || async { sqlx::query_scalar::<_, i64>("SELECT n FROM catalog_version").fetch_one(&h.pool).await.unwrap() };
+    let before = version().await;
+    exec(&h.pool, "UPDATE inventory SET pricing = '', prj = 'x.prj' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE content SET name = 'Sign up' WHERE record_type = 'document'").await;
+    assert_eq!(version().await, before, "prices, CAD links and documents are read live");
+    exec(&h.pool, "UPDATE inventory SET new_date = '2026-10-30' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'HBLT-1A' WHERE id = 1").await;
+    exec(&h.pool, "DELETE FROM content WHERE record_type = 'subcategory' AND record_item = ''").await;
+    assert_eq!(version().await, before + 3);
+}
+
+#[tokio::test]
+async fn a_customer_sees_the_family_with_its_parts_and_tabs() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(20)).await;
+    let (status, _, body) = send(&h.app, get(&page("lang=en&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("<div id=products_header>\n<h1>Ball Lock Pins</h1>\n</div>"), "{body}");
+    assert!(body.contains("<table class='products_table'>"));
+    assert!(body.contains("<th>Part#</th>\n<th>Diameter</th>\n<th>Mate</th>\n</tr>"));
+    assert!(!body.contains("<th>Price</th>"), "no price terms, no price column");
+    assert!(body.contains("<a href=\"/catalog/?lang=en&action=sku&subcategory_id=7&sku=SEJMVC0x&scs_page=0\" >HBLT-1</a>"), "{body}");
+    assert!(body.contains("title='Related Part#'>HB-A</a>"));
+    assert!(body.contains("<li id='tab_catalog_overview' class='products_jquery_tabs'><a href='#catalog_overview' id='href_catalog_overview' class='products_jquery_tabs'>Overview</a></li>"));
+    assert!(body.contains("<ul><li>Quick release</li></ul>"));
+    assert!(body.contains("id='href_catalog_products' class='products_jquery_tabs'>Product Details</a>"));
+    assert!(body.contains("<div class=center id=quick_cad_status></div>"));
+    assert!(body.contains("id='href_catalog_profile'"));
+    assert!(body.contains("<select name='parameter0' id='parameter0' onchange="), "two diameters give a select");
+    assert!(body.contains("<option value='0.25'>0.25</option>\n<option value='0.50'>0.50</option>"));
+}
+
+#[tokio::test]
+async fn a_decimal_option_keeps_every_part_it_is_printed_for() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET nparameter0 = 0.504 WHERE id = 2").await;
+    exec(&h.pool, "UPDATE inventory SET nparameter0 = 0.497 WHERE id = 3").await;
+    let cookie = signed_in(&h.pool, &Account::customer(22)).await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<option value='0.25'>0.25</option>\n<option value='0.50'>0.50</option>\n</select>"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7&parameter0=0.50"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-2</a>") && body.contains(">HBLT-3</a>"), "{body}");
+    assert!(!body.contains(">HBLT-1</a>"));
+}
+
+#[tokio::test]
+async fn a_search_selection_narrows_the_parts() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(21)).await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7&parameter0=0.50"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-2</a>") && body.contains(">HBLT-3</a>"));
+    assert!(!body.contains(">HBLT-1</a>"));
+    assert!(body.contains("<option value='0.50' selected>0.50</option>"));
+}
+
+#[tokio::test]
+async fn prices_and_the_cart_columns_follow_the_account() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let mut a = Account::customer(22);
+    a.price_type = "discount";
+    a.price_pct = 0.2;
+    a.ecommerce = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<th>Price</th>"));
+    assert!(body.contains("<td class='right nobr'>$8.00</td>"), "{body}");
+    assert!(body.contains("<th class=nobr><font color=red>*</font> Typical<br>Lead Time</th>"));
+    assert!(body.contains("<td class=center>In Stock</td>"));
+    assert!(body.contains("javascript:cart_update(this,'bGlzdAlIQkxULTE','c2t1CUhCTFQtMQ')"));
+
+    let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=SEJMVC0y"), Some(&cookie))).await;
+    assert!(part.contains("Part number: HBLT-2<br>\nCategory: Pins<br>\nSubcategory: Ball Lock Pins</p>"), "{part}");
+    assert!(part.contains("Harcourt List Price: $12.50<br><font color=red><b><i>Your Discounted Price: $10.00</i></b></font>"));
+    assert!(part.contains("<b>Specifications:</b><br>Diameter: <b>0.5</b><br>Mate: <b>"));
+    assert!(part.contains("value='Add to Cart'"));
+
+    let (_, _, other) = send(&h.app, get(&page("action=sku&subcategory_id=9&sku=SEJMVC0y"), Some(&cookie))).await;
+    assert!(other.contains("<h1>Toggle Clamps (Metric)</h1>") && !other.contains("Part number: HBLT-2"), "a part shows on its own family's page only: {other}");
+}
+
+#[tokio::test]
+async fn pending_families_list_parts_for_administrators_only() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let customer = signed_in(&h.pool, &Account::customer(23)).await;
+    let mut admin = Account::customer(24);
+    admin.role = "Administrator";
+    let admin = signed_in(&h.pool, &admin).await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=8"), Some(&customer))).await;
+    assert!(body.contains("<h1>Secret Pins</h1>") && !body.contains(">SP-1</a>"));
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=8"), Some(&admin))).await;
+    assert!(body.contains(">SP-1</a>"));
+}
+
+#[tokio::test]
+async fn a_blocked_category_shows_the_agreement_overlay() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(25)).await;
+    exec(&h.pool, "INSERT INTO user_category (user_id, category_id) VALUES (25, 1)").await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<div class='catalog_category_overlay_message'>Integrator Agreement Required for Access. <a href=\"/contact\" >Contact Us</a> for more information.</div>"), "{body}");
+    assert!(!body.contains("products_table"));
+}
+
+#[tokio::test]
+async fn a_company_block_holds_whatever_the_case_or_accents_of_the_name() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account { company_name: Some("Société Test".into()), ..Account::customer(25) }).await;
+    exec(&h.pool, "INSERT INTO company_category_block (company_name, category_id) VALUES ('SOCIETE TEST ', 1), ('Other Co', 2)").await;
+    let (_, _, body) = send(&h.app, get(&page("action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<div class='catalog_category_overlay_message'>Design Partner Agreement Required for Access."), "{body}");
+    assert!(!body.contains("products_table"));
+}
+
+#[tokio::test]
+async fn a_part_link_the_configurator_cannot_open_keeps_the_family_project() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE subcategory SET prj = 'info=pins/ball.prj', lookup = 1 WHERE id = 7").await;
+    exec(&h.pool, "UPDATE inventory SET prj = 'prjCatalog=h&prjNode=n&prjName=HBLT-1&values=v' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET prj = 'info=pins/hblt2.prj' WHERE id = 2").await;
+    let account = signed_in(&h.pool, &Account { cad: true, ..Account::customer(25) }).await;
+    let cookie = format!("{account}; harcourt_profile=%7B%22email%22%3A%22lee%40example.com%22%2C%22profile_for%22%3A25%7D");
+    let frame = |sku: &str| page(&format!("action=subcategory&subcategory_id=7&sku={sku}"));
+    let (_, _, body) = send(&h.app, get(&frame("HBLT-1"), Some(&cookie))).await;
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fball.prj&partFixed=false"), "{body}");
+    let (_, _, body) = send(&h.app, get(&frame("HBLT-2"), Some(&cookie))).await;
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fhblt2.prj&partFixed=false"), "{body}");
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (502, '', 1, 'inventory', 'HBLT-2', 1, 7, 2)").await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=lt2"), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-2"), "a fragment only this part's number contains opens it: {body}");
+    assert!(body.contains("src=https://cad.example.com/frame?info=pins%2Fhblt2.prj&partFixed=false"), "and with its own project: {body}");
+}
+
+#[tokio::test]
+async fn french_pages_use_french_names_and_links() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let cookie = signed_in(&h.pool, &Account::customer(26)).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(!body.contains("<h1>Goupilles à billes</h1>"), "the link's lang= is not the session's language");
+    sqlx::query(r#"UPDATE "user" SET language_code = 'FR' WHERE id = 26"#).execute(&h.pool).await.unwrap();
+    let (_, _, body) = send(&h.app, get(&page("lang=fr&action=subcategory&subcategory_id=7"), Some(&cookie))).await;
+    assert!(body.contains("<h1>Goupilles à billes</h1>"), "{body}");
+    assert!(body.contains("Détails du produit</a>"));
+    assert!(body.contains("href=\"/catalogue/?lang=fr&action=sku"));
+}
+
+#[tokio::test]
+async fn a_document_navigation_to_the_fragment_goes_to_the_catalog_page() {
+    let h = harness().await;
+    let req = catalog_support::request(axum::http::Method::GET, "/catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=7", None, &[("sec-fetch-dest", "document")], axum::body::Body::empty());
+    let (status, headers, _) = send(&h.app, req).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers["location"], "/catalog/?action=subcategory&subcategory_id=7");
+}
+
+#[tokio::test]
+async fn a_lookup_opens_the_family_or_says_not_found() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES ('', 1, 'inventory', 'HBLT-2', 1, 7, 2)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(27)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=hblt-2"), Some(&cookie))).await;
+    assert!(body.contains("<h1>Ball Lock Pins</h1>"));
+    assert!(body.contains("<input type=hidden name='category_id' id='category_id' value='1'>\n<input type=hidden name='subcategory_id' id='subcategory_id' value='7'>"), "the form carries the part's family: {body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=lookup&search_code=nope"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>Part# <b>NOPE</b> not found</p>"), "{body}");
+
+    exec(&h.pool, "INSERT INTO search (language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id) VALUES ('', 1, 'competitor_sku', '', '', 1, 7, 2)").await;
+    for code in ["nope", "--"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=lookup&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains("not found</p>") && !body.contains("<h1>Ball Lock Pins</h1>"), "a blank competitor number matches nothing: {code}: {body}");
+    }
+}
+
+#[tokio::test]
+async fn a_visit_that_begins_on_the_fragment_goes_where_scs_header_sent_it() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let first = |path: &str, cookie: Option<&str>| {
+        let mut req = axum::http::Request::builder().uri(path);
+        if let Some(c) = cookie {
+            req = req.header(axum::http::header::COOKIE, c);
+        }
+        req.body(Body::empty()).unwrap()
+    };
+    let location = |headers: &axum::http::HeaderMap| headers.get("location").map(|v| v.to_str().unwrap().to_string());
+    let (status, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1&action=subcategory&subcategory_id=7", None)).await;
+    assert_eq!((status, location(&headers).as_deref()), (StatusCode::FOUND, Some("/")));
+    let (_, headers, _) = send(&h.app, first("/catalog.php", None)).await;
+    assert_eq!(location(&headers).as_deref(), Some("/scs_index.php"));
+    let cookie = signed_in(&h.pool, &Account::customer(28)).await;
+    let (_, headers, _) = send(&h.app, first("/catalog.php?scscpq_wp=1", Some(&cookie))).await;
+    assert_eq!(location(&headers).as_deref(), Some("/catalog/"));
+    let php_session = headers
+        .get_all("set-cookie")
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .find_map(|v| v.split(';').next().filter(|c| c.starts_with("PHPSESSID=")).map(str::to_string))
+        .expect("the visit's session cookie");
+    let (status, _, body) = send(&h.app, first("/catalog.php", Some(&cookie))).await;
+    assert_eq!(status, StatusCode::OK, "an active customer asked for the catalog itself");
+    assert!(body.contains("src='/scs_scripts/scscpq_wp.js?v=LOCAL'></script>\n</head>") && body.contains("<div id='scs_menu' >"), "outside the frame the page draws its own menu: {body}");
+    assert!(body.contains("href=\"/catalog.php?lang=en&action=subcategory&subcategory_id=7\""), "and links to itself: {body}");
+    let (_, _, body) = send(&h.app, first("/catalog.php", Some(&format!("{cookie}; {php_session}")))).await;
+    assert!(!body.contains("<div id='scs_menu' >"), "a request inside a visit that came through the frame stays in it");
+}
+
+#[tokio::test]
+async fn the_home_lists_visible_families_by_category_with_the_unit_filter() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO hero (effective_date, portal_id, industry_id, language_code, html, access, status) VALUES ('2020-01-01', 0, 0, 'EN', '<h2>Spring sale</h2>', '', 'Active'), ('2099-01-01', 0, 0, 'EN', '<h2>Not yet</h2>', '', 'Active')").await;
+    let cookie = signed_in(&h.pool, &Account::customer(30)).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&cookie))).await;
+    assert!(body.contains("<div class=products_summary><div id=scscpq_hero class=scscpq_hero_preview><h2>Spring sale</h2></div>"), "{body}");
+    assert!(body.contains("<div class='catalog_unit_filter' data-fetch-path='/catalog.php' data-fetch-query='scscpq_wp=1'>"));
+    assert!(body.contains("<a href=\"/catalog/?lang=en&unit_type=all\" class='catalog_unit_filter_pill active'>All</a>"));
+    assert!(body.contains("<a class=anchor id=category1></a><h2>Pins</h2>\n<div class='catalog_category_wrapper'>\n<div class=catalog_subcategory_list>\n<ul>"));
+    assert!(body.contains("<li ><a href=\"/catalog/?lang=en&action=subcategory&subcategory_id=7\" ><span class='subcat7'></span>Ball Lock Pins</a></li>"));
+    assert!(!body.contains("subcat8"), "Pending families are for administrators");
+    assert!(body.contains("subcat9"));
+
+    let mut admin = Account::customer(31);
+    admin.role = "Administrator";
+    let admin = signed_in(&h.pool, &admin).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&admin))).await;
+    assert!(body.contains("<li style='border: 1px solid #00b0f0;'><a href=\"/catalog/?lang=en&action=subcategory&subcategory_id=8\" >"));
+}
+
+#[tokio::test]
+async fn visitors_outside_the_us_land_on_metric() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let mut a = Account::customer(32);
+    a.country_code = "CA";
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, body) = send(&h.app, get(&page("lang=en"), Some(&cookie))).await;
+    assert!(body.contains("class='catalog_unit_filter_pill active'>Metric</a>"));
+    assert!(body.contains("subcat9") && !body.contains("subcat7"));
+    let (_, _, body) = send(&h.app, get(&page("lang=en&unit_type=all"), Some(&cookie))).await;
+    assert!(body.contains("subcat9") && body.contains("subcat7"));
+}
+
+#[tokio::test]
+async fn search_results_open_the_pick_or_list_the_matches() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', 1, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1), (502, '', 1, 'subcategory', 'Clamp', 2, 9, 0)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(33)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=500&search_code="), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-2"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains(">HBLT-3</a>"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt-1"), Some(&cookie))).await;
+    assert!(body.contains("Part number: HBLT-1"), "an exact part number opens the part");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=l"), Some(&cookie))).await;
+    assert!(body.contains("<h2>Pins</h2>") && body.contains("<h2>Clamps</h2>"), "matches in several families list them");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=zzz"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>No results for search term: <b>zzz</b></p>"));
+}
+
+#[tokio::test]
+async fn an_entered_part_number_opens_the_code_as_typed_first() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'HBLT1', 'HBLT1', 1, 7, 2, 3000002)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (code, part) in [("HBLT1", "HBLT-2"), ("hblt+1", "HBLT-2"), ("hblt-1", "HBLT-1"), ("HB.LT.1", "HBLT-1")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+    }
+}
+
+#[tokio::test]
+async fn an_entered_code_opens_the_first_exact_match_the_search_box_shows() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, pricing, active, sort_order) VALUES (5, 'BALL-LOCK-PINS', 2, 9, '[]', 1, 5)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'HBLT-1', 'HBLT1', 1, 7, 1, 2000001), (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 'BallLockPins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 'Goupillesàbilles', 1, 7, 0, 1), (603, '', 1, 'inventory', 'BALL-LOCK-PINS', 'BALLLOCKPINS', 2, 9, 5, 2000005)").await;
+    let english = signed_in(&h.pool, &Account::customer(36)).await;
+    let french = signed_in(&h.pool, &Account::customer(37)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 37").await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    let first_suggestion = |term: &str, cookie: &str| {
+        let path = format!("/scs_ajax.php?table=search&limit=20&term={term}");
+        let headers = [("host", "www.harcourt.co"), ("referer", "https://www.harcourt.co/catalog/"), ("x-requested-with", "XMLHttpRequest")];
+        catalog_support::request(Method::GET, &path, Some(cookie), &headers, Body::empty())
+    };
+    let family = |body: &str| ["HBLT-1", "HBLT-2", "HBLT-3"].iter().all(|p| body.contains(&format!(">{p}</a>"))) && !body.contains("Part number:");
+    for (cookie, who) in [(&english, "English"), (&french, "French")] {
+        for term in ["ball%20lock%20pins", "balllockpins", "BALL.LOCK.PINS"] {
+            let (_, _, body) = send(&h.app, get(&enter(term), Some(cookie))).await;
+            assert!(family(&body), "{who}, {term}: the family before the part with the same code: {body}");
+            let (_, _, body) = send(&h.app, first_suggestion(term, cookie)).await;
+            let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+            assert_eq!(v["items"][0]["subcategory_id"], 7, "{who}, {term}: the box shows the family first: {body}");
+        }
+        let (_, _, body) = send(&h.app, get(&enter("ball-lock-pins"), Some(cookie))).await;
+        assert!(body.contains("Part number: BALL-LOCK-PINS"), "{who}: the part number as typed: {body}");
+        let (_, _, body) = send(&h.app, get(&enter("hblt1"), Some(cookie))).await;
+        assert!(body.contains("Part number: HBLT-1"), "{who}: a part alone: {body}");
+    }
+}
+
+#[tokio::test]
+async fn an_entered_part_number_matches_as_the_search_box_does() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'É-7' WHERE id = 1").await;
+    exec(&h.pool, "UPDATE inventory SET sku = 'E-8' WHERE id = 2").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'É-7', 1, 7, 1, 2000001), (502, '', 1, 'inventory', 'E-8', 1, 7, 2, 2000002)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'é7', 'é7', 1, 7, 2, 3000002)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (code, part) in [("e7", "E-8"), ("e-7", "É-7"), ("%C3%A9-7", "É-7"), ("E.7", "É-7"), ("%C3%A98", "E-8"), ("%C3%89-8", "E-8")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+    }
+}
+
+#[tokio::test]
+async fn search_results_list_only_what_the_catalog_lists() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', 1, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1), (503, '', 1, 'inventory', 'HBLT-3', 1, 7, 3), (504, 'EN', 1, 'subcategory', 'Secret Pins', 1, 8, 0), (505, '', 1, 'inventory', 'SP-1', 1, 8, 4), (502, '', 1, 'subcategory', 'Clamp', 2, 9, 0)").await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains("HBLT-3"), "{body}");
+    for path in ["search_source=search&search_id=503&search_code=", "search_source=search&search_id=0&search_code=hblt-3"] {
+        let (_, _, body) = send(&h.app, get(&page(path), Some(&cookie))).await;
+        assert!(!body.contains("Part number: HBLT-3"), "an inactive part: {path}");
+    }
+    for picked in ["503", "999"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id={picked}&search_code=")), Some(&cookie))).await;
+        assert!(body.contains("<p class=center>No results for search term: <b></b></p>") && !body.contains("subcat7") && !body.contains("subcat9"), "a hidden or gone pick: {picked}: {body}");
+    }
+    for term in ["secret", "sp-1"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&cookie))).await;
+        assert!(!body.contains("Secret Pins") && !body.contains("subcat8") && !body.contains("Part number: SP-1"), "a Pending family: {term}: {body}");
+    }
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code="), Some(&cookie))).await;
+    assert!(body.contains("subcat7") && body.contains("subcat9") && !body.contains("subcat8"), "{body}");
+    exec(&h.pool, "UPDATE category SET active = 0 WHERE id = 2").await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    assert!(!body.contains("subcat9") && !body.contains("Toggle Clamps"), "a family in an inactive category: {body}");
+}
+
+#[tokio::test]
+async fn search_results_place_rows_indexed_before_their_family_had_a_category() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id) VALUES (500, '', 1, 'inventory', 'HBLT-2', NULL, 7, 2), (501, '', 1, 'inventory', 'HBLT-1', NULL, 7, 1), (502, '', 1, 'subcategory', 'Clamp', NULL, 9, 0), (503, 'EN', 1, 'category', 'Nowhere', NULL, NULL, 0)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=hblt"), Some(&cookie))).await;
+    assert!(body.contains(">HBLT-1</a>") && body.contains(">HBLT-2</a>") && !body.contains("Part number:"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clam"), Some(&cookie))).await;
+    assert!(body.contains("<h2>Clamps</h2>") && body.contains("subcat9"), "{body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=clamp"), Some(&cookie))).await;
+    assert!(body.contains("<h1>Toggle Clamps (Metric)</h1>"), "an exact family name opens the family: {body}");
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=nowhere"), Some(&cookie))).await;
+    assert!(body.contains("<p class=center>No results for search term: <b>nowhere</b></p>"), "{body}");
+}
+
+#[tokio::test]
+async fn an_entered_term_finds_a_family_by_its_name_in_the_other_language_as_the_search_box_does() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO inventory (id, sku, category_id, subcategory_id, pricing, active, sort_order) VALUES (5, 'LOCK-9', 2, 9, '[]', 1, 5), (6, 'DETENT-9', 2, 9, '[]', 1, 6)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 1, 7, 0, 1), (602, 'EN', 1, 'search_words', 'detent', 1, 7, 0, 1000001), (603, '', 1, 'inventory', 'LOCK-9', 2, 9, 5, 2000005), (604, '', 1, 'inventory', 'DETENT-9', 2, 9, 6, 2000006), (605, 'EN', 1, 'subcategory', 'Toggle Clamps (Metric)', 2, 9, 0, 2)").await;
+    let french = signed_in(&h.pool, &Account::customer(36)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 36").await;
+    let english = signed_in(&h.pool, &Account::customer(37)).await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    let listed = |body: &str, family: u32| body.matches(&format!("<span class='subcat{family}'></span>")).count();
+    for (cookie, who) in [(&french, "French"), (&english, "English")] {
+        for term in ["lock", "detent"] {
+            let (_, _, body) = send(&h.app, get(&enter(term), Some(cookie))).await;
+            assert!(listed(&body, 7) == 1 && listed(&body, 9) == 1 && !body.contains("Part number:"), "{who}, {term}: the family and the part's family: {body}");
+        }
+        let (_, _, body) = send(&h.app, get(&enter("ll"), Some(cookie))).await;
+        assert_eq!(listed(&body, 7), 1, "{who}: a family matched in both languages is listed once: {body}");
+    }
+    let (_, _, body) = send(&h.app, get(&enter("toggle"), Some(&french))).await;
+    assert_eq!(listed(&body, 9), 0, "a family with no French name row is not listed in French: {body}");
+    let (_, _, body) = send(&h.app, get(&enter("toggle"), Some(&english))).await;
+    assert_eq!(listed(&body, 9), 1, "{body}");
+}
+
+#[tokio::test]
+async fn an_entered_search_word_opens_its_family_and_a_family_name_counts_as_one_in_either_language() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (600, 'EN', 1, 'subcategory', 'Ball Lock Pins', 1, 7, 0, 1), (601, 'FR', 1, 'subcategory', 'Goupilles à billes', 1, 7, 0, 1), (602, 'EN', 1, 'search_words', 'detent', 1, 7, 0, 1000001)").await;
+    let french = signed_in(&h.pool, &Account::customer(38)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 38").await;
+    let english = signed_in(&h.pool, &Account::customer(39)).await;
+    let enter = |term: &str| page(&format!("search_source=search&search_id=0&search_code={term}"));
+    for (cookie, who) in [(&french, "French"), (&english, "English")] {
+        let (_, _, body) = send(&h.app, get(&enter("detent"), Some(cookie))).await;
+        assert!(
+            ["HBLT-1", "HBLT-2", "HBLT-3"].iter().all(|p| body.contains(&format!(">{p}</a>"))) && !body.contains("<span class='subcat7'></span>"),
+            "{who}: an English search word opens the family page with its parts: {body}"
+        );
+        let (own_term, other_term) = if who == "French" { ("goupilles", "lock") } else { ("lock", "goupilles") };
+        let (_, _, own) = send(&h.app, get(&enter(own_term), Some(cookie))).await;
+        let (_, _, other) = send(&h.app, get(&enter(other_term), Some(cookie))).await;
+        assert!(own.contains("<span class='subcat7'></span>"), "{who}: {own}");
+        assert_eq!(other.replace(&format!("search_code={other_term}"), &format!("search_code={own_term}")), own, "{who}: a family name in the other language counts as the visitor's own");
+    }
+}
+
+#[tokio::test]
+async fn an_entered_term_finds_a_french_category_name_with_or_without_its_accent() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('category', 2, '', 'FR', 'Gabarits de perçage', '', NULL, NULL)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (700, 'FR', 1, 'subcategory', 'Sauterelles', 2, 9, 0, 2)").await;
+    let french = signed_in(&h.pool, &Account::customer(40)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 40").await;
+    for term in ["per%C3%A7age", "percage", "PER%C3%87AGES"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&french))).await;
+        assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "{term}: {body}");
+    }
+    // The box offers a category by its name in either language to every visitor, and so does Enter (the family has
+    // its English name row too, as every family does).
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (701, 'EN', 1, 'subcategory', 'Toggle Clamps', 2, 9, 0, 2)").await;
+    let english = signed_in(&h.pool, &Account::customer(41)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=percage"), Some(&english))).await;
+    assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "an English visitor: {body}");
+}
+
+#[tokio::test]
+async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (503, '', 1, 'inventory', 'HBLT-3', 1, 7, 3, 1), (505, '', 1, 'inventory', 'SP-1', 1, 8, 4, 1)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'HBLT-3', 'HBLT3', 1, 7, 2, 9), (511, '', 1, 'competitor_sku', 'SP1', 'SP1', 1, 7, 1, 9)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(35)).await;
+    for (code, part) in [("hblt-3", "HBLT-2"), ("sp-1", "HBLT-1")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=lookup&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains("<h1>Ball Lock Pins</h1>") && !body.contains("not found</p>"), "a lookup of {code} opens the shown part's family: {body}");
+    }
+}
+
+/// Pages the catalog dropped: alternative and beta catalogs, the staff maintenance pages and the endpoints with no
+/// traffic. The catalog no longer claims them, so they get the site's answer for a path nothing serves.
+#[tokio::test]
+async fn dropped_pages_are_not_served() {
+    let app = catalog_support::catalog_only().await;
+    for path in [
+        "/new_catalog.php?scscpq_wp=1",
+        "/beta.php",
+        "/document_viewer.php",
+        "/search.php",
+        "/inventory_info.php?sku=HBLT-1&action=features",
+        "/catalog_metric_filter.php",
+        "/configure.php",
+        "/cad_lookup.php",
+        "/category.php",
+        "/industry.php",
+        "/document.php",
+        "/hero.php",
+        "/scs_api.php",
+        "/stock.php",
+        "/portal_ajax.php?action=catalog",
+        "/solutions.php",
+        "/catalog-api/search?term=hblt",
+    ] {
+        for method in [Method::GET, Method::POST] {
+            let (status, _, _) = send(&app, catalog_support::request(method.clone(), path, None, &[], Body::empty())).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{method} {path}");
+        }
+    }
+    let (status, _, _) = send(&app, get("/catalog.php?scscpq_wp=1", None)).await;
+    assert_ne!(status, StatusCode::NOT_FOUND, "the catalog itself is still served");
+}
+
+#[tokio::test]
+async fn the_form_posts_back_to_the_path_as_apache_ran_it() {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let h = harness().await;
+    seed(&h.pool).await;
+    let app = tower::ServiceBuilder::new().map_request(hxweb::visitor::apache_paths).service(h.app.clone());
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (path, script) in [("/catalog.php?scscpq_wp=1&lang=en", "/catalog.php"), ("/catalog.php/?scscpq_wp=1&lang=en", "/catalog.php/"), ("//catalog.php?scscpq_wp=1&lang=en", "/catalog.php")] {
+        let res = app.clone().oneshot(get(path, Some(&cookie))).await.unwrap();
+        let body = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+        assert!(body.contains(&format!("<form name='scs_form' id='scs_form' method=post action='{script}'")), "{path}: {body}");
+        assert!(body.contains(&format!("data-fetch-path='{script}'")), "{path}");
+    }
+}
+
+#[tokio::test]
+async fn a_discontinued_part_keeps_its_page_without_add_to_cart() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "UPDATE inventory SET active = 0 WHERE id = 3").await;
+    let mut a = Account::customer(26);
+    a.ecommerce = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=SEJMVC0z"), Some(&cookie))).await;
+    assert!(part.contains("Part number: HBLT-3<br>"), "{part}");
+    assert!(!part.contains("value='Add to Cart'"), "{part}");
+}
+
+#[tokio::test]
+async fn a_part_of_another_family_offers_nothing_to_add_to_the_cart() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    let mut a = Account::customer(27);
+    a.ecommerce = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, part) = send(&h.app, get(&page("action=sku&subcategory_id=7&sku=U1AtMQ%3D%3D"), Some(&cookie))).await;
+    assert!(part.contains("Part number: <br>"), "{part}");
+    assert!(!part.contains("value='Add to Cart'"), "{part}");
+}

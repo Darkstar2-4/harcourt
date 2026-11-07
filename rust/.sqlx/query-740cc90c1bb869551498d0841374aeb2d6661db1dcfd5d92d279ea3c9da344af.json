@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cms_page SET path = '#' || id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "740cc90c1bb869551498d0841374aeb2d6661db1dcfd5d92d279ea3c9da344af"
+}

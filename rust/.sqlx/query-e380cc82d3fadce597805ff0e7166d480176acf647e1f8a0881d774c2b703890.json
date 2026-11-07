@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM search_named WHERE table_name = 'subcategory' AND subcategory_id = ?1 AND upper(language_code) = ?2) AS \"named!: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "named!: bool",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e380cc82d3fadce597805ff0e7166d480176acf647e1f8a0881d774c2b703890"
+}

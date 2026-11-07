@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT country AS \"country!: String\", state AS \"state!: String\", coalesce(name, '') AS \"name!: String\" FROM country\n                   WHERE country = ?1 AND (state = '' OR state = ?2)",
+  "describe": {
+    "columns": [
+      {
+        "name": "country!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "state!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 2,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f8ed060614d7137927852e41ec00bea99405e1bb848bd5081dc9ea7e9ae52886"
+}

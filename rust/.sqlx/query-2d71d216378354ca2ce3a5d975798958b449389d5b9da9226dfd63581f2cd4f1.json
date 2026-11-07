@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", record_type AS \"record_type!\", record_item AS \"item!\", name AS \"name!\", meta\n           FROM content\n           WHERE (record_type = 'subcategory' AND record_id = ?1 AND record_item LIKE 'download:%')\n              OR (record_type = 'inventory' AND record_id = ?2 AND record_item LIKE 'download:%')\n           ORDER BY CASE WHEN record_type = 'subcategory' THEN 1 ELSE 0 END, record_item, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "record_type!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "item!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "meta",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2d71d216378354ca2ce3a5d975798958b449389d5b9da9226dfd63581f2cd4f1"
+}

@@ -1,0 +1,152 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\", category_id AS \"category_id: i64\", name, prj, image_url, thumbnail_url, sketch_url, parameters,\n                  parameter_search, download, options, new_date AS \"new_date!\", status AS \"status!\", page_break AS \"page_break: i64\",\n                  prj_landing_page AS \"prj_landing_page: i64\", output AS \"output!\", industry, portal, leadtime_option AS \"leadtime_option!\",\n                  leadtime_text, currency, lookup AS \"lookup: i64\", sort_order AS \"sort_order: i64\"\n           FROM subcategory",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category_id: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "prj",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "image_url",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "thumbnail_url",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "sketch_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "parameters",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "parameter_search",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "download",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "options",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "new_date!",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "page_break: i64",
+        "ordinal": 13,
+        "type_info": "Integer"
+      },
+      {
+        "name": "prj_landing_page: i64",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "output!",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "industry",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "portal",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_option!",
+        "ordinal": 18,
+        "type_info": "Text"
+      },
+      {
+        "name": "leadtime_text",
+        "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "lookup: i64",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sort_order: i64",
+        "ordinal": 22,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a333f0a92394c4b99ad5936cadc2847d5b25e66150c930edfe331407ebbfd343"
+}

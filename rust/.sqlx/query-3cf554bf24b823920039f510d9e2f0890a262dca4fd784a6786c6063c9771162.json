@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id AS \"id!\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3cf554bf24b823920039f510d9e2f0890a262dca4fd784a6786c6063c9771162"
+}

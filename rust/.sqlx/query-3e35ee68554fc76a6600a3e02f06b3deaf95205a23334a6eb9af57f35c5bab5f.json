@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM oauth_login WHERE created_at < ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "3e35ee68554fc76a6600a3e02f06b3deaf95205a23334a6eb9af57f35c5bab5f"
+}

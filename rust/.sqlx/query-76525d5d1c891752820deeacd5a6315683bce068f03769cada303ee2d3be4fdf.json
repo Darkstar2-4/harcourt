@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cms_field SET value = ?2 WHERE page_id = ?1 AND name = '@post_content'\n                       AND EXISTS (SELECT 1 FROM cms_field WHERE page_id = ?1 AND name = 'content' AND kind = 'html' AND value <> ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "76525d5d1c891752820deeacd5a6315683bce068f03769cada303ee2d3be4fdf"
+}

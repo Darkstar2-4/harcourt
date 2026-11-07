@@ -1,0 +1,107 @@
+//! Orders: the cart and checkout (`shop`), the site's forms (`forms`), the contact page (`pages`), and outgoing mail
+//! (`mail`, `mailform`). Every route takes `Arc<Orders>` as its state; the extractors reach the shared `Auth`
+//! through it.
+
+use std::{collections::HashMap, convert::Infallible, path::PathBuf, sync::Arc};
+
+use percent_encoding::percent_decode_str;
+
+use axum::{
+    body::Bytes,
+    extract::FromRequestParts,
+    http::{header, request::Parts, HeaderMap},
+    Router,
+};
+
+use crate::{
+    api::{Auth, ClientIp},
+    visitor::Visitor,
+};
+
+pub mod forms;
+pub mod html;
+pub mod mail;
+pub mod mailform;
+pub mod pages;
+pub mod pricing;
+pub mod shop;
+
+pub struct Orders {
+    pub core: Arc<Auth>,
+    pub pricing: Arc<dyn pricing::Pricing>,
+    /// The PHP document root: mail stylesheets and other files the pages read from disk.
+    pub docroot: PathBuf,
+    pub forms: forms::Services,
+}
+
+impl Orders {
+    pub fn from_env(core: Arc<Auth>) -> Self {
+        let get = |k: &str| std::env::var(k).ok();
+        Orders {
+            core,
+            pricing: Arc::new(pricing::CatalogPrices),
+            docroot: crate::assets::root().to_path_buf(),
+            forms: forms::Services::from_env(get),
+        }
+    }
+}
+
+pub fn router(state: Arc<Orders>) -> Router {
+    Router::new()
+        .merge(shop::routes())
+        .merge(pages::routes())
+        .merge(forms::routes())
+        .with_state(state)
+}
+
+impl FromRequestParts<Arc<Orders>> for Visitor {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Infallible> {
+        Visitor::from_request_parts(parts, &state.core).await
+    }
+}
+
+/// PHP's `$_REQUEST` for a urlencoded request: query fields, then body fields over them; the last repeat wins.
+pub fn form_params(query: Option<&str>, body: &[u8]) -> HashMap<String, String> {
+    let decode = |s: &str| percent_decode_str(&s.replace('+', " ")).decode_utf8_lossy().into_owned();
+    let mut out = HashMap::new();
+    let body = String::from_utf8_lossy(body);
+    for part in query.unwrap_or("").split('&').chain(body.split('&')).filter(|p| !p.is_empty()) {
+        let (k, v) = part.split_once('=').unwrap_or((part, ""));
+        out.insert(decode(k), decode(v));
+    }
+    out
+}
+
+/// The largest post body a page reads (PHP's post_max_size).
+pub const POST_LIMIT: usize = 8 << 20;
+
+/// `$_REQUEST` for a post, urlencoded or `multipart/form-data` (Gravity Forms posts its forms that way): query fields,
+/// then body fields over them. An uploaded file is not kept. None for a multipart body that cannot be read. The body
+/// is read whole, so the caller bounds its size (`POST_LIMIT` for a page).
+pub async fn posted_params(query: Option<&str>, headers: &HeaderMap, body: Bytes) -> Option<HashMap<String, String>> {
+    let content_type = headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok());
+    let Some(content_type) = content_type.filter(|v| v.trim_start().to_ascii_lowercase().starts_with("multipart/form-data")) else {
+        return Some(form_params(query, &body));
+    };
+    let mut out = form_params(query, &[]);
+    let boundary = multer::parse_boundary(content_type).ok()?;
+    let mut parts = multer::Multipart::new(axum::body::Body::from(body).into_data_stream(), boundary);
+    while let Some(field) = parts.next_field().await.ok()? {
+        if field.file_name().is_some() {
+            continue;
+        }
+        let name = field.name().unwrap_or("").to_string();
+        out.insert(name, field.text().await.ok()?);
+    }
+    Some(out)
+}
+
+impl FromRequestParts<Arc<Orders>> for ClientIp {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<Orders>) -> Result<Self, Infallible> {
+        ClientIp::from_request_parts(parts, &state.core).await
+    }
+}

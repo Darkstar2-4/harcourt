@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!: i64\" FROM \"user\"\n           WHERE (lower(domain) = lower(?1) OR signup_email = ?2) AND status IN ('Active', 'Pending')\n           ORDER BY status <> 'Active', coalesce(signup_email = ?2, 0) DESC, id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "a05a5bcda49b117dde09255ebdcb8e60ae3d4facbe1c0a361d148aa326234faf"
+}

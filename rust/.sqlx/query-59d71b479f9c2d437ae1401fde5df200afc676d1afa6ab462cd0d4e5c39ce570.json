@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT domain AS \"domain!\", module AS \"module!\", field AS \"field!\", item AS \"item!\", data FROM registry WHERE domain IN ('', 'global')",
+  "describe": {
+    "columns": [
+      {
+        "name": "domain!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "module!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "field!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "item!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "data",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "59d71b479f9c2d437ae1401fde5df200afc676d1afa6ab462cd0d4e5c39ce570"
+}

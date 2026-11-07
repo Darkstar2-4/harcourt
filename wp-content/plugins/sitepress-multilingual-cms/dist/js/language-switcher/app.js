@@ -1,1 +1,0 @@
-(window.webpackWPML=window.webpackWPML||[]).push([[0],{227:function(n,w,o){}}]);

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_term (id, taxonomy, slug, name, lang, group_id, modified_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "38990ee95d2c9d6608864e70a3193c0fe7b1c3a7b511c3b4e41a36dd2e9f277a"
+}

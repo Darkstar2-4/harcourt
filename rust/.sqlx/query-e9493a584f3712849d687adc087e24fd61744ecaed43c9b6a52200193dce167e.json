@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO visit (id, campaign_code, seen_at) VALUES (?1, ?2, ?3)\n         ON CONFLICT (id) DO UPDATE SET campaign_code = coalesce(campaign_code, excluded.campaign_code), seen_at = excluded.seen_at\n         RETURNING campaign_code",
+  "describe": {
+    "columns": [
+      {
+        "name": "campaign_code",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "e9493a584f3712849d687adc087e24fd61744ecaed43c9b6a52200193dce167e"
+}

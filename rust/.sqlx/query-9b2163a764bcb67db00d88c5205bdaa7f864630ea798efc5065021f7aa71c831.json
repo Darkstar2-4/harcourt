@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT company_name FROM \"user\" WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "company_name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "9b2163a764bcb67db00d88c5205bdaa7f864630ea798efc5065021f7aa71c831"
+}

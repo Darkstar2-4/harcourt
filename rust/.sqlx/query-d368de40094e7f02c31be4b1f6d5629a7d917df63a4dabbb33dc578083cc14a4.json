@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT sku AS \"sku!: String\", description AS \"description!: String\", quantity AS \"quantity!: i64\", price AS \"price!: f64\",\n                  extended AS \"extended!: f64\", coalesce(comment, '') AS \"comment!: String\"\n           FROM orderln WHERE order_id = ?1 ORDER BY line_no",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "description!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "quantity!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "price!: f64",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "extended!: f64",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "comment!: String",
+        "ordinal": 5,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "d368de40094e7f02c31be4b1f6d5629a7d917df63a4dabbb33dc578083cc14a4"
+}

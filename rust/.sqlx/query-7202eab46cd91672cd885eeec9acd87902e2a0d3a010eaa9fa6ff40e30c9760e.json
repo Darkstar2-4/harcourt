@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT table_name, category_id AS \"category_id: i64\", subcategory_id AS \"subcategory_id: i64\", inventory_id AS \"inventory_id: i64\" FROM search WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "table_name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inventory_id: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7202eab46cd91672cd885eeec9acd87902e2a0d3a010eaa9fa6ff40e30c9760e"
+}

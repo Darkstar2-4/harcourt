@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_author (id, nicename, display_name, profile_updated) VALUES (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f3ab30475e4b71ebe86f1021e433ce60440c0380f1250266d0572db99d26d768"
+}

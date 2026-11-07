@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT g.rowid AS \"id!: i64\", g.user_id AS \"user_id!: i64\", u.company_name AS \"company_name?\",\n                  g.granted_by AS \"granted_by!: i64\", b.company_name AS \"granted_by_name?\", g.created_at, g.expires_at\n           FROM remote_grant g LEFT JOIN \"user\" u ON u.id = g.user_id LEFT JOIN \"user\" b ON b.id = g.granted_by\n           WHERE g.used_at IS NULL AND g.expires_at > ?1 ORDER BY g.expires_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "user_id!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "company_name?",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "granted_by!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "granted_by_name?",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expires_at",
+        "ordinal": 6,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "5e8a68a18f2792c143e60f8db3f9c78ea6f3b30b0230b85e4dbc58b512e1da89"
+}

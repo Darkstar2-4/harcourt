@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cms_revision (lang, saved_at, saved_by, note, fields) VALUES (?1, ?2, 0, 'import', ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "4945f35760e60c7bc24a234553749dba329c5608d5c7d43da71cb454d1f9a7d9"
+}

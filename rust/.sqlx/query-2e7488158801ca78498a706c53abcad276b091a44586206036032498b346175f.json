@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.language_code AS \"language!: String\", c.name AS \"name!: String\", k.id AS \"id!: i64\", k.sort_order AS \"sort_order!: i64\"\n           FROM content c JOIN category k ON k.id = c.record_id\n           WHERE c.record_type = 'category' AND c.record_item = '' AND k.active = 1 ORDER BY c.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "language!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "id!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sort_order!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2e7488158801ca78498a706c53abcad276b091a44586206036032498b346175f"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "harcourt-web",
+  "private": true,
+  "description": "Strict TypeScript sources for the browser scripts of www.harcourt.co. Output is committed at public/hx/hx-nav.js and public/scs_scripts/scscpq_wp.js.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p . && node scripts/emit.mjs",
+    "verify": "tsc -p . && node scripts/emit.mjs --check",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.5.32",
+    "jquery": "^3.7.1",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.3"
+  }
+}

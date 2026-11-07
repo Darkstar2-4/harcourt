@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.table_name AS \"table!: String\", s.code AS \"code!: String\", s.category_id AS \"category_id?: i64\",\n                  s.subcategory_id AS \"subcategory_id?: i64\", s.inventory_id AS \"inventory_id?: i64\", coalesce(s.ranking, 0) AS \"ranking!: i64\",\n                  coalesce(s.language_code, '') AS \"lang!: String\", coalesce(i.active, 0) AS \"part_active!: i64\", i.subcategory_id AS \"part_family?: i64\"\n           FROM search_named s LEFT JOIN inventory i ON i.id = s.inventory_id\n           WHERE s.table_name IS NOT NULL AND s.code IS NOT NULL\n           ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "table!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "code!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_id?: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subcategory_id?: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inventory_id?: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ranking!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lang!: String",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "part_active!: i64",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "part_family?: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ee8c91d60c406d5f1737e7bb7f00a138976c1c85f40bd3b478f694ed321bb309"
+}

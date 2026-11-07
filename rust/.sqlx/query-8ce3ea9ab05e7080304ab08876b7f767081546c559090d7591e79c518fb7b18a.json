@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO access_code (email, code_mac, sent_at, expires_at, attempts) VALUES (?1, ?2, ?3, ?4, 0)\n         ON CONFLICT (email) DO UPDATE SET code_mac = excluded.code_mac, sent_at = excluded.sent_at,\n             expires_at = excluded.expires_at, attempts = 0\n         WHERE access_code.sent_at <= ?5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "8ce3ea9ab05e7080304ab08876b7f767081546c559090d7591e79c518fb7b18a"
+}

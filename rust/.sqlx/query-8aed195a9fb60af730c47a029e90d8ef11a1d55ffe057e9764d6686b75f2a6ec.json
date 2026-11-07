@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO orderhd (user_id, punchout_id, order_date, email, name_first, name_last, name, company_name, address, city,\n               state, zip, country_code, phone, po, comment, type, status, status_user_id, status_date, carrier_name,\n               carrier_account, currency_code, cc, billing_address, billing_city, billing_state, billing_zip, billing_country_code)\n           VALUES (?1, 0, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 'PO', 'Pending', 0, 0, ?16, ?17, ?18, ?19,\n               ?20, ?21, ?22, ?23, ?24)\n           RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 24
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8aed195a9fb60af730c47a029e90d8ef11a1d55ffe057e9764d6686b75f2a6ec"
+}

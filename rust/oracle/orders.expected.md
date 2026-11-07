@@ -1,0 +1,20 @@
+# Orders: differences from the oracle on purpose
+
+Cases that would only show these are left out of `orders.jsonl` and `orders-forms.jsonl`.
+
+- **Values in text are escaped.** `<` and `>` in an order, carrier or cart value are written as `&lt;` and `&gt;`. The PHP printed them raw, so a stored value could add markup to a staff page.
+- **The cart is stored per visit, in Rust's database.** PHP kept it in its own session. A session sign-in keys it by the session; a company-address sign-in by the PHP session id with the account. A cart filled on one side only is not on the other, so cases that fill a cart are left out.
+- **Staff pages need an Active account.** PHP's `access()` read the role alone, so a Pending or Denied Executive could open the PO Manager. Rust sends them home.
+- **Checkout prefill.** No `harcourt_ecommerce` cookie is written or read. The form is prefilled from the account's last order under the same signed-in address; without one, as the PHP did without that cookie, from the `harcourt` cookie and the account's company.
+- **PO Manager `return_url`.** It is followed only when it is a path on this site.
+- **Carrier delete.** Only an inactive carrier can be deleted, which is all the list offers.
+- **Form islands, honeypot label.** The label is always `Comments`. Gravity Forms picks one at random per render, so two oracle renders also differ there.
+- **Form islands, `gform_ajax` hash.** The `hash=` part of form 1's hidden `gform_ajax` value is a digest of the fixed attributes, not WordPress's salted signature; hx-diff's gform-ajax rule forgives the value. A Gravity Forms ajax post must send back the value Rust drew, so a value signed by WordPress gets the answer Gravity Forms gave any tampered value (its default confirmation, nothing kept).
+- **Form posts.** The anti-spam token is the signed `state_N` value. A post without a fresh one is stored as spam and sees Gravity Forms' default confirmation, as a post Zero Spam rejects did. Posts that a fresh oracle render would treat differently are left out; refused posts, which keep nothing, are in `p2-orders.jsonl`.
+- **reCAPTCHA.** See `p3-orders.expected.md`: a post without the browser's token is refused as in the PHP; without `HXWEB_RECAPTCHA_SECRET` a token is taken unscored, with a warning in the log.
+- **mailer_output.php.** The PHP printed the SMTP settings, the password included, into the form (hidden for an Administrator, editable for a Super User) and let a Super User send through any server. Rust shows and takes none of them; the sender is configured from the environment. Sending queues the mail in `outbox` (`Results: Email queued for delivery to …`), and the page accepts no attachments (the PHP saved them into the document root). The Administrator and Super User pages therefore differ from the oracle.
+- **scs_mail.php and scs_mailform.php.** Both read `mailform` columns dropped in 2021 and fail on the oracle with a PHP fatal error and a database error. They keep their Super User gate; a Super User is sent to the pages that replaced them, `/mailer_output.php` and `/mailer_maintain.php`.
+- **punchout.php answers 410.** It requires `classes/punchout.php`, which prod does not have, so every request (anonymous included) gets a PHP fatal error; the `punchout` table is empty and nothing links to the page. Retired in `retired.rs` (`p3-orders.expected.md`); the table is dropped (`0320_drop_punchout.sql`).
+- **Dropped in the cut, answering 410:** `orderhd.php` (the PO Manager: orders are mailed when placed and kept in `orderhd`/`orderln`), `carrier.php` (the `carrier` table is edited in the database), `design_partner_agreement.php`, `mailer_output.php`, `scs_mail.php` and `scs_mailform.php`. None had customer traffic. The notes above about the PO Manager and carrier pages describe the pages as they were.
+
+How the forms corpus runs: the oracle's island endpoint is `/?hx_form=N&hx_lang=..&hx_page=..` on Apache (`ORACLE_LEGACY`; nginx refuses it from outside). The Rust one is `/hx/forms/island/`. hx-diff takes origins only, so a local proxy that maps `/` to `/hx/forms/island/` stands in for the Rust side.

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record_id AS \"id!: i64\", name AS \"name!\" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', 'FR')",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "8d0c771380d9ad541356f82f6da9e2165a59e9222c5f86eb6286078941c84053"
+}

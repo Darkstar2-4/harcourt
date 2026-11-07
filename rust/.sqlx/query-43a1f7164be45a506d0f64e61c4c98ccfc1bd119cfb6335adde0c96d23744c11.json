@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cms_field SET value = ?3 WHERE page_id = ?1 AND name = ?2 AND kind = 'html'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "43a1f7164be45a506d0f64e61c4c98ccfc1bd119cfb6335adde0c96d23744c11"
+}

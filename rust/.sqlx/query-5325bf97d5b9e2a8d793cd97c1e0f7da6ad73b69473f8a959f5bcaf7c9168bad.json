@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT sku, competitor, competitor_sku FROM inventory_xref ORDER BY sku, competitor, competitor_sku",
+  "describe": {
+    "columns": [
+      {
+        "name": "sku",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "competitor",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "competitor_sku",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5325bf97d5b9e2a8d793cd97c1e0f7da6ad73b69473f8a959f5bcaf7c9168bad"
+}

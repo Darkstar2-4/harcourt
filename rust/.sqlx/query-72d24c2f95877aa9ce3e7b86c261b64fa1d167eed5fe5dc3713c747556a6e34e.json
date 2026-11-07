@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!: i64\", s.category_id, s.status,\n             ifnull((SELECT name FROM content c WHERE c.record_type = 'subcategory' AND c.record_item = '' AND c.record_id = s.id AND c.language_code = 'EN' LIMIT 1), '') AS \"en!: String\",\n             ifnull((SELECT name FROM content c WHERE c.record_type = 'subcategory' AND c.record_item = '' AND c.record_id = s.id AND c.language_code = 'FR' LIMIT 1), '') AS \"fr!: String\"\n           FROM subcategory s ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "category_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "en!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "fr!: String",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "72d24c2f95877aa9ce3e7b86c261b64fa1d167eed5fe5dc3713c747556a6e34e"
+}

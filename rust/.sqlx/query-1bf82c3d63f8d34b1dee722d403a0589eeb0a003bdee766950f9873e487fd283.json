@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'local', 'filmstrip_timestamp', '', ?1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "1bf82c3d63f8d34b1dee722d403a0589eeb0a003bdee766950f9873e487fd283"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT p.record_type AS \"kind!: String\", p.name AS \"name!: String\", CASE WHEN c.filetype IN ('html', 'hyperlink') THEN coalesce(c.html_content, '') ELSE coalesce(CAST(c.content AS TEXT), '') END AS \"content!: String\"\n           FROM pages p JOIN content c ON c.record_type = 'document' AND c.record_id = p.document_id AND c.language_code IN ('EN', ?2)\n           WHERE p.url = ?1\n           ORDER BY CASE WHEN c.language_code = 'EN' THEN 2 ELSE 1 END LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "content!: String",
+        "ordinal": 2,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "fa81ae37e6d6dab95e11f9280b29d8f784531873a959979b3425fe0711969f2b"
+}

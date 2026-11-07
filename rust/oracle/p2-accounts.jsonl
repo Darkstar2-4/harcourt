@@ -1,0 +1,56 @@
+# p2-accounts: the accounts pages ported in round two, warm, per persona. GET only: a POST runs for real on the oracle.
+# hx-diff primes the warm session on the oracle alone, in WordPress mode, so each path carries ?scscpq_wp=1 to put the Rust page in the same mode.
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-slide", "path": "/campaign.php?campaign=SLIDE&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=KIT&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-test", "path": "/campaign.php?campaign=TEST&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-nope", "path": "/campaign.php?campaign=NOPE&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-kit", "path": "/campaign.php?campaign=kit&scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "anonymous", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-pending", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "superuser-active", "session": "warm"}
+{"name": "campaign-none", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active-fr", "session": "warm"}
+{"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-slide", "path": "/campaign.php?campaign=SLIDE", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-test", "path": "/campaign.php?campaign=TEST", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-test", "path": "/campaign.php?campaign=TEST", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-nope", "path": "/campaign.php?campaign=NOPE", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-nope", "path": "/campaign.php?campaign=NOPE", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-cold-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC", "persona": "anonymous", "session": "cold"}
+{"name": "campaign-cold-ut_vs_harc", "path": "/campaign.php?campaign=UT%20VS%20HARC", "persona": "customer-active", "session": "cold"}
+{"name": "campaign-post-email", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm", "body": "campaign=KIT&action=email&email=pat%40customer-active.persona.example", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-email-bad", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-active", "session": "warm", "body": "campaign=KIT&action=email&email=not+an+address", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-register-errors", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "anonymous", "session": "warm", "body": "campaign=KIT&action=register&first_name=&last_name=Example&company_name=&email=bad", "headers": {"Origin": "https://www.harcourt.co"}}
+{"name": "campaign-post-email-denied", "method": "POST", "path": "/campaign.php?scscpq_wp=1", "persona": "customer-denied", "session": "warm", "body": "campaign=SLIDE&action=email&email=", "headers": {"Origin": "https://www.harcourt.co"}}

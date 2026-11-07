@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", menu, lang, parent_id, position, label, url, page_id, classes, target\n               FROM cms_menu_item ORDER BY menu, lang, position, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "menu",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "lang",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "position",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "label",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "page_id",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "classes",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "target",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "5ee20d071275ebb5f3648ab18095726a8091f99a3e729636012d9379d96131e0"
+}

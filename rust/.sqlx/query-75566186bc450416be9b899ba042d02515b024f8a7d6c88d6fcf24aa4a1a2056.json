@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.name, s.thumbnail_url FROM subcategory s LEFT JOIN category c ON c.id = s.category_id\n                   WHERE s.id IN (SELECT value FROM json_each(?1))\n                   ORDER BY c.sort_order, c.name, s.sort_order, s.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "thumbnail_url",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "75566186bc450416be9b899ba042d02515b024f8a7d6c88d6fcf24aa4a1a2056"
+}

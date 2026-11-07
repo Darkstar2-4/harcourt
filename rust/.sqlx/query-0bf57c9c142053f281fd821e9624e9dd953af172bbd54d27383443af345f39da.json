@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE subcategory SET leadtime_option = ?2, leadtime_text = ?3 WHERE id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "0bf57c9c142053f281fd821e9624e9dd953af172bbd54d27383443af345f39da"
+}

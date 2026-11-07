@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT p.name AS portal_name, c.id AS \"content_id?: i64\" FROM portalcategory p\n                   LEFT JOIN content c ON c.record_type = 'portalcontent' AND c.language_code = 'EN' AND c.record_id = p.image_portalcontent_id\n                   WHERE p.id IN (SELECT value FROM json_each(?1)) ORDER BY c.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "portal_name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_id?: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "1647bbde59d7d3a9f3858d28aa18cd820837c57256e05d943a99c1207db2e8b4"
+}

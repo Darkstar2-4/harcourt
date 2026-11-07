@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM subcategory WHERE parameters GLOB 'a:*' OR options GLOB 'a:*' OR download GLOB 'a:*')\n               OR EXISTS (SELECT 1 FROM inventory WHERE pricing GLOB 'a:*')\n               OR EXISTS (SELECT 1 FROM campaign WHERE divs GLOB 'a:*') AS \"unconverted!: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "unconverted!: bool",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "296ed681ac45d0d7adeff66728da6395b49b984839a7892a7d5b23dcc180d2f8"
+}

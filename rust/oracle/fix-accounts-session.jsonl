@@ -1,0 +1,3 @@
+# Accounts cases that change the PHP session they run in (the language, the framed flag, the session itself).
+# Run them on their own, warm, so they do not change what other warm cases see. Synthetic personas only; the
+# language each persona switches to is its own, so the oracle's accounts keep their language.

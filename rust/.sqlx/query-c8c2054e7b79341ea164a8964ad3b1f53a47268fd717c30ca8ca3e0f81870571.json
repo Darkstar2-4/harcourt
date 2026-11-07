@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM inventory_xref WHERE update_timestamp <> ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "c8c2054e7b79341ea164a8964ad3b1f53a47268fd717c30ca8ca3e0f81870571"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO wp_gf_entry (form_id, date_created, date_updated, is_starred, is_read, ip, source_url, user_agent, currency, status)\n           VALUES (?1, ?2, ?2, 0, 0, ?3, ?4, ?5, 'USD', ?6) RETURNING id AS \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "95feb5fa6190f3e197484259fcce0694c3e096fa6e9908e1189abe313507609d"
+}

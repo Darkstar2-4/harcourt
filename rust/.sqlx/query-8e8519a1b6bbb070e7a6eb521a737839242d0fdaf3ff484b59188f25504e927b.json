@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT subcategory_id AS \"id!: i64\" FROM inventory WHERE active = 1 AND new_date >= ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8e8519a1b6bbb070e7a6eb521a737839242d0fdaf3ff484b59188f25504e927b"
+}

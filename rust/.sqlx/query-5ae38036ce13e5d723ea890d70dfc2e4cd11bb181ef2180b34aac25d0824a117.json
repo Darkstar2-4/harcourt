@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT plural AS \"plural!: String\" FROM currency WHERE code = ?1 AND plural IS NOT NULL AND plural <> '' ORDER BY active DESC, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "plural!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "5ae38036ce13e5d723ea890d70dfc2e4cd11bb181ef2180b34aac25d0824a117"
+}

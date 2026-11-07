@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM subcategory\n               WHERE (status = 'Active' OR (?1 AND status = 'Pending'))\n                 AND (NOT ?2 OR industry LIKE ?3 OR portal LIKE ?4)) AS \"visible!: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "visible!: bool",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2b962b705062c8eb4207ae14ee4fd2eeca77697a72aec95274ad43b69609a4dd"
+}
