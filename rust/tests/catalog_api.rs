@@ -107,3 +107,55 @@ async fn a_cad_download_without_a_link_says_so() {
     let (_, _, body) = send(&h.app, request(Method::GET, "/scscpq_api.php?action=download&url=", Some(&cookie), &[("referer", "https://www.harcourt.co/catalog/")], Body::empty())).await;
     assert_eq!(body, "Error detected Empty URL");
 }
+
+#[tokio::test]
+async fn quick_cad_from_the_configurator_asks_for_the_configured_number() {
+    let h = harness().await;
+    for sql in [
+        "INSERT INTO category (id, name, active) VALUES (1, 'Pins', 1)",
+        "INSERT INTO subcategory (id, category_id, name, status, prj) VALUES (7, 1, 'Ball Lock Pins', 'Active', 'info=harcourt/pins/pin.prj'), (8, 1, 'Detent Pins', 'Pending', 'info=harcourt/pins/detent.prj')",
+        "INSERT INTO inventory (id, sku, category_id, subcategory_id, active) VALUES (1, 'PIN 10', 1, 7, 1)",
+        "INSERT INTO registry (domain, module, field, item, data) VALUES ('', 'cad', 'catalog', '', 'harcourt')",
+        "INSERT INTO cad (code, name, type, direct, active) VALUES ('STEP', 'STEP AP214', '3D', 0, 1)",
+    ] {
+        sqlx::query(sql).execute(&h.pool).await.unwrap();
+    }
+    let mut a = Account::customer(73);
+    a.cad = true;
+    let cookie = signed_in(&h.pool, &a).await;
+    let (_, _, body) = send(&h.app, xhr("action=profile&profile_email=buyer%40example.com&profile_name_first=Pat&profile_name_last=Lee&cad_code=STEP&profile_generate=1", Some(&cookie))).await;
+    assert!(body.contains("Profile Updated"), "{body}");
+    let quick_cad = |sku: &str, configurator: Option<&str>| {
+        let mut form = form_urlencoded::Serializer::new(String::new());
+        form.append_pair("action", "quick_cad").append_pair("sku", sku);
+        if let Some(c) = configurator {
+            form.append_pair("configurator", c);
+        }
+        xhr(&form.finish(), Some(&cookie))
+    };
+    let pool = &h.pool;
+    let logged = move || async move {
+        sqlx::query_as::<_, (String, String, i64, String, String)>("SELECT subtype, sku, subcategory_id, email, comment FROM log WHERE type = 'PARTSolutions' ORDER BY id")
+            .fetch_all(pool)
+            .await
+            .unwrap()
+    };
+
+    let pin = r#"{"standardName":"Ball Lock Pin","lina":"PIN_10","partId":"(harcourt/pins/pin.prj)({LEN=10},{D=6})"}"#;
+    let (_, _, body) = send(&h.app, quick_cad("PIN 10", Some(pin))).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["quick_cad_status"], "CAD Generator Error", "no PARTsolutions server is set: {body}");
+    let row = ("Quick CAD Error".to_string(), "PIN_10".to_string(), 7, "buyer@example.com".to_string(), "Pins: Ball Lock Pins\nCAD Format: STEP AP214\nPARTserver URL Missing".to_string());
+    assert_eq!(logged().await, vec![row.clone()], "the configured number and the family its project names");
+
+    let detent = r#"{"lina":"DP_5","partId":"(harcourt/pins/detent.prj)({LEN=5})"}"#;
+    let (_, _, body) = send(&h.app, quick_cad("DP 5", Some(detent))).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["quick_cad_status"], "Quick CAD not available for DP_5", "a family the catalog does not show this account");
+    assert_eq!(logged().await.len(), 1);
+
+    let (_, _, body) = send(&h.app, quick_cad("PIN 10", None)).await;
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["quick_cad_status"], "CAD Generator Error");
+    assert_eq!(logged().await.last().map(|r| (r.1.as_str(), r.2)), Some(("PIN 10", 7)), "without the configurator, the part's own number");
+}
