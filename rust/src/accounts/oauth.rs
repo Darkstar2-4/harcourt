@@ -117,7 +117,7 @@ pub struct Providers {
     pub google: Option<Provider>,
 }
 
-const GRAPH_ME: &str = "https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName,displayName,givenName,surname,companyName,streetAddress,city,state,postalCode";
+const GRAPH_ME: &str = "https://graph.microsoft.com/v1.0/me?$select=userPrincipalName,displayName,givenName,surname,companyName,streetAddress,city,state,postalCode";
 
 impl Providers {
     pub fn none() -> Providers {
@@ -389,23 +389,13 @@ fn truthy(v: Option<&Value>) -> bool {
     }
 }
 
-/// MicrosoftAuth.php verifiedEmail(): an address whose domain the signing tenant has proven it owns, or nothing.
-/// Any Entra tenant can sign in and a tenant admin can set `mail` to anything, so `mail` alone is never trusted.
+/// MicrosoftAuth.php verifiedEmail(): the address this user signs in to Microsoft as, or nothing. That is the user
+/// principal name, whose suffix the signing tenant has proven it owns; a guest's UPN names no address. `mail` and
+/// the `email` claim are directory attributes that can name another mailbox, so they never choose the account.
 fn microsoft_email(profile: &Value, claims: &Value) -> Option<String> {
-    let normalise = |s: String| Email::parse(&s).map(|e| e.as_str().to_string());
-    let domain = |s: &str| s.rsplit_once('@').map(|(_, d)| d.to_string());
-    let upn = normalise(first(&[text(profile, "userPrincipalName"), text(claims, "upn")])).filter(|u| !u.contains("#ext#"));
-    let mail = normalise(text(profile, "mail").unwrap_or_default());
-    let claim_email = normalise(text(claims, "email").unwrap_or_default());
-    let edov = truthy(claims.get("xms_edov")) && claim_email.is_some();
-    if let Some(mail) = &mail {
-        let by_claim = edov && claim_email.as_ref() == Some(mail);
-        let by_upn = upn.as_ref().is_some_and(|u| domain(u) == domain(mail));
-        if by_claim || by_upn {
-            return Some(mail.clone());
-        }
-    }
-    upn.or(if edov { claim_email } else { None })
+    Email::parse(&first(&[text(profile, "userPrincipalName"), text(claims, "upn")]))
+        .map(|e| e.as_str().to_string())
+        .filter(|u| !u.contains("#ext#"))
 }
 
 fn failed(kind: Kind) -> String {
@@ -621,15 +611,13 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn microsoft_email_is_only_a_domain_the_tenant_proved() {
+    fn microsoft_email_is_the_user_principal_name() {
         let m = |p: Value, c: Value| microsoft_email(&p, &c);
-        assert_eq!(m(json!({"mail": "Pat@Example.com", "userPrincipalName": "pat@example.com"}), json!({})).as_deref(), Some("pat@example.com"));
-        assert_eq!(m(json!({"mail": "boss@victim.example", "userPrincipalName": "pat@tenant.example"}), json!({})).as_deref(), Some("pat@tenant.example"), "mail at another domain falls back to the UPN");
-        assert_eq!(m(json!({"mail": "boss@victim.example"}), json!({})), None, "mail alone is not trusted");
-        assert_eq!(m(json!({"mail": "pat@ext.example", "userPrincipalName": "pat_ext.example#EXT#@host.example"}), json!({})), None, "a guest UPN says nothing");
-        assert_eq!(m(json!({"mail": "pat@ext.example"}), json!({"email": "pat@ext.example", "xms_edov": true})).as_deref(), Some("pat@ext.example"));
-        assert_eq!(m(json!({}), json!({"email": "pat@ext.example", "xms_edov": "1"})).as_deref(), Some("pat@ext.example"));
-        assert_eq!(m(json!({}), json!({"email": "pat@ext.example", "xms_edov": false})), None);
+        assert_eq!(m(json!({"mail": "Pat@Example.com", "userPrincipalName": "Pat@Example.com"}), json!({})).as_deref(), Some("pat@example.com"));
+        assert_eq!(m(json!({"userPrincipalName": "pat@tenant.example"}), json!({})).as_deref(), Some("pat@tenant.example"));
+        assert_eq!(m(json!({"mail": "pat.ray@tenant.example", "userPrincipalName": "pat@tenant.example"}), json!({})).as_deref(), Some("pat@tenant.example"));
+        assert_eq!(m(json!({"mail": "pat@ext.example", "userPrincipalName": "pat_ext.example#EXT#@host.example"}), json!({})), None, "a guest UPN names no address");
+        assert_eq!(m(json!({"mail": "pat@ext.example"}), json!({"email": "pat@ext.example"})), None);
         assert_eq!(m(json!({"userPrincipalName": null}), json!({"upn": "pat@tenant.example"})).as_deref(), Some("pat@tenant.example"));
     }
 
