@@ -179,6 +179,8 @@ fn routers_with(core: Arc<Auth>, forms: Option<Arc<dyn FormSource>>, orders: Arc
             r = r.route(bare, methods());
         }
     }
+    // WordPress answered every method alike there.
+    r = r.route("/search/{*rest}", any(search_results));
     let front = Router::new().route("/{*path}", any(front)).with_state(wp.clone());
     Routers { pages: r.with_state(wp).merge(crate::cms::admin::routes().with_state(core)), front }
 }
@@ -223,7 +225,7 @@ async fn front(State(wp): State<Arc<Wp>>, sent: Option<Extension<SentPath>>, req
         return gone;
     }
     if method == Method::POST {
-        return form_post(&wp, req).await;
+        return form_post(&wp, req, false).await;
     }
     if !get {
         return serve(&wp, &uri, &headers, None, false).await;
@@ -775,15 +777,24 @@ fn slashed(path: &str) -> String {
 }
 
 async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
-    form_post(&wp, req).await
+    form_post(&wp, req, false).await
+}
+
+/// WordPress's search results, `/search/<terms>/`. A post there is answered as every post to the site is.
+async fn search_results(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
+    if req.method() == Method::POST {
+        return form_post(&wp, req, true).await;
+    }
+    crate::catalog::wp_search::results(&wp.search, req.uri(), req.headers(), &[], None).await
 }
 
 /// A post to any address WordPress answered: a page, a post, an FAQ type's archive or the 404 page, each of which
 /// prints the footer's form. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that
 /// form where the response shows it (an ajax form gets the iframe postback document instead). Any other post, one
 /// for a form the orders tables lack, or one to an address that moves, gets what a post there showed, as WordPress
-/// did. A body too large or unreadable is refused rather than read as an empty post.
-async fn form_post(wp: &Arc<Wp>, req: Request) -> Response<Body> {
+/// did. A body too large or unreadable is refused rather than read as an empty post. `search`: the post is to the
+/// search results, which show around the form instead of a page.
+async fn form_post(wp: &Arc<Wp>, req: Request, search: bool) -> Response<Body> {
     let (mut parts, body) = req.into_parts();
     let Ok(ClientIp(ip)) = ClientIp::from_request_parts(&mut parts, &wp.core).await;
     let Ok(body) = axum::body::to_bytes(body, crate::orders::POST_LIMIT).await else {
@@ -794,8 +805,10 @@ async fn form_post(wp: &Arc<Wp>, req: Request) -> Response<Body> {
     };
     let raw_query = parts.uri.query().unwrap_or("");
     let q = query(raw_query);
+    let searched: Option<Vec<String>> = search.then(|| params.keys().cloned().collect());
+    let shows = |answer| shown_after_post(wp, &parts.uri, &parts.headers, searched.as_deref(), answer);
     let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()).filter(|_| !q.rest_route) else {
-        return serve(wp, &parts.uri, &parts.headers, None, false).await;
+        return shows(None).await;
     };
     let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let site = match wp.content.site().await {
@@ -804,10 +817,16 @@ async fn form_post(wp: &Arc<Wp>, req: Request) -> Response<Body> {
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
     let request_uri = parts.uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-    let (wp_uri, title, lang) = match shown_at(&site, &path, &q, raw_query, false) {
-        Answer::Render(page) => (format!("{}{}", page.path, q.wordpress_form_query), Some(page.title.clone()), page.lang),
-        Answer::Archive(_) | Answer::NotFound | Answer::Search { .. } => (request_uri, None, q.lang),
-        _ => return serve(wp, &parts.uri, &parts.headers, None, false).await,
+    let (wp_uri, title, lang) = match searched.as_deref() {
+        Some(posted) => match crate::catalog::wp_search::posted_lang(&parts.uri, posted) {
+            Some(lang) => (request_uri, None, lang),
+            None => return shows(None).await,
+        },
+        None => match shown_at(&site, &path, &q, raw_query, false) {
+            Answer::Render(page) => (format!("{}{}", page.path, q.wordpress_form_query), Some(page.title.clone()), page.lang),
+            Answer::Archive(_) | Answer::NotFound | Answer::Search { .. } => (request_uri, None, q.lang),
+            _ => return shows(None).await,
+        },
     };
     let lang = match lang {
         Lang::En => model::Lang::En,
@@ -818,12 +837,21 @@ async fn form_post(wp: &Arc<Wp>, req: Request) -> Response<Body> {
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], h).into_response()
         }
-        Ok(Some((outcome, false))) => serve(wp, &parts.uri, &parts.headers, outcome.on_page(form), false).await,
-        Ok(None) => serve(wp, &parts.uri, &parts.headers, None, false).await,
+        Ok(Some((outcome, false))) => shows(outcome.on_page(form)).await,
+        Ok(None) => shows(None).await,
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
         }
+    }
+}
+
+/// What a post to `uri` shows, `answer` in its form's place: the search results for a post to them (with the
+/// names of the posted fields), else what `serve` shows for a post.
+async fn shown_after_post(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, searched: Option<&[String]>, answer: Option<render::Answer>) -> Response<Body> {
+    match searched {
+        Some(posted) => crate::catalog::wp_search::results(&wp.search, uri, headers, posted, answer).await,
+        None => serve(wp, uri, headers, answer, false).await,
     }
 }
 
@@ -877,7 +905,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         }
         Answer::Search { s, paged, page } => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str());
-            return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers).await;
+            return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers, answer).await;
         }
         Answer::NotFound => Shown::NotFound,
     };

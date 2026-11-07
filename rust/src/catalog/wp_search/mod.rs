@@ -12,12 +12,9 @@ use std::{
 };
 
 use axum::{
-    body::{Body, Bytes},
-    extract::Extension,
-    http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri},
+    body::Body,
+    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::any,
-    Router,
 };
 use regex::Regex;
 
@@ -28,7 +25,7 @@ use crate::{
         forms::{FormSource, OrdersForms},
         theme, Content, FormEmbed, Lang, MediaId, Page, PageId, PostType, Site, Status, Taxonomy,
     },
-    orders::Orders,
+    orders::{forms::render::Answer, Orders},
 };
 
 /// The posts_per_page option.
@@ -43,12 +40,8 @@ pub struct Search {
     origin: String,
 }
 
-pub fn router(core: Arc<Auth>) -> Router<Arc<Auth>> {
-    // WordPress answered every method alike; only a POST has form fields.
-    Router::new().route("/search/{*rest}", any(results)).layer(Extension(searcher(core)))
-}
-
-/// The search pages' state, for another route that shows WordPress's search (`/?s=` on the front page).
+/// The search pages' state, for the routes that show WordPress's search: `/search/<terms>/` and `/?s=` on the front
+/// page.
 pub fn searcher(core: Arc<Auth>) -> Arc<Search> {
     Arc::new(Search {
         content: Content::new(core.pool.clone()),
@@ -132,7 +125,7 @@ fn terms_from_path(matched: &str) -> String {
 /// The request: its path by WordPress's search rewrite rules, its query (and a post's body) by WordPress's and
 /// WPML's query vars.
 fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
-    if posted.iter().any(|k| WP_KEYS.contains(&k.as_str()) || k == "page" || k == "gform_submit") {
+    if posted.iter().any(|k| WP_KEYS.contains(&k.as_str()) || k == "page") {
         return Asked::Legacy;
     }
     let trimmed = raw_path.trim_matches('/');
@@ -861,10 +854,10 @@ fn legacy() -> Response {
     r
 }
 
-/// A search page, for a GET or a post (WordPress showed the page for a post that submits no form).
-async fn results(Extension(search): Extension<Arc<Search>>, method: Method, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
-    let posted: Vec<String> = if method == Method::POST { form_urlencoded::parse(&body).map(|(k, _)| k.into_owned()).collect() } else { Vec::new() };
-    let (s, paged, lang, page) = match asked(uri.path(), uri.query().unwrap_or(""), &posted) {
+/// A search page at `uri`, the fields of a post by name in `posted` (WordPress answered every method alike), with
+/// `answer` (a submitted form's markup) in that form's place.
+pub async fn results(search: &Arc<Search>, uri: &Uri, headers: &HeaderMap, posted: &[String], answer: Option<Answer>) -> Response {
+    let (s, paged, lang, page) = match asked(uri.path(), uri.query().unwrap_or(""), posted) {
         Asked::Results { s, paged, lang, page } => (s, paged, lang, page),
         Asked::Found(to) => {
             return match HeaderValue::from_str(&to) {
@@ -875,12 +868,21 @@ async fn results(Extension(search): Extension<Arc<Search>>, method: Method, uri:
         Asked::Legacy => return legacy(),
     };
     let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
-    show(&search, &s, lang, paged, page, &request_uri, &headers).await
+    show(search, &s, lang, paged, page, &request_uri, headers, answer).await
+}
+
+/// The language of the search page a post to `uri` with fields `posted` shows; None when it shows none.
+pub fn posted_lang(uri: &Uri, posted: &[String]) -> Option<Lang> {
+    match asked(uri.path(), uri.query().unwrap_or(""), posted) {
+        Asked::Results { lang, .. } => Some(lang),
+        Asked::Found(_) | Asked::Legacy => None,
+    }
 }
 
 /// WordPress's search page for `s` in `lang`: result page `paged`, the `page` query var, the forms posting back to
-/// `request_uri` as asked.
-pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page: usize, request_uri: &str, headers: &HeaderMap) -> Response {
+/// `request_uri` as asked, `answer` in place of the form it answers.
+#[allow(clippy::too_many_arguments)]
+pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page: usize, request_uri: &str, headers: &HeaderMap, answer: Option<Answer>) -> Response {
     let paged = paged.max(1);
     let site = match search.content.site().await {
         Ok(site) => site,
@@ -912,11 +914,16 @@ pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page:
     };
     let islands: Vec<Island> = serde_json::from_str(site.options(lang).get(&format!("{}islands", theme::NOT_FOUND_OPTION)).map_or("[]", |f| f.value.as_str())).unwrap_or_default();
     let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+    let answered = answer.as_ref().and_then(|a| islands.iter().position(|i| i.form == a.form));
     let filled = crate::cms::forms::fill(&html, |form, index| {
         let island = islands.get(index).filter(|i| i.form == form);
         let position = islands.iter().position(|i| i.form == form).unwrap_or(index) + 1;
+        let answer = answer.as_ref().filter(|_| answered == Some(index)).map(|a| a.html.clone());
         let search = search.clone();
         async move {
+            if let Some(h) = answer {
+                return Ok(h);
+            }
             let i = island.ok_or_else(|| format!("form {form} is not in the 404 page's islands"))?;
             let embed = FormEmbed {
                 form,
@@ -933,7 +940,11 @@ pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page:
             search.forms.markup(&embed).await
         }
     })
-    .await;
+    .await
+    .map(|html| match (&answer, answered) {
+        (Some(a), Some(index)) => a.page(&html, index + 1),
+        _ => html,
+    });
     match filled {
         Ok(html) => {
             let host = search.origin.trim_start_matches("https://");
@@ -983,7 +994,8 @@ mod tests {
         assert_eq!(asked("/search/products", "p=1", &[]), Asked::Legacy);
         assert_eq!(asked("/search/products", "page=2", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 2 });
         assert_eq!(asked("/search/products", "", &["q".into()]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
-        assert_eq!(asked("/search/products", "", &["gform_submit".into()]), Asked::Legacy);
+        assert_eq!(asked("/search/products", "", &["gform_submit".into(), "input_1".into()]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
+        assert_eq!(asked("/search/products", "", &["s".into()]), Asked::Legacy);
     }
 
     #[test]
