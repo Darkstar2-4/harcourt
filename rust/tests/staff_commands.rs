@@ -150,6 +150,30 @@ async fn cells_a_column_cannot_read_reject_their_line() {
 }
 
 #[tokio::test]
+async fn a_price_break_needs_a_base_price() {
+    let pool = seeded().await;
+    let mut header = vec!["Harcourt SKU".to_string(), "Base Price".into()];
+    for i in 1..10 {
+        header.push(format!("Qty Break #{i}"));
+        header.push(format!("Price #{i}"));
+    }
+    let line = |cells: &[&str]| {
+        let mut l: Vec<String> = cells.iter().map(|c| c.to_string()).collect();
+        l.resize(header.len(), String::new());
+        l.join("\t")
+    };
+    let body = [header.join("\t"), line(&["TC-100", "0", "100", "4.50"]), line(&["TC-200", "0", "0", "0", "0", "0"]), line(&["BL-1", "5.00", "", "", "100", "4.50"])].join("\n");
+    let file = Scratch::new("breaks.txt", body.as_bytes());
+    let text = printed(run_on(&pool, &["import", "inventory", file.path(), "--update"]).await);
+    assert!(text.contains("  line 2: price0: Cannot be 0 when a later price is given\n"), "{text}");
+    assert!(!text.contains("line 3:") && !text.contains("line 4:"), "{text}");
+    let rows: Vec<(String, String)> = sqlx::query_as("SELECT sku, COALESCE(pricing, '') FROM inventory ORDER BY id").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows[0], ("TC-100".into(), r#"[{"price":12.5,"qty_break":0},{"price":11.0,"qty_break":10.0}]"#.into()), "a rejected line saves nothing");
+    assert_eq!(rows[1], ("TC-200".into(), "[]".into()), "a line priced at 0 throughout stores no pricing");
+    assert_eq!(rows[2], ("BL-1".into(), r#"[{"price":5.0,"qty_break":0},{"price":4.5,"qty_break":100.0}]"#.into()));
+}
+
+#[tokio::test]
 async fn a_rejected_line_rolls_back_a_subcategory_update_and_the_sort_order_is_a_column() {
     let pool = seeded().await;
     let bad = Scratch::new("lead.txt", b"Subcategory ID\tLeadtime Option\tLeadtime Weeks\tSort Order\n10\tweeks\t4\t15\n11\tsoon\t\t5\n");
