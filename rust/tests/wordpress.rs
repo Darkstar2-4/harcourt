@@ -655,6 +655,39 @@ async fn the_footer_form_is_answered_on_the_search_results() {
     assert!(html.contains("id='gform_1'") && !html.contains("Thanks, we will be in touch."), "a post without a form shows the results");
 }
 
+/// What a search's address no longer has (its feeds, a var that narrows it) is the 404 page, as the blog's feeds
+/// are; an empty search searches for nothing and lists every post, newest first.
+#[tokio::test]
+async fn a_search_feed_is_not_found_and_an_empty_search_lists_every_post() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    seed_not_found(&pool).await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at) VALUES (166, 2, 'en', '/product/clamping/', 'layouts/template-product-single.php', 'publish', 'Clamping', 0, '2021-01-01 00:00:00', '2021-01-01 00:00:00')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    for uri in ["/search/pins/feed/rss2/", "/search/pins/feed/", "/search/pins/rss2/", "/search/pins?p=1"] {
+        let (status, _, html) = send(&app, Method::GET, uri).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{uri}");
+        assert!(html.contains("</i> Error 404\n") && html.contains(&format!("<form id=stub-1 data-page=\"{uri}\"></form>")), "{uri}: {html}");
+    }
+    assert_eq!(send(&app, Method::HEAD, "/search/pins/feed/").await.0, StatusCode::NOT_FOUND);
+    assert_eq!(send(&app, Method::GET, "/search/x.php/feed/").await.0, StatusCode::GONE, "the old stack's addresses stay gone");
+
+    for uri in ["/?s=", "/search/pins/?s="] {
+        let (status, _, html) = send(&app, Method::GET, uri).await;
+        assert_eq!(status, StatusCode::OK, "{uri}");
+        assert!(html.contains("Search Results for &ldquo;&rdquo;"), "{uri}: {html}");
+        let (newer, older) = (html.find("id=\"post_166\""), html.find("id=\"post_165\""));
+        assert!(newer.is_some() && newer < older, "{uri}: every post of the language, newest first: {html}");
+        assert!(!html.contains("id=\"post_2010\""), "{uri}");
+        assert!(html.contains("You searched for  - Harcourt"), "Yoast's title with its phrase left empty: {html}");
+        assert!(html.contains("href=\"https://www.harcourt.co/search/feed/rss2/\""), "get_search_link() without terms: {html}");
+    }
+    let (_, _, html) = send(&app, Method::GET, "/search/nothing+found/").await;
+    assert!(html.contains("You searched for nothing found - Harcourt") && html.contains("href=\"https://www.harcourt.co/search/nothing+found/feed/rss2/\""), "{html}");
+}
+
 #[tokio::test]
 async fn results_that_embed_a_form_or_name_a_sidebar_are_drawn() {
     let (app, pool) = harness().await;

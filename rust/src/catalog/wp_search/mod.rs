@@ -24,7 +24,7 @@ use crate::{
     cms::{
         forms::{FormSource, OrdersForms},
         theme,
-        yoast::{json, schema_text},
+        yoast::{json, schema_text, standardize_whitespace},
         Content, FormEmbed, Lang, MediaId, Page, PageId, PostType, Site, Status, Taxonomy,
     },
     orders::{forms::render::Answer, Orders},
@@ -60,8 +60,8 @@ enum Asked {
     Results { s: String, paged: usize, lang: Lang, page: usize },
     /// WPML's 302 away from `lang=en`, to this relative Location.
     Found(String),
-    /// A feed or embed of a search, or a query WordPress acts on: the legacy stack answers.
-    Legacy,
+    /// A feed of a search, or a query var that narrows it in ways the site no longer has: the 404 page.
+    Dropped,
 }
 
 /// Query keys WordPress acts on besides WPML's `lang` (WP::$public_query_vars and the site's post types).
@@ -128,12 +128,12 @@ fn terms_from_path(matched: &str) -> String {
 /// WPML's query vars.
 fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
     if posted.iter().any(|k| WP_KEYS.contains(&k.as_str()) || k == "page") {
-        return Asked::Legacy;
+        return Asked::Dropped;
     }
     let trimmed = raw_path.trim_matches('/');
     let rules = rewrite();
     if rules[..2].iter().any(|r| r.is_match(trimmed)) {
-        return Asked::Legacy;
+        return Asked::Dropped;
     }
     // The embed rule sets `embed`, which WP_Query keeps only for a single post or a 404: a search's embed address
     // shows the search.
@@ -142,7 +142,7 @@ fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
         (None, Some(c)) => (c.get(1).map_or("", |m| m.as_str()), c[2].parse::<usize>().unwrap_or(0)),
         (None, None) => match trimmed.strip_prefix("search/").filter(|m| !m.is_empty()) {
             Some(m) => (m, 1),
-            None => return Asked::Legacy,
+            None => return Asked::Dropped,
         },
     };
     let pairs: Vec<(String, &str)> = raw_query
@@ -152,10 +152,11 @@ fn asked(raw_path: &str, raw_query: &str, posted: &[String]) -> Asked {
         .collect();
     let value = |key: &str| pairs.iter().rev().find(|(k, _)| k == key).map(|(_, kv)| kv.split_once('=').map_or("", |(_, v)| v));
     // The query's own search terms and page of results stand in for the path's ($_GET wins in WP::parse_request);
-    // an empty `s` is no search at all, and any other var narrows the search in ways not ported.
+    // an empty `s` still makes a search (WP_Query sets is_search for any `s`), and any other var narrows the search
+    // in ways not ported.
     let query_s = value("s").map(|v| String::from_utf8_lossy(&urldecode_bytes(v)).replace(['\r', '\n'], ""));
-    if query_s.as_deref() == Some("") || pairs.iter().any(|(k, _)| WP_KEYS.contains(&k.as_str()) && k != "s" && k != "paged") {
-        return Asked::Legacy;
+    if pairs.iter().any(|(k, _)| WP_KEYS.contains(&k.as_str()) && k != "s" && k != "paged") {
+        return Asked::Dropped;
     }
     let paged = match value("paged") {
         Some(v) => usize::try_from(page::absint(&String::from_utf8_lossy(&urldecode_bytes(v)))).unwrap_or(usize::MAX),
@@ -294,9 +295,10 @@ fn post_content(site: &Site, id: PageId) -> &str {
 }
 
 /// WP_Query's search: every term in the title, excerpt or content (a negated one in none), ranked by its ORDER BY
-/// (the search_orderby CASE, then post_date), as the posts of the language WPML let through.
-fn search<'a>(site: &'a Site, terms: &Terms, lang: Lang) -> Vec<&'a Page> {
-    if terms.include.is_empty() {
+/// (the search_orderby CASE, then post_date), as the posts of the language WPML let through. Without terms (an
+/// empty `s`) WP_Query adds no search clause: every post, by post_date.
+fn search<'a>(site: &'a Site, terms: Option<&Terms>, lang: Lang) -> Vec<&'a Page> {
+    if terms.is_some_and(|t| t.include.is_empty()) {
         // WordPress's ORDER BY had no title clause to rank by and the query failed: nothing found.
         return Vec::new();
     }
@@ -309,8 +311,10 @@ fn search<'a>(site: &'a Site, terms: &Terms, lang: Lang) -> Vec<&'a Page> {
         .collect();
     for d in &docs {
         let has = |t: &String| d.title.contains(t.as_str()) || d.excerpt.contains(t.as_str()) || d.content.contains(t.as_str());
-        if terms.include.iter().all(has) && !terms.exclude.iter().any(has) {
-            found.push((rank(d, terms), d));
+        match terms {
+            None => found.push((0, d)),
+            Some(terms) if terms.include.iter().all(has) && !terms.exclude.iter().any(has) => found.push((rank(d, terms), d)),
+            Some(_) => {}
         }
     }
     found.sort_by(|(ra, a), (rb, b)| ra.cmp(rb).then_with(|| b.page.published_at.cmp(&a.page.published_at)).then_with(|| b.page.id.cmp(&a.page.id)));
@@ -689,8 +693,8 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
     let (first, last) = (results.first().copied(), results.last().copied());
     let not_found = |name: &str| site.options(lang).get(&format!("{}{name}", theme::NOT_FOUND_OPTION)).map(|f| f.value.clone()).unwrap_or_default();
     let (shown, u) = (esc(s), urlencode(s, false));
-    let page = if paged > 1 { if lang == Lang::Fr { format!(" - Page {paged} sur {pages}") } else { format!(" - Page {paged} of {pages}") } } else { String::new() };
-    let title = format!("You searched for {shown}{page} - Harcourt");
+    let page = if paged > 1 { if lang == Lang::Fr { format!("- Page {paged} sur {pages}") } else { format!("- Page {paged} of {pages}") } } else { String::new() };
+    let title = standardize_whitespace(&format!("You searched for {shown} {page} - Harcourt"));
     let mut h = BTreeMap::new();
     // WPML prints no alternates for a later page of results.
     if paged == 1 && !v.ajax {
@@ -702,7 +706,7 @@ fn holes(site: &Site, v: &Shown, results: &[&Page]) -> BTreeMap<&'static str, St
         );
     }
     h.insert("seo_og_type", "\t<meta property=\"og:type\" content=\"article\" />\n".to_string());
-    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}{}\" />\n", lang.link(&format!("/search/{shown}/"))));
+    h.insert("seo_og_description_url", format!("\t<meta property=\"og:url\" content=\"{ORIGIN}{}\" />\n", lang.link(&search_path(&shown))));
     h.insert(
         "seo_article_twitter",
         format!("\t<meta name=\"twitter:card\" content=\"summary_large_image\" />\n\t<meta name=\"twitter:title\" content=\"{title}\" />\n\t<meta name=\"twitter:site\" content=\"@theharcourtco\" />\n"),
@@ -789,14 +793,23 @@ fn schema(site: &Site, lang: Lang, shown: &str, title: &str, first: Option<&Page
     }
 }
 
+/// get_search_link()'s path for terms as given: the search permastruct, `/search/` alone for none.
+fn search_path(terms: &str) -> String {
+    if terms.is_empty() {
+        "/search/".to_string()
+    } else {
+        format!("/search/{terms}/")
+    }
+}
+
 /// feed_links_extra(): the search's own feed, after the site's comments feed (the chrome has no hole there).
 fn with_feed_link(html: String, lang: Lang, s: &str) -> String {
     // get_search_link() puts the slashes back after urlencode().
-    let (shown, u) = (esc(s), urlencode(s, false).replace("%2F", "/"));
+    let (shown, link) = (esc(s), search_path(&urlencode(s, false).replace("%2F", "/")));
     let line = match lang {
-        Lang::En => format!("<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Search Results for &#8220;{shown}&#8221; Feed\" href=\"{ORIGIN}/search/{u}/feed/rss2/\" />\n"),
+        Lang::En => format!("<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Search Results for &#8220;{shown}&#8221; Feed\" href=\"{ORIGIN}{link}feed/rss2/\" />\n"),
         Lang::Fr => format!(
-            "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Flux de résultats de la recherche pour «\u{a0}{shown}\u{a0}»\" href=\"{ORIGIN}/search/{u}/?lang=fr/feed/rss2/\" />\n"
+            "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"Harcourt &raquo; Flux de résultats de la recherche pour «\u{a0}{shown}\u{a0}»\" href=\"{ORIGIN}{link}?lang=fr/feed/rss2/\" />\n"
         ),
     };
     let at = html.find("/comments/feed/").and_then(|c| html[c..].find("/>\n").map(|e| c + e + 3));
@@ -821,24 +834,19 @@ struct Island {
     texturize: bool,
 }
 
-fn legacy() -> Response {
-    let mut r = Response::new(Body::empty());
-    r.headers_mut().insert("x-hxweb", HeaderValue::from_static("legacy"));
-    r
-}
-
 /// A search page at `uri`, the fields of a post by name in `posted` (WordPress answered every method alike), with
-/// `answer` (a submitted form's markup) in that form's place.
-pub async fn results(search: &Arc<Search>, uri: &Uri, headers: &HeaderMap, posted: &[String], answer: Option<Answer>) -> Response {
+/// `answer` (a submitted form's markup) in that form's place. None when WordPress's answer there is one the site no
+/// longer has (a feed, another query var), or nothing can draw the page.
+pub async fn results(search: &Arc<Search>, uri: &Uri, headers: &HeaderMap, posted: &[String], answer: Option<Answer>) -> Option<Response> {
     let (s, paged, lang, page) = match asked(uri.path(), uri.query().unwrap_or(""), posted) {
         Asked::Results { s, paged, lang, page } => (s, paged, lang, page),
         Asked::Found(to) => {
-            return match HeaderValue::from_str(&to) {
+            return Some(match HeaderValue::from_str(&to) {
                 Ok(v) => (StatusCode::FOUND, [(header::LOCATION, v), (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=UTF-8"))]).into_response(),
                 Err(_) => StatusCode::NOT_FOUND.into_response(),
-            };
+            });
         }
-        Asked::Legacy => return legacy(),
+        Asked::Dropped => return None,
     };
     let request_uri = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
     show(search, &s, lang, paged, page, &request_uri, headers, answer).await
@@ -848,28 +856,25 @@ pub async fn results(search: &Arc<Search>, uri: &Uri, headers: &HeaderMap, poste
 pub fn posted_lang(uri: &Uri, posted: &[String]) -> Option<Lang> {
     match asked(uri.path(), uri.query().unwrap_or(""), posted) {
         Asked::Results { lang, .. } => Some(lang),
-        Asked::Found(_) | Asked::Legacy => None,
+        Asked::Found(_) | Asked::Dropped => None,
     }
 }
 
 /// WordPress's search page for `s` in `lang`: result page `paged`, the `page` query var, the forms posting back to
-/// `request_uri` as asked, `answer` in place of the form it answers.
+/// `request_uri` as asked, `answer` in place of the form it answers. An empty `s` searches for nothing: every post,
+/// newest first. None when the import has no 404 page to draw the page from.
 #[allow(clippy::too_many_arguments)]
-pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page: usize, request_uri: &str, headers: &HeaderMap, answer: Option<Answer>) -> Response {
+pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page: usize, request_uri: &str, headers: &HeaderMap, answer: Option<Answer>) -> Option<Response> {
     let paged = paged.max(1);
     let site = match search.content.site().await {
         Ok(site) => site,
         Err(e) => {
             tracing::error!("search page: cms content unavailable: {e}");
-            return (StatusCode::SERVICE_UNAVAILABLE, "Service unavailable").into_response();
+            return Some((StatusCode::SERVICE_UNAVAILABLE, "Service unavailable").into_response());
         }
     };
-    // An export without WordPress's 404 page left nothing to draw the page from.
     if !site.options(lang).contains_key(&format!("{}title", theme::NOT_FOUND_OPTION)) {
-        return legacy();
-    }
-    if s.trim().is_empty() {
-        return legacy();
+        return None;
     }
     let found = search_posts(&site, s, lang);
     let pages = found.len().div_ceil(PER_PAGE);
@@ -915,7 +920,7 @@ pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page:
         (Some(a), Some(index)) => a.page(&html, index + 1),
         _ => html,
     });
-    match filled {
+    Some(match filled {
         Ok(html) => {
             let host = search.origin.trim_start_matches("https://");
             let html = if host == "www.harcourt.co" { html } else { html.replace("//www.harcourt.co", &format!("//{host}")).replace("\\/\\/www.harcourt.co", &format!("\\/\\/{host}")) };
@@ -932,12 +937,12 @@ pub async fn show(search: &Arc<Search>, s: &str, lang: Lang, paged: usize, page:
             tracing::error!("search page: {e}");
             (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
         }
-    }
+    })
 }
 
 /// The results of a search for `s` in `lang`, in WordPress's order.
 fn search_posts<'a>(site: &'a Site, s: &str, lang: Lang) -> Vec<&'a Page> {
-    search(site, &parse_terms(s, lang), lang)
+    search(site, (!s.is_empty()).then(|| parse_terms(s, lang)).as_ref(), lang)
 }
 
 #[cfg(test)]
@@ -953,19 +958,19 @@ mod tests {
         assert_eq!(asked("/search/a/b/", "", &[]), Asked::Results { s: "a/b".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "lang=en", &[]), Asked::Found("/search/products/".into()));
         assert_eq!(asked("/search/products", "lang=en&q=1", &[]), Asked::Found("/search/products/?q=1".into()));
-        assert_eq!(asked("/search/products/feed/", "", &[]), Asked::Legacy);
-        assert_eq!(asked("/search/products/feed/rss2/", "", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products/feed/", "", &[]), Asked::Dropped);
+        assert_eq!(asked("/search/products/feed/rss2/", "", &[]), Asked::Dropped);
         assert_eq!(asked("/search/products/embed/", "", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/embed/", "", &[]), Asked::Results { s: "embed".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "paged=2", &[]), Asked::Results { s: "products".into(), paged: 2, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products/page/2/", "paged=0", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "s=ball+lock%27s", &[]), Asked::Results { s: "ball lock's".into(), paged: 1, lang: Lang::En, page: 0 });
-        assert_eq!(asked("/search/products", "s=", &[]), Asked::Legacy);
-        assert_eq!(asked("/search/products", "p=1", &[]), Asked::Legacy);
+        assert_eq!(asked("/search/products", "s=", &[]), Asked::Results { s: String::new(), paged: 1, lang: Lang::En, page: 0 }, "an empty s searches for nothing");
+        assert_eq!(asked("/search/products", "p=1", &[]), Asked::Dropped);
         assert_eq!(asked("/search/products", "page=2", &[]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 2 });
         assert_eq!(asked("/search/products", "", &["q".into()]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
         assert_eq!(asked("/search/products", "", &["gform_submit".into(), "input_1".into()]), Asked::Results { s: "products".into(), paged: 1, lang: Lang::En, page: 0 });
-        assert_eq!(asked("/search/products", "", &["s".into()]), Asked::Legacy);
+        assert_eq!(asked("/search/products", "", &["s".into()]), Asked::Dropped);
     }
 
     #[test]

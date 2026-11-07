@@ -185,6 +185,12 @@ fn fold_spaces(s: &str, spaces: &[char]) -> String {
     php_trim(&out).to_string()
 }
 
+/// Yoast's String_Helper::standardize_whitespace(): line breaks and tabs as spaces, one pass of double spaces made
+/// single, trimmed.
+pub fn standardize_whitespace(s: &str) -> String {
+    php_trim(&s.replace(['\t', '\n', '\r', '\u{c}'], " ").replace("  ", " ")).to_string()
+}
+
 fn php_trim(s: &str) -> &str {
     s.trim_matches([' ', '\t', '\n', '\r', '\0', '\u{b}'])
 }

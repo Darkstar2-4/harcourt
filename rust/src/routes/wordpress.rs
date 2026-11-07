@@ -761,7 +761,8 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     serve(&wp, &uri, &headers, None, true).await
 }
 
-/// A request main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export.
+/// A request main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export,
+/// `legacy` for a post to a search the site no longer shows.
 fn handback(to: &'static str) -> Response<Body> {
     let mut r = Response::new(Body::empty());
     r.headers_mut().insert("x-hxweb", HeaderValue::from_static(to));
@@ -794,12 +795,20 @@ async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     form_post(&wp, req, false).await
 }
 
-/// WordPress's search results, `/search/<terms>/`. A post there is answered as every post to the site is.
+/// WordPress's search results, `/search/<terms>/`; for what the site no longer has there (the search's feeds, a
+/// query var that narrows it) the old stack's 410 or the 404 page, as an unclaimed path gets. A post there is
+/// answered as every post to the site is.
 async fn search_results(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
     if req.method() == Method::POST {
         return form_post(&wp, req, true).await;
     }
-    crate::catalog::wp_search::results(&wp.search, req.uri(), req.headers(), &[], None).await
+    if let Some(r) = crate::catalog::wp_search::results(&wp.search, req.uri(), req.headers(), &[], None).await {
+        return r;
+    }
+    match crate::retired::guard(req.uri().path()) {
+        Some(gone) => gone,
+        None => not_found(&wp, req.uri(), req.headers()).await,
+    }
 }
 
 /// A post to any address WordPress answered: a page, a post, an FAQ type's archive or the 404 page, each of which
@@ -864,7 +873,7 @@ async fn form_post(wp: &Arc<Wp>, req: Request, search: bool) -> Response<Body> {
 /// names of the posted fields), else what `serve` shows for a post.
 async fn shown_after_post(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, searched: Option<&[String]>, answer: Option<render::Answer>) -> Response<Body> {
     match searched {
-        Some(posted) => crate::catalog::wp_search::results(&wp.search, uri, headers, posted, answer).await,
+        Some(posted) => crate::catalog::wp_search::results(&wp.search, uri, headers, posted, answer).await.unwrap_or_else(|| handback("legacy")),
         None => serve(wp, uri, headers, answer, false).await,
     }
 }
@@ -919,11 +928,24 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         }
         Answer::Search { s, paged, page } => {
             let request_uri = uri.path_and_query().map_or("/", |p| p.as_str());
-            return crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers, answer).await;
+            return match crate::catalog::wp_search::show(&wp.search, &s, q.lang, paged, page, request_uri, headers, answer).await {
+                Some(r) => r,
+                None => not_found(wp, uri, headers).await,
+            };
         }
         Answer::NotFound => Shown::NotFound,
     };
     respond(wp, &site, shown, uri, &q, agent, answer, get).await
+}
+
+/// The 404 page at `uri`, as WordPress printed it (plain text when the import has no 404 page).
+async fn not_found(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap) -> Response<Body> {
+    let site = match wp.content.site().await {
+        Ok(s) => s,
+        Err(e) => return unavailable(e),
+    };
+    let agent = headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
+    respond(wp, &site, Shown::NotFound, uri, &query(uri.query().unwrap_or("")), agent, None, true).await
 }
 
 /// What a response shows.
