@@ -183,11 +183,17 @@ fn xml(url: &str) -> String {
     out
 }
 
+/// The value of attribute `name` as an HTML parser reads it: up to the closing quote, or unquoted up to whitespace.
 fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
     let at = tag.find(&format!(" {name}="))? + name.len() + 2;
-    let quote = tag[at..].chars().next()?;
-    let rest = &tag[at + 1..];
-    Some(&rest[..rest.find(quote)?])
+    let value = &tag[at..];
+    match value.chars().next()? {
+        quote @ ('"' | '\'') => {
+            let rest = &value[1..];
+            Some(&rest[..rest.find(quote)?])
+        }
+        _ => value.split(|c: char| c.is_ascii_whitespace()).next(),
+    }
 }
 
 #[cfg(test)]
@@ -198,6 +204,9 @@ mod tests {
     fn dates_print_as_yoast_prints_them() {
         assert_eq!(iso("2019-11-19 20:06:55"), "2019-11-19T20:06:55+00:00");
         assert_eq!(attr(" src=\"/a.png\" alt=''", "src"), Some("/a.png"));
+        assert_eq!(attr(" alt='' src=/a.png", "src"), Some("/a.png"));
+        assert_eq!(attr(" src=\u{201c}/a.png\u{201d} alt=x", "src"), Some("\u{201c}/a.png\u{201d}"));
+        assert_eq!(attr(" src=\"/a.png", "src"), None);
         assert_eq!(xml(&decode_attr("https://www.harcourt.co/a.png?w=1&amp;h=2&q=R&D's")), "https://www.harcourt.co/a.png?w=1&amp;h=2&amp;q=R&amp;D&apos;s");
         assert!(head(Lang::Fr).contains("type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
         assert_eq!(Map::parse("faq_type"), Some(Map::FaqTypes));

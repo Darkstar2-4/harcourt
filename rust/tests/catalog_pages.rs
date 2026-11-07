@@ -359,6 +359,10 @@ async fn search_results_list_only_what_the_catalog_lists() {
         let (_, _, body) = send(&h.app, get(&page(path), Some(&cookie))).await;
         assert!(!body.contains("Part number: HBLT-3"), "an inactive part: {path}");
     }
+    for picked in ["503", "999"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id={picked}&search_code=")), Some(&cookie))).await;
+        assert!(body.contains("<p class=center>No results for search term: <b></b></p>") && !body.contains("subcat7") && !body.contains("subcat9"), "a hidden or gone pick: {picked}: {body}");
+    }
     for term in ["secret", "sp-1"] {
         let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&cookie))).await;
         assert!(!body.contains("Secret Pins") && !body.contains("subcat8") && !body.contains("Part number: SP-1"), "a Pending family: {term}: {body}");

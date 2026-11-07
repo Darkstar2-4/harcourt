@@ -210,9 +210,21 @@ async fn a_page_whose_template_is_not_rendered_goes_to_the_static_export() {
         .execute(&pool)
         .await
         .unwrap();
-    let res = app.clone().oneshot(Request::builder().uri("/innovations/example-builder/").body(Body::empty()).unwrap()).await.unwrap();
-    assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "main.rs serves it from the export");
-    assert!(res.extensions().get::<wordpress::ExportRequest>().is_none(), "a GET is the export's own page");
+    let got = |method: Method, uri: &'static str| {
+        let app = app.clone();
+        async move {
+            let res = app.oneshot(Request::builder().method(method).uri(uri).body(Body::empty()).unwrap()).await.unwrap();
+            assert_eq!(res.headers().get("x-hxweb").map(|v| v.to_str().unwrap()), Some("export"), "main.rs serves {uri} from the export");
+            let asked = res.extensions().get::<wordpress::ExportRequest>().cloned().expect("the export page for the GET");
+            assert!(asked.answer.is_none());
+            (asked.path, asked.lang, asked.uri)
+        }
+    };
+    let page = "/innovations/example-builder/".to_string();
+    assert_eq!(got(Method::GET, "/innovations/example-builder/").await, (page.clone(), "en", page.clone()));
+    assert_eq!(got(Method::HEAD, "/innovations/example-builder/?utm_source=x&hxlang=en").await, (page.clone(), "en", format!("{page}?utm_source=x")));
+    assert_eq!(got(Method::GET, "/innovations/example-builder/?gbraid=x").await, (page.clone(), "en", format!("{page}?gbraid=x")), "any query the page ignores");
+    assert_eq!(got(Method::GET, "/Innovations/Example-Builder/").await, (page.clone(), "en", "/Innovations/Example-Builder/".to_string()), "a page asked for in other case");
 
     seed_form(&pool).await;
     let posted = |uri: &'static str, form: &'static str| {
