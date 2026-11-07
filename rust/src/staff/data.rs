@@ -683,7 +683,8 @@ fn prj_ok(prj: &str) -> bool {
 
 /// The table an import writes, with what it looked up once for every line.
 enum Target {
-    Inventory { subcategory_id: i64, subcategory: Option<(i64, i64)>, names: HashMap<String, (i64, i64)> },
+    /// `names`: each family by its lower-cased `category:name`, None when the name fits more than one.
+    Inventory { subcategory_id: i64, subcategory: Option<(i64, i64)>, names: HashMap<String, Option<(i64, i64)>> },
     Erp,
     Subcategory { ids: Vec<i64> },
     Xref { stamp: i64 },
@@ -839,7 +840,7 @@ async fn inventory_target(pool: &SqlitePool, subcategory_id: i64) -> sqlx::Resul
         if r.id == subcategory_id {
             subcategory = Some(ids);
         }
-        names.entry(format!("{}:{}", opt(r.category), opt(r.name)).to_lowercase()).or_insert(ids);
+        names.entry(format!("{}:{}", opt(r.category), opt(r.name)).to_lowercase()).and_modify(|found| *found = None).or_insert(Some(ids));
     }
     Ok(Target::Inventory { subcategory_id, subcategory, names })
 }
@@ -883,7 +884,7 @@ async fn inventory_line(
     update: bool,
     subcategory_id: i64,
     subcategory: Option<(i64, i64)>,
-    names: &HashMap<String, (i64, i64)>,
+    names: &HashMap<String, Option<(i64, i64)>>,
     complete: bool,
 ) -> sqlx::Result<Errors> {
     let sku = val(line, "sku");
@@ -895,12 +896,17 @@ async fn inventory_line(
     let (mut category_id, mut sub_id) = found.as_ref().map_or((0, 0), |f| (f.category_id.unwrap_or(0), f.subcategory_id.unwrap_or(0)));
     if has(line, "category_name") {
         let (category, name) = (val(line, "category_name"), val(line, "subcategory_name"));
+        let mut ambiguous = false;
         if !category.is_empty() {
-            (category_id, sub_id) = names.get(&format!("{category}:{name}").to_lowercase()).copied().unwrap_or((0, 0));
+            let family = names.get(&format!("{category}:{name}").to_lowercase());
+            ambiguous = matches!(family, Some(None));
+            (category_id, sub_id) = family.copied().flatten().unwrap_or((0, 0));
         } else if subcategory_id != 0 {
             (category_id, sub_id) = subcategory.unwrap_or((0, 0));
         }
-        if sub_id == 0 {
+        if ambiguous {
+            errors.push(("subcategory_name".into(), format!("More than one subcategory is named {category}:{name}")));
+        } else if sub_id == 0 {
             errors.push(("subcategory_name".into(), format!("Invalid subcategory: {category}:{name}")));
         }
     }

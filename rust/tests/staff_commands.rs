@@ -105,6 +105,21 @@ async fn an_import_reviews_unless_asked_to_update() {
 }
 
 #[tokio::test]
+async fn an_import_finds_a_family_by_name_unless_the_name_fits_two() {
+    let pool = seeded().await;
+    let moved = Scratch::new("move.txt", b"Harcourt SKU\tCategory Name\tSubcategory Name\nBL-1\tclamps\ttoggle clamps\n");
+    let text = printed(run_on(&pool, &["import", "inventory", moved.path(), "--update"]).await);
+    assert!(text.contains("Updated records: 1\n"), "{text}");
+    assert_eq!(count(&pool, "SELECT subcategory_id FROM inventory WHERE sku = 'BL-1'").await, 10);
+
+    exec(&pool, "INSERT INTO subcategory (id, category_id, name, status, leadtime_option, output) VALUES (12, 1, 'TOGGLE CLAMPS', 'Active', 'Call', '')").await;
+    let two = Scratch::new("two.txt", b"Harcourt SKU\tCategory Name\tSubcategory Name\nTC-100\tClamps\tToggle Clamps\n");
+    let text = printed(run_on(&pool, &["import", "inventory", two.path(), "--update"]).await);
+    assert!(text.contains("  line 2: subcategory_name: More than one subcategory is named Clamps:Toggle Clamps\n"), "{text}");
+    assert_eq!(count(&pool, "SELECT subcategory_id FROM inventory WHERE sku = 'TC-100'").await, 10);
+}
+
+#[tokio::test]
 async fn cells_a_column_cannot_read_reject_their_line() {
     let pool = seeded().await;
     let mut header = vec!["Harcourt SKU".to_string(), "New Date".into(), "Active".into(), "Base Price".into()];
