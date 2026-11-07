@@ -19,6 +19,9 @@ pub struct Profile {
     pub state: String,
     pub zip: String,
     pub country_code: String,
+    pub title: String,
+    pub phone: String,
+    pub fax: String,
 }
 
 impl Profile {
@@ -37,6 +40,9 @@ impl Profile {
             "state" => self.state.clone(),
             "zip" => self.zip.clone(),
             "country_code" => self.country_code.clone(),
+            "title" => self.title.clone(),
+            "phone" => self.phone.clone(),
+            "fax" => self.fax.clone(),
             _ => String::new(),
         }
     }
@@ -90,6 +96,9 @@ impl Profile {
             state: set(&self.state),
             zip: set(&self.zip),
             country_code: set(&self.country_code),
+            title: set(&self.title),
+            phone: set(&self.phone),
+            fax: set(&self.fax),
             ..AddressProfile::default()
         }
     }
@@ -116,6 +125,9 @@ impl From<&AddressProfile> for Profile {
             state: text(&p.state),
             zip: text(&p.zip),
             country_code: text(&p.country_code),
+            title: text(&p.title),
+            phone: text(&p.phone),
+            fax: text(&p.fax),
         }
     }
 }
@@ -289,6 +301,9 @@ mod tests {
         let phone = Registry::from_rows([("", "address", "profile", "phone", Some("required"))]);
         assert!(!p.forced(&phone));
         assert!(p.forced(&Registry::default()));
+        let saved = AddressProfile { email: Some(p.email.clone()), phone: Some("555 0100".into()), ..AddressProfile::default() };
+        let loaded = AddressProfile::from_cookie(Some(&saved.to_cookie()));
+        assert!(Profile::from(&loaded).forced(&phone), "a saved phone meets the gate on the next request");
     }
 
     #[test]

@@ -619,6 +619,19 @@ async fn the_footer_form_is_answered_on_the_search_results() {
 }
 
 #[tokio::test]
+async fn results_that_embed_a_form_or_name_a_sidebar_are_drawn() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    seed_not_found(&pool).await;
+    for (name, value) in [("@post_content", "Pins for every jig. [gravityform id=\"1\" title=\"false\"]"), ("sidebar_select", "products")] {
+        sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (165, ?1, 'choice', ?2)").bind(name).bind(value).execute(&pool).await.unwrap();
+    }
+    let (status, _, html) = send(&app, Method::GET, "/search/alignment/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Pins for every jig.") && !html.contains("[gravityform"), "{html}");
+}
+
+#[tokio::test]
 async fn a_redirect_confirmation_moves_the_visitor_after_an_ajax_post_too() {
     let (app, pool) = harness().await;
     let redirect = r#"{"c":{"name":"Default","isDefault":true,"type":"redirect","url":"https://example.com/thanks/","queryString":"name={Name:1}"}}"#;

@@ -37,6 +37,45 @@ pub fn starts_entity(s: &str) -> bool {
     digits > 0 && b.get(body_end) == Some(&b';')
 }
 
+/// An attribute value as the browser reads it: the markup's character references (numeric ones and the five
+/// `esc()` writes) decoded. Other named references are left as written.
+pub fn decode_attr(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(at) = rest.find('&') {
+        out.push_str(&rest[..at]);
+        rest = &rest[at..];
+        let Some(end) = rest.find(';').filter(|_| starts_entity(rest)) else {
+            out.push('&');
+            rest = &rest[1..];
+            continue;
+        };
+        let name = &rest[1..end];
+        let code = match name.strip_prefix('#') {
+            Some(n) => match n.strip_prefix(['x', 'X']) {
+                Some(hex) => u32::from_str_radix(hex, 16).ok(),
+                None => n.parse::<u32>().ok(),
+            }
+            .and_then(char::from_u32),
+            None => match name {
+                "amp" => Some('&'),
+                "lt" => Some('<'),
+                "gt" => Some('>'),
+                "quot" => Some('"'),
+                "apos" => Some('\''),
+                _ => None,
+            },
+        };
+        match code {
+            Some(c) => out.push(c),
+            None => out.push_str(&rest[..=end]),
+        }
+        rest = &rest[end + 1..];
+    }
+    out.push_str(rest);
+    out
+}
+
 const BLOCKS: [&str; 39] = [
     "address", "article", "aside", "blockquote", "center", "dd", "details", "dialog", "div", "dl", "dt", "fieldset",
     "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "li", "main",
@@ -158,6 +197,12 @@ mod tests {
         assert_eq!(esc(r#"a & b < "c" 'd'"#), "a &amp; b &lt; &quot;c&quot; &#039;d&#039;");
         assert_eq!(esc("Tool Storage &#038; Transit &amp; &eacute; &#x2122;"), "Tool Storage &#038; Transit &amp; &eacute; &#x2122;");
         assert_eq!(esc("&; &#; &#x; & ;"), "&amp;; &amp;#; &amp;#x; &amp; ;");
+    }
+
+    #[test]
+    fn attribute_values_decode_as_the_browser_reads_them() {
+        assert_eq!(decode_attr("/a.png?w=1&amp;h=2&#038;q=&#x27;x&#39;"), "/a.png?w=1&h=2&q='x'");
+        assert_eq!(decode_attr("/a&b.png?c=1&eacute;&;&#;"), "/a&b.png?c=1&eacute;&;&#;");
     }
 
     #[test]

@@ -101,11 +101,13 @@ pub struct Profile {
     pub state: Option<String>,
     pub zip: Option<String>,
     pub country_code: Option<String>,
-    #[serde(skip)]
+    /// The fields address_class verify() adds to the PHP object after the declared ones; a profile that has not
+    /// been through it has none of them.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub phone: Option<String>,
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fax: Option<String>,
 }
 
@@ -156,7 +158,9 @@ impl Profile {
             state: text("state"),
             zip: text("zip"),
             country_code: text("country_code"),
-            ..Profile::default()
+            title: text("title"),
+            phone: text("phone"),
+            fax: text("fax"),
         }
     }
 
@@ -267,7 +271,8 @@ impl Profile {
 
     /// classes/profile.php load(): what the visit or the browser remembered, with the remembered address when it has
     /// none, the CAD format only when it still exists, the visitor's language when it has none, and the company and
-    /// address of whoever the visitor is signed in as (a bot's name for a bot).
+    /// address of whoever the visitor is signed in as (a bot's name for a bot). The title, phone and fax the profile
+    /// form saved are kept too (the PHP dropped them here, so a profile layout requiring one could never be met).
     pub async fn load(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
         let obj = Profile::remembered(pool, headers, visitor).await?;
         let cad_name = match obj.cad_code.as_deref() {
@@ -303,7 +308,9 @@ impl Profile {
             state,
             zip,
             country_code,
-            ..Profile::default()
+            title: obj.title,
+            phone: obj.phone,
+            fax: obj.fax,
         })
     }
 
@@ -810,6 +817,9 @@ mod tests {
             r#"{"email":"pat@example.com","name_first":"Pat","name_last":null,"name":"Pat ","cad_code":null,"cad_name":null,"language_code":"EN","generate":0,"consent":0,"company_name":null,"address":null,"city":null,"state":null,"zip":null,"country_code":null}"#
         );
         assert_eq!(Profile::from_cookie(Some(&p.to_cookie())), p);
+        let verified = Profile { title: Some(String::new()), phone: Some("555 0100".into()), fax: Some(String::new()), ..p };
+        assert!(verified.to_cookie().ends_with(r#""country_code":null,"title":"","phone":"555 0100","fax":""}"#), "{}", verified.to_cookie());
+        assert_eq!(Profile::from_cookie(Some(&verified.to_cookie())), verified);
         assert_eq!(Profile::from_cookie(Some("not json")), Profile::default());
         let loose = Profile::from_cookie(Some(r#"{"email":7,"generate":"2x","consent":true,"zip":["x"]}"#));
         assert_eq!((loose.email.as_deref(), loose.generate, loose.consent, loose.zip), (Some("7"), 2, 1, None));

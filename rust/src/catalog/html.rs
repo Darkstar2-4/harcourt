@@ -43,6 +43,30 @@ pub fn esc_dq(s: &str) -> String {
     escape_only(s, &['<', '>', '"'])
 }
 
+/// A double-quoted attribute that holds script (an event handler, a `javascript:` link), after the values in it
+/// were quoted with `forms::js_quote`. `"`, `<` and `>` are escaped, and so is a `&` that starts a numeric or a
+/// `;`-terminated character reference, so the script reads every value back as it was quoted. A `'` and the `&`
+/// between a link's query parameters stay as the PHP wrote them.
+pub fn esc_script(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for (i, c) in s.char_indices() {
+        match c {
+            '&' if starts_reference(&s[i + 1..]) => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Whether the text after a `&` makes a character reference an attribute value decodes into any character.
+fn starts_reference(after: &str) -> bool {
+    let name_end = after.find(|c: char| !c.is_ascii_alphanumeric()).unwrap_or(after.len());
+    after.starts_with('#') || (name_end > 0 && after[name_end..].starts_with(';'))
+}
+
 fn escape_only(s: &str, which: &[char]) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -172,6 +196,11 @@ pub fn href(label_html: &str, url: &str) -> String {
     format!("<a href=\"{}\" >{label_html}</a>", esc_dq(url))
 }
 
+/// fn_href to `javascript:` and `script`.
+pub fn script_href(label_html: &str, script: &str) -> String {
+    format!("<a href=\"javascript:{}\" >{label_html}</a>", esc_script(script))
+}
+
 /// fn_href with element attributes after the href, in the order given; attributes with empty values are left out.
 pub fn href_with(label_html: &str, url: &str, attrs: &[(&str, &str)]) -> String {
     format!("<a href=\"{}\" {}>{label_html}</a>", esc_dq(url), attributes(attrs).trim_start())
@@ -249,6 +278,15 @@ mod tests {
         assert_eq!(href_with("Go", "/c", &[("class", "pill active"), ("title", "")]), "<a href=\"/c\" class='pill active'>Go</a>");
         assert_eq!(bare_attr("https://x/?a=1&b=2"), "https://x/?a=1&b=2");
         assert_eq!(bare_attr("a b"), "\"a b\"");
+        assert_eq!(script_href("x", "go('/c/?a=1&b=2');"), "<a href=\"javascript:go('/c/?a=1&b=2');\" >x</a>");
+    }
+
+    #[test]
+    fn script_attributes_keep_their_quoted_values() {
+        assert_eq!(esc_script("f(this,'a','b');"), "f(this,'a','b');");
+        assert_eq!(esc_script("go('/c/?lang=en&scs_page=2&amp=1');"), "go('/c/?lang=en&scs_page=2&amp=1');");
+        assert_eq!(esc_script("f('Nut &amp; Bolt','No&#8')"), "f('Nut &amp;amp; Bolt','No&amp;#8')");
+        assert_eq!(esc_script("f(\"x\", 1<2>0, '&')"), "f(&quot;x&quot;, 1&lt;2&gt;0, '&')");
     }
 
     #[test]

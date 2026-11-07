@@ -21,7 +21,19 @@ function scscpq_message(message, action) {
 	}
 	scscpq_action=action;
 }
+function scscpq_sender(origin) {
+	if (origin === window.location.origin) return true;
+	var frame = scscpq_id ? document.getElementById(scscpq_id) : null;
+	if (!frame || !frame.src) return false;
+	try {
+		return origin === new URL(frame.src, window.location.href).origin;
+	}
+	catch(error) {
+		return false;
+	}
+}
 jQuery(window).on('message', function(e) {
+	if (!scscpq_sender(e.originalEvent.origin)) return;
 	var response=e.originalEvent.data;
     console.log(response);
     switch (typeof(response)) {

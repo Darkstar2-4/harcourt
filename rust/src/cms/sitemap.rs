@@ -4,6 +4,7 @@
 use std::fmt::Write;
 
 use super::{
+    html::decode_attr,
     model::{Lang, Page, PostType, Site, Status, Taxonomy},
     theme::{ORIGIN, UPLOADS},
     yoast,
@@ -120,9 +121,9 @@ pub fn urlset(site: &Site, map: Map, lang: Lang) -> Option<String> {
     let mut out = head(lang);
     out.push_str(URLSET);
     for u in urls {
-        let _ = write!(out, "\t<url>\n\t\t<loc>{}</loc>\n\t\t<lastmod>{}</lastmod>\n", u.loc, u.lastmod);
+        let _ = write!(out, "\t<url>\n\t\t<loc>{}</loc>\n\t\t<lastmod>{}</lastmod>\n", xml(&u.loc), u.lastmod);
         for i in &u.images {
-            let _ = write!(out, "\t\t<image:image>\n\t\t\t<image:loc>{i}</image:loc>\n\t\t</image:image>\n");
+            let _ = write!(out, "\t\t<image:image>\n\t\t\t<image:loc>{}</image:loc>\n\t\t</image:image>\n", xml(i));
         }
         out.push_str("\t</url>\n");
     }
@@ -156,11 +157,27 @@ fn images(site: &Site, p: &Page) -> Vec<String> {
     while let Some(i) = rest.find("<img") {
         rest = &rest[i + 4..];
         let tag = &rest[..rest.find('>').unwrap_or(rest.len())];
-        if let Some(src) = attr(tag, "src") {
+        if let Some(src) = attr(tag, "src").map(decode_attr) {
             let src = if src.starts_with('/') && !src.starts_with("//") { format!("{ORIGIN}{src}") } else { src.to_string() };
             if src.contains("www.harcourt.co/") {
                 out.push(src);
             }
+        }
+    }
+    out
+}
+
+/// A URL as Yoast's encode_and_escape() writes it into the XML, `&` as `&amp;` and `'` as `&apos;`.
+fn xml(url: &str) -> String {
+    let mut out = String::with_capacity(url.len());
+    for c in url.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '\'' => out.push_str("&apos;"),
+            '"' => out.push_str("&quot;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            c => out.push(c),
         }
     }
     out
@@ -181,6 +198,7 @@ mod tests {
     fn dates_print_as_yoast_prints_them() {
         assert_eq!(iso("2019-11-19 20:06:55"), "2019-11-19T20:06:55+00:00");
         assert_eq!(attr(" src=\"/a.png\" alt=''", "src"), Some("/a.png"));
+        assert_eq!(xml(&decode_attr("https://www.harcourt.co/a.png?w=1&amp;h=2&q=R&D's")), "https://www.harcourt.co/a.png?w=1&amp;h=2&amp;q=R&amp;D&apos;s");
         assert!(head(Lang::Fr).contains("type=\"text/xsl\" href=\"//www.harcourt.co/main-sitemap.xsl?lang=fr\"?>\n"));
         assert_eq!(Map::parse("faq_type"), Some(Map::FaqTypes));
         assert_eq!(Map::parse("page"), Some(Map::Pages));
