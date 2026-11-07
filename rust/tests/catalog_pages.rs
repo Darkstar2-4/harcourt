@@ -495,6 +495,20 @@ async fn an_entered_search_word_opens_its_family_and_a_family_name_counts_as_one
 }
 
 #[tokio::test]
+async fn an_entered_term_finds_a_french_category_name_with_or_without_its_accent() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO content (record_type, record_id, record_item, language_code, name, filetype, meta, html_content) VALUES ('category', 2, '', 'FR', 'Gabarits de perçage', '', NULL, NULL)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (700, 'FR', 1, 'subcategory', 'Sauterelles', 2, 9, 0, 2)").await;
+    let french = signed_in(&h.pool, &Account::customer(40)).await;
+    exec(&h.pool, "UPDATE \"user\" SET language_code = 'FR' WHERE id = 40").await;
+    for term in ["per%C3%A7age", "percage", "PER%C3%87AGES"] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&french))).await;
+        assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "{term}: {body}");
+    }
+}
+
+#[tokio::test]
 async fn an_entered_part_number_opens_the_first_match_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;

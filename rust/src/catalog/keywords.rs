@@ -1,10 +1,11 @@
 //! The results page's keyword search, as prod's classes/search.php does it: every term in a code (part numbers
 //! compared without separators, words singular or plural), or the start of a word in the name of the category a
-//! row is filed under; a term found in no name is corrected to the commonest name word one typo away.
+//! row is filed under; a term found in no name is corrected to the commonest name word one typo away. Names and
+//! terms are folded and split into words as the search box does it (`search::fold`, `search::tokens`).
 
 use std::collections::{BTreeMap, HashMap};
 
-use super::search::{code_contains, normalize_code, strip_entities, TYPO_CODE_CHARS};
+use super::search::{category_name_words, code_contains, fold, normalize_code, tokens, TYPO_CODE_CHARS};
 
 const TYPO_CHARACTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -21,12 +22,14 @@ pub struct Row {
     pub ranking: i64,
 }
 
-/// keyword_stem(): "hinges" and "hinge" both "hinge"; anything not four letters or more passes through.
+/// keyword_stem(), of the folded term: "hinges" and "hinge" both "hinge", "perçages" "percage"; anything not four
+/// letters or more passes through folded. It cuts deeper than the box's stem because it is matched against names as
+/// they are, not against stemmed ones: "assembl" is in both "assembly" and "assemblies".
 pub fn stem(term: &str) -> String {
-    if term.len() < 4 || !term.chars().all(|c| c.is_ascii_alphabetic()) {
-        return term.to_string();
+    let t = fold(term);
+    if t.len() < 4 || !t.chars().all(|c| c.is_ascii_alphabetic()) {
+        return t;
     }
-    let t = term.to_lowercase();
     let cut = if t.ends_with("ies") {
         3
     } else if ["ses", "xes", "zes", "ches", "shes"].iter().any(|e| t.ends_with(e)) {
@@ -40,20 +43,21 @@ pub fn stem(term: &str) -> String {
     if s.len() >= 3 { s.to_string() } else { t }
 }
 
-/// Words of category names (English and the page language), entities dropped, by category id.
+/// Words of category names (English and the page language) as the box reads them (`search::category_name_words`),
+/// by category id.
 pub fn category_words(names: &[(i64, String)]) -> BTreeMap<i64, Vec<String>> {
     let mut out: BTreeMap<i64, Vec<String>> = BTreeMap::new();
     for (id, name) in names {
-        let clean = strip_entities(name).to_lowercase();
-        out.entry(*id).or_default().extend(clean.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()).map(str::to_string));
+        out.entry(*id).or_default().extend(category_name_words(name));
     }
     out
 }
 
-/// category_matches(): categories with a name word starting with the term's stem.
+/// category_matches(): for a term that is one word (`search::tokens`), categories with a name word starting with
+/// its stem.
 fn category_matches(categories: &BTreeMap<i64, Vec<String>>, term: &str, min_length: usize) -> Vec<i64> {
-    let s = stem(term).to_lowercase();
-    if s.len() < min_length || !s.chars().all(|c| c.is_ascii_alphanumeric()) {
+    let s = stem(term);
+    if tokens(&s) != [s.as_str()] || s.chars().count() < min_length {
         return Vec::new();
     }
     categories.iter().filter(|(_, words)| words.iter().any(|w| w.starts_with(&s))).map(|(id, _)| *id).collect()
@@ -81,7 +85,7 @@ impl Filter {
         let mut ids: Option<Vec<i64>> = None;
         for term in terms.iter().filter(|t| !t.is_empty()) {
             out.push((term.clone(), category_matches(categories, term, 3)));
-            if !term.chars().any(|c| c.is_ascii_alphanumeric()) {
+            if tokens(term).is_empty() {
                 continue;
             }
             let m = category_matches(categories, term, 1);
@@ -101,11 +105,12 @@ impl Filter {
     }
 }
 
-/// keywords(): name words of four letters or more and how often each appears.
+/// keywords(): name words of four letters or more, folded, and how often each appears. A word here is letters only,
+/// as prod split it ("m8x20" has none), where the box's words keep their digits.
 pub fn keywords<'a>(codes: impl Iterator<Item = &'a str>) -> HashMap<String, usize> {
     let mut out = HashMap::new();
     for code in codes {
-        for w in code.to_lowercase().split(|c: char| !c.is_ascii_lowercase()).filter(|w| w.len() >= 4) {
+        for w in fold(code).split(|c: char| !c.is_ascii_lowercase()).filter(|w| w.len() >= 4) {
             *out.entry(w.to_string()).or_insert(0) += 1;
         }
     }
@@ -142,20 +147,21 @@ fn typo_variants(code: &str) -> Vec<String> {
 }
 
 /// keyword_correct(): each word of four letters or more found in no name becomes the commonest name word one typo
-/// away, when there is one. Words longer than the search box corrects are left as typed.
+/// away, when there is one; accents are folded first. Words longer than the search box corrects are left as typed.
 pub fn correct(terms: &[String], keywords: &HashMap<String, usize>) -> Vec<String> {
     terms
         .iter()
         .map(|term| {
-            if !TYPO_CODE_CHARS.contains(&term.len()) || !term.chars().all(|c| c.is_ascii_alphabetic()) {
+            let folded = fold(term);
+            if !TYPO_CODE_CHARS.contains(&folded.len()) || !folded.chars().all(|c| c.is_ascii_alphabetic()) {
                 return term.clone();
             }
-            let s = stem(term);
+            let s = stem(&folded);
             if keywords.keys().any(|w| w.contains(&s)) {
                 return term.clone();
             }
             let mut best = (0, term.clone());
-            for v in typo_variants(&term.to_uppercase()) {
+            for v in typo_variants(&folded.to_uppercase()) {
                 let v = v.to_lowercase();
                 if let Some(&n) = keywords.get(&v) {
                     if n > best.0 {
@@ -182,7 +188,8 @@ mod tests {
         assert_eq!(stem("assemblies"), "assembl");
         assert_eq!(stem("bushes"), "bush");
         assert_eq!(stem("glass"), "glass");
-        assert_eq!(stem("LS-10"), "LS-10");
+        assert_eq!(stem("LS-10"), "ls-10");
+        assert_eq!(stem("Perçages"), "percage");
         assert_eq!(normalize_code("hb-lt 1.5/x"), "HBLT15X");
     }
 
@@ -204,6 +211,27 @@ mod tests {
         assert!(f.matches(&row("inventory", "E-7", 9)));
         let f = Filter::new(&["ø".into()], &cats);
         assert!(f.matches(&row("subcategory", "Ring O", 9)));
+    }
+
+    #[test]
+    fn accented_category_names_match_with_or_without_the_accent() {
+        let cats = category_words(&[(1, "Gabarits de Perçage".into()), (2, "Pièces &amp; Écrous".into())]);
+        assert_eq!(cats[&1], ["gabarits", "de", "percage"]);
+        assert_eq!(cats[&2], ["pieces", "ecrous"]);
+        for term in ["perçage", "percage", "Perçages", "perç", "écrou", "ecrous"] {
+            let f = Filter::new(&[term.into()], &cats);
+            let id = if term.contains("crou") { 2 } else { 1 };
+            assert!(f.matches(&row("subcategory", "Toggle Pads", id)), "{term}");
+            assert!(f.matches(&row("category", "", id)), "{term}");
+        }
+        assert!(!Filter::new(&["per-age".into()], &cats).matches(&row("subcategory", "Toggle Pads", 1)), "a term of two words names no category");
+    }
+
+    #[test]
+    fn accented_words_are_corrected_as_their_folded_forms() {
+        let kw = keywords(["Gabarits de Perçage"].into_iter());
+        assert_eq!(kw.get("percage"), Some(&1));
+        assert_eq!(correct(&["perçgae".into(), "percage".into(), "perçage".into()], &kw), ["percage", "percage", "perçage"]);
     }
 
     #[test]
