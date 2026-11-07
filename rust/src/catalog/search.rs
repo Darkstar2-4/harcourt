@@ -1,7 +1,7 @@
 //! The catalog search box (jQuery UI autocomplete) answered from memory. PHP booted the whole SCS app and scanned the
 //! `search` table on every keystroke (scs_ajax.php?table=search). Here one immutable `Index` is built from the same
 //! tables search_export.php exported (search, subcategory, category, content names, inventory) and rebuilt when they
-//! change. `search()` is a pure function of the index, the term and the visitor's `Ctx` (language, admin, blocked
+//! change. `search()` is a pure function of the index, the term and the visitor's `Ctx` (language, Pending, blocked
 //! categories), which comes from the catalog's `Viewer`. Contract: search/SPEC.md in the bench.
 
 use std::{
@@ -26,7 +26,7 @@ use super::{
     model,
     viewer::{self, Viewer},
 };
-use crate::{api::Auth, identity::Role, visitor::Visitor};
+use crate::{api::Auth, visitor::Visitor};
 
 /// What searchers opened, as the nightly search_learn.sh wrote it into HXWEB_SEARCH. Without those files the index
 /// learns the same from the search log itself (`learn`), once a day.
@@ -103,7 +103,6 @@ struct Entry {
     kind: Kind,
     /// None: every language ('' in the table).
     lang: Option<Lang>,
-    active: bool,
     code: Box<str>,
     category_id: u32,
     subcategory_id: u32,
@@ -175,7 +174,6 @@ struct Index {
 #[derive(Clone, Debug, PartialEq)]
 struct Ctx {
     lang: Lang,
-    admin: bool,
     /// Sees Pending families (`Viewer::sees_pending`).
     pending: bool,
     blocked: Vec<u32>,
@@ -183,7 +181,7 @@ struct Ctx {
 
 impl Default for Ctx {
     fn default() -> Self {
-        Ctx { lang: Lang::En, admin: false, pending: false, blocked: Vec::new() }
+        Ctx { lang: Lang::En, pending: false, blocked: Vec::new() }
     }
 }
 
@@ -383,14 +381,15 @@ impl Index {
     }
 
     /// Whether this viewer is shown the entry: the catalog lists its family (`model::listed`), its part is active,
-    /// and its category is not blocked. Administrators see active rows only (live's rule, kept).
+    /// and its category is not blocked: what Enter opens (`pages::results`). The row's stored `active` (0 for a
+    /// Pending family when the table was built) is not read; the family's status now decides.
     fn shows(&self, e: &Entry, ctx: &Ctx) -> bool {
         let family = self.families.get(&e.subcategory_id).is_some_and(|f| model::listed(f.status, f.category_active, ctx.pending));
         let part = match e.kind {
             Kind::Part | Kind::Competitor => self.parts.get(&e.inventory_id).is_some_and(|p| p.active),
             Kind::Family | Kind::SearchWord => true,
         };
-        family && part && !(ctx.admin && !e.active) && !ctx.blocked.contains(&e.category_id)
+        family && part && !ctx.blocked.contains(&e.category_id)
     }
 
     /// Entries within `scope` whose normalized code starts with `p`.
@@ -400,14 +399,13 @@ impl Index {
 }
 
 fn entry(line: &str) -> Option<(String, Entry)> {
-    let [id, table, lang, active, code, category, subcategory, inventory, ranking] = line.split('\t').collect::<Vec<_>>()[..] else {
+    let [id, table, lang, _active, code, category, subcategory, inventory, ranking] = line.split('\t').collect::<Vec<_>>()[..] else {
         return None;
     };
     let e = Entry {
         row_id: id.parse().ok()?,
         kind: Kind::parse(table)?,
         lang: if lang.is_empty() { None } else { Some(Lang::parse(lang)?) },
-        active: active == "1",
         code: code.into(),
         category_id: number(category)?,
         subcategory_id: number(subcategory)?,
@@ -972,7 +970,6 @@ fn answer_json(ix: &Index, hits: &[Hit], term: &str, ctx: &Ctx) -> Value {
 fn scope(viewer: &Viewer, lang: Lang) -> Ctx {
     Ctx {
         lang,
-        admin: viewer.at_least(Role::Administrator),
         pending: viewer.sees_pending(),
         blocked: viewer.blocked.ids().into_iter().filter_map(|id| u32::try_from(id).ok()).collect(),
     }
@@ -1451,9 +1448,10 @@ mod tests {
         let families = FAMILIES.replace("20\t14\tActive", "20\t14\tPending");
         let categories = CATEGORIES.replace("6\tAlignment\tBroches et Goupilles de centrage", "6\tAlignment\tBroches et Goupilles de centrage\t0");
         let parts = PARTS.replace("1001\tLS-1A\t10\t1", "1001\tLS-1A\t10\t0");
-        let ix = Index::build(ROWS, &families, &categories, &parts, "", "").unwrap();
+        let rows = ROWS.replace("3\tsubcategory\tEN\t1\tSwing", "3\tsubcategory\tEN\t0\tSwing").replace("107\tinventory\t\t1\tSC-5", "107\tinventory\t\t0\tSC-5");
+        let ix = Index::build(&rows, &families, &categories, &parts, "", "").unwrap();
         let en = Ctx::default();
-        let admin = Ctx { admin: true, pending: true, ..Ctx::default() };
+        let admin = Ctx { pending: true, ..Ctx::default() };
         let labels = |term: &str, ctx: &Ctx| run(&ix, term, ctx).into_iter().map(|(l, _)| l).collect::<Vec<_>>();
         assert_eq!(run(&ix, "ls", &en), [row("LS-1", "prefix"), row("LS-10", "prefix"), lookup("ls")], "an inactive part");
         assert!(!labels("ls-1a", &en).contains(&"LS-1A".to_string()));
@@ -1468,14 +1466,14 @@ mod tests {
     }
 
     #[test]
-    fn blocked_and_admin() {
+    fn blocked_categories_and_the_stored_flag() {
         let ix = ix();
         let blocked = Ctx { blocked: vec![14], ..Ctx::default() };
         assert_eq!(run(&ix, "clamp", &blocked), [lookup("clamp")]);
         assert_eq!(run(&ix, "sc-5", &blocked), [lookup("sc-5")]);
         assert_eq!(run(&ix, "sc-5", &Ctx::default())[0], row("SC-5", "exact"));
         assert_eq!(run(&ix, "old-1", &Ctx::default()), [row("OLD-1", "exact")]);
-        assert_eq!(run(&ix, "old-1", &Ctx { admin: true, ..Ctx::default() }), [lookup("old-1")]);
+        assert_eq!(run(&ix, "old-1", &Ctx { pending: true, ..Ctx::default() }), [row("OLD-1", "exact")], "a stored 0 with its part and family listed");
     }
 
     #[test]
