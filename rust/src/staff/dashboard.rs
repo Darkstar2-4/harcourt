@@ -242,11 +242,11 @@ pub(super) fn content_key(content_id: i64, last_login: i64) -> String {
 async fn leadscore(pool: &SqlitePool, s: &Settings, viewer_last_login: i64, tabs: &mut Tabs) -> sqlx::Result<()> {
     let since = unix_now() - s.leadscore_days * 86400;
     let rows = sqlx::query!(
-        r#"SELECT u.company_name AS "company_name?", l.email AS "email!", l.type AS "kind!", l.subtype, l.subcategory_id AS "subcategory_id!: i64", l.comment
+        r#"SELECT u.company_name AS "company_name?", lower(trim(l.email)) AS "email!: String", l.type AS "kind!", l.subtype, l.subcategory_id AS "subcategory_id!: i64", l.comment
            FROM log l LEFT JOIN "user" u ON u.id = l.user_id
            WHERE l.type IN ('User', 'Page', 'Catalog', 'Search', 'PARTSolutions', 'Initial', 'IPStack', 'Blacklist')
-             AND l.date_time >= ?1 AND l.email <> '' AND l.user_id <> 0 AND u.leadscore = 1 AND lower(u.status) = 'active'
-           ORDER BY l.email, l.id DESC"#,
+             AND l.date_time >= ?1 AND trim(l.email) <> '' AND l.user_id <> 0 AND u.leadscore = 1 AND lower(u.status) = 'active'
+           ORDER BY lower(trim(l.email)), l.id DESC"#,
         since
     )
     .fetch_all(pool)
