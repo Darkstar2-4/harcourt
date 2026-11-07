@@ -480,3 +480,65 @@ async fn a_form_posted_to_a_page_is_answered_where_the_form_was() {
     assert!(html.contains("<form id=stub-1"));
     assert_eq!(send(&app, Method::GET, "/product/alignment").await.0, StatusCode::MOVED_PERMANENTLY, "a GET still gets the slash");
 }
+
+#[tokio::test]
+async fn the_footer_form_is_answered_on_every_page_that_prints_it() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    sqlx::query("INSERT INTO cms_page (id, group_id, lang, path, template, status, title, menu_order, published_at, modified_at, post_type) VALUES (436, 436, 'en', '/faq/example-question/', 'single-faq.php', 'publish', 'Example question?', 0, '2020-01-01 00:00:00', '2020-01-02 00:00:00', 'faq')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (436, 'content', 'html', '<p>An example answer.</p>')").execute(&pool).await.unwrap();
+    for (name, value) in [("title", "Example question? - Example"), ("islands", ISLANDS)] {
+        sqlx::query("INSERT INTO cms_page_meta (page_id, name, value) VALUES (436, ?1, ?2)").bind(name).bind(value).execute(&pool).await.unwrap();
+    }
+    for (name, value) in [("title", "Page not found - Example"), ("robots", "noindex, follow"), ("body_class", "error404"), ("islands", ISLANDS)] {
+        sqlx::query("INSERT INTO cms_option (lang, name, kind, value) VALUES ('en', ?1, 'html', ?2)").bind(format!("@404:{name}")).bind(value).execute(&pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO cms_revision (page_id, saved_at, saved_by, note, fields) VALUES (436, 1, 0, 'import', '{}')").execute(&pool).await.unwrap();
+
+    let (status, html) = post_form(&app, "/faq/example-question/", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("<title>Example question? - Example</title>") && html.contains("Thanks, we will be in touch."), "{html}");
+    let (status, html) = post_form(&app, "/product/clamping/", "gform_submit=1&input_1=Example+Name").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("<title>Page not found - Example</title>") && html.contains("Thanks, we will be in touch."), "{html}");
+    let (status, html) = post_form(&app, "/product/clamping/", "gform_submit=1&input_1=").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(!html.contains("Thanks, we will be in touch."));
+    let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
+    assert_eq!(entries, 2);
+    let (status, html) = post_form(&app, "/product/clamping/", "s=anything").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(html.contains("<form id=stub-1"), "a post without a form shows the 404 page");
+}
+
+fn multipart(boundary: &str, fields: &[(&str, &str)]) -> String {
+    let mut body: String = fields.iter().map(|(k, v)| format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n")).collect();
+    body.push_str(&format!("--{boundary}--\r\n"));
+    body
+}
+
+#[tokio::test]
+async fn a_large_multipart_post_is_read_whole() {
+    let (app, pool) = harness().await;
+    seed_form(&pool).await;
+    let boundary = "----hxtestboundary";
+    let long = "x".repeat(3 << 20);
+    let send_multipart = |content_type: String, body: String| {
+        let req = Request::builder().method(Method::POST).uri("/product/alignment/").header(header::CONTENT_TYPE, content_type).body(Body::from(body)).unwrap();
+        app.clone().oneshot(req)
+    };
+    let res = send_multipart(format!("multipart/form-data; boundary={boundary}"), multipart(boundary, &[("gform_submit", "1"), ("input_1", "Example Name"), ("input_9", &long)])).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let html = String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(html.contains("Thanks, we will be in touch."));
+
+    let res = send_multipart("multipart/form-data".into(), multipart(boundary, &[("gform_submit", "1"), ("input_1", "Example Name")])).await.unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST, "a body that cannot be read is no empty post");
+    let res = send_multipart(format!("multipart/form-data; boundary={boundary}"), multipart(boundary, &[("input_9", &"x".repeat(9 << 20))])).await.unwrap();
+    assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    let entries: i64 = sqlx::query_scalar("SELECT count(*) FROM wp_gf_entry").fetch_one(&pool).await.unwrap();
+    assert_eq!(entries, 1);
+}
