@@ -200,7 +200,8 @@ fn dropped_rewrite(path: &str) -> bool {
 /// Any request no route claims: a static file, the old stack's 410, else what WordPress made of the path (a page asked
 /// for in another shape, a sitemap, the 404 page). A method other than GET and HEAD gets the page as WordPress
 /// printed it for a post.
-async fn front(State(wp): State<Arc<Wp>>, method: Method, headers: header::HeaderMap, uri: Uri, sent: Option<Extension<SentPath>>) -> Response<Body> {
+async fn front(State(wp): State<Arc<Wp>>, sent: Option<Extension<SentPath>>, req: Request) -> Response<Body> {
+    let (method, headers, uri) = (req.method().clone(), req.headers().clone(), req.uri().clone());
     let path = percent_decode_str(uri.path()).decode_utf8_lossy().into_owned();
     let get = method == Method::GET || method == Method::HEAD;
     if let Some((file, kind)) = crate::assets::root().filter(|_| get).and_then(|root| crate::assets::find(root, &path)) {
@@ -220,6 +221,9 @@ async fn front(State(wp): State<Arc<Wp>>, method: Method, headers: header::Heade
     }
     if let Some(gone) = crate::retired::guard(uri.path()) {
         return gone;
+    }
+    if method == Method::POST {
+        return form_post(&wp, req).await;
     }
     if !get {
         return serve(&wp, &uri, &headers, None, false).await;
@@ -770,44 +774,69 @@ fn slashed(path: &str) -> String {
     }
 }
 
-/// A post to a page. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that form on
-/// the page (an ajax form gets the iframe postback document instead). Any other post, or one for a form the orders
-/// tables lack, shows the page, as WordPress did.
 async fn page_post(State(wp): State<Arc<Wp>>, req: Request) -> Response<Body> {
+    form_post(&wp, req).await
+}
+
+/// A post to any address WordPress answered: a page, a post, an FAQ type's archive or the 404 page, each of which
+/// prints the footer's form. One carrying `gform_submit` goes to the Gravity Forms port; its answer replaces that
+/// form where the response shows it (an ajax form gets the iframe postback document instead). Any other post, one
+/// for a form the orders tables lack, or one to an address that moves, gets what a post there showed, as WordPress
+/// did. A body too large or unreadable is refused rather than read as an empty post.
+async fn form_post(wp: &Arc<Wp>, req: Request) -> Response<Body> {
     let (mut parts, body) = req.into_parts();
     let Ok(ClientIp(ip)) = ClientIp::from_request_parts(&mut parts, &wp.core).await;
-    let Ok(body) = axum::body::to_bytes(body, 8 << 20).await else {
+    let Ok(body) = axum::body::to_bytes(body, crate::orders::POST_LIMIT).await else {
         return (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large").into_response();
     };
-    let params = crate::orders::posted_params(None, &parts.headers, body).await.unwrap_or_default();
+    let Some(params) = crate::orders::posted_params(None, &parts.headers, body).await else {
+        return (StatusCode::BAD_REQUEST, "Bad request").into_response();
+    };
+    let raw_query = parts.uri.query().unwrap_or("");
+    let q = query(raw_query);
+    let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()).filter(|_| !q.rest_route) else {
+        return serve(wp, &parts.uri, &parts.headers, None, false).await;
+    };
     let agent = parts.headers.get(header::USER_AGENT).and_then(|v| v.to_str().ok()).unwrap_or("");
     let site = match wp.content.site().await {
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
     let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
-    let q = query(parts.uri.query().unwrap_or(""));
-    let Answer::Render(page) = resolve(&site, &slashed(&path), q.lang) else { return serve(&wp, &parts.uri, &parts.headers, None, false).await };
-    let Some(form) = params.get("gform_submit").and_then(|v| v.trim().parse::<u32>().ok()) else {
-        return serve(&wp, &parts.uri, &parts.headers, None, false).await;
+    let request_uri = parts.uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
+    let (wp_uri, title, lang) = match shown_at(&site, &path, &q, raw_query, false) {
+        Answer::Render(page) => (format!("{}{}", page.path, q.wordpress_form_query), Some(page.title.clone()), page.lang),
+        Answer::Archive(_) | Answer::NotFound | Answer::Search { .. } => (request_uri, None, q.lang),
+        _ => return serve(wp, &parts.uri, &parts.headers, None, false).await,
     };
-    let wp_uri = format!("{}{}", page.path, q.wordpress_form_query);
-    let lang = match page.lang {
+    let lang = match lang {
         Lang::En => model::Lang::En,
         Lang::Fr => model::Lang::Fr,
     };
-    match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, Some(page.title.clone())).await {
+    match crate::orders::forms::handle(&wp.orders, &params, lang, &wp_uri, &ip, agent, title).await {
         Ok(Some((Outcome::Redirect(url), _))) => crate::orders::html::redirect(&url),
         Ok(Some((Outcome::Invalid(h) | Outcome::Confirmed { html: h, .. }, true))) => {
             (StatusCode::OK, [(header::CONTENT_TYPE, "text/html; charset=UTF-8"), (header::CACHE_CONTROL, "no-store")], h).into_response()
         }
-        Ok(Some((outcome, false))) => serve(&wp, &parts.uri, &parts.headers, outcome.on_page(form), false).await,
-        Ok(None) => serve(&wp, &parts.uri, &parts.headers, None, false).await,
+        Ok(Some((outcome, false))) => serve(wp, &parts.uri, &parts.headers, outcome.on_page(form), false).await,
+        Ok(None) => serve(wp, &parts.uri, &parts.headers, None, false).await,
         Err(e) => {
             tracing::error!("{path}: form {form} submit: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
         }
     }
+}
+
+/// What a request to `path` answers. redirect_canonical() moves a GET or HEAD only: any other request to a page's
+/// bare path gets the page.
+fn shown_at<'a>(site: &'a Site, path: &str, q: &Query, raw_query: &str, get: bool) -> Answer<'a> {
+    let routed = route(site, path, q, raw_query);
+    if !get && !path.ends_with('/') && matches!(routed, Answer::Redirect(_)) {
+        if let page @ Answer::Render(_) = route(site, &slashed(path), q, raw_query) {
+            return page;
+        }
+    }
+    routed
 }
 
 fn unavailable(e: sqlx::Error) -> Response<Body> {
@@ -831,14 +860,7 @@ async fn serve(wp: &Arc<Wp>, uri: &Uri, headers: &header::HeaderMap, answer: Opt
         Ok(s) => s,
         Err(e) => return unavailable(e),
     };
-    let mut routed = route(&site, &path, &q, raw_query);
-    // redirect_canonical() moves a GET or HEAD only: any other request to a page's bare path gets the page.
-    if !get && !path.ends_with('/') && matches!(routed, Answer::Redirect(_)) {
-        if let page @ Answer::Render(_) = route(&site, &slashed(&path), &q, raw_query) {
-            routed = page;
-        }
-    }
-    let shown = match routed {
+    let shown = match shown_at(&site, &path, &q, raw_query, get) {
         Answer::Render(p) => Shown::Page(p),
         Answer::Archive(t) => Shown::Archive(t),
         Answer::Redirect(to) => return redirect(&wp.core.public_origin, &to),
