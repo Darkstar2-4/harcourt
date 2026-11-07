@@ -6,6 +6,8 @@
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
+use crate::identity::UserId;
+
 /// PHP's session.gc_maxlifetime.
 pub const IDLE_SECS: i64 = 1440;
 
@@ -168,21 +170,30 @@ pub async fn reset_code_tries(pool: &SqlitePool, id: &VisitId) -> sqlx::Result<(
     Ok(())
 }
 
-/// The profile the visit last loaded or admitted someone with, as the JSON of its cookie.
-pub async fn profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
-    let key = id.0.as_slice();
-    Ok(sqlx::query_scalar!("SELECT profile FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?.flatten())
+/// The visit's profile, as the JSON of its cookie, and the account it was admitted or kept for (None: no account).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeptProfile {
+    pub json: String,
+    pub owner: Option<UserId>,
 }
 
-/// Someone was admitted: the visit's profile is theirs, whatever it was.
-pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) -> sqlx::Result<()> {
+/// The profile the visit last loaded or admitted someone with.
+pub async fn profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<KeptProfile>> {
+    let key = id.0.as_slice();
+    let row = sqlx::query!("SELECT profile, profile_for FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3", key, now, IDLE_SECS).fetch_optional(pool).await?;
+    Ok(row.and_then(|r| Some(KeptProfile { json: r.profile?, owner: r.profile_for.map(UserId) })))
+}
+
+/// Someone was admitted as `owner`: the visit's profile is theirs, whatever it was.
+pub async fn set_profile(pool: &SqlitePool, id: &VisitId, owner: UserId, json: &str, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
     sqlx::query!(
-        "INSERT INTO visit (id, profile, seen_at) VALUES (?1, ?2, ?3)
-         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, seen_at = excluded.seen_at",
+        "INSERT INTO visit (id, profile, profile_for, seen_at) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, profile_for = excluded.profile_for, seen_at = excluded.seen_at",
         key,
         json,
+        owner.0,
         now
     )
     .execute(pool)
@@ -190,18 +201,23 @@ pub async fn set_profile(pool: &SqlitePool, id: &VisitId, json: &str, now: i64) 
     Ok(())
 }
 
-/// A profile built from the visit's profile as `read` (None: it had none) replaces it only while the visit still
-/// has that one; false when it changed in between and the write was dropped.
-pub async fn replace_profile(pool: &SqlitePool, id: &VisitId, read: Option<&str>, json: &str, now: i64) -> sqlx::Result<bool> {
+/// A profile for `owner` built from the visit's profile as `read` (None: it had none) replaces it only while the
+/// visit still has that one; false when it changed in between and the write was dropped.
+pub async fn replace_profile(pool: &SqlitePool, id: &VisitId, read: Option<&KeptProfile>, owner: Option<UserId>, json: &str, now: i64) -> sqlx::Result<bool> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
+    let owner = owner.map(|o| o.0);
+    let (read_json, read_owner) = (read.map(|r| r.json.as_str()), read.and_then(|r| r.owner).map(|o| o.0));
     let done = sqlx::query!(
-        "INSERT INTO visit (id, profile, seen_at) VALUES (?1, ?2, ?3)
-         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, seen_at = excluded.seen_at WHERE profile IS ?4",
+        "INSERT INTO visit (id, profile, profile_for, seen_at) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT (id) DO UPDATE SET profile = excluded.profile, profile_for = excluded.profile_for, seen_at = excluded.seen_at
+         WHERE profile IS ?5 AND profile_for IS ?6",
         key,
         json,
+        owner,
         now,
-        read
+        read_json,
+        read_owner
     )
     .execute(pool)
     .await?;
@@ -299,15 +315,18 @@ mod tests {
         let pool = crate::db::open_memory().await.unwrap();
         let v = VisitId::of("v");
         let (pat, lee) = (r#"{"email":"pat@example.com"}"#, r#"{"email":"lee@example.com"}"#);
-        assert!(replace_profile(&pool, &v, None, pat, 1000).await.unwrap(), "a visit that had none");
-        set_profile(&pool, &v, lee, 1001).await.unwrap();
-        assert!(!replace_profile(&pool, &v, Some(pat), r#"{"email":"pat@example.com","name":"Pat Lee"}"#, 1002).await.unwrap());
-        assert!(!replace_profile(&pool, &v, None, pat, 1002).await.unwrap());
-        assert_eq!(profile(&pool, &v, 1002).await.unwrap().as_deref(), Some(lee));
-        assert!(replace_profile(&pool, &v, Some(lee), r#"{"email":"lee@example.com","name":"Lee "}"#, 1003).await.unwrap());
-        assert_eq!(profile(&pool, &v, 1003).await.unwrap().as_deref(), Some(r#"{"email":"lee@example.com","name":"Lee "}"#));
+        let kept = |json: &str, owner: Option<i64>| KeptProfile { json: json.into(), owner: owner.map(UserId) };
+        assert!(replace_profile(&pool, &v, None, None, pat, 1000).await.unwrap(), "a visit that had none");
+        assert_eq!(profile(&pool, &v, 1000).await.unwrap(), Some(kept(pat, None)));
+        set_profile(&pool, &v, UserId(8), lee, 1001).await.unwrap();
+        assert!(!replace_profile(&pool, &v, Some(&kept(pat, None)), None, r#"{"email":"pat@example.com","name":"Pat Lee"}"#, 1002).await.unwrap());
+        assert!(!replace_profile(&pool, &v, None, None, pat, 1002).await.unwrap());
+        assert!(!replace_profile(&pool, &v, Some(&kept(lee, None)), None, pat, 1002).await.unwrap(), "the same profile for another owner");
+        assert_eq!(profile(&pool, &v, 1002).await.unwrap(), Some(kept(lee, Some(8))));
+        assert!(replace_profile(&pool, &v, Some(&kept(lee, Some(8))), Some(UserId(8)), r#"{"email":"lee@example.com","name":"Lee "}"#, 1003).await.unwrap());
+        assert_eq!(profile(&pool, &v, 1003).await.unwrap(), Some(kept(r#"{"email":"lee@example.com","name":"Lee "}"#, Some(8))));
         frame(&pool, &VisitId::of("w"), 1003).await.unwrap();
-        assert!(replace_profile(&pool, &VisitId::of("w"), None, pat, 1003).await.unwrap(), "a visit row without a profile");
+        assert!(replace_profile(&pool, &VisitId::of("w"), None, Some(UserId(8)), pat, 1003).await.unwrap(), "a visit row without a profile");
     }
 
     #[tokio::test]

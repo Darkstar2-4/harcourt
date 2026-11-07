@@ -11,6 +11,8 @@ use sqlx::SqlitePool;
 
 use crate::{
     accounts::{
+        account::Account,
+        admission::SignIn,
         cookies,
         html::{self, escape, Opts},
         locale::Labels,
@@ -116,7 +118,7 @@ pub const COOKIE: &str = "harcourt_profile";
 /// The visit's profile as a request read it (None: it had none), which a profile built from it must still find
 /// there to replace it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Basis(Option<String>);
+pub struct Basis(Option<visit::KeptProfile>);
 
 impl Basis {
     async fn read(pool: &SqlitePool, visitor: &Visitor) -> sqlx::Result<Basis> {
@@ -126,10 +128,17 @@ impl Basis {
         }))
     }
 
-    /// The remembered profile: the visit's copy, else the cookie.
-    fn profile(&self, headers: &HeaderMap) -> Profile {
-        Profile::from_cookie(self.0.clone().or_else(|| cookies::get(headers, COOKIE)).as_deref())
+    /// The remembered profile: the visit's copy when it was kept for the account the request comes as (or for
+    /// none), else the cookie, which reached the browser with its sign-in.
+    fn profile(&self, headers: &HeaderMap, visitor: &Visitor) -> Profile {
+        let own = self.0.as_ref().filter(|kept| kept.owner == owner(visitor)).map(|kept| kept.json.clone());
+        Profile::from_cookie(own.or_else(|| cookies::get(headers, COOKIE)).as_deref())
     }
+}
+
+/// Whom a profile this request keeps for the visit is for: the account it comes as.
+fn owner(visitor: &Visitor) -> Option<UserId> {
+    visitor.account().map(Account::id)
 }
 
 /// A JSON value as PHP read it into a string property: scalars become their text, anything else is unset.
@@ -198,7 +207,7 @@ impl Profile {
     /// admitted profile stands: nothing is kept and no cookie is set.
     pub async fn remember(&self, pool: &SqlitePool, visitor: &Visitor, basis: &Basis, now: i64) -> sqlx::Result<Option<HeaderValue>> {
         if let Some(id) = &visitor.visit {
-            if !visit::replace_profile(pool, id, basis.0.as_deref(), &self.to_cookie(), now).await? {
+            if !visit::replace_profile(pool, id, basis.0.as_ref(), owner(visitor), &self.to_cookie(), now).await? {
                 return Ok(None);
             }
         }
@@ -215,11 +224,13 @@ impl Profile {
         Profile { cad_code: self.cad_code, cad_name: self.cad_name, language_code: self.language_code, generate: self.generate, consent: self.consent, ..Profile::default() }
     }
 
-    /// Someone was just admitted as `email`, and this is the only way the visit's profile and its cookie change to
-    /// a person. The profile becomes theirs: a profile of someone else keeps only the browser's choices; each of the
-    /// person's own fields (name, title, phone, fax) is the one given, else the one typed for this address this
-    /// visit, else the one this person had. The company and address are the account's, which load() takes.
-    pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, email: &Email, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+    /// Someone was just admitted (`signin`, which the same response hands to the browser), and this is the only way
+    /// the visit's profile and its cookie change to a person. The profile becomes theirs, kept for the account they
+    /// were admitted to: a profile of someone else keeps only the browser's choices; each of the person's own fields
+    /// (name, title, phone, fax) is the one given, else the one typed for this address this visit, else the one
+    /// this person had. The company and address are the account's, which load() takes.
+    pub async fn admit(self, pool: &SqlitePool, visitor: &Visitor, signin: &SignIn, name_first: &str, name_last: &str, now: i64) -> sqlx::Result<Option<HeaderValue>> {
+        let email = &signin.email;
         let typed = match &visitor.visit {
             Some(id) => visit::take_typed_profile(pool, id, now).await?,
             None => None,
@@ -241,7 +252,7 @@ impl Profile {
         p.fax = pick(None, typed.fax, p.fax.take());
         p.email = Some(email.as_str().into());
         if let Some(id) = &visitor.visit {
-            visit::set_profile(pool, id, &p.to_cookie(), now).await?;
+            visit::set_profile(pool, id, signin.user, &p.to_cookie(), now).await?;
         }
         Ok(p.cookie(now))
     }
@@ -293,7 +304,7 @@ impl Profile {
 
     /// What load() started from: the visit's copy, else the cookie.
     pub async fn remembered(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<Profile> {
-        Ok(Basis::read(pool, visitor).await?.profile(headers))
+        Ok(Basis::read(pool, visitor).await?.profile(headers, visitor))
     }
 
     /// loaded(), for a request that does not keep it.
@@ -308,7 +319,7 @@ impl Profile {
     /// With it, the visit's profile it was built from, for remember().
     pub async fn loaded(pool: &SqlitePool, headers: &HeaderMap, visitor: &Visitor) -> sqlx::Result<(Profile, Basis)> {
         let basis = Basis::read(pool, visitor).await?;
-        let obj = basis.profile(headers);
+        let obj = basis.profile(headers, visitor);
         let cad_name = match obj.cad_code.as_deref() {
             Some(code) => sqlx::query_scalar!("SELECT name FROM cad WHERE code = ?1", code).fetch_optional(pool).await?,
             None => None,
@@ -883,26 +894,59 @@ mod tests {
         assert_eq!((p.cad_code, p.cad_name), (None, None));
     }
 
+    /// Visit "v" signed in to a new account `id`, and the sign-in that admitted `email` to it.
+    async fn signed_in(pool: &SqlitePool, id: i64, email: &str) -> (Visitor, SignIn) {
+        sqlx::query(r#"INSERT INTO "user" (id, company_name, status) VALUES (?1, 'Works', 'Active')"#).bind(id).execute(pool).await.unwrap();
+        let account = crate::accounts::account::load(pool, UserId(id)).await.unwrap().unwrap();
+        let identity = Identity::Account(Box::new(crate::visitor::SignedIn { account, email: None, via: crate::visitor::Via::Session }));
+        let visitor = Visitor { identity, visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let signin = SignIn { user: UserId(id), token: crate::token::Token::generate(), remembered: false, email: Email::parse(email).unwrap() };
+        (visitor, signin)
+    }
+
     #[tokio::test]
     async fn a_loaded_profile_is_kept_only_while_no_one_was_admitted_since() {
         let pool = crate::db::open_memory().await.unwrap();
         let (headers, t) = (HeaderMap::new(), unix_now());
-        let visitor = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
-        let (pat, lee) = (Email::parse("pat@example.com").unwrap(), Email::parse("lee@example.com").unwrap());
-        let (fresh, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
-        assert!(fresh.remember(&pool, &visitor, &basis, t).await.unwrap().is_some(), "a visit with no profile yet");
-        Profile::remembered(&pool, &headers, &visitor).await.unwrap().admit(&pool, &visitor, &pat, "Pat", "Lee", t).await.unwrap();
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let ((pat, pat_in), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let (fresh, basis) = Profile::loaded(&pool, &headers, &anonymous).await.unwrap();
+        assert!(fresh.remember(&pool, &anonymous, &basis, t).await.unwrap().is_some(), "a visit with no profile yet");
+        Profile::remembered(&pool, &headers, &anonymous).await.unwrap().admit(&pool, &anonymous, &pat_in, "Pat", "Lee", t).await.unwrap();
 
-        let (before, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
+        let (before, basis) = Profile::loaded(&pool, &headers, &pat).await.unwrap();
         assert_eq!(before.email.as_deref(), Some("pat@example.com"));
-        Profile::remembered(&pool, &headers, &visitor).await.unwrap().admit(&pool, &visitor, &lee, "Lee", "Ray", t + 1).await.unwrap();
-        assert_eq!(before.remember(&pool, &visitor, &basis, t + 2).await.unwrap(), None, "built from Pat's profile, which is gone");
-        let admitted = Profile::load(&pool, &headers, &visitor).await.unwrap();
+        Profile::remembered(&pool, &headers, &pat).await.unwrap().admit(&pool, &pat, &lee_in, "Lee", "Ray", t + 1).await.unwrap();
+        assert_eq!(before.remember(&pool, &pat, &basis, t + 2).await.unwrap(), None, "built from Pat's profile, which is gone");
+        let admitted = Profile::load(&pool, &headers, &lee).await.unwrap();
         assert_eq!((admitted.email.as_deref(), admitted.name.as_str()), (Some("lee@example.com"), "Lee Ray"));
 
-        let (after, basis) = Profile::loaded(&pool, &headers, &visitor).await.unwrap();
-        assert!(after.remember(&pool, &visitor, &basis, t + 3).await.unwrap().is_some());
-        assert_eq!(Profile::remembered(&pool, &headers, &visitor).await.unwrap(), after);
+        let (after, basis) = Profile::loaded(&pool, &headers, &lee).await.unwrap();
+        assert!(after.remember(&pool, &lee, &basis, t + 3).await.unwrap().is_some());
+        assert_eq!(Profile::remembered(&pool, &headers, &lee).await.unwrap(), after);
+    }
+
+    #[tokio::test]
+    async fn the_visit_profile_serves_only_the_account_it_was_admitted_for() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let t = unix_now();
+        let ((pat, _), (lee, lee_in)) = (signed_in(&pool, 3, "pat@example.com").await, signed_in(&pool, 4, "lee@example.com").await);
+        let anonymous = Visitor { visit: Some(visit::VisitId::of("v")), ..Visitor::anonymous() };
+        let cookie = r#"{"email":"pat@example.com","name_first":"Pat","name_last":"Lee","phone":"555-0100"}"#;
+        let mut pats = HeaderMap::new();
+        pats.insert(axum::http::header::COOKIE, HeaderValue::from_str(&format!("harcourt_profile={}", utf8_percent_encode(cookie, NON_ALPHANUMERIC))).unwrap());
+        Profile { email: Some("lee@example.com".into()), phone: Some("555-0199".into()), ..Profile::default() }.admit(&pool, &lee, &lee_in, "Lee", "Ray", t).await.unwrap();
+
+        let seen = |p: Profile| (p.email, p.phone);
+        let pat_sees = seen(Profile::remembered(&pool, &pats, &pat).await.unwrap());
+        assert_eq!(pat_sees, (Some("pat@example.com".into()), Some("555-0100".into())), "the cookie, not the profile admitted for another account");
+        assert_eq!(seen(Profile::remembered(&pool, &pats, &anonymous).await.unwrap()), pat_sees, "nor for a visitor not signed in");
+        assert_eq!(seen(Profile::remembered(&pool, &pats, &lee).await.unwrap()), (Some("lee@example.com".into()), Some("555-0199".into())));
+
+        let (kept, basis) = Profile::loaded(&pool, &pats, &pat).await.unwrap();
+        assert!(kept.remember(&pool, &pat, &basis, t + 1).await.unwrap().is_some(), "the request's own profile replaces the other account's");
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &pat).await.unwrap(), kept);
+        assert_eq!(Profile::remembered(&pool, &HeaderMap::new(), &lee).await.unwrap(), Profile::default());
     }
 
     #[tokio::test]

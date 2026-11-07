@@ -136,11 +136,12 @@ pub async fn grant(pool: &SqlitePool, company: &Account, email: &Email, ctx: &Co
     let who = Subject { ip: ctx.ip, user_id: company.id().0, email: Some(email.as_str()), ..Default::default() };
     let domain = company.domain.as_deref().unwrap_or("");
     log::record(pool, Kind::UserRemoteLogin, &who, &format!("Domain: {domain} IP Address {}", ctx.ip)).await;
-    Ok(SignIn { token, remembered: renew > 0, email: email.clone() })
+    Ok(SignIn { user: company.id(), token, remembered: renew > 0, email: email.clone() })
 }
 
 /// A sign-in that the response must hand to the browser.
 pub struct SignIn {
+    pub user: UserId,
     pub token: Token,
     pub remembered: bool,
     pub email: Email,
@@ -215,7 +216,7 @@ pub async fn register(pool: &SqlitePool, services: &Services, reg: &Registration
     } else {
         session::create(pool, id, &basis, ctx.now).await?
     };
-    Ok(Some((id, SignIn { token, remembered: renew > 0, email: email.clone() })))
+    Ok(Some((id, SignIn { user: id, token, remembered: renew > 0, email: email.clone() })))
 }
 
 /// The sign-up row, with the address that signed up, for the staff log.

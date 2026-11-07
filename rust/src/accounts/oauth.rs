@@ -577,7 +577,7 @@ async fn admit(
                 admission::notify_auto_approved(pool, &company, &email, &via, ctx).await?;
             }
             let signin = admission::grant(pool, &company, &email, ctx).await?;
-            let set = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
+            let set = remembered.admit(pool, visitor, &signin, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
             Ok((Outcome::Granted, set))
         }
         Admission::Pending => Ok((Outcome::Pending, Vec::new())),
@@ -594,7 +594,7 @@ async fn admit(
             let Some((id, signin)) = admission::register(pool, services, &registration, &email, true, ctx).await? else {
                 return Ok((Outcome::Pending, Vec::new()));
             };
-            let set = remembered.admit(pool, visitor, &email, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
+            let set = remembered.admit(pool, visitor, &signin, &person.name_first, &person.name_last, ctx.now).await?.into_iter().chain(signin.cookies()).collect();
             let mut lines = vec![format!("Email: {}", escape(email.as_str())), format!("Name: {}", escape(&person.display_name)), format!("{} OAuth registration", kind.name())];
             admission::log_signup(pool, id, &email, ctx, &lines.join("<br>")).await;
             lines.push(String::new());
