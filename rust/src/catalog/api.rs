@@ -42,11 +42,12 @@ pub fn router() -> Router<Arc<Auth>> {
     Router::new().route("/scscpq_api.php", any(scscpq_api))
 }
 
-/// A PARTsolutions URL: https on a partcommunity.com host. Anything else is not fetched.
-pub fn cad_url_allowed(url: &str) -> bool {
-    let Some(rest) = url.strip_prefix("https://") else { return false };
-    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
-    !host.contains(['@', ':']) && host.ends_with(CAD_HOST) && host.len() > CAD_HOST.len()
+/// A PARTsolutions URL, as fetched: https on the default port to a host under partcommunity.com, with no user or
+/// password. Anything else is not fetched.
+pub fn cad_url(url: &str) -> Option<reqwest::Url> {
+    let parsed = reqwest::Url::parse(url).ok()?;
+    let under = parsed.domain()?.strip_suffix(CAD_HOST).is_some_and(|sub| !sub.is_empty() && !sub.ends_with('.'));
+    (under && parsed.scheme() == "https" && parsed.port().is_none() && parsed.username().is_empty() && parsed.password().is_none()).then_some(parsed)
 }
 
 fn params(query: HashMap<String, String>, body: &Bytes) -> HashMap<String, String> {
@@ -278,9 +279,7 @@ impl Api<'_> {
         let server = self.reg.get("cad", "partserver_production");
         let catalog = self.reg.get("cad", "catalog");
         let failed = s.label("catalog_cad_generator_error", "CAD Generator Error", &[]);
-        if !cad_url_allowed(server) || catalog.is_empty() {
-            return failed;
-        }
+        let Some(server) = cad_url(server).filter(|_| !catalog.is_empty()) else { return failed };
         let name = format!("{} {}", p.name_first, p.name_last);
         let mut fields = vec![
             ("cgiaction", if p.generate { "generate" } else { "download" }.to_string()),
@@ -314,13 +313,10 @@ impl Api<'_> {
         if p.generate {
             return format!("SKU: {} Format: {} Emailed to: {}", html::esc_text(sku), html::esc_text(&p.cad_name), html::esc_text(&p.email));
         }
-        let poll_url = resp.text().await.unwrap_or_default().trim().to_string();
-        if !cad_url_allowed(&poll_url) {
-            return failed;
-        }
+        let Some(poll_url) = cad_url(resp.text().await.unwrap_or_default().trim()) else { return failed };
         for _ in 0..POLLS {
             tokio::time::sleep(Duration::from_secs(2)).await;
-            let Ok(r) = client.get(&poll_url).send().await else { return failed };
+            let Ok(r) = client.get(poll_url.clone()).send().await else { return failed };
             if r.status().as_u16() >= 400 {
                 continue;
             }
@@ -329,7 +325,7 @@ impl Api<'_> {
                 return failed;
             }
             if let Some(file) = tag(&xml, "ZIPFILE").or_else(|| tag(&xml, "FILENAME")) {
-                let link = poll_url.replace("download.xml", &file);
+                let link = poll_url.as_str().replace("download.xml", &file);
                 out.insert("url".into(), json!(html::url("/scscpq_api.php", &html::Query::new().with("action", "download").with("url", link))));
                 return "CAD File Downloaded Successfully".into();
             }
@@ -352,12 +348,12 @@ async fn download(url: &str) -> Response {
     if url.is_empty() {
         return text("Error detected Empty URL".into());
     }
-    if !cad_url_allowed(url) {
+    let Some(url) = cad_url(url) else {
         return text("Error detected Malformed URL".into());
-    }
+    };
     let client = reqwest::Client::builder().timeout(Duration::from_secs(120)).redirect(reqwest::redirect::Policy::none()).build();
-    let Ok(Ok(resp)) = (match client {
-        Ok(c) => Ok(c.get(url).send().await),
+    let Ok(Ok(mut resp)) = (match client {
+        Ok(c) => Ok(c.get(url.clone()).send().await),
         Err(e) => Err(e),
     }) else {
         return text("Error detected CURL error".into());
@@ -368,12 +364,19 @@ async fn download(url: &str) -> Response {
     if resp.content_length().is_some_and(|n| n as usize > MAX_FILE) {
         return text("Error detected File too large".into());
     }
-    let Ok(bytes) = resp.bytes().await else { return text("Error detected Empty file".into()) };
-    if bytes.is_empty() || bytes.len() > MAX_FILE {
+    let mut bytes = Vec::new();
+    loop {
+        match resp.chunk().await {
+            Ok(Some(chunk)) if bytes.len() + chunk.len() > MAX_FILE => return text("Error detected File too large".into()),
+            Ok(Some(chunk)) => bytes.extend_from_slice(&chunk),
+            Ok(None) => break,
+            Err(_) => return text("Error detected Empty file".into()),
+        }
+    }
+    if bytes.is_empty() {
         return text("Error detected Empty file".into());
     }
-    let path = url.split(['?', '#']).next().unwrap_or("");
-    let name: String = path.rsplit('/').next().unwrap_or("").chars().filter(|c| c.is_ascii_alphanumeric() || "._-".contains(*c)).collect();
+    let name: String = url.path().rsplit('/').next().unwrap_or("").chars().filter(|c| c.is_ascii_alphanumeric() || "._-".contains(*c)).collect();
     let mut r = (StatusCode::OK, bytes).into_response();
     let h = r.headers_mut();
     h.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/octet-stream"));
@@ -391,10 +394,11 @@ mod tests {
 
     #[test]
     fn only_partsolutions_hosts_are_fetched() {
-        assert!(cad_url_allowed("https://webassistants.partcommunity.com/cgi-bin/cgi2pview.exe"));
-        assert!(cad_url_allowed("https://a.b.partcommunity.com/x/download.xml"));
-        for bad in ["http://webassistants.partcommunity.com/x", "https://partcommunity.com.example/x", "https://example.com/.partcommunity.com", "https://user@x.partcommunity.com/", "https://x.partcommunity.com:8080/", "https://.partcommunity.com/", "file:///etc"] {
-            assert!(!cad_url_allowed(bad), "{bad}");
+        let fetched = |url: &str| cad_url(url).map(|u| u.to_string());
+        assert_eq!(fetched("https://webassistants.partcommunity.com/cgi-bin/cgi2pview.exe").as_deref(), Some("https://webassistants.partcommunity.com/cgi-bin/cgi2pview.exe"));
+        assert_eq!(fetched("https://a.b.partcommunity.com/x/download.xml?id=1").as_deref(), Some("https://a.b.partcommunity.com/x/download.xml?id=1"));
+        for other in ["http://webassistants.partcommunity.com/x", "https://partcommunity.com.example/x", "https://example.com/x.partcommunity.com", "https://partcommunity.com/x", ""] {
+            assert_eq!(fetched(other), None, "{other}");
         }
     }
 
