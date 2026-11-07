@@ -514,11 +514,13 @@ pub fn yes_no(s: &str) -> Option<bool> {
 }
 
 /// fn_number(): the number in the text, written with or without `$`, thousands commas and spaces; a percent sign
-/// makes it hundredths. `None` when the rest is not a number.
+/// makes it hundredths. `None` when the rest is not a number or is too large for a decimal column to hold.
 fn posted_number(s: &str) -> Option<f64> {
     let multiplier = if s.contains('%') { 0.01 } else { 1.0 };
     let kept: String = s.chars().filter(|c| !matches!(c, '$' | ',' | '%' | ' ' | '\u{a0}')).collect();
-    is_numeric(&kept).then(|| floatval(&kept) * multiplier)
+    let n = floatval(&kept) * multiplier;
+    let largest = rust_decimal::prelude::ToPrimitive::to_f64(&rust_decimal::Decimal::MAX).unwrap_or(0.0);
+    (is_numeric(&kept) && n.abs() < largest).then_some(n)
 }
 
 /// strtotime() for the date forms people type, any time after the date ignored: a four-digit first field is the
@@ -713,6 +715,13 @@ mod tests {
         assert_eq!(import_value(&f(Kind::Numeric), "n/a", FileType::Txt), Err("Not a number: n/a".into()));
         assert_eq!(import_value(&f(Kind::Numeric), "12 mm", FileType::Txt), Err("Not a number: 12 mm".into()));
         assert_eq!(import_value(&f(Kind::Decimal(2)), "n/a", FileType::Txt), Err("Not a number: n/a".into()));
+        assert_eq!(ok(Kind::Decimal(2), "1.5e3", FileType::Txt), "1500.00");
+        assert_eq!(ok(Kind::Decimal(2), "1e-30", FileType::Txt), "0.00");
+        for kind in [Kind::Decimal(2), Kind::Percent(2), Kind::Numeric] {
+            for v in ["1e309", "-1e309", "1e30"] {
+                assert_eq!(import_value(&f(kind), v, FileType::Txt), Err(format!("Not a number: {v}")));
+            }
+        }
         assert_eq!(import_value(&f(Kind::Date), "soon", FileType::Txt), Err("Not a date: soon".into()));
         assert_eq!(import_value(&f(Kind::Boolean), "maybe", FileType::Txt), Err("Not yes or no: maybe".into()));
         assert_eq!(import_value(&f(Kind::Id), "five", FileType::Txt), Err("Not a number: five".into()));
