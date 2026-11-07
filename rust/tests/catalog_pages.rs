@@ -347,6 +347,19 @@ async fn search_results_open_the_pick_or_list_the_matches() {
 }
 
 #[tokio::test]
+async fn an_entered_part_number_opens_the_code_as_typed_first() {
+    let h = harness().await;
+    seed(&h.pool).await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (501, '', 1, 'inventory', 'HBLT-1', 1, 7, 1, 2000001)").await;
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, code_normalized, category_id, subcategory_id, inventory_id, ranking) VALUES (510, '', 1, 'competitor_sku', 'HBLT1', 'HBLT1', 1, 7, 2, 3000002)").await;
+    let cookie = signed_in(&h.pool, &Account::customer(34)).await;
+    for (code, part) in [("HBLT1", "HBLT-2"), ("hblt+1", "HBLT-2"), ("hblt-1", "HBLT-1"), ("HB.LT.1", "HBLT-1")] {
+        let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={code}")), Some(&cookie))).await;
+        assert!(body.contains(&format!("Part number: {part}")), "{code} opens {part}: {body}");
+    }
+}
+
+#[tokio::test]
 async fn search_results_list_only_what_the_catalog_lists() {
     let h = harness().await;
     seed(&h.pool).await;

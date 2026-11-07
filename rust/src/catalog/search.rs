@@ -511,6 +511,20 @@ fn fold(s: &str) -> String {
     out
 }
 
+/// The part numbers a typed term names as typed, as catalog.php's lookup() tried them: in upper case, then without
+/// its spaces, then with them as underscores. A code is one of them when it equals one but for ASCII case.
+pub fn as_typed(term: &str) -> Vec<String> {
+    let wanted = term.trim().to_uppercase();
+    let mut codes = vec![wanted.clone()];
+    for joiner in ["", "_"] {
+        let c = wanted.replace(' ', joiner);
+        if !codes.contains(&c) {
+            codes.push(c);
+        }
+    }
+    codes
+}
+
 /// A code as matched: folded, uppercase, without the separators customers drop or swap ("ls1", "LS-1", "ls 1").
 fn norm(s: &str) -> String {
     fold(s).chars().filter(|&c| !matches!(c, '-' | '_' | '.' | '/') && !c.is_whitespace()).map(|c| c.to_ascii_uppercase()).collect()
@@ -822,7 +836,20 @@ fn search(ix: &Index, term: &str, ctx: &Ctx, limit: usize) -> Vec<Hit> {
             break;
         }
         match tier {
-            Tier::Exact => out.take(tier, exact.clone().filter(|&e| ix.entries[e].kind != Kind::SearchWord).map(code_key)),
+            Tier::Exact => {
+                // The results page's exact lookup (`results::exact`) opens the first of these: as typed before only
+                // the same without separators, parts before competitor numbers.
+                let typed = as_typed(term);
+                out.take(
+                    tier,
+                    exact.clone().filter(|&e| ix.entries[e].kind != Kind::SearchWord).map(|e| {
+                        let m = &ix.entries[e];
+                        let (key, e) = code_key(e);
+                        let untyped = !typed.iter().any(|c| c.eq_ignore_ascii_case(&m.code));
+                        ((u64::from(untyped) << 33) | (u64::from(m.kind == Kind::Competitor) << 32) | key, e)
+                    }),
+                )
+            }
             Tier::Learned => {
                 if let Some(picks) = ix.learned.get(&phrase(term)).or_else(|| ix.learned_stems.get(&stemmed(term))) {
                     out.take(tier, picks.iter().map(|&(n, e)| ((u64::from(u32::MAX - n) << 32) | u64::from(ix.by_rank[e as usize]), e)));
@@ -1830,5 +1857,19 @@ ghost\t10\tNOPE-1\t4
             sorted[sorted.len() - 1],
             found
         );
+    }
+
+    #[test]
+    fn an_exact_code_as_typed_comes_first_as_the_results_page_opens_it() {
+        let rows = "1\tinventory\t\t1\tHBLT-1\t1\t10\t1\t2000001\n2\tinventory\t\t1\tHB-LT1\t1\t10\t2\t2000002\n3\tcompetitor_sku\t\t1\tHBLT1\t1\t10\t3\t3000001\n";
+        let parts = "1\tHBLT-1\t10\t1\n2\tHB-LT1\t10\t1\n3\tXP-3\t10\t1\n";
+        let ix = Index::build(rows, "10\t1\tActive\tPins\t\n", "1\tPins\t\n", parts, "", "").unwrap();
+        let first = |term: &str| first_row(&ix, term, &Ctx::default());
+        assert_eq!(first("HBLT1"), Some(3), "the competitor number as typed");
+        assert_eq!(first("HBLT 1"), Some(3), "without its space");
+        assert_eq!(first("hblt-1"), Some(1));
+        assert_eq!(first("HB-LT1"), Some(2));
+        assert_eq!(first("HB.LT.1"), Some(1), "nothing as typed: parts first, by ranking");
+        assert_eq!(as_typed(" hb lt 1 "), vec!["HB LT 1", "HBLT1", "HB_LT_1"]);
     }
 }
