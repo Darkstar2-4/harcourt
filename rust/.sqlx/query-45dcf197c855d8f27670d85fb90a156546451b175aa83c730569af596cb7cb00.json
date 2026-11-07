@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "REPLACE INTO visit (id, destroyed, seen_at) VALUES (?1, 1, ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "45dcf197c855d8f27670d85fb90a156546451b175aa83c730569af596cb7cb00"
+}
