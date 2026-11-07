@@ -86,6 +86,22 @@ pub async fn set_campaign(pool: &SqlitePool, id: &VisitId, code: Option<&str>, n
     Ok(())
 }
 
+/// The visit takes `code` as its campaign unless it already has one; returns the one it has.
+pub async fn adopt_campaign(pool: &SqlitePool, id: &VisitId, code: &str, now: i64) -> sqlx::Result<Option<String>> {
+    forget_idle(pool, now).await?;
+    let key = id.0.as_slice();
+    sqlx::query_scalar!(
+        "INSERT INTO visit (id, campaign_code, seen_at) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET campaign_code = coalesce(campaign_code, excluded.campaign_code), seen_at = excluded.seen_at
+         RETURNING campaign_code",
+        key,
+        code,
+        now
+    )
+    .fetch_one(pool)
+    .await
+}
+
 /// The message an OAuth callback leaves for the sign-up page, as `{provider}_oauth_error` in the PHP session.
 pub async fn leave_oauth_error(pool: &SqlitePool, id: &VisitId, google: bool, message: &str, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
@@ -105,28 +121,29 @@ pub async fn leave_oauth_error(pool: &SqlitePool, id: &VisitId, google: bool, me
     Ok(())
 }
 
-/// The OAuth message waiting for the sign-up page, Microsoft's first, taken so it shows once.
+/// The OAuth message waiting for the sign-up page, Microsoft's first, taken so it shows once. It is cleared only
+/// while it is still the one read, so a message left in between is not lost.
 pub async fn take_oauth_error(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
     let key = id.0.as_slice();
-    let row = sqlx::query!(
-        r#"SELECT microsoft_error, google_error FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3"#,
-        key,
-        now,
-        IDLE_SECS
-    )
-    .fetch_optional(pool)
-    .await?;
-    let Some(row) = row else { return Ok(None) };
-    let taken = if row.microsoft_error.is_some() { "microsoft" } else { "google" };
-    let message = row.microsoft_error.or(row.google_error);
-    if message.is_some() {
-        if taken == "microsoft" {
-            sqlx::query!("UPDATE visit SET microsoft_error = NULL WHERE id = ?1", key).execute(pool).await?;
-        } else {
-            sqlx::query!("UPDATE visit SET google_error = NULL WHERE id = ?1", key).execute(pool).await?;
+    loop {
+        let row = sqlx::query!(
+            r#"SELECT microsoft_error, google_error FROM visit WHERE id = ?1 AND seen_at >= ?2 - ?3"#,
+            key,
+            now,
+            IDLE_SECS
+        )
+        .fetch_optional(pool)
+        .await?;
+        let Some(row) = row else { return Ok(None) };
+        let cleared = match (&row.microsoft_error, &row.google_error) {
+            (Some(m), _) => sqlx::query!("UPDATE visit SET microsoft_error = NULL WHERE id = ?1 AND microsoft_error = ?2", key, m).execute(pool).await?,
+            (None, Some(g)) => sqlx::query!("UPDATE visit SET google_error = NULL WHERE id = ?1 AND google_error = ?2", key, g).execute(pool).await?,
+            (None, None) => return Ok(None),
+        };
+        if cleared.rows_affected() > 0 {
+            return Ok(row.microsoft_error.or(row.google_error));
         }
     }
-    Ok(message)
 }
 
 /// One more access code turned down this visit; returns the count.
@@ -212,22 +229,23 @@ pub async fn set_typed_profile(pool: &SqlitePool, id: &VisitId, json: &str, now:
     Ok(())
 }
 
-/// What was typed, taken: someone was admitted and it has served.
+/// What was typed, taken: someone was admitted and it has served. It is cleared only while it is still what was
+/// read, so a form typed in between is not lost.
 pub async fn take_typed_profile(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<Option<String>> {
-    let typed = typed_profile(pool, id, now).await?;
-    if typed.is_some() {
-        let key = id.0.as_slice();
-        sqlx::query!("UPDATE visit SET typed_profile = NULL WHERE id = ?1", key).execute(pool).await?;
+    let key = id.0.as_slice();
+    loop {
+        let Some(typed) = typed_profile(pool, id, now).await? else { return Ok(None) };
+        if sqlx::query!("UPDATE visit SET typed_profile = NULL WHERE id = ?1 AND typed_profile = ?2", key, typed).execute(pool).await?.rows_affected() > 0 {
+            return Ok(Some(typed));
+        }
     }
-    Ok(typed)
 }
 
 /// session_destroy(): everything the visit held is gone, and the next request with its id begins a visit again.
 pub async fn destroy(pool: &SqlitePool, id: &VisitId, now: i64) -> sqlx::Result<()> {
     forget_idle(pool, now).await?;
     let key = id.0.as_slice();
-    sqlx::query!("DELETE FROM visit WHERE id = ?1", key).execute(pool).await?;
-    sqlx::query!("INSERT INTO visit (id, destroyed, seen_at) VALUES (?1, 1, ?2)", key, now).execute(pool).await?;
+    sqlx::query!("REPLACE INTO visit (id, destroyed, seen_at) VALUES (?1, 1, ?2)", key, now).execute(pool).await?;
     Ok(())
 }
 
@@ -290,5 +308,16 @@ mod tests {
         assert_eq!(profile(&pool, &v, 1003).await.unwrap().as_deref(), Some(r#"{"email":"lee@example.com","name":"Lee "}"#));
         frame(&pool, &VisitId::of("w"), 1003).await.unwrap();
         assert!(replace_profile(&pool, &VisitId::of("w"), None, pat, 1003).await.unwrap(), "a visit row without a profile");
+    }
+
+    #[tokio::test]
+    async fn a_visit_keeps_the_first_campaign_it_adopts() {
+        let pool = crate::db::open_memory().await.unwrap();
+        let v = VisitId::of("v");
+        assert_eq!(adopt_campaign(&pool, &v, "SPRING", 1000).await.unwrap().as_deref(), Some("SPRING"));
+        assert_eq!(adopt_campaign(&pool, &v, "FALL", 1001).await.unwrap().as_deref(), Some("SPRING"));
+        set_campaign(&pool, &v, None, 1002).await.unwrap();
+        assert_eq!(adopt_campaign(&pool, &v, "FALL", 1003).await.unwrap().as_deref(), Some("FALL"));
+        assert_eq!(load(&pool, &v, 1003).await.unwrap().campaign_code.as_deref(), Some("FALL"));
     }
 }
