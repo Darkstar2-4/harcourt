@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!: i64\" FROM inventory WHERE sku = ?1",
+  "query": "SELECT id AS \"id!: i64\" FROM inventory WHERE sku = ?1 COLLATE NOCASE",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "76ba1fd66fe340dc3ac1c5d37c8b83e5961935a516abd4d1cb4f16216293f536"
+  "hash": "ce4441b6e890669b811be07a04a000075a65e7e5b8ff8905a7e579439d4dcc79"
 }

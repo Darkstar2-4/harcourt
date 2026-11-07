@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT coalesce(i.pricing, '') AS \"pricing!: String\", coalesce(c.name, '') AS \"category!: String\",\n                          coalesce(s.name, '') AS \"family!: String\", s.status AS \"status!: String\", s.currency,\n                          coalesce(s.category_id, 0) AS \"family_category!: i64\", coalesce(fc.active, 0) AS \"category_active!: i64\",\n                          coalesce(i.active, 0) AS \"active!: i64\"\n                   FROM inventory i\n                   JOIN subcategory s ON s.id = i.subcategory_id\n                   LEFT JOIN category c ON c.id = i.category_id\n                   LEFT JOIN category fc ON fc.id = s.category_id\n                   WHERE i.sku = ?1",
+  "query": "SELECT coalesce(i.pricing, '') AS \"pricing!: String\", coalesce(c.name, '') AS \"category!: String\",\n                          coalesce(s.name, '') AS \"family!: String\", s.status AS \"status!: String\", s.currency,\n                          coalesce(s.category_id, 0) AS \"family_category!: i64\", coalesce(fc.active, 0) AS \"category_active!: i64\",\n                          coalesce(i.active, 0) AS \"active!: i64\"\n                   FROM inventory i\n                   JOIN subcategory s ON s.id = i.subcategory_id\n                   LEFT JOIN category c ON c.id = i.category_id\n                   LEFT JOIN category fc ON fc.id = s.category_id\n                   WHERE i.sku = ?1 COLLATE NOCASE",
   "describe": {
     "columns": [
       {
@@ -58,5 +58,5 @@
       null
     ]
   },
-  "hash": "076b9dc70b7a6635e9afba8cb69ccf0c4435913ecdf18512e49962c2fdea4b86"
+  "hash": "ba0df58a35e3f8c798c6beb29d229ce3aa9c8c961ecc3e6cd173c706dc56f7f5"
 }

@@ -1,20 +1,20 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COALESCE(prj, '') AS \"prj!: String\" FROM inventory WHERE sku = ?1",
+  "query": "SELECT COALESCE(prj, '') AS \"prj!: String\" FROM inventory WHERE id = ?1",
   "describe": {
     "columns": [
       {
         "name": "prj!: String",
         "ordinal": 0,
-        "type_info": "Null"
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Right": 1
     },
     "nullable": [
-      null
+      false
     ]
   },
-  "hash": "bc9c15a7db16e1aad94ef6964ea94eb5086d7f3935c6d1fb53a153a9c8c30eda"
+  "hash": "637794a393f639541fc608ff6877561ee7dfd5d1df8a798d318684aa4df75fc9"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!: i64\", category_id, subcategory_id FROM inventory WHERE sku = ?1",
+  "query": "SELECT id AS \"id!: i64\", category_id, subcategory_id FROM inventory WHERE id = ?1",
   "describe": {
     "columns": [
       {
@@ -23,10 +23,10 @@
       "Right": 1
     },
     "nullable": [
-      true,
+      false,
       true,
       true
     ]
   },
-  "hash": "4ed931515eafcf8d89f574c7e3537c9f6bc2bbfdf5ce35cf119dc465cb6660c8"
+  "hash": "ac20d23249ebe0c0a7ae4907be16365142fe4c27d21566b6a805dc4f87ca39e6"
 }
