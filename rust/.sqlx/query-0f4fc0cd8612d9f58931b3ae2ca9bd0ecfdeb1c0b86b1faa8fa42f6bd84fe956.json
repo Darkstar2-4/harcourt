@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE visit SET seen_at = ?2 WHERE id = ?1 AND seen_at >= ?2 - ?3\n           RETURNING framed AS \"framed!: i64\", language_code, campaign_code",
+  "query": "UPDATE visit SET seen_at = ?2 WHERE id = ?1 AND seen_at >= ?2 - ?3\n           RETURNING framed AS \"framed!: i64\", language_code, campaign_code, flag_language",
   "describe": {
     "columns": [
       {
@@ -17,6 +17,11 @@
         "name": "campaign_code",
         "ordinal": 2,
         "type_info": "Text"
+      },
+      {
+        "name": "flag_language",
+        "ordinal": 3,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -25,8 +30,9 @@
     "nullable": [
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "fe3b59afeaf3383b82a38b10902cbca772eaf1f7e62713613071e6e1c0b62839"
+  "hash": "0f4fc0cd8612d9f58931b3ae2ca9bd0ecfdeb1c0b86b1faa8fa42f6bd84fe956"
 }
