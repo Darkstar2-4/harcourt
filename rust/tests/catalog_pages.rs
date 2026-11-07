@@ -507,6 +507,12 @@ async fn an_entered_term_finds_a_french_category_name_with_or_without_its_accent
         let (_, _, body) = send(&h.app, get(&page(&format!("search_source=search&search_id=0&search_code={term}")), Some(&french))).await;
         assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "{term}: {body}");
     }
+    // The box offers a category by its name in either language to every visitor, and so does Enter (the family has
+    // its English name row too, as every family does).
+    exec(&h.pool, "INSERT INTO search (id, language_code, active, table_name, code, category_id, subcategory_id, inventory_id, ranking) VALUES (701, 'EN', 1, 'subcategory', 'Toggle Clamps', 2, 9, 0, 2)").await;
+    let english = signed_in(&h.pool, &Account::customer(41)).await;
+    let (_, _, body) = send(&h.app, get(&page("search_source=search&search_id=0&search_code=percage"), Some(&english))).await;
+    assert!(body.contains("<span class='subcat9'></span>") && !body.contains("No results"), "an English visitor: {body}");
 }
 
 #[tokio::test]

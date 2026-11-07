@@ -167,7 +167,6 @@ async fn best_match(ctx: &Ctx<'_>) -> sqlx::Result<Option<Hit>> {
 async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
     let raw = ctx.req.raw_search_code.trim().to_string();
     let terms: Vec<String> = if raw.is_empty() { vec![String::new()] } else { raw.split_whitespace().map(str::to_string).collect() };
-    let lang = ctx.viewer.lang.code();
     let row_lang = search::Lang::from(ctx.viewer.lang);
     let within = ctx.subcategory_id;
     let rows: Vec<(Option<search::Lang>, keywords::Row)> = sqlx::query!(
@@ -198,9 +197,9 @@ async fn search_code(ctx: &mut Ctx<'_>) -> sqlx::Result<String> {
             .map(|(_, r)| r)
             .collect()
     };
+    // Category names in both languages for every visitor, as the box indexes them.
     let names: Vec<(i64, String)> = sqlx::query!(
-        r#"SELECT record_id AS "id!: i64", name AS "name!" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', ?1)"#,
-        lang
+        r#"SELECT record_id AS "id!: i64", name AS "name!" FROM content WHERE record_type = 'category' AND record_item = '' AND language_code IN ('EN', 'FR')"#
     )
     .fetch_all(ctx.pool)
     .await?
