@@ -65,10 +65,11 @@ async fn suggestions_leave_out_what_the_catalog_does_not_list() {
 }
 
 #[tokio::test]
-async fn the_box_answers_any_visitor_but_only_its_own_scripts() {
+async fn the_box_answers_only_its_own_scripts() {
     let h = harness().await;
     seed(&h.pool).await;
-    let (status, headers, body) = send(&h.app, suggest("hblt", None, "/catalog/")).await;
+    let cookie = signed_in(&h.pool, &Account::customer(45)).await;
+    let (status, headers, body) = send(&h.app, suggest("hblt", Some(&cookie), "/catalog/")).await;
     assert_eq!((status, &headers["content-type"]), (StatusCode::OK, &"application/json; charset=utf-8".parse().unwrap()));
     assert!(body.contains("HBLT-1"), "{body}");
     for headers in [vec![("host", "www.harcourt.co")], vec![("host", "www.harcourt.co"), ("x-requested-with", "XMLHttpRequest"), ("referer", "https://elsewhere.example/")]] {
