@@ -419,7 +419,7 @@ async fn sku_error(pool: &SqlitePool, tabs: &mut Tabs) -> sqlx::Result<()> {
         r#"SELECT l.sku AS "sku!", c.name AS "category_name?", s.name AS "subcategory_name?",
                   min(l.date_time) AS "first!: i64", max(l.date_time) AS "last!: i64", count(*) AS "count!: i64"
            FROM log l
-           LEFT JOIN inventory i ON i.sku = l.sku
+           LEFT JOIN inventory i ON i.sku = l.sku COLLATE NOCASE
            LEFT JOIN category c ON c.id = i.category_id
            LEFT JOIN subcategory s ON s.id = i.subcategory_id
            WHERE l.type = 'PARTSolutions' AND l.subtype = 'Reverse Lookup Error' AND l.date_time >= ?1 AND s.prj <> ''

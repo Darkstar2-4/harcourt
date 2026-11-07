@@ -50,7 +50,7 @@ impl Pricing for CatalogPrices {
                    JOIN subcategory s ON s.id = i.subcategory_id
                    LEFT JOIN category c ON c.id = i.category_id
                    LEFT JOIN category fc ON fc.id = s.category_id
-                   WHERE i.sku = ?1"#,
+                   WHERE i.sku = ?1 COLLATE NOCASE"#,
                 sku
             )
             .fetch_optional(pool)
