@@ -72,7 +72,8 @@ impl Pages {
         }
     }
 
-    /// The page for this request, or None when the export has no such page or the query could change the render.
+    /// The page for a GET the search pages hand back (a shape the search does not answer), or None when the export
+    /// has no such page or the query could change the render.
     pub async fn serve(&self, app: &App, path: &str, query: &str) -> Option<Response<Body>> {
         let mut lang = "en";
         for kv in query.split('&').filter(|kv| !kv.is_empty()) {
@@ -95,8 +96,8 @@ impl Pages {
         }
     }
 
-    /// The page for a request other than a neutral GET (a form post), which WordPress printed at `asked.uri` with
-    /// the form's answer in its place.
+    /// The page the cms routed a request to, as WordPress printed it at `asked.uri`, a posted form's answer in its
+    /// place.
     pub async fn answer(&self, app: &App, asked: &ExportRequest) -> Response<Body> {
         match self.assemble(app, &asked.path, asked.lang, &asked.uri, asked.answer.as_ref()).await {
             Ok(Some(html)) => page_response(app, html),

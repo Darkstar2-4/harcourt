@@ -759,16 +759,16 @@ async fn page(State(wp): State<Arc<Wp>>, headers: header::HeaderMap, uri: Uri) -
     serve(&wp, &uri, &headers, None, true).await
 }
 
-/// A GET main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export.
+/// A request main.rs answers instead: `compose` for the catalog page, `export` for a page from the static export.
 fn handback(to: &'static str) -> Response<Body> {
     let mut r = Response::new(Body::empty());
     r.headers_mut().insert("x-hxweb", HeaderValue::from_static(to));
     r
 }
 
-/// Any other request to a page from the static export, which main.rs answers with the export's page as WordPress
-/// printed it at `uri`: the forms drawn for that address, `answer` (a submitted form's markup) in place of the
-/// first island of its form. Carried in the `export` handback's extensions.
+/// A request the cms routes to a page from the static export, which main.rs answers with the export's page as
+/// WordPress printed it at `uri`: the forms drawn for that address, `answer` (a submitted form's markup) in place
+/// of the first island of its form. Carried in the `export` handback's extensions.
 #[derive(Debug, Clone)]
 pub struct ExportRequest {
     /// The page's path in the export.
@@ -964,9 +964,7 @@ async fn respond(wp: &Arc<Wp>, site: &Site, shown: Shown<'_>, uri: &Uri, q: &Que
     // A page whose template the cms does not render yet (a builder part not ported) is served from the static export.
     if let Some(page) = page.filter(|p| rendered.is_none() && p.kind == PostType::Page) {
         let mut r = handback("export");
-        if !get {
-            r.extensions_mut().insert(ExportRequest { path: page.path.clone(), lang: page.lang.code(), uri: page_uri(page), answer });
-        }
+        r.extensions_mut().insert(ExportRequest { path: page.path.clone(), lang: page.lang.code(), uri: page_uri(page), answer });
         return r;
     }
     let (status, html, islands, lang, wp_uri) = match rendered {
