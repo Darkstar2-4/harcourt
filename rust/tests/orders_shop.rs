@@ -531,3 +531,19 @@ async fn the_checkout_form_stars_what_the_registry_requires() {
     assert!(page.contains("<option value='' selected>Shipping Carrier</option>"));
     assert_eq!(page.matches("Indicates mandatory fields").count(), 3);
 }
+
+#[tokio::test]
+async fn the_checkout_form_starts_from_the_last_order_under_the_address_in_any_case() {
+    let h = harness().await;
+    account(&h.pool, 1, "Customer", 1).await;
+    checkout_fixtures(&h.pool).await;
+    sqlx::query("INSERT INTO orderhd (user_id, email, name_first, company_name, city) VALUES (1, ' Buyer@Example.COM', 'Imported', 'Imported Co', 'Oldtown'), (1, 'other@example.com', 'Other', 'Other Co', 'Elsewhere')")
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    let c = cookie(&h.pool, 1).await;
+    add(&h, &c, "SKU-1", "1").await;
+    let (_, _, page) = send(&h.app, request(Method::GET, "/checkout.php", &c, &[], false)).await;
+    assert!(page.contains("value='Imported'") && page.contains("value='Oldtown'"), "the imported order under the signed-in address: {page}");
+    assert!(page.contains("value='buyer@example.com'") && !page.contains("value='Other'"), "{page}");
+}
