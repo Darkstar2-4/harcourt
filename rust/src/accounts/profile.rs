@@ -278,6 +278,14 @@ impl Profile {
         })
     }
 
+    /// Whether a field has a value, as a required one must: a name is its first and its last name.
+    pub fn filled(&self, key: &str) -> bool {
+        match key {
+            "name" => self.filled("name_first") && self.filled("name_last"),
+            _ => !self.get(key).trim().is_empty(),
+        }
+    }
+
     pub fn get(&self, key: &str) -> &str {
         let slot = match key {
             "company_name" => &self.company_name,
@@ -518,7 +526,8 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
             },
             _ => fn_text(&raw),
         };
-        if need == Need::Required && value.is_empty() {
+        p.set(data_key, value);
+        if need == Need::Required && !p.filled(data_key) {
             let label = match (f, input_key) {
                 (Field::Name, "name_first") => "First Name",
                 (Field::Name, _) => "Last Name",
@@ -526,7 +535,6 @@ pub fn verify(layout: &Layout, posted: &[(String, String)], mut p: Profile) -> (
             };
             errors.push((field_name(input_key), format!("{label} cannot be blank")));
         }
-        p.set(data_key, value);
     };
     check(Field::CompanyName, "company_name", "company_name", &mut p);
     check(Field::Name, "name_first", "name_first", &mut p);
@@ -724,6 +732,18 @@ mod tests {
         let (p, errors) = verify(&l, &posted("a'b@example.com"), Profile::default());
         assert_eq!(p.get("email"), "a'b@example.com");
         assert_eq!(errors, [("profile_email".to_string(), "Email format error".to_string())]);
+    }
+
+    #[test]
+    fn a_name_is_filled_by_both_its_parts() {
+        let mut p = Profile { name: " ".into(), ..Profile::default() };
+        assert!(!p.filled("name"));
+        p.name_first = Some("Pat".into());
+        p.name_last = Some("  ".into());
+        assert!(!p.filled("name") && p.filled("name_first") && !p.filled("name_last"));
+        p.name_last = Some("Lee".into());
+        assert!(p.filled("name"));
+        assert!(!p.filled("city"));
     }
 
     #[test]
