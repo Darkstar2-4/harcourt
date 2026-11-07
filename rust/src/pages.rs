@@ -16,7 +16,7 @@ use axum::{
 };
 use hxweb::{orders::forms::render::Answer, routes::wordpress::ExportRequest};
 use regex::Regex;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::App;
 
@@ -29,7 +29,14 @@ const NEUTRAL_KEYS: [&str; 9] = ["lang", "hxlang", "utm_source", "utm_medium", "
 pub struct Export {
     chrome: HashMap<(String, String), String>,
     pages: HashMap<(String, String), Entry>,
-    stamp: SystemTime,
+}
+
+/// Every file under the export with its size and mtime, and the directories that could not be read. A publish
+/// that adds, removes or rewrites a file changes it, whatever times the files keep.
+#[derive(Debug, Default, PartialEq)]
+struct Stamp {
+    files: Vec<(PathBuf, u64, Option<SystemTime>)>,
+    unreadable: Vec<(PathBuf, String)>,
 }
 
 struct Entry {
@@ -40,6 +47,7 @@ struct Entry {
 pub struct Pages {
     root: PathBuf,
     export: RwLock<Option<Arc<Export>>>,
+    seen: Mutex<Option<Stamp>>,
     islands: RwLock<HashMap<(u32, String, String), (Instant, String)>>,
     placeholder: Regex,
     island: Regex,
@@ -50,26 +58,32 @@ impl Pages {
         Pages {
             root,
             export: RwLock::new(None),
+            seen: Mutex::new(None),
             islands: RwLock::new(HashMap::new()),
             placeholder: Regex::new(r"\{\{([A-Za-z0-9_]+)\}\}").unwrap(),
             island: Regex::new(r"\{\{gform:(\d+)\}\}").unwrap(),
         }
     }
 
-    /// Reload the export when a file under it changed. Keeps the previous export if the new one does not load.
+    /// Reload the export when a file under it changed. Keeps the previous export if the new one does not load, and
+    /// tries again once the files change again.
     pub async fn refresh(&self) {
-        let stamp = newest_mtime(&self.root);
-        if self.export.read().await.as_ref().is_some_and(|e| Some(e.stamp) == stamp) {
+        let stamp = stamp(&self.root);
+        let mut seen = self.seen.lock().await;
+        if seen.as_ref() == Some(&stamp) {
             return;
         }
-        let Some(stamp) = stamp else { return };
-        match load(&self.root, stamp) {
+        for (dir, e) in &stamp.unreadable {
+            tracing::warn!("export: {} skipped: {e}", dir.display());
+        }
+        match load(&self.root) {
             Ok(e) => {
                 tracing::info!("export loaded: {} pages", e.pages.len());
                 *self.export.write().await = Some(Arc::new(e));
             }
             Err(e) => tracing::error!("export not loaded, keeping the previous one: {e}"),
         }
+        *seen = Some(stamp);
     }
 
     /// The page for a GET the search pages hand back (a shape the search does not answer), or None when the export
@@ -249,23 +263,32 @@ fn is_image_url(url: &str) -> bool {
         && [".jpg", ".jpeg", ".png", ".webp", ".gif"].iter().any(|ext| path.ends_with(ext))
 }
 
-fn newest_mtime(root: &Path) -> Option<SystemTime> {
-    let mut newest = None;
+fn stamp(root: &Path) -> Stamp {
+    let mut stamp = Stamp::default();
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        for e in std::fs::read_dir(&dir).ok()?.flatten() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(e) => {
+                stamp.unreadable.push((dir, e.to_string()));
+                continue;
+            }
+        };
+        for e in entries.flatten() {
             let Ok(meta) = e.metadata() else { continue };
             if meta.is_dir() {
                 stack.push(e.path());
-            } else if let Ok(m) = meta.modified() {
-                newest = Some(newest.map_or(m, |n: SystemTime| n.max(m)));
+            } else {
+                stamp.files.push((e.path(), meta.len(), meta.modified().ok()));
             }
         }
     }
-    newest
+    stamp.files.sort();
+    stamp.unreadable.sort();
+    stamp
 }
 
-fn load(root: &Path, stamp: SystemTime) -> Result<Export, String> {
+fn load(root: &Path) -> Result<Export, String> {
     let read = |rel: &str| std::fs::read_to_string(root.join(rel)).map_err(|e| format!("{rel}: {e}"));
     let manifest: serde_json::Value = serde_json::from_str(&read("manifest.json")?).map_err(|e| format!("manifest: {e}"))?;
     let mut chrome = HashMap::new();
@@ -298,7 +321,7 @@ fn load(root: &Path, stamp: SystemTime) -> Result<Export, String> {
             pages.insert((path, lang.to_string()), Entry { body: read(file)?, values });
         }
     }
-    Ok(Export { chrome, pages, stamp })
+    Ok(Export { chrome, pages })
 }
 
 #[cfg(test)]
@@ -316,6 +339,53 @@ mod tests {
         assert_eq!(with_hero_bg_preload(plain), plain);
         let id = "<head></head><body><section class=\"contact-hero\" style=\"background-image:url('474')\"></section></body>";
         assert_eq!(with_hero_bg_preload(id), id);
+    }
+
+    #[tokio::test]
+    async fn a_publish_is_loaded_whatever_times_its_files_keep() {
+        let root = std::env::temp_dir().join(format!("hx-pages-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for lang in ["en", "fr"] {
+            std::fs::create_dir_all(root.join(format!("chrome/{lang}"))).unwrap();
+            for part in ["head", "header", "footer"] {
+                std::fs::write(root.join(format!("chrome/{lang}/{part}.html")), part).unwrap();
+            }
+        }
+        std::fs::create_dir_all(root.join("pages")).unwrap();
+        std::fs::write(root.join("manifest.json"), r#"{"pages":[{"id":"7","en":{"url":"https://www.example.com/a/","file":"pages/a.html"}}]}"#).unwrap();
+        let publish = |body: &str, days_ago: u64| {
+            let file = root.join("pages/a.html");
+            std::fs::write(&file, body).unwrap();
+            let then = SystemTime::now() - Duration::from_secs(days_ago * 86_400);
+            std::fs::File::options().write(true).open(&file).unwrap().set_modified(then).unwrap();
+        };
+        let pages = Pages::new(root.clone());
+        let body = || async { pages.export.read().await.as_ref().unwrap().pages[&("/a/".to_string(), "en".to_string())].body.clone() };
+
+        publish("first", 10);
+        pages.refresh().await;
+        assert_eq!(body().await, "first");
+        publish("second, kept older", 20);
+        pages.refresh().await;
+        assert_eq!(body().await, "second, kept older");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let locked = root.join("locked");
+            std::fs::create_dir_all(&locked).unwrap();
+            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+            publish("third", 30);
+            let unreadable = stamp(&root).unreadable.len();
+            pages.refresh().await;
+            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+            assert_eq!(body().await, "third");
+            // root can read anything, so only assert when the test runs unprivileged
+            if std::fs::metadata("/root/.").is_err() {
+                assert_eq!(unreadable, 1);
+            }
+        }
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
