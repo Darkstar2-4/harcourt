@@ -119,14 +119,22 @@ pub async fn save_page(pool: &SqlitePool, id: PageId, changes: &[Change], by: Us
             .execute(&mut *tx)
             .await?;
         } else {
+            if ch.name == "content" {
+                // The form posts every field; only a body that changed replaces the stored post search reads.
+                sqlx::query!(
+                    "UPDATE cms_field SET value = ?2 WHERE page_id = ?1 AND name = '@post_content'
+                       AND EXISTS (SELECT 1 FROM cms_field WHERE page_id = ?1 AND name = 'content' AND kind = 'html' AND value <> ?2)",
+                    id.0,
+                    ch.value
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
             let done = sqlx::query!("UPDATE cms_field SET value = ?3 WHERE page_id = ?1 AND name = ?2 AND kind = 'html'", id.0, ch.name, ch.value)
                 .execute(&mut *tx)
                 .await?;
             if done.rows_affected() == 0 {
                 return Err(EditError::NotEditable(ch.name.clone()));
-            }
-            if ch.name == "content" {
-                sqlx::query!("UPDATE cms_field SET value = ?2 WHERE page_id = ?1 AND name = '@post_content'", id.0, ch.value).execute(&mut *tx).await?;
             }
         }
     }

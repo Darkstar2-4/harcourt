@@ -360,17 +360,21 @@ async fn head_texts_print_as_wordpress_escapes_them() {
 #[tokio::test]
 async fn an_edited_body_is_what_search_reads() {
     let (_, pool) = harness().await;
-    for (name, kind) in [("content", "html"), ("@post_content", "choice")] {
-        sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (165, ?1, ?2, '<p>Ships in six weeks.</p>') ON CONFLICT (page_id, name) DO UPDATE SET value = excluded.value")
+    for (name, kind, value) in [("content", "html", "<p>Ships in six weeks &#8211; you&#8217;re set.</p>"), ("@post_content", "choice", "<!-- wp:paragraph -->Ships in six weeks - you're set.")] {
+        sqlx::query("INSERT INTO cms_field (page_id, name, kind, value) VALUES (165, ?1, ?2, ?3) ON CONFLICT (page_id, name) DO UPDATE SET value = excluded.value")
             .bind(name)
             .bind(kind)
+            .bind(value)
             .execute(&pool)
             .await
             .unwrap();
     }
-    edit::save_page(&pool, PageId(165), &[Change { name: "content".into(), value: "<p>Ships in six days.</p>".into() }], UserId(7), "", 100).await.unwrap();
-    let stored: String = sqlx::query_scalar("SELECT value FROM cms_field WHERE page_id = 165 AND name = '@post_content'").fetch_one(&pool).await.unwrap();
-    assert_eq!(stored, "<p>Ships in six days.</p>");
+    let post_content = |pool: SqlitePool| async move { sqlx::query_scalar::<_, String>("SELECT value FROM cms_field WHERE page_id = 165 AND name = '@post_content'").fetch_one(&pool).await.unwrap() };
+    let unchanged = Change { name: "content".into(), value: "<p>Ships in six weeks &#8211; you&#8217;re set.</p>".into() };
+    edit::save_page(&pool, PageId(165), &[unchanged, Change { name: "meta:title".into(), value: "New title".into() }], UserId(7), "", 100).await.unwrap();
+    assert_eq!(post_content(pool.clone()).await, "<!-- wp:paragraph -->Ships in six weeks - you're set.", "a save that leaves the body alone keeps the stored post");
+    edit::save_page(&pool, PageId(165), &[Change { name: "content".into(), value: "<p>Ships in six days.</p>".into() }], UserId(7), "", 101).await.unwrap();
+    assert_eq!(post_content(pool.clone()).await, "<p>Ships in six days.</p>");
 }
 
 #[tokio::test]
