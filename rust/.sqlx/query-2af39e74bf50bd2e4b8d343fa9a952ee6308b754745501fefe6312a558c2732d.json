@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cart_item (session_hash, sku, quantity, comment, added_at, touched_at)\n         SELECT ?2, sku, quantity, comment, added_at, ?3 FROM cart_item WHERE session_hash = ?1 AND touched_at >= ?4\n         ON CONFLICT (session_hash, sku) DO UPDATE SET quantity = min(cart_item.quantity + excluded.quantity, ?5),\n             comment = CASE WHEN cart_item.comment = '' THEN excluded.comment ELSE cart_item.comment END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "2af39e74bf50bd2e4b8d343fa9a952ee6308b754745501fefe6312a558c2732d"
+}
